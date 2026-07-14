@@ -9,6 +9,7 @@ import type {
   ProductionBatch,
   RawMaterial,
   StockMovement,
+  StockMovementInput,
   VehicleDispatch,
   VehicleDispatchItem,
   WorkerTask,
@@ -120,6 +121,7 @@ type StockMovementRow = {
   created_at: Date | string;
   design: string;
   channel: StockMovement["channel"];
+  size_run: string | null;
   type: StockMovement["type"];
   pairs: number | string;
   note: string;
@@ -303,6 +305,7 @@ function stockMovementFromRow(row: StockMovementRow): StockMovement {
     createdAt: isoDate(row.created_at),
     design: row.design,
     channel: row.channel,
+    sizeRun: row.size_run ?? "Mixed",
     type: row.type,
     pairs: cleanNumber(Number(row.pairs)),
     note: row.note,
@@ -368,7 +371,7 @@ export async function getOperationsDataFromPostgres(): Promise<OperationsData> {
     ),
     queryPostgres<StockMovementRow>(
       "operations",
-      "SELECT id, created_at, design, channel, type, pairs, note FROM stock_movements ORDER BY created_at DESC",
+      "SELECT id, created_at, design, channel, size_run, type, pairs, note FROM stock_movements ORDER BY created_at DESC",
     ),
     queryPostgres<LedgerTransactionRow>(
       "operations",
@@ -669,16 +672,17 @@ export async function addVehicleDispatchToPostgres(dispatch: Omit<VehicleDispatc
 function dispatchItemStockMovements(
   item: Pick<
     VehicleDispatchItem,
-    "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "loadedPairs" | "soldPairs" | "returnedPairs"
+    "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "sizeRun" | "loadedPairs" | "soldPairs" | "returnedPairs"
   >,
-): Array<Omit<StockMovement, "id" | "createdAt">> {
+): Array<StockMovementInput> {
   const notePrefix = `Dispatch ${item.vehicleNumber} ${item.marketRoute} item ${item.id}`.trim();
-  const movements: Array<Omit<StockMovement, "id" | "createdAt">> = [];
+  const movements: Array<StockMovementInput> = [];
 
   if (item.loadedPairs > 0) {
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Dispatch Out",
       pairs: item.loadedPairs,
       note: `${notePrefix} loaded`,
@@ -689,6 +693,7 @@ function dispatchItemStockMovements(
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Return In",
       pairs: item.returnedPairs,
       note: `${notePrefix} returned`,
@@ -699,6 +704,7 @@ function dispatchItemStockMovements(
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Market Sale",
       pairs: item.soldPairs,
       note: `${notePrefix} sold`,
@@ -776,12 +782,13 @@ export async function addVehicleDispatchItemToPostgres(item: Omit<
       marketRoute: dispatch.marketRoute,
       design,
       channel: item.channel,
+      sizeRun: cleanText(item.sizeRun ?? "") || "Mixed",
       loadedPairs,
       soldPairs,
       returnedPairs,
     } satisfies Pick<
       VehicleDispatchItem,
-      "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "loadedPairs" | "soldPairs" | "returnedPairs"
+      "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "sizeRun" | "loadedPairs" | "soldPairs" | "returnedPairs"
     >;
 
     for (const movement of dispatchItemStockMovements(dispatchItemForStockMovements)) {
@@ -926,18 +933,29 @@ function reverseStockMovement(stock: FinishedStock, movement: Pick<StockMovement
 
 async function findOrCreateFinishedStock(
   db: PostgresExecutor,
-  movement: Pick<StockMovement, "design" | "channel">,
+  movement: Pick<StockMovement, "design" | "channel" | "sizeRun">,
 ) {
+  const sizeRun = (movement.sizeRun ?? "").trim() || "Mixed";
+  // Prefer an exact size-run row, then the aggregate "Mixed" row, then any row
+  // for this design/channel — this keeps range-based stock rows working while
+  // letting size-specific rows take over once the owner adds them.
   const existingRows = await db.query<FinishedStockRow>(
     `
       SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
       FROM finished_stock
       WHERE lower(design) = lower($1) AND channel = $2
-      ORDER BY CASE WHEN size_run = 'Mixed' THEN 0 ELSE 1 END, created_at DESC
+      ORDER BY
+        CASE
+          WHEN size_run = $3 THEN 0
+          WHEN size_run = 'Mixed' THEN 1
+          WHEN size_run LIKE '%-%' THEN 2
+          ELSE 3
+        END,
+        created_at DESC
       LIMIT 1
       FOR UPDATE
     `,
-    [movement.design, movement.channel],
+    [movement.design, movement.channel, sizeRun],
   );
 
   if (existingRows[0]) {
@@ -947,10 +965,10 @@ async function findOrCreateFinishedStock(
   const createdRows = await db.query<FinishedStockRow>(
     `
       INSERT INTO finished_stock (id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs, updated_at)
-      VALUES ($1, $2, $3, 'Mixed', 0, 0, 0, now())
+      VALUES ($1, $2, $3, $4, 0, 0, 0, now())
       RETURNING id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
     `,
-    [createId("STOCK"), movement.design, movement.channel],
+    [createId("STOCK"), movement.design, movement.channel, sizeRun],
   );
 
   return finishedStockFromRow(createdRows[0]);
@@ -968,15 +986,13 @@ async function updateFinishedStockTotals(db: PostgresExecutor, stock: FinishedSt
   );
 }
 
-export async function addStockMovementToPostgres(
-  movement: Omit<StockMovement, "id" | "createdAt">,
-) {
+export async function addStockMovementToPostgres(movement: StockMovementInput) {
   return transactionPostgres("operations", (db) => insertStockMovement(db, movement));
 }
 
 export async function insertStockMovement(
   db: PostgresExecutor,
-  movement: Omit<StockMovement, "id" | "createdAt">,
+  movement: StockMovementInput,
 ) {
   const createdAt = new Date();
   const record: StockMovement = {
@@ -984,6 +1000,7 @@ export async function insertStockMovement(
     id: createId("MOVE"),
     createdAt: createdAt.toISOString(),
     design: cleanText(movement.design),
+    sizeRun: cleanText(movement.sizeRun ?? "") || "Mixed",
     pairs: cleanNumber(movement.pairs),
     note: cleanText(movement.note),
   };
@@ -993,11 +1010,20 @@ export async function insertStockMovement(
 
   const rows = await db.query<StockMovementRow>(
     `
-      INSERT INTO stock_movements (id, created_at, design, channel, type, pairs, note)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, created_at, design, channel, type, pairs, note
+      INSERT INTO stock_movements (id, created_at, design, channel, size_run, type, pairs, note)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, created_at, design, channel, size_run, type, pairs, note
     `,
-    [record.id, createdAt, record.design, record.channel, record.type, record.pairs, record.note],
+    [
+      record.id,
+      createdAt,
+      record.design,
+      record.channel,
+      record.sizeRun,
+      record.type,
+      record.pairs,
+      record.note,
+    ],
   );
 
   return stockMovementFromRow(rows[0]);

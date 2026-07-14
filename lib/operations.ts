@@ -145,9 +145,18 @@ export type StockMovement = {
   createdAt: string;
   design: string;
   channel: BusinessChannel;
+  // Size run the movement applies to. "Mixed" means it isn't size-specific and
+  // targets the aggregate/range stock row (backward-compatible default).
+  sizeRun: string;
   type: StockMovementType;
   pairs: number;
   note: string;
+};
+
+// Movement input: callers may omit sizeRun (defaults to "Mixed"), so existing
+// production/dispatch/adjustment call sites keep working unchanged.
+export type StockMovementInput = Omit<StockMovement, "id" | "createdAt" | "sizeRun"> & {
+  sizeRun?: string;
 };
 
 export type LedgerTransactionType =
@@ -594,21 +603,30 @@ async function getOperationsDataFromLocalJson(): Promise<OperationsData> {
   }
 }
 
-function createStockMovementRecord(movement: Omit<StockMovement, "id" | "createdAt">): StockMovement {
+function createStockMovementRecord(movement: StockMovementInput): StockMovement {
   return {
     ...movement,
     id: createId("MOVE"),
     createdAt: new Date().toISOString(),
     design: movement.design.trim(),
+    sizeRun: (movement.sizeRun ?? "").trim() || "Mixed",
     pairs: cleanNumber(movement.pairs),
     note: movement.note.trim(),
   };
 }
 
-function findOrCreateFinishedStock(data: OperationsData, movement: Pick<StockMovement, "design" | "channel">) {
+function findOrCreateFinishedStock(
+  data: OperationsData,
+  movement: Pick<StockMovement, "design" | "channel" | "sizeRun">,
+) {
   const matchingStock = data.finishedStock.filter((stock) => stockKey(stock) === stockKey(movement));
+  // Prefer an exact size-run row, then the aggregate "Mixed" row, then any row
+  // for this design/channel (this is what keeps range-based stock working).
   const existingStock =
-    matchingStock.find((stock) => sameDesign(stock.sizeRun, "Mixed")) ?? matchingStock[0];
+    matchingStock.find((stock) => sameDesign(stock.sizeRun, movement.sizeRun)) ??
+    matchingStock.find((stock) => sameDesign(stock.sizeRun, "Mixed")) ??
+    matchingStock.find((stock) => stock.sizeRun.includes("-")) ??
+    matchingStock[0];
 
   if (existingStock) {
     return existingStock;
@@ -618,7 +636,7 @@ function findOrCreateFinishedStock(data: OperationsData, movement: Pick<StockMov
     id: createId("STOCK"),
     design: movement.design,
     channel: movement.channel,
-    sizeRun: "Mixed",
+    sizeRun: movement.sizeRun.trim() || "Mixed",
     stockPairs: 0,
     soldPairs: 0,
     returnedPairs: 0,
@@ -724,16 +742,17 @@ function deleteStockMovementFromLocalData(data: OperationsData, id: string) {
 function dispatchItemStockMovements(
   item: Pick<
     VehicleDispatchItem,
-    "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "loadedPairs" | "soldPairs" | "returnedPairs"
+    "id" | "vehicleNumber" | "marketRoute" | "design" | "channel" | "sizeRun" | "loadedPairs" | "soldPairs" | "returnedPairs"
   >,
-): Array<Omit<StockMovement, "id" | "createdAt">> {
+): Array<StockMovementInput> {
   const notePrefix = `Dispatch ${item.vehicleNumber} ${item.marketRoute} item ${item.id}`.trim();
-  const movements: Array<Omit<StockMovement, "id" | "createdAt">> = [];
+  const movements: Array<StockMovementInput> = [];
 
   if (item.loadedPairs > 0) {
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Dispatch Out",
       pairs: item.loadedPairs,
       note: `${notePrefix} loaded`,
@@ -744,6 +763,7 @@ function dispatchItemStockMovements(
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Return In",
       pairs: item.returnedPairs,
       note: `${notePrefix} returned`,
@@ -754,6 +774,7 @@ function dispatchItemStockMovements(
     movements.push({
       design: item.design,
       channel: item.channel,
+      sizeRun: item.sizeRun,
       type: "Market Sale",
       pairs: item.soldPairs,
       note: `${notePrefix} sold`,
@@ -1096,7 +1117,7 @@ export async function addCustomerLedger(ledger: Omit<CustomerLedger, "id" | "las
   });
 }
 
-export async function addStockMovement(movement: Omit<StockMovement, "id" | "createdAt">) {
+export async function addStockMovement(movement: StockMovementInput) {
   const record = createStockMovementRecord(movement);
 
   return runWithDataBackend({

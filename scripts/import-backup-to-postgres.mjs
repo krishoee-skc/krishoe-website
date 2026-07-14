@@ -815,12 +815,13 @@ async function upsertFinishedStock(client, stock) {
 async function upsertStockMovement(client, movement) {
   await client.query(
     `
-      INSERT INTO stock_movements (id, created_at, design, channel, type, pairs, note)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO stock_movements (id, created_at, design, channel, size_run, type, pairs, note)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE SET
         created_at = EXCLUDED.created_at,
         design = EXCLUDED.design,
         channel = EXCLUDED.channel,
+        size_run = EXCLUDED.size_run,
         type = EXCLUDED.type,
         pairs = EXCLUDED.pairs,
         note = EXCLUDED.note
@@ -830,6 +831,7 @@ async function upsertStockMovement(client, movement) {
       dateValue(movement.createdAt),
       requiredString(movement.design),
       movement.channel,
+      requiredString(movement.sizeRun, "Mixed"),
       movement.type,
       cleanNumber(movement.pairs),
       requiredString(movement.note),

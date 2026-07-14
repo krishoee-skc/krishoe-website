@@ -5,6 +5,7 @@ import {
   addLedgerTransaction,
   addStockMovement,
   getOperationsData,
+  type FinishedStock,
   type LedgerTransaction,
   type OperationsData,
   type StockMovement,
@@ -190,10 +191,6 @@ function sameDesign(left: string, right: string) {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
-function stockKey(value: Pick<PosInvoiceItem, "design"> & { channel: PosChannel }) {
-  return `${value.design.trim().toLowerCase()}::${value.channel}`;
-}
-
 function invoiceStockMovementType(kind: PosInvoiceKind) {
   return kind === "Sale" ? "Sale Out" : "Return In";
 }
@@ -315,29 +312,53 @@ function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "payme
   }
 }
 
+function resolveStockRow(
+  finishedStock: FinishedStock[],
+  design: string,
+  channel: PosChannel,
+  sizeRun: string,
+) {
+  const matching = finishedStock.filter(
+    (stock) => sameDesign(stock.design, design) && stock.channel === channel,
+  );
+
+  // Preference: exact size run, then the aggregate "Mixed" row, then a range
+  // row (e.g. "36-41" that covers this size), then any row. A range is chosen
+  // over a different specific-size row so selling size 41 draws from "36-41",
+  // not from an unrelated "38" row. Mirrors the decrement logic.
+  return (
+    matching.find((stock) => sameDesign(stock.sizeRun, sizeRun)) ??
+    matching.find((stock) => sameDesign(stock.sizeRun, "Mixed")) ??
+    matching.find((stock) => stock.sizeRun.includes("-")) ??
+    matching[0]
+  );
+}
+
 function preflightSaleStock(operations: OperationsData, channel: PosChannel, items: PosInvoiceItem[]) {
-  const requestedPairs = new Map<string, { design: string; channel: PosChannel; pairs: number }>();
+  // Sum requested pairs per resolved stock row so a design split across sizes is
+  // checked correctly whether it lands on size-specific rows or a shared row.
+  const requestedByRow = new Map<string, { stock: FinishedStock; pairs: number; label: string }>();
 
   for (const item of items) {
-    const key = stockKey({ design: item.design, channel });
-    const existing = requestedPairs.get(key) ?? { design: item.design, channel, pairs: 0 };
-    existing.pairs += item.quantity;
-    requestedPairs.set(key, existing);
-  }
-
-  for (const request of requestedPairs.values()) {
-    const matchingStock = operations.finishedStock.filter(
-      (stock) => sameDesign(stock.design, request.design) && stock.channel === request.channel,
-    );
-    const stock = matchingStock.find((item) => sameDesign(item.sizeRun, "Mixed")) ?? matchingStock[0];
+    const stock = resolveStockRow(operations.finishedStock, item.design, channel, item.sizeRun);
 
     if (!stock) {
-      throw new Error(`${request.design} ${request.channel} stock row was not found.`);
+      throw new Error(`${item.design} ${channel} stock row was not found.`);
     }
 
-    if (request.pairs > stock.stockPairs) {
+    const label =
+      stock.sizeRun && stock.sizeRun !== "Mixed"
+        ? `${item.design} ${channel} (size ${stock.sizeRun})`
+        : `${item.design} ${channel}`;
+    const existing = requestedByRow.get(stock.id) ?? { stock, pairs: 0, label };
+    existing.pairs += item.quantity;
+    requestedByRow.set(stock.id, existing);
+  }
+
+  for (const request of requestedByRow.values()) {
+    if (request.pairs > request.stock.stockPairs) {
       throw new Error(
-        `${request.design} ${request.channel} has only ${stock.stockPairs} pairs. Cannot bill ${request.pairs} pairs.`,
+        `${request.label} has only ${request.stock.stockPairs} pairs. Cannot bill ${request.pairs} pairs.`,
       );
     }
   }
@@ -587,6 +608,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   const stockMovements = items.map<Omit<StockMovement, "id" | "createdAt">>((item) => ({
     design: item.design,
     channel: input.channel,
+    sizeRun: item.sizeRun,
     type: input.kind === "Sale" ? "Sale Out" : "Return In",
     pairs: item.quantity,
     note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,

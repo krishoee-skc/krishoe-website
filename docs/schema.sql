@@ -479,10 +479,14 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   design TEXT NOT NULL,
   channel TEXT NOT NULL CHECK (channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
+  size_run TEXT NOT NULL DEFAULT 'Mixed',
   type TEXT NOT NULL CHECK (type IN ('Production In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment')),
   pairs INTEGER NOT NULL DEFAULT 0 CHECK (pairs >= 0),
   note TEXT NOT NULL DEFAULT ''
 );
+
+ALTER TABLE stock_movements
+  ADD COLUMN IF NOT EXISTS size_run TEXT NOT NULL DEFAULT 'Mixed';
 
 ALTER TABLE stock_movements
   DROP CONSTRAINT IF EXISTS stock_movements_type_check;
