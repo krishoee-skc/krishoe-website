@@ -73,19 +73,21 @@ export default async function ProductPage({ params }: Props) {
                   className="object-cover"
                 />
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                {product.gallery.slice(0, 4).map((imgUrl, index) => (
-                  <div key={index} className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#F5F7F4]">
-                    <Image
-                      src={imgUrl}
-                      alt={`${product.name} gallery image ${index + 1}`}
-                      fill
-                      sizes="25vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
+              {product.gallery.length > 1 ? (
+                <div className="grid grid-cols-4 gap-4">
+                  {product.gallery.slice(0, 4).map((imgUrl, index) => (
+                    <div key={index} className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#F5F7F4]">
+                      <Image
+                        src={imgUrl}
+                        alt={`${product.name} gallery image ${index + 1}`}
+                        fill
+                        sizes="25vw"
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-col">

@@ -21,3 +21,10 @@ html {
   background: #c8a04d;
   color: #10231d;
 }
+
+/* Visible keyboard focus for accessibility (mouse clicks are unaffected). */
+:focus-visible {
+  outline: 2px solid #c8a04d;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
