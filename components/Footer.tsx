@@ -63,7 +63,7 @@ export default function Footer() {
               rel="noreferrer"
               className="text-gray-300 hover:text-white"
             >
-              WhatsApp: {businessContact.phoneDisplay}
+              WhatsApp: {businessContact.whatsappDisplay}
             </a>
           </p>
           <p className="mt-2">

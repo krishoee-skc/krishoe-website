@@ -21,8 +21,10 @@ export const siteConfig = {
 export const businessContact = {
   phoneDisplay: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? "+977 9855019351",
   phoneTel: process.env.NEXT_PUBLIC_BUSINESS_PHONE_TEL ?? "+9779855019351",
-  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "9779855019351",
-  viberNumber: process.env.NEXT_PUBLIC_VIBER_NUMBER ?? "+9779855019351",
+  // WhatsApp/Viber ordering number (separate from the shop's landline/phone).
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "9779766630193",
+  whatsappDisplay: process.env.NEXT_PUBLIC_WHATSAPP_DISPLAY ?? "+977 9766630193",
+  viberNumber: process.env.NEXT_PUBLIC_VIBER_NUMBER ?? "+9779766630193",
   email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "skschhapal@gmail.com",
   streetAddress: process.env.NEXT_PUBLIC_BUSINESS_STREET ?? "Pulchowk, Narayangadh",
   addressLocality: process.env.NEXT_PUBLIC_BUSINESS_CITY ?? "Bharatpur",
