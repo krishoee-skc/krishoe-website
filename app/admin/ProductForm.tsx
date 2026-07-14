@@ -70,6 +70,31 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
+          <span className="text-sm font-medium">Wholesale Price (paisa)</span>
+          <input
+            name="wholesalePriceValue"
+            defaultValue={product?.wholesalePriceValue ?? 0}
+            type="number"
+            min={0}
+            className="form-input"
+            placeholder="0 = no wholesale rate"
+          />
+        </label>
+        <label className="grid gap-1.5">
+          <span className="text-sm font-medium">Min Wholesale Qty (pairs)</span>
+          <input
+            name="minWholesaleQty"
+            defaultValue={product?.minWholesaleQty ?? 1}
+            type="number"
+            min={1}
+            className="form-input"
+            placeholder="1"
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <label className="grid gap-1.5">
           <span className="text-sm font-medium">Badge</span>
           <input name="badge" defaultValue={product?.badge ?? ""} className="form-input" placeholder="New, Limited, Premium" />
         </label>

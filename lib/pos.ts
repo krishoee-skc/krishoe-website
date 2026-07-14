@@ -7,7 +7,7 @@ import {
   savePosInvoiceToPostgres,
   updatePosInvoicePostingToPostgres,
 } from "@/lib/pos-postgres";
-import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -509,6 +509,38 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   if (input.kind === "Sale") {
     const operations = await getOperationsData();
     preflightSaleStock(operations, input.channel, items);
+
+    // Wholesale minimum order quantity (MOQ) enforcement.
+    if (input.channel === "Wholesale") {
+      const catalog = await getProducts({ includeDrafts: true });
+
+      for (const item of items) {
+        const product = catalog.find(
+          (candidate) =>
+            (item.sku && candidate.sku.toLowerCase() === item.sku.toLowerCase()) ||
+            sameDesign(candidate.name, item.design),
+        );
+
+        if (product && product.minWholesaleQty > 1 && item.quantity < product.minWholesaleQty) {
+          throw new Error(
+            `${item.design} wholesale minimum order is ${product.minWholesaleQty} pairs. Cannot bill ${item.quantity} pairs.`,
+          );
+        }
+      }
+    }
+
+    // Customer credit-limit enforcement for credit/partial sales.
+    if (creditAmount > 0) {
+      const ledger = operations.customerLedgers.find(
+        (record) => record.id === cleanText(input.ledgerId),
+      );
+
+      if (ledger && ledger.creditLimit > 0 && ledger.balanceDue + creditAmount > ledger.creditLimit) {
+        throw new Error(
+          `Credit limit exceeded for ${ledger.customerName}. Limit is ${ledger.creditLimit}, current due is ${ledger.balanceDue}, and this sale adds ${creditAmount} on credit.`,
+        );
+      }
+    }
   }
 
   const id = createId(input.kind === "Return" ? "RETURN" : "POS");

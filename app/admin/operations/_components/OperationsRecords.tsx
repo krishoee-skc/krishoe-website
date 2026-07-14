@@ -874,6 +874,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                         <input name="chequePaid" type="number" min="0" className={compactInputClass} defaultValue={ledger.chequePaid} aria-label="Cheque paid" />
                         <input name="creditGiven" type="number" min="0" className={compactInputClass} defaultValue={ledger.creditGiven} aria-label="Credit given" />
                         <input name="balanceDue" type="number" min="0" className={compactInputClass} defaultValue={ledger.balanceDue} aria-label="Balance due" />
+                        <input name="creditLimit" type="number" min="0" className={compactInputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" />
                       </div>
                       <SaveButton />
                     </form>

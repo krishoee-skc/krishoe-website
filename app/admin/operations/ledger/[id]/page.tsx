@@ -147,6 +147,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
               <input name="chequePaid" type="number" min="0" className={inputClass} defaultValue={ledger.chequePaid} aria-label="Cheque paid" />
               <input name="creditGiven" type="number" min="0" className={inputClass} defaultValue={ledger.creditGiven} aria-label="Credit given" />
               <input name="balanceDue" type="number" min="0" className={inputClass} defaultValue={ledger.balanceDue} aria-label="Balance due" />
+              <input name="creditLimit" type="number" min="0" className={inputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" placeholder="Credit limit (0 = no limit)" />
             </div>
             <button type="submit" className="h-10 rounded-full bg-[#10231D] px-4 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]">
               Save customer

@@ -111,6 +111,7 @@ type CustomerLedgerRow = {
   cheque_paid: number | string;
   credit_given: number | string;
   balance_due: number | string;
+  credit_limit: number | string | null;
   last_transaction: Date | string;
 };
 
@@ -291,6 +292,7 @@ function customerLedgerFromRow(row: CustomerLedgerRow): CustomerLedger {
     chequePaid: cleanNumber(Number(row.cheque_paid)),
     creditGiven: cleanNumber(Number(row.credit_given)),
     balanceDue: cleanNumber(Number(row.balance_due)),
+    creditLimit: cleanNumber(Number(row.credit_limit)),
     lastTransaction: dateOnly(row.last_transaction),
   };
 }
@@ -362,7 +364,7 @@ export async function getOperationsDataFromPostgres(): Promise<OperationsData> {
     ),
     queryPostgres<CustomerLedgerRow>(
       "operations",
-      "SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction FROM customer_ledgers ORDER BY updated_at DESC",
+      "SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction FROM customer_ledgers ORDER BY updated_at DESC",
     ),
     queryPostgres<StockMovementRow>(
       "operations",
@@ -827,10 +829,10 @@ export async function addCustomerLedgerToPostgres(
     "operations",
     `
       INSERT INTO customer_ledgers (
-        id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction, updated_at
+        id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
-      RETURNING id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+      RETURNING id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
     `,
     [
       createId("LEDGER"),
@@ -841,6 +843,7 @@ export async function addCustomerLedgerToPostgres(
       cleanNumber(ledger.chequePaid),
       cleanNumber(ledger.creditGiven),
       cleanNumber(ledger.balanceDue),
+      cleanNumber(ledger.creditLimit),
       today(),
     ],
   );
@@ -1091,7 +1094,7 @@ export async function addLedgerTransactionToPostgres(
   return transactionPostgres("operations", async (db) => {
     const ledgerRows = await db.query<CustomerLedgerRow>(
       `
-        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction
+        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
         FROM customer_ledgers
         WHERE id = $1
         LIMIT 1
@@ -1322,9 +1325,9 @@ export async function updateCustomerLedgerToPostgres(
     `
       UPDATE customer_ledgers
       SET customer_name = $2, channel = $3, phone = $4, cash_paid = $5, cheque_paid = $6,
-        credit_given = $7, balance_due = $8, last_transaction = $9, updated_at = now()
+        credit_given = $7, balance_due = $8, credit_limit = $9, last_transaction = $10, updated_at = now()
       WHERE id = $1
-      RETURNING id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction
+      RETURNING id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
     `,
     [
       id,
@@ -1335,6 +1338,7 @@ export async function updateCustomerLedgerToPostgres(
       cleanNumber(ledger.chequePaid),
       cleanNumber(ledger.creditGiven),
       cleanNumber(ledger.balanceDue),
+      cleanNumber(ledger.creditLimit),
       today(),
     ],
   );
@@ -1472,7 +1476,7 @@ async function deleteLedgerTransaction(db: PostgresExecutor, id: string) {
   if (transaction) {
     const ledgerRows = await db.query<CustomerLedgerRow>(
       `
-        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, last_transaction
+        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
         FROM customer_ledgers
         WHERE id = $1
         LIMIT 1

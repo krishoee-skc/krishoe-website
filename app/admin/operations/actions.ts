@@ -273,6 +273,7 @@ export async function createCustomerLedgerAction(formData: FormData) {
     chequePaid: numberValue(formData, "chequePaid"),
     creditGiven: numberValue(formData, "creditGiven"),
     balanceDue: numberValue(formData, "balanceDue"),
+    creditLimit: numberValue(formData, "creditLimit"),
   });
   await auditOperationsAction("operations_create_customer_ledger", `Customer ledger ${customerName} created.`);
 
@@ -472,6 +473,7 @@ export async function updateCustomerLedgerAction(formData: FormData) {
     chequePaid: numberValue(formData, "chequePaid"),
     creditGiven: numberValue(formData, "creditGiven"),
     balanceDue: numberValue(formData, "balanceDue"),
+    creditLimit: numberValue(formData, "creditLimit"),
   });
   await auditOperationsAction("operations_update_customer_ledger", `Customer ledger ${id} updated.`);
 

@@ -448,12 +448,13 @@ async function upsertProduct(client, product) {
       INSERT INTO products (
         id, sku, name, category, category_slug, price, price_value, image, gallery, badge,
         rating, description, long_description, material, fit, colors, sizes, stock, highlights,
-        care, reviews, status, featured, best_seller, new_arrival, updated_at
+        care, reviews, status, featured, best_seller, new_arrival,
+        wholesale_price_value, min_wholesale_qty, updated_at
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21::jsonb, $22, $23, $24, $25, now()
+        $21::jsonb, $22, $23, $24, $25, $26, $27, now()
       )
       ON CONFLICT (id) DO UPDATE SET
         sku = EXCLUDED.sku,
@@ -480,6 +481,8 @@ async function upsertProduct(client, product) {
         featured = EXCLUDED.featured,
         best_seller = EXCLUDED.best_seller,
         new_arrival = EXCLUDED.new_arrival,
+        wholesale_price_value = EXCLUDED.wholesale_price_value,
+        min_wholesale_qty = EXCLUDED.min_wholesale_qty,
         updated_at = now()
     `,
     [
@@ -508,6 +511,8 @@ async function upsertProduct(client, product) {
       Boolean(product.featured),
       Boolean(product.bestSeller),
       Boolean(product.newArrival),
+      cleanNumber(product.wholesalePriceValue),
+      Math.max(1, cleanNumber(product.minWholesaleQty) || 1),
     ],
   );
 }
@@ -918,9 +923,9 @@ async function upsertCustomerLedger(client, ledger) {
     `
       INSERT INTO customer_ledgers (
         id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given,
-        balance_due, last_transaction, updated_at
+        balance_due, credit_limit, last_transaction, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
       ON CONFLICT (id) DO UPDATE SET
         customer_name = EXCLUDED.customer_name,
         channel = EXCLUDED.channel,
@@ -929,6 +934,7 @@ async function upsertCustomerLedger(client, ledger) {
         cheque_paid = EXCLUDED.cheque_paid,
         credit_given = EXCLUDED.credit_given,
         balance_due = EXCLUDED.balance_due,
+        credit_limit = EXCLUDED.credit_limit,
         last_transaction = EXCLUDED.last_transaction,
         updated_at = now()
     `,
@@ -941,6 +947,7 @@ async function upsertCustomerLedger(client, ledger) {
       cleanNumber(ledger.chequePaid),
       cleanNumber(ledger.creditGiven),
       cleanNumber(ledger.balanceDue),
+      cleanNumber(ledger.creditLimit),
       dateOnly(ledger.lastTransaction),
     ],
   );

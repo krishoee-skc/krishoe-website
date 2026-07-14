@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS products (
   category_slug TEXT NOT NULL,
   price TEXT NOT NULL,
   price_value INTEGER NOT NULL DEFAULT 0 CHECK (price_value >= 0),
+  wholesale_price_value INTEGER NOT NULL DEFAULT 0 CHECK (wholesale_price_value >= 0),
+  min_wholesale_qty INTEGER NOT NULL DEFAULT 1 CHECK (min_wholesale_qty >= 1),
   image TEXT NOT NULL,
   gallery TEXT[] NOT NULL DEFAULT '{}',
   badge TEXT,
@@ -543,6 +545,7 @@ CREATE TABLE IF NOT EXISTS customer_ledgers (
   cheque_paid NUMERIC NOT NULL DEFAULT 0 CHECK (cheque_paid >= 0),
   credit_given NUMERIC NOT NULL DEFAULT 0 CHECK (credit_given >= 0),
   balance_due NUMERIC NOT NULL DEFAULT 0 CHECK (balance_due >= 0),
+  credit_limit NUMERIC NOT NULL DEFAULT 0 CHECK (credit_limit >= 0),
   last_transaction DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

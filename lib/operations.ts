@@ -126,6 +126,9 @@ export type CustomerLedger = {
   chequePaid: number;
   creditGiven: number;
   balanceDue: number;
+  // Maximum outstanding credit allowed for this customer (wholesale/B2B).
+  // 0 means no limit. Credit/partial POS sales are blocked past this.
+  creditLimit: number;
   lastTransaction: string;
 };
 
@@ -304,9 +307,9 @@ const seedOperations: OperationsData = {
   ],
   vehicleDispatchItems: [],
   customerLedgers: [
-    { id: "ledger-shoes-palace", customerName: "Shoes Palace Wholesale", channel: "Wholesale", phone: "9800000001", cashPaid: 125000, chequePaid: 96000, creditGiven: 180000, balanceDue: 84000, lastTransaction: "2026-07-11" },
-    { id: "ledger-city-footwear", customerName: "City Footwear Retail", channel: "Retail", phone: "9800000002", cashPaid: 64000, chequePaid: 0, creditGiven: 42000, balanceDue: 18000, lastTransaction: "2026-07-10" },
-    { id: "ledger-online-cod", customerName: "Online COD Customers", channel: "Online", phone: "Online", cashPaid: 38000, chequePaid: 0, creditGiven: 0, balanceDue: 0, lastTransaction: "2026-07-11" },
+    { id: "ledger-shoes-palace", customerName: "Shoes Palace Wholesale", channel: "Wholesale", phone: "9800000001", cashPaid: 125000, chequePaid: 96000, creditGiven: 180000, balanceDue: 84000, creditLimit: 150000, lastTransaction: "2026-07-11" },
+    { id: "ledger-city-footwear", customerName: "City Footwear Retail", channel: "Retail", phone: "9800000002", cashPaid: 64000, chequePaid: 0, creditGiven: 42000, balanceDue: 18000, creditLimit: 0, lastTransaction: "2026-07-10" },
+    { id: "ledger-online-cod", customerName: "Online COD Customers", channel: "Online", phone: "Online", cashPaid: 38000, chequePaid: 0, creditGiven: 0, balanceDue: 0, creditLimit: 0, lastTransaction: "2026-07-11" },
   ],
   stockMovements: [],
   ledgerTransactions: [],
@@ -563,7 +566,7 @@ function normalizeOperationsData(data: Partial<OperationsData>): OperationsData 
         ? [...(item as { stockMovementIds: string[] }).stockMovementIds]
         : [],
     })),
-    customerLedgers: (data.customerLedgers ?? seedOperations.customerLedgers).map((ledger) => ({ ...ledger })),
+    customerLedgers: (data.customerLedgers ?? seedOperations.customerLedgers).map((ledger) => ({ ...ledger, creditLimit: cleanNumber(ledger.creditLimit) })),
     stockMovements: (data.stockMovements ?? seedOperations.stockMovements).map((movement) => ({ ...movement })),
     ledgerTransactions: (data.ledgerTransactions ?? seedOperations.ledgerTransactions).map((transaction) => ({
       ...transaction,
@@ -1077,6 +1080,7 @@ export async function addCustomerLedger(ledger: Omit<CustomerLedger, "id" | "las
     chequePaid: cleanNumber(ledger.chequePaid),
     creditGiven: cleanNumber(ledger.creditGiven),
     balanceDue: cleanNumber(ledger.balanceDue),
+    creditLimit: cleanNumber(ledger.creditLimit),
     lastTransaction: new Date().toISOString().slice(0, 10),
   };
 
@@ -1326,6 +1330,7 @@ export async function updateCustomerLedger(id: string, ledger: Omit<CustomerLedg
       record.chequePaid = cleanNumber(ledger.chequePaid);
       record.creditGiven = cleanNumber(ledger.creditGiven);
       record.balanceDue = cleanNumber(ledger.balanceDue);
+      record.creditLimit = cleanNumber(ledger.creditLimit);
       record.lastTransaction = today();
 
       await writeOperationsData(data);

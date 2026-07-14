@@ -50,6 +50,8 @@ type ProductRow = {
   category_slug: string;
   price: string;
   price_value: number | string;
+  wholesale_price_value: number | string | null;
+  min_wholesale_qty: number | string | null;
   image: string;
   gallery: string[] | null;
   badge: string | null;
@@ -86,6 +88,8 @@ function cleanReview(review: Review): Review {
 function cleanProduct(product: Product): Product {
   const category = categories.find((item) => item.slug === product.categorySlug) ?? categories[0];
   const priceValue = Math.max(0, Math.round(Number(product.priceValue) || 0));
+  const wholesalePriceValue = Math.max(0, Math.round(Number(product.wholesalePriceValue) || 0));
+  const minWholesaleQty = Math.max(1, Math.round(Number(product.minWholesaleQty) || 1));
   const stock = Math.max(0, Math.round(Number(product.stock) || 0));
   const image = product.image.trim() || category.image;
   const colors = product.colors.filter(Boolean);
@@ -100,6 +104,8 @@ function cleanProduct(product: Product): Product {
     categorySlug: category.slug,
     price: formatPrice(priceValue),
     priceValue,
+    wholesalePriceValue,
+    minWholesaleQty,
     image,
     gallery: product.gallery.length > 0 ? product.gallery.filter(Boolean) : [image],
     badge: product.badge?.trim() || undefined,
@@ -246,6 +252,8 @@ function productFromRow(row: ProductRow): Product {
     categorySlug: row.category_slug,
     price: row.price,
     priceValue: Math.max(0, Math.round(Number(row.price_value) || 0)),
+    wholesalePriceValue: Math.max(0, Math.round(Number(row.wholesale_price_value) || 0)),
+    minWholesaleQty: Math.max(1, Math.round(Number(row.min_wholesale_qty) || 1)),
     image: row.image,
     gallery: stringArray(row.gallery),
     badge: row.badge ?? undefined,
@@ -326,7 +334,9 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         status,
         featured,
         best_seller,
-        new_arrival
+        new_arrival,
+        wholesale_price_value,
+        min_wholesale_qty
       FROM products
       ${options.includeDrafts ? "" : "WHERE status = 'Active'"}
       ORDER BY featured DESC, best_seller DESC, new_arrival DESC, name ASC
@@ -453,12 +463,14 @@ async function upsertProductPostgres(product: Product) {
         featured,
         best_seller,
         new_arrival,
+        wholesale_price_value,
+        min_wholesale_qty,
         updated_at
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21::jsonb, $22, $23, $24, $25, now()
+        $21::jsonb, $22, $23, $24, $25, $26, $27, now()
       )
       ON CONFLICT (id) DO UPDATE SET
         sku = EXCLUDED.sku,
@@ -488,6 +500,8 @@ async function upsertProductPostgres(product: Product) {
         featured = EXCLUDED.featured,
         best_seller = EXCLUDED.best_seller,
         new_arrival = EXCLUDED.new_arrival,
+        wholesale_price_value = EXCLUDED.wholesale_price_value,
+        min_wholesale_qty = EXCLUDED.min_wholesale_qty,
         updated_at = now()
       RETURNING
         id,
@@ -514,7 +528,9 @@ async function upsertProductPostgres(product: Product) {
         status,
         featured,
         best_seller,
-        new_arrival
+        new_arrival,
+        wholesale_price_value,
+        min_wholesale_qty
     `,
     [
       cleanedProduct.id,
@@ -542,6 +558,8 @@ async function upsertProductPostgres(product: Product) {
       cleanedProduct.featured,
       cleanedProduct.bestSeller,
       cleanedProduct.newArrival,
+      cleanedProduct.wholesalePriceValue,
+      cleanedProduct.minWholesaleQty,
     ],
   );
 

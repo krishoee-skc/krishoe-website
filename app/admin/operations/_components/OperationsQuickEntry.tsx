@@ -203,6 +203,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
             <input name="chequePaid" type="number" min="0" className={inputClass} placeholder="Cheque" />
             <input name="creditGiven" type="number" min="0" className={inputClass} placeholder="Credit" />
             <input name="balanceDue" type="number" min="0" className={inputClass} placeholder="Due" />
+            <input name="creditLimit" type="number" min="0" className={inputClass} placeholder="Credit limit (0=none)" />
           </div>
           <SubmitActionButton label="Add ledger" />
         </form>

@@ -8,6 +8,7 @@ import ProductDetailActions from "@/components/ProductDetailActions";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { StarIcon } from "@/components/Icons";
+import { wholesalePriceLabel } from "@/lib/products";
 import ProductReviews from "@/components/ProductReviews";
 import {
   breadcrumbJsonLd,
@@ -101,6 +102,14 @@ export default async function ProductPage({ params }: Props) {
                   {product.rating}
                 </div>
               </div>
+              {wholesalePriceLabel(product) ? (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#F5F7F4] px-4 py-1.5 text-sm font-semibold text-[#0B4D3B]">
+                  Wholesale: {wholesalePriceLabel(product)}
+                  {product.minWholesaleQty > 1 ? (
+                    <span className="text-[#5F6B66]">· min {product.minWholesaleQty} pairs</span>
+                  ) : null}
+                </p>
+              ) : null}
               <p className="mt-6 text-base leading-7 text-[#5F6B66]">{product.description}</p>
 
               <div className="mt-8">

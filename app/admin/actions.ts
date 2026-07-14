@@ -289,6 +289,8 @@ export async function upsertProductAction(formData: FormData) {
     categorySlug,
     price: `Rs. ${(priceValue / 100).toLocaleString("en-IN")}`,
     priceValue,
+    wholesalePriceValue: Math.max(0, Number(textValue(formData, "wholesalePriceValue")) || 0),
+    minWholesaleQty: Math.max(1, Number(textValue(formData, "minWholesaleQty")) || 1),
     image,
     gallery: listValue(formData, "gallery").length > 0 ? listValue(formData, "gallery") : [image],
     badge: textValue(formData, "badge") || undefined,

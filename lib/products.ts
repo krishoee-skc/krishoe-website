@@ -15,6 +15,11 @@ export type Product = {
   categorySlug: string;
   price: string;
   priceValue: number;
+  // Wholesale (B2B) pricing. wholesalePriceValue is in paisa; 0 means "no
+  // wholesale rate set" (retail price is used). minWholesaleQty is the minimum
+  // order quantity enforced for wholesale-channel POS sales.
+  wholesalePriceValue: number;
+  minWholesaleQty: number;
   image: string;
   gallery: string[];
   badge?: string;
@@ -44,6 +49,11 @@ export type Category = {
 
 export function formatPrice(value: number) {
   return `Rs. ${(value / 100).toLocaleString("en-IN")}`;
+}
+
+// Display label for a product's wholesale price, or null when none is set.
+export function wholesalePriceLabel(product: Product) {
+  return product.wholesalePriceValue > 0 ? formatPrice(product.wholesalePriceValue) : null;
 }
 
 export const categories: Category[] = [
@@ -90,6 +100,8 @@ type SeedProduct = {
   name: string;
   categorySlug: string;
   priceValue: number;
+  wholesalePriceValue?: number;
+  minWholesaleQty?: number;
   image: string;
   badge?: string;
   description: string;
@@ -107,6 +119,8 @@ function seedProduct(product: SeedProduct): Product {
     sku: product.id.toUpperCase(),
     category: category.title,
     price: formatPrice(product.priceValue),
+    wholesalePriceValue: product.wholesalePriceValue ?? 0,
+    minWholesaleQty: product.minWholesaleQty ?? 1,
     gallery: [product.image],
     rating: "4.8",
     longDescription:
@@ -135,6 +149,8 @@ export const products: Product[] = [
     name: "Signature Ladies Sandals",
     categorySlug: "ladies-sandals",
     priceValue: 199900,
+    wholesalePriceValue: 149900,
+    minWholesaleQty: 6,
     image: "/images/products/ladies-sandals.png",
     badge: "New",
     description: "Polished strap detailing with a cushioned base for long days.",
@@ -160,6 +176,8 @@ export const products: Product[] = [
     name: "Urban Casual Shoes",
     categorySlug: "casual-shoes",
     priceValue: 229900,
+    wholesalePriceValue: 179900,
+    minWholesaleQty: 4,
     image: "/images/products/casual-shoes.jpg",
     badge: "Limited",
     description: "A smart casual pair made for office days and city walks.",
