@@ -1,0 +1,979 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { runWithDataBackend } from "@/lib/data-backend";
+import { addRawMaterialReceipt, getOperationsData, type RawMaterial } from "@/lib/operations";
+import { getPosSnapshot } from "@/lib/pos";
+import {
+  addSupplierLedgerToPostgres,
+  addSupplierTransactionToPostgres,
+  createPurchaseInvoiceInPostgres,
+  getPurchasingDataFromPostgres,
+} from "@/lib/purchasing-postgres";
+
+export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit";
+export type PurchaseInvoiceStatus = "Paid" | "Partial" | "Credit";
+export type PurchasePostingStatus = "Posted" | "Needs Review";
+export type SupplierTransactionType =
+  | "Purchase Bill"
+  | "Cash Payment"
+  | "Cheque Payment"
+  | "Bank Payment"
+  | "Return Adjustment"
+  | "Manual Adjustment";
+
+export type SupplierLedger = {
+  id: string;
+  supplierName: string;
+  phone: string;
+  materialFocus: string;
+  totalPurchase: number;
+  paidAmount: number;
+  balanceDue: number;
+  lastTransaction: string;
+};
+
+export type PurchaseInvoice = {
+  id: string;
+  purchaseNumber: string;
+  createdAt: string;
+  supplierLedgerId: string;
+  supplierName: string;
+  materialId: string;
+  materialName: string;
+  unit: RawMaterial["unit"];
+  quantity: number;
+  rate: number;
+  discount: number;
+  tax: number;
+  total: number;
+  paidAmount: number;
+  creditAmount: number;
+  paymentMethod: SupplierPaymentMethod;
+  paymentReference: string;
+  status: PurchaseInvoiceStatus;
+  postingStatus: PurchasePostingStatus;
+  supplierTransactionIds: string[];
+  note: string;
+};
+
+export type SupplierTransaction = {
+  id: string;
+  createdAt: string;
+  supplierLedgerId: string;
+  supplierName: string;
+  type: SupplierTransactionType;
+  amount: number;
+  note: string;
+};
+
+export type PurchasingData = {
+  supplierLedgers: SupplierLedger[];
+  purchaseInvoices: PurchaseInvoice[];
+  supplierTransactions: SupplierTransaction[];
+};
+
+export type SupplierLedgerStatementRow = SupplierTransaction & {
+  effect: "Due added" | "Due reduced";
+  balanceAfter: number;
+};
+
+export type SupplierAgingRisk = "Clear" | "Current" | "Watch" | "High" | "Critical";
+export type SupplierPaymentPriority = "Immediate" | "High" | "Scheduled" | "Normal" | "Clear";
+
+export type SupplierAgingRow = {
+  supplierLedgerId: string;
+  supplierName: string;
+  phone: string;
+  materialFocus: string;
+  balanceDue: number;
+  current: number;
+  days31To60: number;
+  days61To90: number;
+  over90: number;
+  agedTotal: number;
+  reconciliationDelta: number;
+  oldestOpenDate: string;
+  oldestOpenDays: number;
+  openItemCount: number;
+  risk: SupplierAgingRisk;
+  lastTransaction: string;
+};
+
+export type CreatePurchaseInvoiceInput = {
+  purchaseNumber: string;
+  supplierLedgerId: string;
+  supplierName: string;
+  phone: string;
+  materialId: string;
+  quantity: number;
+  rate: number;
+  discount: number;
+  tax: number;
+  paidAmount: number;
+  paymentMethod: SupplierPaymentMethod;
+  paymentReference: string;
+  note: string;
+};
+
+const dataDirectory = path.join(process.cwd(), "data");
+const purchasingPath = path.join(dataDirectory, "purchases.json");
+
+const seedPurchasing: PurchasingData = {
+  supplierLedgers: [],
+  purchaseInvoices: [],
+  supplierTransactions: [],
+};
+
+function createId(prefix: string) {
+  const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+  return `${prefix}-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function cleanText(value: string) {
+  return value.trim();
+}
+
+function cleanNumber(value: number) {
+  return Math.max(0, Math.round(Number(value) || 0));
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function datePlusDays(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function todayKey() {
+  return today().replaceAll("-", "");
+}
+
+function currentMonthKey() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function currentYearKey() {
+  return new Date().toISOString().slice(0, 4);
+}
+
+function sum<T>(items: T[], getValue: (item: T) => number) {
+  return items.reduce((total, item) => total + getValue(item), 0);
+}
+
+function clonePurchasingData(data: PurchasingData): PurchasingData {
+  return {
+    supplierLedgers: data.supplierLedgers.map((ledger) => ({ ...ledger })),
+    purchaseInvoices: data.purchaseInvoices.map((invoice) => ({
+      ...invoice,
+      supplierTransactionIds: [...invoice.supplierTransactionIds],
+    })),
+    supplierTransactions: data.supplierTransactions.map((transaction) => ({ ...transaction })),
+  };
+}
+
+function isSupplierPaymentType(type: SupplierTransactionType) {
+  return type === "Cash Payment" || type === "Cheque Payment" || type === "Bank Payment";
+}
+
+function assertSupplierTransactionAllowed(
+  ledger: SupplierLedger,
+  transaction: Pick<SupplierTransaction, "type" | "amount">,
+) {
+  if (transaction.amount <= 0) {
+    throw new Error("Supplier transaction amount must be greater than zero.");
+  }
+
+  if ((isSupplierPaymentType(transaction.type) || transaction.type === "Return Adjustment") && transaction.amount > ledger.balanceDue) {
+    throw new Error(
+      `${ledger.supplierName} has only Rs. ${ledger.balanceDue} supplier due. Cannot post Rs. ${transaction.amount}.`,
+    );
+  }
+}
+
+function normalizeSupplierLedger(ledger: Partial<SupplierLedger>): SupplierLedger {
+  return {
+    id: cleanText(ledger.id ?? "") || createId("SUP"),
+    supplierName: cleanText(ledger.supplierName ?? ""),
+    phone: cleanText(ledger.phone ?? ""),
+    materialFocus: cleanText(ledger.materialFocus ?? ""),
+    totalPurchase: cleanNumber(ledger.totalPurchase ?? 0),
+    paidAmount: cleanNumber(ledger.paidAmount ?? 0),
+    balanceDue: cleanNumber(ledger.balanceDue ?? 0),
+    lastTransaction: cleanText(ledger.lastTransaction ?? "") || today(),
+  };
+}
+
+function normalizePurchaseInvoice(invoice: Partial<PurchaseInvoice>): PurchaseInvoice {
+  return {
+    id: cleanText(invoice.id ?? "") || createId("PUR"),
+    purchaseNumber: cleanText(invoice.purchaseNumber ?? ""),
+    createdAt: cleanText(invoice.createdAt ?? "") || new Date().toISOString(),
+    supplierLedgerId: cleanText(invoice.supplierLedgerId ?? ""),
+    supplierName: cleanText(invoice.supplierName ?? ""),
+    materialId: cleanText(invoice.materialId ?? ""),
+    materialName: cleanText(invoice.materialName ?? ""),
+    unit: invoice.unit ?? "piece",
+    quantity: cleanNumber(invoice.quantity ?? 0),
+    rate: cleanNumber(invoice.rate ?? 0),
+    discount: cleanNumber(invoice.discount ?? 0),
+    tax: cleanNumber(invoice.tax ?? 0),
+    total: cleanNumber(invoice.total ?? 0),
+    paidAmount: cleanNumber(invoice.paidAmount ?? 0),
+    creditAmount: cleanNumber(invoice.creditAmount ?? 0),
+    paymentMethod: invoice.paymentMethod ?? "Cash",
+    paymentReference: cleanText(invoice.paymentReference ?? ""),
+    status: invoice.status ?? "Paid",
+    postingStatus: invoice.postingStatus ?? "Needs Review",
+    supplierTransactionIds: Array.isArray(invoice.supplierTransactionIds)
+      ? invoice.supplierTransactionIds.map(cleanText).filter(Boolean)
+      : [],
+    note: cleanText(invoice.note ?? ""),
+  };
+}
+
+function normalizeSupplierTransaction(transaction: Partial<SupplierTransaction>): SupplierTransaction {
+  return {
+    id: cleanText(transaction.id ?? "") || createId("SUPTXN"),
+    createdAt: cleanText(transaction.createdAt ?? "") || new Date().toISOString(),
+    supplierLedgerId: cleanText(transaction.supplierLedgerId ?? ""),
+    supplierName: cleanText(transaction.supplierName ?? ""),
+    type: transaction.type ?? "Manual Adjustment",
+    amount: cleanNumber(transaction.amount ?? 0),
+    note: cleanText(transaction.note ?? ""),
+  };
+}
+
+function normalizePurchasingData(data: Partial<PurchasingData>): PurchasingData {
+  return {
+    supplierLedgers: (data.supplierLedgers ?? seedPurchasing.supplierLedgers).map(normalizeSupplierLedger),
+    purchaseInvoices: (data.purchaseInvoices ?? seedPurchasing.purchaseInvoices).map(normalizePurchaseInvoice),
+    supplierTransactions: (data.supplierTransactions ?? seedPurchasing.supplierTransactions).map(
+      normalizeSupplierTransaction,
+    ),
+  };
+}
+
+async function writePurchasingData(data: PurchasingData) {
+  await mkdir(dataDirectory, { recursive: true });
+  await writeFile(purchasingPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+async function getPurchasingDataFromLocalJson() {
+  try {
+    const content = await readFile(purchasingPath, "utf8");
+    return normalizePurchasingData(JSON.parse(content) as Partial<PurchasingData>);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return normalizePurchasingData(seedPurchasing);
+    }
+
+    throw error;
+  }
+}
+
+export async function getPurchasingData() {
+  return runWithDataBackend({
+    storeName: "purchasing",
+    localJson: getPurchasingDataFromLocalJson,
+    postgres: getPurchasingDataFromPostgres,
+  });
+}
+
+export async function addSupplierLedger(
+  ledger: Omit<SupplierLedger, "id" | "totalPurchase" | "paidAmount" | "balanceDue" | "lastTransaction">,
+) {
+  const record: SupplierLedger = {
+    id: createId("SUP"),
+    supplierName: cleanText(ledger.supplierName),
+    phone: cleanText(ledger.phone),
+    materialFocus: cleanText(ledger.materialFocus),
+    totalPurchase: 0,
+    paidAmount: 0,
+    balanceDue: 0,
+    lastTransaction: today(),
+  };
+
+  if (!record.supplierName) {
+    throw new Error("Supplier name is required.");
+  }
+
+  return runWithDataBackend({
+    storeName: "purchasing",
+    localJson: async () => {
+      const data = await getPurchasingDataFromLocalJson();
+      data.supplierLedgers.unshift(record);
+      await writePurchasingData(data);
+      return record;
+    },
+    postgres: () => addSupplierLedgerToPostgres(ledger),
+  });
+}
+
+function applySupplierTransaction(
+  ledger: SupplierLedger,
+  transaction: Pick<SupplierTransaction, "type" | "amount">,
+) {
+  assertSupplierTransactionAllowed(ledger, transaction);
+
+  if (transaction.type === "Purchase Bill") {
+    ledger.totalPurchase += transaction.amount;
+    ledger.balanceDue += transaction.amount;
+  }
+
+  if (isSupplierPaymentType(transaction.type)) {
+    ledger.paidAmount += transaction.amount;
+    ledger.balanceDue -= transaction.amount;
+  }
+
+  if (transaction.type === "Return Adjustment") {
+    ledger.totalPurchase -= transaction.amount;
+    ledger.balanceDue -= transaction.amount;
+  }
+
+  if (transaction.type === "Manual Adjustment") {
+    ledger.balanceDue += transaction.amount;
+  }
+
+  ledger.lastTransaction = today();
+}
+
+function addSupplierTransactionToLocalData(
+  data: PurchasingData,
+  transaction: Omit<SupplierTransaction, "id" | "createdAt" | "supplierName">,
+) {
+  const ledger = data.supplierLedgers.find((item) => item.id === transaction.supplierLedgerId);
+
+  if (!ledger) {
+    throw new Error("Supplier ledger was not found.");
+  }
+
+  const record: SupplierTransaction = {
+    ...transaction,
+    id: createId("SUPTXN"),
+    createdAt: new Date().toISOString(),
+    supplierName: ledger.supplierName,
+    amount: cleanNumber(transaction.amount),
+    note: cleanText(transaction.note),
+  };
+
+  applySupplierTransaction(ledger, record);
+  data.supplierTransactions.unshift(record);
+  return record;
+}
+
+export async function addSupplierTransaction(
+  transaction: Omit<SupplierTransaction, "id" | "createdAt" | "supplierName">,
+) {
+  if (!transaction.supplierLedgerId || cleanNumber(transaction.amount) <= 0) {
+    throw new Error("Supplier ledger and positive amount are required.");
+  }
+
+  return runWithDataBackend({
+    storeName: "purchasing",
+    localJson: async () => {
+      const data = await getPurchasingDataFromLocalJson();
+      const record = addSupplierTransactionToLocalData(data, transaction);
+      await writePurchasingData(data);
+      return record;
+    },
+    postgres: () => addSupplierTransactionToPostgres(transaction),
+  });
+}
+
+function paymentTransactionType(paymentMethod: SupplierPaymentMethod): SupplierTransactionType {
+  if (paymentMethod === "Cheque") return "Cheque Payment";
+  if (paymentMethod === "Bank") return "Bank Payment";
+  return "Cash Payment";
+}
+
+function purchaseStatus(total: number, paidAmount: number): PurchaseInvoiceStatus {
+  const creditAmount = Math.max(0, total - paidAmount);
+
+  if (creditAmount > 0 && paidAmount > 0) return "Partial";
+  if (creditAmount > 0) return "Credit";
+  return "Paid";
+}
+
+async function nextPurchaseNumber() {
+  const prefix = `KR-PUR-${todayKey()}`;
+  const data = await getPurchasingData();
+  const count = data.purchaseInvoices.filter((invoice) => invoice.purchaseNumber.startsWith(prefix)).length + 1;
+
+  return `${prefix}-${String(count).padStart(4, "0")}`;
+}
+
+export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInput, "purchaseNumber">) {
+  const purchaseNumber = await nextPurchaseNumber();
+  const normalizedInput: CreatePurchaseInvoiceInput = {
+    ...input,
+    purchaseNumber,
+    supplierLedgerId: cleanText(input.supplierLedgerId),
+    supplierName: cleanText(input.supplierName),
+    phone: cleanText(input.phone),
+    materialId: cleanText(input.materialId),
+    quantity: cleanNumber(input.quantity),
+    rate: cleanNumber(input.rate),
+    discount: cleanNumber(input.discount),
+    tax: cleanNumber(input.tax),
+    paidAmount: cleanNumber(input.paidAmount),
+    paymentReference: cleanText(input.paymentReference),
+    note: cleanText(input.note),
+  };
+
+  if (!normalizedInput.materialId || normalizedInput.quantity <= 0 || normalizedInput.rate <= 0) {
+    throw new Error("Raw material, quantity, and rate are required.");
+  }
+
+  if (!normalizedInput.supplierLedgerId && !normalizedInput.supplierName) {
+    throw new Error("Choose an existing supplier or enter a new supplier name.");
+  }
+
+  if (normalizedInput.paymentMethod === "Credit" && normalizedInput.paidAmount > 0) {
+    throw new Error("Credit purchase cannot have paid amount. Use Cash, Cheque, or Bank for payments.");
+  }
+
+  if (
+    (normalizedInput.paymentMethod === "Cheque" || normalizedInput.paymentMethod === "Bank") &&
+    normalizedInput.paidAmount > 0 &&
+    !normalizedInput.paymentReference
+  ) {
+    throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
+  }
+
+  return runWithDataBackend({
+    storeName: "purchasing",
+    localJson: async () => {
+      const [data, operations] = await Promise.all([
+        getPurchasingDataFromLocalJson(),
+        getOperationsData(),
+      ]);
+      const rollbackData = clonePurchasingData(data);
+      const material = operations.rawMaterials.find((item) => item.id === normalizedInput.materialId);
+
+      if (!material) {
+        throw new Error("Raw material was not found.");
+      }
+
+      let ledger = normalizedInput.supplierLedgerId
+        ? data.supplierLedgers.find((item) => item.id === normalizedInput.supplierLedgerId)
+        : undefined;
+
+      if (!ledger) {
+        ledger = {
+          id: createId("SUP"),
+          supplierName: normalizedInput.supplierName || "Unnamed Supplier",
+          phone: normalizedInput.phone,
+          materialFocus: material.name,
+          totalPurchase: 0,
+          paidAmount: 0,
+          balanceDue: 0,
+          lastTransaction: today(),
+        };
+        data.supplierLedgers.unshift(ledger);
+      }
+
+      const subtotal = normalizedInput.quantity * normalizedInput.rate;
+      const discount = Math.min(normalizedInput.discount, subtotal);
+      const total = Math.max(0, subtotal - discount + normalizedInput.tax);
+      const paidAmount = Math.min(normalizedInput.paidAmount, total);
+      const creditAmount = Math.max(0, total - paidAmount);
+      const supplierTransactionIds: string[] = [];
+
+      const purchaseTransaction = addSupplierTransactionToLocalData(data, {
+        supplierLedgerId: ledger.id,
+        type: "Purchase Bill",
+        amount: total,
+        note: `${purchaseNumber} raw material purchase.`,
+      });
+      supplierTransactionIds.push(purchaseTransaction.id);
+
+      if (paidAmount > 0 && normalizedInput.paymentMethod !== "Credit") {
+        const paymentTransaction = addSupplierTransactionToLocalData(data, {
+          supplierLedgerId: ledger.id,
+          type: paymentTransactionType(normalizedInput.paymentMethod),
+          amount: paidAmount,
+          note: `${purchaseNumber} payment ${normalizedInput.paymentReference}`.trim(),
+        });
+        supplierTransactionIds.push(paymentTransaction.id);
+      }
+
+      const invoice: PurchaseInvoice = {
+        id: createId("PUR"),
+        purchaseNumber,
+        createdAt: new Date().toISOString(),
+        supplierLedgerId: ledger.id,
+        supplierName: ledger.supplierName,
+        materialId: material.id,
+        materialName: material.name,
+        unit: material.unit,
+        quantity: normalizedInput.quantity,
+        rate: normalizedInput.rate,
+        discount,
+        tax: normalizedInput.tax,
+        total,
+        paidAmount,
+        creditAmount,
+        paymentMethod: normalizedInput.paymentMethod,
+        paymentReference: normalizedInput.paymentReference,
+        status: purchaseStatus(total, paidAmount),
+        postingStatus: "Posted",
+        supplierTransactionIds,
+        note: normalizedInput.note,
+      };
+
+      data.purchaseInvoices.unshift(invoice);
+      await writePurchasingData(data);
+      try {
+        await addRawMaterialReceipt({ materialId: material.id, quantity: normalizedInput.quantity });
+      } catch (error) {
+        await writePurchasingData(rollbackData).catch(() => undefined);
+        throw error;
+      }
+      return invoice;
+    },
+    postgres: () => createPurchaseInvoiceInPostgres(normalizedInput),
+  });
+}
+
+function isSameDay(value: string) {
+  return value.slice(0, 10) === today();
+}
+
+function isSameMonth(value: string) {
+  return value.slice(0, 7) === currentMonthKey();
+}
+
+function isSameYear(value: string) {
+  return value.slice(0, 4) === currentYearKey();
+}
+
+function purchaseTotal(invoices: PurchaseInvoice[]) {
+  return sum(invoices, (invoice) => invoice.total);
+}
+
+type OpenSupplierDueItem = {
+  createdAt: string;
+  remaining: number;
+};
+
+function supplierTransactionEffect(type: SupplierTransactionType) {
+  return type === "Purchase Bill" || type === "Manual Adjustment" ? 1 : -1;
+}
+
+function safeTime(value: string) {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function dayStartTime(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+}
+
+function ageInDays(value: string) {
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((dayStartTime(new Date()) - dayStartTime(date)) / 86_400_000));
+}
+
+function reduceOpenSupplierDue(items: OpenSupplierDueItem[], amount: number) {
+  let remainingReduction = amount;
+
+  for (const item of items) {
+    if (remainingReduction <= 0) {
+      break;
+    }
+
+    const applied = Math.min(item.remaining, remainingReduction);
+    item.remaining -= applied;
+    remainingReduction -= applied;
+  }
+}
+
+function supplierAgingRisk(
+  row: Pick<SupplierAgingRow, "balanceDue" | "days31To60" | "days61To90" | "over90">,
+): SupplierAgingRisk {
+  if (row.balanceDue <= 0) return "Clear";
+  if (row.over90 > 0) return "Critical";
+  if (row.days61To90 > 0) return "High";
+  if (row.days31To60 > 0) return "Watch";
+  return "Current";
+}
+
+function supplierPaymentPriority(row: Pick<SupplierAgingRow, "balanceDue" | "days31To60" | "days61To90" | "over90">): SupplierPaymentPriority {
+  if (row.balanceDue <= 0) return "Clear";
+  if (row.over90 > 0 || row.balanceDue >= 100000) return "Immediate";
+  if (row.days61To90 > 0) return "High";
+  if (row.days31To60 > 0 || row.balanceDue >= 25000) return "Scheduled";
+  return "Normal";
+}
+
+function supplierPaymentDueDate(priority: SupplierPaymentPriority) {
+  if (priority === "Immediate") return today();
+  if (priority === "High") return datePlusDays(3);
+  if (priority === "Scheduled") return datePlusDays(7);
+  if (priority === "Normal") return datePlusDays(14);
+  return "";
+}
+
+function supplierPaymentNextAction(priority: SupplierPaymentPriority) {
+  if (priority === "Immediate") {
+    return "Prepare payment today or confirm written payment plan before new raw material booking.";
+  }
+
+  if (priority === "High") {
+    return "Schedule supplier payment within three days and verify pending return or invoice adjustment.";
+  }
+
+  if (priority === "Scheduled") {
+    return "Keep in this week payment run and confirm supplier statement.";
+  }
+
+  if (priority === "Normal") {
+    return "Monitor in normal purchasing cycle.";
+  }
+
+  return "No supplier payable action needed.";
+}
+
+function buildSupplierAgingRows(data: PurchasingData): SupplierAgingRow[] {
+  const riskRank: Record<SupplierAgingRisk, number> = {
+    Critical: 4,
+    High: 3,
+    Watch: 2,
+    Current: 1,
+    Clear: 0,
+  };
+
+  return data.supplierLedgers
+    .map((ledger) => {
+      const openItems: OpenSupplierDueItem[] = [];
+      const transactions = data.supplierTransactions
+        .filter((transaction) => transaction.supplierLedgerId === ledger.id)
+        .sort((a, b) => safeTime(a.createdAt) - safeTime(b.createdAt));
+
+      for (const transaction of transactions) {
+        if (supplierTransactionEffect(transaction.type) > 0) {
+          openItems.push({
+            createdAt: transaction.createdAt,
+            remaining: transaction.amount,
+          });
+        } else {
+          reduceOpenSupplierDue(openItems, transaction.amount);
+        }
+      }
+
+      const remainingItems = openItems.filter((item) => item.remaining > 0);
+      let current = 0;
+      let days31To60 = 0;
+      let days61To90 = 0;
+      let over90 = 0;
+
+      for (const item of remainingItems) {
+        const age = ageInDays(item.createdAt);
+
+        if (age <= 30) {
+          current += item.remaining;
+        } else if (age <= 60) {
+          days31To60 += item.remaining;
+        } else if (age <= 90) {
+          days61To90 += item.remaining;
+        } else {
+          over90 += item.remaining;
+        }
+      }
+
+      const agedFromTransactions = current + days31To60 + days61To90 + over90;
+      const unmatchedDue = Math.max(0, ledger.balanceDue - agedFromTransactions);
+      current += unmatchedDue;
+
+      const agedTotal = current + days31To60 + days61To90 + over90;
+      const reconciliationDelta = ledger.balanceDue - agedTotal;
+      const oldestItem = remainingItems.sort((a, b) => ageInDays(b.createdAt) - ageInDays(a.createdAt))[0];
+      const oldestOpenDate = oldestItem?.createdAt.slice(0, 10) ?? (ledger.balanceDue > 0 ? ledger.lastTransaction : "");
+      const oldestOpenDays = oldestItem
+        ? ageInDays(oldestItem.createdAt)
+        : ledger.balanceDue > 0
+          ? ageInDays(ledger.lastTransaction)
+          : 0;
+      const rowWithoutRisk = {
+        supplierLedgerId: ledger.id,
+        supplierName: ledger.supplierName,
+        phone: ledger.phone,
+        materialFocus: ledger.materialFocus,
+        balanceDue: ledger.balanceDue,
+        current,
+        days31To60,
+        days61To90,
+        over90,
+        agedTotal,
+        reconciliationDelta,
+        oldestOpenDate,
+        oldestOpenDays,
+        openItemCount: remainingItems.length + (unmatchedDue > 0 ? 1 : 0),
+        lastTransaction: ledger.lastTransaction,
+      };
+
+      return {
+        ...rowWithoutRisk,
+        risk: supplierAgingRisk(rowWithoutRisk),
+      };
+    })
+    .sort((a, b) => {
+      if (a.risk !== b.risk) return riskRank[b.risk] - riskRank[a.risk];
+      if (a.over90 !== b.over90) return b.over90 - a.over90;
+      if (a.days61To90 !== b.days61To90) return b.days61To90 - a.days61To90;
+      return b.balanceDue - a.balanceDue;
+    });
+}
+
+export async function getPurchasingSnapshot() {
+  const [data, pos, operations] = await Promise.all([
+    getPurchasingData(),
+    getPosSnapshot(),
+    getOperationsData(),
+  ]);
+  const todayPurchases = data.purchaseInvoices.filter((invoice) => isSameDay(invoice.createdAt));
+  const monthPurchases = data.purchaseInvoices.filter((invoice) => isSameMonth(invoice.createdAt));
+  const yearPurchases = data.purchaseInvoices.filter((invoice) => isSameYear(invoice.createdAt));
+  const supplierIds = new Set(data.supplierLedgers.map((supplier) => supplier.id));
+  const materialIds = new Set(operations.rawMaterials.map((material) => material.id));
+  const transactionsById = new Map(data.supplierTransactions.map((transaction) => [transaction.id, transaction]));
+  const materialTotals = [...new Set(data.purchaseInvoices.map((invoice) => invoice.materialName))]
+    .map((materialName) => {
+      const rows = data.purchaseInvoices.filter((invoice) => invoice.materialName === materialName);
+
+      return {
+        materialName,
+        quantity: sum(rows, (invoice) => invoice.quantity),
+        total: purchaseTotal(rows),
+        invoiceCount: rows.length,
+      };
+    })
+    .sort((a, b) => b.total - a.total);
+  const postingReviewRows = data.purchaseInvoices
+    .map((invoice) => {
+      const linkedTransactions = invoice.supplierTransactionIds
+        .map((transactionId) => transactionsById.get(transactionId))
+        .filter((transaction): transaction is SupplierTransaction => Boolean(transaction));
+      const expectedPaymentType = paymentTransactionType(invoice.paymentMethod);
+      const shouldHavePayment = invoice.paidAmount > 0 && invoice.paymentMethod !== "Credit";
+      const issues: string[] = [];
+      const supplierExists = supplierIds.has(invoice.supplierLedgerId);
+      const materialExists = materialIds.has(invoice.materialId);
+      const billPosted = linkedTransactions.some(
+        (transaction) => transaction.type === "Purchase Bill" && transaction.amount === invoice.total,
+      );
+      const paymentPosted =
+        !shouldHavePayment ||
+        linkedTransactions.some(
+          (transaction) => transaction.type === expectedPaymentType && transaction.amount === invoice.paidAmount,
+        );
+      const expectedStatus = purchaseStatus(invoice.total, invoice.paidAmount);
+      const creditPaymentValid = invoice.paymentMethod !== "Credit" || invoice.paidAmount === 0;
+
+      if (!supplierExists) issues.push("supplier missing");
+      if (!materialExists) issues.push("raw material missing");
+      if (!billPosted) issues.push("purchase bill transaction missing");
+      if (!paymentPosted) issues.push("payment transaction missing");
+      if (invoice.status !== expectedStatus) issues.push("payment status mismatch");
+      if (!creditPaymentValid) issues.push("credit invoice has paid amount");
+      if (invoice.postingStatus !== "Posted") issues.push("invoice not posted");
+
+      return {
+        id: invoice.id,
+        purchaseNumber: invoice.purchaseNumber,
+        supplierName: invoice.supplierName,
+        materialName: invoice.materialName,
+        quantity: invoice.quantity,
+        total: invoice.total,
+        paidAmount: invoice.paidAmount,
+        creditAmount: invoice.creditAmount,
+        paymentMethod: invoice.paymentMethod,
+        postingStatus: invoice.postingStatus,
+        expectedTransactionCount: 1 + (shouldHavePayment ? 1 : 0),
+        linkedTransactionCount: linkedTransactions.length,
+        supplierExists,
+        materialExists,
+        billPosted,
+        paymentPosted,
+        signal: issues.length > 0 ? "Needs Review" : "Posted",
+        issues: issues.join("; "),
+      };
+    })
+    .sort((a, b) => {
+      if (a.signal !== b.signal) return a.signal === "Needs Review" ? -1 : 1;
+      return b.total - a.total;
+    });
+  const postingNeedsReview = postingReviewRows.filter((row) => row.signal === "Needs Review").length;
+  const supplierAgingRows = buildSupplierAgingRows(data);
+  const supplierAgingTotals = {
+    current: sum(supplierAgingRows, (row) => row.current),
+    days31To60: sum(supplierAgingRows, (row) => row.days31To60),
+    days61To90: sum(supplierAgingRows, (row) => row.days61To90),
+    over90: sum(supplierAgingRows, (row) => row.over90),
+    agedTotal: sum(supplierAgingRows, (row) => row.agedTotal),
+    reconciliationDelta: sum(supplierAgingRows, (row) => Math.abs(row.reconciliationDelta)),
+    dueSupplierCount: supplierAgingRows.filter((row) => row.balanceDue > 0).length,
+    riskSupplierCount: supplierAgingRows.filter(
+      (row) => row.risk === "Critical" || row.risk === "High" || row.risk === "Watch",
+    ).length,
+  };
+  const supplierPaymentPriorityRank: Record<SupplierPaymentPriority, number> = {
+    Immediate: 0,
+    High: 1,
+    Scheduled: 2,
+    Normal: 3,
+    Clear: 4,
+  };
+  const supplierPaymentFollowups = supplierAgingRows
+    .map((row) => {
+      const priority = supplierPaymentPriority(row);
+
+      return {
+        ...row,
+        priority,
+        paymentDueDate: supplierPaymentDueDate(priority),
+        nextAction: supplierPaymentNextAction(priority),
+      };
+    })
+    .sort(
+      (a, b) =>
+        supplierPaymentPriorityRank[a.priority] - supplierPaymentPriorityRank[b.priority] ||
+        b.balanceDue - a.balanceDue ||
+        b.oldestOpenDays - a.oldestOpenDays,
+    );
+  const supplierPaymentSummary = {
+    immediateCount: supplierPaymentFollowups.filter((row) => row.priority === "Immediate").length,
+    highCount: supplierPaymentFollowups.filter((row) => row.priority === "High").length,
+    scheduledCount: supplierPaymentFollowups.filter((row) => row.priority === "Scheduled").length,
+    normalCount: supplierPaymentFollowups.filter((row) => row.priority === "Normal").length,
+    clearCount: supplierPaymentFollowups.filter((row) => row.priority === "Clear").length,
+    immediateDue: sum(
+      supplierPaymentFollowups.filter((row) => row.priority === "Immediate"),
+      (row) => row.balanceDue,
+    ),
+    highDue: sum(
+      supplierPaymentFollowups.filter((row) => row.priority === "High"),
+      (row) => row.balanceDue,
+    ),
+    paymentRunDue: sum(
+      supplierPaymentFollowups.filter(
+        (row) =>
+          row.priority === "Immediate" ||
+          row.priority === "High" ||
+          row.priority === "Scheduled",
+      ),
+      (row) => row.balanceDue,
+    ),
+    totalDue: sum(supplierPaymentFollowups, (row) => row.balanceDue),
+  };
+
+  return {
+    ...data,
+    summary: {
+      supplierCount: data.supplierLedgers.length,
+      purchaseInvoiceCount: data.purchaseInvoices.length,
+      todayPurchase: purchaseTotal(todayPurchases),
+      monthPurchase: purchaseTotal(monthPurchases),
+      yearPurchase: purchaseTotal(yearPurchases),
+      paidAmount: sum(data.purchaseInvoices, (invoice) => invoice.paidAmount),
+      supplierDue: sum(data.supplierLedgers, (ledger) => ledger.balanceDue),
+      supplierOver90Due: supplierAgingTotals.over90,
+      supplierAgingRiskCount: supplierAgingTotals.riskSupplierCount,
+      supplierImmediatePaymentCount: supplierPaymentSummary.immediateCount,
+      postedInvoiceCount: data.purchaseInvoices.length - postingNeedsReview,
+      postingNeedsReview,
+      todayProfitEstimate: pos.summary.todayNetSales - purchaseTotal(todayPurchases),
+      monthProfitEstimate: pos.summary.monthNetSales - purchaseTotal(monthPurchases),
+      yearProfitEstimate: pos.summary.yearNetSales - purchaseTotal(yearPurchases),
+    },
+    reports: {
+      materialTotals,
+      postingReviewRows,
+      supplierAgingRows,
+      supplierAgingTotals,
+      supplierPaymentFollowups,
+      supplierPaymentSummary,
+      supplierDueRows: [...data.supplierLedgers].sort((a, b) => b.balanceDue - a.balanceDue),
+      recentInvoices: data.purchaseInvoices.slice(0, 20),
+      recentTransactions: data.supplierTransactions.slice(0, 20),
+    },
+  };
+}
+
+export async function getSupplierLedgerDetail(id: string) {
+  const data = await getPurchasingData();
+  const ledger = data.supplierLedgers.find((item) => item.id === id);
+
+  if (!ledger) {
+    return null;
+  }
+
+  const invoices = data.purchaseInvoices
+    .filter((invoice) => invoice.supplierLedgerId === id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const transactions = data.supplierTransactions
+    .filter((transaction) => transaction.supplierLedgerId === id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  let runningBalance = 0;
+  const statementRows = [...transactions]
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map((transaction) => {
+      runningBalance = Math.max(0, runningBalance + supplierTransactionEffect(transaction.type) * transaction.amount);
+
+      return {
+        ...transaction,
+        effect: supplierTransactionEffect(transaction.type) > 0 ? "Due added" : "Due reduced",
+        balanceAfter: runningBalance,
+      } satisfies SupplierLedgerStatementRow;
+    })
+    .reverse();
+  const purchaseTotal = sum(invoices, (invoice) => invoice.total);
+  const paidFromInvoices = sum(invoices, (invoice) => invoice.paidAmount);
+  const creditFromInvoices = sum(invoices, (invoice) => invoice.creditAmount);
+  const paymentTotal = sum(
+    transactions.filter((transaction) => isSupplierPaymentType(transaction.type)),
+    (transaction) => transaction.amount,
+  );
+  const returnAdjustmentTotal = sum(
+    transactions.filter((transaction) => transaction.type === "Return Adjustment"),
+    (transaction) => transaction.amount,
+  );
+  const manualAdjustmentTotal = sum(
+    transactions.filter((transaction) => transaction.type === "Manual Adjustment"),
+    (transaction) => transaction.amount,
+  );
+  const averagePurchaseValue = invoices.length > 0 ? Math.round(purchaseTotal / invoices.length) : 0;
+  const aging = buildSupplierAgingRows(data).find((row) => row.supplierLedgerId === id) ?? null;
+  const paymentPriority = aging ? supplierPaymentPriority(aging) : "Clear";
+
+  return {
+    ledger,
+    invoices,
+    transactions,
+    statementRows,
+    aging,
+    summary: {
+      purchaseCount: invoices.length,
+      transactionCount: transactions.length,
+      purchaseTotal,
+      paidFromInvoices,
+      creditFromInvoices,
+      paymentTotal,
+      returnAdjustmentTotal,
+      manualAdjustmentTotal,
+      averagePurchaseValue,
+      balanceDue: ledger.balanceDue,
+      paymentPriority,
+      paymentDueDate: supplierPaymentDueDate(paymentPriority),
+      nextPaymentAction: supplierPaymentNextAction(paymentPriority),
+    },
+  };
+}

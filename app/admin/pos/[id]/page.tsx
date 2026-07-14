@@ -1,0 +1,217 @@
+/* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
+import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
+import { getPosInvoiceById } from "@/lib/pos";
+
+type PosInvoicePageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export const dynamic = "force-dynamic";
+
+function money(value: number) {
+  return `Rs. ${value.toLocaleString("en-IN")}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+export async function generateMetadata({ params }: PosInvoicePageProps): Promise<Metadata> {
+  const { id } = await params;
+  const invoice = await getPosInvoiceById(id);
+
+  return {
+    title: invoice ? `${invoice.invoiceNumber} | KRISHOE POS` : "POS Bill Not Found",
+  };
+}
+
+export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
+  const { id } = await params;
+  const invoice = await getPosInvoiceById(id);
+
+  if (!invoice) {
+    notFound();
+  }
+
+  return (
+    <section className="p-6 print:p-0">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <Link
+          href="/admin/pos"
+          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+        >
+          Back to POS
+        </Link>
+        <div className="flex flex-wrap gap-2">
+          {invoice.postingStatus === "Needs Review" ? (
+            <form action={repairPosInvoicePostingAction}>
+              <input type="hidden" name="id" value={invoice.id} />
+              <input type="hidden" name="returnTo" value={`/admin/pos/${invoice.id}`} />
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center rounded-full border border-[#7B3128] px-4 text-sm font-bold text-[#7B3128] transition hover:bg-[#7B3128] hover:text-white"
+              >
+                Repair posting
+              </button>
+            </form>
+          ) : null}
+          <PrintInvoiceButton />
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+              KRISHOE factory and footwear
+            </p>
+            <h1 className="mt-2 text-3xl font-black text-[#10231D]">
+              {invoice.kind === "Return" ? "Return bill" : "Sales bill"}
+            </h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {invoice.channel} - {formatDate(invoice.createdAt)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-sm font-black text-[#10231D]">{invoice.invoiceNumber}</p>
+            <p className="mt-2 rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-gray-600">
+              {invoice.status} / {invoice.postingStatus}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Customer</p>
+            <p className="mt-2 font-black text-[#10231D]">{invoice.customerName}</p>
+            <p className="mt-1 text-sm text-gray-500">{invoice.phone || "No phone"}</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Payment</p>
+            <p className="mt-2 font-black text-[#10231D]">{invoice.paymentMethod}</p>
+            <p className="mt-1 text-sm text-gray-500">{invoice.paymentReference || "No reference"}</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Cashier</p>
+            <p className="mt-2 font-black text-[#10231D]">{invoice.cashier}</p>
+            <p className="mt-1 text-sm text-gray-500">{invoice.note || "No note"}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-[1fr_180px]">
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Invoice barcode</p>
+            <img
+              src={`/api/admin/pos/${invoice.id}/barcode`}
+              alt={`Barcode for ${invoice.invoiceNumber}`}
+              className="mt-3 h-24 w-full object-contain"
+            />
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Invoice QR</p>
+            <img
+              src={`/api/admin/pos/${invoice.id}/qr`}
+              alt={`QR code for ${invoice.invoiceNumber}`}
+              className="mx-auto mt-3 h-32 w-32 object-contain"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="border-b text-left text-gray-500">
+              <tr>
+                <th className="py-2 pr-3">SKU</th>
+                <th className="py-2 pr-3">Design</th>
+                <th className="py-2 pr-3">Size</th>
+                <th className="py-2 pr-3 text-right">Pairs</th>
+                <th className="py-2 pr-3 text-right">Rate</th>
+                <th className="py-2 pr-3 text-right">Discount</th>
+                <th className="py-2 pr-3 text-right">Line total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {invoice.items.map((item) => (
+                <tr key={item.id}>
+                  <td className="py-3 pr-3 font-mono text-xs">{item.sku || "-"}</td>
+                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{item.design}</td>
+                  <td className="py-3 pr-3">{item.sizeRun}</td>
+                  <td className="py-3 pr-3 text-right">{item.quantity}</td>
+                  <td className="py-3 pr-3 text-right">{money(item.rate)}</td>
+                  <td className="py-3 pr-3 text-right">{money(item.discount)}</td>
+                  <td className="py-3 pr-3 text-right font-bold">{money(item.lineTotal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-6 grid gap-5 md:grid-cols-[1fr_280px]">
+          <div className="rounded-lg border border-dashed border-gray-200 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Billing IDs</p>
+            <div className="mt-3 grid gap-2 text-sm text-gray-600">
+              <p>
+                Barcode value: <span className="font-mono font-bold text-[#10231D]">{invoice.barcodeValue}</span>
+              </p>
+              <p className="break-all">
+                QR payload: <span className="font-mono text-xs text-[#10231D]">{invoice.qrPayload}</span>
+              </p>
+              <p>
+                Stock movement IDs:{" "}
+                <span className="font-mono text-xs text-[#10231D]">
+                  {invoice.stockMovementIds.length > 0 ? invoice.stockMovementIds.join(", ") : "Not posted"}
+                </span>
+              </p>
+              <p>
+                Ledger transaction:{" "}
+                <span className="font-mono text-xs text-[#10231D]">
+                  {invoice.ledgerTransactionId || "Not linked"}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-[#F5F7F4] p-4">
+            <div className="flex justify-between gap-3 text-sm">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-bold">{money(invoice.subtotal)}</span>
+            </div>
+            <div className="mt-2 flex justify-between gap-3 text-sm">
+              <span className="text-gray-600">Discount</span>
+              <span className="font-bold">{money(invoice.discount)}</span>
+            </div>
+            <div className="mt-2 flex justify-between gap-3 text-sm">
+              <span className="text-gray-600">Tax / VAT</span>
+              <span className="font-bold">{money(invoice.tax)}</span>
+            </div>
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <div className="flex justify-between gap-3">
+                <span className="font-black text-[#10231D]">Total</span>
+                <span className="text-xl font-black text-[#10231D]">{money(invoice.total)}</span>
+              </div>
+              <div className="mt-3 flex justify-between gap-3 text-sm">
+                <span className="text-gray-600">Paid</span>
+                <span className="font-bold text-[#0B4D3B]">{money(invoice.paidAmount)}</span>
+              </div>
+              <div className="mt-2 flex justify-between gap-3 text-sm">
+                <span className="text-gray-600">Credit</span>
+                <span className="font-bold text-[#7B3128]">{money(invoice.creditAmount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+          Thank you for choosing KRISHOE
+        </p>
+      </div>
+    </section>
+  );
+}

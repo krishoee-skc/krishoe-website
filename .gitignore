@@ -19,6 +19,13 @@
 
 # production
 /build
+/backups/
+/data/admin-settings.json
+
+# runtime state / activity logs (not source)
+/data/admin-audit.json
+/data/login-attempts.json
+/data/rate-limit-attempts.json
 
 # misc
 .DS_Store
@@ -32,6 +39,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
