@@ -974,7 +974,7 @@ export async function addStockMovementToPostgres(
   return transactionPostgres("operations", (db) => insertStockMovement(db, movement));
 }
 
-async function insertStockMovement(
+export async function insertStockMovement(
   db: PostgresExecutor,
   movement: Omit<StockMovement, "id" | "createdAt">,
 ) {
@@ -1088,56 +1088,61 @@ async function updateCustomerLedgerTotals(db: PostgresExecutor, ledger: Customer
   );
 }
 
+export async function insertLedgerTransaction(
+  db: PostgresExecutor,
+  transaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName">,
+) {
+  const ledgerRows = await db.query<CustomerLedgerRow>(
+    `
+      SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
+      FROM customer_ledgers
+      WHERE id = $1
+      LIMIT 1
+      FOR UPDATE
+    `,
+    [transaction.ledgerId],
+  );
+
+  if (!ledgerRows[0]) {
+    throw new Error("Customer ledger was not found.");
+  }
+
+  const ledger = customerLedgerFromRow(ledgerRows[0]);
+  const record: LedgerTransaction = {
+    ...transaction,
+    id: createId("TXN"),
+    createdAt: new Date().toISOString(),
+    customerName: ledger.customerName,
+    amount: cleanNumber(transaction.amount),
+    note: cleanText(transaction.note),
+  };
+
+  await updateCustomerLedgerTotals(db, applyLedgerTransaction(ledger, record));
+
+  const rows = await db.query<LedgerTransactionRow>(
+    `
+      INSERT INTO ledger_transactions (id, created_at, ledger_id, customer_name, type, amount, note)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, created_at, ledger_id, customer_name, type, amount, note
+    `,
+    [
+      record.id,
+      new Date(record.createdAt),
+      record.ledgerId,
+      record.customerName,
+      record.type,
+      record.amount,
+      record.note,
+    ],
+  );
+
+  return ledgerTransactionFromRow(rows[0]);
+}
+
 export async function addLedgerTransactionToPostgres(
   transaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName">,
 ) {
-  return transactionPostgres("operations", async (db) => {
-    const ledgerRows = await db.query<CustomerLedgerRow>(
-      `
-        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
-        FROM customer_ledgers
-        WHERE id = $1
-        LIMIT 1
-        FOR UPDATE
-      `,
-      [transaction.ledgerId],
-    );
-
-    if (!ledgerRows[0]) {
-      throw new Error("Customer ledger was not found.");
-    }
-
-    const ledger = customerLedgerFromRow(ledgerRows[0]);
-    const record: LedgerTransaction = {
-      ...transaction,
-      id: createId("TXN"),
-      createdAt: new Date().toISOString(),
-      customerName: ledger.customerName,
-      amount: cleanNumber(transaction.amount),
-      note: cleanText(transaction.note),
-    };
-
-    await updateCustomerLedgerTotals(db, applyLedgerTransaction(ledger, record));
-
-    const rows = await db.query<LedgerTransactionRow>(
-      `
-        INSERT INTO ledger_transactions (id, created_at, ledger_id, customer_name, type, amount, note)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, created_at, ledger_id, customer_name, type, amount, note
-      `,
-      [
-        record.id,
-        new Date(record.createdAt),
-        record.ledgerId,
-        record.customerName,
-        record.type,
-        record.amount,
-        record.note,
-      ],
-    );
-
-    return ledgerTransactionFromRow(rows[0]);
-  });
+  return transactionPostgres("operations", (db) => insertLedgerTransaction(db, transaction));
 }
 
 export async function updateWorkerTaskToPostgres(id: string, task: Omit<WorkerTask, "id">) {

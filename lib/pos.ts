@@ -1,8 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { runWithDataBackend } from "@/lib/data-backend";
-import { addLedgerTransaction, addStockMovement, getOperationsData, type OperationsData } from "@/lib/operations";
+import { getDataBackend, runWithDataBackend } from "@/lib/data-backend";
 import {
+  addLedgerTransaction,
+  addStockMovement,
+  getOperationsData,
+  type LedgerTransaction,
+  type OperationsData,
+  type StockMovement,
+} from "@/lib/operations";
+import {
+  createPosInvoicePostgres,
   getPosInvoicesFromPostgres,
   savePosInvoiceToPostgres,
   updatePosInvoicePostingToPostgres,
@@ -575,31 +583,52 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   };
 
   invoice.qrPayload = qrPayloadForInvoice(invoice);
+
+  const stockMovements = items.map<Omit<StockMovement, "id" | "createdAt">>((item) => ({
+    design: item.design,
+    channel: input.channel,
+    type: input.kind === "Sale" ? "Sale Out" : "Return In",
+    pairs: item.quantity,
+    note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,
+  }));
+
+  const needsLedger = (input.kind === "Sale" && creditAmount > 0) || input.kind === "Return";
+  const ledgerTransaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null =
+    needsLedger
+      ? {
+          ledgerId: invoice.ledgerId,
+          type: input.kind === "Sale" ? "Credit Sale" : "Return Adjustment",
+          amount: input.kind === "Sale" ? creditAmount : total,
+          note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} through POS.`,
+        }
+      : null;
+
+  // Postgres: invoice + stock movements + ledger post in one transaction, so a
+  // sale is all-or-nothing and each stock row is locked (FOR UPDATE) against
+  // concurrent oversell. No half-posted invoices.
+  if (getDataBackend() === "postgres") {
+    const postedInvoice = await createPosInvoicePostgres({
+      invoice,
+      stockMovements,
+      ledgerTransaction,
+    });
+    await syncCatalogStockAfterPosting();
+    return postedInvoice;
+  }
+
+  // local-json fallback: sequential writes, guarded by the posting-repair path.
   await savePosInvoice(invoice);
 
   const stockMovementIds: string[] = [];
-  for (const item of items) {
-    const movement = await addStockMovement({
-      design: item.design,
-      channel: input.channel,
-      type: input.kind === "Sale" ? "Sale Out" : "Return In",
-      pairs: item.quantity,
-      note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,
-    });
-    stockMovementIds.push(movement.id);
+  for (const movement of stockMovements) {
+    const created = await addStockMovement(movement);
+    stockMovementIds.push(created.id);
   }
 
   let ledgerTransactionId = "";
-  const needsLedger = (input.kind === "Sale" && creditAmount > 0) || input.kind === "Return";
-
-  if (needsLedger) {
-    const ledgerTransaction = await addLedgerTransaction({
-      ledgerId: invoice.ledgerId,
-      type: input.kind === "Sale" ? "Credit Sale" : "Return Adjustment",
-      amount: input.kind === "Sale" ? creditAmount : total,
-      note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} through POS.`,
-    });
-    ledgerTransactionId = ledgerTransaction.id;
+  if (ledgerTransaction) {
+    const created = await addLedgerTransaction(ledgerTransaction);
+    ledgerTransactionId = created.id;
   }
 
   const postedInvoice = await updatePosInvoicePosting(invoice.id, {

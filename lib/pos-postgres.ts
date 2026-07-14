@@ -1,5 +1,7 @@
-import { queryPostgres } from "@/lib/postgres/client";
+import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 import type { PosInvoice, PosInvoicePostingPatch } from "@/lib/pos";
+import type { LedgerTransaction, StockMovement } from "@/lib/operations";
+import { insertLedgerTransaction, insertStockMovement } from "@/lib/operations-postgres";
 
 type PosInvoiceRow = {
   id: string;
@@ -104,9 +106,8 @@ export async function getPosInvoicesFromPostgres() {
   return rows.map(posInvoiceFromRow);
 }
 
-export async function savePosInvoiceToPostgres(invoice: PosInvoice) {
-  const rows = await queryPostgres<PosInvoiceRow>(
-    "pos invoices",
+async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
+  const rows = await db.query<PosInvoiceRow>(
     `
       INSERT INTO pos_invoices (
         id,
@@ -172,6 +173,43 @@ export async function savePosInvoiceToPostgres(invoice: PosInvoice) {
   );
 
   return posInvoiceFromRow(rows[0]);
+}
+
+export async function savePosInvoiceToPostgres(invoice: PosInvoice) {
+  return transactionPostgres("pos invoices", (db) => insertPosInvoiceRow(db, invoice));
+}
+
+// Post a POS sale/return atomically: stock movements, an optional credit
+// ledger transaction, and the invoice row all commit together or not at all.
+// This removes the half-posted-invoice window and, via each movement's
+// SELECT ... FOR UPDATE, the concurrent-oversell race.
+export async function createPosInvoicePostgres(params: {
+  invoice: PosInvoice;
+  stockMovements: Array<Omit<StockMovement, "id" | "createdAt">>;
+  ledgerTransaction?: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null;
+}) {
+  return transactionPostgres("pos invoices", async (db) => {
+    const stockMovementIds: string[] = [];
+
+    for (const movement of params.stockMovements) {
+      const created = await insertStockMovement(db, movement);
+      stockMovementIds.push(created.id);
+    }
+
+    let ledgerTransactionId = "";
+
+    if (params.ledgerTransaction) {
+      const created = await insertLedgerTransaction(db, params.ledgerTransaction);
+      ledgerTransactionId = created.id;
+    }
+
+    return insertPosInvoiceRow(db, {
+      ...params.invoice,
+      stockMovementIds,
+      ledgerTransactionId,
+      postingStatus: "Posted",
+    });
+  });
 }
 
 export async function updatePosInvoicePostingToPostgres(
