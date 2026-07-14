@@ -30,7 +30,7 @@ export default function Home() {
 
         <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 text-white">
 
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight">
+          <h1 className="font-display text-5xl md:text-7xl font-bold leading-tight tracking-tight">
             Your Step.
             <br />
             Your Identity.

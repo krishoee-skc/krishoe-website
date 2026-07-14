@@ -3,7 +3,7 @@ import { categories, type Category, type Product } from "@/lib/products";
 
 export const siteConfig = {
   name: "KRISHOE",
-  legalName: "KRISHOE Footwear",
+  legalName: "SHREE KRISHNA CHHAPAL",
   defaultTitle: "KRISHOE | Premium Footwear in Nepal",
   description:
     "Shop premium KRISHOE footwear for sandals, slippers, casual shoes, heels, kids styles, and new arrivals in Nepal.",
@@ -11,9 +11,34 @@ export const siteConfig = {
   logoPath: "/images/logo.png",
   defaultImagePath: "/images/hero-banner.png",
   currency: "NPR",
-  email: "hello@krishoe.com",
+  email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "skschhapal@gmail.com",
   countryCode: "NP",
 };
+
+// Central business contact. Public NEXT_PUBLIC_* env vars override the
+// defaults (which come from the shop's admin settings) so the real number,
+// address, and socials can be changed per-deployment without code edits.
+export const businessContact = {
+  phoneDisplay: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? "+977 9855019351",
+  phoneTel: process.env.NEXT_PUBLIC_BUSINESS_PHONE_TEL ?? "+9779855019351",
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "9779855019351",
+  viberNumber: process.env.NEXT_PUBLIC_VIBER_NUMBER ?? "+9779855019351",
+  email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "skschhapal@gmail.com",
+  streetAddress: process.env.NEXT_PUBLIC_BUSINESS_STREET ?? "Pulchowk, Narayangadh",
+  addressLocality: process.env.NEXT_PUBLIC_BUSINESS_CITY ?? "Bharatpur",
+  addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION ?? "Chitwan",
+  postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL ?? "44200",
+  openingHours: "Mo-Sa 10:00-19:00",
+  facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "",
+  instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "",
+  tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "",
+};
+
+export function businessSocialLinks() {
+  return [businessContact.facebook, businessContact.instagram, businessContact.tiktok].filter(
+    (value): value is string => Boolean(value),
+  );
+}
 
 export function getSiteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://krishoe.com").replace(/\/$/, "");
@@ -118,6 +143,8 @@ export function createProductMetadata(product: Product): Metadata {
 }
 
 export function organizationJsonLd() {
+  const sameAs = businessSocialLinks();
+
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -126,10 +153,14 @@ export function organizationJsonLd() {
     url: getSiteUrl(),
     logo: absoluteUrl(siteConfig.logoPath),
     email: siteConfig.email,
+    telephone: businessContact.phoneTel,
+    ...(sameAs.length ? { sameAs } : {}),
   };
 }
 
 export function localBusinessJsonLd() {
+  const sameAs = businessSocialLinks();
+
   return {
     "@context": "https://schema.org",
     "@type": "ShoeStore",
@@ -138,13 +169,20 @@ export function localBusinessJsonLd() {
     image: absoluteUrl(siteConfig.defaultImagePath),
     logo: absoluteUrl(siteConfig.logoPath),
     email: siteConfig.email,
+    telephone: businessContact.phoneTel,
     priceRange: "Rs.",
     currenciesAccepted: siteConfig.currency,
     areaServed: siteConfig.countryCode,
+    openingHours: businessContact.openingHours,
     address: {
       "@type": "PostalAddress",
+      streetAddress: businessContact.streetAddress,
+      addressLocality: businessContact.addressLocality,
+      addressRegion: businessContact.addressRegion,
+      postalCode: businessContact.postalCode,
       addressCountry: siteConfig.countryCode,
     },
+    ...(sameAs.length ? { sameAs } : {}),
   };
 }
 

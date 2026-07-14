@@ -10,7 +10,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 html {
@@ -18,6 +18,6 @@ html {
 }
 
 ::selection {
-  background: #d4af37;
+  background: #c8a04d;
   color: #10231d;
 }

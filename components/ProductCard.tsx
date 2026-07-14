@@ -16,6 +16,8 @@ export default function ProductCard({
   eager = false,
 }: ProductCardProps) {
   const href = `/product/${product.id}`;
+  const outOfStock = product.stock <= 0;
+  const lowStock = product.stock > 0 && product.stock <= 5;
 
   return (
     <article
@@ -34,6 +36,15 @@ export default function ProductCard({
         <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0B4D3B] shadow-sm">
           {product.badge ?? product.category}
         </div>
+        {outOfStock ? (
+          <div className="absolute right-4 top-4 rounded-full bg-[#B3261E] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+            Sold out
+          </div>
+        ) : lowStock ? (
+          <div className="absolute right-4 top-4 rounded-full bg-[#9A6B08] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+            Only {product.stock} left
+          </div>
+        ) : null}
       </Link>
 
       <div className="space-y-4 p-5">

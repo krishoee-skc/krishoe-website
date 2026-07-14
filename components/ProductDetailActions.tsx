@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
-import { whatsappOrderUrl } from "@/lib/commerce";
+import { whatsappOrderUrl, viberOrderUrl } from "@/lib/commerce";
 import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import ProductOptionSelector from "@/components/ProductOptionSelector";
@@ -19,6 +19,8 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const wished = isWishlisted(product.id);
+  const outOfStock = product.stock <= 0;
+  const lowStock = product.stock > 0 && product.stock <= 5;
 
   const orderMessage = useMemo(
     () =>
@@ -40,6 +42,16 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
 
   return (
     <div className="rounded-lg border border-black/10 bg-white p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
+      {outOfStock ? (
+        <p className="mb-4 inline-flex items-center rounded-full bg-[#FBE9E7] px-3 py-1 text-sm font-bold text-[#B3261E]">
+          Sold out
+        </p>
+      ) : lowStock ? (
+        <p className="mb-4 inline-flex items-center rounded-full bg-[#FFF6D8] px-3 py-1 text-sm font-bold text-[#9A6B08]">
+          Hurry — only {product.stock} left
+        </p>
+      ) : null}
+
       <div className="space-y-6">
         <ProductOptionSelector title="Select size" options={product.sizes} selectedValue={size} onValueChange={setSize} />
         <ProductOptionSelector title="Select color" options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
@@ -51,10 +63,11 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         <button
           type="button"
           onClick={addSelectedItem}
-          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#0B4D3B] px-6 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+          disabled={outOfStock}
+          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#0B4D3B] px-6 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D] disabled:cursor-not-allowed disabled:bg-[#9AA6A1] disabled:hover:text-white"
         >
           <ShoppingBagIcon className="h-4 w-4" />
-          {added ? "Added to cart" : "Add to cart"}
+          {outOfStock ? "Sold out" : added ? "Added to cart" : "Add to cart"}
         </button>
 
         <button
@@ -71,14 +84,34 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         </button>
       </div>
 
-      <a
-        href={whatsappOrderUrl(orderMessage)}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-full border border-[#0B4D3B] px-6 text-sm font-bold text-[#0B4D3B] transition hover:bg-[#0B4D3B] hover:text-white"
-      >
-        Order on WhatsApp
-      </a>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <a
+          href={whatsappOrderUrl(orderMessage)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#25D366] px-6 text-sm font-bold text-white transition hover:brightness-95"
+        >
+          Order on WhatsApp
+        </a>
+        <a
+          href={viberOrderUrl(orderMessage)}
+          className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#7360F2] px-6 text-sm font-bold text-white transition hover:brightness-95"
+        >
+          Order on Viber
+        </a>
+      </div>
+
+      <ul className="mt-5 space-y-2 border-t border-black/10 pt-4 text-sm text-[#5F6B66]">
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="text-[#0B4D3B]">✓</span> Cash on Delivery available
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="text-[#0B4D3B]">✓</span> Delivery across Nepal
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="text-[#0B4D3B]">✓</span> Genuine product &amp; easy returns
+        </li>
+      </ul>
     </div>
   );
 }

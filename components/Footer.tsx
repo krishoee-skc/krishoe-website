@@ -1,6 +1,15 @@
 import Link from "next/link";
+import { businessContact, businessSocialLinks } from "@/lib/seo";
+
+const socialLabels: Record<string, string> = {
+  [businessContact.facebook]: "Facebook",
+  [businessContact.instagram]: "Instagram",
+  [businessContact.tiktok]: "TikTok",
+};
 
 export default function Footer() {
+  const socials = businessSocialLinks();
+
   return (
     <footer className="bg-[#0B4D3B] pb-8 pt-16 text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-4">
@@ -38,14 +47,52 @@ export default function Footer() {
         <div>
           <h3 className="mb-4 text-xl font-bold">Contact</h3>
 
-          <p className="text-gray-300">Narayangadh, Chitwan</p>
-          <p className="mt-2 text-gray-300">+977-98XXXXXXXX</p>
-          <p className="mt-2 text-gray-300">hello@krishoe.com</p>
+          <p className="text-gray-300">
+            {businessContact.streetAddress}, {businessContact.addressLocality},{" "}
+            {businessContact.addressRegion}
+          </p>
+          <p className="mt-2">
+            <a href={`tel:${businessContact.phoneTel}`} className="text-gray-300 hover:text-white">
+              {businessContact.phoneDisplay}
+            </a>
+          </p>
+          <p className="mt-2">
+            <a
+              href={`https://wa.me/${businessContact.whatsappNumber}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-300 hover:text-white"
+            >
+              WhatsApp: {businessContact.phoneDisplay}
+            </a>
+          </p>
+          <p className="mt-2">
+            <a href={`mailto:${businessContact.email}`} className="text-gray-300 hover:text-white">
+              {businessContact.email}
+            </a>
+          </p>
+
+          {socials.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {socials.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/30 px-3 py-1 text-sm text-gray-200 transition hover:border-[#C8A04D] hover:text-white"
+                >
+                  {socialLabels[url] ?? "Follow"}
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className="mt-12 border-t border-white/20 pt-6 text-center text-gray-300">
-        (c) 2026 KRISHOE. All Rights Reserved.
+        (c) 2026 KRISHOE ({businessContact.addressLocality}, {businessContact.addressRegion}). All
+        Rights Reserved.
       </div>
     </footer>
   );
