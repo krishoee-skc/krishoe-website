@@ -13,12 +13,22 @@ declare global {
   var krishoePgPool: Pool | undefined;
 }
 
-function shouldUseSsl(connectionString: string) {
-  if (/localhost|127\.0\.0\.1/i.test(connectionString)) {
+type SslConfig = false | { rejectUnauthorized: boolean };
+
+function getSslConfig(connectionString: string): SslConfig {
+  if (/localhost|127\.0\.0\.1/i.test(connectionString) || process.env.PGSSLMODE === "disable") {
     return false;
   }
 
-  return process.env.PGSSLMODE !== "disable";
+  // Validate the server certificate by default so the DB link can't be MITM'd.
+  // Managed providers with publicly-trusted certs (Neon, Supabase, Vercel
+  // Postgres) work as-is. Only set PGSSL_INSECURE=true for a provider whose
+  // certificate chain is self-signed and cannot be validated.
+  if (process.env.PGSSL_INSECURE === "true") {
+    return { rejectUnauthorized: false };
+  }
+
+  return { rejectUnauthorized: true };
 }
 
 function getPool(storeName: string) {
@@ -31,7 +41,7 @@ function getPool(storeName: string) {
   if (!globalThis.krishoePgPool) {
     globalThis.krishoePgPool = new Pool({
       connectionString: config.databaseUrl,
-      ssl: shouldUseSsl(config.databaseUrl) ? { rejectUnauthorized: false } : false,
+      ssl: getSslConfig(config.databaseUrl),
     });
   }
 
