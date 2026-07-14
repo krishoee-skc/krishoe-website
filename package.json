@@ -12,6 +12,9 @@
     "db:import": "node scripts/import-backup-to-postgres.mjs",
     "db:smoke": "node scripts/postgres-smoke-check.mjs"
   },
+  "overrides": {
+    "postcss": "$postcss"
+  },
   "dependencies": {
     "bwip-js": "^4.11.2",
     "next": "^16.2.10",
@@ -28,7 +31,7 @@
     "autoprefixer": "^10.4.19",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.10",
-    "postcss": "^8",
+    "postcss": "^8.5.10",
     "tailwindcss": "^3",
     "typescript": "^5"
   }
