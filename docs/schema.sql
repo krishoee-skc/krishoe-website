@@ -398,6 +398,10 @@ ALTER TABLE hr_payroll
 CREATE INDEX IF NOT EXISTS hr_payroll_period_label_idx ON hr_payroll(period_label);
 CREATE INDEX IF NOT EXISTS hr_payroll_employee_id_idx ON hr_payroll(employee_id);
 CREATE INDEX IF NOT EXISTS hr_payroll_status_idx ON hr_payroll(status);
+-- Idempotency guard: one payroll per employee per month (period_label's first 7
+-- chars are the YYYY-MM key), so concurrent submissions can't double-pay.
+CREATE UNIQUE INDEX IF NOT EXISTS hr_payroll_employee_month_unique_idx
+  ON hr_payroll(employee_id, substr(period_label, 1, 7));
 
 -- Factory production and worker progress
 CREATE TABLE IF NOT EXISTS production_batches (
@@ -624,6 +628,11 @@ CREATE INDEX IF NOT EXISTS payment_transactions_order_id_idx ON payment_transact
 CREATE INDEX IF NOT EXISTS payment_transactions_ledger_id_idx ON payment_transactions(ledger_id);
 CREATE INDEX IF NOT EXISTS payment_transactions_created_at_idx ON payment_transactions(created_at DESC);
 CREATE INDEX IF NOT EXISTS payment_transactions_status_idx ON payment_transactions(payment_status);
+-- Idempotency guard: a gateway callback id may be recorded at most once, so
+-- retried/concurrent identical callbacks can't create duplicate payment rows.
+CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_callback_id_unique_idx
+  ON payment_transactions(payment_callback_id)
+  WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> '';
 CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_callback_id_unique_idx
   ON payment_transactions(payment_callback_id)
   WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> '';

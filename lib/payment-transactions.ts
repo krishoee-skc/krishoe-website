@@ -345,6 +345,9 @@ export async function recordPaymentTransaction(
             note
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          ON CONFLICT (payment_callback_id)
+            WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> ''
+            DO NOTHING
           RETURNING
             id,
             created_at,
@@ -379,7 +382,21 @@ export async function recordPaymentTransaction(
         ],
       );
 
-      return paymentTransactionFromRow(rows[0]);
+      if (rows[0]) {
+        return paymentTransactionFromRow(rows[0]);
+      }
+
+      // ON CONFLICT DO NOTHING returned no row: this callback id was already
+      // recorded by a concurrent/retried call. Return that existing
+      // transaction so payment recording stays idempotent.
+      if (record.paymentCallbackId) {
+        const existing = await getPaymentTransactionByCallbackId(record.paymentCallbackId);
+        if (existing) {
+          return existing;
+        }
+      }
+
+      throw new Error("Payment transaction could not be recorded.");
     },
   });
 }

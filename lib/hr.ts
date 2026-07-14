@@ -951,6 +951,7 @@ async function addPayrollToPostgres(record: PayrollRecord) {
         status, paid_at, note
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ON CONFLICT (employee_id, substr(period_label, 1, 7)) DO NOTHING
       RETURNING id, created_at, period_label, employee_id, employee_name,
         base_amount, attendance_bonus, piece_amount, overtime_amount, deduction,
         net_pay, status, paid_at, note
@@ -972,6 +973,15 @@ async function addPayrollToPostgres(record: PayrollRecord) {
       record.note,
     ],
   );
+
+  // ON CONFLICT DO NOTHING returned no row: a payroll for this employee and
+  // month already exists (the DB unique index is the real guard against a
+  // concurrent double submission that the JS pre-check can race past).
+  if (!rows[0]) {
+    throw new Error(
+      `Payroll already exists for ${record.employeeName} in ${record.periodLabel.slice(0, 7)}.`,
+    );
+  }
 
   return payrollFromRow(rows[0]);
 }
