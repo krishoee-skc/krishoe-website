@@ -18,6 +18,9 @@ export default function ProductCard({
   const href = `/product/${product.id}`;
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+  // Shop-grid cards render two-up on phones, so they use a denser mobile
+  // layout; collection cards (homepage) keep the full layout everywhere.
+  const compact = intent === "shop";
 
   return (
     <article
@@ -47,14 +50,18 @@ export default function ProductCard({
         ) : null}
       </Link>
 
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className={compact ? "space-y-2 p-3 md:space-y-4 md:p-5" : "space-y-4 p-5"}>
+        <div className="flex items-start justify-between gap-2 md:gap-4">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#B98A2E]">
               {product.category}
             </p>
             <Link href={href}>
-              <h3 className="mt-2 text-xl font-semibold text-[#10231D] transition hover:text-[#0B4D3B]">
+              <h3
+                className={`mt-1 font-semibold text-[#10231D] transition hover:text-[#0B4D3B] md:mt-2 ${
+                  compact ? "text-base md:text-xl" : "text-xl"
+                }`}
+              >
                 {product.name}
               </h3>
             </Link>
@@ -65,13 +72,23 @@ export default function ProductCard({
           </div>
         </div>
 
-        <p className="min-h-12 text-sm leading-6 text-[#5F6B66]">{product.description}</p>
+        <p className={`min-h-12 text-sm leading-6 text-[#5F6B66] ${compact ? "hidden md:block" : ""}`}>
+          {product.description}
+        </p>
 
-        <div className="flex items-center justify-between border-t border-black/10 pt-4">
-          <span className="text-2xl font-bold text-[#0B4D3B]">{product.price}</span>
+        <div
+          className={`flex items-center justify-between border-t border-black/10 ${
+            compact ? "pt-2 md:pt-4" : "pt-4"
+          }`}
+        >
+          <span className={`font-bold text-[#0B4D3B] ${compact ? "text-lg md:text-2xl" : "text-2xl"}`}>
+            {product.price}
+          </span>
           <Link
             href={href}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+            className={`h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B] ${
+              compact ? "hidden md:inline-flex" : "inline-flex"
+            }`}
           >
             {intent === "shop" ? "Details" : "View"}
             <ArrowRightIcon className="h-4 w-4" />

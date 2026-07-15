@@ -1,0 +1,80 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { HomeIcon, SearchIcon, ShoppingBagIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
+import { useCommerce } from "@/components/commerce/CommerceProvider";
+
+// App-style bottom navigation for phones/tablets. Hidden on desktop (lg+) and
+// on the admin area. Most customers shop from mobile, so the key destinations
+// stay one thumb-tap away.
+export default function BottomTabBar() {
+  const pathname = usePathname();
+  const { cartCount } = useCommerce();
+
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
+  const tabClass = (active: boolean) =>
+    `flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition ${
+      active ? "text-[#0B4D3B]" : "text-[#6D7773]"
+    }`;
+
+  const isHome = pathname === "/";
+  const isShop = pathname === "/shop" || pathname.startsWith("/shop/");
+  const isCart = pathname === "/cart";
+  const isAccount = pathname.startsWith("/account");
+
+  return (
+    <>
+      {/* Spacer keeps page content clear of the fixed bar (only where the bar
+          shows — it is absent on admin and on desktop). */}
+      <div className="h-16 lg:hidden" aria-hidden />
+
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-5">
+          <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>
+            <HomeIcon className="h-5 w-5" />
+            Home
+          </Link>
+
+          <Link href="/shop" className={tabClass(isShop)} aria-current={isShop ? "page" : undefined}>
+            <ShoppingBagIcon className="h-5 w-5" />
+            Shop
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("krishoe:open-search"))}
+            className={tabClass(false)}
+            aria-label="Open search"
+          >
+            <SearchIcon className="h-5 w-5" />
+            Search
+          </button>
+
+          <Link href="/cart" className={tabClass(isCart)} aria-current={isCart ? "page" : undefined}>
+            <span className="relative">
+              <ShoppingCartIcon className="h-5 w-5" />
+              {cartCount > 0 ? (
+                <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#D4AF37] px-1 text-[9px] font-black text-[#10231D]">
+                  {cartCount}
+                </span>
+              ) : null}
+            </span>
+            Cart
+          </Link>
+
+          <Link href="/account" className={tabClass(isAccount)} aria-current={isAccount ? "page" : undefined}>
+            <UserIcon className="h-5 w-5" />
+            Account
+          </Link>
+        </div>
+      </nav>
+    </>
+  );
+}

@@ -16,44 +16,31 @@ export default function Home() {
 
       <Navbar />
 
-      <section className="relative flex min-h-[82vh] items-center">
-
-        <Image
-          src="/images/hero-banner.png"
-          alt="KRISHOE Hero Banner"
-          fill
-          priority
-          className="object-cover"
-        />
-
-        <div className="absolute inset-0 bg-black/50"></div>
-
-        <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 text-white">
-
-          <h1 className="font-display text-5xl md:text-7xl font-bold leading-tight tracking-tight">
-            Your Step.
-            <br />
-            Your Identity.
+      {/* The hero graphic is a complete branded banner (headline, CTAs, trust
+          badges are part of the image). We render it as one responsive,
+          tappable image — no overlaid text — so it never doubles up, stays
+          sharp on every screen, and the whole banner links into the shop. A
+          visually-hidden heading keeps the real text for SEO and screen
+          readers. */}
+      <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
+        <Link
+          href="/shop"
+          aria-label="Shop KRISHOE premium footwear — Your Step, Your Identity"
+          className="mx-auto block max-w-7xl overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(11,77,59,0.12)] transition hover:shadow-[0_28px_80px_rgba(11,77,59,0.18)]"
+        >
+          <h1 className="sr-only">
+            Your Step. Your Identity. KRISHOE premium footwear crafted for Nepal with style, comfort and quality.
           </h1>
-
-          <p className="mt-6 max-w-2xl text-lg md:text-2xl text-gray-200">
-            Premium Footwear Crafted for Nepal with Style, Comfort and Quality.
-          </p>
-
-          <div className="mt-10 flex gap-5 flex-wrap">
-
-            <Link href="/shop" className="rounded-full bg-[#C8A04D] px-8 py-4 font-semibold text-[#10231D] transition hover:bg-white">
-              Shop Now
-            </Link>
-
-            <Link href="/shop?category=new-arrivals" className="rounded-full border-2 border-white px-8 py-4 font-semibold transition hover:bg-white hover:text-black">
-              Explore Collection
-            </Link>
-
-          </div>
-
-        </div>
-
+          <Image
+            src="/images/hero-banner.png"
+            alt="KRISHOE — Your Step. Your Identity. Premium footwear crafted for Nepal."
+            width={1536}
+            height={1024}
+            priority
+            sizes="100vw"
+            className="h-auto w-full"
+          />
+        </Link>
       </section>
 
       <FeaturedProducts />

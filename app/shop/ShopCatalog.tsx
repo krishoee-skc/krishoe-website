@@ -36,10 +36,10 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
           </p>
         </div>
 
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-8 -mx-5 flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
           <Link
             href="/shop"
-            className={`rounded-full border px-4 py-2 text-sm font-semibold ${
+            className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
               !activeCategory ? "border-[#0B4D3B] bg-[#0B4D3B] text-white" : "border-black/10 bg-white text-[#10231D]"
             }`}
           >
@@ -49,7 +49,7 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
             <Link
               key={item.slug}
               href={`/shop/${item.slug}`}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold ${
+              className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
                 activeCategory?.slug === item.slug
                   ? "border-[#0B4D3B] bg-[#0B4D3B] text-white"
                   : "border-black/10 bg-white text-[#10231D]"
@@ -61,7 +61,7 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
         </div>
 
         {products.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
             {products.map((product, index) => (
               <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />
             ))}

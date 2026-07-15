@@ -40,6 +40,16 @@ export default function CommandSearch() {
   }, []);
 
   useEffect(() => {
+    // Let other components (e.g. the mobile bottom tab-bar) open this palette.
+    function openHandler() {
+      setOpen(true);
+    }
+
+    window.addEventListener("krishoe:open-search", openHandler);
+    return () => window.removeEventListener("krishoe:open-search", openHandler);
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       return;
     }

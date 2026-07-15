@@ -3,6 +3,7 @@ import { Inter, Fraunces } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
+import BottomTabBar from "@/components/BottomTabBar";
 import { getProducts } from "@/lib/product-store";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
 import "./globals.css";
@@ -77,7 +78,10 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <Analytics />
-        <CommerceProvider catalogProducts={products}>{children}</CommerceProvider>
+        <CommerceProvider catalogProducts={products}>
+          {children}
+          <BottomTabBar />
+        </CommerceProvider>
       </body>
     </html>
   );
