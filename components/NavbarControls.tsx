@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
-import { HeartIcon, MenuIcon, SearchIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { HeartIcon, MenuIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
-
-type NavItem = {
-  href: string;
-  label: string;
-};
+import CommandSearch from "@/components/CommandSearch";
+import { isActivePath, navLinks } from "@/components/nav-links";
 
 type NavbarControlsProps = {
-  navItems: NavItem[];
   isLoggedIn: boolean;
   isAdmin: boolean;
 };
@@ -29,33 +25,14 @@ function CountBadge({ count }: { count: number }) {
   );
 }
 
-export default function NavbarControls({ navItems, isLoggedIn, isAdmin }: NavbarControlsProps) {
-  const router = useRouter();
+export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsProps) {
+  const pathname = usePathname();
   const { cartCount, wishlistCount } = useCommerce();
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const cleanQuery = query.trim();
-    router.push(cleanQuery ? `/shop?query=${encodeURIComponent(cleanQuery)}` : "/shop");
-    setIsOpen(false);
-  }
 
   return (
     <div className="flex items-center gap-2">
-      <form
-        onSubmit={submitSearch}
-        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-[#F7F8F5] px-4 text-[#10231D] xl:flex"
-      >
-        <SearchIcon className="h-4 w-4 text-[#6D7773]" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search premium styles"
-          className="w-44 bg-transparent text-sm outline-none placeholder:text-[#7A837F]"
-        />
-      </form>
+      <CommandSearch />
 
       <Link
         href="/wishlist"
@@ -126,27 +103,27 @@ export default function NavbarControls({ navItems, isLoggedIn, isAdmin }: Navbar
               </button>
             </div>
 
-            <form onSubmit={submitSearch} className="mt-8 flex h-12 items-center gap-2 rounded-full border border-black/10 bg-[#F7F8F5] px-4">
-              <SearchIcon className="h-4 w-4 text-[#6D7773]" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search collection"
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </form>
+            <nav className="mt-8 grid gap-1">
+              {navLinks.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                const Icon = item.Icon;
 
-            <nav className="mt-8 grid gap-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg px-4 py-3 text-lg font-semibold text-[#10231D] transition hover:bg-[#F5F7F4] hover:text-[#0B4D3B]"
-                >
-                  {item.label}
-                </Link>
-              ))}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-semibold transition ${
+                      active
+                        ? "bg-[#F5F7F4] text-[#0B4D3B]"
+                        : "text-[#10231D] hover:bg-[#F5F7F4] hover:text-[#0B4D3B]"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                );
+              })}
               {isLoggedIn ? (
                 <Link href={isAdmin ? "/admin" : "/account"} onClick={() => setIsOpen(false)} className="rounded-lg px-4 py-3 text-lg font-semibold text-[#10231D] transition hover:bg-[#F5F7F4] hover:text-[#0B4D3B]">
                   My Account

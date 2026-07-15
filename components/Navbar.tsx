@@ -1,13 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import NavbarControls from "@/components/NavbarControls";
-
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
+import PrimaryNav from "@/components/PrimaryNav";
 
 type NavbarProps = {
   isLoggedIn?: boolean;
@@ -34,19 +28,9 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-7 text-sm font-semibold text-[#31413B] lg:flex">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-[#B98A2E]">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <PrimaryNav />
 
-        <NavbarControls
-          navItems={navItems}
-          isLoggedIn={isLoggedIn}
-          isAdmin={isAdmin}
-        />
+        <NavbarControls isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
       </div>
     </header>
   );
