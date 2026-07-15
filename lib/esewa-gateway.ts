@@ -1,4 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import {
   getOrderById,
   getOrderByPaymentReference,
@@ -50,7 +51,7 @@ function cleanNumber(value: unknown) {
 }
 
 function amountFromOrderTotal(total: string) {
-  return cleanNumber(total.replace(/[^\d.]/g, ""));
+  return parseOrderTotalRupees(total);
 }
 
 function textValue(values: EsewaPayload, keys: string[]) {

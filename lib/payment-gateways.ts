@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { revalidatePath } from "next/cache";
 import {
   createEsewaSandboxPayment,
@@ -94,7 +95,7 @@ export function getGatewayConfig(provider: GatewayProvider) {
 }
 
 export function amountFromOrderTotal(total: string) {
-  return cleanNumber(total.replace(/[^\d.]/g, ""));
+  return parseOrderTotalRupees(total);
 }
 
 export function createPaymentReference(provider: GatewayProvider, orderId: string) {

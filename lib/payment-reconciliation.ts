@@ -1,4 +1,5 @@
 import { getOperationsData } from "@/lib/operations";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { getPaymentTransactions, type PaymentTransaction } from "@/lib/payment-transactions";
 import {
   getOrders,
@@ -42,12 +43,8 @@ type StatusSummary = {
   transactionAmount: number;
 };
 
-function cleanNumber(value: unknown) {
-  return Math.max(0, Math.round(Number(value) || 0));
-}
-
 function amountFromOrderTotal(total: string) {
-  return cleanNumber(total.replace(/[^\d.]/g, ""));
+  return parseOrderTotalRupees(total);
 }
 
 function daysSince(dateValue: string) {

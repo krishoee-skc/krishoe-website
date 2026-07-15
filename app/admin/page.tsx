@@ -7,6 +7,7 @@ import { getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getHrSnapshot } from "@/lib/hr";
 import { getOperationalAlertCenter, type OperationalAlertSeverity } from "@/lib/notifications";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { getPaymentReconciliation } from "@/lib/payment-reconciliation";
 import { getPosSnapshot } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
@@ -24,8 +25,7 @@ export const dynamic = "force-dynamic";
 type Tone = "default" | "good" | "warn" | "danger";
 
 function amountFromOrderTotal(total: string) {
-  const numeric = Number(total.replace(/[^\d.]/g, ""));
-  return Number.isFinite(numeric) ? Math.round(numeric) : 0;
+  return parseOrderTotalRupees(total);
 }
 
 function money(value: number) {

@@ -4,6 +4,7 @@ import {
   type OrderSubmission,
   type PaymentStatus,
 } from "@/lib/submissions";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 
 type KhaltiPayload = Record<string, string>;
 
@@ -52,7 +53,7 @@ function cleanNumber(value: unknown) {
 }
 
 function amountFromOrderTotal(total: string) {
-  return cleanNumber(total.replace(/[^\d.]/g, ""));
+  return parseOrderTotalRupees(total);
 }
 
 function textValue(values: KhaltiPayload, keys: string[]) {

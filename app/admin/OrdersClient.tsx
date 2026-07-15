@@ -10,6 +10,7 @@ import type {
 import type { CustomerLedger } from "@/lib/operations";
 import type { PaymentTransaction } from "@/lib/payment-transactions";
 import type { OrderSubmission } from "@/lib/submissions";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import {
   createPosInvoiceFromOrderAction,
   updateOrderPaymentAction,
@@ -65,8 +66,7 @@ function OrderStatusSelector({ order }: { order: OrderSubmission }) {
 }
 
 function amountFromOrderTotal(total: string) {
-  const value = Number(total.replace(/[^\d.]/g, ""));
-  return Number.isFinite(value) ? Math.round(value) : 0;
+  return parseOrderTotalRupees(total);
 }
 
 function money(value: number) {

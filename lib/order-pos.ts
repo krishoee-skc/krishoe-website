@@ -8,6 +8,7 @@ import { getProducts } from "@/lib/product-store";
 import type { Product } from "@/lib/products";
 import type { FinishedStock } from "@/lib/operations";
 import type { OrderSubmission, PaymentProvider } from "@/lib/submissions";
+import { parseOrderTotalRupees } from "@/lib/payment-amount";
 
 export type ParsedOnlineOrderItem = CreatePosInvoiceInput["items"][number] & {
   productId: string;
@@ -79,8 +80,7 @@ function cleanNumber(value: number) {
 }
 
 function moneyNumber(value: string) {
-  const parsed = Number(value.replace(/[^\d.]/g, ""));
-  return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+  return parseOrderTotalRupees(value);
 }
 
 function productKey(value: string) {
