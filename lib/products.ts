@@ -109,10 +109,19 @@ type SeedProduct = {
   featured?: boolean;
   bestSeller?: boolean;
   newArrival?: boolean;
+  rating?: string;
+  colors?: string[];
+  sizes?: string[];
 };
+
+// Adult footwear uses a EU 36–41 run; kids footwear uses a smaller run, so a
+// product must not inherit adult sizes just because it fell back to the seed.
+const adultSizes = ["36", "37", "38", "39", "40", "41"];
+const kidsSizes = ["24", "25", "26", "27", "28", "29", "30"];
 
 function seedProduct(product: SeedProduct): Product {
   const category = categories.find((item) => item.slug === product.categorySlug) ?? categories[0];
+  const defaultSizes = product.categorySlug === "kids-collection" ? kidsSizes : adultSizes;
 
   return {
     ...product,
@@ -122,13 +131,13 @@ function seedProduct(product: SeedProduct): Product {
     wholesalePriceValue: product.wholesalePriceValue ?? 0,
     minWholesaleQty: product.minWholesaleQty ?? 1,
     gallery: [product.image],
-    rating: "4.8",
+    rating: product.rating ?? "4.8",
     longDescription:
       "A KRISHOE-selected pair built around everyday comfort, durable finishing, and a polished silhouette for Nepal-ready styling.",
     material: "Premium synthetic finish",
     fit: "Regular fit",
-    colors: ["Black", "Tan"],
-    sizes: ["36", "37", "38", "39", "40"],
+    colors: product.colors ?? ["Black", "Tan"],
+    sizes: product.sizes ?? defaultSizes,
     highlights: [
       "Comfort-focused base",
       "Clean premium profile",
@@ -158,6 +167,8 @@ export const products: Product[] = [
     featured: true,
     bestSeller: true,
     newArrival: true,
+    rating: "4.8",
+    colors: ["Black", "Tan", "Maroon"],
   }),
   seedProduct({
     id: "ladies-slippers",
@@ -170,6 +181,8 @@ export const products: Product[] = [
     stock: 24,
     featured: true,
     bestSeller: true,
+    rating: "4.6",
+    colors: ["Black", "Cream", "Rose"],
   }),
   seedProduct({
     id: "casual-shoes",
@@ -184,6 +197,8 @@ export const products: Product[] = [
     stock: 14,
     featured: true,
     bestSeller: true,
+    rating: "4.7",
+    colors: ["White", "Black", "Grey"],
   }),
   seedProduct({
     id: "party-heels",
@@ -196,6 +211,8 @@ export const products: Product[] = [
     stock: 10,
     featured: true,
     bestSeller: true,
+    rating: "4.9",
+    colors: ["Black", "Gold", "Silver"],
   }),
   seedProduct({
     id: "flat-sandals",
@@ -228,6 +245,8 @@ export const products: Product[] = [
     badge: "Durable",
     description: "A sturdy, flexible pair for school days and play.",
     stock: 19,
+    rating: "4.7",
+    colors: ["Blue", "Red", "Black"],
   }),
   seedProduct({
     id: "seasonal-arrival",

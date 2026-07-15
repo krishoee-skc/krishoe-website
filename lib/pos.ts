@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { getDataBackend, runWithDataBackend } from "@/lib/data-backend";
 import {
@@ -414,8 +415,7 @@ function normalizeInvoice(invoice: Partial<PosInvoice>): PosInvoice {
 }
 
 async function writePosInvoices(invoices: PosInvoice[]) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(posInvoicesPath, `${JSON.stringify(invoices, null, 2)}\n`, "utf8");
+  await writeFileAtomic(posInvoicesPath, `${JSON.stringify(invoices, null, 2)}\n`);
 }
 
 async function getPosInvoicesFromLocalJson() {

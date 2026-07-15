@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { csvRecords } from "@/lib/csv";
 import { runWithDataBackend } from "@/lib/data-backend";
@@ -585,10 +586,6 @@ function normalizeHrData(data: Partial<HrData>): HrData {
   };
 }
 
-async function ensureDataDirectory() {
-  await mkdir(dataDirectory, { recursive: true });
-}
-
 async function getHrDataFromLocalJson() {
   try {
     const raw = await readFile(hrPath, "utf8");
@@ -603,8 +600,7 @@ async function getHrDataFromLocalJson() {
 }
 
 async function writeHrData(data: HrData) {
-  await ensureDataDirectory();
-  await writeFile(hrPath, `${JSON.stringify(data, null, 2)}\n`);
+  await writeFileAtomic(hrPath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
 function employeeFromRow(row: EmployeeRow): Employee {

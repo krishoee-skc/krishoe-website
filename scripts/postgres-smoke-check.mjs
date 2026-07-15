@@ -647,13 +647,16 @@ async function main() {
     connectionString: databaseUrl,
     ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false,
   });
-  const client = await pool.connect();
 
   try {
-    const counts = await getCounts(client);
+    // Query the pool directly (not a single checked-out client): getCounts
+    // fires its queries concurrently via Promise.all, and running concurrent
+    // queries on one client is deprecated in pg. The pool hands each concurrent
+    // query its own client from the connection pool.
+    const counts = await getCounts(pool);
     const comparisons = backup ? compareCounts(counts, expectedCountsFromBackup(backup)) : [];
-    const integrity = await getIntegrity(client);
-    const operationTotals = await getOperationTotals(client);
+    const integrity = await getIntegrity(pool);
+    const operationTotals = await getOperationTotals(pool);
     const failures = [
       ...comparisons
         .filter((comparison) => !comparison.ok)
@@ -684,7 +687,6 @@ async function main() {
       process.exitCode = 1;
     }
   } finally {
-    client.release();
     await pool.end();
   }
 }

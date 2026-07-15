@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
@@ -134,10 +135,6 @@ export function normalizeCostingSettings(value: Partial<CostingSettings> | null 
   };
 }
 
-async function ensureDataDirectory() {
-  await mkdir(dataDirectory, { recursive: true });
-}
-
 async function getCostingSettingsFromLocalJson() {
   try {
     const raw = await readFile(costingSettingsPath, "utf8");
@@ -152,8 +149,7 @@ async function getCostingSettingsFromLocalJson() {
 }
 
 async function writeCostingSettings(settings: CostingSettings) {
-  await ensureDataDirectory();
-  await writeFile(costingSettingsPath, `${JSON.stringify(settings, null, 2)}\n`);
+  await writeFileAtomic(costingSettingsPath, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
 function costingSettingsFromRow(row: CostingSettingsRow): CostingSettings {

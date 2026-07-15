@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { addRawMaterialReceipt, getOperationsData, type RawMaterial } from "@/lib/operations";
@@ -257,8 +258,7 @@ function normalizePurchasingData(data: Partial<PurchasingData>): PurchasingData 
 }
 
 async function writePurchasingData(data: PurchasingData) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(purchasingPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeFileAtomic(purchasingPath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
 async function getPurchasingDataFromLocalJson() {

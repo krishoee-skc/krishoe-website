@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
@@ -67,8 +68,7 @@ async function readLocalRecords() {
 }
 
 async function writeLocalRecords(records: RateLimitAttemptRecord[]) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(attemptsPath, `${JSON.stringify(records, null, 2)}\n`, "utf8");
+  await writeFileAtomic(attemptsPath, `${JSON.stringify(records, null, 2)}\n`);
 }
 
 async function checkLocalRateLimit({ bucket, key, maxAttempts, windowMs }: RateLimitOptions) {

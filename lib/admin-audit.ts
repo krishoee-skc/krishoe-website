@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getConfiguredAdminRole } from "@/lib/admin-permissions";
@@ -285,8 +286,7 @@ async function readAuditEventsFromPostgres(limit = maxAuditEvents) {
 }
 
 async function writeAuditEvents(events: AdminAuditEvent[]) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(auditPath, `${JSON.stringify(events.slice(0, maxAuditEvents), null, 2)}\n`, "utf8");
+  await writeFileAtomic(auditPath, `${JSON.stringify(events.slice(0, maxAuditEvents), null, 2)}\n`);
 }
 
 async function appendAdminAuditEventToPostgres(event: AdminAuditEvent) {

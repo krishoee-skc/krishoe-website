@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { promises as fs } from "fs";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
@@ -94,8 +95,7 @@ async function readTokens(): Promise<PasswordResetToken[]> {
 }
 
 async function writeTokens(tokens: PasswordResetToken[]) {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(tokensFile, JSON.stringify(tokens, null, 2) + "\n", "utf8");
+  await writeFileAtomic(tokensFile, JSON.stringify(tokens, null, 2) + "\n");
 }
 
 async function createPasswordResetTokenInLocalJson(record: PasswordResetToken): Promise<void> {

@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsData, type FinishedStock } from "@/lib/operations";
@@ -347,8 +348,7 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
 }
 
 async function writeProducts(products: Product[]) {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(productsFile, `${JSON.stringify(products.map(cleanProduct), null, 2)}\n`, "utf8");
+  await writeFileAtomic(productsFile, `${JSON.stringify(products.map(cleanProduct), null, 2)}\n`);
 }
 
 async function syncProductCatalogStockWithFinishedStockLocalJson(finishedStock: FinishedStock[]) {

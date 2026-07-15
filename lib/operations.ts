@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getPaymentTransactionsByLedgerId } from "@/lib/payment-transactions";
@@ -584,8 +585,7 @@ function normalizeOperationsData(data: Partial<OperationsData>): OperationsData 
 }
 
 async function writeOperationsData(data: OperationsData) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(operationsPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeFileAtomic(operationsPath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
 async function getOperationsDataFromLocalJson(): Promise<OperationsData> {

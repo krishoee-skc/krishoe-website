@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import path from "path";
 import { promisify } from "node:util";
@@ -348,8 +349,7 @@ async function readSettingsFromLocalJson(): Promise<AdminSettingsStore> {
 }
 
 async function writeSettingsToLocalJson(settings: AdminSettingsStore) {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(adminSettingsFile, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+  await writeFileAtomic(adminSettingsFile, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
 async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {

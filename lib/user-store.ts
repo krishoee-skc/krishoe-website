@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import path from "path";
 import { promisify } from "node:util";
@@ -114,8 +115,7 @@ async function readUsers(): Promise<User[]> {
 }
 
 async function writeUsers(users: User[]) {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(usersFile, JSON.stringify(users, null, 2) + "\n", "utf8");
+  await writeFileAtomic(usersFile, JSON.stringify(users, null, 2) + "\n");
 }
 
 function toSafeUser(user: User): SafeUser {

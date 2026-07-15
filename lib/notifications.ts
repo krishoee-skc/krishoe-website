@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsSnapshot } from "@/lib/operations";
@@ -415,11 +416,9 @@ async function readEventsFromPostgres(limit = maxNotificationEvents) {
 }
 
 async function writeEvents(events: NotificationEvent[]) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(
+  await writeFileAtomic(
     notificationsPath,
     `${JSON.stringify(events.map((event) => normalizeEvent(event)).slice(0, maxNotificationEvents), null, 2)}\n`,
-    "utf8",
   );
 }
 
