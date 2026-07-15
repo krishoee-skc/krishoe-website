@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Product, Category } from "@/lib/products";
 import { upsertProductAction } from "./actions";
 import SubmitButton from "@/components/SubmitButton";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 type ProductFormProps = {
   product?: Product | null;
@@ -115,14 +116,19 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       </label>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Main Image URL</span>
-          <input name="image" defaultValue={product?.image} className="form-input" placeholder="/images/products/..." />
-        </label>
-        <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Gallery URLs (comma-separated)</span>
-          <input name="gallery" defaultValue={product?.gallery.join(", ")} className="form-input" />
-        </label>
+        <ImageUploadField
+          name="image"
+          label="Main Image"
+          initialValue={product?.image ?? ""}
+          placeholder="/images/products/… or Upload photo"
+        />
+        <ImageUploadField
+          name="gallery"
+          label="Gallery Images"
+          initialValue={product?.gallery.join(", ") ?? ""}
+          multiple
+          placeholder="comma-separated URLs, or Upload photos"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

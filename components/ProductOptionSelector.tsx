@@ -41,7 +41,21 @@ export default function ProductOptionSelector({
 }: ProductOptionSelectorProps) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B98A2E]">{title}</p>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B98A2E]">{title}</p>
+        {selectedValue ? (
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#10231D]">
+            {variant === "color" && swatchColor(selectedValue) ? (
+              <span
+                aria-hidden
+                className="h-3.5 w-3.5 rounded-full border border-black/15"
+                style={{ backgroundColor: swatchColor(selectedValue) as string }}
+              />
+            ) : null}
+            {selectedValue}
+          </span>
+        ) : null}
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {options.map((item) => {
           const isSelected = selectedValue === item;
