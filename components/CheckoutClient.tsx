@@ -31,6 +31,7 @@ type CheckoutFormProps = {
   whatsappMessage: string;
   orderItemsForDb: string;
   subtotalLabel: string;
+  itemsJson: string;
 };
 
 function CheckoutForm({
@@ -41,12 +42,16 @@ function CheckoutForm({
   whatsappMessage,
   orderItemsForDb,
   subtotalLabel,
+  itemsJson,
 }: CheckoutFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       <div className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <input type="hidden" name="order" value={orderItemsForDb} />
         <input type="hidden" name="total" value={subtotalLabel} />
+        {/* Structured items let the server recompute the total from catalog
+            prices — the submitted total above is never trusted. */}
+        <input type="hidden" name="items" value={itemsJson} />
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">Customer details</p>
           <h2 className="mt-3 text-3xl font-black text-[#10231D]">Delivery request</h2>
@@ -270,6 +275,14 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
     [cartItems],
   );
 
+  const itemsJson = useMemo(
+    () =>
+      JSON.stringify(
+        cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      ),
+    [cartItems],
+  );
+
   const whatsappMessage = useMemo(
     () =>
       `Hello KRISHOE, I want to confirm my order. My total is ${subtotalLabel}. Order details: ${orderItemsForDb}`,
@@ -289,7 +302,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
       if (result.ok && result.reference) {
         setSubmittedOrder({
           reference: result.reference,
-          total: submittedTotal,
+          total: result.total ?? submittedTotal,
           whatsappMessage: submittedWhatsappMessage,
         });
         clearCart();
@@ -331,6 +344,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
           whatsappMessage={whatsappMessage}
           orderItemsForDb={orderItemsForDb}
           subtotalLabel={subtotalLabel}
+          itemsJson={itemsJson}
         />
         <PaymentInstructions />
       </div>

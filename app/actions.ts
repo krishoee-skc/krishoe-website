@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
+import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
 import { addProductReview } from "@/lib/product-store";
 import { saveContactMessage, saveOrder } from "@/lib/submissions";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
@@ -13,12 +14,14 @@ export type FormState = {
   ok: boolean;
   message: string;
   reference?: string;
+  total?: string;
 };
 
-const successState = (message: string, reference?: string): FormState => ({
+const successState = (message: string, reference?: string, total?: string): FormState => ({
   ok: true,
   message,
   reference,
+  total,
 });
 const errorState = (message: string): FormState => ({ ok: false, message });
 
@@ -126,6 +129,23 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return rateLimitError;
   }
 
+  // Never trust the client-submitted total: recompute it from catalog prices
+  // using only the submitted product ids + quantities. This blocks a tampered
+  // total (e.g. paying Rs.1 for a Rs.9,999 cart).
+  const items = parseCheckoutItems(textValue(formData, "items"));
+
+  if (items.length === 0) {
+    return errorState("We couldn't read your cart. Please refresh the page and try again.");
+  }
+
+  const pricing = await computeAuthoritativeOrderTotal(items);
+
+  if (pricing.matchedItems === 0) {
+    return errorState("We couldn't verify the items in your cart. Please refresh and try again.");
+  }
+
+  const authoritativeTotal = pricing.totalLabel;
+
   const session = await getCustomerSession();
   const profile = customerProfile.profile;
   const record = await saveOrder(
@@ -137,7 +157,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       delivery,
       payment,
       order,
-      total,
+      total: authoritativeTotal,
     },
     session?.userId,
   );
@@ -155,6 +175,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   return successState(
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,
     record.id,
+    authoritativeTotal,
   );
 }
 
