@@ -1,4 +1,6 @@
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
+// The same rules the local-json backend runs, and the ones the tests cover.
+import { withStockMovementApplied, withStockMovementReversed } from "@/lib/stock-rules";
 import type {
   CustomerLedger,
   FinishedStock,
@@ -148,22 +150,6 @@ function cleanNumber(value: number) {
 
 function cleanText(value: string) {
   return value.trim();
-}
-
-function isStockOutMovement(type: StockMovement["type"]) {
-  return type === "Dispatch Out" || type === "Sale Out";
-}
-
-function assertStockAvailable(
-  stock: FinishedStock,
-  movement: Pick<StockMovement, "type" | "pairs">,
-  action = movement.type,
-) {
-  if (movement.pairs > stock.stockPairs) {
-    throw new Error(
-      `${stock.design} ${stock.channel} has only ${stock.stockPairs} pairs. Cannot ${action} ${movement.pairs} pairs.`,
-    );
-  }
 }
 
 function today() {
@@ -858,82 +844,6 @@ export async function addCustomerLedgerToPostgres(
   return customerLedgerFromRow(rows[0]);
 }
 
-function applyStockMovement(stock: FinishedStock, movement: Pick<StockMovement, "type" | "pairs">) {
-  const nextStock = { ...stock };
-
-  if (movement.pairs <= 0) {
-    throw new Error("Stock movement pairs must be greater than zero.");
-  }
-
-  if (isStockOutMovement(movement.type)) {
-    assertStockAvailable(nextStock, movement);
-  }
-
-  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
-    nextStock.stockPairs += movement.pairs;
-  }
-
-  if (movement.type === "Dispatch Out") {
-    nextStock.stockPairs -= movement.pairs;
-  }
-
-  if (movement.type === "Sale Out") {
-    nextStock.stockPairs -= movement.pairs;
-    nextStock.soldPairs += movement.pairs;
-  }
-
-  if (movement.type === "Market Sale") {
-    nextStock.soldPairs += movement.pairs;
-  }
-
-  if (movement.type === "Return In") {
-    nextStock.stockPairs += movement.pairs;
-    nextStock.returnedPairs += movement.pairs;
-  }
-
-  return nextStock;
-}
-
-function reverseStockMovement(stock: FinishedStock, movement: Pick<StockMovement, "type" | "pairs">) {
-  const nextStock = { ...stock };
-
-  if (
-    (movement.type === "Production In" ||
-      movement.type === "Purchase In" ||
-      movement.type === "Adjustment" ||
-      movement.type === "Return In") &&
-    movement.pairs > nextStock.stockPairs
-  ) {
-    throw new Error(
-      `${nextStock.design} ${nextStock.channel} stock depends on this movement. Add stock back before deleting it.`,
-    );
-  }
-
-  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
-    nextStock.stockPairs -= movement.pairs;
-  }
-
-  if (movement.type === "Dispatch Out") {
-    nextStock.stockPairs += movement.pairs;
-  }
-
-  if (movement.type === "Sale Out") {
-    nextStock.stockPairs += movement.pairs;
-    nextStock.soldPairs = Math.max(0, nextStock.soldPairs - movement.pairs);
-  }
-
-  if (movement.type === "Market Sale") {
-    nextStock.soldPairs = Math.max(0, nextStock.soldPairs - movement.pairs);
-  }
-
-  if (movement.type === "Return In") {
-    nextStock.stockPairs -= movement.pairs;
-    nextStock.returnedPairs = Math.max(0, nextStock.returnedPairs - movement.pairs);
-  }
-
-  return nextStock;
-}
-
 async function findOrCreateFinishedStock(
   db: PostgresExecutor,
   movement: Pick<StockMovement, "design" | "channel" | "sizeRun">,
@@ -1009,7 +919,7 @@ export async function insertStockMovement(
   };
 
   const stock = await findOrCreateFinishedStock(db, record);
-  await updateFinishedStockTotals(db, applyStockMovement(stock, record));
+  await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
 
   const rows = await db.query<StockMovementRow>(
     `
@@ -1477,7 +1387,7 @@ async function deleteStockMovement(db: PostgresExecutor, id: string) {
     if (stockRows[0]) {
       await updateFinishedStockTotals(
         db,
-        reverseStockMovement(finishedStockFromRow(stockRows[0]), movement),
+        withStockMovementReversed(finishedStockFromRow(stockRows[0]), movement),
       );
     }
   }

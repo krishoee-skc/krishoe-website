@@ -6,6 +6,7 @@ import {
   type FinishedStock,
   type StockMovementType,
 } from "@/lib/operations";
+import { withStockMovementApplied, withStockMovementReversed } from "@/lib/stock-rules";
 
 function stock(overrides: Partial<FinishedStock> = {}): FinishedStock {
   return {
@@ -203,5 +204,71 @@ describe("a full purchase-to-sale cycle", () => {
     expect(row.stockPairs).toBe(270); // 500 - 200 + 50 - 80
     expect(row.soldPairs).toBe(230); // 150 market + 80 counter
     expect(row.returnedPairs).toBe(50);
+  });
+});
+
+// The Postgres backend cannot mutate a row in place — it reads the row, works
+// out the new totals, and writes them back. So it calls these copy-returning
+// wrappers instead. They are what production runs, and until the rules moved to
+// lib/stock-rules.ts they were a separate, untested reimplementation.
+describe("the copy-returning wrappers the Postgres backend uses", () => {
+  it("applies a movement without touching the row it was given", () => {
+    const row = stock({ stockPairs: 100 });
+    const next = withStockMovementApplied(row, { type: "Purchase In", pairs: 40 });
+
+    expect(next.stockPairs).toBe(140);
+    // Mutating here would corrupt the caller's row before the write succeeds.
+    expect(row.stockPairs).toBe(100);
+    expect(next).not.toBe(row);
+  });
+
+  it("reverses a movement without touching the row it was given", () => {
+    const row = stock({ stockPairs: 100 });
+    const next = withStockMovementReversed(row, { type: "Purchase In", pairs: 40 });
+
+    expect(next.stockPairs).toBe(60);
+    expect(row.stockPairs).toBe(100);
+  });
+
+  it("keeps the fields the rules do not touch", () => {
+    const row = stock({ stockPairs: 100 });
+    const next = withStockMovementApplied(row, { type: "Purchase In", pairs: 40 });
+
+    expect(next.id).toBe(row.id);
+    expect(next.sizeRun).toBe(row.sizeRun);
+    expect(next.design).toBe(row.design);
+  });
+
+  it("enforces the same guards as the in-place rules", () => {
+    // Same arithmetic, same refusals — that is the whole point of sharing them.
+    expect(() => withStockMovementApplied(stock({ stockPairs: 10 }), { type: "Sale Out", pairs: 40 })).toThrow(
+      /has only 10 pairs/,
+    );
+    expect(() => withStockMovementApplied(stock(), { type: "Purchase In", pairs: 0 })).toThrow(
+      /must be greater than zero/,
+    );
+  });
+
+  it("agrees with the in-place rules, movement for movement", () => {
+    const types: StockMovementType[] = [
+      "Production In",
+      "Purchase In",
+      "Adjustment",
+      "Dispatch Out",
+      "Sale Out",
+      "Market Sale",
+      "Return In",
+    ];
+
+    for (const type of types) {
+      const inPlace = stock({ stockPairs: 100, soldPairs: 20, returnedPairs: 5 });
+      applyStockMovementToStock(inPlace, { type, pairs: 10 });
+      const copied = withStockMovementApplied(
+        stock({ stockPairs: 100, soldPairs: 20, returnedPairs: 5 }),
+        { type, pairs: 10 },
+      );
+
+      expect(copied).toEqual(inPlace);
+    }
   });
 });

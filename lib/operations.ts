@@ -27,8 +27,23 @@ import {
   updateWorkerTaskStatusToPostgres,
   updateWorkerTaskToPostgres,
 } from "@/lib/operations-postgres";
+import {
+  applyStockMovementToStock,
+  isStockOutMovement,
+  reverseStockMovementFromStock,
+  type BusinessChannel,
+  type StockMovementType,
+} from "@/lib/stock-rules";
 
-export type BusinessChannel = "Factory" | "Wholesale" | "Retail" | "Online";
+// Re-exported so the rest of the app keeps importing these from here. The rules
+// themselves live in lib/stock-rules.ts, where the Postgres backend can reach
+// them too.
+export {
+  applyStockMovementToStock,
+  isStockOutMovement,
+  reverseStockMovementFromStock,
+};
+export type { BusinessChannel };
 
 export type RawMaterial = {
   id: string;
@@ -133,14 +148,7 @@ export type CustomerLedger = {
   lastTransaction: string;
 };
 
-export type StockMovementType =
-  | "Production In"
-  | "Purchase In"
-  | "Dispatch Out"
-  | "Return In"
-  | "Sale Out"
-  | "Market Sale"
-  | "Adjustment";
+export type { StockMovementType };
 
 export type StockMovement = {
   id: string;
@@ -359,22 +367,6 @@ function sameDesign(left: string, right: string) {
 
 function stockKey(value: Pick<FinishedStock, "design" | "channel">) {
   return `${value.design.trim().toLowerCase()}::${value.channel}`;
-}
-
-export function isStockOutMovement(type: StockMovementType) {
-  return type === "Dispatch Out" || type === "Sale Out";
-}
-
-function assertStockAvailable(
-  stock: FinishedStock,
-  movement: Pick<StockMovement, "type" | "pairs">,
-  action = movement.type,
-) {
-  if (movement.pairs > stock.stockPairs) {
-    throw new Error(
-      `${stock.design} ${stock.channel} has only ${stock.stockPairs} pairs. Cannot ${action} ${movement.pairs} pairs.`,
-    );
-  }
 }
 
 function percentage(part: number, total: number) {
@@ -648,81 +640,6 @@ function findOrCreateFinishedStock(
   return stock;
 }
 
-// Exported for tests: this is the stock arithmetic every channel depends on.
-// It mutates the stock row in place, mirroring how the local-json store works.
-export function applyStockMovementToStock(
-  stock: FinishedStock,
-  movement: Pick<StockMovement, "type" | "pairs">,
-) {
-  if (movement.pairs <= 0) {
-    throw new Error("Stock movement pairs must be greater than zero.");
-  }
-
-  if (isStockOutMovement(movement.type)) {
-    assertStockAvailable(stock, movement);
-  }
-
-  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
-    stock.stockPairs += movement.pairs;
-  }
-
-  if (movement.type === "Dispatch Out") {
-    stock.stockPairs -= movement.pairs;
-  }
-
-  if (movement.type === "Sale Out") {
-    stock.stockPairs -= movement.pairs;
-    stock.soldPairs += movement.pairs;
-  }
-
-  if (movement.type === "Market Sale") {
-    stock.soldPairs += movement.pairs;
-  }
-
-  if (movement.type === "Return In") {
-    stock.stockPairs += movement.pairs;
-    stock.returnedPairs += movement.pairs;
-  }
-}
-
-export function reverseStockMovementFromStock(
-  stock: FinishedStock,
-  movement: Pick<StockMovement, "type" | "pairs">,
-) {
-  if (
-    (movement.type === "Production In" ||
-      movement.type === "Purchase In" ||
-      movement.type === "Adjustment" ||
-      movement.type === "Return In") &&
-    movement.pairs > stock.stockPairs
-  ) {
-    throw new Error(
-      `${stock.design} ${stock.channel} stock depends on this movement. Add stock back before deleting it.`,
-    );
-  }
-
-  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
-    stock.stockPairs -= movement.pairs;
-  }
-
-  if (movement.type === "Dispatch Out") {
-    stock.stockPairs += movement.pairs;
-  }
-
-  if (movement.type === "Sale Out") {
-    stock.stockPairs += movement.pairs;
-    stock.soldPairs = Math.max(0, stock.soldPairs - movement.pairs);
-  }
-
-  if (movement.type === "Market Sale") {
-    stock.soldPairs = Math.max(0, stock.soldPairs - movement.pairs);
-  }
-
-  if (movement.type === "Return In") {
-    stock.stockPairs -= movement.pairs;
-    stock.returnedPairs = Math.max(0, stock.returnedPairs - movement.pairs);
-  }
-}
 
 function addStockMovementToLocalData(data: OperationsData, movement: StockMovement) {
   const stock = findOrCreateFinishedStock(data, movement);
