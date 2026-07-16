@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const store = vi.hoisted(() => ({ getProducts: vi.fn() }));
+const store = vi.hoisted(() => ({
+  getProducts: vi.fn(),
+  getOrders: vi.fn<() => Promise<{ status: string; items: { productId: string; quantity: number }[] }[]>>(
+    () => Promise.resolve([]),
+  ),
+}));
 
 vi.mock("@/lib/product-store", () => ({ getProducts: store.getProducts }));
+// Stubbed so these stay unit tests. Without it computeAuthoritativeOrderTotal
+// reads data/orders.json, and the suite would quietly start depending on
+// whatever orders happen to be sitting there.
+vi.mock("@/lib/submissions", () => ({ getOrders: store.getOrders }));
 
 import {
   computeAuthoritativeOrderTotal,
@@ -144,5 +153,48 @@ describe("computeAuthoritativeOrderTotal stock reporting", () => {
   it("judges stock against the same catalog read the price came from", async () => {
     await computeAuthoritativeOrderTotal([{ productId: "kids-runner", quantity: 500 }]);
     expect(store.getProducts).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts pairs that open orders are already holding", async () => {
+    store.getOrders.mockResolvedValue([
+      { status: "New", items: [{ productId: "kids-runner", quantity: 90 }] },
+    ]);
+
+    // 95 in the catalog, 90 held by an open order, so 6 must not pass.
+    const pricing = await computeAuthoritativeOrderTotal([{ productId: "kids-runner", quantity: 6 }]);
+    expect(pricing.shortfalls).toEqual([
+      { productId: "kids-runner", productName: "Kids Daily Runner", requested: 6, available: 5 },
+    ]);
+  });
+
+  it("frees the pairs again once that order is cancelled", async () => {
+    store.getOrders.mockResolvedValue([
+      { status: "Cancelled", items: [{ productId: "kids-runner", quantity: 90 }] },
+    ]);
+
+    const pricing = await computeAuthoritativeOrderTotal([{ productId: "kids-runner", quantity: 90 }]);
+    expect(pricing.shortfalls).toEqual([]);
+  });
+
+  it("names what was bought from the catalog, not from the request", async () => {
+    const pricing = await computeAuthoritativeOrderTotal([
+      { productId: "kids-runner", quantity: 2, size: "40", color: "Black" },
+    ]);
+
+    expect(pricing.orderItems).toEqual([
+      {
+        productId: "kids-runner",
+        productName: "Kids Daily Runner",
+        size: "40",
+        color: "Black",
+        quantity: 2,
+      },
+    ]);
+  });
+
+  it("leaves unknown products out of the stored items", async () => {
+    const pricing = await computeAuthoritativeOrderTotal([{ productId: "ghost", quantity: 2 }]);
+    expect(pricing.orderItems).toEqual([]);
+    expect(pricing.unknownItems).toBe(1);
   });
 });

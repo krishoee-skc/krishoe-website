@@ -293,7 +293,12 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
   const itemsJson = useMemo(
     () =>
       JSON.stringify(
-        cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+        })),
       ),
     [cartItems],
   );

@@ -168,6 +168,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       delivery,
       payment,
       order,
+      // The structured list, so the order can hold stock. `order` above is the
+      // same thing as a sentence, which nothing can count.
+      items: pricing.orderItems,
       total: authoritativeTotal,
     },
     session?.userId,
