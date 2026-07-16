@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { appendAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
   addCustomerLedger,
   addFinishedStock,
@@ -73,6 +74,14 @@ const operationRecordKinds: OperationRecordKind[] = [
   "customerLedger",
   "stockMovement",
   "ledgerTransaction",
+];
+
+// Deleting one of these changes how many pairs exist, so the catalog stock the
+// shop reads has to be recomputed. The other kinds never touch finished stock.
+const STOCK_BEARING_RECORD_KINDS: OperationRecordKind[] = [
+  "finishedStock",
+  "stockMovement",
+  "vehicleDispatchItem",
 ];
 
 function textValue(formData: FormData, key: string) {
@@ -249,6 +258,7 @@ export async function createVehicleDispatchItemAction(formData: FormData) {
     creditAmount: numberValue(formData, "creditAmount"),
     note: textValue(formData, "note"),
   });
+  await syncProductCatalogStockWithFinishedStock();
   await auditOperationsAction(
     "operations_create_vehicle_dispatch_item",
     `Dispatch ${dispatchId} item ${design}: loaded ${loadedPairs}, sold ${soldPairs}, returned ${returnedPairs}.`,
@@ -327,6 +337,7 @@ export async function createFinishedStockAction(formData: FormData) {
     soldPairs: numberValue(formData, "soldPairs"),
     returnedPairs: numberValue(formData, "returnedPairs"),
   });
+  await syncProductCatalogStockWithFinishedStock();
   await auditOperationsAction("operations_create_finished_stock", `Finished stock ${design} created.`);
 
   refreshOperationsPage();
@@ -400,6 +411,7 @@ export async function updateFinishedStockAction(formData: FormData) {
     soldPairs: numberValue(formData, "soldPairs"),
     returnedPairs: numberValue(formData, "returnedPairs"),
   });
+  await syncProductCatalogStockWithFinishedStock();
   await auditOperationsAction("operations_update_finished_stock", `Finished stock ${id} updated.`);
 
   refreshOperationsPage();
@@ -502,6 +514,7 @@ export async function createStockMovementAction(formData: FormData) {
     pairs,
     note: textValue(formData, "note"),
   });
+  await syncProductCatalogStockWithFinishedStock();
   await auditOperationsAction("operations_create_stock_movement", `Stock movement for ${design} created.`);
 
   refreshOperationsPage();
@@ -578,6 +591,11 @@ export async function deleteOperationRecordAction(formData: FormData) {
   }
 
   await deleteOperationRecord(kind, id);
+
+  if (STOCK_BEARING_RECORD_KINDS.includes(kind)) {
+    await syncProductCatalogStockWithFinishedStock();
+  }
+
   await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);
   refreshOperationsPage(operationsReturnPath(formData));
 }

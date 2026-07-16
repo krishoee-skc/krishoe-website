@@ -10,6 +10,7 @@ import {
   type RawMaterial,
 } from "@/lib/operations";
 import { getPosSnapshot } from "@/lib/pos";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
   addSupplierLedgerToPostgres,
   addSupplierTransactionToPostgres,
@@ -483,7 +484,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
   }
 
-  return runWithDataBackend({
+  const invoice = await runWithDataBackend({
     storeName: "purchasing",
     localJson: async () => {
       const [data, operations] = await Promise.all([
@@ -603,6 +604,15 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     },
     postgres: () => createPurchaseInvoiceInPostgres(normalizedInput),
   });
+
+  // The catalog carries its own stock column, and the shop reads that column,
+  // not finished stock. Without this the pairs land in the ERP and the shop
+  // still shows nothing buyable until some later POS sale happens to sync.
+  if (normalizedInput.kind === "Trading Goods") {
+    await syncProductCatalogStockWithFinishedStock();
+  }
+
+  return invoice;
 }
 
 function isSameDay(value: string) {
