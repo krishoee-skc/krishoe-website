@@ -3,9 +3,12 @@ import {
   findStockShortfalls,
   orderHoldsStock,
   reservedByProduct,
+  withAvailableStock,
   type OrderItem,
   type ReservingOrder,
 } from "@/lib/order-stock";
+import { ORDER_STATUSES } from "@/app/admin/actions";
+import { orderStatuses } from "@/lib/submissions";
 import type { Product } from "@/lib/products";
 
 function product(id: string, name: string, stock: number) {
@@ -79,6 +82,47 @@ describe("reservedByProduct", () => {
 
   it("returns nothing when there are no orders", () => {
     expect(reservedByProduct([]).size).toBe(0);
+  });
+});
+
+describe("withAvailableStock", () => {
+  it("shows the shop what is left after open orders", () => {
+    const reserved = reservedByProduct([order("New", [item("kids-runner", 90)])]);
+    expect(withAvailableStock(catalog, reserved)[0]?.stock).toBe(5);
+  });
+
+  it("shows raw stock when nothing is held", () => {
+    expect(withAvailableStock(catalog, new Map())[0]?.stock).toBe(95);
+  });
+
+  it("never shows negative stock when orders hold more than the catalog has", () => {
+    const reserved = reservedByProduct([order("New", [item("kids-runner", 200)])]);
+    expect(withAvailableStock(catalog, reserved)[0]?.stock).toBe(0);
+  });
+
+  it("does not mutate the catalog it was given", () => {
+    const reserved = reservedByProduct([order("New", [item("kids-runner", 90)])]);
+    withAvailableStock(catalog, reserved);
+    expect(catalog[0]?.stock).toBe(95);
+  });
+
+  it("leaves products no order touches alone", () => {
+    const products = [...catalog, product("other", "Other", 10)];
+    const reserved = reservedByProduct([order("New", [item("kids-runner", 90)])]);
+    expect(withAvailableStock(products, reserved)[1]?.stock).toBe(10);
+  });
+});
+
+describe("admin order statuses", () => {
+  it("offers every status the store defines", () => {
+    // These were two hand-typed lists. Adding Cancelled to the store left the
+    // admin unable to pick it, so an order could be neither closed nor
+    // cancelled.
+    expect([...ORDER_STATUSES]).toEqual([...orderStatuses]);
+  });
+
+  it("lets an admin cancel an order", () => {
+    expect(ORDER_STATUSES).toContain("Cancelled");
   });
 });
 

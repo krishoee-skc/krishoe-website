@@ -5,6 +5,8 @@ import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
 import BottomTabBar from "@/components/BottomTabBar";
 import { getProducts } from "@/lib/product-store";
+import { getOrders } from "@/lib/submissions";
+import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
 import "./globals.css";
 
@@ -66,7 +68,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const products = await getProducts();
+  // The shop is shown what is actually buyable, not raw catalog stock: pairs an
+  // open order is holding are not for sale, and checkout will refuse them.
+  const [catalog, orders] = await Promise.all([getProducts(), getOrders()]);
+  const products = withAvailableStock(catalog, reservedByProduct(orders));
 
   return (
     <html

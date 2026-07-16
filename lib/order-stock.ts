@@ -87,6 +87,26 @@ export function findStockShortfalls(
   return shortfalls;
 }
 
+// Catalog stock less what open orders hold — what a shopper can actually buy.
+// The storefront is given this rather than raw stock, so the cart and the
+// checkout judge availability by the same number instead of the cart promising
+// pairs the server then refuses.
+export function withAvailableStock(products: Product[], reserved: Map<string, number>): Product[] {
+  if (reserved.size === 0) {
+    return products;
+  }
+
+  return products.map((product) => {
+    const held = reserved.get(product.id) ?? 0;
+
+    if (held <= 0) {
+      return product;
+    }
+
+    return { ...product, stock: Math.max(0, product.stock - held) };
+  });
+}
+
 export function describeStockShortfalls(shortfalls: StockShortfall[]) {
   return shortfalls
     .map((shortfall) =>
