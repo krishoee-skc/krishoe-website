@@ -1,10 +1,10 @@
 import { getProducts } from "@/lib/product-store";
 import { formatPrice } from "@/lib/products";
+import { findStockShortfalls } from "@/lib/order-stock";
+import type { CheckoutItemInput } from "@/lib/order-pricing-types";
 
-export type CheckoutItemInput = {
-  productId: string;
-  quantity: number;
-};
+export type { CheckoutItemInput };
+export { findStockShortfalls, describeStockShortfalls, type StockShortfall } from "@/lib/order-stock";
 
 // Parse the structured cart items submitted by checkout. Anything malformed is
 // dropped so a tampered payload cannot smuggle in a fake price.
@@ -64,5 +64,8 @@ export async function computeAuthoritativeOrderTotal(items: CheckoutItemInput[])
     totalLabel: formatPrice(totalPaisa),
     matchedItems,
     unknownItems,
+    // Checked here rather than in a second pass so availability is judged
+    // against the same catalog read the price came from.
+    shortfalls: findStockShortfalls(products, items),
   };
 }
