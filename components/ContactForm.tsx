@@ -31,36 +31,36 @@ export default function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">Send a request</p>
-      <h2 className="mt-3 text-3xl font-black text-[#10231D]">Talk to KRISHOE</h2>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Send a request</p>
+      <h2 className="mt-3 text-3xl font-black text-brand-green-ink">Talk to KRISHOE</h2>
 
       <div className="mt-7 grid gap-4">
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Name
           <input
             name="name"
             required
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="Your name"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Email
           <input
             name="email"
             required
             type="email"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="you@example.com"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Message
           <textarea
             name="message"
             required
             rows={5}
-            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-[#0B4D3B]"
+            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
             placeholder="Tell us what you are looking for"
           />
         </label>
@@ -76,7 +76,7 @@ export default function ContactForm() {
           <p
             aria-live="polite"
             className={`rounded-lg p-4 text-sm font-semibold ${
-              state.ok ? "bg-[#E9F2EE] text-[#0B4D3B]" : "bg-[#FFF1EF] text-[#7B3128]"
+              state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-mist text-brand-clay"
             }`}
           >
             {state.message}

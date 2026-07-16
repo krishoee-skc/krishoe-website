@@ -5,13 +5,13 @@ export default async function BestSeller() {
   const bestSellerProducts = (await getProducts()).filter((product) => product.bestSeller);
 
   return (
-    <section className="bg-[#F5F7F4] py-20">
+    <section className="bg-brand-mist py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             Best Sellers
           </p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-[#10231D] md:text-5xl">
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
             Most-loved styles, selected by repeat buyers.
           </h2>
         </div>

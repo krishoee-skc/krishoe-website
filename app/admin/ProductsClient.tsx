@@ -27,7 +27,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
   if (products.length === 0) {
     return (
       <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-        <h2 className="text-lg font-black text-[#10231D]">No products yet</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">No products yet</h2>
         <p className="mt-2 text-sm text-gray-500">Create your first product from the form above.</p>
       </div>
     );
@@ -52,7 +52,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
 
         <tbody className="divide-y divide-gray-200">
           {products.map((product) => (
-            <tr key={product.id} className={editingId === product.id ? "bg-[#F5F7F4]" : undefined}>
+            <tr key={product.id} className={editingId === product.id ? "bg-brand-mist" : undefined}>
               <td className="whitespace-nowrap px-4 py-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-md bg-gray-100">
                   <Image src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
@@ -71,7 +71,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                 <div className="flex items-center justify-end gap-2">
                   <Link
                     href={`/admin/products?edit=${encodeURIComponent(product.id)}`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-black/10 px-3 text-xs font-bold text-[#0B4D3B] transition hover:bg-[#F5F7F4]"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-black/10 px-3 text-xs font-bold text-brand-green transition hover:bg-brand-mist"
                   >
                     <PencilIcon className="h-4 w-4" />
                     Edit

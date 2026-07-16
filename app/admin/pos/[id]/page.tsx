@@ -45,7 +45,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/pos"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to POS
         </Link>
@@ -56,7 +56,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
               <input type="hidden" name="returnTo" value={`/admin/pos/${invoice.id}`} />
               <button
                 type="submit"
-                className="inline-flex h-10 items-center rounded-full border border-[#7B3128] px-4 text-sm font-bold text-[#7B3128] transition hover:bg-[#7B3128] hover:text-white"
+                className="inline-flex h-10 items-center rounded-full border border-brand-clay px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay hover:text-white"
               >
                 Repair posting
               </button>
@@ -69,10 +69,10 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
       <div className="mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#10231D]">
+            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">
               {invoice.kind === "Return" ? "Return bill" : "Sales bill"}
             </h1>
             <p className="mt-2 text-sm text-gray-500">
@@ -80,7 +80,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             </p>
           </div>
           <div className="text-right">
-            <p className="font-mono text-sm font-black text-[#10231D]">{invoice.invoiceNumber}</p>
+            <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.invoiceNumber}</p>
             <p className="mt-2 rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-gray-600">
               {invoice.status} / {invoice.postingStatus}
             </p>
@@ -90,17 +90,17 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Customer</p>
-            <p className="mt-2 font-black text-[#10231D]">{invoice.customerName}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{invoice.customerName}</p>
             <p className="mt-1 text-sm text-gray-500">{invoice.phone || "No phone"}</p>
           </div>
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Payment</p>
-            <p className="mt-2 font-black text-[#10231D]">{invoice.paymentMethod}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{invoice.paymentMethod}</p>
             <p className="mt-1 text-sm text-gray-500">{invoice.paymentReference || "No reference"}</p>
           </div>
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Cashier</p>
-            <p className="mt-2 font-black text-[#10231D]">{invoice.cashier}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{invoice.cashier}</p>
             <p className="mt-1 text-sm text-gray-500">{invoice.note || "No note"}</p>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
               {invoice.items.map((item) => (
                 <tr key={item.id}>
                   <td className="py-3 pr-3 font-mono text-xs">{item.sku || "-"}</td>
-                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{item.design}</td>
+                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{item.design}</td>
                   <td className="py-3 pr-3">{item.sizeRun}</td>
                   <td className="py-3 pr-3 text-right">{item.quantity}</td>
                   <td className="py-3 pr-3 text-right">{money(item.rate)}</td>
@@ -158,27 +158,27 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Billing IDs</p>
             <div className="mt-3 grid gap-2 text-sm text-gray-600">
               <p>
-                Barcode value: <span className="font-mono font-bold text-[#10231D]">{invoice.barcodeValue}</span>
+                Barcode value: <span className="font-mono font-bold text-brand-green-ink">{invoice.barcodeValue}</span>
               </p>
               <p className="break-all">
-                QR payload: <span className="font-mono text-xs text-[#10231D]">{invoice.qrPayload}</span>
+                QR payload: <span className="font-mono text-xs text-brand-green-ink">{invoice.qrPayload}</span>
               </p>
               <p>
                 Stock movement IDs:{" "}
-                <span className="font-mono text-xs text-[#10231D]">
+                <span className="font-mono text-xs text-brand-green-ink">
                   {invoice.stockMovementIds.length > 0 ? invoice.stockMovementIds.join(", ") : "Not posted"}
                 </span>
               </p>
               <p>
                 Ledger transaction:{" "}
-                <span className="font-mono text-xs text-[#10231D]">
+                <span className="font-mono text-xs text-brand-green-ink">
                   {invoice.ledgerTransactionId || "Not linked"}
                 </span>
               </p>
             </div>
           </div>
 
-          <div className="rounded-lg bg-[#F5F7F4] p-4">
+          <div className="rounded-lg bg-brand-mist p-4">
             <div className="flex justify-between gap-3 text-sm">
               <span className="text-gray-600">Subtotal</span>
               <span className="font-bold">{money(invoice.subtotal)}</span>
@@ -193,16 +193,16 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             </div>
             <div className="mt-4 border-t border-gray-200 pt-4">
               <div className="flex justify-between gap-3">
-                <span className="font-black text-[#10231D]">Total</span>
-                <span className="text-xl font-black text-[#10231D]">{money(invoice.total)}</span>
+                <span className="font-black text-brand-green-ink">Total</span>
+                <span className="text-xl font-black text-brand-green-ink">{money(invoice.total)}</span>
               </div>
               <div className="mt-3 flex justify-between gap-3 text-sm">
                 <span className="text-gray-600">Paid</span>
-                <span className="font-bold text-[#0B4D3B]">{money(invoice.paidAmount)}</span>
+                <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span>
               </div>
               <div className="mt-2 flex justify-between gap-3 text-sm">
                 <span className="text-gray-600">Credit</span>
-                <span className="font-bold text-[#7B3128]">{money(invoice.creditAmount)}</span>
+                <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span>
               </div>
             </div>
           </div>

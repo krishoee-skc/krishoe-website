@@ -100,7 +100,7 @@ function ConversionStatCard({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#10231D]">{value}</p>
+      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-1 text-xs font-semibold text-gray-500">{detail}</p>
     </div>
   );
@@ -227,7 +227,7 @@ function OrderPaymentForm({
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-[#10231D] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0B4D3B] disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-brand-green-ink px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-green disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Saving" : "Save"}
           </button>
@@ -240,7 +240,7 @@ function OrderPaymentForm({
 
           return (
             <div key={transaction.id} className="rounded-md bg-gray-50 px-2 py-1.5">
-              <span className="font-bold text-[#10231D]">{transaction.paymentStatus}</span>
+              <span className="font-bold text-brand-green-ink">{transaction.paymentStatus}</span>
               <span> - {transaction.paymentProvider.toUpperCase()}</span>
               <span> - {money(transaction.amount)}</span>
               {ledger ? <span> - {ledger.customerName}</span> : null}
@@ -274,7 +274,7 @@ function OrderToPosForm({
       <div className="grid gap-2">
         <Link
           href={`/admin/pos/${posInvoice.id}`}
-          className="inline-flex h-9 items-center rounded-full border border-[#0B4D3B] px-3 text-xs font-black text-[#0B4D3B] transition hover:bg-[#0B4D3B] hover:text-white"
+          className="inline-flex h-9 items-center rounded-full border border-brand-green px-3 text-xs font-black text-brand-green transition hover:bg-brand-green hover:text-white"
         >
           {posInvoice.invoiceNumber}
         </Link>
@@ -352,14 +352,14 @@ function OrderToPosForm({
           {state.message || conversionRow.detail}
         </p>
         {state.href ? (
-          <Link href={state.href} className="text-xs font-black text-[#0B4D3B] underline underline-offset-4">
+          <Link href={state.href} className="text-xs font-black text-brand-green underline underline-offset-4">
             Open
           </Link>
         ) : null}
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-[#0B4D3B] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#10231D] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-brand-green px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Creating" : "To POS"}
         </button>
@@ -407,8 +407,8 @@ export default function OrdersClient({
             onClick={() => setConversionFilter(filter)}
             className={`h-9 rounded-full border px-3 text-xs font-black transition ${
               conversionFilter === filter
-                ? "border-[#0B4D3B] bg-[#0B4D3B] text-white"
-                : "border-gray-200 bg-white text-[#10231D] hover:border-[#0B4D3B]"
+                ? "border-brand-green bg-brand-green text-white"
+                : "border-gray-200 bg-white text-brand-green-ink hover:border-brand-green"
             }`}
           >
             {filter}

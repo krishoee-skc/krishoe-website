@@ -12,16 +12,16 @@ export default function QuantitySelector({ quantity, setQuantity }: QuantitySele
         type="button"
         aria-label="Decrease quantity"
         onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-        className="grid h-12 w-12 place-items-center text-[#0B4D3B]"
+        className="grid h-12 w-12 place-items-center text-brand-green"
       >
         <MinusIcon className="h-4 w-4" />
       </button>
-      <span className="min-w-8 text-center text-sm font-black text-[#10231D]">{quantity}</span>
+      <span className="min-w-8 text-center text-sm font-black text-brand-green-ink">{quantity}</span>
       <button
         type="button"
         aria-label="Increase quantity"
         onClick={() => setQuantity((current) => Math.min(9, current + 1))}
-        className="grid h-12 w-12 place-items-center text-[#0B4D3B]"
+        className="grid h-12 w-12 place-items-center text-brand-green"
       >
         <PlusIcon className="h-4 w-4" />
       </button>

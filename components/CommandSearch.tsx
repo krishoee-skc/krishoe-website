@@ -83,11 +83,11 @@ export default function CommandSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search premium styles"
-        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-[#F7F8F5] px-4 text-[#6D7773] transition hover:border-[#0B4D3B]/40 xl:flex"
+        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-[#F7F8F5] px-4 text-brand-muted-deep transition hover:border-brand-green/40 xl:flex"
       >
         <SearchIcon className="h-4 w-4" />
         <span className="text-sm">Search premium styles</span>
-        <kbd className="ml-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#6D7773]">
+        <kbd className="ml-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-muted-deep">
           Ctrl K
         </kbd>
       </button>
@@ -97,7 +97,7 @@ export default function CommandSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search premium styles"
-        className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-[#0B4D3B] transition hover:border-[#0B4D3B] hover:bg-[#F5F7F4] xl:hidden"
+        className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist xl:hidden"
       >
         <SearchIcon className="h-5 w-5" />
       </button>
@@ -108,11 +108,11 @@ export default function CommandSearch() {
             type="button"
             aria-label="Close search"
             onClick={closePalette}
-            className="absolute inset-0 bg-[#10231D]/55 backdrop-blur-sm"
+            className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
           />
           <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,560px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:top-24 sm:max-h-[80vh]">
             <form onSubmit={submitSearch} className="flex items-center gap-3 border-b border-black/10 px-4">
-              <SearchIcon className="h-5 w-5 shrink-0 text-[#6D7773]" />
+              <SearchIcon className="h-5 w-5 shrink-0 text-brand-muted-deep" />
               <input
                 ref={inputRef}
                 value={query}
@@ -125,7 +125,7 @@ export default function CommandSearch() {
                 type="button"
                 onClick={closePalette}
                 aria-label="Close"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6D7773] transition hover:bg-[#F5F7F4]"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand-muted-deep transition hover:bg-brand-mist"
               >
                 <XIcon className="h-4 w-4" />
               </button>
@@ -141,7 +141,7 @@ export default function CommandSearch() {
                     key={category.slug}
                     href={`/shop/${category.slug}`}
                     onClick={closePalette}
-                    className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-[#F5F7F4] active:bg-[#EDF1EE]"
+                    className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-brand-mist active:bg-[#EDF1EE]"
                   >
                     <Image
                       src={category.image}
@@ -150,7 +150,7 @@ export default function CommandSearch() {
                       height={44}
                       className="h-11 w-11 shrink-0 rounded-lg object-cover"
                     />
-                    <span className="text-sm font-medium text-[#10231D]">{category.title}</span>
+                    <span className="text-sm font-medium text-brand-green-ink">{category.title}</span>
                   </Link>
                 ))}
               </div>

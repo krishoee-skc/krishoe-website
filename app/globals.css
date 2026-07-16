@@ -17,6 +17,28 @@ html {
   scroll-behavior: smooth;
 }
 
+@layer components {
+  /* The admin product form styles every field with .form-input, but the class
+     was never defined anywhere — no rule, and no @tailwindcss/forms plugin. So
+     Tailwind's preflight (which strips input border and padding) was the only
+     thing applying, and the fields rendered as bare boxes. This matches the
+     inputClass string the other admin pages inline. Height is left to the
+     element so textareas keep their rows attribute. */
+  .form-input {
+    @apply w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none;
+  }
+
+  /* Single-line controls get a fixed height; textareas must keep the height
+     their rows attribute gives them. */
+  .form-input:not(textarea) {
+    @apply h-10 py-0;
+  }
+
+  .form-input:focus {
+    @apply border-brand-green;
+  }
+}
+
 ::selection {
   background: #c8a04d;
   color: #10231d;

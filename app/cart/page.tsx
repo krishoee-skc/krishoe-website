@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 
 export default function CartPage() {
   return (
-    <main className="bg-[#F5F7F4]">
+    <main className="bg-brand-mist">
       <Navbar />
       <section className="mx-auto max-w-7xl px-5 py-16 md:px-8">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">KRISHOE cart</p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-[#10231D] md:text-6xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">KRISHOE cart</p>
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
             Your selected pairs.
           </h1>
         </div>

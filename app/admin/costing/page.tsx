@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-[#0B4D3B]";
+  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#0B4D3B]";
+  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -58,7 +58,7 @@ function StatCard({
   tone?: "default" | "good" | "warn" | "danger";
 }) {
   const toneClass = {
-    default: "border-gray-200 bg-white text-[#10231D]",
+    default: "border-gray-200 bg-white text-brand-green-ink",
     good: "border-emerald-200 bg-emerald-50 text-emerald-800",
     warn: "border-amber-200 bg-amber-50 text-amber-800",
     danger: "border-red-200 bg-red-50 text-red-800",
@@ -194,7 +194,7 @@ export default async function AdminCostingPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">COGS and design profit</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">COGS and design profit</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Material, labor, factory overhead, production batch COGS, and POS design margin in one control view.
           </p>
@@ -202,43 +202,43 @@ export default async function AdminCostingPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/api/admin/costing/export?type=designs"
-            className="rounded-full bg-[#0B4D3B] px-4 py-2 text-sm font-bold text-white"
+            className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export designs
           </Link>
           <Link
             href="/api/admin/costing/export?type=materials"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export materials
           </Link>
           <Link
             href="/api/admin/costing/export?type=stock-valuation"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Raw stock value
           </Link>
           <Link
             href="/api/admin/costing/export?type=finished-stock-value"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Finished value
           </Link>
           <Link
             href="/api/admin/costing/export?type=catalog-stock-sync"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Catalog sync
           </Link>
           <Link
             href="/api/admin/costing/export?type=batches"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export batches
           </Link>
           <Link
             href="/api/admin/costing/export?type=periods"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export periods
           </Link>
@@ -320,14 +320,14 @@ export default async function AdminCostingPage() {
       <form action={updateCostingSettingsAction} className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Factory cost model</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Factory cost model</h2>
             <p className="mt-1 text-sm text-gray-500">
               Set real labor and overhead rates to turn COGS into true production profit.
             </p>
           </div>
           <button
             type="submit"
-            className="h-10 rounded-full bg-[#10231D] px-5 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+            className="h-10 rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
             Save cost model
           </button>
@@ -335,12 +335,12 @@ export default async function AdminCostingPage() {
 
         <div className="mt-5 grid gap-6 xl:grid-cols-[1fr_1.2fr]">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0B4D3B]">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
               Labor per completed pair
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {productionStations.map((station) => (
-                <label key={station} className="grid gap-1 text-sm font-semibold text-[#10231D]">
+                <label key={station} className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                   {station}
                   <input
                     name={laborRateFieldName(station)}
@@ -357,15 +357,15 @@ export default async function AdminCostingPage() {
 
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0B4D3B]">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
                 Factory overhead allocation
               </p>
-              <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-[#10231D]">
+              <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-brand-green-ink">
                 Effective {money(overheadPerPair(costing.settings))}/pair
               </span>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Factory overhead/pair
                 <input
                   name="factoryOverheadPerPair"
@@ -376,7 +376,7 @@ export default async function AdminCostingPage() {
                   defaultValue={costing.settings.factoryOverheadPerPair}
                 />
               </label>
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Electricity/pair
                 <input
                   name="electricityPerPair"
@@ -387,7 +387,7 @@ export default async function AdminCostingPage() {
                   defaultValue={costing.settings.electricityPerPair}
                 />
               </label>
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Rent/pair
                 <input
                   name="rentPerPair"
@@ -398,7 +398,7 @@ export default async function AdminCostingPage() {
                   defaultValue={costing.settings.rentPerPair}
                 />
               </label>
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Misc./pair
                 <input
                   name="miscellaneousPerPair"
@@ -409,7 +409,7 @@ export default async function AdminCostingPage() {
                   defaultValue={costing.settings.miscellaneousPerPair}
                 />
               </label>
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Monthly fixed overhead
                 <input
                   name="monthlyFixedOverhead"
@@ -420,7 +420,7 @@ export default async function AdminCostingPage() {
                   defaultValue={costing.settings.monthlyFixedOverhead}
                 />
               </label>
-              <label className="grid gap-1 text-sm font-semibold text-[#10231D]">
+              <label className="grid gap-1 text-sm font-semibold text-brand-green-ink">
                 Monthly capacity pairs
                 <input
                   name="monthlyCapacityPairs"
@@ -444,7 +444,7 @@ export default async function AdminCostingPage() {
 
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-black text-[#10231D]">Profit periods</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Profit periods</h2>
           <p className="mt-1 text-sm text-gray-500">
             Daily, monthly, and yearly sales profit after estimated full COGS.
           </p>
@@ -452,8 +452,8 @@ export default async function AdminCostingPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {costing.periodReports.map((row) => (
             <div key={row.label} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <p className="text-sm font-black text-[#10231D]">{row.label}</p>
-              <p className="mt-2 text-2xl font-black text-[#0B4D3B]">{money(row.grossProfit)}</p>
+              <p className="text-sm font-black text-brand-green-ink">{row.label}</p>
+              <p className="mt-2 text-2xl font-black text-brand-green">{money(row.grossProfit)}</p>
               <p className="mt-1 text-xs font-semibold text-gray-500">
                 Revenue {money(row.revenue)} | COGS {money(row.estimatedCogs)} | {row.grossMarginRate}%
               </p>
@@ -468,12 +468,12 @@ export default async function AdminCostingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Catalog stock reconciliation</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Catalog stock reconciliation</h2>
             <p className="mt-1 text-sm text-gray-500">
               Online product catalog stock compared with operations finished stock by design, SKU, and product id.
             </p>
           </div>
-          <Link href="/admin/products" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/products" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Open products
           </Link>
         </div>
@@ -495,15 +495,15 @@ export default async function AdminCostingPage() {
               {costing.catalogStockReconciliation.slice(0, 20).map((row) => (
                 <tr key={row.key}>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{row.productName || "-"}</p>
+                    <p className="font-bold text-brand-green-ink">{row.productName || "-"}</p>
                     <p className="text-xs text-gray-500">
                       {row.sku || "-"} | {row.productStatus} | {money(row.catalogPrice)}
                     </p>
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{row.operationsDesign || "-"}</td>
+                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.operationsDesign || "-"}</td>
                   <td className="py-3 pr-3">{row.catalogStock}</td>
                   <td className="py-3 pr-3">{row.operationsStockPairs}</td>
-                  <td className="py-3 pr-3 font-black text-[#7B3128]">{row.stockDelta}</td>
+                  <td className="py-3 pr-3 font-black text-brand-clay">{row.stockDelta}</td>
                   <td className="max-w-64 py-3 pr-3 text-gray-600">{row.channelBreakdown}</td>
                   <td className="py-3 pr-3">
                     <CatalogSyncPill row={row} />
@@ -525,12 +525,12 @@ export default async function AdminCostingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Design profitability</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Design profitability</h2>
             <p className="mt-1 text-sm text-gray-500">
               Sales revenue minus estimated COGS from production unit cost.
             </p>
           </div>
-          <Link href="/admin/pos" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/pos" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Open POS
           </Link>
         </div>
@@ -553,12 +553,12 @@ export default async function AdminCostingPage() {
               {costing.designCosting.slice(0, 20).map((row) => (
                 <tr key={row.design}>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{row.design}</p>
+                    <p className="font-bold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">
                       {row.batchCount} batches, {row.finishedPairs} finished pairs
                     </p>
                   </td>
-                  <td className="py-3 pr-3 text-[#10231D]">
+                  <td className="py-3 pr-3 text-brand-green-ink">
                     {row.netPairs}
                     {row.returnedPairs > 0 ? (
                       <span className="block text-xs text-gray-500">{row.returnedPairs} returned</span>
@@ -572,7 +572,7 @@ export default async function AdminCostingPage() {
                     </span>
                   </td>
                   <td className="py-3 pr-3">{money(row.estimatedCogs)}</td>
-                  <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.grossProfit)}</td>
+                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.grossProfit)}</td>
                   <td className="py-3 pr-3">{row.grossMarginRate}%</td>
                   <td className="py-3 pr-3">
                     <StatusPill row={row} />
@@ -594,12 +594,12 @@ export default async function AdminCostingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Finished stock valuation</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Finished stock valuation</h2>
             <p className="mt-1 text-sm text-gray-500">
               Ready stock valued with design unit COGS and recent POS average selling price.
             </p>
           </div>
-          <Link href="/admin/operations" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/operations" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Open finished stock
           </Link>
         </div>
@@ -622,7 +622,7 @@ export default async function AdminCostingPage() {
               {costing.finishedStockValuation.map((row) => (
                 <tr key={row.stockId}>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{row.design}</p>
+                    <p className="font-bold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">{row.sizeRun}</p>
                   </td>
                   <td className="py-3 pr-3">{row.channel}</td>
@@ -637,9 +637,9 @@ export default async function AdminCostingPage() {
                     {money(row.averageSalePrice)}
                     <span className="block text-xs text-gray-500">{row.priceSource}</span>
                   </td>
-                  <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.stockValue)}</td>
+                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#0B4D3B]">{money(row.potentialGrossProfit)}</p>
+                    <p className="font-bold text-brand-green">{money(row.potentialGrossProfit)}</p>
                     <p className="text-xs text-gray-500">
                       Revenue {money(row.potentialRevenue)} | {row.potentialMarginRate}%
                     </p>
@@ -665,12 +665,12 @@ export default async function AdminCostingPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-[#10231D]">Material cost rates</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">Material cost rates</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Weighted average from purchase invoices.
               </p>
             </div>
-            <Link href="/admin/purchasing" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+            <Link href="/admin/purchasing" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Open purchasing
             </Link>
           </div>
@@ -689,7 +689,7 @@ export default async function AdminCostingPage() {
                 {costing.materialCostRates.map((row) => (
                   <tr key={row.materialId || row.materialName}>
                     <td className="py-3 pr-3">
-                      <p className="font-bold text-[#10231D]">{row.materialName}</p>
+                      <p className="font-bold text-brand-green-ink">{row.materialName}</p>
                       <p className="text-xs text-gray-500">{row.invoiceCount} invoices, {row.unit}</p>
                     </td>
                     <td className="py-3 pr-3">{rate(row.purchasedQuantity)}</td>
@@ -712,12 +712,12 @@ export default async function AdminCostingPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-[#10231D]">Batch costing</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">Batch costing</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Raw material usage and wastage converted into batch COGS.
               </p>
             </div>
-            <Link href="/admin/operations" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+            <Link href="/admin/operations" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Open operations
             </Link>
           </div>
@@ -741,7 +741,7 @@ export default async function AdminCostingPage() {
                 {costing.batchCosting.slice(0, 20).map((row) => (
                   <tr key={row.batchId}>
                     <td className="py-3 pr-3">
-                      <p className="font-mono text-xs font-bold text-[#10231D]">{row.batchId}</p>
+                      <p className="font-mono text-xs font-bold text-brand-green-ink">{row.batchId}</p>
                       <p className="text-xs text-gray-500">{row.design}</p>
                     </td>
                     <td className="py-3 pr-3">{row.status}</td>
@@ -788,12 +788,12 @@ export default async function AdminCostingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Raw material stock valuation</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Raw material stock valuation</h2>
             <p className="mt-1 text-sm text-gray-500">
               Current raw material balance valued with weighted purchase cost from supplier invoices.
             </p>
           </div>
-          <Link href="/admin/purchasing" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/purchasing" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Update purchase rates
           </Link>
         </div>
@@ -814,7 +814,7 @@ export default async function AdminCostingPage() {
               {costing.rawMaterialStockValuation.map((row) => (
                 <tr key={row.materialId}>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{row.materialName}</p>
+                    <p className="font-bold text-brand-green-ink">{row.materialName}</p>
                     <p className="text-xs text-gray-500">
                       {row.invoiceCount} purchase invoices, {row.unit}
                     </p>
@@ -824,7 +824,7 @@ export default async function AdminCostingPage() {
                     <span className="block text-xs text-gray-500">Reorder {rate(row.reorderLevel)}</span>
                   </td>
                   <td className="py-3 pr-3">{money(row.averageUnitCost)}</td>
-                  <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.stockValue)}</td>
+                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
                   <td className="py-3 pr-3">
                     {rate(row.reorderShortage)}
                     <span className="block text-xs text-gray-500">{money(row.reorderValue)}</span>

@@ -19,7 +19,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
   const nextPath = safeAdminNextPath(resolvedSearchParams?.next);
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#10231D] px-5 py-16">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-brand-green-ink px-5 py-16">
       <Image
         src="/images/hero-banner.png"
         alt="KRISHOE premium footwear"

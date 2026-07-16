@@ -38,7 +38,7 @@ export default function Categories() {
   return (
     <section className="bg-[#f8f8f8] py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-[#0B4D3B]">
+        <h2 className="text-center text-4xl font-bold text-brand-green">
           Shop by Category
         </h2>
 

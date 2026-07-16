@@ -16,11 +16,11 @@ export default function About() {
           </div>
 
           <div>
-            <p className="font-bold uppercase tracking-widest text-[#C8A04D]">
+            <p className="font-bold uppercase tracking-widest text-brand-gold">
               About KRISHOE
             </p>
 
-            <h2 className="mt-4 text-5xl font-extrabold text-[#0B4D3B]">
+            <h2 className="mt-4 text-5xl font-extrabold text-brand-green">
               Quality Footwear
               <br />
               Made For Nepal
@@ -39,12 +39,12 @@ export default function About() {
 
             <div className="mt-10 grid grid-cols-2 gap-6">
               <div className="rounded-lg bg-gray-100 p-6 text-center">
-                <h3 className="text-4xl font-bold text-[#0B4D3B]">5000+</h3>
+                <h3 className="text-4xl font-bold text-brand-green">5000+</h3>
                 <p className="mt-2 text-gray-500">Happy Customers</p>
               </div>
 
               <div className="rounded-lg bg-gray-100 p-6 text-center">
-                <h3 className="text-4xl font-bold text-[#0B4D3B]">100+</h3>
+                <h3 className="text-4xl font-bold text-brand-green">100+</h3>
                 <p className="mt-2 text-gray-500">Premium Designs</p>
               </div>
             </div>

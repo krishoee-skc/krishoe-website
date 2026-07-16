@@ -11,10 +11,10 @@ export default function Footer() {
   const socials = businessSocialLinks();
 
   return (
-    <footer className="bg-[#0B4D3B] pb-8 pt-16 text-white">
+    <footer className="bg-brand-green pb-8 pt-16 text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-4">
         <div>
-          <h2 className="text-3xl font-bold text-[#C8A04D]">KRISHOE</h2>
+          <h2 className="text-3xl font-bold text-brand-gold">KRISHOE</h2>
 
           <p className="mt-4 text-gray-300">
             Premium Footwear Crafted for Nepal. Style, Comfort & Quality in every step.
@@ -80,7 +80,7 @@ export default function Footer() {
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-white/30 px-3 py-1 text-sm text-gray-200 transition hover:border-[#C8A04D] hover:text-white"
+                  className="rounded-full border border-white/30 px-3 py-1 text-sm text-gray-200 transition hover:border-brand-gold hover:text-white"
                 >
                   {socialLabels[url] ?? "Follow"}
                 </a>

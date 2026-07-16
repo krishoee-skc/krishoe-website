@@ -15,7 +15,7 @@ export default function AboutPage() {
   return (
     <main className="bg-white">
       <Navbar />
-      <section className="relative isolate overflow-hidden bg-[#10231D] py-20 text-white">
+      <section className="relative isolate overflow-hidden bg-brand-green-ink py-20 text-white">
         <Image
           src="/images/hero-banner.png"
           alt="KRISHOE premium footwear"
@@ -26,7 +26,7 @@ export default function AboutPage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,35,29,0.95),rgba(16,35,29,0.68))]" />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#D4AF37]">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand-gold-bright">
             About KRISHOE
           </p>
           <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.96] tracking-tight md:text-7xl">
@@ -48,8 +48,8 @@ export default function AboutPage() {
             ["Growth", "The catalog is structured to connect with CMS, inventory, and checkout systems."],
           ].map(([title, text]) => (
             <article key={title} className="rounded-lg border border-black/10 bg-[#F9FAF8] p-6">
-              <p className="text-2xl font-black text-[#10231D]">{title}</p>
-              <p className="mt-3 text-sm leading-7 text-[#5F6B66]">{text}</p>
+              <p className="text-2xl font-black text-brand-green-ink">{title}</p>
+              <p className="mt-3 text-sm leading-7 text-brand-muted">{text}</p>
             </article>
           ))}
         </div>
@@ -57,10 +57,10 @@ export default function AboutPage() {
 
       <WhyChoose />
 
-      <section className="bg-[#10231D] py-20 text-white">
+      <section className="bg-brand-green-ink py-20 text-white">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 md:flex-row md:items-center md:px-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#D4AF37]">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
               Experience
             </p>
             <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
@@ -69,7 +69,7 @@ export default function AboutPage() {
           </div>
           <Link
             href="/shop"
-            className="inline-flex h-12 w-fit items-center rounded-full bg-[#D4AF37] px-6 text-sm font-black text-[#10231D] transition hover:bg-white"
+            className="inline-flex h-12 w-fit items-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
           >
             Shop KRISHOE
           </Link>

@@ -33,8 +33,8 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
         aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
         className={`grid h-11 w-11 place-items-center rounded-full border transition ${
           wished
-            ? "border-[#D4AF37] bg-[#FFF6D8] text-[#9A6B08]"
-            : "border-black/10 text-[#0B4D3B] hover:border-[#0B4D3B] hover:bg-[#F5F7F4]"
+            ? "border-brand-gold-bright bg-brand-cream text-brand-gold-dark"
+            : "border-black/10 text-brand-green hover:border-brand-green hover:bg-brand-mist"
         }`}
       >
         <HeartIcon className="h-5 w-5" />
@@ -42,7 +42,7 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
       <button
         type="button"
         onClick={addDefaultItem}
-        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#0B4D3B] px-4 text-sm font-semibold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-brand-green px-4 text-sm font-semibold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
       >
         <ShoppingBagIcon className="h-4 w-4" />
         {added ? "Added" : "Add"}

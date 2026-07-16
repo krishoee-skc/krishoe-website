@@ -16,7 +16,7 @@ export default function SubmitButton({ idleLabel, pendingLabel, disabled = false
     <button
       type="submit"
       disabled={isDisabled}
-      className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0B4D3B] px-6 text-sm font-black text-white transition hover:bg-[#D4AF37] hover:text-[#10231D] disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isDisabled ? pendingLabel : idleLabel}
     </button>

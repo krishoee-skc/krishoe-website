@@ -20,9 +20,9 @@ export const dynamic = "force-dynamic";
 type ActivitySearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function categoryClass(category: AdminAuditCategory) {
-  if (category === "Security") return "bg-[#EAF5EF] text-[#0B4D3B]";
+  if (category === "Security") return "bg-brand-green-tint text-brand-green";
   if (category === "Operations") return "bg-[#EEF2FF] text-[#3730A3]";
-  if (category === "Orders") return "bg-[#FFF7DF] text-[#7A5A00]";
+  if (category === "Orders") return "bg-brand-cream-soft text-brand-gold-ink";
   if (category === "Products") return "bg-[#F5F0E8] text-[#5F4630]";
   if (category === "Reviews") return "bg-[#FEF3C7] text-[#92400E]";
   if (category === "Messages") return "bg-[#EFF6FF] text-[#1D4ED8]";
@@ -33,8 +33,8 @@ function categoryClass(category: AdminAuditCategory) {
 
 function statusClass(status: AdminAuditEvent["status"]) {
   return status === "warning"
-    ? "bg-[#FBEAE8] text-[#7B3128]"
-    : "bg-[#EAF5EF] text-[#0B4D3B]";
+    ? "bg-brand-clay-tint text-brand-clay"
+    : "bg-brand-green-tint text-brand-green";
 }
 
 function prettyAction(action: string) {
@@ -69,8 +69,8 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -100,7 +100,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Admin activity log</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Admin activity log</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Login, backup, product, order, payment, and operations changes in one protected trail.
           </p>
@@ -108,13 +108,13 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         <div className="flex flex-wrap gap-2">
           <a
             href={exportHref}
-            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Export CSV
           </a>
           <Link
             href="/api/admin/backup"
-            className="inline-flex h-9 items-center rounded-full bg-[#0B4D3B] px-3 text-xs font-bold text-white"
+            className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"
           >
             Export backup
           </Link>
@@ -135,7 +135,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Activity mix</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Activity mix</h2>
           <p className="mt-1 text-sm text-gray-500">Where admin work is happening most.</p>
           <div className="mt-4 grid gap-3">
             {categoryCounts.map(({ category, count }) => (
@@ -143,20 +143,20 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                 <span className={`rounded-full px-3 py-1 text-xs font-bold ${categoryClass(category)}`}>
                   {category}
                 </span>
-                <span className="text-lg font-black text-[#10231D]">{count}</span>
+                <span className="text-lg font-black text-brand-green-ink">{count}</span>
               </div>
             ))}
           </div>
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Warning signals</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Warning signals</h2>
           <p className="mt-1 text-sm text-gray-500">Failed login, blocked login, or other warning-level audit events.</p>
           <div className="mt-4 divide-y divide-gray-100">
             {warningEvents.slice(0, 6).map((event) => (
               <div key={event.id} className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-bold text-[#10231D]">{prettyAction(event.action)}</p>
+                  <p className="font-bold text-brand-green-ink">{prettyAction(event.action)}</p>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(event.status)}`}>
                     {event.status}
                   </span>
@@ -169,7 +169,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               </div>
             ))}
             {warningEvents.length === 0 ? (
-              <p className="rounded-lg border border-[#D9E8DF] bg-[#F4FBF6] p-4 text-sm font-semibold text-[#0B4D3B]">
+              <p className="rounded-lg border border-brand-green-line bg-brand-green-wash p-4 text-sm font-semibold text-brand-green">
                 No warning-level admin activity in the latest audit records.
               </p>
             ) : null}
@@ -180,12 +180,12 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Recent trail</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Recent trail</h2>
             <p className="mt-1 text-sm text-gray-500">
               {filtersActive ? "Filtered admin activity, newest first." : "Latest admin activity, newest first."}
             </p>
           </div>
-          <Link href="/admin" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Back to dashboard
           </Link>
         </div>
@@ -198,7 +198,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               name="q"
               defaultValue={filters.q}
               placeholder="Action, detail, audit ID"
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
           <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
@@ -206,7 +206,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
             <select
               name="category"
               defaultValue={filters.category}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             >
               <option value="all">All categories</option>
               {adminAuditCategories.map((category) => (
@@ -221,7 +221,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
             <select
               name="status"
               defaultValue={filters.status}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             >
               <option value="all">All status</option>
               <option value="success">Success</option>
@@ -235,7 +235,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               name="actor"
               defaultValue={filters.actor}
               placeholder="Name, email, role"
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
           <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
@@ -244,7 +244,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               type="date"
               name="from"
               defaultValue={filters.from}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
           <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
@@ -253,20 +253,20 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               type="date"
               name="to"
               defaultValue={filters.to}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[#10231D] outline-none focus:border-[#0B4D3B]"
+              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
           <div className="flex items-end gap-2">
             <button
               type="submit"
-              className="inline-flex h-10 items-center rounded-full bg-[#0B4D3B] px-4 text-xs font-black text-white transition hover:bg-[#0A3F31]"
+              className="inline-flex h-10 items-center rounded-full bg-brand-green px-4 text-xs font-black text-white transition hover:bg-[#0A3F31]"
             >
               Apply
             </button>
             {filtersActive ? (
               <Link
                 href="/admin/activity"
-                className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-xs font-black text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+                className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
               >
                 Reset
               </Link>
@@ -306,11 +306,11 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                           {category}
                         </span>
                       </td>
-                      <td className="min-w-52 py-3 pr-3 font-bold text-[#10231D]">
+                      <td className="min-w-52 py-3 pr-3 font-bold text-brand-green-ink">
                         {prettyAction(event.action)}
                       </td>
                       <td className="min-w-52 py-3 pr-3">
-                        <p className="font-bold text-[#10231D]">{actorLabel(event)}</p>
+                        <p className="font-bold text-brand-green-ink">{actorLabel(event)}</p>
                         {actorDetail(event) ? (
                           <p className="mt-1 text-xs text-gray-500">{actorDetail(event)}</p>
                         ) : null}

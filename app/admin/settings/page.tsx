@@ -49,7 +49,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold text-[#10231D]">
+    <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
       {label}
       <input
         name={name}
@@ -57,7 +57,7 @@ function Field({
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}
-        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-[#0B4D3B]"
+        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-brand-green"
       />
     </label>
   );
@@ -79,12 +79,12 @@ function SelectField({
   );
 
   return (
-    <label className="grid gap-2 text-sm font-bold text-[#10231D]">
+    <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
       {label}
       <select
         name={name}
         defaultValue={value}
-        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-[#0B4D3B]"
+        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-brand-green"
       >
         {normalizedOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -100,7 +100,7 @@ function SubmitButton({ label }: { label: string }) {
   return (
     <button
       type="submit"
-      className="rounded-lg bg-[#0B4D3B] px-4 py-2 text-sm font-black text-white transition hover:bg-[#08392C]"
+      className="rounded-lg bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-[#08392C]"
     >
       {label}
     </button>
@@ -108,13 +108,13 @@ function SubmitButton({ label }: { label: string }) {
 }
 
 const compactInputClass =
-  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-normal outline-none focus:border-[#0B4D3B]";
+  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-normal outline-none focus:border-brand-green";
 const compactSelectClass =
-  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-semibold outline-none focus:border-[#0B4D3B]";
+  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-semibold outline-none focus:border-brand-green";
 const compactSaveButtonClass =
-  "h-9 rounded-lg bg-[#0B4D3B] px-3 text-xs font-black text-white transition hover:bg-[#08392C]";
+  "h-9 rounded-lg bg-brand-green px-3 text-xs font-black text-white transition hover:bg-[#08392C]";
 const compactNeutralButtonClass =
-  "h-9 rounded-lg border border-gray-200 px-3 text-xs font-black text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]";
+  "h-9 rounded-lg border border-gray-200 px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green";
 const compactDangerButtonClass =
   "h-9 rounded-lg border border-red-200 px-3 text-xs font-black text-red-700 transition hover:bg-red-50";
 const compactWarnButtonClass =
@@ -134,10 +134,10 @@ export default async function AdminSettingsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
             Access control
           </p>
-          <h1 className="mt-2 text-2xl font-black text-[#10231D]">Company and staff settings</h1>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Company and staff settings</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Manage branch identity, staff login accounts, and role-based admin access for the
             factory, shop, POS, inventory, HR, and reports modules.
@@ -152,21 +152,21 @@ export default async function AdminSettingsPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-gray-500">Company</p>
-          <p className="mt-2 text-2xl font-black text-[#10231D]">{settings.company.companyName}</p>
+          <p className="mt-2 text-2xl font-black text-brand-green-ink">{settings.company.companyName}</p>
           <p className="mt-1 text-xs font-semibold text-gray-500">
             Updated {formatDate(settings.company.updatedAt)}
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-gray-500">Active branches</p>
-          <p className="mt-2 text-2xl font-black text-[#10231D]">{activeBranches.length}</p>
+          <p className="mt-2 text-2xl font-black text-brand-green-ink">{activeBranches.length}</p>
           <p className="mt-1 text-xs font-semibold text-gray-500">
             {settings.branches.length} total branch records
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-gray-500">Active staff</p>
-          <p className="mt-2 text-2xl font-black text-[#10231D]">{activeStaff.length}</p>
+          <p className="mt-2 text-2xl font-black text-brand-green-ink">{activeStaff.length}</p>
           <p className="mt-1 text-xs font-semibold text-gray-500">
             {settings.staff.length} staff login accounts
           </p>
@@ -176,7 +176,7 @@ export default async function AdminSettingsPage() {
       <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <form action={saveCompanySettingsAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-black text-[#10231D]">Company profile</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Company profile</h2>
             <p className="mt-1 text-sm text-gray-500">Used for billing identity, SEO, reports, and branch defaults.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -193,13 +193,13 @@ export default async function AdminSettingsPage() {
               value={settings.company.defaultBranchId}
               options={branchOptions}
             />
-            <label className="grid gap-2 text-sm font-bold text-[#10231D] md:col-span-2">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
               Address
               <textarea
                 name="address"
                 defaultValue={settings.company.address}
                 rows={3}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-[#0B4D3B]"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
@@ -210,7 +210,7 @@ export default async function AdminSettingsPage() {
 
         <form action={createBranchAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-black text-[#10231D]">Add branch</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Add branch</h2>
             <p className="mt-1 text-sm text-gray-500">Create factory, wholesale, retail, online, or office branch records.</p>
           </div>
           <div className="grid gap-4">
@@ -219,12 +219,12 @@ export default async function AdminSettingsPage() {
             <SelectField label="Type" name="type" value="Retail" options={companyBranchTypes} />
             <SelectField label="Status" name="status" value="Active" options={companyBranchStatuses} />
             <Field label="Phone" name="phone" />
-            <label className="grid gap-2 text-sm font-bold text-[#10231D]">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               Address
               <textarea
                 name="address"
                 rows={3}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-[#0B4D3B]"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
@@ -237,7 +237,7 @@ export default async function AdminSettingsPage() {
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <form action={saveStaffAccountAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-black text-[#10231D]">Create or update staff</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Create or update staff</h2>
             <p className="mt-1 text-sm text-gray-500">
               Use an existing email to update role, branch, status, or password.
             </p>
@@ -262,7 +262,7 @@ export default async function AdminSettingsPage() {
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-black text-[#10231D]">Staff accounts</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Staff accounts</h2>
             <p className="mt-1 text-sm text-gray-500">Password hashes are stored server-side and never shown here.</p>
           </div>
           <div className="overflow-x-auto">
@@ -283,7 +283,7 @@ export default async function AdminSettingsPage() {
                   return (
                     <tr key={staff.id}>
                       <td className="py-3 pr-3">
-                        <p className="font-black text-[#10231D]">{staff.name}</p>
+                        <p className="font-black text-brand-green-ink">{staff.name}</p>
                         <p className="text-xs text-gray-500">{staff.email}</p>
                         <p className="mt-1 font-mono text-[11px] text-gray-400">{staff.id}</p>
                       </td>

@@ -99,7 +99,7 @@ export default function ImageUploadField({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex h-9 items-center gap-2 rounded-full border border-black/10 px-3 text-sm font-semibold text-[#0B4D3B] transition hover:bg-[#F5F7F4] disabled:opacity-60"
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-black/10 px-3 text-sm font-semibold text-brand-green transition hover:bg-brand-mist disabled:opacity-60"
         >
           {uploading ? "Uploading…" : multiple ? "Upload photos" : "Upload photo"}
         </button>
@@ -114,14 +114,14 @@ export default function ImageUploadField({
         <span className="text-xs text-gray-500">or paste a URL above</span>
       </div>
 
-      {error ? <p className="text-xs font-semibold text-[#B3261E]">{error}</p> : null}
+      {error ? <p className="text-xs font-semibold text-brand-danger">{error}</p> : null}
 
       {urls.some(isPreviewable) ? (
         <div className="mt-1 flex flex-wrap gap-2">
           {urls.filter(isPreviewable).map((url) => (
             <span
               key={url}
-              className="relative h-16 w-16 overflow-hidden rounded-lg border border-black/10 bg-[#F5F7F4]"
+              className="relative h-16 w-16 overflow-hidden rounded-lg border border-black/10 bg-brand-mist"
             >
               <Image src={url} alt="" fill sizes="64px" className="object-cover" />
             </span>

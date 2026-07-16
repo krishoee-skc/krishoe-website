@@ -20,7 +20,7 @@ export default function Testimonials() {
   return (
     <section className="bg-white py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-[#0B4D3B]">
+        <h2 className="text-center text-4xl font-bold text-brand-green">
           What Our Customers Say
         </h2>
 
@@ -34,7 +34,7 @@ export default function Testimonials() {
               key={review.name}
               className="rounded-lg bg-[#F8F8F8] p-8 shadow-lg duration-300 hover:shadow-2xl"
             >
-              <div className="text-sm font-black tracking-[0.2em] text-[#C8A04D]">
+              <div className="text-sm font-black tracking-[0.2em] text-brand-gold">
                 5 / 5
               </div>
 
@@ -42,7 +42,7 @@ export default function Testimonials() {
                 &ldquo;{review.comment}&rdquo;
               </p>
 
-              <h3 className="mt-6 font-bold text-[#0B4D3B]">{review.name}</h3>
+              <h3 className="mt-6 font-bold text-brand-green">{review.name}</h3>
             </div>
           ))}
         </div>

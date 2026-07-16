@@ -125,7 +125,7 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
     <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-[#10231D]">Scan invoice</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Scan invoice</h2>
           <p className="mt-1 text-sm text-gray-500">{status}</p>
         </div>
         <div className="flex gap-2">
@@ -133,14 +133,14 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
             type="button"
             onClick={startScanner}
             disabled={isScanning}
-            className="rounded-full bg-[#0B4D3B] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             Start
           </button>
           <button
             type="button"
             onClick={stopScanner}
-            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Stop
           </button>
@@ -155,18 +155,18 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
         <input
           value={scanValue}
           onChange={(event) => setScanValue(event.target.value)}
-          className="h-10 rounded-md border border-gray-200 px-3 font-mono text-xs outline-none focus:border-[#0B4D3B]"
+          className="h-10 rounded-md border border-gray-200 px-3 font-mono text-xs outline-none focus:border-brand-green"
           placeholder="Scan result"
         />
         {matchedInvoice ? (
           <Link
             href={`/admin/pos/${matchedInvoice.id}`}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-[#10231D] px-4 text-sm font-bold text-white"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
           >
             Open matched bill
           </Link>
         ) : scanValue ? (
-          <p className="text-sm font-semibold text-[#7B3128]">No matching bill found.</p>
+          <p className="text-sm font-semibold text-brand-clay">No matching bill found.</p>
         ) : null}
       </div>
     </section>

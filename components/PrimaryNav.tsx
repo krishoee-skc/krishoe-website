@@ -18,11 +18,11 @@ export default function PrimaryNav() {
         const active = isActivePath(pathname, item.href);
         const Icon = item.Icon;
         const linkClass = `group relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition ${
-          active ? "text-[#0B4D3B]" : "text-[#31413B] hover:text-[#B98A2E]"
+          active ? "text-brand-green" : "text-[#31413B] hover:text-brand-gold-deep"
         }`;
         const underline = (
           <span
-            className={`pointer-events-none absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-[#D4AF37] transition ${
+            className={`pointer-events-none absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-brand-gold-bright transition ${
               active ? "opacity-100" : "opacity-0 group-hover:opacity-60"
             }`}
           />
@@ -59,7 +59,7 @@ export default function PrimaryNav() {
                           key={category.slug}
                           href={`/shop/${category.slug}`}
                           onClick={() => setShopOpen(false)}
-                          className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-[#F5F7F4]"
+                          className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-brand-mist"
                         >
                           <Image
                             src={category.image}
@@ -69,10 +69,10 @@ export default function PrimaryNav() {
                             className="h-14 w-14 shrink-0 rounded-lg object-cover"
                           />
                           <span className="min-w-0">
-                            <span className="block text-sm font-semibold text-[#10231D] group-hover:text-[#0B4D3B]">
+                            <span className="block text-sm font-semibold text-brand-green-ink group-hover:text-brand-green">
                               {category.title}
                             </span>
-                            <span className="block truncate text-xs text-[#6D7773]">
+                            <span className="block truncate text-xs text-brand-muted-deep">
                               {category.description}
                             </span>
                           </span>
@@ -82,7 +82,7 @@ export default function PrimaryNav() {
                     <Link
                       href="/shop"
                       onClick={() => setShopOpen(false)}
-                      className="mt-1.5 flex items-center justify-center rounded-xl bg-[#0B4D3B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+                      className="mt-1.5 flex items-center justify-center rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
                     >
                       View all products
                     </Link>

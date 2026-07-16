@@ -47,20 +47,20 @@ export default async function AdminOrdersPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Orders</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Orders</h1>
           <p className="mt-1 text-sm text-gray-500">
             Manage customer order requests, POS conversion, payment, and stock readiness.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            className="rounded-md border border-[#D8E6DD] px-3 py-2 text-xs font-black uppercase tracking-wide text-[#10231D] transition hover:border-[#10231D]"
+            className="rounded-md border border-[#D8E6DD] px-3 py-2 text-xs font-black uppercase tracking-wide text-brand-green-ink transition hover:border-brand-green-ink"
             href="/api/orders/export?type=orders"
           >
             Orders CSV
           </Link>
           <Link
-            className="rounded-md bg-[#10231D] px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#1A3A31]"
+            className="rounded-md bg-brand-green-ink px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#1A3A31]"
             href="/api/orders/export?type=conversion"
           >
             Conversion CSV

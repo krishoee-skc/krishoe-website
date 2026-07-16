@@ -35,32 +35,32 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">Customer account</p>
-      <h1 className="mt-3 text-3xl font-black text-[#10231D]">Sign in</h1>
-      <p className="mt-3 text-sm leading-7 text-[#5F6B66]">
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Customer account</p>
+      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Sign in</h1>
+      <p className="mt-3 text-sm leading-7 text-brand-muted">
         Save checkout details and manage your KRISHOE profile.
       </p>
 
       <div className="mt-7 grid gap-4">
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Email
           <input
             name="email"
             type="email"
             required
             autoComplete="email"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="you@example.com"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Password
           <input
             name="password"
             type="password"
             required
             autoComplete="current-password"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="Your password"
           />
         </label>
@@ -73,7 +73,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
           disabled={isPending}
         />
         {state.message && !state.ok ? (
-          <p aria-live="polite" className="rounded-lg bg-[#FFF1EF] p-4 text-sm font-semibold text-[#7B3128]">
+          <p aria-live="polite" className="rounded-lg bg-brand-clay-mist p-4 text-sm font-semibold text-brand-clay">
             {state.message}
           </p>
         ) : null}
@@ -82,11 +82,11 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
         <Link
           href={`/account/register?next=${encodeURIComponent(nextPath)}`}
-          className="text-[#0B4D3B] hover:text-[#B98A2E]"
+          className="text-brand-green hover:text-brand-gold-deep"
         >
           Create account
         </Link>
-        <a href="#password-reset" className="text-[#5F6B66] hover:text-[#0B4D3B]">
+        <a href="#password-reset" className="text-brand-muted hover:text-brand-green">
           Forgot password?
         </a>
       </div>

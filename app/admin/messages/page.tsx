@@ -16,16 +16,16 @@ function formatDate(value: string) {
 
 function statusClass(status: string) {
   return status === "Replied"
-    ? "bg-[#EAF5EF] text-[#0B4D3B]"
-    : "bg-[#FFF7DF] text-[#7A5A00]";
+    ? "bg-brand-green-tint text-brand-green"
+    : "bg-brand-cream-soft text-brand-gold-ink";
 }
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -42,12 +42,12 @@ export default async function AdminMessagesPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Messages</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Messages</h1>
           <p className="mt-1 text-sm text-gray-500">Customer contact form submissions.</p>
         </div>
         <a
           href="/api/messages/export"
-          className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+          className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export CSV
         </a>
@@ -85,7 +85,7 @@ export default async function AdminMessagesPage() {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <p className="font-medium text-gray-900">{message.name}</p>
-                  <a className="text-xs font-semibold text-[#0B4D3B]" href={`mailto:${message.email}`}>
+                  <a className="text-xs font-semibold text-brand-green" href={`mailto:${message.email}`}>
                     {message.email}
                   </a>
                 </td>
@@ -105,7 +105,7 @@ export default async function AdminMessagesPage() {
                     />
                     <button
                       type="submit"
-                      className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+                      className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
                     >
                       {message.status === "New" ? "Mark replied" : "Reopen"}
                     </button>

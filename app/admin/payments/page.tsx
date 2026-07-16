@@ -15,8 +15,8 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -25,11 +25,11 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
 
 function severityClass(severity: PaymentReconciliationIssueSeverity) {
   if (severity === "high") {
-    return "bg-[#FBEAE8] text-[#7B3128]";
+    return "bg-brand-clay-tint text-brand-clay";
   }
 
   if (severity === "medium") {
-    return "bg-[#FFF7DF] text-[#7A5A00]";
+    return "bg-brand-cream-soft text-brand-gold-ink";
   }
 
   return "bg-gray-100 text-gray-700";
@@ -37,15 +37,15 @@ function severityClass(severity: PaymentReconciliationIssueSeverity) {
 
 function statusClass(status: string) {
   if (status === "Paid") {
-    return "bg-[#EAF5EF] text-[#0B4D3B]";
+    return "bg-brand-green-tint text-brand-green";
   }
 
   if (status === "Failed" || status === "Refunded") {
-    return "bg-[#FBEAE8] text-[#7B3128]";
+    return "bg-brand-clay-tint text-brand-clay";
   }
 
   if (status === "Pending") {
-    return "bg-[#FFF7DF] text-[#7A5A00]";
+    return "bg-brand-cream-soft text-brand-gold-ink";
   }
 
   return "bg-gray-100 text-gray-700";
@@ -65,7 +65,7 @@ export default async function AdminPaymentsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Payment reconciliation</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Payment reconciliation</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Match orders, payment transactions, gateway callbacks, and ledger links before dispatch or monthly closing.
           </p>
@@ -75,7 +75,7 @@ export default async function AdminPaymentsPage() {
             <a
               key={link.href}
               href={link.href}
-              className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+              className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
             >
               {link.label}
             </a>
@@ -94,18 +94,18 @@ export default async function AdminPaymentsPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-[#10231D]">Needs review</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">Needs review</h2>
               <p className="mt-1 text-sm text-gray-500">High and medium risk mismatch signals.</p>
             </div>
             <Link
               href="/admin/orders"
-              className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+              className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
             >
               Open orders
             </Link>
           </div>
           {reconciliation.issues.length === 0 ? (
-            <p className="rounded-lg border border-[#D9E8DF] bg-[#F4FBF6] p-4 text-sm font-semibold text-[#0B4D3B]">
+            <p className="rounded-lg border border-brand-green-line bg-brand-green-wash p-4 text-sm font-semibold text-brand-green">
               No reconciliation issue detected.
             </p>
           ) : (
@@ -129,11 +129,11 @@ export default async function AdminPaymentsPage() {
                         </span>
                       </td>
                       <td className="min-w-72 py-3 pr-3">
-                        <p className="font-bold text-[#10231D]">{issue.type}</p>
+                        <p className="font-bold text-brand-green-ink">{issue.type}</p>
                         <p className="mt-1 text-xs text-gray-500">{issue.detail}</p>
                         {issue.orderId ? <p className="mt-1 font-mono text-xs text-gray-400">{issue.orderId}</p> : null}
                       </td>
-                      <td className="py-3 pr-3 font-semibold text-[#10231D]">{issue.customerName}</td>
+                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{issue.customerName}</td>
                       <td className="py-3 pr-3 font-bold">{money(issue.amount)}</td>
                       <td className="min-w-64 py-3 pr-3 text-xs font-semibold text-gray-600">{issue.recommendation}</td>
                     </tr>
@@ -145,20 +145,20 @@ export default async function AdminPaymentsPage() {
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Provider summary</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Provider summary</h2>
           <p className="mt-1 text-sm text-gray-500">Order vs transaction totals by payment channel.</p>
           <div className="mt-4 grid gap-3">
             {reconciliation.providers.map((provider) => (
               <div key={provider.provider} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-black uppercase text-[#10231D]">{provider.provider}</p>
+                  <p className="font-black uppercase text-brand-green-ink">{provider.provider}</p>
                   <p className="text-xs font-bold text-gray-500">{provider.transactionCount} txns</p>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-gray-600">
                   <p>Orders: {money(provider.orderAmount)}</p>
                   <p>Txn: {money(provider.transactionAmount)}</p>
-                  <p className="text-[#0B4D3B]">Paid: {money(provider.paidAmount)}</p>
-                  <p className="text-[#7A5A00]">Pending: {money(provider.pendingAmount)}</p>
+                  <p className="text-brand-green">Paid: {money(provider.paidAmount)}</p>
+                  <p className="text-brand-gold-ink">Pending: {money(provider.pendingAmount)}</p>
                 </div>
               </div>
             ))}
@@ -167,7 +167,7 @@ export default async function AdminPaymentsPage() {
       </div>
 
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black text-[#10231D]">Recent transaction trail</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">Recent transaction trail</h2>
         <p className="mt-1 text-sm text-gray-500">Latest admin, system, and gateway payment records.</p>
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -190,10 +190,10 @@ export default async function AdminPaymentsPage() {
                     {new Date(transaction.createdAt).toLocaleString("en-IN")}
                   </td>
                   <td className="py-3 pr-3">
-                    <p className="font-mono text-xs text-[#10231D]">{transaction.orderId}</p>
-                    {!transaction.orderExists ? <p className="text-xs font-bold text-[#7B3128]">Missing order</p> : null}
+                    <p className="font-mono text-xs text-brand-green-ink">{transaction.orderId}</p>
+                    {!transaction.orderExists ? <p className="text-xs font-bold text-brand-clay">Missing order</p> : null}
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{transaction.customerName}</td>
+                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.customerName}</td>
                   <td className="py-3 pr-3 uppercase">{transaction.paymentProvider}</td>
                   <td className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(transaction.paymentStatus)}`}>

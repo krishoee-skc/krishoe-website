@@ -34,35 +34,35 @@ export default function AdminLoginForm({ nextPath = "/admin" }: { nextPath?: str
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
         Secure admin
       </p>
-      <h1 className="mt-3 text-3xl font-black tracking-tight text-[#10231D]">
+      <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
         KRISHOE control room
       </h1>
-      <p className="mt-3 text-sm leading-7 text-[#5F6B66]">
+      <p className="mt-3 text-sm leading-7 text-brand-muted">
         Sign in with a staff account. During setup, the local admin password still works when email is left blank.
       </p>
 
-      <label className="mt-7 grid gap-2 text-sm font-semibold text-[#10231D]">
+      <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
         Staff email
         <input
           name="email"
           type="email"
           autoComplete="username"
-          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
           placeholder="owner@krishoe.com"
         />
       </label>
 
-      <label className="mt-4 grid gap-2 text-sm font-semibold text-[#10231D]">
+      <label className="mt-4 grid gap-2 text-sm font-semibold text-brand-green-ink">
         Password
         <input
           name="password"
           type="password"
           required
           autoComplete="current-password"
-          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
           placeholder="Enter password"
         />
       </label>
@@ -74,7 +74,7 @@ export default function AdminLoginForm({ nextPath = "/admin" }: { nextPath?: str
           disabled={isPending}
         />
         {state.message && !state.ok ? (
-          <p aria-live="polite" className="rounded-lg bg-[#FFF1EF] p-4 text-sm font-semibold text-[#7B3128]">
+          <p aria-live="polite" className="rounded-lg bg-brand-clay-mist p-4 text-sm font-semibold text-brand-clay">
             {state.message}
           </p>
         ) : null}

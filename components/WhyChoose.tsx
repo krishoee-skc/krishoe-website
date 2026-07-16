@@ -23,7 +23,7 @@ export default function WhyChoose() {
   return (
     <section className="bg-[#F8F8F8] py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-[#0B4D3B]">
+        <h2 className="text-center text-4xl font-bold text-brand-green">
           Why Choose KRISHOE?
         </h2>
 
@@ -37,11 +37,11 @@ export default function WhyChoose() {
               key={item.title}
               className="rounded-lg bg-white p-8 text-center shadow-lg duration-300 hover:shadow-2xl"
             >
-              <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-[#E9F2EE] text-[#0B4D3B]">
+              <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-brand-green-mist text-brand-green">
                 <CheckIcon className="h-6 w-6" />
               </div>
 
-              <h3 className="text-2xl font-bold text-[#0B4D3B]">{item.title}</h3>
+              <h3 className="text-2xl font-bold text-brand-green">{item.title}</h3>
               <p className="mt-4 text-gray-600">{item.desc}</p>
             </div>
           ))}

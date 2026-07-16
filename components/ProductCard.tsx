@@ -27,7 +27,7 @@ export default function ProductCard({
       id={product.id}
       className="group overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
-      <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-[#F5F7F4]">
+      <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-brand-mist">
         <Image
           src={product.image}
           alt={product.name}
@@ -36,15 +36,15 @@ export default function ProductCard({
           loading={eager ? "eager" : "lazy"}
           className="object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0B4D3B] shadow-sm">
+        <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-green shadow-sm">
           {product.badge ?? product.category}
         </div>
         {outOfStock ? (
-          <div className="absolute right-4 top-4 rounded-full bg-[#B3261E] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+          <div className="absolute right-4 top-4 rounded-full bg-brand-danger px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
             Sold out
           </div>
         ) : lowStock ? (
-          <div className="absolute right-4 top-4 rounded-full bg-[#9A6B08] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+          <div className="absolute right-4 top-4 rounded-full bg-brand-gold-dark px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
             Only {product.stock} left
           </div>
         ) : null}
@@ -53,12 +53,12 @@ export default function ProductCard({
       <div className={compact ? "space-y-2 p-3 md:space-y-4 md:p-5" : "space-y-4 p-5"}>
         <div className="flex items-start justify-between gap-2 md:gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#B98A2E]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold-deep">
               {product.category}
             </p>
             <Link href={href}>
               <h3
-                className={`mt-1 font-semibold text-[#10231D] transition hover:text-[#0B4D3B] md:mt-2 ${
+                className={`mt-1 font-semibold text-brand-green-ink transition hover:text-brand-green md:mt-2 ${
                   compact ? "text-base md:text-xl" : "text-xl"
                 }`}
               >
@@ -66,13 +66,13 @@ export default function ProductCard({
               </h3>
             </Link>
           </div>
-          <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#10231D] px-2.5 py-1 text-xs font-semibold text-white">
-            <StarIcon className="h-3.5 w-3.5 text-[#D4AF37]" />
+          <div className="flex shrink-0 items-center gap-1 rounded-full bg-brand-green-ink px-2.5 py-1 text-xs font-semibold text-white">
+            <StarIcon className="h-3.5 w-3.5 text-brand-gold-bright" />
             {product.rating}
           </div>
         </div>
 
-        <p className={`min-h-12 text-sm leading-6 text-[#5F6B66] ${compact ? "hidden md:block" : ""}`}>
+        <p className={`min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : ""}`}>
           {product.description}
         </p>
 
@@ -81,12 +81,12 @@ export default function ProductCard({
             compact ? "pt-2 md:pt-4" : "pt-4"
           }`}
         >
-          <span className={`font-bold text-[#0B4D3B] ${compact ? "text-lg md:text-2xl" : "text-2xl"}`}>
+          <span className={`font-bold text-brand-green ${compact ? "text-lg md:text-2xl" : "text-2xl"}`}>
             {product.price}
           </span>
           <Link
             href={href}
-            className={`h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B] ${
+            className={`h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green ${
               compact ? "hidden md:inline-flex" : "inline-flex"
             }`}
           >
