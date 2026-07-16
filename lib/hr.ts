@@ -396,7 +396,7 @@ function payrollPaidAtForStatus(status: PayrollStatus, currentPaidAt = "") {
   return "";
 }
 
-function assertPayrollCanMove(current: PayrollRecord, nextStatus: PayrollStatus) {
+export function assertPayrollCanMove(current: PayrollRecord, nextStatus: PayrollStatus) {
   if (current.status === "Locked" && nextStatus !== "Locked") {
     throw new Error("Locked payroll cannot be changed.");
   }
@@ -406,13 +406,14 @@ function assertPayrollCanMove(current: PayrollRecord, nextStatus: PayrollStatus)
   }
 }
 
-function assertPayrollCanDelete(record: PayrollRecord) {
+export function assertPayrollCanDelete(record: PayrollRecord) {
   if (record.status === "Locked") {
     throw new Error("Locked payroll cannot be deleted.");
   }
 }
 
-function employeeDailyRate(employee: Employee) {
+// Exported for tests: this is the money math, and it is worth pinning down.
+export function employeeDailyRate(employee: Employee) {
   if (employee.dailyWage > 0) {
     return employee.dailyWage;
   }
@@ -420,7 +421,7 @@ function employeeDailyRate(employee: Employee) {
   return employee.baseSalary > 0 ? Math.round(employee.baseSalary / 26) : 0;
 }
 
-function buildPayrollSuggestion({
+export function buildPayrollSuggestion({
   employee,
   attendanceRecords,
   payrollRecords,
@@ -553,7 +554,7 @@ function normalizeAttendance(record: Partial<AttendanceRecord>): AttendanceRecor
   };
 }
 
-function normalizePayroll(record: Partial<PayrollRecord>): PayrollRecord {
+export function normalizePayroll(record: Partial<PayrollRecord>): PayrollRecord {
   const baseAmount = cleanMoney(record.baseAmount);
   const attendanceBonus = cleanMoney(record.attendanceBonus);
   const pieceAmount = cleanMoney(record.pieceAmount);
