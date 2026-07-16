@@ -42,7 +42,12 @@ function databaseUrl() {
 
 const client = new pg.Client({ connectionString: databaseUrl() });
 await client.connect();
-await client.query("SET default_transaction_read_only = on");
+
+// Do NOT add `SET default_transaction_read_only = on` here as a safety net.
+// DATABASE_URL points at Neon's pooled endpoint, which hands the same server
+// connections back out without resetting session settings — the flag sticks to
+// the pool and the live app silently loses the ability to write. This script
+// only issues SELECTs; that is the safety.
 
 const rows = async (sql, params = []) => (await client.query(sql, params)).rows;
 
