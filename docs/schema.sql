@@ -76,7 +76,9 @@ CREATE TABLE IF NOT EXISTS orders (
   payment TEXT NOT NULL DEFAULT '',
   order_text TEXT NOT NULL DEFAULT '',
   total TEXT NOT NULL DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Contacted', 'Closed')),
+  -- 'Cancelled' is distinct from 'Closed': both release reserved stock, but
+  -- only Closed means the order was actually fulfilled.
+  status TEXT NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Contacted', 'Closed', 'Cancelled')),
   payment_status TEXT NOT NULL DEFAULT 'Unpaid' CHECK (payment_status IN ('Unpaid', 'Pending', 'Paid', 'Failed', 'Refunded')),
   payment_provider TEXT NOT NULL DEFAULT 'manual' CHECK (payment_provider IN ('manual', 'cod', 'esewa', 'khalti', 'bank', 'cash')),
   payment_reference TEXT NOT NULL DEFAULT '',
@@ -99,6 +101,31 @@ ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS payment_ledger_id TEXT,
   ADD COLUMN IF NOT EXISTS payment_ledger_transaction_id TEXT;
+
+-- 'Cancelled' did not exist while Closed covered both fulfilled and abandoned.
+ALTER TABLE orders
+  DROP CONSTRAINT IF EXISTS orders_status_check;
+
+ALTER TABLE orders
+  ADD CONSTRAINT orders_status_check
+  CHECK (status IN ('New', 'Contacted', 'Closed', 'Cancelled'));
+
+-- What an order actually reserves. Orders used to store only order_text, a
+-- human sentence, so nothing could tell which product an order held.
+-- product_id is not a foreign key on purpose: a product may be deleted from the
+-- catalog, and that must not erase the history of what was ordered.
+CREATE TABLE IF NOT EXISTS order_items (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id TEXT NOT NULL,
+  product_name TEXT NOT NULL DEFAULT '',
+  size TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '',
+  quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity > 0)
+);
+
+CREATE INDEX IF NOT EXISTS order_items_order_id_idx ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS order_items_product_id_idx ON order_items(product_id);
 
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS orders_customer_user_id_idx ON orders(customer_user_id);
