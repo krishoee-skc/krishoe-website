@@ -6,6 +6,7 @@ import { z } from "zod";
 import { categories, type Product } from "@/lib/products";
 import {
   buildPosInvoiceInputFromOnlineOrder,
+  closeOrderBlockedReason,
   defaultPosPaymentMethodForOrder,
   getPosInvoiceForOnlineOrder,
 } from "@/lib/order-pos";
@@ -97,6 +98,15 @@ export async function updateOrderStatusAction(
 
   if (!validatedFields.success) {
     return { ok: false, message: "Invalid order status." };
+  }
+
+  if (validatedFields.data.status === "Closed") {
+    const invoice = await getPosInvoiceForOnlineOrder(validatedFields.data.id);
+    const blockedReason = closeOrderBlockedReason(Boolean(invoice));
+
+    if (blockedReason) {
+      return { ok: false, message: blockedReason };
+    }
   }
 
   try {

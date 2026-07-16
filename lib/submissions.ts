@@ -4,7 +4,10 @@ import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
 
-export type OrderStatus = "New" | "Contacted" | "Closed";
+// Closed means the goods went out and a POS invoice recorded the sale.
+// Cancelled means they never will. Both end an order, but only Cancelled
+// returns the pairs to stock — see orderHoldsStock in lib/order-stock.ts.
+export type OrderStatus = "New" | "Contacted" | "Closed" | "Cancelled";
 export type PaymentStatus = "Unpaid" | "Pending" | "Paid" | "Failed" | "Refunded";
 export type PaymentProvider = "manual" | "cod" | "esewa" | "khalti" | "bank" | "cash";
 
@@ -40,7 +43,7 @@ export type ContactSubmission = {
   status: "New" | "Replied";
 };
 
-export const orderStatuses = ["New", "Contacted", "Closed"] as const;
+export const orderStatuses = ["New", "Contacted", "Closed", "Cancelled"] as const;
 export const paymentStatuses = ["Unpaid", "Pending", "Paid", "Failed", "Refunded"] as const;
 export const paymentProviders = ["manual", "cod", "esewa", "khalti", "bank", "cash"] as const;
 export const contactStatuses = ["New", "Replied"] as const;

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { getOrderById, orderMatchesCustomer } from "@/lib/submissions";
+import { getOrderById, orderMatchesCustomer, type OrderStatus } from "@/lib/submissions";
 
 type OrderStatusPageProps = {
   params: Promise<{ id: string }>;
@@ -22,10 +22,11 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-const statusCopy = {
+const statusCopy: Record<OrderStatus, string> = {
   New: "KRISHOE has received this request.",
   Contacted: "KRISHOE has contacted the customer for confirmation.",
   Closed: "This request has been closed.",
+  Cancelled: "This request was cancelled and will not be dispatched.",
 };
 
 export default async function OrderStatusPage({ params }: OrderStatusPageProps) {
