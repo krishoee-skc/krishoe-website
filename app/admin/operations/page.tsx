@@ -20,7 +20,7 @@ export default async function AdminOperationsPage() {
   return (
     <section className="p-6">
       <div>
-        <h1 className="text-2xl font-black text-[#10231D]">
+        <h1 className="text-2xl font-black text-brand-green-ink">
           Factory, wholesale, retail and online operations
         </h1>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">

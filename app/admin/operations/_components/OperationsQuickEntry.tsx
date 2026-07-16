@@ -38,7 +38,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
       </datalist>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <form action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Production batch</h3>
+          <h3 className="font-black text-brand-green-ink">Production batch</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <input name="plannedPairs" type="number" min="0" className={inputClass} placeholder="Planned" />
@@ -58,7 +58,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Raw material</h3>
+          <h3 className="font-black text-brand-green-ink">Raw material</h3>
           <input name="name" required className={inputClass} placeholder="Material name" />
           <select name="unit" className={inputClass} defaultValue="kg">
             <option value="kg">kg</option>
@@ -74,7 +74,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Material consumption</h3>
+          <h3 className="font-black text-brand-green-ink">Material consumption</h3>
           <select name="batchId" required className={inputClass} defaultValue="">
             <option value="" disabled>
               Select production batch
@@ -104,7 +104,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createWorkerTaskAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Worker task</h3>
+          <h3 className="font-black text-brand-green-ink">Worker task</h3>
           <input name="workerName" required className={inputClass} placeholder="Worker name" />
           <select name="batchId" className={inputClass} defaultValue="">
             <option value="">Manual design / no batch</option>
@@ -134,7 +134,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Vehicle dispatch</h3>
+          <h3 className="font-black text-brand-green-ink">Vehicle dispatch</h3>
           <input name="vehicleNumber" required className={inputClass} placeholder="Vehicle number" />
           <input name="driverName" required className={inputClass} placeholder="Driver name" />
           <input name="marketRoute" className={inputClass} placeholder="Market route" />
@@ -155,7 +155,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createVehicleDispatchItemAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Dispatch item</h3>
+          <h3 className="font-black text-brand-green-ink">Dispatch item</h3>
           <select name="dispatchId" required className={inputClass} defaultValue="">
             <option value="" disabled>
               Select vehicle trip
@@ -190,7 +190,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Customer ledger</h3>
+          <h3 className="font-black text-brand-green-ink">Customer ledger</h3>
           <input name="customerName" required className={inputClass} placeholder="Customer/shop name" />
           <input name="phone" className={inputClass} placeholder="Phone" />
           <select name="channel" className={inputClass} defaultValue="Wholesale">
@@ -209,7 +209,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createStockMovementAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Stock movement</h3>
+          <h3 className="font-black text-brand-green-ink">Stock movement</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <select name="channel" className={inputClass} defaultValue="Factory">
@@ -220,6 +220,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
             </select>
             <select name="type" className={inputClass} defaultValue="Production In">
               <option>Production In</option>
+              <option>Purchase In</option>
               <option>Dispatch Out</option>
               <option>Return In</option>
               <option>Sale Out</option>
@@ -233,7 +234,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Finished stock</h3>
+          <h3 className="font-black text-brand-green-ink">Finished stock</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <select name="channel" className={inputClass} defaultValue="Factory">
@@ -253,7 +254,7 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
         </form>
 
         <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="font-black text-[#10231D]">Ledger transaction</h3>
+          <h3 className="font-black text-brand-green-ink">Ledger transaction</h3>
           <select name="ledgerId" required className={inputClass} defaultValue="">
             <option value="" disabled>
               Select customer

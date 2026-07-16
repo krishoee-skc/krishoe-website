@@ -293,8 +293,18 @@ CREATE TABLE IF NOT EXISTS purchase_invoices (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   supplier_ledger_id TEXT NOT NULL REFERENCES supplier_ledgers(id) ON DELETE RESTRICT,
   supplier_name TEXT NOT NULL,
-  material_id TEXT NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  -- 'Raw Material' buys feed raw_materials.received (factory input).
+  -- 'Trading Goods' buys feed finished_stock via a 'Purchase In' movement
+  -- (wholesale/retail/online resale stock bought ready-made).
+  kind TEXT NOT NULL DEFAULT 'Raw Material' CHECK (kind IN ('Raw Material', 'Trading Goods')),
+  -- Set for 'Raw Material' buys only.
+  material_id TEXT REFERENCES raw_materials(id) ON DELETE RESTRICT,
   material_name TEXT NOT NULL,
+  -- Set for 'Trading Goods' buys only. design matches finished_stock.design,
+  -- which the catalog sync matches against products.name.
+  design TEXT NOT NULL DEFAULT '',
+  channel TEXT CHECK (channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
+  size_run TEXT NOT NULL DEFAULT 'Mixed',
   unit TEXT NOT NULL CHECK (unit IN ('kg', 'meter', 'pair', 'piece', 'liter')),
   quantity NUMERIC NOT NULL DEFAULT 0 CHECK (quantity >= 0),
   rate NUMERIC NOT NULL DEFAULT 0 CHECK (rate >= 0),
@@ -311,9 +321,53 @@ CREATE TABLE IF NOT EXISTS purchase_invoices (
   note TEXT NOT NULL DEFAULT ''
 );
 
+-- Trading-goods purchase migration for databases created before it existed.
+ALTER TABLE purchase_invoices
+  ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'Raw Material';
+
+ALTER TABLE purchase_invoices
+  ADD COLUMN IF NOT EXISTS design TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE purchase_invoices
+  ADD COLUMN IF NOT EXISTS channel TEXT;
+
+ALTER TABLE purchase_invoices
+  ADD COLUMN IF NOT EXISTS size_run TEXT NOT NULL DEFAULT 'Mixed';
+
+-- material_id was NOT NULL while raw material was the only purchase kind.
+ALTER TABLE purchase_invoices
+  ALTER COLUMN material_id DROP NOT NULL;
+
+ALTER TABLE purchase_invoices
+  DROP CONSTRAINT IF EXISTS purchase_invoices_kind_check;
+
+ALTER TABLE purchase_invoices
+  ADD CONSTRAINT purchase_invoices_kind_check
+  CHECK (kind IN ('Raw Material', 'Trading Goods'));
+
+ALTER TABLE purchase_invoices
+  DROP CONSTRAINT IF EXISTS purchase_invoices_channel_check;
+
+ALTER TABLE purchase_invoices
+  ADD CONSTRAINT purchase_invoices_channel_check
+  CHECK (channel IS NULL OR channel IN ('Factory', 'Wholesale', 'Retail', 'Online'));
+
+-- Each kind must carry the fields its posting side effect needs, so a malformed
+-- invoice is rejected by the database rather than posting to nothing.
+ALTER TABLE purchase_invoices
+  DROP CONSTRAINT IF EXISTS purchase_invoices_kind_fields_check;
+
+ALTER TABLE purchase_invoices
+  ADD CONSTRAINT purchase_invoices_kind_fields_check
+  CHECK (
+    (kind = 'Raw Material' AND material_id IS NOT NULL)
+    OR (kind = 'Trading Goods' AND design <> '' AND channel IS NOT NULL)
+  );
+
 CREATE INDEX IF NOT EXISTS purchase_invoices_created_at_idx ON purchase_invoices(created_at DESC);
 CREATE INDEX IF NOT EXISTS purchase_invoices_supplier_ledger_id_idx ON purchase_invoices(supplier_ledger_id);
 CREATE INDEX IF NOT EXISTS purchase_invoices_material_id_idx ON purchase_invoices(material_id);
+CREATE INDEX IF NOT EXISTS purchase_invoices_design_idx ON purchase_invoices(design);
 
 -- Factory costing model for labor and overhead allocation
 CREATE TABLE IF NOT EXISTS costing_settings (
@@ -480,7 +534,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   design TEXT NOT NULL,
   channel TEXT NOT NULL CHECK (channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
   size_run TEXT NOT NULL DEFAULT 'Mixed',
-  type TEXT NOT NULL CHECK (type IN ('Production In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment')),
+  type TEXT NOT NULL CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment')),
   pairs INTEGER NOT NULL DEFAULT 0 CHECK (pairs >= 0),
   note TEXT NOT NULL DEFAULT ''
 );
@@ -493,7 +547,7 @@ ALTER TABLE stock_movements
 
 ALTER TABLE stock_movements
   ADD CONSTRAINT stock_movements_type_check
-  CHECK (type IN ('Production In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment'));
+  CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment'));
 
 CREATE INDEX IF NOT EXISTS stock_movements_created_at_idx ON stock_movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS stock_movements_design_channel_idx ON stock_movements(design, channel);

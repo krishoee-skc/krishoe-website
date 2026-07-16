@@ -135,6 +135,7 @@ export type CustomerLedger = {
 
 export type StockMovementType =
   | "Production In"
+  | "Purchase In"
   | "Dispatch Out"
   | "Return In"
   | "Sale Out"
@@ -360,7 +361,7 @@ function stockKey(value: Pick<FinishedStock, "design" | "channel">) {
   return `${value.design.trim().toLowerCase()}::${value.channel}`;
 }
 
-function isStockOutMovement(type: StockMovementType) {
+export function isStockOutMovement(type: StockMovementType) {
   return type === "Dispatch Out" || type === "Sale Out";
 }
 
@@ -397,6 +398,7 @@ function daysSince(dateValue: string) {
 function emptyStockMovementTotals(): Record<StockMovementType, number> {
   return {
     "Production In": 0,
+    "Purchase In": 0,
     "Dispatch Out": 0,
     "Return In": 0,
     "Sale Out": 0,
@@ -646,7 +648,12 @@ function findOrCreateFinishedStock(
   return stock;
 }
 
-function applyStockMovementToStock(stock: FinishedStock, movement: Pick<StockMovement, "type" | "pairs">) {
+// Exported for tests: this is the stock arithmetic every channel depends on.
+// It mutates the stock row in place, mirroring how the local-json store works.
+export function applyStockMovementToStock(
+  stock: FinishedStock,
+  movement: Pick<StockMovement, "type" | "pairs">,
+) {
   if (movement.pairs <= 0) {
     throw new Error("Stock movement pairs must be greater than zero.");
   }
@@ -655,7 +662,7 @@ function applyStockMovementToStock(stock: FinishedStock, movement: Pick<StockMov
     assertStockAvailable(stock, movement);
   }
 
-  if (movement.type === "Production In" || movement.type === "Adjustment") {
+  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
     stock.stockPairs += movement.pairs;
   }
 
@@ -678,9 +685,15 @@ function applyStockMovementToStock(stock: FinishedStock, movement: Pick<StockMov
   }
 }
 
-function reverseStockMovementFromStock(stock: FinishedStock, movement: Pick<StockMovement, "type" | "pairs">) {
+export function reverseStockMovementFromStock(
+  stock: FinishedStock,
+  movement: Pick<StockMovement, "type" | "pairs">,
+) {
   if (
-    (movement.type === "Production In" || movement.type === "Adjustment" || movement.type === "Return In") &&
+    (movement.type === "Production In" ||
+      movement.type === "Purchase In" ||
+      movement.type === "Adjustment" ||
+      movement.type === "Return In") &&
     movement.pairs > stock.stockPairs
   ) {
     throw new Error(
@@ -688,7 +701,7 @@ function reverseStockMovementFromStock(stock: FinishedStock, movement: Pick<Stoc
     );
   }
 
-  if (movement.type === "Production In" || movement.type === "Adjustment") {
+  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
     stock.stockPairs -= movement.pairs;
   }
 
@@ -1831,6 +1844,7 @@ export async function getOperationsSnapshot() {
 
       const movementStockPairs =
         movementTotals["Production In"] +
+        movementTotals["Purchase In"] +
         movementTotals["Return In"] +
         movementTotals.Adjustment -
         movementTotals["Dispatch Out"] -

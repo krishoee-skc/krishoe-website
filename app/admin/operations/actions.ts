@@ -48,6 +48,7 @@ const finishedStockChannels: FinishedStock["channel"][] = ["Factory", "Wholesale
 const stockChannels: StockMovement["channel"][] = ["Factory", "Wholesale", "Retail", "Online"];
 const stockMovementTypes: StockMovement["type"][] = [
   "Production In",
+  "Purchase In",
   "Dispatch Out",
   "Return In",
   "Sale Out",

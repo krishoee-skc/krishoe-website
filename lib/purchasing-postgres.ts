@@ -1,4 +1,6 @@
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
+import { insertStockMovement } from "@/lib/operations-postgres";
+import type { BusinessChannel } from "@/lib/operations";
 import type {
   CreatePurchaseInvoiceInput,
   PurchaseInvoice,
@@ -28,8 +30,12 @@ type PurchaseInvoiceRow = {
   created_at: Date | string;
   supplier_ledger_id: string;
   supplier_name: string;
-  material_id: string;
+  kind: PurchaseInvoice["kind"] | null;
+  material_id: string | null;
   material_name: string;
+  design: string | null;
+  channel: PurchaseInvoice["channel"] | null;
+  size_run: string | null;
   unit: PurchaseInvoice["unit"];
   quantity: number | string;
   rate: number | string;
@@ -126,8 +132,14 @@ function purchaseInvoiceFromRow(row: PurchaseInvoiceRow): PurchaseInvoice {
     createdAt: isoDate(row.created_at),
     supplierLedgerId: row.supplier_ledger_id,
     supplierName: row.supplier_name,
-    materialId: row.material_id,
+    // Rows written before trading-goods purchases existed have no kind and are
+    // all raw material buys.
+    kind: row.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
+    materialId: row.material_id ?? "",
     materialName: row.material_name,
+    design: row.design ?? "",
+    channel: row.channel ?? "",
+    sizeRun: row.size_run ?? "Mixed",
     unit: row.unit,
     quantity: cleanNumber(row.quantity),
     rate: cleanNumber(row.rate),
@@ -174,7 +186,8 @@ export async function getPurchasingDataFromPostgres(): Promise<PurchasingData> {
       "purchasing",
       `
         SELECT id, purchase_number, created_at, supplier_ledger_id, supplier_name,
-          material_id, material_name, unit, quantity, rate, discount, tax, total,
+          kind, material_id, material_name, design, channel, size_run, unit,
+          quantity, rate, discount, tax, total,
           paid_amount, credit_amount, payment_method, payment_reference, status,
           posting_status, supplier_transaction_ids, note
         FROM purchase_invoices
@@ -371,8 +384,16 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
     const rate = cleanNumber(input.rate);
     const paidInputAmount = cleanNumber(input.paidAmount);
 
-    if (!input.materialId || quantity <= 0 || rate <= 0) {
+    if (quantity <= 0 || rate <= 0) {
+      throw new Error("Quantity and rate are required.");
+    }
+
+    if (input.kind === "Raw Material" && !input.materialId) {
       throw new Error("Raw material, quantity, and rate are required.");
+    }
+
+    if (input.kind === "Trading Goods" && (!cleanText(input.design) || !input.channel)) {
+      throw new Error("Product and channel are required for a trading goods purchase.");
     }
 
     if (!supplierLedgerId && !supplierName) {
@@ -391,20 +412,28 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
       throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
     }
 
-    const materialRows = await db.query<RawMaterialRow>(
-      `
-        SELECT id, name, unit
-        FROM raw_materials
-        WHERE id = $1
-        LIMIT 1
-        FOR UPDATE
-      `,
-      [input.materialId],
-    );
+    const materialRows =
+      input.kind === "Raw Material"
+        ? await db.query<RawMaterialRow>(
+            `
+              SELECT id, name, unit
+              FROM raw_materials
+              WHERE id = $1
+              LIMIT 1
+              FOR UPDATE
+            `,
+            [input.materialId],
+          )
+        : [];
 
-    if (!materialRows[0]) {
+    if (input.kind === "Raw Material" && !materialRows[0]) {
       throw new Error("Raw material was not found.");
     }
+
+    const material = materialRows[0];
+    // Trading goods are bought and sold by the pair.
+    const itemName = material ? material.name : cleanText(input.design);
+    const unit: PurchaseInvoice["unit"] = material ? material.unit : "pair";
 
     let ledger: SupplierLedger | null = null;
 
@@ -441,7 +470,7 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           createId("SUP"),
           supplierName,
           cleanText(input.phone),
-          materialRows[0].name,
+          itemName,
           today(),
         ],
       );
@@ -461,7 +490,9 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
       ledger,
       "Purchase Bill",
       total,
-      `${purchaseNumber} raw material purchase.`,
+      input.kind === "Trading Goods"
+        ? `${purchaseNumber} trading goods purchase.`
+        : `${purchaseNumber} raw material purchase.`,
     );
     transactionIds.push(billTransaction.id);
     ledger = applySupplierTransaction(ledger, billTransaction);
@@ -477,30 +508,47 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
       transactionIds.push(paymentTransaction.id);
     }
 
-    await db.query<RawMaterialRow>(
-      `
-        UPDATE raw_materials
-        SET received = received + $2
-        WHERE id = $1
-        RETURNING id
-      `,
-      [materialRows[0].id, quantity],
-    );
+    if (material) {
+      await db.query<RawMaterialRow>(
+        `
+          UPDATE raw_materials
+          SET received = received + $2
+          WHERE id = $1
+          RETURNING id
+        `,
+        [material.id, quantity],
+      );
+    } else {
+      // Trading goods land straight in finished stock for the channel they were
+      // bought for, ready to sell without a production batch. This shares the
+      // purchase transaction, so stock and the supplier bill commit together.
+      await insertStockMovement(db, {
+        design: itemName,
+        channel: input.channel as BusinessChannel,
+        sizeRun: cleanText(input.sizeRun) || "Mixed",
+        type: "Purchase In",
+        pairs: quantity,
+        note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,
+      });
+    }
 
     const rows = await db.query<PurchaseInvoiceRow>(
       `
         INSERT INTO purchase_invoices (
           id, purchase_number, created_at, supplier_ledger_id, supplier_name,
-          material_id, material_name, unit, quantity, rate, discount, tax,
+          kind, material_id, material_name, design, channel, size_run,
+          unit, quantity, rate, discount, tax,
           total, paid_amount, credit_amount, payment_method, payment_reference,
           status, posting_status, supplier_transaction_ids, note
         )
         VALUES (
           $1, $2, now(), $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17, 'Posted', $18, $19
+          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+          $21, 'Posted', $22, $23
         )
         RETURNING id, purchase_number, created_at, supplier_ledger_id, supplier_name,
-          material_id, material_name, unit, quantity, rate, discount, tax, total,
+          kind, material_id, material_name, design, channel, size_run, unit,
+          quantity, rate, discount, tax, total,
           paid_amount, credit_amount, payment_method, payment_reference, status,
           posting_status, supplier_transaction_ids, note
       `,
@@ -509,9 +557,14 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
         purchaseNumber,
         ledger.id,
         ledger.supplierName,
-        materialRows[0].id,
-        materialRows[0].name,
-        materialRows[0].unit,
+        input.kind,
+        // Null rather than "" so the raw material foreign key stays satisfied.
+        material ? material.id : null,
+        itemName,
+        input.kind === "Trading Goods" ? itemName : "",
+        input.kind === "Trading Goods" ? input.channel : null,
+        input.kind === "Trading Goods" ? cleanText(input.sizeRun) || "Mixed" : "Mixed",
+        unit,
         quantity,
         rate,
         discount,

@@ -15,9 +15,9 @@ type LedgerDetailPageProps = {
 };
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-[#0B4D3B]";
+  "h-10 rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#0B4D3B]";
+  "min-h-24 rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -39,17 +39,17 @@ function transactionEffect(type: LedgerTransaction["type"]) {
 }
 
 function collectionPriorityClass(priority: string) {
-  if (priority === "Clear") return "border-[#D9E8DF] bg-[#F4FBF6] text-[#0B4D3B]";
-  if (priority === "Monitor" || priority === "Medium") return "border-[#F4DEAE] bg-[#FFF9EA] text-[#7A5A00]";
-  return "border-[#F1C4BE] bg-[#FFF4F2] text-[#7B3128]";
+  if (priority === "Clear") return "border-brand-green-line bg-brand-green-wash text-brand-green";
+  if (priority === "Monitor" || priority === "Medium") return "border-[#F4DEAE] bg-[#FFF9EA] text-brand-gold-ink";
+  return "border-[#F1C4BE] bg-[#FFF4F2] text-brand-clay";
 }
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -83,7 +83,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/operations"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to operations
         </Link>
@@ -93,17 +93,17 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Customer ledger
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#10231D]">{ledger.customerName}</h1>
+            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.customerName}</h1>
             <p className="mt-2 text-sm text-gray-500">
               {ledger.channel} - {ledger.phone || "No phone"} - Last transaction {ledger.lastTransaction}
             </p>
           </div>
-          <div className="rounded-lg bg-[#F5F7F4] px-5 py-4 text-right">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7B3128]">Balance due</p>
-            <p className="mt-2 text-3xl font-black text-[#10231D]">{money(summary.balanceDue)}</p>
+          <div className="rounded-lg bg-brand-mist px-5 py-4 text-right">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Balance due</p>
+            <p className="mt-2 text-3xl font-black text-brand-green-ink">{money(summary.balanceDue)}</p>
           </div>
         </div>
 
@@ -130,7 +130,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr] print:hidden">
           <form action={updateCustomerLedgerAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-            <h2 className="font-black text-[#10231D]">Customer details</h2>
+            <h2 className="font-black text-brand-green-ink">Customer details</h2>
             <input type="hidden" name="id" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
             <input name="customerName" required className={inputClass} defaultValue={ledger.customerName} aria-label="Customer name" />
@@ -149,13 +149,13 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
               <input name="balanceDue" type="number" min="0" className={inputClass} defaultValue={ledger.balanceDue} aria-label="Balance due" />
               <input name="creditLimit" type="number" min="0" className={inputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" placeholder="Credit limit (0 = no limit)" />
             </div>
-            <button type="submit" className="h-10 rounded-full bg-[#10231D] px-4 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]">
+            <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Save customer
             </button>
           </form>
 
           <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
-            <h2 className="font-black text-[#10231D]">New transaction</h2>
+            <h2 className="font-black text-brand-green-ink">New transaction</h2>
             <input type="hidden" name="ledgerId" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
             <select name="type" className={inputClass} defaultValue="Cash Payment">
@@ -167,7 +167,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             </select>
             <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
             <textarea name="note" className={textareaClass} placeholder="Bill number, cheque number, return note, or remark" />
-            <button type="submit" className="h-10 rounded-full bg-[#0B4D3B] px-4 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]">
+            <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Record transaction
             </button>
           </form>
@@ -176,12 +176,12 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
         <div className="mt-8">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-[#10231D]">Transaction history</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">Transaction history</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Customer-wise cash, cheque, credit, return, and balance adjustment trail.
               </p>
             </div>
-            <p className="text-sm font-bold text-[#7B3128]">Current due: {money(summary.balanceDue)}</p>
+            <p className="text-sm font-bold text-brand-clay">Current due: {money(summary.balanceDue)}</p>
           </div>
 
           {transactions.length === 0 ? (
@@ -205,9 +205,9 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                   {transactions.map((transaction) => (
                     <tr key={transaction.id}>
                       <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
-                      <td className="py-3 pr-3 font-semibold text-[#10231D]">{transaction.type}</td>
+                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.type}</td>
                       <td className="py-3 pr-3">
-                        <span className="rounded-full bg-[#F5F7F4] px-3 py-1 text-xs font-bold text-[#0B4D3B]">
+                        <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
                           {transactionEffect(transaction.type)}
                         </span>
                       </td>
@@ -231,7 +231,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
 
         <div className="mt-8">
           <div className="mb-4">
-            <h2 className="text-lg font-black text-[#10231D]">Linked order payments</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Linked order payments</h2>
             <p className="mt-1 text-sm text-gray-500">
               Order payment records connected to this ledger.
             </p>
@@ -259,8 +259,8 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                   {paymentTransactions.map((transaction) => (
                     <tr key={transaction.id}>
                       <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
-                      <td className="py-3 pr-3 font-mono text-xs text-[#10231D]">{transaction.orderId}</td>
-                      <td className="py-3 pr-3 font-semibold text-[#10231D]">{transaction.paymentStatus}</td>
+                      <td className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{transaction.orderId}</td>
+                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.paymentStatus}</td>
                       <td className="py-3 pr-3">{transaction.paymentProvider.toUpperCase()}</td>
                       <td className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
                       <td className="max-w-56 py-3 pr-3 text-gray-600">

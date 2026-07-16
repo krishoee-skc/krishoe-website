@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  createPurchaseInvoiceAction,
   createSupplierLedgerAction,
   createSupplierTransactionAction,
 } from "@/app/admin/purchasing/actions";
+import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot, type PurchaseInvoice, type SupplierAgingRisk } from "@/lib/purchasing";
 
 export const metadata: Metadata = {
@@ -15,9 +16,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-[#0B4D3B]";
+  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#0B4D3B]";
+  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -76,8 +77,8 @@ function StatCard({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -85,10 +86,14 @@ function StatCard({
 }
 
 export default async function AdminPurchasingPage() {
-  const [purchasing, operations] = await Promise.all([
+  const [purchasing, operations, products] = await Promise.all([
     getPurchasingSnapshot(),
     getOperationsSnapshot(),
+    getProducts({ includeDrafts: true }),
   ]);
+  const productNames = [...new Set(products.map((product) => product.name))].sort((a, b) =>
+    a.localeCompare(b),
+  );
   const supplierAgingById = new Map(
     purchasing.reports.supplierAgingRows.map((row) => [row.supplierLedgerId, row]),
   );
@@ -101,7 +106,7 @@ export default async function AdminPurchasingPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Purchasing and supplier ledger</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Purchasing and supplier ledger</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Raw material purchase, supplier due, payment history, and purchase-basis profit signal.
           </p>
@@ -109,31 +114,31 @@ export default async function AdminPurchasingPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/api/admin/purchasing/export?type=invoices"
-            className="rounded-full bg-[#0B4D3B] px-4 py-2 text-sm font-bold text-white"
+            className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export purchases
           </Link>
           <Link
             href="/api/admin/purchasing/export?type=suppliers"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export suppliers
           </Link>
           <Link
             href="/api/admin/purchasing/export?type=supplier-aging"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Aging report
           </Link>
           <Link
             href="/api/admin/purchasing/export?type=supplier-payables"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Payment queue
           </Link>
           <Link
             href="/api/admin/purchasing/export?type=posting-review"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Posting review
           </Link>
@@ -151,78 +156,27 @@ export default async function AdminPurchasingPage() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <form action={createPurchaseInvoiceAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-black text-[#10231D]">Raw material purchase</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Purchase save posts supplier ledger and increases raw material received stock.
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <select name="supplierLedgerId" className={inputClass} defaultValue="" aria-label="Supplier ledger">
-              <option value="">New supplier from name</option>
-              {purchasing.supplierLedgers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.supplierName}
-                </option>
-              ))}
-            </select>
-            <input name="supplierName" className={inputClass} placeholder="New supplier name" />
-            <input name="phone" className={inputClass} placeholder="Supplier phone" />
-          </div>
-
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <select name="materialId" className={inputClass} required defaultValue="" aria-label="Raw material">
-              <option value="">Select raw material</option>
-              {operations.rawMaterials.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.name} ({material.unit})
-                </option>
-              ))}
-            </select>
-            <input name="quantity" type="number" min="1" required className={inputClass} placeholder="Quantity" />
-            <input name="rate" type="number" min="1" required className={inputClass} placeholder="Rate" />
-            <select name="paymentMethod" className={inputClass} defaultValue="Cash" aria-label="Payment method">
-              <option>Cash</option>
-              <option>Cheque</option>
-              <option>Bank</option>
-              <option>Credit</option>
-            </select>
-          </div>
-
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <input name="discount" type="number" min="0" className={inputClass} placeholder="Discount" />
-            <input name="tax" type="number" min="0" className={inputClass} placeholder="Tax / VAT" />
-            <input name="paidAmount" type="number" min="0" className={inputClass} placeholder="Paid amount" />
-            <input name="paymentReference" className={inputClass} placeholder="Cheque/bank/ref no." />
-          </div>
-
-          <textarea name="note" className={`${textareaClass} mt-3 w-full`} placeholder="Purchase note, vehicle, gate pass, invoice no." />
-
-          <button
-            type="submit"
-            className="mt-4 h-11 rounded-full bg-[#10231D] px-6 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
-          >
-            Save purchase
-          </button>
-        </form>
+        <PurchaseInvoiceForm
+          supplierLedgers={purchasing.supplierLedgers}
+          rawMaterials={operations.rawMaterials}
+          productNames={productNames}
+        />
 
         <div className="grid gap-6">
           <form action={createSupplierLedgerAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black text-[#10231D]">New supplier</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">New supplier</h2>
             <div className="mt-4 grid gap-3">
               <input name="supplierName" required className={inputClass} placeholder="Supplier name" />
               <input name="phone" className={inputClass} placeholder="Phone" />
               <input name="materialFocus" className={inputClass} placeholder="Material focus" />
-              <button type="submit" className="h-10 rounded-full bg-[#0B4D3B] px-4 text-sm font-bold text-white">
+              <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
                 Add supplier
               </button>
             </div>
           </form>
 
           <form action={createSupplierTransactionAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black text-[#10231D]">Supplier payment</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
             <div className="mt-4 grid gap-3">
               <select name="supplierLedgerId" required className={inputClass} defaultValue="">
                 <option value="">Select supplier</option>
@@ -241,7 +195,7 @@ export default async function AdminPurchasingPage() {
               </select>
               <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
               <textarea name="note" className={textareaClass} placeholder="Payment note or adjustment reason" />
-              <button type="submit" className="h-10 rounded-full bg-[#10231D] px-4 text-sm font-bold text-white">
+              <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
                 Record payment
               </button>
             </div>
@@ -251,29 +205,29 @@ export default async function AdminPurchasingPage() {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-4">
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Profit signal</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Profit signal</h2>
           <div className="mt-4 grid gap-3">
             <div className="rounded-md bg-gray-50 p-3">
               <p className="text-xs font-semibold text-gray-500">Today</p>
-              <p className="mt-1 text-xl font-black text-[#10231D]">{money(purchasing.summary.todayProfitEstimate)}</p>
+              <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.todayProfitEstimate)}</p>
             </div>
             <div className="rounded-md bg-gray-50 p-3">
               <p className="text-xs font-semibold text-gray-500">Month</p>
-              <p className="mt-1 text-xl font-black text-[#10231D]">{money(purchasing.summary.monthProfitEstimate)}</p>
+              <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.monthProfitEstimate)}</p>
             </div>
             <div className="rounded-md bg-gray-50 p-3">
               <p className="text-xs font-semibold text-gray-500">Year</p>
-              <p className="mt-1 text-xl font-black text-[#10231D]">{money(purchasing.summary.yearProfitEstimate)}</p>
+              <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.yearProfitEstimate)}</p>
             </div>
           </div>
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Material purchase</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Material purchase</h2>
           <div className="mt-4 divide-y divide-gray-100">
             {purchasing.reports.materialTotals.slice(0, 6).map((row) => (
               <div key={row.materialName} className="grid grid-cols-3 gap-3 py-3 text-sm">
-                <p className="font-bold text-[#10231D]">{row.materialName}</p>
+                <p className="font-bold text-brand-green-ink">{row.materialName}</p>
                 <p className="text-gray-500">{row.quantity}</p>
                 <p className="text-right font-bold">{money(row.total)}</p>
               </div>
@@ -285,7 +239,7 @@ export default async function AdminPurchasingPage() {
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Supplier due</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Supplier due</h2>
           <div className="mt-4 divide-y divide-gray-100">
             {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
               const aging = supplierAgingById.get(supplier.id);
@@ -295,11 +249,11 @@ export default async function AdminPurchasingPage() {
                   <div className="flex items-center justify-between gap-3">
                     <Link
                       href={`/admin/purchasing/supplier/${supplier.id}`}
-                      className="font-bold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                      className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                     >
                       {supplier.supplierName}
                     </Link>
-                    <p className="font-black text-[#7B3128]">{money(supplier.balanceDue)}</p>
+                    <p className="font-black text-brand-clay">{money(supplier.balanceDue)}</p>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     Paid {money(supplier.paidAmount)} / Purchase {money(supplier.totalPurchase)}
@@ -314,13 +268,13 @@ export default async function AdminPurchasingPage() {
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Posting health</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
           <p className="mt-1 text-sm text-gray-500">Supplier ledger, raw material link, and payment posting check.</p>
           <div className="mt-4 divide-y divide-gray-100">
             {purchasing.reports.postingReviewRows.slice(0, 6).map((row) => (
               <div key={row.id} className="py-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-mono text-xs font-bold text-[#10231D]">{row.purchaseNumber}</p>
+                  <p className="font-mono text-xs font-bold text-brand-green-ink">{row.purchaseNumber}</p>
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${postingTone(row.signal)}`}>
                     {row.signal}
                   </span>
@@ -342,14 +296,14 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Supplier payment queue</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Supplier payment queue</h2>
             <p className="mt-1 text-sm text-gray-500">
               Payable priority, due date, and next action for supplier relationship control.
             </p>
           </div>
           <Link
             href="/api/admin/purchasing/export?type=supplier-payables"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export payment queue
           </Link>
@@ -358,25 +312,25 @@ export default async function AdminPurchasingPage() {
         <div className="mb-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="text-xs font-semibold text-gray-500">Immediate</p>
-            <p className="mt-1 text-xl font-black text-[#7B3128]">
+            <p className="mt-1 text-xl font-black text-brand-clay">
               {purchasing.reports.supplierPaymentSummary.immediateCount}
             </p>
           </div>
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="text-xs font-semibold text-gray-500">High</p>
-            <p className="mt-1 text-xl font-black text-[#7A5A00]">
+            <p className="mt-1 text-xl font-black text-brand-gold-ink">
               {purchasing.reports.supplierPaymentSummary.highCount}
             </p>
           </div>
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="text-xs font-semibold text-gray-500">Payment run</p>
-            <p className="mt-1 text-xl font-black text-[#10231D]">
+            <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.paymentRunDue)}
             </p>
           </div>
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="text-xs font-semibold text-gray-500">Supplier due</p>
-            <p className="mt-1 text-xl font-black text-[#10231D]">
+            <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.totalDue)}
             </p>
           </div>
@@ -405,7 +359,7 @@ export default async function AdminPurchasingPage() {
                     <td className="py-3 pr-3">
                       <Link
                         href={`/admin/purchasing/supplier/${row.supplierLedgerId}`}
-                        className="font-bold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                        className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                       >
                         {row.supplierName}
                       </Link>
@@ -418,12 +372,12 @@ export default async function AdminPurchasingPage() {
                         {row.priority}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-bold text-[#7B3128]">{money(row.balanceDue)}</td>
+                    <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.balanceDue)}</td>
                     <td className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days oldest</p>
                       <p className="text-xs text-gray-500">90+ {money(row.over90)}</p>
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-[#10231D]">{row.paymentDueDate || "-"}</td>
+                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.paymentDueDate || "-"}</td>
                     <td className="max-w-80 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
                       {row.nextAction}
                     </td>
@@ -438,12 +392,12 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Supplier aging report</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Supplier aging report</h2>
             <p className="mt-1 text-sm text-gray-500">
               Due amount grouped by age so old supplier payable is visible before it becomes risky.
             </p>
           </div>
-          <p className="text-sm font-bold text-[#7B3128]">
+          <p className="text-sm font-bold text-brand-clay">
             90+ due {money(purchasing.reports.supplierAgingTotals.over90)}
           </p>
         </div>
@@ -473,7 +427,7 @@ export default async function AdminPurchasingPage() {
                     <td className="py-3 pr-3">
                       <Link
                         href={`/admin/purchasing/supplier/${row.supplierLedgerId}`}
-                        className="font-bold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                        className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                       >
                         {row.supplierName}
                       </Link>
@@ -482,7 +436,7 @@ export default async function AdminPurchasingPage() {
                     <td className="py-3 pr-3">{money(row.current)}</td>
                     <td className="py-3 pr-3">{money(row.days31To60)}</td>
                     <td className="py-3 pr-3">{money(row.days61To90)}</td>
-                    <td className="py-3 pr-3 font-bold text-[#7B3128]">{money(row.over90)}</td>
+                    <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.over90)}</td>
                     <td className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days</p>
                       <p className="text-xs text-gray-500">{row.oldestOpenDate || "-"}</p>
@@ -492,7 +446,7 @@ export default async function AdminPurchasingPage() {
                         {row.risk}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.balanceDue)}</td>
+                    <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceDue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -504,12 +458,12 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Recent purchase invoices</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Recent purchase invoices</h2>
             <p className="mt-1 text-sm text-gray-500">
               Raw material stock receipt, supplier due, and payment trail.
             </p>
           </div>
-          <p className="text-sm font-bold text-[#0B4D3B]">Year purchase {money(purchasing.summary.yearPurchase)}</p>
+          <p className="text-sm font-bold text-brand-green">Year purchase {money(purchasing.summary.yearPurchase)}</p>
         </div>
 
         {purchasing.reports.recentInvoices.length === 0 ? (
@@ -538,13 +492,13 @@ export default async function AdminPurchasingPage() {
                   return (
                     <tr key={invoice.id}>
                       <td className="py-3 pr-3">
-                        <p className="font-mono text-xs font-bold text-[#10231D]">{invoice.purchaseNumber}</p>
+                        <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
                       <td className="py-3 pr-3">
                         <Link
                           href={`/admin/purchasing/supplier/${invoice.supplierLedgerId}`}
-                          className="font-semibold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                          className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                         >
                           {invoice.supplierName}
                         </Link>

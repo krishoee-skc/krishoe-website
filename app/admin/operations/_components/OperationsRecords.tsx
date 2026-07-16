@@ -23,42 +23,42 @@ import {
 import type { LedgerTransactionType, StockMovement, StockMovementType } from "@/lib/operations";
 
 function stockMovementTypeClass(type: StockMovementType) {
-  if (type === "Production In" || type === "Return In") {
-    return "bg-[#EAF5EF] text-[#0B4D3B]";
+  if (type === "Production In" || type === "Purchase In" || type === "Return In") {
+    return "bg-brand-green-tint text-brand-green";
   }
 
   if (type === "Dispatch Out" || type === "Sale Out" || type === "Market Sale") {
-    return "bg-[#FFF7DF] text-[#7A5A00]";
+    return "bg-brand-cream-soft text-brand-gold-ink";
   }
 
   return "bg-gray-100 text-gray-700";
 }
 
 function stockSignalClass(signal: string) {
-  if (signal === "Healthy") return "bg-[#EAF5EF] text-[#0B4D3B]";
-  if (signal === "Return watch") return "bg-[#FFF7DF] text-[#7A5A00]";
-  return "bg-[#FBEAE8] text-[#7B3128]";
+  if (signal === "Healthy") return "bg-brand-green-tint text-brand-green";
+  if (signal === "Return watch") return "bg-brand-cream-soft text-brand-gold-ink";
+  return "bg-brand-clay-tint text-brand-clay";
 }
 
 function stockLedgerSignalClass(signal: string) {
-  if (signal === "Balanced") return "bg-[#EAF5EF] text-[#0B4D3B]";
-  if (signal === "Watch") return "bg-[#FFF7DF] text-[#7A5A00]";
-  return "bg-[#FBEAE8] text-[#7B3128]";
+  if (signal === "Balanced") return "bg-brand-green-tint text-brand-green";
+  if (signal === "Watch") return "bg-brand-cream-soft text-brand-gold-ink";
+  return "bg-brand-clay-tint text-brand-clay";
 }
 
 function collectionPriorityClass(priority: string) {
-  if (priority === "Clear") return "bg-[#EAF5EF] text-[#0B4D3B]";
-  if (priority === "Monitor" || priority === "Medium") return "bg-[#FFF7DF] text-[#7A5A00]";
-  return "bg-[#FBEAE8] text-[#7B3128]";
+  if (priority === "Clear") return "bg-brand-green-tint text-brand-green";
+  if (priority === "Monitor" || priority === "Medium") return "bg-brand-cream-soft text-brand-gold-ink";
+  return "bg-brand-clay-tint text-brand-clay";
 }
 
 function ledgerTransactionTypeClass(type: LedgerTransactionType) {
   if (type === "Cash Payment" || type === "Cheque Payment") {
-    return "bg-[#EAF5EF] text-[#0B4D3B]";
+    return "bg-brand-green-tint text-brand-green";
   }
 
   if (type === "Credit Sale") {
-    return "bg-[#FFF7DF] text-[#7A5A00]";
+    return "bg-brand-cream-soft text-brand-gold-ink";
   }
 
   return "bg-gray-100 text-gray-700";
@@ -66,14 +66,14 @@ function ledgerTransactionTypeClass(type: LedgerTransactionType) {
 
 function agingClass(bucket: string) {
   if (bucket === "60+ days") {
-    return "text-[#7B3128]";
+    return "text-brand-clay";
   }
 
   if (bucket === "31-60 days") {
-    return "text-[#7A5A00]";
+    return "text-brand-gold-ink";
   }
 
-  return "text-[#0B4D3B]";
+  return "text-brand-green";
 }
 
 function formatOptionalDate(value: string) {
@@ -104,6 +104,13 @@ function stockMovementSource(
     return {
       label: "Production",
       detail: "Factory output",
+    };
+  }
+
+  if (movement.type === "Purchase In") {
+    return {
+      label: "Purchase",
+      detail: "Trading goods received",
     };
   }
 
@@ -143,7 +150,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
           <tbody className="divide-y">
             {snapshot.productionBatches.map((batch) => (
               <tr key={batch.id}>
-                <td className="py-3 pr-3 font-semibold text-[#10231D]">{batch.design}</td>
+                <td className="py-3 pr-3 font-semibold text-brand-green-ink">{batch.design}</td>
                 <td className="py-3 pr-3">{batch.plannedPairs}</td>
                 <td className="py-3 pr-3">{batch.finishedPairs}</td>
                 <td className="py-3 pr-3">{batch.inProgressPairs}</td>
@@ -161,7 +168,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                     </div>
                     <textarea
                       name="rawMaterialUsed"
-                      className="min-h-16 rounded-md border border-gray-200 px-2 py-2 text-xs outline-none focus:border-[#0B4D3B]"
+                      className="min-h-16 rounded-md border border-gray-200 px-2 py-2 text-xs outline-none focus:border-brand-green"
                       defaultValue={batch.rawMaterialUsed.join(", ")}
                       aria-label="Raw materials used"
                     />
@@ -203,15 +210,15 @@ function WorkerProgressCards({ snapshot }: { snapshot: OperationsSnapshot }) {
           return (
             <div key={task.id} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-bold text-[#10231D]">{task.workerName}</p>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0B4D3B]">
+                <p className="font-bold text-brand-green-ink">{task.workerName}</p>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-green">
                   {task.status}
                 </span>
               </div>
               <p className="mt-2 text-sm text-gray-600">
                 {task.station} - {task.design}
               </p>
-              <p className="mt-1 text-xs font-bold text-[#8A958F]">
+              <p className="mt-1 text-xs font-bold text-brand-muted-soft">
                 Batch: {linkedBatch ? `${linkedBatch.design} (${linkedBatch.status})` : "Manual / unlinked"}
               </p>
               <p className="mt-1 text-sm font-semibold text-gray-700">
@@ -280,8 +287,8 @@ function RawMaterialsPanel({
           return (
             <div key={material.id} className="rounded-lg border border-gray-100 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="font-bold text-[#10231D]">{material.name}</p>
-                <span className={material.lowStock ? "text-sm font-bold text-red-700" : "text-sm font-bold text-[#0B4D3B]"}>
+                <p className="font-bold text-brand-green-ink">{material.name}</p>
+                <span className={material.lowStock ? "text-sm font-bold text-red-700" : "text-sm font-bold text-brand-green"}>
                   {material.balance} {material.unit}
                 </span>
               </div>
@@ -356,12 +363,12 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
                   <td className="py-3 pr-3 text-xs text-gray-500">
                     {new Date(consumption.createdAt).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{consumption.batchDesign}</td>
+                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
                   <td className="py-3 pr-3">{consumption.materialName}</td>
-                  <td className="py-3 pr-3 font-bold text-[#0B4D3B]">
+                  <td className="py-3 pr-3 font-bold text-brand-green">
                     {consumption.quantity} {consumption.unit}
                   </td>
-                  <td className="py-3 pr-3 font-bold text-[#7B3128]">
+                  <td className="py-3 pr-3 font-bold text-brand-clay">
                     {consumption.wastage} {consumption.unit}
                   </td>
                   <td className="max-w-48 py-3 pr-3 text-gray-600">{consumption.note || "-"}</td>
@@ -384,7 +391,7 @@ function DemandPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
       <SectionTitle title="Fast and slow designs" detail="Market demand signal by sold pairs." />
       <div className="grid gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0B4D3B]">Fast moving</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
           {snapshot.fastMovingStock.slice(0, 3).map((stock) => (
             <p key={stock.id} className="mt-2 text-sm text-gray-700">
               {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
@@ -392,7 +399,7 @@ function DemandPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
           ))}
         </div>
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7B3128]">Slow moving</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Slow moving</p>
           {snapshot.slowMovingStock.slice(0, 3).map((stock) => (
             <p key={stock.id} className="mt-2 text-sm text-gray-700">
               {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
@@ -411,15 +418,15 @@ function CollectionPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
       <dl className="grid gap-3 text-sm">
         <div className="flex justify-between">
           <dt className="font-semibold text-gray-500">Cash</dt>
-          <dd className="font-black text-[#10231D]">{money(snapshot.summary.cash)}</dd>
+          <dd className="font-black text-brand-green-ink">{money(snapshot.summary.cash)}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="font-semibold text-gray-500">Cheque</dt>
-          <dd className="font-black text-[#10231D]">{money(snapshot.summary.cheque)}</dd>
+          <dd className="font-black text-brand-green-ink">{money(snapshot.summary.cheque)}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="font-semibold text-gray-500">Credit</dt>
-          <dd className="font-black text-[#10231D]">{money(snapshot.summary.credit)}</dd>
+          <dd className="font-black text-brand-green-ink">{money(snapshot.summary.credit)}</dd>
         </div>
       </dl>
     </section>
@@ -462,17 +469,17 @@ function FinishedStockTable({
 
               return (
                 <tr key={stock.id}>
-                  <td className="py-3 pr-3 font-semibold text-[#10231D]">{stock.design}</td>
+                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{stock.design}</td>
                   <td className="py-3 pr-3">{stock.channel}</td>
                   <td className="py-3 pr-3">{stock.sizeRun}</td>
-                  <td className="py-3 pr-3 font-bold text-[#0B4D3B]">{stock.stockPairs}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-green">{stock.stockPairs}</td>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{money(valuation?.stockValue ?? 0)}</p>
+                    <p className="font-bold text-brand-green-ink">{money(valuation?.stockValue ?? 0)}</p>
                     <p className="text-xs text-gray-500">
                       COGS {money(valuation?.unitCostPerPair ?? 0)} / profit{" "}
                       {money(valuation?.potentialGrossProfit ?? 0)}
                     </p>
-                    <p className="mt-1 text-xs font-bold text-[#7A5A00]">
+                    <p className="mt-1 text-xs font-bold text-brand-gold-ink">
                       {valuation?.signal ?? "Needs cost"} / {valuation?.priceSource ?? "Missing"}
                     </p>
                   </td>
@@ -525,14 +532,14 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
     <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-[#10231D]">Stock ledger summary</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Stock ledger summary</h2>
           <p className="mt-1 text-sm text-gray-500">
             Book stock compared with stock movement trail for closing, audit, and correction.
           </p>
         </div>
         <Link
           href="/api/admin/operations/export?type=stock-ledger-summary"
-          className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+          className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export ledger CSV
         </Link>
@@ -558,17 +565,17 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
               {snapshot.reports.stockLedgerRows.map((row) => (
                 <tr key={row.id}>
                   <td className="py-3 pr-3">
-                    <p className="font-semibold text-[#10231D]">{row.design}</p>
+                    <p className="font-semibold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">
                       {row.channel} | {row.sizeRun}
                     </p>
                   </td>
-                  <td className="py-3 pr-3 font-bold text-[#0B4D3B]">{row.stockPairs}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-[#10231D]">{row.movementStockPairs}</p>
+                    <p className="font-bold text-brand-green-ink">{row.movementStockPairs}</p>
                     <p className="text-xs text-gray-500">{row.movementCount} movements</p>
                   </td>
-                  <td className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-[#0B4D3B]" : "text-[#7B3128]"}`}>
+                  <td className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
                     {row.variancePairs}
                   </td>
                   <td className="py-3 pr-3 text-xs font-semibold text-gray-600">
@@ -601,8 +608,8 @@ function VehicleDispatchCards({ snapshot }: { snapshot: OperationsSnapshot }) {
         {snapshot.vehicleDispatches.map((dispatch) => (
           <div key={dispatch.id} className="rounded-lg border border-gray-100 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-bold text-[#10231D]">{dispatch.vehicleNumber}</p>
-              <span className="rounded-full bg-[#F5F7F4] px-3 py-1 text-xs font-bold text-[#0B4D3B]">
+              <p className="font-bold text-brand-green-ink">{dispatch.vehicleNumber}</p>
+              <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
                 {dispatch.status}
               </span>
             </div>
@@ -653,14 +660,14 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
     <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-[#10231D]">Collection follow-up queue</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Collection follow-up queue</h2>
           <p className="mt-1 text-sm text-gray-500">
             Customer-wise priority, payment due date, and next collection action.
           </p>
         </div>
         <Link
           href="/api/admin/operations/export?type=ledger-followups"
-          className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+          className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export follow-ups
         </Link>
@@ -669,25 +676,25 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
       <div className="mb-4 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
           <p className="text-xs font-semibold text-gray-500">Urgent</p>
-          <p className="mt-1 text-xl font-black text-[#7B3128]">
+          <p className="mt-1 text-xl font-black text-brand-clay">
             {snapshot.reports.ledgerCollectionSummary.urgentCount}
           </p>
         </div>
         <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
           <p className="text-xs font-semibold text-gray-500">High</p>
-          <p className="mt-1 text-xl font-black text-[#7A5A00]">
+          <p className="mt-1 text-xl font-black text-brand-gold-ink">
             {snapshot.reports.ledgerCollectionSummary.highCount}
           </p>
         </div>
         <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
           <p className="text-xs font-semibold text-gray-500">This week due</p>
-          <p className="mt-1 text-xl font-black text-[#10231D]">
+          <p className="mt-1 text-xl font-black text-brand-green-ink">
             {money(snapshot.reports.ledgerCollectionSummary.dueThisWeek)}
           </p>
         </div>
         <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
           <p className="text-xs font-semibold text-gray-500">Total due</p>
-          <p className="mt-1 text-xl font-black text-[#10231D]">
+          <p className="mt-1 text-xl font-black text-brand-green-ink">
             {money(snapshot.reports.ledgerCollectionSummary.totalDue)}
           </p>
         </div>
@@ -715,7 +722,7 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
                   <td className="py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${ledger.id}`}
-                      className="font-semibold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                      className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                     >
                       {ledger.customerName}
                     </Link>
@@ -728,13 +735,13 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {ledger.priority}
                     </span>
                   </td>
-                  <td className="py-3 pr-3 font-bold text-[#7B3128]">{money(ledger.balanceDue)}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
                   <td className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(ledger.agingBucket)}`}>{ledger.agingBucket}</p>
                     <p className="text-xs text-gray-500">{ledger.daysOutstanding} days</p>
                   </td>
                   <td className="py-3 pr-3">
-                    <p className="font-semibold text-[#10231D]">{ledger.collectionCoverageRate}%</p>
+                    <p className="font-semibold text-brand-green-ink">{ledger.collectionCoverageRate}%</p>
                     <p className="text-xs text-gray-500">{money(ledger.collectionTotal)} collected</p>
                   </td>
                   <td className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
@@ -783,17 +790,17 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
                     {new Date(item.createdAt).toLocaleString("en-IN")}
                   </td>
                   <td className="py-3 pr-3">
-                    <p className="font-semibold text-[#10231D]">{item.vehicleNumber}</p>
+                    <p className="font-semibold text-brand-green-ink">{item.vehicleNumber}</p>
                     <p className="text-xs text-gray-500">{item.marketRoute || "-"}</p>
                   </td>
                   <td className="py-3 pr-3">
-                    <p className="font-semibold text-[#10231D]">{item.design}</p>
+                    <p className="font-semibold text-brand-green-ink">{item.design}</p>
                     <p className="text-xs text-gray-500">{item.sizeRun}</p>
                   </td>
                   <td className="py-3 pr-3">{item.channel}</td>
                   <td className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
-                  <td className="py-3 pr-3 text-[#0B4D3B]">{item.soldPairs}</td>
-                  <td className="py-3 pr-3 text-[#7B3128]">{item.returnedPairs}</td>
+                  <td className="py-3 pr-3 text-brand-green">{item.soldPairs}</td>
+                  <td className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
                   <td className="py-3 pr-3">
                     <p>{money(item.cashCollected)} cash</p>
                     <p className="text-xs text-gray-500">
@@ -839,7 +846,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                   <td className="py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${ledger.id}`}
-                      className="font-semibold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                      className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                     >
                       {ledger.customerName}
                     </Link>
@@ -848,7 +855,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                   <td className="py-3 pr-3">{ledger.channel}</td>
                   <td className="py-3 pr-3">{money(ledger.cashPaid)}</td>
                   <td className="py-3 pr-3">{money(ledger.chequePaid)}</td>
-                  <td className="py-3 pr-3 font-bold text-[#7B3128]">{money(ledger.balanceDue)}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
                   <td className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(aging?.agingBucket ?? "Paid")}`}>
                       {aging?.agingBucket ?? "Paid"}
@@ -881,7 +888,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Link
                         href={`/admin/operations/ledger/${ledger.id}`}
-                        className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+                        className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
                       >
                         Open ledger
                       </Link>
@@ -931,7 +938,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
                     <td className="py-3 pr-3 text-xs text-gray-500">
                       {new Date(movement.createdAt).toLocaleString("en-IN")}
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-[#10231D]">{movement.design}</td>
+                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{movement.design}</td>
                     <td className="py-3 pr-3">{movement.channel}</td>
                     <td className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockMovementTypeClass(movement.type)}`}>
@@ -940,7 +947,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
                     </td>
                     <td className="py-3 pr-3 font-bold">{movement.pairs}</td>
                     <td className="py-3 pr-3">
-                      <p className="font-semibold text-[#10231D]">{source.label}</p>
+                      <p className="font-semibold text-brand-green-ink">{source.label}</p>
                       <p className="text-xs text-gray-500">{source.detail}</p>
                     </td>
                     <td className="max-w-48 py-3 pr-3 text-gray-600">{movement.note || "-"}</td>
@@ -986,7 +993,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                   <td className="py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${transaction.ledgerId}`}
-                      className="font-semibold text-[#10231D] underline decoration-[#D4AF37] underline-offset-4 transition hover:text-[#0B4D3B]"
+                      className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
                     >
                       {transaction.customerName}
                     </Link>

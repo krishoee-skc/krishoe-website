@@ -16,9 +16,9 @@ type SupplierLedgerPageProps = {
 };
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-[#0B4D3B]";
+  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#0B4D3B]";
+  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -71,8 +71,8 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -96,7 +96,7 @@ function StatementRow({ row }: { row: SupplierLedgerStatementRow }) {
       </td>
       <td className="py-3 pr-3">{row.effect}</td>
       <td className="py-3 pr-3 font-bold">{money(row.amount)}</td>
-      <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.balanceAfter)}</td>
+      <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceAfter)}</td>
       <td className="max-w-96 py-3 pr-3 text-gray-600">{row.note || "-"}</td>
     </tr>
   );
@@ -129,7 +129,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/purchasing"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to purchasing
         </Link>
@@ -139,17 +139,17 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Supplier ledger statement
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#10231D]">{ledger.supplierName}</h1>
+            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.supplierName}</h1>
             <p className="mt-2 text-sm text-gray-500">
               {ledger.phone || "No phone"} - {ledger.materialFocus || "General supply"} - Last transaction {ledger.lastTransaction}
             </p>
           </div>
-          <div className="rounded-lg bg-[#F5F7F4] px-5 py-4 text-right">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7B3128]">Supplier due</p>
-            <p className="mt-2 text-3xl font-black text-[#10231D]">{money(summary.balanceDue)}</p>
+          <div className="rounded-lg bg-brand-mist px-5 py-4 text-right">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Supplier due</p>
+            <p className="mt-2 text-3xl font-black text-brand-green-ink">{money(summary.balanceDue)}</p>
           </div>
         </div>
 
@@ -165,7 +165,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             <div className="mt-3">
               <Badge className={agingTone(aging?.risk ?? "Clear")}>{aging?.risk ?? "Clear"}</Badge>
             </div>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
               {aging ? `${aging.oldestOpenDays} days oldest` : "no due"}
             </p>
           </div>
@@ -183,7 +183,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
 
         <form action={createSupplierTransactionAction} className="mt-6 grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4 print:hidden">
           <div>
-            <h2 className="font-black text-[#10231D]">Record supplier payment / adjustment</h2>
+            <h2 className="font-black text-brand-green-ink">Record supplier payment / adjustment</h2>
             <p className="mt-1 text-sm text-gray-500">
               Payment decreases supplier due. Manual adjustment increases due.
             </p>
@@ -203,7 +203,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           </div>
           <button
             type="submit"
-            className="h-10 w-fit rounded-full bg-[#10231D] px-5 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+            className="h-10 w-fit rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
             Record transaction
           </button>
@@ -212,12 +212,12 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
         <div className="mt-8">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-[#10231D]">Statement trail</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">Statement trail</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Purchase bill, supplier payment, return adjustment, and running due balance.
               </p>
             </div>
-            <p className="text-sm font-bold text-[#7B3128]">Current due: {money(summary.balanceDue)}</p>
+            <p className="text-sm font-bold text-brand-clay">Current due: {money(summary.balanceDue)}</p>
           </div>
 
           {statementRows.length === 0 ? (
@@ -249,7 +249,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
 
         <div className="mt-8">
           <div className="mb-4">
-            <h2 className="text-lg font-black text-[#10231D]">Purchase invoices</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Purchase invoices</h2>
             <p className="mt-1 text-sm text-gray-500">
               Raw material purchase bills linked to this supplier.
             </p>
@@ -278,11 +278,11 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                   {invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="py-3 pr-3">
-                        <p className="font-mono text-xs font-bold text-[#10231D]">{invoice.purchaseNumber}</p>
+                        <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
                       <td className="py-3 pr-3">
-                        <p className="font-semibold text-[#10231D]">{invoice.materialName}</p>
+                        <p className="font-semibold text-brand-green-ink">{invoice.materialName}</p>
                         <p className="text-xs text-gray-500">{invoice.unit}</p>
                       </td>
                       <td className="py-3 pr-3">{invoice.quantity}</td>

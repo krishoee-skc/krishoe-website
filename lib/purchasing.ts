@@ -2,7 +2,13 @@ import { readFile } from "node:fs/promises";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
-import { addRawMaterialReceipt, getOperationsData, type RawMaterial } from "@/lib/operations";
+import {
+  addRawMaterialReceipt,
+  addStockMovement,
+  getOperationsData,
+  type BusinessChannel,
+  type RawMaterial,
+} from "@/lib/operations";
 import { getPosSnapshot } from "@/lib/pos";
 import {
   addSupplierLedgerToPostgres,
@@ -12,6 +18,10 @@ import {
 } from "@/lib/purchasing-postgres";
 
 export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit";
+// A "Raw Material" buy feeds the factory (raw material received stock).
+// A "Trading Goods" buy is ready-made stock bought for resale through the
+// wholesale/retail/online channels, so it feeds finished stock instead.
+export type PurchaseKind = "Raw Material" | "Trading Goods";
 export type PurchaseInvoiceStatus = "Paid" | "Partial" | "Credit";
 export type PurchasePostingStatus = "Posted" | "Needs Review";
 export type SupplierTransactionType =
@@ -39,8 +49,16 @@ export type PurchaseInvoice = {
   createdAt: string;
   supplierLedgerId: string;
   supplierName: string;
+  kind: PurchaseKind;
+  // Set on "Raw Material" buys; empty on "Trading Goods" buys.
   materialId: string;
+  // The material name, or the product design for trading goods, so existing
+  // invoice lists and exports keep showing what was bought.
   materialName: string;
+  // Set on "Trading Goods" buys; empty on "Raw Material" buys.
+  design: string;
+  channel: BusinessChannel | "";
+  sizeRun: string;
   unit: RawMaterial["unit"];
   quantity: number;
   rate: number;
@@ -105,7 +123,11 @@ export type CreatePurchaseInvoiceInput = {
   supplierLedgerId: string;
   supplierName: string;
   phone: string;
+  kind: PurchaseKind;
   materialId: string;
+  design: string;
+  channel: BusinessChannel | "";
+  sizeRun: string;
   quantity: number;
   rate: number;
   discount: number;
@@ -214,8 +236,14 @@ function normalizePurchaseInvoice(invoice: Partial<PurchaseInvoice>): PurchaseIn
     createdAt: cleanText(invoice.createdAt ?? "") || new Date().toISOString(),
     supplierLedgerId: cleanText(invoice.supplierLedgerId ?? ""),
     supplierName: cleanText(invoice.supplierName ?? ""),
+    // Invoices written before trading-goods purchases existed have no kind and
+    // are all raw material buys.
+    kind: invoice.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
     materialId: cleanText(invoice.materialId ?? ""),
     materialName: cleanText(invoice.materialName ?? ""),
+    design: cleanText(invoice.design ?? ""),
+    channel: invoice.channel ?? "",
+    sizeRun: cleanText(invoice.sizeRun ?? "") || "Mixed",
     unit: invoice.unit ?? "piece",
     quantity: cleanNumber(invoice.quantity ?? 0),
     rate: cleanNumber(invoice.rate ?? 0),
@@ -413,7 +441,11 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     supplierLedgerId: cleanText(input.supplierLedgerId),
     supplierName: cleanText(input.supplierName),
     phone: cleanText(input.phone),
+    kind: input.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
     materialId: cleanText(input.materialId),
+    design: cleanText(input.design),
+    channel: input.channel,
+    sizeRun: cleanText(input.sizeRun) || "Mixed",
     quantity: cleanNumber(input.quantity),
     rate: cleanNumber(input.rate),
     discount: cleanNumber(input.discount),
@@ -423,8 +455,16 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     note: cleanText(input.note),
   };
 
-  if (!normalizedInput.materialId || normalizedInput.quantity <= 0 || normalizedInput.rate <= 0) {
+  if (normalizedInput.quantity <= 0 || normalizedInput.rate <= 0) {
+    throw new Error("Quantity and rate are required.");
+  }
+
+  if (normalizedInput.kind === "Raw Material" && !normalizedInput.materialId) {
     throw new Error("Raw material, quantity, and rate are required.");
+  }
+
+  if (normalizedInput.kind === "Trading Goods" && (!normalizedInput.design || !normalizedInput.channel)) {
+    throw new Error("Product and channel are required for a trading goods purchase.");
   }
 
   if (!normalizedInput.supplierLedgerId && !normalizedInput.supplierName) {
@@ -451,11 +491,18 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         getOperationsData(),
       ]);
       const rollbackData = clonePurchasingData(data);
-      const material = operations.rawMaterials.find((item) => item.id === normalizedInput.materialId);
+      const material =
+        normalizedInput.kind === "Raw Material"
+          ? operations.rawMaterials.find((item) => item.id === normalizedInput.materialId)
+          : undefined;
 
-      if (!material) {
+      if (normalizedInput.kind === "Raw Material" && !material) {
         throw new Error("Raw material was not found.");
       }
+
+      // Trading goods are bought and sold by the pair.
+      const itemName = material ? material.name : normalizedInput.design;
+      const unit: RawMaterial["unit"] = material ? material.unit : "pair";
 
       let ledger = normalizedInput.supplierLedgerId
         ? data.supplierLedgers.find((item) => item.id === normalizedInput.supplierLedgerId)
@@ -466,7 +513,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
           id: createId("SUP"),
           supplierName: normalizedInput.supplierName || "Unnamed Supplier",
           phone: normalizedInput.phone,
-          materialFocus: material.name,
+          materialFocus: itemName,
           totalPurchase: 0,
           paidAmount: 0,
           balanceDue: 0,
@@ -486,7 +533,10 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         supplierLedgerId: ledger.id,
         type: "Purchase Bill",
         amount: total,
-        note: `${purchaseNumber} raw material purchase.`,
+        note:
+          normalizedInput.kind === "Trading Goods"
+            ? `${purchaseNumber} trading goods purchase.`
+            : `${purchaseNumber} raw material purchase.`,
       });
       supplierTransactionIds.push(purchaseTransaction.id);
 
@@ -506,9 +556,13 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         createdAt: new Date().toISOString(),
         supplierLedgerId: ledger.id,
         supplierName: ledger.supplierName,
-        materialId: material.id,
-        materialName: material.name,
-        unit: material.unit,
+        kind: normalizedInput.kind,
+        materialId: material?.id ?? "",
+        materialName: itemName,
+        design: normalizedInput.kind === "Trading Goods" ? normalizedInput.design : "",
+        channel: normalizedInput.kind === "Trading Goods" ? normalizedInput.channel : "",
+        sizeRun: normalizedInput.kind === "Trading Goods" ? normalizedInput.sizeRun : "Mixed",
+        unit,
         quantity: normalizedInput.quantity,
         rate: normalizedInput.rate,
         discount,
@@ -527,7 +581,20 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
       data.purchaseInvoices.unshift(invoice);
       await writePurchasingData(data);
       try {
-        await addRawMaterialReceipt({ materialId: material.id, quantity: normalizedInput.quantity });
+        if (material) {
+          await addRawMaterialReceipt({ materialId: material.id, quantity: normalizedInput.quantity });
+        } else {
+          // Trading goods land straight in finished stock for the channel they
+          // were bought for, ready to sell without a production batch.
+          await addStockMovement({
+            design: invoice.design,
+            channel: invoice.channel as BusinessChannel,
+            sizeRun: invoice.sizeRun,
+            type: "Purchase In",
+            pairs: normalizedInput.quantity,
+            note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,
+          });
+        }
       } catch (error) {
         await writePurchasingData(rollbackData).catch(() => undefined);
         throw error;
