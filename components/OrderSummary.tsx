@@ -8,8 +8,8 @@ export default function OrderSummary() {
   const { cartItems, subtotalLabel } = useCommerce();
 
   return (
-    <aside className="h-fit rounded-lg border border-black/10 bg-[#10231D] p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#D4AF37]">
+    <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
         Checkout summary
       </p>
       <div className="mt-6 space-y-4">
@@ -18,12 +18,12 @@ export default function OrderSummary() {
             <div className="relative aspect-square overflow-hidden rounded-lg bg-white/10">
               <Image src={item.image} alt={item.name} fill sizes="72px" className="object-cover" />
             </div>
-            <div>
-              <p className="font-bold">{item.name}</p>
+            <div className="min-w-0">
+              <p className="break-words font-bold">{item.name}</p>
               <p className="mt-1 text-xs text-white/60">
                 {item.size} / {item.color} / Qty {item.quantity}
               </p>
-              <p className="mt-2 text-sm font-black text-[#D4AF37]">{formatPrice(item.lineTotal)}</p>
+              <p className="mt-2 text-sm font-black text-brand-gold-bright">{formatPrice(item.lineTotal)}</p>
             </div>
           </div>
         ))}

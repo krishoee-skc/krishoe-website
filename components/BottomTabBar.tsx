@@ -18,7 +18,7 @@ export default function BottomTabBar() {
 
   const tabClass = (active: boolean) =>
     `flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition ${
-      active ? "text-[#0B4D3B]" : "text-[#6D7773]"
+      active ? "text-brand-green" : "text-brand-muted-deep"
     }`;
 
   const isHome = pathname === "/";
@@ -61,7 +61,7 @@ export default function BottomTabBar() {
             <span className="relative">
               <ShoppingCartIcon className="h-5 w-5" />
               {cartCount > 0 ? (
-                <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#D4AF37] px-1 text-[9px] font-black text-[#10231D]">
+                <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-gold-bright px-1 text-[9px] font-black text-brand-green-ink">
                   {cartCount}
                 </span>
               ) : null}

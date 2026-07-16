@@ -27,17 +27,17 @@ function formatDate(value: string) {
 }
 
 function statusClass(status: Review["status"]) {
-  if (status === "approved") return "bg-[#EAF5EF] text-[#0B4D3B]";
-  if (status === "rejected") return "bg-[#FBEAE8] text-[#7B3128]";
-  return "bg-[#FFF7DF] text-[#7A5A00]";
+  if (status === "approved") return "bg-brand-green-tint text-brand-green";
+  if (status === "rejected") return "bg-brand-clay-tint text-brand-clay";
+  return "bg-brand-cream-soft text-brand-gold-ink";
 }
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -60,7 +60,7 @@ function ReviewStatusButton({
       <input type="hidden" name="status" value={status} />
       <button
         type="submit"
-        className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+        className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
       >
         {label}
       </button>
@@ -101,7 +101,7 @@ export default async function AdminReviewsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Review moderation</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Review moderation</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Approve customer reviews for storefront trust, reject low-quality submissions, or remove spam.
           </p>
@@ -109,13 +109,13 @@ export default async function AdminReviewsPage() {
         <div className="flex flex-wrap gap-2">
           <a
             href="/api/admin/reviews/export"
-            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Export CSV
           </a>
           <Link
             href="/admin/products"
-            className="inline-flex h-9 items-center rounded-full bg-[#0B4D3B] px-3 text-xs font-bold text-white"
+            className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"
           >
             Products
           </Link>
@@ -131,7 +131,7 @@ export default async function AdminReviewsPage() {
 
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4">
-          <h2 className="text-lg font-black text-[#10231D]">Review queue</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Review queue</h2>
           <p className="mt-1 text-sm text-gray-500">Pending reviews are shown first.</p>
         </div>
 
@@ -162,13 +162,13 @@ export default async function AdminReviewsPage() {
                       {formatDate(row.review.createdAt)}
                     </td>
                     <td className="min-w-52 py-3 pr-3">
-                      <Link href={`/product/${row.productId}`} className="font-bold text-[#10231D] hover:text-[#0B4D3B]">
+                      <Link href={`/product/${row.productId}`} className="font-bold text-brand-green-ink hover:text-brand-green">
                         {row.productName}
                       </Link>
                       <p className="mt-1 font-mono text-xs text-gray-400">{row.productSku}</p>
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-[#10231D]">{row.review.name}</td>
-                    <td className="whitespace-nowrap py-3 pr-3 font-black text-[#7A5A00]">
+                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.review.name}</td>
+                    <td className="whitespace-nowrap py-3 pr-3 font-black text-brand-gold-ink">
                       {row.review.rating}/5
                     </td>
                     <td className="min-w-80 max-w-xl py-3 pr-3 leading-6 text-gray-600">{row.review.comment}</td>

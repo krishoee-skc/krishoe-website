@@ -869,7 +869,7 @@ function applyStockMovement(stock: FinishedStock, movement: Pick<StockMovement, 
     assertStockAvailable(nextStock, movement);
   }
 
-  if (movement.type === "Production In" || movement.type === "Adjustment") {
+  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
     nextStock.stockPairs += movement.pairs;
   }
 
@@ -898,7 +898,10 @@ function reverseStockMovement(stock: FinishedStock, movement: Pick<StockMovement
   const nextStock = { ...stock };
 
   if (
-    (movement.type === "Production In" || movement.type === "Adjustment" || movement.type === "Return In") &&
+    (movement.type === "Production In" ||
+      movement.type === "Purchase In" ||
+      movement.type === "Adjustment" ||
+      movement.type === "Return In") &&
     movement.pairs > nextStock.stockPairs
   ) {
     throw new Error(
@@ -906,7 +909,7 @@ function reverseStockMovement(stock: FinishedStock, movement: Pick<StockMovement
     );
   }
 
-  if (movement.type === "Production In" || movement.type === "Adjustment") {
+  if (movement.type === "Production In" || movement.type === "Purchase In" || movement.type === "Adjustment") {
     nextStock.stockPairs -= movement.pairs;
   }
 

@@ -2,9 +2,15 @@ import { readFile } from "node:fs/promises";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
-import { queryPostgres } from "@/lib/postgres/client";
+import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import type { OrderItem } from "@/lib/order-stock";
 
-export type OrderStatus = "New" | "Contacted" | "Closed";
+export type { OrderItem };
+
+// Closed means the goods went out and a POS invoice recorded the sale.
+// Cancelled means they never will. Both end an order, but only Cancelled
+// returns the pairs to stock — see orderHoldsStock in lib/order-stock.ts.
+export type OrderStatus = "New" | "Contacted" | "Closed" | "Cancelled";
 export type PaymentStatus = "Unpaid" | "Pending" | "Paid" | "Failed" | "Refunded";
 export type PaymentProvider = "manual" | "cod" | "esewa" | "khalti" | "bank" | "cash";
 
@@ -19,6 +25,10 @@ export type OrderSubmission = {
   delivery: string;
   payment: string;
   order: string;
+  // What was ordered, structurally. `order` above is the same thing written as
+  // a sentence for humans; it cannot be counted, so it cannot reserve stock.
+  // Orders placed before this existed have an empty list.
+  items: OrderItem[];
   total: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
@@ -40,7 +50,7 @@ export type ContactSubmission = {
   status: "New" | "Replied";
 };
 
-export const orderStatuses = ["New", "Contacted", "Closed"] as const;
+export const orderStatuses = ["New", "Contacted", "Closed", "Cancelled"] as const;
 export const paymentStatuses = ["Unpaid", "Pending", "Paid", "Failed", "Refunded"] as const;
 export const paymentProviders = ["manual", "cod", "esewa", "khalti", "bank", "cash"] as const;
 export const contactStatuses = ["New", "Replied"] as const;
@@ -48,6 +58,15 @@ export const contactStatuses = ["New", "Replied"] as const;
 const dataDirectory = path.join(process.cwd(), "data");
 const ordersPath = path.join(dataDirectory, "orders.json");
 const messagesPath = path.join(dataDirectory, "messages.json");
+
+type OrderItemRow = {
+  order_id: string;
+  product_id: string;
+  product_name: string;
+  size: string;
+  color: string;
+  quantity: number | string;
+};
 
 type OrderRow = {
   id: string;
@@ -168,10 +187,32 @@ function normalizePaymentProvider(value: unknown, payment: string): PaymentProvi
     : paymentProviderFromPreference(payment);
 }
 
+export function normalizeOrderItems(value: unknown): OrderItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const record = (entry ?? {}) as Record<string, unknown>;
+      return {
+        productId: typeof record.productId === "string" ? record.productId.trim() : "",
+        productName: typeof record.productName === "string" ? record.productName.trim() : "",
+        size: typeof record.size === "string" ? record.size.trim() : "",
+        color: typeof record.color === "string" ? record.color.trim() : "",
+        quantity: Math.max(0, Math.round(Number(record.quantity) || 0)),
+      };
+    })
+    // A line with no product or no pairs reserves nothing and would only skew
+    // the counts.
+    .filter((item) => item.productId && item.quantity > 0);
+}
+
 function normalizeOrder(order: OrderSubmission): OrderSubmission {
   return {
     ...order,
     customerUserId: optionalText(order.customerUserId),
+    items: normalizeOrderItems(order.items),
     status: normalizeOrderStatus(order.status),
     paymentStatus: normalizePaymentStatus(order.paymentStatus),
     paymentProvider: normalizePaymentProvider(order.paymentProvider, order.payment ?? ""),
@@ -184,8 +225,11 @@ function normalizeOrder(order: OrderSubmission): OrderSubmission {
   };
 }
 
+// Items live in their own table, so callers that need them fill them in after
+// this. An order read without its items reserves nothing, never negative stock.
 function orderFromRow(row: OrderRow): OrderSubmission {
   return {
+    items: [],
     id: row.id,
     createdAt: isoDate(row.created_at),
     customerUserId: optionalText(row.customer_user_id),
@@ -257,7 +301,34 @@ async function getOrdersFromPostgres() {
     `,
   );
 
-  return rows.map(orderFromRow);
+  // Fetched in one query and grouped in memory rather than per order, which
+  // would be a query per row on a page that lists every order.
+  const itemRows = await queryPostgres<OrderItemRow>(
+    "orders",
+    `
+      SELECT order_id, product_id, product_name, size, color, quantity
+      FROM order_items
+    `,
+  );
+
+  const itemsByOrderId = new Map<string, OrderItem[]>();
+
+  for (const row of itemRows) {
+    const items = itemsByOrderId.get(row.order_id) ?? [];
+    items.push({
+      productId: row.product_id,
+      productName: row.product_name,
+      size: row.size,
+      color: row.color,
+      quantity: Number(row.quantity) || 0,
+    });
+    itemsByOrderId.set(row.order_id, items);
+  }
+
+  return rows.map((row) => ({
+    ...orderFromRow(row),
+    items: itemsByOrderId.get(row.id) ?? [],
+  }));
 }
 
 export async function getOrders() {
@@ -337,9 +408,11 @@ export async function saveOrder(
       await writeJsonFile(ordersPath, [record, ...orders]);
       return record;
     },
-    postgres: async () => {
-      const rows = await queryPostgres<OrderRow>(
-        "orders",
+    postgres: async () =>
+      // The items are what reserve stock, so an order must never land without
+      // them. One transaction keeps the pair whole.
+      transactionPostgres("orders", async (db) => {
+      const rows = await db.query<OrderRow>(
         `
           INSERT INTO orders (
             id,
@@ -413,8 +486,26 @@ export async function saveOrder(
         ],
       );
 
-      return orderFromRow(rows[0]);
-    },
+      for (const item of record.items) {
+        await db.query(
+          `
+            INSERT INTO order_items (id, order_id, product_id, product_name, size, color, quantity)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `,
+          [
+            createId("KRS-ITEM"),
+            record.id,
+            item.productId,
+            item.productName,
+            item.size,
+            item.color,
+            item.quantity,
+          ],
+        );
+      }
+
+      return { ...orderFromRow(rows[0]), items: record.items };
+      }),
   });
 }
 

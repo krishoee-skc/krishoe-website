@@ -11,14 +11,14 @@ export default function WishlistClient() {
   if (wishlistProducts.length === 0) {
     return (
       <div className="rounded-lg border border-black/10 bg-white p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">Wishlist</p>
-        <h1 className="mt-3 text-4xl font-black text-[#10231D]">Save pairs you love.</h1>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#5F6B66]">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Wishlist</p>
+        <h1 className="mt-3 text-4xl font-black text-brand-green-ink">Save pairs you love.</h1>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
           Tap the heart on a product to build a more personal KRISHOE collection.
         </p>
         <Link
           href="/shop"
-          className="mt-7 inline-flex h-12 items-center rounded-full bg-[#0B4D3B] px-6 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D]"
+          className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
         >
           Discover products
         </Link>

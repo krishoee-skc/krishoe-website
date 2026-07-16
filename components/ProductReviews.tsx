@@ -62,29 +62,29 @@ function ReviewForm({ productId }: { productId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 max-w-lg">
-      <h4 className="text-lg font-bold text-[#10231D]">Write a Review</h4>
+      <h4 className="text-lg font-bold text-brand-green-ink">Write a Review</h4>
       <div className="mt-4 grid gap-4">
         <input type="hidden" name="rating" value={rating} />
         <div className="grid gap-2">
-          <label className="text-sm font-semibold text-[#10231D]">Your Rating</label>
+          <label className="text-sm font-semibold text-brand-green-ink">Your Rating</label>
           <StarRatingInput rating={rating} setRating={setRating} />
         </div>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Your Name
           <input
             name="name"
             required
-            className="h-11 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-11 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="e.g., Ram P."
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Your Review
           <textarea
             name="comment"
             required
             rows={4}
-            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-[#0B4D3B]"
+            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
             placeholder="What did you like or dislike?"
           />
         </label>
@@ -122,7 +122,7 @@ export default function ProductReviews({ product }: { product: Product }) {
   return (
     <section className="bg-white py-20">
       <div className="mx-auto max-w-4xl px-5 md:px-8">
-        <h3 className="text-2xl font-bold text-[#10231D]">Customer Reviews</h3>
+        <h3 className="text-2xl font-bold text-brand-green-ink">Customer Reviews</h3>
 
         {totalReviews > 0 && (
           <div className="mt-4 flex items-center gap-2">
@@ -153,9 +153,9 @@ export default function ProductReviews({ product }: { product: Product }) {
                       />
                     ))}
                   </div>
-                  <h5 className="font-bold text-[#10231D]">{review.name}</h5>
+                  <h5 className="font-bold text-brand-green-ink">{review.name}</h5>
                 </div>
-                <p className="mt-2 text-base leading-7 text-[#5F6B66]">{review.comment}</p>
+                <p className="mt-2 text-base leading-7 text-brand-muted">{review.comment}</p>
                 <p className="mt-2 text-xs text-gray-400">
                   Reviewed on {new Date(review.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                 </p>

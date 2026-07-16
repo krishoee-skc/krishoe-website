@@ -103,6 +103,18 @@ function orderBlockLineTotal(block: string) {
   return block.match(/Line total:\s*(.+)$/im);
 }
 
+// Closing an order is the claim that the goods went out. Only a POS invoice
+// records that: it posts the Sale Out movement, the customer ledger entry, and
+// syncs the catalog. Closing without one leaves stock counting pairs that have
+// already shipped, and the error compounds with every online sale.
+export function closeOrderBlockedReason(hasPosInvoice: boolean) {
+  if (hasPosInvoice) {
+    return "";
+  }
+
+  return "Convert this order to a POS invoice first — that records the sale and takes the pairs out of stock. Mark it Cancelled instead if it will not be fulfilled.";
+}
+
 export function onlineOrderPosMarker(orderId: string) {
   return `Online order ${orderId}`;
 }

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const store = vi.hoisted(() => ({ getProducts: vi.fn() }));
+const store = vi.hoisted(() => ({ getProducts: vi.fn(), getOrders: vi.fn(() => Promise.resolve([])) }));
 
 vi.mock("@/lib/product-store", () => ({ getProducts: store.getProducts }));
+// See tests/order-stock.test.ts: keeps this a unit test rather than one that
+// reads whatever orders are on disk.
+vi.mock("@/lib/submissions", () => ({ getOrders: store.getOrders }));
 
 import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
 
@@ -17,8 +20,21 @@ beforeEach(() => {
 describe("parseCheckoutItems", () => {
   it("keeps valid items", () => {
     expect(parseCheckoutItems(JSON.stringify([{ productId: "x", quantity: 2 }]))).toEqual([
-      { productId: "x", quantity: 2 },
+      { productId: "x", quantity: 2, size: "", color: "" },
     ]);
+  });
+
+  it("keeps the chosen variant", () => {
+    expect(
+      parseCheckoutItems(JSON.stringify([{ productId: "x", quantity: 2, size: "40", color: "Black" }])),
+    ).toEqual([{ productId: "x", quantity: 2, size: "40", color: "Black" }]);
+  });
+
+  it("caps a padded variant rather than storing it whole", () => {
+    const parsed = parseCheckoutItems(
+      JSON.stringify([{ productId: "x", quantity: 1, size: "z".repeat(500), color: "" }]),
+    );
+    expect(parsed[0]?.size).toHaveLength(40);
   });
 
   it("drops malformed and non-positive entries", () => {
@@ -28,7 +44,7 @@ describe("parseCheckoutItems", () => {
       { quantity: 3 },
       { productId: "y", quantity: 1 },
     ]);
-    expect(parseCheckoutItems(raw)).toEqual([{ productId: "y", quantity: 1 }]);
+    expect(parseCheckoutItems(raw)).toEqual([{ productId: "y", quantity: 1, size: "", color: "" }]);
   });
 
   it("returns [] for junk input", () => {

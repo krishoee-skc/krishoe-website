@@ -90,7 +90,7 @@ export default function AdminNav({
         <form action={logoutAdminAction} className="border-t p-4">
           <button
             type="submit"
-            className="flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-[#7B3128] transition hover:border-[#7B3128] hover:bg-red-50"
+            className="flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-brand-clay transition hover:border-brand-clay hover:bg-red-50"
           >
             Sign out
           </button>

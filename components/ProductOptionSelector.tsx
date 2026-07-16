@@ -42,9 +42,9 @@ export default function ProductOptionSelector({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B98A2E]">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">{title}</p>
         {selectedValue ? (
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#10231D]">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-brand-green-ink">
             {variant === "color" && swatchColor(selectedValue) ? (
               <span
                 aria-hidden
@@ -67,12 +67,12 @@ export default function ProductOptionSelector({
               type="button"
               onClick={() => onValueChange(item)}
               aria-pressed={isSelected}
-              className={`inline-flex h-11 min-w-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8A04D] focus-visible:ring-offset-2 ${
+              className={`inline-flex h-11 min-w-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
                 isSelected
                   ? variant === "color"
-                    ? "border-[#0B4D3B] bg-[#E9F2EE] text-[#0B4D3B]"
-                    : "border-[#0B4D3B] bg-[#0B4D3B] text-white"
-                  : "border-black/10 text-[#10231D] hover:border-[#0B4D3B]"
+                    ? "border-brand-green bg-brand-green-mist text-brand-green"
+                    : "border-brand-green bg-brand-green text-white"
+                  : "border-black/10 text-brand-green-ink hover:border-brand-green"
               }`}
             >
               {color ? (

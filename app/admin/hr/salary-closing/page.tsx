@@ -53,7 +53,7 @@ export default async function SalaryClosingReportPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/hr"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-[#10231D] transition hover:border-[#0B4D3B]"
+          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to HR
         </Link>
@@ -63,14 +63,14 @@ export default async function SalaryClosingReportPage() {
       <div className="mx-auto max-w-6xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0B4D3B]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#10231D]">Salary closing report</h1>
+            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Salary closing report</h1>
             <p className="mt-2 text-sm text-gray-500">{periodLabel}</p>
           </div>
           <div className="text-right text-sm text-gray-500">
-            <p className="font-bold text-[#10231D]">{new Date().toLocaleDateString("en-IN")}</p>
+            <p className="font-bold text-brand-green-ink">{new Date().toLocaleDateString("en-IN")}</p>
             <p>{rows.length} employee row(s)</p>
           </div>
         </div>
@@ -78,11 +78,11 @@ export default async function SalaryClosingReportPage() {
         <div className="mt-5 grid gap-3 md:grid-cols-5">
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Suggested</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(totals.suggested)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(totals.suggested)}</p>
           </div>
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Recorded</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(totals.recorded)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(totals.recorded)}</p>
           </div>
           <div className="rounded-md bg-emerald-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Paid</p>
@@ -94,7 +94,7 @@ export default async function SalaryClosingReportPage() {
           </div>
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Variance</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(totals.variance)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(totals.variance)}</p>
           </div>
         </div>
 
@@ -116,17 +116,17 @@ export default async function SalaryClosingReportPage() {
             <tbody className="divide-y">
               {rows.map((row) => (
                 <tr key={row.employeeId}>
-                  <td className="py-3 pr-3 font-bold text-[#10231D]">{row.employeeName}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-green-ink">{row.employeeName}</td>
                   <td className="py-3 pr-3">{row.department}</td>
                   <td className="py-3 pr-3">
-                    <span className="font-semibold text-[#10231D]">{row.attendanceDays} days</span>
+                    <span className="font-semibold text-brand-green-ink">{row.attendanceDays} days</span>
                     <span className="block text-xs text-gray-500">{row.completedPairs} pairs</span>
                   </td>
                   <td className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
                   <td className="py-3 pr-3">{money(row.recordedNetPay)}</td>
                   <td className="py-3 pr-3">{money(row.paidNetPay)}</td>
                   <td className="py-3 pr-3">{money(row.draftNetPay)}</td>
-                  <td className="py-3 pr-3 font-black text-[#10231D]">{money(row.variance)}</td>
+                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.variance)}</td>
                   <td className="py-3 pr-3">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusClass(row.statusSignal)}`}>
                       {row.statusSignal}
@@ -146,9 +146,9 @@ export default async function SalaryClosingReportPage() {
         </div>
 
         <div className="mt-10 grid gap-6 text-sm md:grid-cols-3">
-          <div className="border-t border-gray-300 pt-3 font-bold text-[#10231D]">Prepared by</div>
-          <div className="border-t border-gray-300 pt-3 font-bold text-[#10231D]">Checked by</div>
-          <div className="border-t border-gray-300 pt-3 font-bold text-[#10231D]">Approved by</div>
+          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Prepared by</div>
+          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Checked by</div>
+          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Approved by</div>
         </div>
       </div>
     </section>

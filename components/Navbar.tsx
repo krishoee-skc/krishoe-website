@@ -21,8 +21,8 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
             className="shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-2xl font-black tracking-[0.08em] text-[#0B4D3B]">KRISHOE</p>
-            <p className="hidden text-xs font-semibold uppercase tracking-[0.22em] text-[#B98A2E] sm:block">
+            <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>
+            <p className="hidden text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold-deep sm:block">
               Walk with Authority
             </p>
           </div>

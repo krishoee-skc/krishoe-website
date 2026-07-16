@@ -6,6 +6,7 @@ import { z } from "zod";
 import { categories, type Product } from "@/lib/products";
 import {
   buildPosInvoiceInputFromOnlineOrder,
+  closeOrderBlockedReason,
   defaultPosPaymentMethodForOrder,
   getPosInvoiceForOnlineOrder,
 } from "@/lib/order-pos";
@@ -16,6 +17,9 @@ import {
 } from "@/lib/pos";
 import {
   getOrderById,
+  orderStatuses,
+  paymentProviders,
+  paymentStatuses,
   updateOrderPayment,
   updateOrderStatus,
   type OrderStatus,
@@ -26,9 +30,12 @@ import { removeProduct, upsertProduct } from "@/lib/product-store";
 import { appendAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 
-export const ORDER_STATUSES = ["New", "Contacted", "Closed"] as const;
-export const PAYMENT_STATUSES = ["Unpaid", "Pending", "Paid", "Failed", "Refunded"] as const;
-export const PAYMENT_PROVIDERS = ["manual", "cod", "esewa", "khalti", "bank", "cash"] as const;
+// Re-exported from the store rather than re-listed. Kept as a second hand-typed
+// list, adding a status there left the admin unable to pick it — which is
+// exactly what happened to Cancelled.
+export const ORDER_STATUSES = orderStatuses;
+export const PAYMENT_STATUSES = paymentStatuses;
+export const PAYMENT_PROVIDERS = paymentProviders;
 
 export type ActionState = {
   ok: boolean;
@@ -97,6 +104,15 @@ export async function updateOrderStatusAction(
 
   if (!validatedFields.success) {
     return { ok: false, message: "Invalid order status." };
+  }
+
+  if (validatedFields.data.status === "Closed") {
+    const invoice = await getPosInvoiceForOnlineOrder(validatedFields.data.id);
+    const blockedReason = closeOrderBlockedReason(Boolean(invoice));
+
+    if (blockedReason) {
+      return { ok: false, message: blockedReason };
+    }
   }
 
   try {

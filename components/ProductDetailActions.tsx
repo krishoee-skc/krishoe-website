@@ -43,11 +43,11 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   return (
     <div className="rounded-lg border border-black/10 bg-white p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
       {outOfStock ? (
-        <p className="mb-4 inline-flex items-center rounded-full bg-[#FBE9E7] px-3 py-1 text-sm font-bold text-[#B3261E]">
+        <p className="mb-4 inline-flex items-center rounded-full bg-[#FBE9E7] px-3 py-1 text-sm font-bold text-brand-danger">
           Sold out
         </p>
       ) : lowStock ? (
-        <p className="mb-4 inline-flex items-center rounded-full bg-[#FFF6D8] px-3 py-1 text-sm font-bold text-[#9A6B08]">
+        <p className="mb-4 inline-flex items-center rounded-full bg-brand-cream px-3 py-1 text-sm font-bold text-brand-gold-dark">
           Hurry — only {product.stock} left
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           type="button"
           onClick={addSelectedItem}
           disabled={outOfStock}
-          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#0B4D3B] px-6 text-sm font-bold text-white transition hover:bg-[#D4AF37] hover:text-[#10231D] disabled:cursor-not-allowed disabled:bg-[#9AA6A1] disabled:hover:text-white"
+          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-[#9AA6A1] disabled:hover:text-white"
         >
           <ShoppingBagIcon className="h-4 w-4" />
           {outOfStock ? "Sold out" : added ? "Added to cart" : "Add to cart"}
@@ -76,8 +76,8 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           onClick={() => toggleWishlist(product.id)}
           className={`grid h-12 w-12 place-items-center rounded-full border transition ${
             wished
-              ? "border-[#D4AF37] bg-[#FFF6D8] text-[#9A6B08]"
-              : "border-black/10 text-[#0B4D3B] hover:border-[#0B4D3B]"
+              ? "border-brand-gold-bright bg-brand-cream text-brand-gold-dark"
+              : "border-black/10 text-brand-green hover:border-brand-green"
           }`}
         >
           <HeartIcon className="h-5 w-5" />
@@ -101,15 +101,15 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         </a>
       </div>
 
-      <ul className="mt-5 space-y-2 border-t border-black/10 pt-4 text-sm text-[#5F6B66]">
+      <ul className="mt-5 space-y-2 border-t border-black/10 pt-4 text-sm text-brand-muted">
         <li className="flex items-center gap-2">
-          <span aria-hidden className="text-[#0B4D3B]">✓</span> Cash on Delivery available
+          <span aria-hidden className="text-brand-green">✓</span> Cash on Delivery available
         </li>
         <li className="flex items-center gap-2">
-          <span aria-hidden className="text-[#0B4D3B]">✓</span> Delivery across Nepal
+          <span aria-hidden className="text-brand-green">✓</span> Delivery across Nepal
         </li>
         <li className="flex items-center gap-2">
-          <span aria-hidden className="text-[#0B4D3B]">✓</span> Genuine product &amp; easy returns
+          <span aria-hidden className="text-brand-green">✓</span> Genuine product &amp; easy returns
         </li>
       </ul>
     </div>

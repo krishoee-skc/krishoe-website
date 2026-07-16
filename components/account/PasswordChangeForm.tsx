@@ -29,39 +29,39 @@ export default function PasswordChangeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-black text-[#10231D]">Password</h2>
-      <p className="mt-2 text-sm leading-6 text-[#5F6B66]">
+      <h2 className="text-xl font-black text-brand-green-ink">Password</h2>
+      <p className="mt-2 text-sm leading-6 text-brand-muted">
         Change your account password using your current password.
       </p>
 
       <div className="mt-5 grid gap-4">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-[#10231D]">Current password</span>
+          <span className="text-sm font-medium text-brand-green-ink">Current password</span>
           <input
             name="currentPassword"
             type="password"
             required
-            className="form-input"
+            className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-[#10231D]">New password</span>
+          <span className="text-sm font-medium text-brand-green-ink">New password</span>
           <input
             name="newPassword"
             type="password"
             required
             minLength={6}
-            className="form-input"
+            className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-[#10231D]">Confirm new password</span>
+          <span className="text-sm font-medium text-brand-green-ink">Confirm new password</span>
           <input
             name="confirmPassword"
             type="password"
             required
             minLength={6}
-            className="form-input"
+            className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
       </div>
@@ -76,7 +76,7 @@ export default function PasswordChangeForm() {
           <p
             aria-live="polite"
             className={`rounded-lg p-3 text-sm font-semibold ${
-              state.ok ? "bg-[#E9F2EE] text-[#0B4D3B]" : "bg-[#FFF1EF] text-[#7B3128]"
+              state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-mist text-brand-clay"
             }`}
           >
             {state.message}

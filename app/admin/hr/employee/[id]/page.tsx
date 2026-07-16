@@ -16,9 +16,9 @@ type EmployeeHrPageProps = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-[#0B4D3B]";
+  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#0B4D3B]";
+  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -42,7 +42,7 @@ function StatBox({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-[#10231D]">{value}</p>
+      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
         {detail}
       </p>
@@ -96,11 +96,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         <div>
           <Link
             href="/admin/hr"
-            className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4"
+            className="text-sm font-bold text-brand-green underline underline-offset-4"
           >
             Back to HR
           </Link>
-          <h1 className="mt-3 text-2xl font-black text-[#10231D]">{employee.name}</h1>
+          <h1 className="mt-3 text-2xl font-black text-brand-green-ink">{employee.name}</h1>
           <p className="mt-1 text-sm leading-6 text-gray-500">
             {employee.department} | {employee.role || "No role"} | {employee.salaryType}
             {employee.fingerprintId ? ` | Device ${employee.fingerprintId}` : ""}
@@ -121,7 +121,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Auto salary draft</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Auto salary draft</h2>
             <p className="mt-1 text-sm text-gray-500">
               {suggestion.periodLabel} calculation from attendance, worker output, and overtime.
             </p>
@@ -134,19 +134,19 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         <div className="mt-5 grid gap-4 md:grid-cols-5">
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Base</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(suggestion.baseAmount)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.baseAmount)}</p>
           </div>
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Piece</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(suggestion.pieceAmount)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.pieceAmount)}</p>
           </div>
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Overtime</p>
-            <p className="mt-2 font-black text-[#10231D]">{money(suggestion.overtimeAmount)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.overtimeAmount)}</p>
           </div>
           <div className="rounded-md bg-gray-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Deduction</p>
-            <p className="mt-2 font-black text-[#7B3128]">{money(suggestion.deduction)}</p>
+            <p className="mt-2 font-black text-brand-clay">{money(suggestion.deduction)}</p>
           </div>
           <div className="rounded-md bg-emerald-50 p-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Net</p>
@@ -175,7 +175,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               className={`h-10 rounded-full px-4 text-sm font-bold ${
                 suggestion.hasPayroll || suggestion.netPay <= 0
                   ? "bg-gray-100 text-gray-400"
-                  : "bg-[#10231D] text-white"
+                  : "bg-brand-green-ink text-white"
               }`}
             >
               {suggestion.hasPayroll ? "Payroll recorded" : "Create draft payroll"}
@@ -186,7 +186,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Attendance history</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Attendance history</h2>
           <div className="mt-4 grid gap-3">
             {detail.attendanceRecords.slice(0, 5).map((record) => (
               <form key={`edit-${record.id}`} action={createAttendanceAction} className="rounded-md bg-gray-50 p-3">
@@ -206,7 +206,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                 <div className="mt-3 grid gap-3 md:grid-cols-[150px_1fr_110px]">
                   <input name="overtimeHours" type="number" min="0" step="0.5" className={inputClass} defaultValue={record.overtimeHours} placeholder="OT" />
                   <textarea name="note" className={textareaClass} defaultValue={record.note} placeholder="Attendance note" />
-                  <button type="submit" className="h-10 rounded-full bg-[#0B4D3B] px-4 text-sm font-bold text-white">
+                  <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
                     Save
                   </button>
                 </div>
@@ -230,7 +230,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               <tbody className="divide-y">
                 {detail.attendanceRecords.slice(0, 16).map((record) => (
                   <tr key={record.id}>
-                    <td className="py-3 pr-3 font-bold text-[#10231D]">{formatDate(record.workDate)}</td>
+                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{formatDate(record.workDate)}</td>
                     <td className="py-3 pr-3">{record.status}</td>
                     <td className="py-3 pr-3">{record.checkIn || "no in"} - {record.checkOut || "no out"}</td>
                     <td className="py-3 pr-3">{record.overtimeHours}</td>
@@ -259,7 +259,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-[#10231D]">Payroll history</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Payroll history</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
@@ -273,7 +273,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               <tbody className="divide-y">
                 {detail.payrollRecords.slice(0, 16).map((record) => (
                   <tr key={record.id}>
-                    <td className="py-3 pr-3 font-bold text-[#10231D]">{record.periodLabel}</td>
+                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{record.periodLabel}</td>
                     <td className="py-3 pr-3">{money(record.netPay)}</td>
                     <td className="py-3 pr-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusClass(record.status)}`}>
@@ -282,7 +282,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                     </td>
                     <td className="py-3 pr-3">
                       <div className="flex flex-wrap gap-3 text-xs font-bold">
-                        <Link href={`/admin/hr/payroll/${record.id}`} className="text-[#0B4D3B] underline underline-offset-4">
+                        <Link href={`/admin/hr/payroll/${record.id}`} className="text-brand-green underline underline-offset-4">
                           Slip
                         </Link>
                         {nextPayrollStatus(record.status) ? (
@@ -290,7 +290,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                             <input type="hidden" name="nextPath" value={nextPath} />
                             <input type="hidden" name="id" value={record.id} />
                             <input type="hidden" name="status" value={nextPayrollStatus(record.status)} />
-                            <button type="submit" className="text-[#10231D] underline underline-offset-4">
+                            <button type="submit" className="text-brand-green-ink underline underline-offset-4">
                               {nextPayrollStatus(record.status)}
                             </button>
                           </form>
@@ -325,12 +325,12 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Worker tasks</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Worker tasks</h2>
             <p className="mt-1 text-sm text-gray-500">
               Production task link by employee name from operations.
             </p>
           </div>
-          <Link href="/admin/operations" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/operations" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Open operations
           </Link>
         </div>
@@ -348,7 +348,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
             <tbody className="divide-y">
               {detail.workerTasks.slice(0, 16).map((task) => (
                 <tr key={task.id}>
-                  <td className="py-3 pr-3 font-bold text-[#10231D]">{task.design}</td>
+                  <td className="py-3 pr-3 font-bold text-brand-green-ink">{task.design}</td>
                   <td className="py-3 pr-3">{task.station}</td>
                   <td className="py-3 pr-3">{task.completedPairs}/{task.targetPairs}</td>
                   <td className="py-3 pr-3">{task.status}</td>

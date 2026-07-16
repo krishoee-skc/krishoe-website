@@ -24,10 +24,10 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">Saved profile</p>
-      <h2 className="mt-3 text-xl font-black text-[#10231D]">Account details</h2>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Saved profile</p>
+      <h2 className="mt-3 text-xl font-black text-brand-green-ink">Account details</h2>
       <div className="mt-5 grid gap-4">
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Full name
           <input
             name="name"
@@ -35,19 +35,19 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
             required
             maxLength={80}
             autoComplete="name"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Email
           <input
             type="email"
             value={user.email}
             disabled
-            className="h-12 rounded-lg border border-black/10 bg-[#F5F7F4] px-4 font-normal text-[#5F6B66]"
+            className="h-12 rounded-lg border border-black/10 bg-brand-mist px-4 font-normal text-brand-muted"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Phone
           <input
             name="phone"
@@ -56,11 +56,11 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
             maxLength={20}
             pattern="^\+?[0-9\s().-]{7,20}$"
             autoComplete="tel"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]"
+            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
             placeholder="+977 9800000000"
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Default address
           <textarea
             name="address"
@@ -68,7 +68,7 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
             rows={4}
             maxLength={600}
             autoComplete="street-address"
-            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-[#0B4D3B]"
+            className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
             placeholder="City, area, landmark"
           />
         </label>
@@ -83,7 +83,7 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
           <p
             aria-live="polite"
             className={`rounded-lg p-3 text-sm font-semibold ${
-              state.ok ? "bg-[#E9F2EE] text-[#0B4D3B]" : "bg-[#FFF1EF] text-[#7B3128]"
+              state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-mist text-brand-clay"
             }`}
           >
             {state.message}

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch makes an in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # No DATABASE_URL here on purpose: DATA_BACKEND defaults to local-json, so
+    # CI never touches the production Neon database. Session secrets are dummy
+    # values just to satisfy env validation during the build.
+    env:
+      DATA_BACKEND: local-json
+      ADMIN_PASSWORD: ci-placeholder-password
+      ADMIN_SESSION_SECRET: ci-placeholder-admin-session-secret-value
+      CUSTOMER_SESSION_SECRET: ci-placeholder-customer-session-secret-value
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      PAYMENT_MODE: manual
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Each check runs even if an earlier one fails, so one push surfaces every
+      # problem instead of one per fix-and-retry cycle.
+      - name: Typecheck
+        if: '!cancelled()'
+        run: npm run typecheck
+
+      - name: Lint
+        if: '!cancelled()'
+        run: npm run lint
+
+      - name: Test
+        if: '!cancelled()'
+        run: npm run test:run
+
+      - name: Build
+        if: '!cancelled()'
+        run: npm run build

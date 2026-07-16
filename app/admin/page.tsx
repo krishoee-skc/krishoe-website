@@ -42,18 +42,18 @@ function percentage(value: number, total: number) {
 
 function toneClass(tone: Tone) {
   if (tone === "good") {
-    return "border-[#D9E8DF] bg-[#F4FBF6] text-[#0B4D3B]";
+    return "border-brand-green-line bg-brand-green-wash text-brand-green";
   }
 
   if (tone === "warn") {
-    return "border-[#F4DEAE] bg-[#FFF9EA] text-[#7A5A00]";
+    return "border-[#F4DEAE] bg-[#FFF9EA] text-brand-gold-ink";
   }
 
   if (tone === "danger") {
-    return "border-[#F1C4BE] bg-[#FFF4F2] text-[#7B3128]";
+    return "border-[#F1C4BE] bg-[#FFF4F2] text-brand-clay";
   }
 
-  return "border-gray-200 bg-white text-[#10231D]";
+  return "border-gray-200 bg-white text-brand-green-ink";
 }
 
 function StatCard({
@@ -90,7 +90,7 @@ function SectionTitle({
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-lg font-black text-[#10231D]">{title}</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">{title}</h2>
         <p className="mt-1 text-sm text-gray-500">{detail}</p>
       </div>
       {action}
@@ -152,7 +152,7 @@ function StatusBadge({ label, tone = "default" }: { label: string; tone?: Tone }
 
 function CommandLine({ value }: { value: string }) {
   return (
-    <code className="block overflow-x-auto rounded-md bg-[#10231D] px-3 py-2 text-xs font-semibold text-white">
+    <code className="block overflow-x-auto rounded-md bg-brand-green-ink px-3 py-2 text-xs font-semibold text-white">
       {value}
     </code>
   );
@@ -162,7 +162,7 @@ function ProgressBar({ value }: { value: number }) {
   return (
     <div className="h-2 rounded-full bg-gray-100">
       <div
-        className="h-2 rounded-full bg-[#0B4D3B]"
+        className="h-2 rounded-full bg-brand-green"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
@@ -173,7 +173,7 @@ function MiniMetric({ label, value }: { label: string; value: string | number })
   return (
     <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
       <p className="text-xs font-semibold text-gray-500">{label}</p>
-      <p className="mt-1 text-lg font-black text-[#10231D]">{value}</p>
+      <p className="mt-1 text-lg font-black text-brand-green-ink">{value}</p>
     </div>
   );
 }
@@ -225,7 +225,7 @@ export default async function AdminDashboardPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">KRISHOE operating dashboard</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">KRISHOE operating dashboard</h1>
           <p className="mt-1 text-sm text-gray-500">
             Factory, wholesale, retail, online, payments, and launch safety overview.
           </p>
@@ -233,19 +233,19 @@ export default async function AdminDashboardPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/api/admin/readiness"
-            className="rounded-full border border-[#0B4D3B] px-4 py-2 text-sm font-bold text-[#0B4D3B]"
+            className="rounded-full border border-brand-green px-4 py-2 text-sm font-bold text-brand-green"
           >
             Readiness JSON
           </Link>
           <Link
             href="/admin/activity"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#10231D]"
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Activity log
           </Link>
           <Link
             href="/api/admin/backup"
-            className="rounded-full bg-[#0B4D3B] px-4 py-2 text-sm font-bold text-white"
+            className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export backup
           </Link>
@@ -284,7 +284,7 @@ export default async function AdminDashboardPage() {
             title="Today control room"
             detail="Orders, payment risk, messages, and low-stock action queue."
             action={
-              <Link href="/admin/orders" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+              <Link href="/admin/orders" className="text-sm font-bold text-brand-green underline underline-offset-4">
                 Open orders
               </Link>
             }
@@ -310,9 +310,9 @@ export default async function AdminDashboardPage() {
               <tbody className="divide-y">
                 {orders.slice(0, 5).map((order) => (
                   <tr key={order.id}>
-                    <td className="py-3 pr-3 font-mono text-xs text-[#10231D]">{order.id}</td>
+                    <td className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
                     <td className="py-3 pr-3">
-                      <p className="font-semibold text-[#10231D]">{order.name}</p>
+                      <p className="font-semibold text-brand-green-ink">{order.name}</p>
                       <p className="text-xs text-gray-500">{order.phone}</p>
                     </td>
                     <td className="py-3 pr-3">
@@ -335,7 +335,7 @@ export default async function AdminDashboardPage() {
             title="Operational alert center"
             detail="Highest priority actions from payment, stock, collection, supplier, POS, and purchasing."
             action={
-              <Link href="/admin/notifications" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+              <Link href="/admin/notifications" className="text-sm font-bold text-brand-green underline underline-offset-4">
                 Open alerts
               </Link>
             }
@@ -347,16 +347,16 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="mt-4 divide-y divide-gray-100">
             {alertCenter.alerts.slice(0, 5).map((alert) => (
-              <Link key={alert.id} href={alert.href} className="block py-3 transition hover:text-[#0B4D3B]">
+              <Link key={alert.id} href={alert.href} className="block py-3 transition hover:text-brand-green">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-[#10231D]">{alert.title}</p>
+                  <p className="font-bold text-brand-green-ink">{alert.title}</p>
                   <StatusBadge label={alert.severity} tone={alertTone(alert.severity)} />
                 </div>
                 <p className="mt-1 text-xs leading-5 text-gray-500">{alert.detail}</p>
               </Link>
             ))}
             {alertCenter.alerts.length === 0 ? (
-              <p className="py-3 text-sm font-semibold text-[#0B4D3B]">No operational alert is active.</p>
+              <p className="py-3 text-sm font-semibold text-brand-green">No operational alert is active.</p>
             ) : null}
           </div>
         </section>
@@ -368,8 +368,8 @@ export default async function AdminDashboardPage() {
           <div className="grid gap-3">
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-bold text-[#10231D]">Production completion</span>
-                <span className="font-black text-[#0B4D3B]">{productionCompletion}%</span>
+                <span className="font-bold text-brand-green-ink">Production completion</span>
+                <span className="font-black text-brand-green">{productionCompletion}%</span>
               </div>
               <ProgressBar value={productionCompletion} />
             </div>
@@ -382,7 +382,7 @@ export default async function AdminDashboardPage() {
             {operations.reports.productionInsights.slice(0, 3).map((batch) => (
               <div key={batch.id} className="rounded-lg border border-gray-100 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-[#10231D]">{batch.design}</p>
+                  <p className="font-bold text-brand-green-ink">{batch.design}</p>
                   <span className="text-xs font-bold text-gray-500">{batch.status}</span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
@@ -397,7 +397,7 @@ export default async function AdminDashboardPage() {
           <SectionTitle title="Stock and demand" detail="Fast movers, slow movers, low product stock." />
           <div className="grid gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0B4D3B]">Fast moving</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
               {operations.fastMovingStock.slice(0, 3).map((stock) => (
                 <p key={stock.id} className="mt-2 text-sm text-gray-700">
                   {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
@@ -405,14 +405,14 @@ export default async function AdminDashboardPage() {
               ))}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7B3128]">Low catalog stock</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Low catalog stock</p>
               {lowStockProducts.slice(0, 4).map((product) => (
                 <p key={product.id} className="mt-2 text-sm text-gray-700">
                   {product.name}: <span className="font-bold">{product.stock}</span> pairs
                 </p>
               ))}
               {lowStockProducts.length === 0 ? (
-                <p className="mt-2 text-sm font-semibold text-[#0B4D3B]">No low catalog stock.</p>
+                <p className="mt-2 text-sm font-semibold text-brand-green">No low catalog stock.</p>
               ) : null}
             </div>
           </div>
@@ -431,10 +431,10 @@ export default async function AdminDashboardPage() {
               <Link
                 key={ledger.id}
                 href={`/admin/operations/ledger/${ledger.id}`}
-                className="grid gap-2 py-2 text-sm transition hover:text-[#0B4D3B]"
+                className="grid gap-2 py-2 text-sm transition hover:text-brand-green"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-bold text-[#10231D]">{ledger.customerName}</span>
+                  <span className="font-bold text-brand-green-ink">{ledger.customerName}</span>
                   <StatusBadge label={ledger.priority} tone={collectionPriorityTone(ledger.priority)} />
                 </div>
                 <span className="text-xs font-semibold text-gray-500">
@@ -443,7 +443,7 @@ export default async function AdminDashboardPage() {
               </Link>
             ))}
             {collectionQueue.length === 0 ? (
-              <p className="py-2 text-sm font-semibold text-[#0B4D3B]">No collection follow-up is due.</p>
+              <p className="py-2 text-sm font-semibold text-brand-green">No collection follow-up is due.</p>
             ) : null}
           </div>
         </section>
@@ -459,7 +459,7 @@ export default async function AdminDashboardPage() {
           <div className="divide-y divide-gray-100">
             {readiness.map((check) => (
               <div key={check.id} className="grid gap-3 py-3 md:grid-cols-[170px_100px_1fr]">
-                <p className="text-sm font-black text-[#10231D]">{check.label}</p>
+                <p className="text-sm font-black text-brand-green-ink">{check.label}</p>
                 <div>
                   <ReadinessPill status={check.status} />
                 </div>
@@ -479,11 +479,11 @@ export default async function AdminDashboardPage() {
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
               <span className="font-semibold text-gray-500">Backend</span>
-              <span className="font-black text-[#10231D]">{backendStatus.backend}</span>
+              <span className="font-black text-brand-green-ink">{backendStatus.backend}</span>
             </div>
             <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
               <span className="font-semibold text-gray-500">Postgres adapters</span>
-              <span className="font-black text-[#10231D]">{backendStatus.postgresAdapterStatus}</span>
+              <span className="font-black text-brand-green-ink">{backendStatus.postgresAdapterStatus}</span>
             </div>
             <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
               <span className="font-semibold text-gray-500">DATABASE_URL</span>
@@ -495,7 +495,7 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-gray-500">Pending reviews</span>
-              <span className="font-black text-[#10231D]">{pendingReviews.length}</span>
+              <span className="font-black text-brand-green-ink">{pendingReviews.length}</span>
             </div>
           </div>
 
@@ -530,9 +530,9 @@ export default async function AdminDashboardPage() {
           <Link
             key={href}
             href={href}
-            className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-[#0B4D3B]"
+            className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand-green"
           >
-            <h2 className="font-black text-[#10231D]">{title}</h2>
+            <h2 className="font-black text-brand-green-ink">{title}</h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">{detail}</p>
           </Link>
         ))}

@@ -4,7 +4,11 @@ import { headers } from "next/headers";
 import { getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
-import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
+import {
+  computeAuthoritativeOrderTotal,
+  describeStockShortfalls,
+  parseCheckoutItems,
+} from "@/lib/order-pricing";
 import { addProductReview } from "@/lib/product-store";
 import { saveContactMessage, saveOrder } from "@/lib/submissions";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
@@ -144,6 +148,13 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return errorState("We couldn't verify the items in your cart. Please refresh and try again.");
   }
 
+  // Block the order rather than take one we cannot fill.
+  if (pricing.shortfalls.length > 0) {
+    return errorState(
+      `${describeStockShortfalls(pricing.shortfalls)}. Please update your cart and try again.`,
+    );
+  }
+
   const authoritativeTotal = pricing.totalLabel;
 
   const session = await getCustomerSession();
@@ -157,6 +168,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       delivery,
       payment,
       order,
+      // The structured list, so the order can hold stock. `order` above is the
+      // same thing as a sentence, which nothing can count.
+      items: pricing.orderItems,
       total: authoritativeTotal,
     },
     session?.userId,

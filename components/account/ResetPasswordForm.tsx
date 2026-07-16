@@ -24,7 +24,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border bg-white p-6 shadow-sm">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black text-[#10231D]">Reset Your Password</h1>
+        <h1 className="text-3xl font-black text-brand-green-ink">Reset Your Password</h1>
         <p className="mt-2 text-sm text-gray-500">Enter a new password for your account.</p>
       </div>
 
@@ -39,7 +39,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="form-input"
+            className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
         <label className="grid gap-1.5">
@@ -50,7 +50,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             required
             minLength={6}
             autoComplete="new-password"
-            className="form-input"
+            className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
       </div>

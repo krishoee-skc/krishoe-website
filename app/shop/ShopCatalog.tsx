@@ -21,17 +21,17 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
     : "Explore selected sandals, slippers, casual shoes, heels, kids styles, and seasonal arrivals.";
 
   return (
-    <main className="bg-[#F5F7F4]">
+    <main className="bg-brand-mist">
       <Navbar />
       <section className="mx-auto max-w-7xl px-5 py-16 md:px-8">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             KRISHOE shop
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-[#10231D] md:text-6xl">
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
             {heading}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5F6B66]">
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-brand-muted">
             {description}
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
           <Link
             href="/shop"
             className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
-              !activeCategory ? "border-[#0B4D3B] bg-[#0B4D3B] text-white" : "border-black/10 bg-white text-[#10231D]"
+              !activeCategory ? "border-brand-green bg-brand-green text-white" : "border-black/10 bg-white text-brand-green-ink"
             }`}
           >
             All
@@ -51,8 +51,8 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
               href={`/shop/${item.slug}`}
               className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
                 activeCategory?.slug === item.slug
-                  ? "border-[#0B4D3B] bg-[#0B4D3B] text-white"
-                  : "border-black/10 bg-white text-[#10231D]"
+                  ? "border-brand-green bg-brand-green text-white"
+                  : "border-black/10 bg-white text-brand-green-ink"
               }`}
             >
               {item.title}
@@ -68,8 +68,8 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-black/15 bg-white p-10 text-center">
-            <h2 className="text-2xl font-black text-[#10231D]">No products found.</h2>
-            <p className="mt-3 text-sm text-[#5F6B66]">Try another category or search term.</p>
+            <h2 className="text-2xl font-black text-brand-green-ink">No products found.</h2>
+            <p className="mt-3 text-sm text-brand-muted">Try another category or search term.</p>
           </div>
         )}
       </section>

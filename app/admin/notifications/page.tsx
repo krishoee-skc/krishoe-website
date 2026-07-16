@@ -23,20 +23,20 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 function statusClass(status: NotificationDeliveryStatus) {
-  if (status === "sent") return "bg-[#EAF5EF] text-[#0B4D3B]";
-  if (status === "failed") return "bg-[#FBEAE8] text-[#7B3128]";
+  if (status === "sent") return "bg-brand-green-tint text-brand-green";
+  if (status === "failed") return "bg-brand-clay-tint text-brand-clay";
   if (status === "skipped") return "bg-gray-100 text-gray-700";
-  return "bg-[#FFF7DF] text-[#7A5A00]";
+  return "bg-brand-cream-soft text-brand-gold-ink";
 }
 
 function channelClass(configured: boolean) {
-  return configured ? "border-[#D9E8DF] bg-[#F4FBF6] text-[#0B4D3B]" : "border-gray-200 bg-gray-50 text-gray-600";
+  return configured ? "border-brand-green-line bg-brand-green-wash text-brand-green" : "border-gray-200 bg-gray-50 text-gray-600";
 }
 
 function alertClass(severity: OperationalAlertSeverity) {
-  if (severity === "critical") return "bg-[#FBEAE8] text-[#7B3128]";
-  if (severity === "warning") return "bg-[#FFF7DF] text-[#7A5A00]";
-  return "bg-[#EAF5EF] text-[#0B4D3B]";
+  if (severity === "critical") return "bg-brand-clay-tint text-brand-clay";
+  if (severity === "warning") return "bg-brand-cream-soft text-brand-gold-ink";
+  return "bg-brand-green-tint text-brand-green";
 }
 
 function formatDate(value?: string) {
@@ -87,8 +87,8 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-[#10231D]">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A958F]">
+      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -110,7 +110,7 @@ export default async function AdminNotificationsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#10231D]">Notification delivery</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">Notification delivery</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             Live alert queue for new orders, contact messages, and customer account emails.
           </p>
@@ -119,7 +119,7 @@ export default async function AdminNotificationsPage() {
           <form action={createOperationalAlertNotificationsAction}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+              className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
             >
               Create alert notifications
             </button>
@@ -127,7 +127,7 @@ export default async function AdminNotificationsPage() {
           <form action={createAndDeliverOperationalAlertNotificationsAction}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center rounded-full border border-[#0B4D3B] bg-white px-3 text-xs font-bold text-[#0B4D3B]"
+              className="inline-flex h-9 items-center rounded-full border border-brand-green bg-white px-3 text-xs font-bold text-brand-green"
             >
               Create and deliver alerts
             </button>
@@ -135,14 +135,14 @@ export default async function AdminNotificationsPage() {
           <form action={deliverPendingNotificationsAction}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center rounded-full bg-[#0B4D3B] px-3 text-xs font-bold text-white"
+              className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"
             >
               Deliver pending
             </button>
           </form>
           <a
             href="/api/admin/notifications/export"
-            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Export CSV
           </a>
@@ -160,18 +160,18 @@ export default async function AdminNotificationsPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Operational alert center</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Operational alert center</h2>
             <p className="mt-1 text-sm text-gray-500">
               Live business alerts from collection, supplier payable, stock, POS, purchasing, and payment reconciliation.
             </p>
           </div>
-          <Link href="/admin" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Dashboard
           </Link>
         </div>
 
         {alertCenter.alerts.length === 0 ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-[#0B4D3B]">
+          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-brand-green">
             No operational alert is active right now.
           </p>
         ) : (
@@ -190,7 +190,7 @@ export default async function AdminNotificationsPage() {
               <tbody className="divide-y">
                 {alertCenter.alerts.slice(0, 20).map((alert) => (
                   <tr key={alert.id}>
-                    <td className="py-3 pr-3 font-bold text-[#10231D]">{alert.title}</td>
+                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{alert.title}</td>
                     <td className="py-3 pr-3 capitalize text-gray-600">{alert.category}</td>
                     <td className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${alertClass(alert.severity)}`}>
@@ -204,7 +204,7 @@ export default async function AdminNotificationsPage() {
                     <td className="py-3 pr-3">
                       <Link
                         href={alert.href}
-                        className="font-bold text-[#0B4D3B] underline underline-offset-4"
+                        className="font-bold text-brand-green underline underline-offset-4"
                       >
                         Open
                       </Link>
@@ -237,10 +237,10 @@ export default async function AdminNotificationsPage() {
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[#10231D]">Recent notifications</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Recent notifications</h2>
             <p className="mt-1 text-sm text-gray-500">Newest order, contact, and account alert events.</p>
           </div>
-          <Link href="/admin/activity" className="text-sm font-bold text-[#0B4D3B] underline underline-offset-4">
+          <Link href="/admin/activity" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Activity log
           </Link>
         </div>
@@ -273,8 +273,8 @@ export default async function AdminNotificationsPage() {
                     <td className="whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
                       {formatDate(event.createdAt)}
                     </td>
-                    <td className="py-3 pr-3 font-bold capitalize text-[#10231D]">{event.type}</td>
-                    <td className="py-3 pr-3 font-semibold text-[#10231D]">{customerLabel(event)}</td>
+                    <td className="py-3 pr-3 font-bold capitalize text-brand-green-ink">{event.type}</td>
+                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{customerLabel(event)}</td>
                     <td className="py-3 pr-3 text-gray-600">{targetLabel(event)}</td>
                     <td className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(event.deliveryStatus)}`}>
@@ -292,7 +292,7 @@ export default async function AdminNotificationsPage() {
                           <input type="hidden" name="id" value={event.id} />
                           <button
                             type="submit"
-                            className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-[#10231D] transition hover:border-[#0B4D3B] hover:text-[#0B4D3B]"
+                            className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
                           >
                             Retry
                           </button>

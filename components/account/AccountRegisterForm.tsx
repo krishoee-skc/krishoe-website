@@ -35,21 +35,21 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#B98A2E]">New customer</p>
-      <h1 className="mt-3 text-3xl font-black text-[#10231D]">Create account</h1>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">New customer</p>
+      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Create account</h1>
 
       <div className="mt-7 grid gap-4">
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Full name
-          <input name="name" required autoComplete="name" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]" />
+          <input name="name" required autoComplete="name" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Email
-          <input name="email" type="email" required autoComplete="email" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]" />
+          <input name="email" type="email" required autoComplete="email" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[#10231D]">
+        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Password
-          <input name="password" type="password" required minLength={6} autoComplete="new-password" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-[#0B4D3B]" />
+          <input name="password" type="password" required minLength={6} autoComplete="new-password" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
       </div>
 
@@ -60,17 +60,17 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
           disabled={isPending}
         />
         {state.message && !state.ok ? (
-          <p aria-live="polite" className="rounded-lg bg-[#FFF1EF] p-4 text-sm font-semibold text-[#7B3128]">
+          <p aria-live="polite" className="rounded-lg bg-brand-clay-mist p-4 text-sm font-semibold text-brand-clay">
             {state.message}
           </p>
         ) : null}
       </div>
 
-      <p className="mt-5 text-sm font-semibold text-[#5F6B66]">
+      <p className="mt-5 text-sm font-semibold text-brand-muted">
         Already have an account?{" "}
         <Link
           href={`/account/login?next=${encodeURIComponent(nextPath)}`}
-          className="text-[#0B4D3B] hover:text-[#B98A2E]"
+          className="text-brand-green hover:text-brand-gold-deep"
         >
           Sign in
         </Link>

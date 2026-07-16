@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { formatPrice, type Product } from "@/lib/products";
+import { findStockShortfalls, type StockShortfall } from "@/lib/order-stock";
 
 type CartItem = {
   productId: string;
@@ -24,6 +25,10 @@ type DetailedCartItem = CartItem & {
   price: string;
   priceValue: number;
   lineTotal: number;
+  // Pairs the catalog has for this product, across every line of the cart.
+  // A product can sit on several lines (one per size), so a line being under
+  // stock does not mean the cart is.
+  available: number;
 };
 
 type CommerceContextValue = {
@@ -35,6 +40,8 @@ type CommerceContextValue = {
   wishlistCount: number;
   subtotal: number;
   subtotalLabel: string;
+  stockShortfalls: StockShortfall[];
+  canCheckout: boolean;
   addToCart: (item: CartItem) => void;
   removeFromCart: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
@@ -164,10 +171,22 @@ export function CommerceProvider({
             price: product.price,
             priceValue: product.priceValue,
             lineTotal: product.priceValue * item.quantity,
+            available: Math.max(0, product.stock),
           },
         ];
       }),
     [cart, productById],
+  );
+
+  // The same rule the checkout enforces server-side, so the cart never promises
+  // an order the server will then refuse.
+  const stockShortfalls = useMemo(
+    () =>
+      findStockShortfalls(
+        catalogProducts,
+        cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      ),
+    [catalogProducts, cart],
   );
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -184,6 +203,8 @@ export function CommerceProvider({
       wishlistCount,
       subtotal,
       subtotalLabel: formatPrice(subtotal),
+      stockShortfalls,
+      canCheckout: cartCount > 0 && stockShortfalls.length === 0,
       addToCart,
       removeFromCart,
       updateQuantity,
@@ -199,6 +220,7 @@ export function CommerceProvider({
       cartCount,
       wishlistCount,
       subtotal,
+      stockShortfalls,
       addToCart,
       removeFromCart,
       updateQuantity,

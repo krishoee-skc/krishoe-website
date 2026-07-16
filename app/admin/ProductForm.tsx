@@ -20,7 +20,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-[#10231D]">
+          <h2 className="text-lg font-black text-brand-green-ink">
             {isEditing ? "Edit product" : "Create product"}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
@@ -30,7 +30,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         {isEditing ? (
           <Link
             href="/admin/products"
-            className="inline-flex h-10 items-center rounded-full border border-black/10 px-4 text-sm font-bold text-[#0B4D3B] transition hover:bg-[#F5F7F4]"
+            className="inline-flex h-10 items-center rounded-full border border-black/10 px-4 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
             Cancel edit
           </Link>
