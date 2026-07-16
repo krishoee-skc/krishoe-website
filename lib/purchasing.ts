@@ -11,6 +11,7 @@ import {
 } from "@/lib/operations";
 import { getPosSnapshot } from "@/lib/pos";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { reportingErrors } from "@/lib/report-error";
 import {
   addSupplierLedgerToPostgres,
   addSupplierTransactionToPostgres,
@@ -605,11 +606,17 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     postgres: () => createPurchaseInvoiceInPostgres(normalizedInput),
   });
 
-  // The catalog carries its own stock column, and the shop reads that column,
-  // not finished stock. Without this the pairs land in the ERP and the shop
-  // still shows nothing buyable until some later POS sale happens to sync.
+  // The catalog carries its own stock column and the shop reads that column,
+  // not finished stock, so the pairs are not buyable until this runs. Doing it
+  // here rather than in the admin action means every caller gets it.
+  //
+  // The bill has already committed, so a failure here must not throw: the admin
+  // would retry and post the purchase twice. The pairs are safe in finished
+  // stock either way, and the next sync picks them up.
   if (normalizedInput.kind === "Trading Goods") {
-    await syncProductCatalogStockWithFinishedStock();
+    await reportingErrors(`sync catalog stock after purchase ${invoice.purchaseNumber}`, () =>
+      syncProductCatalogStockWithFinishedStock(),
+    );
   }
 
   return invoice;

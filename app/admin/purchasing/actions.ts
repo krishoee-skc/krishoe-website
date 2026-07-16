@@ -13,7 +13,6 @@ import {
   type SupplierTransactionType,
 } from "@/lib/purchasing";
 import type { BusinessChannel } from "@/lib/operations";
-import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 
 const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
@@ -151,9 +150,9 @@ export async function createPurchaseInvoiceAction(formData: FormData) {
   const returnTo = textValue(formData, "returnTo");
 
   if (invoice.kind === "Trading Goods") {
-    // Push the new finished stock down to the storefront catalog so the shop
-    // shows what was just bought instead of waiting for a manual sync.
-    await syncProductCatalogStockWithFinishedStock().catch(() => undefined);
+    // createPurchaseInvoice syncs the catalog stock itself, so every caller
+    // gets it and a failure is not swallowed here. This only has to rebuild
+    // the pages that render the new pairs.
     refreshPurchasingAndCatalog(returnTo);
     return;
   }

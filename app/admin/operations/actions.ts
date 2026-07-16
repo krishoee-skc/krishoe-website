@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { appendAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { reportingErrors } from "@/lib/report-error";
 import {
   addCustomerLedger,
   addFinishedStock,
@@ -83,6 +84,16 @@ const STOCK_BEARING_RECORD_KINDS: OperationRecordKind[] = [
   "stockMovement",
   "vehicleDispatchItem",
 ];
+
+// The shop reads products.stock, so pairs recorded here are not buyable until
+// the catalog is recomputed. The record has already been written by the time
+// this runs, so a failure is reported rather than thrown — throwing would show
+// the admin an error for work that succeeded and invite a duplicate entry.
+async function syncCatalogStock(what: string) {
+  await reportingErrors(`sync catalog stock after ${what}`, () =>
+    syncProductCatalogStockWithFinishedStock(),
+  );
+}
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -258,7 +269,7 @@ export async function createVehicleDispatchItemAction(formData: FormData) {
     creditAmount: numberValue(formData, "creditAmount"),
     note: textValue(formData, "note"),
   });
-  await syncProductCatalogStockWithFinishedStock();
+  await syncCatalogStock(`dispatch ${dispatchId} item ${design}`);
   await auditOperationsAction(
     "operations_create_vehicle_dispatch_item",
     `Dispatch ${dispatchId} item ${design}: loaded ${loadedPairs}, sold ${soldPairs}, returned ${returnedPairs}.`,
@@ -337,7 +348,7 @@ export async function createFinishedStockAction(formData: FormData) {
     soldPairs: numberValue(formData, "soldPairs"),
     returnedPairs: numberValue(formData, "returnedPairs"),
   });
-  await syncProductCatalogStockWithFinishedStock();
+  await syncCatalogStock(`finished stock created for ${design}`);
   await auditOperationsAction("operations_create_finished_stock", `Finished stock ${design} created.`);
 
   refreshOperationsPage();
@@ -411,7 +422,7 @@ export async function updateFinishedStockAction(formData: FormData) {
     soldPairs: numberValue(formData, "soldPairs"),
     returnedPairs: numberValue(formData, "returnedPairs"),
   });
-  await syncProductCatalogStockWithFinishedStock();
+  await syncCatalogStock(`finished stock ${id} updated`);
   await auditOperationsAction("operations_update_finished_stock", `Finished stock ${id} updated.`);
 
   refreshOperationsPage();
@@ -514,7 +525,7 @@ export async function createStockMovementAction(formData: FormData) {
     pairs,
     note: textValue(formData, "note"),
   });
-  await syncProductCatalogStockWithFinishedStock();
+  await syncCatalogStock(`stock movement for ${design}`);
   await auditOperationsAction("operations_create_stock_movement", `Stock movement for ${design} created.`);
 
   refreshOperationsPage();
@@ -593,7 +604,7 @@ export async function deleteOperationRecordAction(formData: FormData) {
   await deleteOperationRecord(kind, id);
 
   if (STOCK_BEARING_RECORD_KINDS.includes(kind)) {
-    await syncProductCatalogStockWithFinishedStock();
+    await syncCatalogStock(`${kind} ${id} deleted`);
   }
 
   await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);

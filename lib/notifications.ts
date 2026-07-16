@@ -8,6 +8,7 @@ import { getPosSnapshot } from "@/lib/pos";
 import { queryPostgres } from "@/lib/postgres/client";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
+import { reportingErrors } from "@/lib/report-error";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
 
 export type NotificationDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
@@ -684,7 +685,12 @@ export async function notifyOrderReceived(order: OrderSubmission) {
     payload: order,
   });
 
-  await deliverNotificationEvent(event).catch(() => undefined);
+  // The event is recorded, so the admin can see it in Notifications either way.
+  // Delivery (email/webhook) is the part that can fail on someone else's
+  // infrastructure, and it must not fail the order behind it.
+  await reportingErrors(`deliver order notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
   return event;
 }
 
@@ -695,7 +701,9 @@ export async function notifyContactReceived(message: ContactSubmission) {
     payload: message,
   });
 
-  await deliverNotificationEvent(event).catch(() => undefined);
+  await reportingErrors(`deliver contact notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
   return event;
 }
 
@@ -706,7 +714,11 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
     payload,
   });
 
-  await deliverNotificationEvent(event).catch(() => undefined);
+  // A reset link that never arrives looks identical to a wrong email address.
+  // The log is the only way to tell them apart.
+  await reportingErrors(`deliver password reset notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
   return event;
 }
 

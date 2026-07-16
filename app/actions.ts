@@ -10,6 +10,7 @@ import {
   parseCheckoutItems,
 } from "@/lib/order-pricing";
 import { addProductReview } from "@/lib/product-store";
+import { reportError, reportingErrors } from "@/lib/report-error";
 import { saveContactMessage, saveOrder } from "@/lib/submissions";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 import { updateUser } from "@/lib/user-store";
@@ -88,7 +89,10 @@ export async function submitContact(_previousState: FormState, formData: FormDat
   }
 
   const record = await saveContactMessage({ name, email, message });
-  await notifyContactReceived(record);
+  // Saved is saved. A failure to notify must not tell the customer to resend.
+  await reportingErrors(`notify admin of message ${record.id}`, () =>
+    notifyContactReceived(record),
+  );
 
   return successState(
     `Thank you. KRISHOE has received your message. Reference: ${record.id}`,
@@ -179,12 +183,16 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   if (session?.userId) {
     try {
       await updateUser(session.userId, profile);
-    } catch {
+    } catch (error) {
       // Checkout success should not be blocked by optional profile sync.
+      reportError(`sync profile for user ${session.userId} after order ${record.id}`, error);
     }
   }
 
-  await notifyOrderReceived(record);
+  // The order is already saved. If telling the admin about it fails, the
+  // customer must still be told it worked — an error here would send them back
+  // to place the same order again, and the shop would hold two.
+  await reportingErrors(`notify admin of order ${record.id}`, () => notifyOrderReceived(record));
 
   return successState(
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,
