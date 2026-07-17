@@ -379,22 +379,69 @@ ALTER TABLE purchase_invoices
   ADD CONSTRAINT purchase_invoices_channel_check
   CHECK (channel IS NULL OR channel IN ('Factory', 'Wholesale', 'Retail', 'Online'));
 
--- Each kind must carry the fields its posting side effect needs, so a malformed
--- invoice is rejected by the database rather than posting to nothing.
+-- The kind_fields check moved to purchase_invoice_items when a bill learned to
+-- carry many lines: one supplier bill can hold leather and ready-made chappals
+-- together, so kind is a property of the line, not of the bill.
 ALTER TABLE purchase_invoices
   DROP CONSTRAINT IF EXISTS purchase_invoices_kind_fields_check;
 
+-- A bill's kind is now a summary of its lines, not a choice made up front.
 ALTER TABLE purchase_invoices
-  ADD CONSTRAINT purchase_invoices_kind_fields_check
-  CHECK (
-    (kind = 'Raw Material' AND material_id IS NOT NULL)
-    OR (kind = 'Trading Goods' AND design <> '' AND channel IS NOT NULL)
-  );
+  DROP CONSTRAINT IF EXISTS purchase_invoices_kind_check;
+
+ALTER TABLE purchase_invoices
+  ADD CONSTRAINT purchase_invoices_kind_check
+  CHECK (kind IN ('Raw Material', 'Trading Goods', 'Mixed'));
 
 CREATE INDEX IF NOT EXISTS purchase_invoices_created_at_idx ON purchase_invoices(created_at DESC);
 CREATE INDEX IF NOT EXISTS purchase_invoices_supplier_ledger_id_idx ON purchase_invoices(supplier_ledger_id);
 CREATE INDEX IF NOT EXISTS purchase_invoices_material_id_idx ON purchase_invoices(material_id);
 CREATE INDEX IF NOT EXISTS purchase_invoices_design_idx ON purchase_invoices(design);
+
+-- One line of a supplier bill. A real bill runs from 1 to 25-odd lines, and can
+-- mix raw material with ready-made pairs, so each line says what it is and
+-- carries only the fields its posting side effect needs.
+--
+-- The invoice keeps its own kind/material_id/design/quantity/rate columns as a
+-- summary of the first line, so existing lists and exports keep working.
+CREATE TABLE IF NOT EXISTS purchase_invoice_items (
+  id TEXT PRIMARY KEY,
+  purchase_invoice_id TEXT NOT NULL REFERENCES purchase_invoices(id) ON DELETE CASCADE,
+  -- Keeps the lines in the order they were typed, so the bill reads back the
+  -- way the supplier wrote it.
+  line_no INTEGER NOT NULL CHECK (line_no > 0),
+  kind TEXT NOT NULL CHECK (kind IN ('Raw Material', 'Trading Goods')),
+  -- Set on 'Raw Material' lines only.
+  material_id TEXT REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  -- The material name, or the design for trading goods, so a line reads on its
+  -- own without a join.
+  item_name TEXT NOT NULL,
+  -- Set on 'Trading Goods' lines only.
+  design TEXT NOT NULL DEFAULT '',
+  channel TEXT CHECK (channel IS NULL OR channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
+  size_run TEXT NOT NULL DEFAULT 'Mixed',
+  unit TEXT NOT NULL CHECK (unit IN ('kg', 'meter', 'pair', 'piece', 'liter')),
+  quantity NUMERIC NOT NULL CHECK (quantity > 0),
+  rate NUMERIC NOT NULL CHECK (rate >= 0),
+  -- quantity * rate, before the bill's discount and tax are shared out.
+  line_subtotal NUMERIC NOT NULL CHECK (line_subtotal >= 0),
+  -- The line's share of the bill-level discount and tax, split by value. This
+  -- is what the line actually cost, and what costing reads.
+  line_total NUMERIC NOT NULL CHECK (line_total >= 0),
+  note TEXT NOT NULL DEFAULT '',
+  -- A malformed line is rejected by the database rather than posting to
+  -- nothing: raw material must name a material, trading goods must name a
+  -- design and a channel.
+  CONSTRAINT purchase_invoice_items_kind_fields_check CHECK (
+    (kind = 'Raw Material' AND material_id IS NOT NULL)
+    OR (kind = 'Trading Goods' AND design <> '' AND channel IS NOT NULL)
+  ),
+  CONSTRAINT purchase_invoice_items_line_unique UNIQUE (purchase_invoice_id, line_no)
+);
+
+CREATE INDEX IF NOT EXISTS purchase_invoice_items_invoice_idx ON purchase_invoice_items(purchase_invoice_id);
+CREATE INDEX IF NOT EXISTS purchase_invoice_items_material_idx ON purchase_invoice_items(material_id);
+CREATE INDEX IF NOT EXISTS purchase_invoice_items_design_idx ON purchase_invoice_items(design);
 
 -- Factory costing model for labor and overhead allocation
 CREATE TABLE IF NOT EXISTS costing_settings (

@@ -8,6 +8,7 @@ import {
   addSupplierLedger,
   addSupplierTransaction,
   createPurchaseInvoice,
+  type CreatePurchaseInvoiceItemInput,
   type PurchaseKind,
   type SupplierPaymentMethod,
   type SupplierTransactionType,
@@ -16,6 +17,10 @@ import type { BusinessChannel } from "@/lib/operations";
 
 const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
+// A ceiling on what one submitted form can post, not on what a bill may hold.
+// Real bills run to twenty-five or so lines; this only stops a hand-crafted
+// request from asking the server to build an unbounded number of them.
+const MAX_PURCHASE_ITEMS = 200;
 // Trading goods are bought to resell, so they never land in the factory channel.
 const tradingChannels: BusinessChannel[] = ["Wholesale", "Retail", "Online"];
 const transactionTypes: SupplierTransactionType[] = [
@@ -81,33 +86,41 @@ export async function createSupplierLedgerAction(formData: FormData) {
   refreshPurchasingPage(textValue(formData, "returnTo"));
 }
 
+// The form posts item0..itemN-1 and says how many rows it rendered. Reading the
+// count rather than assuming one keeps a 25-line bill from being silently cut
+// short — the POS billing form hardcodes six, and a seventh item there is
+// simply lost.
+function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
+  const declared = numberValue(formData, "itemCount");
+  const count = Math.min(Math.max(Math.trunc(declared), 0), MAX_PURCHASE_ITEMS);
+
+  return Array.from({ length: count }, (_, index) => {
+    const kind = optionValue(textValue(formData, `item${index}Kind`), purchaseKinds, "Raw Material");
+
+    return {
+      kind,
+      materialId: textValue(formData, `item${index}MaterialId`),
+      design: textValue(formData, `item${index}Design`),
+      channel:
+        kind === "Trading Goods"
+          ? optionValue(textValue(formData, `item${index}Channel`), tradingChannels, "Wholesale")
+          : ("" as const),
+      sizeRun: textValue(formData, `item${index}SizeRun`),
+      quantity: numberValue(formData, `item${index}Quantity`),
+      rate: numberValue(formData, `item${index}Rate`),
+      note: textValue(formData, `item${index}Note`),
+    };
+  });
+}
+
 export async function createPurchaseInvoiceAction(formData: FormData) {
   await requireAdminPermission("purchasing:write");
 
-  const kind = optionValue(textValue(formData, "kind"), purchaseKinds, "Raw Material");
-  const materialId = textValue(formData, "materialId");
-  const design = textValue(formData, "design");
-  const channel = optionValue(textValue(formData, "channel"), tradingChannels, "Wholesale");
-  const sizeRun = textValue(formData, "sizeRun") || "Mixed";
-  const quantity = numberValue(formData, "quantity");
-  const rate = numberValue(formData, "rate");
   const supplierLedgerId = textValue(formData, "supplierLedgerId");
   const supplierName = textValue(formData, "supplierName");
   const paidAmount = numberValue(formData, "paidAmount");
   const paymentMethod = optionValue(textValue(formData, "paymentMethod"), paymentMethods, "Cash");
   const paymentReference = textValue(formData, "paymentReference");
-
-  if (quantity <= 0 || rate <= 0) {
-    throw new Error("Quantity and rate are required.");
-  }
-
-  if (kind === "Raw Material" && !materialId) {
-    throw new Error("Raw material, quantity, and rate are required.");
-  }
-
-  if (kind === "Trading Goods" && !design) {
-    throw new Error("Choose the product you purchased.");
-  }
 
   if (!supplierLedgerId && !supplierName) {
     throw new Error("Choose an existing supplier or enter a new supplier name.");
@@ -121,17 +134,13 @@ export async function createPurchaseInvoiceAction(formData: FormData) {
     throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
   }
 
+  // createPurchaseInvoice drops the blank rows and checks the rest, so the
+  // per-line rules live in one place instead of being restated here.
   const invoice = await createPurchaseInvoice({
     supplierLedgerId,
     supplierName,
     phone: textValue(formData, "phone"),
-    kind,
-    materialId: kind === "Raw Material" ? materialId : "",
-    design: kind === "Trading Goods" ? design : "",
-    channel: kind === "Trading Goods" ? channel : "",
-    sizeRun: kind === "Trading Goods" ? sizeRun : "Mixed",
-    quantity,
-    rate,
+    items: purchaseItems(formData),
     discount: numberValue(formData, "discount"),
     tax: numberValue(formData, "tax"),
     paidAmount,
@@ -142,9 +151,7 @@ export async function createPurchaseInvoiceAction(formData: FormData) {
 
   await appendAdminAuditEvent(
     "purchase_create_invoice",
-    invoice.kind === "Trading Goods"
-      ? `${invoice.purchaseNumber} trading goods purchase recorded for ${invoice.quantity} pairs of ${invoice.materialName} (${invoice.channel}) Rs. ${invoice.total}.`
-      : `${invoice.purchaseNumber} purchase recorded for ${invoice.materialName} Rs. ${invoice.total}.`,
+    `${invoice.purchaseNumber} ${invoice.kind.toLowerCase()} purchase recorded: ${invoice.items.length} item(s), Rs. ${invoice.total}.`,
   ).catch(() => undefined);
 
   const returnTo = textValue(formData, "returnTo");

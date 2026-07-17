@@ -10,14 +10,18 @@ import {
 import type { CostingSettings } from "@/lib/costing-settings";
 import type { PurchaseInvoice } from "@/lib/purchasing";
 
+// A bill of one line, described by the line. Costing reads invoice.items, so
+// the summary columns are filled from the line rather than set apart from it —
+// a fixture that disagrees with itself would test nothing real.
 function invoice(overrides: Partial<PurchaseInvoice> = {}): PurchaseInvoice {
-  return {
+  const base: PurchaseInvoice = {
     id: "PUR-1",
     purchaseNumber: "PUR-0001",
     createdAt: "2026-07-01T00:00:00.000Z",
     supplierLedgerId: "SUP-1",
     supplierName: "Kathmandu Leather",
     kind: "Raw Material",
+    items: [],
     materialId: "RAW-1",
     materialName: "Sole Sheet",
     design: "",
@@ -38,6 +42,33 @@ function invoice(overrides: Partial<PurchaseInvoice> = {}): PurchaseInvoice {
     supplierTransactionIds: [],
     note: "",
     ...overrides,
+  };
+
+  if (base.items.length > 0) {
+    return base;
+  }
+
+  return {
+    ...base,
+    items: [
+      {
+        id: `${base.id}-L1`,
+        lineNo: 1,
+        kind: base.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
+        materialId: base.materialId,
+        itemName: base.materialName,
+        design: base.design,
+        channel: base.channel,
+        sizeRun: base.sizeRun,
+        unit: base.unit,
+        quantity: base.quantity,
+        rate: base.rate,
+        lineSubtotal: base.quantity * base.rate,
+        // One line carries the whole bill, discount and tax included.
+        lineTotal: base.total,
+      note: "",
+      },
+    ],
   };
 }
 
