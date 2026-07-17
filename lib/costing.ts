@@ -284,31 +284,37 @@ export function overheadPerPair(settings: CostingSettings) {
 export function buildMaterialCostRates(purchaseInvoices: PurchaseInvoice[]) {
   const groups = new Map<string, MaterialCostRate>();
 
+  // Read the lines, not the bill. One supplier bill can carry leather and
+  // ready-made chappals together, so a bill is no longer one kind or the other.
   for (const invoice of purchaseInvoices) {
-    if (invoice.kind === "Trading Goods") {
-      continue;
+    for (const item of invoice.items) {
+      if (item.kind === "Trading Goods") {
+        continue;
+      }
+
+      const key = item.materialId || item.itemName.toLowerCase();
+      const existing = groups.get(key) ?? {
+        materialId: item.materialId,
+        materialName: item.itemName,
+        unit: item.unit,
+        purchasedQuantity: 0,
+        purchaseTotal: 0,
+        averageUnitCost: 0,
+        invoiceCount: 0,
+      };
+
+      existing.purchasedQuantity += cleanNumber(item.quantity);
+      // The line's share of the bill, so the discount and tax the supplier gave
+      // reach the material's cost.
+      existing.purchaseTotal += cleanNumber(item.lineTotal);
+      existing.invoiceCount += 1;
+      existing.averageUnitCost =
+        existing.purchasedQuantity > 0
+          ? roundRate(existing.purchaseTotal / existing.purchasedQuantity)
+          : 0;
+
+      groups.set(key, existing);
     }
-
-    const key = invoice.materialId || invoice.materialName.toLowerCase();
-    const existing = groups.get(key) ?? {
-      materialId: invoice.materialId,
-      materialName: invoice.materialName,
-      unit: invoice.unit,
-      purchasedQuantity: 0,
-      purchaseTotal: 0,
-      averageUnitCost: 0,
-      invoiceCount: 0,
-    };
-
-    existing.purchasedQuantity += cleanNumber(invoice.quantity);
-    existing.purchaseTotal += cleanNumber(invoice.total);
-    existing.invoiceCount += 1;
-    existing.averageUnitCost =
-      existing.purchasedQuantity > 0
-        ? roundRate(existing.purchaseTotal / existing.purchasedQuantity)
-        : 0;
-
-    groups.set(key, existing);
   }
 
   return [...groups.values()].sort((a, b) => b.purchaseTotal - a.purchaseTotal);
@@ -322,29 +328,31 @@ export function buildTradingGoodsCostRates(purchaseInvoices: PurchaseInvoice[]) 
   const groups = new Map<string, TradingGoodsCostRate>();
 
   for (const invoice of purchaseInvoices) {
-    if (invoice.kind !== "Trading Goods") {
-      continue;
+    for (const item of invoice.items) {
+      if (item.kind !== "Trading Goods") {
+        continue;
+      }
+
+      const design = normalizeDesign(item.design || item.itemName);
+      const key = designKey(design);
+      const existing = groups.get(key) ?? {
+        design,
+        purchasedPairs: 0,
+        purchaseTotal: 0,
+        averageCostPerPair: 0,
+        invoiceCount: 0,
+      };
+
+      existing.purchasedPairs += cleanNumber(item.quantity);
+      // The line's share of the bill, not quantity * rate: the discount and tax
+      // are part of what the pairs cost.
+      existing.purchaseTotal += cleanNumber(item.lineTotal);
+      existing.invoiceCount += 1;
+      existing.averageCostPerPair =
+        existing.purchasedPairs > 0 ? roundRate(existing.purchaseTotal / existing.purchasedPairs) : 0;
+
+      groups.set(key, existing);
     }
-
-    const design = normalizeDesign(invoice.design || invoice.materialName);
-    const key = designKey(design);
-    const existing = groups.get(key) ?? {
-      design,
-      purchasedPairs: 0,
-      purchaseTotal: 0,
-      averageCostPerPair: 0,
-      invoiceCount: 0,
-    };
-
-    existing.purchasedPairs += cleanNumber(invoice.quantity);
-    // The invoice total, not quantity * rate: discount and tax are part of what
-    // the pairs actually cost.
-    existing.purchaseTotal += cleanNumber(invoice.total);
-    existing.invoiceCount += 1;
-    existing.averageCostPerPair =
-      existing.purchasedPairs > 0 ? roundRate(existing.purchaseTotal / existing.purchasedPairs) : 0;
-
-    groups.set(key, existing);
   }
 
   return [...groups.values()].sort((a, b) => b.purchaseTotal - a.purchaseTotal);

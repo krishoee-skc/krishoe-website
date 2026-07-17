@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { createPosInvoiceAction, repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
+import PosInvoiceItems from "@/app/admin/pos/_components/PosInvoiceItems";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
@@ -419,67 +420,8 @@ export default async function AdminPosPage() {
             ))}
           </datalist>
 
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
-                <tr>
-                  <th className="py-2 pr-3">SKU</th>
-                  <th className="py-2 pr-3">Design / item</th>
-                  <th className="py-2 pr-3">Size</th>
-                  <th className="py-2 pr-3">Pairs</th>
-                  <th className="py-2 pr-3">Rate</th>
-                  <th className="py-2 pr-3">Discount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {Array.from({ length: 6 }, (_, index) => {
-                  const row = index + 1;
-
-                  return (
-                    <tr key={row}>
-                      <td className="py-2 pr-3">
-                        <input name={`item${row}Sku`} className={`${inputClass} w-28`} placeholder="SKU" />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input
-                          name={`item${row}Design`}
-                          className={`${inputClass} min-w-56`}
-                          list="pos-design-options"
-                          placeholder="Design name"
-                          required={row === 1}
-                        />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input name={`item${row}SizeRun`} className={`${inputClass} w-24`} placeholder="Mixed" />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input
-                          name={`item${row}Quantity`}
-                          type="number"
-                          min="0"
-                          className={`${inputClass} w-24`}
-                          placeholder="0"
-                          required={row === 1}
-                        />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input
-                          name={`item${row}Rate`}
-                          type="number"
-                          min="0"
-                          className={`${inputClass} w-28`}
-                          placeholder="0"
-                          required={row === 1}
-                        />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input name={`item${row}Discount`} type="number" min="0" className={`${inputClass} w-28`} placeholder="0" />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="mt-5">
+            <PosInvoiceItems />
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-4">

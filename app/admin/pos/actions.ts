@@ -40,19 +40,25 @@ function posReturnPath(formData: FormData, invoiceId = "") {
   return "/admin/pos";
 }
 
-function invoiceItems(formData: FormData) {
-  return Array.from({ length: 6 }, (_, index) => {
-    const row = index + 1;
+// A ceiling on one submitted form, not on what a bill may hold. It only stops a
+// hand-crafted request asking the server to build an unbounded number of rows.
+const MAX_POS_ITEMS = 200;
 
-    return {
-      sku: textValue(formData, `item${row}Sku`),
-      design: textValue(formData, `item${row}Design`),
-      sizeRun: textValue(formData, `item${row}SizeRun`),
-      quantity: numberValue(formData, `item${row}Quantity`),
-      rate: numberValue(formData, `item${row}Rate`),
-      discount: numberValue(formData, `item${row}Discount`),
-    };
-  });
+// The form says how many rows it rendered. This used to read item1..item6 and
+// nothing else: a seventh item on a counter sale was silently dropped, with no
+// error and no sign on the bill.
+function invoiceItems(formData: FormData) {
+  const declared = numberValue(formData, "itemCount");
+  const count = Math.min(Math.max(Math.trunc(declared), 0), MAX_POS_ITEMS);
+
+  return Array.from({ length: count }, (_, index) => ({
+    sku: textValue(formData, `item${index}Sku`),
+    design: textValue(formData, `item${index}Design`),
+    sizeRun: textValue(formData, `item${index}SizeRun`),
+    quantity: numberValue(formData, `item${index}Quantity`),
+    rate: numberValue(formData, `item${index}Rate`),
+    discount: numberValue(formData, `item${index}Discount`),
+  }));
 }
 
 export async function createPosInvoiceAction(formData: FormData) {

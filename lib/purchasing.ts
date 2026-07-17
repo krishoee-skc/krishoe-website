@@ -10,6 +10,7 @@ import {
   type RawMaterial,
 } from "@/lib/operations";
 import { getPosSnapshot } from "@/lib/pos";
+import { billKindFromLines, billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
@@ -24,6 +25,10 @@ export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit";
 // A "Trading Goods" buy is ready-made stock bought for resale through the
 // wholesale/retail/online channels, so it feeds finished stock instead.
 export type PurchaseKind = "Raw Material" | "Trading Goods";
+// What a whole bill turned out to be, worked out from its lines. A real
+// supplier bill can carry leather and ready-made chappals together, so "Mixed"
+// is a normal answer, not an error.
+export type PurchaseBillKind = PurchaseKind | "Mixed";
 export type PurchaseInvoiceStatus = "Paid" | "Partial" | "Credit";
 export type PurchasePostingStatus = "Posted" | "Needs Review";
 export type SupplierTransactionType =
@@ -45,25 +50,64 @@ export type SupplierLedger = {
   lastTransaction: string;
 };
 
-export type PurchaseInvoice = {
+// One line of a supplier bill. A bill runs from a single line to twenty-five or
+// so, and can mix the two kinds, so the kind lives here rather than on the bill.
+export type PurchaseInvoiceItem = {
   id: string;
-  purchaseNumber: string;
-  createdAt: string;
-  supplierLedgerId: string;
-  supplierName: string;
+  lineNo: number;
   kind: PurchaseKind;
-  // Set on "Raw Material" buys; empty on "Trading Goods" buys.
+  // Set on "Raw Material" lines; empty on "Trading Goods" lines.
   materialId: string;
-  // The material name, or the product design for trading goods, so existing
-  // invoice lists and exports keep showing what was bought.
-  materialName: string;
-  // Set on "Trading Goods" buys; empty on "Raw Material" buys.
+  // The material name, or the design for trading goods.
+  itemName: string;
+  // Set on "Trading Goods" lines; empty on "Raw Material" lines.
   design: string;
   channel: BusinessChannel | "";
   sizeRun: string;
   unit: RawMaterial["unit"];
   quantity: number;
   rate: number;
+  // quantity * rate, before the bill's discount and tax are shared out.
+  lineSubtotal: number;
+  // What the line actually cost once the bill's discount and tax are shared
+  // out by value. Costing reads this, not lineSubtotal.
+  lineTotal: number;
+  note: string;
+};
+
+export type CreatePurchaseInvoiceItemInput = {
+  kind: PurchaseKind;
+  materialId: string;
+  design: string;
+  channel: BusinessChannel | "";
+  sizeRun: string;
+  quantity: number;
+  rate: number;
+  note: string;
+};
+
+export type PurchaseInvoice = {
+  id: string;
+  purchaseNumber: string;
+  createdAt: string;
+  supplierLedgerId: string;
+  supplierName: string;
+  // What the bill turned out to be, once its lines are known.
+  kind: PurchaseBillKind;
+  // The lines. This is the bill; everything below it is either a total or a
+  // summary of the first line kept so older lists and exports keep reading.
+  items: PurchaseInvoiceItem[];
+  // Summary of the first line. Kept because invoice lists, exports and the
+  // supplier ledger were built around one item per bill.
+  materialId: string;
+  materialName: string;
+  design: string;
+  channel: BusinessChannel | "";
+  sizeRun: string;
+  unit: RawMaterial["unit"];
+  quantity: number;
+  rate: number;
+  // Bill level, entered once and shared across the lines by value.
   discount: number;
   tax: number;
   total: number;
@@ -125,13 +169,10 @@ export type CreatePurchaseInvoiceInput = {
   supplierLedgerId: string;
   supplierName: string;
   phone: string;
-  kind: PurchaseKind;
-  materialId: string;
-  design: string;
-  channel: BusinessChannel | "";
-  sizeRun: string;
-  quantity: number;
-  rate: number;
+  // One line, or twenty-five. Each says what it is, so a bill can carry leather
+  // and ready-made chappals together the way the supplier wrote it.
+  items: CreatePurchaseInvoiceItemInput[];
+  // Bill level, entered once and shared across the lines by value.
   discount: number;
   tax: number;
   paidAmount: number;
@@ -231,16 +272,88 @@ function normalizeSupplierLedger(ledger: Partial<SupplierLedger>): SupplierLedge
   };
 }
 
-function normalizePurchaseInvoice(invoice: Partial<PurchaseInvoice>): PurchaseInvoice {
+function normalizePurchaseInvoiceItem(
+  item: Partial<PurchaseInvoiceItem>,
+  invoiceId: string,
+  lineNo: number,
+): PurchaseInvoiceItem {
+  const kind: PurchaseKind = item.kind === "Trading Goods" ? "Trading Goods" : "Raw Material";
+  const quantity = cleanNumber(item.quantity ?? 0);
+  const rate = cleanNumber(item.rate ?? 0);
+  const lineSubtotal = cleanNumber(item.lineSubtotal ?? quantity * rate);
+
   return {
-    id: cleanText(invoice.id ?? "") || createId("PUR"),
+    id: cleanText(item.id ?? "") || `${invoiceId}-L${lineNo}`,
+    lineNo: cleanNumber(item.lineNo ?? lineNo) || lineNo,
+    kind,
+    materialId: cleanText(item.materialId ?? ""),
+    itemName: cleanText(item.itemName ?? ""),
+    design: cleanText(item.design ?? ""),
+    channel: item.channel ?? "",
+    sizeRun: cleanText(item.sizeRun ?? "") || "Mixed",
+    unit: item.unit ?? "piece",
+    quantity,
+    rate,
+    lineSubtotal,
+    lineTotal: cleanNumber(item.lineTotal ?? lineSubtotal),
+    note: cleanText(item.note ?? ""),
+  };
+}
+
+// A bill written before it could hold more than one item reads back as a bill
+// with exactly one line, built from the summary columns it already has. Every
+// reader can then assume items is there and stop caring which era wrote it.
+function purchaseItemsFrom(invoice: Partial<PurchaseInvoice>, invoiceId: string) {
+  if (Array.isArray(invoice.items) && invoice.items.length > 0) {
+    return invoice.items.map((item, index) =>
+      normalizePurchaseInvoiceItem(item, invoiceId, index + 1),
+    );
+  }
+
+  const quantity = cleanNumber(invoice.quantity ?? 0);
+
+  if (quantity <= 0) {
+    return [];
+  }
+
+  const rate = cleanNumber(invoice.rate ?? 0);
+
+  return [
+    normalizePurchaseInvoiceItem(
+      {
+        kind: invoice.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
+        materialId: invoice.materialId,
+        itemName: invoice.materialName,
+        design: invoice.design,
+        channel: invoice.channel,
+        sizeRun: invoice.sizeRun,
+        unit: invoice.unit,
+        quantity,
+        rate,
+        lineSubtotal: quantity * rate,
+        // The whole bill was this one line, so it carried the whole total.
+        lineTotal: cleanNumber(invoice.total ?? quantity * rate),
+      },
+      invoiceId,
+      1,
+    ),
+  ];
+}
+
+function normalizePurchaseInvoice(invoice: Partial<PurchaseInvoice>): PurchaseInvoice {
+  const id = cleanText(invoice.id ?? "") || createId("PUR");
+  const items = purchaseItemsFrom(invoice, id);
+
+  return {
+    id,
     purchaseNumber: cleanText(invoice.purchaseNumber ?? ""),
     createdAt: cleanText(invoice.createdAt ?? "") || new Date().toISOString(),
     supplierLedgerId: cleanText(invoice.supplierLedgerId ?? ""),
     supplierName: cleanText(invoice.supplierName ?? ""),
-    // Invoices written before trading-goods purchases existed have no kind and
-    // are all raw material buys.
-    kind: invoice.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
+    // Read from the lines, so a bill that predates them still answers. Invoices
+    // written before trading-goods purchases existed are all raw material buys.
+    kind: items.length > 0 ? billKindFromLines(items) : "Raw Material",
+    items,
     materialId: cleanText(invoice.materialId ?? ""),
     materialName: cleanText(invoice.materialName ?? ""),
     design: cleanText(invoice.design ?? ""),
@@ -435,39 +548,74 @@ async function nextPurchaseNumber() {
   return `${prefix}-${String(count).padStart(4, "0")}`;
 }
 
+/**
+ * Drop the blank lines and check what is left.
+ *
+ * The form always carries a spare empty row, and a 25-line bill leaves gaps
+ * where the owner skipped around, so blank rows are normal input and not a
+ * mistake to complain about. A row with anything typed in it is a row the owner
+ * meant, so a half-filled one is an error rather than something to drop
+ * silently — dropping it would post a bill missing a line the supplier charged.
+ */
+export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) {
+  const touched = items.filter(
+    (item) =>
+      cleanText(item.materialId) ||
+      cleanText(item.design) ||
+      cleanNumber(item.quantity) > 0 ||
+      cleanNumber(item.rate) > 0,
+  );
+
+  if (touched.length === 0) {
+    throw new Error("Add at least one item to the purchase.");
+  }
+
+  return touched.map((item, index) => {
+    const line = index + 1;
+    const kind: PurchaseKind = item.kind === "Trading Goods" ? "Trading Goods" : "Raw Material";
+    const normalized = {
+      kind,
+      materialId: kind === "Raw Material" ? cleanText(item.materialId) : "",
+      design: kind === "Trading Goods" ? cleanText(item.design) : "",
+      channel: kind === "Trading Goods" ? item.channel : ("" as BusinessChannel | ""),
+      sizeRun: (kind === "Trading Goods" ? cleanText(item.sizeRun) : "") || "Mixed",
+      quantity: cleanNumber(item.quantity),
+      rate: cleanNumber(item.rate),
+      note: cleanText(item.note),
+    };
+
+    if (normalized.quantity <= 0 || normalized.rate <= 0) {
+      throw new Error(`Item ${line}: quantity and rate are required.`);
+    }
+
+    if (normalized.kind === "Raw Material" && !normalized.materialId) {
+      throw new Error(`Item ${line}: choose a raw material.`);
+    }
+
+    if (normalized.kind === "Trading Goods" && (!normalized.design || !normalized.channel)) {
+      throw new Error(`Item ${line}: choose a product and a channel.`);
+    }
+
+    return normalized;
+  });
+}
+
 export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInput, "purchaseNumber">) {
   const purchaseNumber = await nextPurchaseNumber();
+  const items = normalizePurchaseItems(input.items ?? []);
   const normalizedInput: CreatePurchaseInvoiceInput = {
     ...input,
     purchaseNumber,
     supplierLedgerId: cleanText(input.supplierLedgerId),
     supplierName: cleanText(input.supplierName),
     phone: cleanText(input.phone),
-    kind: input.kind === "Trading Goods" ? "Trading Goods" : "Raw Material",
-    materialId: cleanText(input.materialId),
-    design: cleanText(input.design),
-    channel: input.channel,
-    sizeRun: cleanText(input.sizeRun) || "Mixed",
-    quantity: cleanNumber(input.quantity),
-    rate: cleanNumber(input.rate),
+    items,
     discount: cleanNumber(input.discount),
     tax: cleanNumber(input.tax),
     paidAmount: cleanNumber(input.paidAmount),
     paymentReference: cleanText(input.paymentReference),
     note: cleanText(input.note),
   };
-
-  if (normalizedInput.quantity <= 0 || normalizedInput.rate <= 0) {
-    throw new Error("Quantity and rate are required.");
-  }
-
-  if (normalizedInput.kind === "Raw Material" && !normalizedInput.materialId) {
-    throw new Error("Raw material, quantity, and rate are required.");
-  }
-
-  if (normalizedInput.kind === "Trading Goods" && (!normalizedInput.design || !normalizedInput.channel)) {
-    throw new Error("Product and channel are required for a trading goods purchase.");
-  }
 
   if (!normalizedInput.supplierLedgerId && !normalizedInput.supplierName) {
     throw new Error("Choose an existing supplier or enter a new supplier name.");
@@ -493,18 +641,31 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         getOperationsData(),
       ]);
       const rollbackData = clonePurchasingData(data);
-      const material =
-        normalizedInput.kind === "Raw Material"
-          ? operations.rawMaterials.find((item) => item.id === normalizedInput.materialId)
-          : undefined;
+      // Resolve every raw material up front. A bill that names a material that
+      // does not exist must fail before anything posts, not halfway down the
+      // lines with the first few already in stock.
+      const resolved = normalizedInput.items.map((item, index) => {
+        const material =
+          item.kind === "Raw Material"
+            ? operations.rawMaterials.find((row) => row.id === item.materialId)
+            : undefined;
 
-      if (normalizedInput.kind === "Raw Material" && !material) {
-        throw new Error("Raw material was not found.");
-      }
+        if (item.kind === "Raw Material" && !material) {
+          throw new Error(`Item ${index + 1}: raw material was not found.`);
+        }
 
-      // Trading goods are bought and sold by the pair.
-      const itemName = material ? material.name : normalizedInput.design;
-      const unit: RawMaterial["unit"] = material ? material.unit : "pair";
+        return {
+          item,
+          material,
+          // Trading goods are bought and sold by the pair.
+          itemName: material ? material.name : item.design,
+          unit: (material ? material.unit : "pair") as RawMaterial["unit"],
+        };
+      });
+
+      const shares = shareBillAcrossLines(normalizedInput.items, normalizedInput);
+      const totals = billTotals(normalizedInput.items, normalizedInput);
+      const first = resolved[0];
 
       let ledger = normalizedInput.supplierLedgerId
         ? data.supplierLedgers.find((item) => item.id === normalizedInput.supplierLedgerId)
@@ -515,7 +676,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
           id: createId("SUP"),
           supplierName: normalizedInput.supplierName || "Unnamed Supplier",
           phone: normalizedInput.phone,
-          materialFocus: itemName,
+          materialFocus: first.itemName,
           totalPurchase: 0,
           paidAmount: 0,
           balanceDue: 0,
@@ -524,21 +685,18 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         data.supplierLedgers.unshift(ledger);
       }
 
-      const subtotal = normalizedInput.quantity * normalizedInput.rate;
-      const discount = Math.min(normalizedInput.discount, subtotal);
-      const total = Math.max(0, subtotal - discount + normalizedInput.tax);
-      const paidAmount = Math.min(normalizedInput.paidAmount, total);
-      const creditAmount = Math.max(0, total - paidAmount);
+      const paidAmount = Math.min(normalizedInput.paidAmount, totals.total);
+      const creditAmount = Math.max(0, totals.total - paidAmount);
       const supplierTransactionIds: string[] = [];
+      const billKind = billKindFromLines(normalizedInput.items);
 
+      // One bill, one ledger entry. The supplier wrote one bill; posting a line
+      // each would leave their statement and this ledger unreconcilable.
       const purchaseTransaction = addSupplierTransactionToLocalData(data, {
         supplierLedgerId: ledger.id,
         type: "Purchase Bill",
-        amount: total,
-        note:
-          normalizedInput.kind === "Trading Goods"
-            ? `${purchaseNumber} trading goods purchase.`
-            : `${purchaseNumber} raw material purchase.`,
+        amount: totals.total,
+        note: `${purchaseNumber} purchase, ${normalizedInput.items.length} item(s).`,
       });
       supplierTransactionIds.push(purchaseTransaction.id);
 
@@ -552,29 +710,50 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         supplierTransactionIds.push(paymentTransaction.id);
       }
 
+      const invoiceId = createId("PUR");
+      const items: PurchaseInvoiceItem[] = resolved.map((row, index) => ({
+        id: `${invoiceId}-L${index + 1}`,
+        lineNo: index + 1,
+        kind: row.item.kind,
+        materialId: row.material?.id ?? "",
+        itemName: row.itemName,
+        design: row.item.design,
+        channel: row.item.channel,
+        sizeRun: row.item.sizeRun,
+        unit: row.unit,
+        quantity: row.item.quantity,
+        rate: row.item.rate,
+        lineSubtotal: shares[index].lineSubtotal,
+        lineTotal: shares[index].lineTotal,
+        note: row.item.note,
+      }));
+
       const invoice: PurchaseInvoice = {
-        id: createId("PUR"),
+        id: invoiceId,
         purchaseNumber,
         createdAt: new Date().toISOString(),
         supplierLedgerId: ledger.id,
         supplierName: ledger.supplierName,
-        kind: normalizedInput.kind,
-        materialId: material?.id ?? "",
-        materialName: itemName,
-        design: normalizedInput.kind === "Trading Goods" ? normalizedInput.design : "",
-        channel: normalizedInput.kind === "Trading Goods" ? normalizedInput.channel : "",
-        sizeRun: normalizedInput.kind === "Trading Goods" ? normalizedInput.sizeRun : "Mixed",
-        unit,
-        quantity: normalizedInput.quantity,
-        rate: normalizedInput.rate,
-        discount,
-        tax: normalizedInput.tax,
-        total,
+        kind: billKind,
+        items,
+        // Summary of the first line, for the lists and exports built when a
+        // bill could only hold one item.
+        materialId: items[0].materialId,
+        materialName: items[0].itemName,
+        design: items[0].design,
+        channel: items[0].channel,
+        sizeRun: items[0].sizeRun,
+        unit: items[0].unit,
+        quantity: items[0].quantity,
+        rate: items[0].rate,
+        discount: totals.discount,
+        tax: totals.tax,
+        total: totals.total,
         paidAmount,
         creditAmount,
         paymentMethod: normalizedInput.paymentMethod,
         paymentReference: normalizedInput.paymentReference,
-        status: purchaseStatus(total, paidAmount),
+        status: purchaseStatus(totals.total, paidAmount),
         postingStatus: "Posted",
         supplierTransactionIds,
         note: normalizedInput.note,
@@ -583,19 +762,21 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
       data.purchaseInvoices.unshift(invoice);
       await writePurchasingData(data);
       try {
-        if (material) {
-          await addRawMaterialReceipt({ materialId: material.id, quantity: normalizedInput.quantity });
-        } else {
-          // Trading goods land straight in finished stock for the channel they
-          // were bought for, ready to sell without a production batch.
-          await addStockMovement({
-            design: invoice.design,
-            channel: invoice.channel as BusinessChannel,
-            sizeRun: invoice.sizeRun,
-            type: "Purchase In",
-            pairs: normalizedInput.quantity,
-            note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,
-          });
+        // Each line posts where its kind belongs: material to the factory
+        // store, pairs to finished stock for the channel they were bought for.
+        for (const line of items) {
+          if (line.kind === "Raw Material") {
+            await addRawMaterialReceipt({ materialId: line.materialId, quantity: line.quantity });
+          } else {
+            await addStockMovement({
+              design: line.design,
+              channel: line.channel as BusinessChannel,
+              sizeRun: line.sizeRun,
+              type: "Purchase In",
+              pairs: line.quantity,
+              note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,
+            });
+          }
         }
       } catch (error) {
         await writePurchasingData(rollbackData).catch(() => undefined);
@@ -613,7 +794,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
   // The bill has already committed, so a failure here must not throw: the admin
   // would retry and post the purchase twice. The pairs are safe in finished
   // stock either way, and the next sync picks them up.
-  if (normalizedInput.kind === "Trading Goods") {
+  if (normalizedInput.items.some((item) => item.kind === "Trading Goods")) {
     await reportingErrors(`sync catalog stock after purchase ${invoice.purchaseNumber}`, () =>
       syncProductCatalogStockWithFinishedStock(),
     );
