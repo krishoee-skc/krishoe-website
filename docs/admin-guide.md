@@ -18,15 +18,27 @@ Admin खोल्ने: **https://krishoeversal.vercel.app/admin** → passwor
 (हामीले बनाएको feature)। यहीँ बाट website मा products देखिन्छन्।
 
 **Step 3 — Purchasing** 📦
-Supplier बाट किनेको माल record गर्नुस्। दुई किसिम छन् — tab छानेर:
+Supplier को **एउटा bill = app मा एउटा bill**, त्यसमा जति item भए पनि।
+हरेक लाइनमा छान्नुस् त्यो के हो:
 
-- **Raw material** — छाला, सोल, गम जस्ता कच्चा माल। कारखानाको भण्डारमा जान्छ।
-- **Trading goods** — अरूले बनाइसकेको तयारी जुत्ता-चप्पल, सिधै बेच्न किनेको।
-  Product dropdown बाट छान्नुस्, channel र size run हाल्नुस् — **bill राख्ने
-  बित्तिकै stock आफै बढ्छ**, अलग्गै stock entry गर्नुपर्दैन।
+- **Raw material** — छाला, सोल, गम। कारखानाको भण्डारमा जान्छ।
+- **Trading goods** — बनिबनाउ जुत्ता-चप्पल, सिधै बेच्न किनेको। Product
+  dropdown बाट छान्नुस्, channel र size run हाल्नुस् — **bill राख्ने
+  बित्तिकै stock आफै बढ्छ**।
 
-> होलसेल/रिटेलका लागि यही **Trading goods** नै मुख्य बाटो हो। जुत्ता आफै
-> नबनाई किनेर बेच्ने भए Operations छुनै पर्दैन।
+> **एउटै bill मा दुवै मिसाउन मिल्छ** — छाला पनि, तयारी चप्पल पनि। साँचो bill
+> जस्तै। App ले हरेक लाइन आ-आफ्नो ठाउँमा पठाउँछ।
+
+**कसरी भर्ने:**
+- एउटा लाइन भर्नासाथ **तल नयाँ खाली लाइन आफै आउँछ** — २५ item भए पनि button
+  थिच्नु पर्दैन
+- खाली लाइन आफै हराउँछ, चिन्ता नगर्नुस्
+- तल **जम्मा** देखिन्छ, हाल्दै जाँदा बढ्दै — **supplier को bill सँग भिडाएर
+  मात्र save गर्नुस्**
+
+**छुट र VAT पूरै bill मा एकपटक** हाल्नुस् (हरेक item मा होइन)। App ले रकमको
+अनुपातमा आफै बाँड्छ — रु ५,००० छुट, कुनै item ले जम्माको ४०% ओगटेको भए
+त्यसमा रु २,००० छुट। **लागत ठीक हुन यो जरुरी छ।**
 
 **Step 4 — Operations** 🏭 *(आफै बनाउनुहुन्छ भने मात्र)*
 उत्पादन (production): कति production batch, कर्मचारीले कति बनाए, तयारी stock
@@ -45,8 +57,8 @@ Supplier बाट किनेको माल record गर्नुस्। 
 | Section | Full form / मतलब | के गर्ने |
 |---------|------------------|---------|
 | **Dashboard** | मुख्य पाना | सबैको सारांश — बिक्री, order, alert एकै ठाउँमा |
-| **POS Billing** | **P**oint **O**f **S**ale | पसलमा बिक्री गर्दा bill बनाउने (barcode/QR सहित) |
-| **Purchasing** | किनमेल | Supplier बाट कच्चा माल वा तयारी जुत्ता किन्ने record + supplier ledger |
+| **POS Billing** | **P**oint **O**f **S**ale | पसलमा बिक्री गर्दा bill बनाउने (barcode/QR सहित) — item जति भए पनि |
+| **Purchasing** | किनमेल | Supplier को bill — कच्चा माल र तयारी जुत्ता, एउटै bill मा जति item भए पनि |
 | **Costing** | लागत हिसाब | माल + ज्याला + खर्च जोडेर एक जोर जुत्ताको लागत र नाफा |
 | **HR** | **H**uman **R**esources (कर्मचारी) | कर्मचारी, हाजिरी (attendance), तलब (payroll) |
 | **Operations** | उत्पादन कार्य | Raw material, production batch, worker task, finished stock, dispatch |
