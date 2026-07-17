@@ -7,7 +7,11 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+// Vercel routes a server upload through the function and caps the body at
+// 4.5 MB. A larger file is rejected by the platform before it reaches this
+// code, with a generic error, so cap it here to give a clear message instead.
+const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
+const MAX_LABEL = "4.5 MB";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
 
 function safeFileName(name: string) {
@@ -49,18 +53,38 @@ async function saveLocally(file: File, safeName: string) {
   return `/uploads/${fileName}`;
 }
 
+function uploadReady() {
+  const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  // 'development' under `npm run dev`, 'production' in a build — which is what
+  // the deployed server runs. The local fallback is offered only in dev, where
+  // the filesystem is writable and a /uploads URL is reachable.
+  const canSaveLocally = process.env.NODE_ENV === "development";
+  return { hasBlob, canSaveLocally, ready: hasBlob || canSaveLocally };
+}
+
+// Whether uploads are configured, without exposing anything secret. Lets the
+// form warn before a photo is chosen, and lets a deploy be checked from outside
+// without an admin session. Only a boolean leaves here — never the token.
+export async function GET() {
+  const { hasBlob, ready } = uploadReady();
+
+  return Response.json({
+    ready,
+    // "blob" means it will show on the live shop; "local" means dev-only.
+    storage: hasBlob ? "blob" : ready ? "local" : "none",
+    // Vercel routes a server upload through the function, capped at 4.5 MB.
+    maxBytes: MAX_BYTES,
+  });
+}
+
 // Uploads a product photo and returns a URL to it. Protected by the same
 // permission as editing products.
 export async function POST(request: Request) {
   await requireAdminPermission("products:write");
 
-  const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-  // NODE_ENV is 'development' under `npm run dev` and 'production' in a build,
-  // which is what the deployed server runs. Only offer the local fallback in
-  // development, where the filesystem is writable and the URL is reachable.
-  const canSaveLocally = process.env.NODE_ENV === "development";
+  const { hasBlob, ready } = uploadReady();
 
-  if (!hasBlob && !canSaveLocally) {
+  if (!ready) {
     return Response.json(
       {
         error:
@@ -85,7 +109,10 @@ export async function POST(request: Request) {
   }
 
   if (file.size > MAX_BYTES) {
-    return Response.json({ error: "Image must be 8 MB or smaller." }, { status: 413 });
+    return Response.json(
+      { error: `Image must be ${MAX_LABEL} or smaller. Please shrink it and try again.` },
+      { status: 413 },
+    );
   }
 
   const safeName = safeFileName(file.name);
