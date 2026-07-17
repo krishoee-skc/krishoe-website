@@ -50,3 +50,6 @@ next-env.d.ts
 
 # local agent settings
 /.claude/
+
+# local dev photo uploads (not on the live shop)
+/public/uploads/

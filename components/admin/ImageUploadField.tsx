@@ -35,6 +35,9 @@ export default function ImageUploadField({
   const [value, setValue] = useState(initialValue);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  // Set when a photo was saved to the local dev folder, which the live shop
+  // cannot load. Better to say so than to ship a broken image.
+  const [localOnly, setLocalOnly] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const urls = multiple ? splitUrls(value) : value.trim() ? [value.trim()] : [];
@@ -49,6 +52,7 @@ export default function ImageUploadField({
 
     try {
       const uploaded: string[] = [];
+      let anyLocal = false;
 
       for (const file of Array.from(files)) {
         const formData = new FormData();
@@ -61,13 +65,16 @@ export default function ImageUploadField({
           throw new Error(data.error || `Upload failed (${response.status}).`);
         }
 
-        const data = (await response.json()) as { url: string };
+        const data = (await response.json()) as { url: string; local?: boolean };
         uploaded.push(data.url);
+        anyLocal = anyLocal || Boolean(data.local);
 
         if (!multiple) {
           break;
         }
       }
+
+      setLocalOnly(anyLocal);
 
       setValue((previous) =>
         multiple ? [...splitUrls(previous), ...uploaded].join(", ") : uploaded[0] ?? previous,
@@ -115,6 +122,13 @@ export default function ImageUploadField({
       </div>
 
       {error ? <p className="text-xs font-semibold text-brand-danger">{error}</p> : null}
+
+      {localOnly ? (
+        <p className="text-xs font-semibold text-brand-clay">
+          Saved on this computer for testing. It will not show on the live shop — for that, set up
+          a Vercel Blob store, or paste a public image URL above.
+        </p>
+      ) : null}
 
       {urls.some(isPreviewable) ? (
         <div className="mt-1 flex flex-wrap gap-2">
