@@ -199,6 +199,17 @@ function cleanText(value: string) {
   return value.trim();
 }
 
+/**
+ * How two supplier names are told apart.
+ *
+ * A supplier typed twice is the same supplier: "Rijal Dai", "rijal dai" and
+ * "rijal  dai" all name one person the shop owes money to. Case and spacing are
+ * how the same name gets typed differently, not how two suppliers differ.
+ */
+export function supplierNameKey(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function cleanNumber(value: number) {
   return Math.max(0, Math.round(Number(value) || 0));
 }
@@ -447,6 +458,18 @@ export async function addSupplierLedger(
     storeName: "purchasing",
     localJson: async () => {
       const data = await getPurchasingDataFromLocalJson();
+
+      // Two ledgers for one supplier split their balance in half. Whichever one
+      // is picked at the next purchase, the amount owed is wrong, and nothing
+      // on screen says why. A double-clicked button is enough to cause it.
+      const existing = data.supplierLedgers.find(
+        (row) => supplierNameKey(row.supplierName) === supplierNameKey(record.supplierName),
+      );
+
+      if (existing) {
+        throw new Error(`${existing.supplierName} is already a supplier.`);
+      }
+
       data.supplierLedgers.unshift(record);
       await writePurchasingData(data);
       return record;
@@ -670,6 +693,16 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
       let ledger = normalizedInput.supplierLedgerId
         ? data.supplierLedgers.find((item) => item.id === normalizedInput.supplierLedgerId)
         : undefined;
+
+      // Typing a name that is already a supplier means that supplier, not a
+      // second ledger for the same person. Otherwise their balance ends up
+      // split across two rows and neither shows what is owed.
+      if (!ledger && normalizedInput.supplierName) {
+        ledger = data.supplierLedgers.find(
+          (item) =>
+            supplierNameKey(item.supplierName) === supplierNameKey(normalizedInput.supplierName),
+        );
+      }
 
       if (!ledger) {
         ledger = {

@@ -419,6 +419,11 @@ async function insertSupplierTransaction(
 export async function addSupplierLedgerToPostgres(
   ledger: Omit<SupplierLedger, "id" | "totalPurchase" | "paidAmount" | "balanceDue" | "lastTransaction">,
 ) {
+  const supplierName = cleanText(ledger.supplierName);
+  // ON CONFLICT rather than a read then a write: a double-clicked button sends
+  // two requests, and both would find no existing supplier before either
+  // inserted. The unique index on the normalised name is the real guard; this
+  // turns hitting it into a message instead of a database error page.
   const rows = await queryPostgres<SupplierLedgerRow>(
     "purchasing",
     `
@@ -427,17 +432,16 @@ export async function addSupplierLedgerToPostgres(
         balance_due, last_transaction, updated_at
       )
       VALUES ($1, $2, $3, $4, 0, 0, 0, $5, now())
+      ON CONFLICT DO NOTHING
       RETURNING id, supplier_name, phone, material_focus, total_purchase, paid_amount,
         balance_due, last_transaction, created_at, updated_at
     `,
-    [
-      createId("SUP"),
-      cleanText(ledger.supplierName),
-      cleanText(ledger.phone),
-      cleanText(ledger.materialFocus),
-      today(),
-    ],
+    [createId("SUP"), supplierName, cleanText(ledger.phone), cleanText(ledger.materialFocus), today()],
   );
+
+  if (!rows[0]) {
+    throw new Error(`${supplierName} is already a supplier.`);
+  }
 
   return supplierLedgerFromRow(rows[0]);
 }
@@ -578,6 +582,27 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
 
       ledger = supplierLedgerFromRow(ledgerRows[0]);
     } else {
+      // A typed name that already belongs to a supplier means that supplier.
+      // Inserting a second ledger would split what the shop owes them in two.
+      const matchedRows = await db.query<SupplierLedgerRow>(
+        `
+          SELECT id, supplier_name, phone, material_focus, total_purchase, paid_amount,
+            balance_due, last_transaction, created_at, updated_at
+          FROM supplier_ledgers
+          WHERE lower(btrim(regexp_replace(supplier_name, '\\s+', ' ', 'g')))
+            = lower(btrim(regexp_replace($1::text, '\\s+', ' ', 'g')))
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [supplierName],
+      );
+
+      if (matchedRows[0]) {
+        ledger = supplierLedgerFromRow(matchedRows[0]);
+      }
+    }
+
+    if (!ledger) {
       const createdLedgers = await db.query<SupplierLedgerRow>(
         `
           INSERT INTO supplier_ledgers (

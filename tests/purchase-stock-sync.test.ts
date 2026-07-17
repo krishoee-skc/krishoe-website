@@ -11,12 +11,27 @@ const addRawMaterialReceipt = vi.fn();
 const syncProductCatalogStockWithFinishedStock = vi.fn();
 const writeFileAtomic = vi.fn();
 
+// A store that reads back what was written to it. A write-only mock would let
+// a second purchase start from an empty file, which is not how the store
+// behaves and would hide anything that depends on what is already saved —
+// reusing an existing supplier, for one.
+const files = new Map<string, string>();
+
 vi.mock("node:fs/promises", () => ({
-  readFile: vi.fn().mockRejectedValue(Object.assign(new Error("no file"), { code: "ENOENT" })),
+  readFile: (path: string) => {
+    const content = files.get(path);
+
+    return content === undefined
+      ? Promise.reject(Object.assign(new Error("no file"), { code: "ENOENT" }))
+      : Promise.resolve(content);
+  },
 }));
 
 vi.mock("@/lib/atomic-json", () => ({
-  writeFileAtomic: (...args: unknown[]) => writeFileAtomic(...args),
+  writeFileAtomic: (path: string, content: string) => {
+    files.set(path, content);
+    return writeFileAtomic(path, content);
+  },
 }));
 
 vi.mock("@/lib/operations", () => ({
@@ -67,6 +82,9 @@ const tradingGoods = {
 };
 
 beforeEach(() => {
+  // Each test starts from an empty store, or it would inherit the bills and
+  // suppliers the last one wrote.
+  files.clear();
   // clearAllMocks keeps a mockRejectedValue set by an earlier test, which then
   // fails every test after it. Reset the behaviour explicitly instead: these
   // must resolve for the code under test to reach the part being tested.
@@ -346,5 +364,60 @@ describe("a real supplier bill", () => {
     // reconciled against their statement.
     expect(bills).toHaveLength(1);
     expect(bills[0].amount).toBe(175000);
+  });
+});
+
+describe("one supplier, one ledger", () => {
+  const line = {
+    kind: "Raw Material" as const,
+    materialId: "RAW-1",
+    design: "",
+    channel: "" as const,
+    sizeRun: "",
+    quantity: 10,
+    rate: 100,
+    note: "",
+  };
+  const paidAmount = 0;
+
+  function savedLedgers() {
+    const calls = writeFileAtomic.mock.calls;
+    const payload = JSON.parse(calls[calls.length - 1][1] as string) as {
+      supplierLedgers: Array<{ id: string; supplierName: string }>;
+    };
+    return payload.supplierLedgers;
+  }
+
+  it("creates the supplier the first time the name is typed", async () => {
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Rijal Dai", items: [line] });
+
+    expect(savedLedgers()).toHaveLength(1);
+    expect(savedLedgers()[0].supplierName).toBe("Rijal Dai");
+  });
+
+  it("reuses the supplier when the name is typed again", async () => {
+    // Two ledgers for Rijal Dai would split what he is owed across both, and
+    // neither would show the real balance.
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Rijal Dai", items: [line] });
+    const first = savedLedgers()[0].id;
+
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Rijal Dai", items: [line] });
+
+    expect(savedLedgers()).toHaveLength(1);
+    expect(savedLedgers()[0].id).toBe(first);
+  });
+
+  it("reuses the supplier however the name was typed", async () => {
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Rijal Dai", items: [line] });
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "  rijal  dai ", items: [line] });
+
+    expect(savedLedgers()).toHaveLength(1);
+  });
+
+  it("still creates a genuinely different supplier", async () => {
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Rijal Dai", items: [line] });
+    await createPurchaseInvoice({ ...supplier, paidAmount, supplierName: "Nobel Shoe", items: [line] });
+
+    expect(savedLedgers()).toHaveLength(2);
   });
 });

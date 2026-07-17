@@ -301,6 +301,16 @@ CREATE TABLE IF NOT EXISTS supplier_ledgers (
 CREATE INDEX IF NOT EXISTS supplier_ledgers_balance_due_idx ON supplier_ledgers(balance_due DESC);
 CREATE INDEX IF NOT EXISTS supplier_ledgers_updated_at_idx ON supplier_ledgers(updated_at DESC);
 
+-- One supplier, one ledger. Two rows for the same person split what the shop
+-- owes them, and neither row shows the real balance. A double-clicked Add
+-- supplier button is enough to cause it, and two concurrent requests both pass
+-- an application-level check — so the guarantee lives here.
+--
+-- Matched on the name as typed differently: case and runs of spaces are how one
+-- name gets entered twice, not how two suppliers differ.
+CREATE UNIQUE INDEX IF NOT EXISTS supplier_ledgers_name_unique
+  ON supplier_ledgers (lower(btrim(regexp_replace(supplier_name, '\s+', ' ', 'g'))));
+
 CREATE TABLE IF NOT EXISTS supplier_transactions (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
