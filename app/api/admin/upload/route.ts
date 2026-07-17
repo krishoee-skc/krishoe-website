@@ -54,24 +54,34 @@ async function saveLocally(file: File, safeName: string) {
 }
 
 function uploadReady() {
-  const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  // A connected Blob store injects BLOB_STORE_ID as well as the token. Newer
+  // Vercel setups authenticate the SDK over OIDC and may not expose the token
+  // as a plain env var, so the store id is the more reliable "connected" signal
+  // — and put() works over OIDC without the token in hand.
+  const hasToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const hasStoreId = Boolean(process.env.BLOB_STORE_ID);
+  const hasBlob = hasToken || hasStoreId;
   // 'development' under `npm run dev`, 'production' in a build — which is what
   // the deployed server runs. The local fallback is offered only in dev, where
   // the filesystem is writable and a /uploads URL is reachable.
   const canSaveLocally = process.env.NODE_ENV === "development";
-  return { hasBlob, canSaveLocally, ready: hasBlob || canSaveLocally };
+  return { hasToken, hasStoreId, hasBlob, canSaveLocally, ready: hasBlob || canSaveLocally };
 }
 
 // Whether uploads are configured, without exposing anything secret. Lets the
-// form warn before a photo is chosen, and lets a deploy be checked from outside
-// without an admin session. Only a boolean leaves here — never the token.
+// form warn before a photo is chosen, and lets a deploy be checked from a
+// logged-in browser. Only names and booleans leave here — never a token value.
 export async function GET() {
-  const { hasBlob, ready } = uploadReady();
+  const { hasToken, hasStoreId, hasBlob, ready } = uploadReady();
 
   return Response.json({
     ready,
     // "blob" means it will show on the live shop; "local" means dev-only.
     storage: hasBlob ? "blob" : ready ? "local" : "none",
+    // Which blob env vars reached this deployment. If both are false on the live
+    // server, the store is connected to a different project — or that project
+    // has not been redeployed since it was connected.
+    env: { BLOB_READ_WRITE_TOKEN: hasToken, BLOB_STORE_ID: hasStoreId },
     // Vercel routes a server upload through the function, capped at 4.5 MB.
     maxBytes: MAX_BYTES,
   });
