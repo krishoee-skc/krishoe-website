@@ -210,7 +210,7 @@ function sum<T>(items: T[], selector: (item: T) => number) {
   return items.reduce((total, item) => total + selector(item), 0);
 }
 
-function marginRate(profit: number, revenue: number) {
+export function marginRate(profit: number, revenue: number) {
   if (revenue <= 0) {
     return 0;
   }
@@ -230,7 +230,7 @@ function isSameYear(value: string) {
   return value.slice(0, 4) === new Date().toISOString().slice(0, 4);
 }
 
-function overheadPerPair(settings: CostingSettings) {
+export function overheadPerPair(settings: CostingSettings) {
   const monthlyAllocation =
     settings.monthlyCapacityPairs > 0
       ? settings.monthlyFixedOverhead / settings.monthlyCapacityPairs
@@ -245,10 +245,21 @@ function overheadPerPair(settings: CostingSettings) {
   );
 }
 
-function buildMaterialCostRates(purchaseInvoices: PurchaseInvoice[]) {
+// Average unit cost per raw material, from what was actually paid for it.
+//
+// Trading goods invoices are deliberately skipped. They are finished pairs
+// bought to resell, not an input to a production batch: they carry no
+// materialId, and their materialName is a shoe design. Left in, each one
+// becomes a fake material keyed by design name, inflates materialPurchaseCost
+// with money that never bought material, and collides on the empty materialId.
+export function buildMaterialCostRates(purchaseInvoices: PurchaseInvoice[]) {
   const groups = new Map<string, MaterialCostRate>();
 
   for (const invoice of purchaseInvoices) {
+    if (invoice.kind === "Trading Goods") {
+      continue;
+    }
+
     const key = invoice.materialId || invoice.materialName.toLowerCase();
     const existing = groups.get(key) ?? {
       materialId: invoice.materialId,
@@ -447,7 +458,7 @@ function buildDesignSales(posInvoices: PosInvoice[]) {
   return salesGroups;
 }
 
-function buildDesignCosting(batchCosting: BatchCostingRow[], designSales: Map<string, DesignSalesGroup>) {
+export function buildDesignCosting(batchCosting: BatchCostingRow[], designSales: Map<string, DesignSalesGroup>) {
   const groups = new Map<string, DesignCostingRow>();
 
   for (const batch of batchCosting) {
