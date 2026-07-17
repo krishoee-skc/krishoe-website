@@ -110,6 +110,22 @@ export type BatchCostingRow = {
   missingOverheadRate: boolean;
 };
 
+// What a design cost per pair to buy in, averaged over the trading goods
+// invoices that bought it. The trading half of the business: no batch, no
+// labour, no overhead — the supplier's rate is the cost.
+export type TradingGoodsCostRate = {
+  design: string;
+  purchasedPairs: number;
+  purchaseTotal: number;
+  averageCostPerPair: number;
+  invoiceCount: number;
+};
+
+// Where a design's pairs came from. KRISHOE both makes chappals and buys
+// finished slippers to resell, and the two are costed differently, so the row
+// says which side it is reporting on.
+export type DesignCostSource = "Made" | "Bought" | "Made and bought" | "Unknown";
+
 export type DesignCostingRow = {
   design: string;
   batchCount: number;
@@ -120,6 +136,13 @@ export type DesignCostingRow = {
   laborCost: number;
   overheadCost: number;
   productionCost: number;
+  // The trading side, kept apart from productionCost so the two halves of the
+  // business can be read separately rather than as one blended number.
+  purchasedPairs: number;
+  purchaseCost: number;
+  costSource: DesignCostSource;
+  // Blended across both sides: (production + purchase) / (made + bought). A
+  // design sold from one shelf has one cost per pair, however it got there.
   unitCostPerPair: number;
   soldPairs: number;
   returnedPairs: number;
@@ -145,6 +168,11 @@ export type CostingPeriodRow = {
 export type CostingSnapshot = {
   summary: {
     materialPurchaseCost: number;
+    // The trading side of the business: finished pairs bought to resell. Kept
+    // out of materialPurchaseCost, which is what the factory spent on inputs.
+    tradingGoodsPurchaseCost: number;
+    tradingGoodsPurchasedPairs: number;
+    tradingGoodsDesignCount: number;
     materialCost: number;
     laborCost: number;
     overheadCost: number;
@@ -170,6 +198,7 @@ export type CostingSnapshot = {
   };
   settings: CostingSettings;
   materialCostRates: MaterialCostRate[];
+  tradingGoodsCostRates: TradingGoodsCostRate[];
   rawMaterialStockValuation: RawMaterialStockValuationRow[];
   finishedStockValuation: FinishedStockValuationRow[];
   catalogStockReconciliation: CatalogStockReconciliationRow[];
@@ -278,6 +307,42 @@ export function buildMaterialCostRates(purchaseInvoices: PurchaseInvoice[]) {
       existing.purchasedQuantity > 0
         ? roundRate(existing.purchaseTotal / existing.purchasedQuantity)
         : 0;
+
+    groups.set(key, existing);
+  }
+
+  return [...groups.values()].sort((a, b) => b.purchaseTotal - a.purchaseTotal);
+}
+
+// The trading counterpart of buildMaterialCostRates: what each design cost per
+// pair to buy in, weighted by pairs rather than by invoice. Keyed by design,
+// because that is what a trading goods invoice records and what a POS line and
+// a production batch both name — so the three meet on the same key.
+export function buildTradingGoodsCostRates(purchaseInvoices: PurchaseInvoice[]) {
+  const groups = new Map<string, TradingGoodsCostRate>();
+
+  for (const invoice of purchaseInvoices) {
+    if (invoice.kind !== "Trading Goods") {
+      continue;
+    }
+
+    const design = normalizeDesign(invoice.design || invoice.materialName);
+    const key = designKey(design);
+    const existing = groups.get(key) ?? {
+      design,
+      purchasedPairs: 0,
+      purchaseTotal: 0,
+      averageCostPerPair: 0,
+      invoiceCount: 0,
+    };
+
+    existing.purchasedPairs += cleanNumber(invoice.quantity);
+    // The invoice total, not quantity * rate: discount and tax are part of what
+    // the pairs actually cost.
+    existing.purchaseTotal += cleanNumber(invoice.total);
+    existing.invoiceCount += 1;
+    existing.averageCostPerPair =
+      existing.purchasedPairs > 0 ? roundRate(existing.purchaseTotal / existing.purchasedPairs) : 0;
 
     groups.set(key, existing);
   }
@@ -458,31 +523,55 @@ function buildDesignSales(posInvoices: PosInvoice[]) {
   return salesGroups;
 }
 
-export function buildDesignCosting(batchCosting: BatchCostingRow[], designSales: Map<string, DesignSalesGroup>) {
+// An empty row for a design nothing is known about yet. One definition, because
+// three sources fill these in and a field missed in one of them is a silent
+// zero in the accounts.
+function emptyDesignCostingRow(design: string): DesignCostingRow {
+  return {
+    design,
+    batchCount: 0,
+    plannedPairs: 0,
+    finishedPairs: 0,
+    rejectedPairs: 0,
+    materialCost: 0,
+    laborCost: 0,
+    overheadCost: 0,
+    productionCost: 0,
+    purchasedPairs: 0,
+    purchaseCost: 0,
+    costSource: "Unknown",
+    unitCostPerPair: 0,
+    soldPairs: 0,
+    returnedPairs: 0,
+    netPairs: 0,
+    netRevenue: 0,
+    estimatedCogs: 0,
+    grossProfit: 0,
+    grossMarginRate: 0,
+    missingCostData: false,
+  };
+}
+
+function designCostSource(row: DesignCostingRow): DesignCostSource {
+  const made = row.finishedPairs > 0 || row.plannedPairs > 0;
+  const bought = row.purchasedPairs > 0;
+
+  if (made && bought) return "Made and bought";
+  if (made) return "Made";
+  if (bought) return "Bought";
+  return "Unknown";
+}
+
+export function buildDesignCosting(
+  batchCosting: BatchCostingRow[],
+  designSales: Map<string, DesignSalesGroup>,
+  tradingGoodsCostRates: TradingGoodsCostRate[] = [],
+) {
   const groups = new Map<string, DesignCostingRow>();
 
   for (const batch of batchCosting) {
     const key = designKey(batch.design);
-    const existing = groups.get(key) ?? {
-      design: batch.design,
-      batchCount: 0,
-      plannedPairs: 0,
-      finishedPairs: 0,
-      rejectedPairs: 0,
-      materialCost: 0,
-      laborCost: 0,
-      overheadCost: 0,
-      productionCost: 0,
-      unitCostPerPair: 0,
-      soldPairs: 0,
-      returnedPairs: 0,
-      netPairs: 0,
-      netRevenue: 0,
-      estimatedCogs: 0,
-      grossProfit: 0,
-      grossMarginRate: 0,
-      missingCostData: false,
-    };
+    const existing = groups.get(key) ?? emptyDesignCostingRow(batch.design);
 
     existing.batchCount += 1;
     existing.plannedPairs += batch.plannedPairs;
@@ -500,27 +589,19 @@ export function buildDesignCosting(batchCosting: BatchCostingRow[], designSales:
     groups.set(key, existing);
   }
 
+  // Pairs bought in finished. No batch, no labour, no overhead — what the
+  // supplier charged is the whole cost.
+  for (const rate of tradingGoodsCostRates) {
+    const key = designKey(rate.design);
+    const existing = groups.get(key) ?? emptyDesignCostingRow(rate.design);
+
+    existing.purchasedPairs += rate.purchasedPairs;
+    existing.purchaseCost += rate.purchaseTotal;
+    groups.set(key, existing);
+  }
+
   for (const [key, sale] of designSales.entries()) {
-    const existing = groups.get(key) ?? {
-      design: sale.design,
-      batchCount: 0,
-      plannedPairs: 0,
-      finishedPairs: 0,
-      rejectedPairs: 0,
-      materialCost: 0,
-      laborCost: 0,
-      overheadCost: 0,
-      productionCost: 0,
-      unitCostPerPair: 0,
-      soldPairs: 0,
-      returnedPairs: 0,
-      netPairs: 0,
-      netRevenue: 0,
-      estimatedCogs: 0,
-      grossProfit: 0,
-      grossMarginRate: 0,
-      missingCostData: true,
-    };
+    const existing = groups.get(key) ?? emptyDesignCostingRow(sale.design);
 
     existing.soldPairs += sale.soldPairs;
     existing.returnedPairs += sale.returnedPairs;
@@ -530,8 +611,15 @@ export function buildDesignCosting(batchCosting: BatchCostingRow[], designSales:
 
   return [...groups.values()]
     .map((row) => {
-      const costingPairs = row.finishedPairs > 0 ? row.finishedPairs : row.plannedPairs;
-      const unitCostPerPair = costingPairs > 0 ? roundRate(row.productionCost / costingPairs) : 0;
+      // Pairs a cost is known for. Made pairs carry the batch cost; a batch
+      // still in progress falls back to what it planned. Bought pairs carry the
+      // supplier's rate.
+      const madePairs = row.finishedPairs > 0 ? row.finishedPairs : row.plannedPairs;
+      const costingPairs = madePairs + row.purchasedPairs;
+      // One shelf, one cost per pair: blend both sides by pairs. A design that
+      // is only made, or only bought, simply has nothing on the other side.
+      const unitCostPerPair =
+        costingPairs > 0 ? roundRate((row.productionCost + row.purchaseCost) / costingPairs) : 0;
       const netPairs = row.soldPairs - row.returnedPairs;
       const estimatedCogs = Math.max(0, netPairs) * unitCostPerPair;
       const grossProfit = row.netRevenue - estimatedCogs;
@@ -542,6 +630,8 @@ export function buildDesignCosting(batchCosting: BatchCostingRow[], designSales:
         laborCost: roundMoney(row.laborCost),
         overheadCost: roundMoney(row.overheadCost),
         productionCost: roundMoney(row.productionCost),
+        purchaseCost: roundMoney(row.purchaseCost),
+        costSource: designCostSource(row),
         unitCostPerPair,
         netPairs,
         netRevenue: roundMoney(row.netRevenue),
@@ -851,8 +941,9 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     materialRatesById,
     settings,
   );
+  const tradingGoodsCostRates = buildTradingGoodsCostRates(purchasing.purchaseInvoices);
   const designSales = buildDesignSales(posInvoices);
-  const designCosting = buildDesignCosting(batchCosting, designSales);
+  const designCosting = buildDesignCosting(batchCosting, designSales, tradingGoodsCostRates);
   const finishedStockValuation = buildFinishedStockValuation(operations.finishedStock, designCosting, products);
   const catalogStockReconciliation = buildCatalogStockReconciliation(products, operations.finishedStock);
   const periodReports = buildPeriodReports(posInvoices, designCosting);
@@ -863,6 +954,11 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   return {
     summary: {
       materialPurchaseCost: roundMoney(sum(materialCostRates, (row) => row.purchaseTotal)),
+      // The trading half, reported on its own. Blending it into material
+      // purchase would say the factory spent money it never spent.
+      tradingGoodsPurchaseCost: roundMoney(sum(tradingGoodsCostRates, (row) => row.purchaseTotal)),
+      tradingGoodsPurchasedPairs: cleanNumber(sum(tradingGoodsCostRates, (row) => row.purchasedPairs)),
+      tradingGoodsDesignCount: tradingGoodsCostRates.length,
       materialCost: roundMoney(sum(batchCosting, (row) => row.materialCost)),
       laborCost: roundMoney(sum(batchCosting, (row) => row.laborCost)),
       overheadCost: roundMoney(sum(batchCosting, (row) => row.overheadCost)),
@@ -898,6 +994,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     },
     settings,
     materialCostRates,
+    tradingGoodsCostRates,
     rawMaterialStockValuation,
     finishedStockValuation,
     catalogStockReconciliation,

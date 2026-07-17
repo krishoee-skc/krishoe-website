@@ -6,6 +6,7 @@ import {
   type BatchCostingRow,
   type CatalogStockReconciliationRow,
   type DesignCostingRow,
+  type DesignCostSource,
   type FinishedStockValuationRow,
 } from "@/lib/costing";
 import { laborRateFieldName, productionStations, type CostingSettings } from "@/lib/costing-settings";
@@ -73,6 +74,72 @@ function StatCard({
       </p>
     </div>
   );
+}
+
+// KRISHOE both makes chappals and buys finished slippers to resell. The two are
+// costed differently — a made pair carries material, labour and overhead; a
+// bought pair carries what the supplier charged — so the row says which it is
+// rather than leaving the reader to guess from a blended number.
+function CostSourcePill({ source }: { source: DesignCostSource }) {
+  if (source === "Made") {
+    return (
+      <span className="inline-flex rounded-full border border-brand-green/20 bg-brand-green/5 px-2.5 py-1 text-xs font-black text-brand-green">
+        Made
+      </span>
+    );
+  }
+
+  if (source === "Bought") {
+    return (
+      <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-black text-sky-800">
+        Bought
+      </span>
+    );
+  }
+
+  if (source === "Made and bought") {
+    return (
+      <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-800">
+        Made + bought
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-600">
+      Sold only
+    </span>
+  );
+}
+
+function DesignPairsDetail({ row }: { row: DesignCostingRow }) {
+  const parts: string[] = [];
+
+  if (row.batchCount > 0) {
+    parts.push(`${row.batchCount} batches, ${row.finishedPairs} made`);
+  }
+
+  if (row.purchasedPairs > 0) {
+    parts.push(`${row.purchasedPairs} bought`);
+  }
+
+  // A design that was only ever sold has neither, and saying "0 batches" would
+  // point at production for something production never touched.
+  return <>{parts.length > 0 ? parts.join(" | ") : "No cost recorded yet"}</>;
+}
+
+function DesignCostBreakdown({ row }: { row: DesignCostingRow }) {
+  const parts: string[] = [];
+
+  if (row.productionCost > 0) {
+    parts.push(`M ${money(row.materialCost)} | L ${money(row.laborCost)} | O ${money(row.overheadCost)}`);
+  }
+
+  if (row.purchaseCost > 0) {
+    parts.push(`Bought ${money(row.purchaseCost)}`);
+  }
+
+  return <>{parts.length > 0 ? parts.join(" | ") : "—"}</>;
 }
 
 function StatusPill({ row }: { row: DesignCostingRow }) {
@@ -250,6 +317,11 @@ export default async function AdminCostingPage() {
           label="Material purchase"
           value={money(costing.summary.materialPurchaseCost)}
           detail={`${costing.summary.pricedMaterialCount} priced materials`}
+        />
+        <StatCard
+          label="Trading goods purchase"
+          value={money(costing.summary.tradingGoodsPurchaseCost)}
+          detail={`${costing.summary.tradingGoodsPurchasedPairs} pairs bought to resell`}
         />
         <StatCard
           label="Raw stock value"
@@ -540,6 +612,7 @@ export default async function AdminCostingPage() {
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Design</th>
+                <th className="py-2 pr-3">Source</th>
                 <th className="py-2 pr-3">Sold</th>
                 <th className="py-2 pr-3">Revenue</th>
                 <th className="py-2 pr-3">Unit COGS</th>
@@ -555,8 +628,11 @@ export default async function AdminCostingPage() {
                   <td className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">
-                      {row.batchCount} batches, {row.finishedPairs} finished pairs
+                      <DesignPairsDetail row={row} />
                     </p>
+                  </td>
+                  <td className="py-3 pr-3">
+                    <CostSourcePill source={row.costSource} />
                   </td>
                   <td className="py-3 pr-3 text-brand-green-ink">
                     {row.netPairs}
@@ -568,7 +644,7 @@ export default async function AdminCostingPage() {
                   <td className="py-3 pr-3">
                     {money(row.unitCostPerPair)}
                     <span className="block text-xs text-gray-500">
-                      M {money(row.materialCost)} | L {money(row.laborCost)} | O {money(row.overheadCost)}
+                      <DesignCostBreakdown row={row} />
                     </span>
                   </td>
                   <td className="py-3 pr-3">{money(row.estimatedCogs)}</td>
@@ -581,7 +657,7 @@ export default async function AdminCostingPage() {
               ))}
               {costing.designCosting.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={8}>
+                  <td className="py-6 text-center text-gray-500" colSpan={9}>
                     No design costing data yet.
                   </td>
                 </tr>
