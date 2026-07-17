@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type UploadStatus = "checking" | "blob" | "local" | "none";
 
 type ImageUploadFieldProps = {
   name: string;
@@ -38,7 +40,30 @@ export default function ImageUploadField({
   // Set when a photo was saved to the local dev folder, which the live shop
   // cannot load. Better to say so than to ship a broken image.
   const [localOnly, setLocalOnly] = useState(false);
+  // Where uploads would land, checked when the form opens so the owner knows
+  // before choosing a photo — not after a failed upload.
+  const [status, setStatus] = useState<UploadStatus>("checking");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/admin/upload", { method: "GET" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { storage?: UploadStatus } | null) => {
+        if (active && data?.storage) {
+          setStatus(data.storage);
+        }
+      })
+      .catch(() => {
+        // Leave it as "checking"; the upload attempt still reports the real
+        // outcome, so a failed readiness probe does not block anything.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const urls = multiple ? splitUrls(value) : value.trim() ? [value.trim()] : [];
 
@@ -105,7 +130,7 @@ export default function ImageUploadField({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={uploading}
+          disabled={uploading || status === "none"}
           className="inline-flex h-9 items-center gap-2 rounded-full border border-black/10 px-3 text-sm font-semibold text-brand-green transition hover:bg-brand-mist disabled:opacity-60"
         >
           {uploading ? "Uploading…" : multiple ? "Upload photos" : "Upload photo"}
@@ -120,6 +145,19 @@ export default function ImageUploadField({
         />
         <span className="text-xs text-gray-500">or paste a URL above</span>
       </div>
+
+      {status === "blob" ? (
+        <p className="text-xs font-medium text-brand-green">
+          Photos upload to the shop. Up to 4.5 MB each — JPEG, PNG, or WebP.
+        </p>
+      ) : null}
+
+      {status === "none" ? (
+        <p className="text-xs font-semibold text-brand-clay">
+          Upload is not set up. Paste a public image URL above, or connect a Vercel Blob store and
+          redeploy to turn the button on.
+        </p>
+      ) : null}
 
       {error ? <p className="text-xs font-semibold text-brand-danger">{error}</p> : null}
 
