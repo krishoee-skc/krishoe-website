@@ -320,15 +320,17 @@ CREATE TABLE IF NOT EXISTS purchase_invoices (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   supplier_ledger_id TEXT NOT NULL REFERENCES supplier_ledgers(id) ON DELETE RESTRICT,
   supplier_name TEXT NOT NULL,
-  -- 'Raw Material' buys feed raw_materials.received (factory input).
-  -- 'Trading Goods' buys feed finished_stock via a 'Purchase In' movement
-  -- (wholesale/retail/online resale stock bought ready-made).
-  kind TEXT NOT NULL DEFAULT 'Raw Material' CHECK (kind IN ('Raw Material', 'Trading Goods')),
-  -- Set for 'Raw Material' buys only.
+  -- What the bill turned out to be, from its lines in purchase_invoice_items.
+  -- 'Mixed' is a normal bill: suppliers sell leather and ready-made chappals on
+  -- one bill. The lines are where the kinds actually live.
+  kind TEXT NOT NULL DEFAULT 'Raw Material' CHECK (kind IN ('Raw Material', 'Trading Goods', 'Mixed')),
+  -- The columns below summarise the bill's first line. They are kept because
+  -- the invoice lists, exports and supplier ledger were built when a bill could
+  -- only hold one item.
   material_id TEXT REFERENCES raw_materials(id) ON DELETE RESTRICT,
   material_name TEXT NOT NULL,
-  -- Set for 'Trading Goods' buys only. design matches finished_stock.design,
-  -- which the catalog sync matches against products.name.
+  -- design matches finished_stock.design, which the catalog sync matches
+  -- against products.name.
   design TEXT NOT NULL DEFAULT '',
   channel TEXT CHECK (channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
   size_run TEXT NOT NULL DEFAULT 'Mixed',
@@ -364,13 +366,6 @@ ALTER TABLE purchase_invoices
 -- material_id was NOT NULL while raw material was the only purchase kind.
 ALTER TABLE purchase_invoices
   ALTER COLUMN material_id DROP NOT NULL;
-
-ALTER TABLE purchase_invoices
-  DROP CONSTRAINT IF EXISTS purchase_invoices_kind_check;
-
-ALTER TABLE purchase_invoices
-  ADD CONSTRAINT purchase_invoices_kind_check
-  CHECK (kind IN ('Raw Material', 'Trading Goods'));
 
 ALTER TABLE purchase_invoices
   DROP CONSTRAINT IF EXISTS purchase_invoices_channel_check;
