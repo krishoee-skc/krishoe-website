@@ -7,7 +7,9 @@ import BottomTabBar from "@/components/BottomTabBar";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
+import { reportError } from "@/lib/report-error";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
+import type { Product } from "@/lib/products";
 import "./globals.css";
 
 const sans = Inter({
@@ -63,15 +65,29 @@ export const metadata: Metadata = {
   },
 };
 
+// The shop is shown what is actually buyable, not raw catalog stock: pairs an
+// open order is holding are not for sale, and checkout will refuse them.
+//
+// This wraps every page, so a database hiccup here would take the whole
+// storefront down to its retry page. The queries already retry a dropped
+// connection; if one still fails, render the shell with an empty catalog rather
+// than crash — the header, nav and cart stay, and the next navigation recovers.
+async function loadBuyableProducts(): Promise<Product[]> {
+  try {
+    const [catalog, orders] = await Promise.all([getProducts(), getOrders()]);
+    return withAvailableStock(catalog, reservedByProduct(orders));
+  } catch (error) {
+    reportError("load catalog for the storefront layout", error);
+    return [];
+  }
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // The shop is shown what is actually buyable, not raw catalog stock: pairs an
-  // open order is holding are not for sale, and checkout will refuse them.
-  const [catalog, orders] = await Promise.all([getProducts(), getOrders()]);
-  const products = withAvailableStock(catalog, reservedByProduct(orders));
+  const products = await loadBuyableProducts();
 
   return (
     <html
