@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-type UploadStatus = "checking" | "blob" | "local" | "none";
+type UploadStatus = "checking" | "blob" | "database" | "local" | "none";
 
 type ImageUploadFieldProps = {
   name: string;
@@ -146,7 +146,7 @@ export default function ImageUploadField({
         <span className="text-xs text-gray-500">or paste a URL above</span>
       </div>
 
-      {status === "blob" ? (
+      {status === "blob" || status === "database" ? (
         <p className="text-xs font-medium text-brand-green">
           Photos upload to the shop. Up to 4.5 MB each — JPEG, PNG, or WebP.
         </p>

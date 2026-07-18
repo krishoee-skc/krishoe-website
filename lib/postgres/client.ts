@@ -1,7 +1,8 @@
 import { createPostgresAdapterPendingError, getDataBackendConfig } from "@/lib/data-backend";
 import { Pool, type QueryResultRow } from "pg";
 
-export type SqlValue = string | number | boolean | Date | null | string[];
+// Buffer is here for bytea columns — uploaded image bytes go in as a Buffer.
+export type SqlValue = string | number | boolean | Date | null | string[] | Buffer;
 export type PostgresExecutor = {
   query: <TRecord extends QueryResultRow>(
     sql: string,

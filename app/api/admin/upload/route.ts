@@ -3,6 +3,7 @@ import path from "node:path";
 import { put } from "@vercel/blob";
 import { appendAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { databaseImagesAvailable, saveDatabaseImage } from "@/lib/image-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,7 +54,9 @@ async function saveLocally(file: File, safeName: string) {
   return `/uploads/${fileName}`;
 }
 
-function uploadReady() {
+type StorageKind = "blob" | "database" | "local" | "none";
+
+function uploadTarget() {
   // A connected Blob store injects BLOB_STORE_ID as well as the token. Newer
   // Vercel setups authenticate the SDK over OIDC and may not expose the token
   // as a plain env var, so the store id is the more reliable "connected" signal
@@ -61,26 +64,38 @@ function uploadReady() {
   const hasToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   const hasStoreId = Boolean(process.env.BLOB_STORE_ID);
   const hasBlob = hasToken || hasStoreId;
-  // 'development' under `npm run dev`, 'production' in a build — which is what
-  // the deployed server runs. The local fallback is offered only in dev, where
-  // the filesystem is writable and a /uploads URL is reachable.
+  // The database is where photos go when there is no Blob store — no external
+  // service to configure, and it works on the live shop. Only on Postgres;
+  // local-json dev has no table for it.
+  const hasDatabase = databaseImagesAvailable();
+  // 'development' under `npm run dev`, 'production' in a build. The filesystem
+  // fallback is offered only in dev, where it is writable and reachable — it is
+  // the path for local-json dev, which has neither Blob nor a database.
   const canSaveLocally = process.env.NODE_ENV === "development";
-  return { hasToken, hasStoreId, hasBlob, canSaveLocally, ready: hasBlob || canSaveLocally };
+
+  // Order of preference: a real object store, then the database, then the dev
+  // filesystem. The first that shows a photo on the live shop wins.
+  const storage: StorageKind = hasBlob
+    ? "blob"
+    : hasDatabase
+      ? "database"
+      : canSaveLocally
+        ? "local"
+        : "none";
+
+  return { hasToken, hasStoreId, hasBlob, hasDatabase, storage, ready: storage !== "none" };
 }
 
 // Whether uploads are configured, without exposing anything secret. Lets the
 // form warn before a photo is chosen, and lets a deploy be checked from a
 // logged-in browser. Only names and booleans leave here — never a token value.
 export async function GET() {
-  const { hasToken, hasStoreId, hasBlob, ready } = uploadReady();
+  const { hasToken, hasStoreId, storage, ready } = uploadTarget();
 
   return Response.json({
     ready,
-    // "blob" means it will show on the live shop; "local" means dev-only.
-    storage: hasBlob ? "blob" : ready ? "local" : "none",
-    // Which blob env vars reached this deployment. If both are false on the live
-    // server, the store is connected to a different project — or that project
-    // has not been redeployed since it was connected.
+    // "blob"/"database" both show on the live shop; "local" is dev-only.
+    storage,
     env: { BLOB_READ_WRITE_TOKEN: hasToken, BLOB_STORE_ID: hasStoreId },
     // Vercel routes a server upload through the function, capped at 4.5 MB.
     maxBytes: MAX_BYTES,
@@ -92,13 +107,13 @@ export async function GET() {
 export async function POST(request: Request) {
   await requireAdminPermission("products:write");
 
-  const { hasBlob, ready } = uploadReady();
+  const { storage } = uploadTarget();
 
-  if (!ready) {
+  if (storage === "none") {
     return Response.json(
       {
         error:
-          "Photo upload is not set up yet. Add a Vercel Blob store and set BLOB_READ_WRITE_TOKEN, then redeploy.",
+          "Photo upload is not set up. Paste a public image URL instead, or connect a Vercel Blob store and redeploy.",
       },
       { status: 503 },
     );
@@ -131,7 +146,7 @@ export async function POST(request: Request) {
     let url: string;
     let storedTo: string;
 
-    if (hasBlob) {
+    if (storage === "blob") {
       const blob = await put(`products/${safeName}`, file, {
         access: "public",
         addRandomSuffix: true,
@@ -139,6 +154,11 @@ export async function POST(request: Request) {
       });
       url = blob.url;
       storedTo = "Vercel Blob";
+    } else if (storage === "database") {
+      const bytes = Buffer.from(await file.arrayBuffer());
+      const saved = await saveDatabaseImage({ bytes, contentType: file.type });
+      url = saved.url;
+      storedTo = "database";
     } else {
       url = await saveLocally(file, safeName);
       storedTo = "local dev folder";
@@ -149,9 +169,9 @@ export async function POST(request: Request) {
       `Uploaded product photo ${safeName} to ${storedTo}.`,
     ).catch(() => undefined);
 
-    // Tells the form to warn that a locally-stored photo will not show on the
-    // live shop, so a product edited here does not silently ship a broken image.
-    return Response.json({ url, local: !hasBlob });
+    // Only the dev filesystem photo fails to load on the live shop, so only that
+    // one warns. Blob and database URLs both work there.
+    return Response.json({ url, local: storage === "local" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed.";
     return Response.json({ error: `Upload failed: ${message}` }, { status: 502 });

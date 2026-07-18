@@ -773,3 +773,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_callback_id_unique_idx
 CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_callback_id_unique_idx
   ON payment_transactions(payment_callback_id)
   WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> '';
+
+-- Uploaded product photos, kept in the database so the Upload button works
+-- without any external object store to configure. A shoe shop's catalog is a
+-- few dozen small photos; the bytes live here and are served by /api/images/:id.
+-- If a Vercel Blob store is connected later, the upload route prefers it and
+-- these rows simply stop growing.
+CREATE TABLE IF NOT EXISTS uploaded_images (
+  id TEXT PRIMARY KEY,
+  content_type TEXT NOT NULL,
+  bytes BYTEA NOT NULL,
+  byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
