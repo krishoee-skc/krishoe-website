@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { categories, type Product } from "@/lib/products";
 import {
@@ -27,6 +26,8 @@ import {
   type PaymentStatus,
 } from "@/lib/submissions";
 import { removeProduct, upsertProduct } from "@/lib/product-store";
+import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import { appendAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 
@@ -90,8 +91,16 @@ function orderProviderFromPosPayment(paymentMethod: PosPaymentMethod): PaymentPr
   return "manual";
 }
 
+// The audit trail must never decide whether the write itself succeeded. This
+// runs after the row is already saved, so a failure here — including one thrown
+// before a promise is returned, which `.catch()` alone would miss — is logged
+// and dropped rather than shown to the admin as a failed save.
 async function auditAdminAction(action: string, detail: string) {
-  await appendAdminAuditEvent(action, detail).catch(() => undefined);
+  try {
+    await appendAdminAuditEvent(action, detail);
+  } catch (error) {
+    reportError(`record admin audit event ${action}`, error);
+  }
 }
 
 export async function updateOrderStatusAction(
@@ -287,7 +296,15 @@ export async function createPosInvoiceFromOrderAction(
   }
 }
 
-export async function upsertProductAction(formData: FormData) {
+// Returns the outcome instead of throwing. A save that failed used to take the
+// admin to the app's error page, which threw away everything they had typed —
+// including a freshly uploaded photo URL — so the only way back was to fill the
+// whole form in again. Now the form stays put, says why, and Save works on the
+// next press.
+export async function upsertProductAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
   await requireAdminPermission("products:write");
 
   const categorySlug = textValue(formData, "categorySlug") || categories[0].slug;
@@ -327,27 +344,48 @@ export async function upsertProductAction(formData: FormData) {
     newArrival: formData.get("newArrival") === "on",
   };
 
-  await upsertProduct(product);
+  try {
+    await upsertProduct(product);
+  } catch (error) {
+    reportError(`save product ${product.sku}`, error);
+    return { ok: false, message: saveFailureMessage(error, "Could not save this product.") };
+  }
+
   await auditAdminAction("product_upsert", `Product ${product.sku} (${product.id}) saved as ${product.status}.`);
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath(`/product/${id}`);
-  redirect("/admin/products");
+
+  return {
+    ok: true,
+    message: `Saved ${product.name}.`,
+    href: "/admin/products",
+  };
 }
 
-export async function deleteProductAction(formData: FormData) {
+export async function deleteProductAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
   await requireAdminPermission("products:write");
 
   const id = textValue(formData, "id");
 
   if (!id) {
-    throw new Error("Product id is required.");
+    return { ok: false, message: "Product id is required." };
   }
 
-  await removeProduct(id);
+  try {
+    await removeProduct(id);
+  } catch (error) {
+    reportError(`delete product ${id}`, error);
+    return { ok: false, message: saveFailureMessage(error, "Could not delete this product.") };
+  }
+
   await auditAdminAction("product_delete", `Product ${id} deleted.`);
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath(`/product/${id}`);
-  redirect("/admin/products");
+
+  return { ok: true, message: "Product deleted." };
 }

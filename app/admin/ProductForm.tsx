@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import type { Product, Category } from "@/lib/products";
-import { upsertProductAction } from "./actions";
-import SubmitButton from "@/components/SubmitButton";
+import { upsertProductAction, type ActionState } from "./actions";
+import ActionMessage from "@/components/admin/ActionMessage";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 
 type ProductFormProps = {
@@ -13,9 +15,32 @@ type ProductFormProps = {
 
 export default function ProductForm({ product, categories }: ProductFormProps) {
   const isEditing = Boolean(product);
+  const router = useRouter();
+  const [state, setState] = useState<ActionState | null>(null);
+  const [isSaving, startSaving] = useTransition();
+
+  // Submitted here rather than through `action={...}` so a failure comes back as
+  // a message beside the button. The form is never re-rendered from scratch, so
+  // every field — and the uploaded photo URL — survives a failed attempt.
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    startSaving(async () => {
+      const result = await upsertProductAction(state, formData);
+      setState(result);
+
+      // Pull the saved row back into the list behind the form. Staying on the
+      // page is deliberate: the owner sees the confirmation instead of landing
+      // somewhere new and wondering whether it went through.
+      if (result.ok) {
+        router.refresh();
+      }
+    });
+  };
 
   return (
-    <form action={upsertProductAction} className="space-y-6 rounded-lg border bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-white p-6 shadow-sm">
       <input type="hidden" name="id" defaultValue={product?.id ?? ""} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -179,11 +204,21 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         </div>
       </div>
 
-      <div className="border-t pt-6">
-        <SubmitButton
-          idleLabel={isEditing ? "Save Changes" : "Create Product"}
-          pendingLabel={isEditing ? "Saving..." : "Creating..."}
-        />
+      <div className="space-y-4 border-t pt-6">
+        <ActionMessage state={state} linkLabel="View all products" />
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSaving
+            ? isEditing
+              ? "Saving..."
+              : "Creating..."
+            : isEditing
+              ? "Save Changes"
+              : "Create Product"}
+        </button>
       </div>
     </form>
   );

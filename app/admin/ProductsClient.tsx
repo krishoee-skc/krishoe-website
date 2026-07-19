@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import type { Product } from "@/lib/products";
 import { PencilIcon, TrashIcon } from "@/components/Icons";
-import { deleteProductAction } from "@/app/admin/actions";
+import ActionMessage from "@/components/admin/ActionMessage";
+import { deleteProductAction, type ActionState } from "@/app/admin/actions";
 
 function StatusBadge({ status }: { status: string }) {
   const baseClasses = "rounded-full px-2.5 py-1 text-xs font-semibold";
@@ -24,6 +27,30 @@ type ProductsClientProps = {
 };
 
 export default function ProductsClient({ products, editingId = null }: ProductsClientProps) {
+  const router = useRouter();
+  const [state, setState] = useState<ActionState | null>(null);
+  const [isDeleting, startDeleting] = useTransition();
+
+  // A delete that failed used to replace the whole page with the app's error
+  // screen. Report it above the table instead and leave the list standing.
+  const handleDelete = (product: Product) => {
+    if (!window.confirm(`Delete ${product.name}? This cannot be undone.`)) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("id", product.id);
+
+    startDeleting(async () => {
+      const result = await deleteProductAction(state, formData);
+      setState(result.ok ? { ...result, message: `Deleted ${product.name}.` } : result);
+
+      if (result.ok) {
+        router.refresh();
+      }
+    });
+  };
+
   if (products.length === 0) {
     return (
       <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
@@ -34,7 +61,9 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
   }
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+    <div className="mt-6 space-y-4">
+      <ActionMessage state={state} />
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
           <tr>
@@ -76,29 +105,22 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                     <PencilIcon className="h-4 w-4" />
                     Edit
                   </Link>
-                  <form
-                    action={deleteProductAction}
-                    onSubmit={(event) => {
-                      if (!window.confirm(`Delete ${product.name}? This cannot be undone.`)) {
-                        event.preventDefault();
-                      }
-                    }}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(product)}
+                    disabled={isDeleting}
+                    aria-label={`Delete ${product.name}`}
+                    className="inline-grid h-9 w-9 place-items-center rounded-full border border-red-200 text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <input type="hidden" name="id" value={product.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Delete ${product.name}`}
-                      className="inline-grid h-9 w-9 place-items-center rounded-full border border-red-200 text-red-700 transition hover:bg-red-50"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </form>
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
