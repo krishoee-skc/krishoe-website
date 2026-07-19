@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
@@ -9,6 +9,7 @@ import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
 import { reportError } from "@/lib/report-error";
+import { pwaMetadata, pwaViewport } from "@/lib/pwa";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
 import type { Product } from "@/lib/products";
 import "./globals.css";
@@ -26,8 +27,11 @@ const display = Fraunces({
   display: "swap",
 });
 
+export const viewport: Viewport = pwaViewport;
+
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
+  ...pwaMetadata,
   title: siteConfig.defaultTitle,
   description: siteConfig.description,
   applicationName: "KRISHOE",

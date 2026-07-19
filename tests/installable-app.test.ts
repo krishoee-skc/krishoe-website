@@ -2,6 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
+import { pwaMetadata, pwaViewport } from "@/lib/pwa";
 
 // What makes the site installable on a phone rather than merely bookmarkable.
 // It shipped for months with only favicon.ico listed, so Android never offered
@@ -39,6 +40,34 @@ describe("the manifest meets the install requirements", () => {
 
   it("declares a maskable icon so the mark is not cropped into", () => {
     expect((app.icons ?? []).some((icon) => icon.purpose === "maskable")).toBe(true);
+  });
+});
+
+// iOS does not read the whole manifest the way Android does. Without these,
+// adding KRISHOE to an iPhone home screen opened it inside Safari, address bar
+// and all — the same page, but not the app.
+describe("iPhone opens it as an app, not a Safari tab", () => {
+  it("declares itself web-app capable", () => {
+    expect(pwaMetadata.appleWebApp).toMatchObject({ capable: true });
+  });
+
+  it("keeps the apple-prefixed tag for Safari before iOS 17", () => {
+    // Next's `capable: true` emits only the modern `mobile-web-app-capable`.
+    // Older Safari reads the apple-prefixed name and nothing else.
+    expect(pwaMetadata.other?.["apple-mobile-web-app-capable"]).toBe("yes");
+  });
+
+  it("names the home screen icon", () => {
+    expect(pwaMetadata.appleWebApp).toMatchObject({ title: "KRISHOE" });
+  });
+
+  it("colours the status bar for both themes", () => {
+    const themeColor = pwaViewport.themeColor;
+
+    expect(Array.isArray(themeColor)).toBe(true);
+    expect(themeColor).toHaveLength(2);
+    // A single colour leaves a white strip above a dark page.
+    expect(JSON.stringify(themeColor)).toContain("prefers-color-scheme: dark");
   });
 });
 
