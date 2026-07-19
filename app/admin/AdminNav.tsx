@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   HomeIcon,
   PackageIcon,
@@ -47,10 +48,13 @@ export default function AdminNav({
   return (
     <div className="hidden border-r bg-white lg:block print:hidden">
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-[60px] items-center border-b px-6">
+        <div className="flex h-[60px] items-center justify-between gap-2 border-b px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
             <span className="">KRISHOE Admin</span>
           </Link>
+          {/* The admin is where the owner spends the evening, so the switch
+              belongs here too, not only on the shop. */}
+          <ThemeToggle />
         </div>
         <div className="px-4 pt-4">
           <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">

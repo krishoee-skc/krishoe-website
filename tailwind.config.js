@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Driven by a class on <html>, not the OS alone, so the shop's own toggle can
+  // override what the phone is set to. The toggle still starts from the OS
+  // preference when nothing has been chosen.
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",

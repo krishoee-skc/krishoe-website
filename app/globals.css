@@ -5,6 +5,36 @@
 :root {
   --background: #ffffff;
   --foreground: #10231d;
+
+  /* Named by what they are for, not what colour they are, so the dark block
+     below only has to restate values. */
+  --surface: #ffffff;        /* cards, panels, table bodies */
+  --surface-sunken: #f9fafb; /* table headers, muted strips */
+  --surface-raised: #f5f7f4; /* hover fills, quiet chips */
+  --hairline: #e5e7eb;       /* borders between rows and cards */
+  --hairline-soft: #f3f4f6;
+  --ink: #10231d;            /* headings */
+  --ink-body: #374151;
+  --ink-muted: #6b7280;      /* labels, captions */
+  --ink-faint: #9ca3af;
+}
+
+.dark {
+  --background: #0d1714;
+  --foreground: #e8efea;
+
+  /* Dark greens rather than neutral greys: the brand is a deep green and a flat
+     charcoal next to it reads as a different product. Contrast against
+     --ink-body and --ink-muted stays above 4.5:1. */
+  --surface: #13221d;
+  --surface-sunken: #0f1c18;
+  --surface-raised: #1b2f28;
+  --hairline: #2a4139;
+  --hairline-soft: #1e332c;
+  --ink: #e8efea;
+  --ink-body: #cbd8d1;
+  --ink-muted: #9baba3;
+  --ink-faint: #7d8d85;
 }
 
 body {
@@ -38,6 +68,111 @@ html {
     @apply border-brand-green;
   }
 }
+
+/* Dark mode, retrofitted.
+   ------------------------------------------------------------------
+   The app paints its surfaces with the Tailwind neutrals directly —
+   bg-white, text-gray-500, border-gray-200 — in around eight hundred places.
+   Hand-writing a `dark:` variant beside each one would be eight hundred chances
+   to miss one and leave white text on a white card.
+
+   So the neutrals are re-pointed at the theme variables instead. Fifteen rules
+   below cover every one of those sites, and any new component written in the
+   same house style is themed the day it is added, without anyone remembering
+   to. `.dark` on <html> outranks a bare utility class, so no !important.
+
+   Where a component genuinely needs different colours in the two themes, a
+   normal `dark:` utility still wins — these are the floor, not a ceiling. */
+.dark .bg-white { background-color: var(--surface); }
+.dark .bg-gray-50 { background-color: var(--surface-sunken); }
+.dark .bg-gray-100 { background-color: var(--surface-raised); }
+
+/* The near-opaque whites are page furniture — the sticky header, the mobile tab
+   bar, the admin canvas — and stay white without these, leaving a bright band
+   across an otherwise dark page. The low-opacity whites are deliberately NOT
+   listed: bg-white/10 and bg-white/20 are tints laid over dark green panels
+   that already carry white text, and darkening those would hide it. */
+.dark .bg-white\/95 { background-color: rgb(19 34 29 / 0.95); }
+.dark .bg-white\/70 { background-color: rgb(27 47 40 / 0.7); }
+.dark .bg-gray-50\/40 { background-color: rgb(15 28 24 / 0.4); }
+
+.dark .text-gray-900,
+.dark .text-gray-800 { color: var(--ink); }
+.dark .text-gray-700,
+.dark .text-gray-600 { color: var(--ink-body); }
+.dark .text-gray-500 { color: var(--ink-muted); }
+.dark .text-gray-400,
+.dark .text-gray-300 { color: var(--ink-faint); }
+
+.dark .border-gray-200,
+.dark .border-gray-300 { border-color: var(--hairline); }
+.dark .border-gray-100 { border-color: var(--hairline-soft); }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--hairline); }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--hairline-soft); }
+
+/* A hairline drawn as a tint of black disappears against a dark surface. */
+.dark .border-black\/10,
+.dark .border-black\/15 { border-color: rgb(255 255 255 / 0.14); }
+.dark .bg-black\/10 { background-color: rgb(255 255 255 / 0.08); }
+.dark .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(255 255 255 / 0.14); }
+
+/* Brand surfaces. The greens and golds themselves keep their identity — a shop
+   is recognisable by its colour — but the pale tints exist to sit behind text
+   and have to darken or they blind. */
+.dark .bg-brand-mist,
+.dark .bg-brand-green-mist { background-color: var(--surface-raised); }
+.dark .bg-brand-green-tint,
+.dark .bg-brand-green-wash { background-color: #16302a; }
+.dark .bg-brand-cream-soft { background-color: #2c2617; }
+.dark .bg-brand-clay-tint,
+.dark .bg-brand-clay-mist { background-color: #33201d; }
+.dark .border-brand-green-line { border-color: var(--hairline); }
+
+/* Ink named for the brand is still ink: on a dark surface it has to invert or
+   it is black-on-black. This is the single most common text class in the app. */
+.dark .text-brand-green-ink { color: var(--ink); }
+.dark .text-brand-muted,
+.dark .text-brand-muted-deep { color: var(--ink-body); }
+.dark .text-brand-muted-soft { color: var(--ink-muted); }
+/* The mid-tone green and clay lose their contrast on a dark ground; lift them
+   rather than swapping them for a different hue. */
+.dark .text-brand-green { color: #5fbf9a; }
+.dark .text-brand-clay { color: #e59a8d; }
+.dark .text-brand-gold-deep,
+.dark .text-brand-gold-ink { color: #d4af37; }
+
+/* The exception that proves why the rule above is written as a floor.
+   Twenty-five buttons read `bg-brand-gold-bright text-brand-green-ink`, and
+   five more set it without a hover — a dark label on a bright gold fill. The
+   gold is brand identity and stays gold in both themes, so lifting its label to
+   near-white the way every other .text-brand-green-ink is lifted would put pale
+   text on a pale button. These pin the label back down; being two classes deep
+   they outrank the single-class rule without !important. */
+.dark .bg-brand-gold-bright.text-brand-green-ink,
+.dark .bg-brand-gold.text-brand-green-ink,
+.dark .bg-brand-cream.text-brand-green-ink,
+.dark .hover\:bg-brand-gold-bright.hover\:text-brand-green-ink:hover { color: #10231d; }
+
+/* Hover fills are separate classes, so they need saying separately or a row
+   flashes back to white under the cursor. */
+.dark .hover\:bg-brand-mist:hover,
+.dark .hover\:bg-gray-50:hover { background-color: var(--surface-raised); }
+.dark .hover\:bg-white:hover { background-color: var(--surface); }
+/* hover:text-brand-green-ink is deliberately not lifted here: twenty-five of
+   its twenty-six uses sit on the gold fill handled above, so lifting it would
+   break far more than it fixed. */
+
+.dark .form-input {
+  background-color: var(--surface-sunken);
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+.dark .form-input::placeholder { color: var(--ink-faint); }
+
+/* Photographs are shot on white. Left alone they glare; knocking the brightness
+   back a little lets them sit on a dark page without washing it out. */
+.dark img:not([src$=".svg"]) { filter: brightness(0.92); }
 
 ::selection {
   background: #c8a04d;

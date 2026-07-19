@@ -4,6 +4,7 @@ import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
 import BottomTabBar from "@/components/BottomTabBar";
+import { themeBootScript } from "@/components/ThemeToggle";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
@@ -95,6 +96,9 @@ export default async function RootLayout({
       className={`h-full antialiased ${sans.variable} ${display.variable}`}
     >
       <head>
+        {/* Before the first paint, so the page never renders light and then
+            flips. See components/ThemeToggle.tsx. */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <StructuredData metadata={metadata} products={products} />
       </head>
       <body className="min-h-full flex flex-col">

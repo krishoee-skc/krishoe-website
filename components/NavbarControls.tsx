@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { HeartIcon, MenuIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import CommandSearch from "@/components/CommandSearch";
+import ThemeToggle from "@/components/ThemeToggle";
 import { isActivePath, navLinks } from "@/components/nav-links";
 
 type NavbarControlsProps = {
@@ -33,6 +34,8 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   return (
     <div className="flex items-center gap-2">
       <CommandSearch />
+
+      <ThemeToggle />
 
       <Link
         href="/wishlist"
