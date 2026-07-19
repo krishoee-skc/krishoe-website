@@ -1,4 +1,9 @@
 import { readFile } from "node:fs/promises";
+import {
+  applyLedgerTransactionToBalances,
+  assertLedgerTransactionAllowed,
+  reverseLedgerTransactionFromBalances,
+} from "@/lib/ledger-rules";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
@@ -1085,28 +1090,8 @@ export async function addLedgerTransaction(
         note: transaction.note.trim(),
       };
 
-      if (record.type === "Cash Payment") {
-        ledger.cashPaid += amount;
-        ledger.balanceDue = Math.max(0, ledger.balanceDue - amount);
-      }
-
-      if (record.type === "Cheque Payment") {
-        ledger.chequePaid += amount;
-        ledger.balanceDue = Math.max(0, ledger.balanceDue - amount);
-      }
-
-      if (record.type === "Credit Sale") {
-        ledger.creditGiven += amount;
-        ledger.balanceDue += amount;
-      }
-
-      if (record.type === "Return Adjustment") {
-        ledger.balanceDue = Math.max(0, ledger.balanceDue - amount);
-      }
-
-      if (record.type === "Manual Adjustment") {
-        ledger.balanceDue += amount;
-      }
+      assertLedgerTransactionAllowed(ledger, record);
+      Object.assign(ledger, applyLedgerTransactionToBalances(ledger, record));
 
       ledger.lastTransaction = today();
       data.ledgerTransactions.unshift(record);
@@ -1448,29 +1433,7 @@ export async function deleteOperationRecord(kind: OperationRecordKind, id: strin
           const ledger = data.customerLedgers.find((item) => item.id === transaction.ledgerId);
 
           if (ledger) {
-            if (transaction.type === "Cash Payment") {
-              ledger.cashPaid = Math.max(0, ledger.cashPaid - transaction.amount);
-              ledger.balanceDue += transaction.amount;
-            }
-
-            if (transaction.type === "Cheque Payment") {
-              ledger.chequePaid = Math.max(0, ledger.chequePaid - transaction.amount);
-              ledger.balanceDue += transaction.amount;
-            }
-
-            if (transaction.type === "Credit Sale") {
-              ledger.creditGiven = Math.max(0, ledger.creditGiven - transaction.amount);
-              ledger.balanceDue = Math.max(0, ledger.balanceDue - transaction.amount);
-            }
-
-            if (transaction.type === "Return Adjustment") {
-              ledger.balanceDue += transaction.amount;
-            }
-
-            if (transaction.type === "Manual Adjustment") {
-              ledger.balanceDue = Math.max(0, ledger.balanceDue - transaction.amount);
-            }
-
+            Object.assign(ledger, reverseLedgerTransactionFromBalances(ledger, transaction));
             ledger.lastTransaction = today();
           }
         }

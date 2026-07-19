@@ -1,5 +1,10 @@
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 // The same rules the local-json backend runs, and the ones the tests cover.
+import {
+  applyLedgerTransactionToBalances,
+  assertLedgerTransactionAllowed,
+  reverseLedgerTransactionFromBalances,
+} from "@/lib/ledger-rules";
 import { withStockMovementApplied, withStockMovementReversed } from "@/lib/stock-rules";
 import type {
   CustomerLedger,
@@ -942,70 +947,22 @@ export async function insertStockMovement(
   return stockMovementFromRow(rows[0]);
 }
 
+// Both sides call the shared rules in lib/ledger-rules.ts. They used to hold
+// their own copy of this arithmetic, identical to the local-json one and just
+// as wrong, but only this copy is what production actually runs.
 function applyLedgerTransaction(
   ledger: CustomerLedger,
   transaction: Pick<LedgerTransaction, "type" | "amount">,
 ) {
-  const nextLedger = { ...ledger };
-
-  if (transaction.type === "Cash Payment") {
-    nextLedger.cashPaid += transaction.amount;
-    nextLedger.balanceDue = Math.max(0, nextLedger.balanceDue - transaction.amount);
-  }
-
-  if (transaction.type === "Cheque Payment") {
-    nextLedger.chequePaid += transaction.amount;
-    nextLedger.balanceDue = Math.max(0, nextLedger.balanceDue - transaction.amount);
-  }
-
-  if (transaction.type === "Credit Sale") {
-    nextLedger.creditGiven += transaction.amount;
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  if (transaction.type === "Return Adjustment") {
-    nextLedger.balanceDue = Math.max(0, nextLedger.balanceDue - transaction.amount);
-  }
-
-  if (transaction.type === "Manual Adjustment") {
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  nextLedger.lastTransaction = today();
-  return nextLedger;
+  assertLedgerTransactionAllowed(ledger, transaction);
+  return { ...applyLedgerTransactionToBalances(ledger, transaction), lastTransaction: today() };
 }
 
 function reverseLedgerTransaction(
   ledger: CustomerLedger,
   transaction: Pick<LedgerTransaction, "type" | "amount">,
 ) {
-  const nextLedger = { ...ledger };
-
-  if (transaction.type === "Cash Payment") {
-    nextLedger.cashPaid = Math.max(0, nextLedger.cashPaid - transaction.amount);
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  if (transaction.type === "Cheque Payment") {
-    nextLedger.chequePaid = Math.max(0, nextLedger.chequePaid - transaction.amount);
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  if (transaction.type === "Credit Sale") {
-    nextLedger.creditGiven = Math.max(0, nextLedger.creditGiven - transaction.amount);
-    nextLedger.balanceDue = Math.max(0, nextLedger.balanceDue - transaction.amount);
-  }
-
-  if (transaction.type === "Return Adjustment") {
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  if (transaction.type === "Manual Adjustment") {
-    nextLedger.balanceDue = Math.max(0, nextLedger.balanceDue - transaction.amount);
-  }
-
-  nextLedger.lastTransaction = today();
-  return nextLedger;
+  return { ...reverseLedgerTransactionFromBalances(ledger, transaction), lastTransaction: today() };
 }
 
 async function updateCustomerLedgerTotals(db: PostgresExecutor, ledger: CustomerLedger) {
