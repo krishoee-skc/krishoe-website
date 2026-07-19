@@ -1,4 +1,7 @@
-import { getOperationsData } from "@/lib/operations";
+import {
+  getOperationsData,
+  getOperationsDataForReports,
+} from "@/lib/operations";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { getPaymentTransactions, type PaymentTransaction } from "@/lib/payment-transactions";
 import {
@@ -118,7 +121,7 @@ export async function getPaymentReconciliation() {
   const [orders, transactions, operations] = await Promise.all([
     getOrders(),
     getPaymentTransactions(),
-    getOperationsData(),
+    getOperationsDataForReports(),
   ]);
   const sortedTransactions = sortByCreatedAt(transactions);
   const orderMap = new Map(orders.map((order) => [order.id, order]));

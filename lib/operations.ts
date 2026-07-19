@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { readFile } from "node:fs/promises";
+import { cacheBriefly } from "@/lib/brief-cache";
 import {
   applyLedgerTransactionToBalances,
   assertLedgerTransactionAllowed,
@@ -733,6 +735,31 @@ export async function getOperationsData(): Promise<OperationsData> {
   });
 }
 
+/**
+ * The same read, answered once per request.
+ *
+ * One load of the admin dashboard ran this ten-table read TWELVE times — 120
+ * of the 137 round trips the page made — because a dozen report builders each
+ * asked independently. Measured from the database's own statistics, not
+ * guessed: every operations table showed exactly 12 calls. On a serverless
+ * function, where each round trip pays for the network twice, that was the
+ * difference between one second and eight and a half.
+ *
+ * Deliberately NOT the default. Writers must not share a cached read:
+ * createPurchaseInvoice posts stock movements and then syncs the catalog from
+ * finished stock in the same request, and serving that sync the pre-purchase
+ * snapshot would leave the shop showing pairs it cannot sell — a bug already
+ * fixed once. So the cache is opt-in, and only read-only report paths take it.
+ */
+const readOperationsDataBriefly = cacheBriefly(getOperationsData);
+
+// A function declaration, not an exported const: this module sits in an import
+// cycle with lib/hr.ts, and a const's type does not survive that — it widened
+// getHrSnapshot to `any` all the way out to the HR page, which typecheck caught.
+export async function getOperationsDataForReports(): Promise<OperationsData> {
+  return readOperationsDataBriefly();
+}
+
 export async function addRawMaterial(material: Omit<RawMaterial, "id" | "used">) {
   const record: RawMaterial = {
     ...material,
@@ -1448,7 +1475,7 @@ export async function deleteOperationRecord(kind: OperationRecordKind, id: strin
 }
 
 export async function getOperationsSnapshot() {
-  const data = await getOperationsData();
+  const data = await getOperationsDataForReports();
   const fastMovingStock = [...data.finishedStock].sort((a, b) => b.soldPairs - a.soldPairs);
   const slowMovingStock = [...data.finishedStock].sort((a, b) => a.soldPairs - b.soldPairs);
   const stockMovementTotals = emptyStockMovementTotals();
@@ -1944,7 +1971,7 @@ export async function getOperationsSnapshot() {
 
 export async function getCustomerLedgerDetail(id: string) {
   const [data, paymentTransactions] = await Promise.all([
-    getOperationsData(),
+    getOperationsDataForReports(),
     getPaymentTransactionsByLedgerId(id),
   ]);
   const ledger = data.customerLedgers.find((item) => item.id === id);

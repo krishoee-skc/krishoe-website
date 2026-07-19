@@ -1,6 +1,9 @@
 import OrdersClient from "@/app/admin/OrdersClient";
 import { buildOnlineOrderConversionReport, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
-import { getOperationsData } from "@/lib/operations";
+import {
+  getOperationsData,
+  getOperationsDataForReports,
+} from "@/lib/operations";
 import { getPaymentTransactionsByOrderIds } from "@/lib/payment-transactions";
 import { getPosInvoices } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
@@ -16,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminOrdersPage() {
   const orders = await getOrders();
   const [operations, paymentTransactions, posInvoices, products] = await Promise.all([
-    getOperationsData(),
+    getOperationsDataForReports(),
     getPaymentTransactionsByOrderIds(orders.map((order) => order.id)),
     getPosInvoices(),
     getProducts({ includeDrafts: true }),

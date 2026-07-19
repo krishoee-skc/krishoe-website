@@ -8,6 +8,7 @@ import {
   getOperationsData,
   type BusinessChannel,
   type RawMaterial,
+  getOperationsDataForReports,
 } from "@/lib/operations";
 import { getPosSnapshot } from "@/lib/pos";
 import { billKindFromLines, billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
@@ -1040,7 +1041,7 @@ export async function getPurchasingSnapshot() {
   const [data, pos, operations] = await Promise.all([
     getPurchasingData(),
     getPosSnapshot(),
-    getOperationsData(),
+    getOperationsDataForReports(),
   ]);
   const todayPurchases = data.purchaseInvoices.filter((invoice) => isSameDay(invoice.createdAt));
   const monthPurchases = data.purchaseInvoices.filter((invoice) => isSameMonth(invoice.createdAt));

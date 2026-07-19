@@ -7,6 +7,7 @@ import {
   type MaterialConsumption,
   type ProductionBatch,
   type WorkerTask,
+  getOperationsDataForReports,
 } from "@/lib/operations";
 import { getPosInvoices, type PosInvoice, type PosInvoiceItem } from "@/lib/pos";
 import { getPurchasingData, type PurchaseInvoice } from "@/lib/purchasing";
@@ -933,7 +934,7 @@ function buildFinishedStockValuation(
 
 export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   const [operations, purchasing, posInvoices, settings, products] = await Promise.all([
-    getOperationsData(),
+    getOperationsDataForReports(),
     getPurchasingData(),
     getPosInvoices(),
     getCostingSettings(),

@@ -10,6 +10,7 @@ import {
   type LedgerTransaction,
   type OperationsData,
   type StockMovement,
+  getOperationsDataForReports,
 } from "@/lib/operations";
 import {
   createPosInvoicePostgres,
@@ -966,7 +967,7 @@ function buildRecentDayCloseReports(
 }
 
 export async function getPosSnapshot() {
-  const [invoices, operations] = await Promise.all([getPosInvoices(), getOperationsData()]);
+  const [invoices, operations] = await Promise.all([getPosInvoices(), getOperationsDataForReports()]);
   const active = activeInvoices(invoices);
   const today = active.filter((invoice) => isSameDay(invoice.createdAt));
   const month = active.filter((invoice) => isSameMonth(invoice.createdAt));

@@ -4,7 +4,11 @@ import { getCostingSettings } from "@/lib/costing-settings";
 import { getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getHrData, type HrData } from "@/lib/hr";
 import { getNotificationEvents } from "@/lib/notifications";
-import { getOperationsData, type OperationsData } from "@/lib/operations";
+import {
+  getOperationsData,
+  type OperationsData,
+  getOperationsDataForReports,
+} from "@/lib/operations";
 import { getPaymentTransactions } from "@/lib/payment-transactions";
 import { getPasswordResetTokensForBackup } from "@/lib/password-reset-store";
 import { getPosInvoices, type PosPaymentMethod } from "@/lib/pos";
@@ -218,7 +222,7 @@ export async function buildAdminBackup() {
     getContactMessages(),
     getUsersForBackup(),
     getPasswordResetTokensForBackup(),
-    getOperationsData(),
+    getOperationsDataForReports(),
     getPaymentTransactions(),
     getPosInvoices(),
     getPurchasingData(),
