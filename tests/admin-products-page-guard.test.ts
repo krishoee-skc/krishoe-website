@@ -13,6 +13,7 @@ vi.mock("@/lib/report-error", () => ({
 vi.mock("@/app/admin/products/actions", () => ({ syncProductCatalogStockAction: vi.fn() }));
 vi.mock("@/app/admin/ProductForm", () => ({ default: () => null }));
 vi.mock("@/app/admin/ProductsClient", () => ({ default: () => null }));
+vi.mock("@/components/admin/LoadFailure", () => ({ default: () => null }));
 
 const { default: AdminProductsPage } = await import("@/app/admin/products/page");
 

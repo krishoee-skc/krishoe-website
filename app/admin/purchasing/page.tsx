@@ -5,7 +5,10 @@ import {
   createSupplierTransactionAction,
 } from "@/app/admin/purchasing/actions";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
+import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot, type PurchaseInvoice, type SupplierAgingRisk } from "@/lib/purchasing";
 
@@ -85,12 +88,40 @@ function StatCard({
   );
 }
 
+// Three loads, and any one failing used to take the whole page to the shop's
+// retry screen. Next replaces a server error message with a bare digest in
+// production, so the reason never reached the owner — which is why "it says
+// quick retry again" could be reported three times and diagnosed none.
+async function loadPurchasing() {
+  try {
+    return {
+      data: await Promise.all([
+        getPurchasingSnapshot(),
+        getOperationsSnapshot(),
+        getProducts({ includeDrafts: true }),
+      ]),
+      error: "",
+    };
+  } catch (error) {
+    reportError("load the purchasing page", error);
+    return { data: null, error: saveFailureMessage(error, "Could not load purchasing.") };
+  }
+}
+
 export default async function AdminPurchasingPage() {
-  const [purchasing, operations, products] = await Promise.all([
-    getPurchasingSnapshot(),
-    getOperationsSnapshot(),
-    getProducts({ includeDrafts: true }),
-  ]);
+  const loaded = await loadPurchasing();
+
+  if (!loaded.data) {
+    return (
+      <LoadFailure
+        what="the purchase bills and suppliers"
+        message={loaded.error}
+        retryHref="/admin/purchasing"
+      />
+    );
+  }
+
+  const [purchasing, operations, products] = loaded.data;
   const productNames = [...new Set(products.map((product) => product.name))].sort((a, b) =>
     a.localeCompare(b),
   );
