@@ -18,7 +18,7 @@ function productForm(overrides: Record<string, string> = {}) {
   formData.set("id", "prod-1");
   formData.set("name", "Ladies Heel");
   formData.set("sku", "LH-01");
-  formData.set("priceValue", "120000");
+  formData.set("priceRupees", "1200");
   formData.set("image", "https://example.public.blob.vercel-storage.com/heel.jpg");
 
   for (const [key, value] of Object.entries(overrides)) {
@@ -70,6 +70,58 @@ describe("saving a product reports what happened", () => {
 
     expect(state.ok).toBe(false);
     expect(state.message).toContain("duplicate key");
+  });
+});
+
+// The form asked for paisa. Editing a Rs. 1,799 heel, the owner typed 5000 for
+// a Rs. 5,000 shoe — the natural reading — and the form was one press away from
+// saving it as Rs. 50, undercutting the shop a hundredfold with every field
+// looking correctly filled in. Nothing would have flagged it.
+describe("prices are entered in rupees", () => {
+  it("stores rupees as paisa", async () => {
+    await upsertProductAction(null, productForm({ priceRupees: "1799" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({
+      priceValue: 179_900,
+      price: "Rs. 1,799",
+    });
+  });
+
+  it("takes the wholesale rate in rupees too", async () => {
+    await upsertProductAction(null, productForm({ wholesalePriceRupees: "1300" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ wholesalePriceValue: 130_000 });
+  });
+
+  it("keeps paisa whole when a price has decimals", async () => {
+    await upsertProductAction(null, productForm({ priceRupees: "1799.99" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ priceValue: 179_999 });
+  });
+
+  it("treats a blank wholesale rate as none", async () => {
+    await upsertProductAction(null, productForm({ wholesalePriceRupees: "" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ wholesalePriceValue: 0 });
+  });
+
+  it("refuses to read a negative or nonsense price as a price", async () => {
+    for (const entered of ["-500", "abc"]) {
+      upsertProduct.mockClear();
+      await upsertProductAction(null, productForm({ priceRupees: entered }));
+
+      expect(upsertProduct.mock.calls[0][0]).toMatchObject({ priceValue: 0 });
+    }
+  });
+
+  // What the owner actually typed, and what it must now mean.
+  it("reads 5000 as Rs. 5,000 and not Rs. 50", async () => {
+    await upsertProductAction(null, productForm({ priceRupees: "5000" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({
+      priceValue: 500_000,
+      price: "Rs. 5,000",
+    });
   });
 });
 

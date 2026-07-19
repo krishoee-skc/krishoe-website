@@ -84,9 +84,24 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             ))}
           </select>
         </label>
+        {/* Asked for in rupees, stored in paisa.
+            This said "Price (paisa)" and expected 179900 for a Rs. 1,799 heel.
+            Nobody prices stock in paisa, so the owner typed 5000 for a
+            Rs. 5,000 shoe — which would have saved as Rs. 50 and undercut the
+            shop by a factor of a hundred, silently, with the form looking
+            perfectly filled in. */}
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Price (paisa)</span>
-          <input name="priceValue" defaultValue={product?.priceValue} type="number" required className="form-input" />
+          <span className="text-sm font-medium">Price (Rs.)</span>
+          <input
+            name="priceRupees"
+            defaultValue={product ? product.priceValue / 100 : ""}
+            type="number"
+            min={0}
+            step="0.01"
+            required
+            className="form-input"
+            placeholder="1799"
+          />
         </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">Stock</span>
@@ -96,12 +111,13 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Wholesale Price (paisa)</span>
+          <span className="text-sm font-medium">Wholesale Price (Rs.)</span>
           <input
-            name="wholesalePriceValue"
-            defaultValue={product?.wholesalePriceValue ?? 0}
+            name="wholesalePriceRupees"
+            defaultValue={product?.wholesalePriceValue ? product.wholesalePriceValue / 100 : ""}
             type="number"
             min={0}
+            step="0.01"
             className="form-input"
             placeholder="0 = no wholesale rate"
           />

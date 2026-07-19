@@ -79,6 +79,20 @@ function numberValue(formData: FormData, key: string) {
   return Math.max(0, Math.round(Number(textValue(formData, key)) || 0));
 }
 
+// Prices are stored in paisa so no arithmetic ever meets a fraction of a rupee,
+// but they are entered in rupees, because that is the only unit anyone running
+// a shop thinks in. Rounding here is what keeps "1799.5" from becoming
+// 179949.99999 paisa.
+function paisaFromRupees(formData: FormData, key: string) {
+  const rupees = Number(textValue(formData, key));
+
+  if (!Number.isFinite(rupees) || rupees <= 0) {
+    return 0;
+  }
+
+  return Math.round(rupees * 100);
+}
+
 function optionValue<T extends string>(value: string, options: readonly T[], fallback: T) {
   return options.includes(value as T) ? (value as T) : fallback;
 }
@@ -301,7 +315,7 @@ export async function upsertProductAction(
 
   const categorySlug = textValue(formData, "categorySlug") || categories[0].slug;
   const category = categories.find((item) => item.slug === categorySlug) ?? categories[0];
-  const priceValue = Math.max(0, Number(textValue(formData, "priceValue")) || 0);
+  const priceValue = paisaFromRupees(formData, "priceRupees");
   const image = textValue(formData, "image") || category.image;
   const id = textValue(formData, "id") || crypto.randomUUID();
   const name = textValue(formData, "name") || "Untitled Product";
@@ -314,7 +328,7 @@ export async function upsertProductAction(
     categorySlug,
     price: `Rs. ${(priceValue / 100).toLocaleString("en-IN")}`,
     priceValue,
-    wholesalePriceValue: Math.max(0, Number(textValue(formData, "wholesalePriceValue")) || 0),
+    wholesalePriceValue: paisaFromRupees(formData, "wholesalePriceRupees"),
     minWholesaleQty: Math.max(1, Number(textValue(formData, "minWholesaleQty")) || 1),
     image,
     gallery: listValue(formData, "gallery").length > 0 ? listValue(formData, "gallery") : [image],
