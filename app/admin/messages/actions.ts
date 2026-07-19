@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { updateContactStatus, type ContactSubmission } from "@/lib/submissions";
 
@@ -29,10 +29,10 @@ export async function updateMessageStatusAction(formData: FormData) {
   }
 
   await updateContactStatus(id, status);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "message_status_update",
     `Contact message ${id} marked ${status}.`,
-  ).catch(() => undefined);
+  );
   revalidatePath("/admin/messages");
   revalidatePath("/admin/activity");
 }

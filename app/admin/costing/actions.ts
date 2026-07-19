@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   laborRateFieldName,
@@ -53,10 +53,10 @@ export async function updateCostingSettingsAction(formData: FormData) {
     note: textValue(formData, "note"),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "costing_settings_update",
     "Factory labor and overhead costing settings updated.",
-  ).catch(() => undefined);
+  );
 
   refreshCostingPage();
 }

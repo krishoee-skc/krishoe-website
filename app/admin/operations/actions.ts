@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
@@ -116,7 +116,7 @@ function optionValue<T extends string>(value: string, options: readonly T[], fal
 }
 
 async function auditOperationsAction(action: string, detail: string) {
-  await appendAdminAuditEvent(action, detail).catch(() => undefined);
+  await recordAdminAuditEvent(action, detail);
 }
 
 function operationsReturnPath(formData: FormData) {

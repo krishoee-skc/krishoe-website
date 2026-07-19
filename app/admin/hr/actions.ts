@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   addAttendanceRecord,
@@ -90,9 +90,7 @@ export async function createEmployeeAction(formData: FormData) {
 
   const employee = await addEmployee(input);
 
-  await appendAdminAuditEvent("hr_employee_create", `Employee ${employee.name} created.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("hr_employee_create", `Employee ${employee.name} created.`);
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -108,9 +106,7 @@ export async function updateEmployeeAction(formData: FormData) {
   }
 
   const employee = await updateEmployee(id, input);
-  await appendAdminAuditEvent("hr_employee_update", `Employee ${employee.name} updated.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("hr_employee_update", `Employee ${employee.name} updated.`);
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -126,10 +122,10 @@ export async function updateEmployeeStatusAction(formData: FormData) {
   }
 
   const employee = await updateEmployeeStatus(id, status);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "hr_employee_status_update",
     `Employee ${employee.name} marked ${employee.status}.`,
-  ).catch(() => undefined);
+  );
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -153,10 +149,10 @@ export async function createAttendanceAction(formData: FormData) {
     note: textValue(formData, "note"),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "hr_attendance_record",
     `${attendance.employeeName} attendance marked ${attendance.status} for ${attendance.workDate}.`,
-  ).catch(() => undefined);
+  );
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -173,11 +169,11 @@ export async function importFingerprintAttendanceAction(formData: FormData) {
   const result = await importFingerprintAttendanceCsv(csv);
   const errorPreview = result.errors.slice(0, 5).join(" | ");
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "hr_fingerprint_attendance_import",
     `Fingerprint attendance import: ${result.imported} days imported, ${result.skipped} rows skipped, ${result.matchedByFingerprint} fingerprint matches, ${result.matchedByName} name matches.${errorPreview ? ` Errors: ${errorPreview}` : ""}`,
     result.skipped > 0 || result.errors.length > 0 ? "warning" : "success",
-  ).catch(() => undefined);
+  );
 
   const feedback = new URLSearchParams({
     hrImport: "1",
@@ -204,10 +200,10 @@ export async function updatePayrollStatusAction(formData: FormData) {
   }
 
   const payroll = await updatePayrollStatus(id, status);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "hr_payroll_status_update",
     `${payroll.periodLabel} payroll for ${payroll.employeeName} marked ${payroll.status}.`,
-  ).catch(() => undefined);
+  );
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -223,9 +219,7 @@ export async function deleteHrRecordAction(formData: FormData) {
   }
 
   await deleteHrRecord(kind, id);
-  await appendAdminAuditEvent("hr_record_delete", `${kind} ${id} deleted.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("hr_record_delete", `${kind} ${id} deleted.`);
 
   refreshHrPage(hrNextPath(formData));
 }
@@ -252,10 +246,10 @@ export async function createPayrollAction(formData: FormData) {
     note: textValue(formData, "note"),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "hr_payroll_record",
     `${payroll.periodLabel} payroll recorded for ${payroll.employeeName}: Rs. ${payroll.netPay}.`,
-  ).catch(() => undefined);
+  );
 
   refreshHrPage(hrNextPath(formData));
 }

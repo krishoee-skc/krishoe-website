@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   deleteProductReview,
@@ -41,10 +41,10 @@ export async function updateReviewStatusAction(formData: FormData) {
   }
 
   const { product, review } = await updateProductReviewStatus(productId, reviewId, status);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "review_status_update",
     `Review ${review.id} for ${product.name} marked ${status}.`,
-  ).catch(() => undefined);
+  );
   revalidateReviewPaths(productId);
 }
 
@@ -59,10 +59,10 @@ export async function deleteReviewAction(formData: FormData) {
   }
 
   const { product, review } = await deleteProductReview(productId, reviewId);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "review_delete",
     `Review ${review.id} for ${product.name} deleted.`,
     "warning",
-  ).catch(() => undefined);
+  );
   revalidateReviewPaths(productId);
 }

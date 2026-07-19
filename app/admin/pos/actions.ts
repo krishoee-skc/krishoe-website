@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   createPosInvoice,
@@ -98,10 +98,10 @@ export async function createPosInvoiceAction(formData: FormData) {
     items: invoiceItems(formData),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "pos_create_invoice",
     `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
-  ).catch(() => undefined);
+  );
 
   revalidatePath("/admin");
   revalidatePath("/admin/pos");
@@ -123,12 +123,12 @@ export async function repairPosInvoicePostingAction(formData: FormData) {
 
   const result = await repairPosInvoicePosting(id);
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "pos_repair_posting",
     `${result.invoice.invoiceNumber} posting repaired with ${result.createdStockMovementIds.length} stock movement(s)${
       result.createdLedgerTransactionId ? " and 1 ledger transaction" : ""
     }.`,
-  ).catch(() => undefined);
+  );
 
   revalidatePath("/admin");
   revalidatePath("/admin/pos");

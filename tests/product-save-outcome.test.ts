@@ -8,7 +8,7 @@ vi.mock("@/lib/product-store", () => ({
   removeProduct: (...args: unknown[]) => removeProduct(...args),
 }));
 vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn() }));
-vi.mock("@/lib/admin-audit", () => ({ appendAdminAuditEvent: vi.fn() }));
+vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { deleteProductAction, upsertProductAction } from "@/app/admin/actions";

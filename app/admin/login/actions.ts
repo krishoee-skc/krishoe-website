@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { getConfiguredAdminRole } from "@/lib/admin-permissions";
 import {
   checkLoginRateLimit,
@@ -60,7 +60,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
   }
 
   if (rateLimit.limited) {
-    await appendAdminAuditEvent(
+    await recordAdminAuditEvent(
       "login_rate_limited",
       `Admin login blocked for ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
       "warning",
@@ -77,7 +77,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
 
     if (!staff) {
       await recordFailedLogin(key);
-      await appendAdminAuditEvent(
+      await recordAdminAuditEvent(
         "login_failed",
         `Invalid staff login attempt for ${email}.`,
         "warning",
@@ -97,7 +97,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
         branchId: staff.branchId,
       }),
     );
-    await appendAdminAuditEvent(
+    await recordAdminAuditEvent(
       "login_success",
       `Staff ${staff.name} signed in with ${staff.role} role.`,
       "success",
@@ -122,7 +122,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
 
   if (!constantTimeEqual(password, expectedPassword)) {
     await recordFailedLogin(key);
-    await appendAdminAuditEvent(
+    await recordAdminAuditEvent(
       "login_failed",
       "Invalid admin password attempt.",
       "warning",
@@ -134,7 +134,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
 
   await clearLoginRateLimit(key);
   await setAdminSessionCookie(await createAdminSessionToken());
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "login_success",
     "Admin session created.",
     "success",
@@ -148,7 +148,7 @@ export async function logoutAdminAction() {
   const session = await getAdminSession();
 
   if (session) {
-    await appendAdminAuditEvent("logout", "Admin session cleared.");
+    await recordAdminAuditEvent("logout", "Admin session cleared.");
   }
 
   await clearAdminSessionCookie();

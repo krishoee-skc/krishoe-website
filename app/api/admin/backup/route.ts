@@ -1,4 +1,4 @@
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { buildAdminBackup } from "@/lib/backup";
 
@@ -8,10 +8,10 @@ export async function GET() {
   await requireAdminPermission("backup:export");
 
   const backup = await buildAdminBackup();
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "backup_export",
     `Admin backup schema v${backup.schemaVersion} exported.`,
-  ).catch(() => undefined);
+  );
 
   return Response.json(backup, {
     headers: {

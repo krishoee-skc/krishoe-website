@@ -1,6 +1,6 @@
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
-  appendAdminAuditEvent,
+  recordAdminAuditEvent,
   filterAdminAuditEvents,
   getAdminAuditEvents,
   hasAdminAuditFilters,
@@ -21,10 +21,10 @@ export async function GET(request: Request) {
   const filters = normalizeAdminAuditFilters(searchParams);
   const filtered = hasAdminAuditFilters(filters);
   const events = filterAdminAuditEvents(await getAdminAuditEvents(500), filters);
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "activity_export",
     `${events.length} admin activity rows exported as CSV${filtered ? " with filters" : ""}.`,
-  ).catch(() => undefined);
+  );
 
   return csvResponse(
     datedFilename(filtered),

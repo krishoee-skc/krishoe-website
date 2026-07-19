@@ -1,5 +1,6 @@
 import { createPostgresAdapterPendingError, getDataBackendConfig } from "@/lib/data-backend";
 import { isRetryableConnectionError } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import { Pool, type QueryResultRow } from "pg";
 
 export { isRetryableConnectionError };
@@ -126,7 +127,13 @@ export async function transactionPostgres<T>(
       await client.query("COMMIT");
       return result;
     } catch (error) {
-      await client.query("ROLLBACK").catch(() => undefined);
+      // The original error is what the caller needs, so a failed ROLLBACK must
+      // not replace it — but it must not vanish either. If the rollback did not
+      // land, the connection is being released in an unknown state and that is
+      // worth knowing about.
+      await client.query("ROLLBACK").catch((rollbackError) => {
+        reportError("roll back a failed postgres transaction", rollbackError);
+      });
       throw error;
     } finally {
       client.release();

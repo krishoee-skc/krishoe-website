@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   addSupplierLedger,
@@ -79,9 +79,7 @@ export async function createSupplierLedgerAction(formData: FormData) {
     phone: textValue(formData, "phone"),
     materialFocus: textValue(formData, "materialFocus"),
   });
-  await appendAdminAuditEvent("supplier_create", `Supplier ${supplierName} created.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("supplier_create", `Supplier ${supplierName} created.`);
 
   refreshPurchasingPage(textValue(formData, "returnTo"));
 }
@@ -149,10 +147,10 @@ export async function createPurchaseInvoiceAction(formData: FormData) {
     note: textValue(formData, "note"),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "purchase_create_invoice",
     `${invoice.purchaseNumber} ${invoice.kind.toLowerCase()} purchase recorded: ${invoice.items.length} item(s), Rs. ${invoice.total}.`,
-  ).catch(() => undefined);
+  );
 
   const returnTo = textValue(formData, "returnTo");
 
@@ -184,10 +182,10 @@ export async function createSupplierTransactionAction(formData: FormData) {
     note: textValue(formData, "note"),
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "supplier_transaction_create",
     `${transaction.type} recorded for ${transaction.supplierName}: Rs. ${transaction.amount}.`,
-  ).catch(() => undefined);
+  );
 
   refreshPurchasingPage(textValue(formData, "returnTo"));
 }

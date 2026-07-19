@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   addCompanyBranch,
@@ -68,9 +68,7 @@ export async function saveCompanySettingsAction(formData: FormData) {
     timezone: textValue(formData, "timezone"),
     defaultBranchId: textValue(formData, "defaultBranchId"),
   });
-  await appendAdminAuditEvent("settings_company_update", `Company settings updated for ${companyName}.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("settings_company_update", `Company settings updated for ${companyName}.`);
 
   refreshSettingsPage();
 }
@@ -92,9 +90,7 @@ export async function createBranchAction(formData: FormData) {
     address: textValue(formData, "address"),
     status: optionValue(textValue(formData, "status"), companyBranchStatuses, "Active"),
   });
-  await appendAdminAuditEvent("settings_branch_create", `Branch ${branch.name} created.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("settings_branch_create", `Branch ${branch.name} created.`);
 
   refreshSettingsPage();
 }
@@ -118,10 +114,10 @@ export async function saveStaffAccountAction(formData: FormData) {
     branchId: textValue(formData, "branchId"),
     status: optionValue(textValue(formData, "status"), adminStaffStatuses, "Active"),
   });
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "settings_staff_save",
     `Staff ${staff.email} saved with ${staff.role} role.`,
-  ).catch(() => undefined);
+  );
 
   refreshSettingsPage();
 }
@@ -141,10 +137,10 @@ export async function updateStaffAccessAction(formData: FormData) {
     status: staff.status,
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "settings_staff_access_update",
     `Staff ${updatedStaff.email} access updated to ${updatedStaff.role}.`,
-  ).catch(() => undefined);
+  );
 
   refreshSettingsPage();
 }
@@ -169,10 +165,10 @@ export async function resetStaffPasswordAction(formData: FormData) {
     status: staff.status,
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "settings_staff_password_reset",
     `Staff ${updatedStaff.email} password reset by admin.`,
-  ).catch(() => undefined);
+  );
 
   refreshSettingsPage();
 }
@@ -191,10 +187,10 @@ export async function updateStaffStatusAction(formData: FormData) {
     status: nextStatus,
   });
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "settings_staff_status_update",
     `Staff ${updatedStaff.email} marked ${updatedStaff.status}.`,
-  ).catch(() => undefined);
+  );
 
   refreshSettingsPage();
 }

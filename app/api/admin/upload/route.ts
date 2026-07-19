@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { databaseImagesAvailable, saveDatabaseImage } from "@/lib/image-store";
 
@@ -164,10 +164,10 @@ export async function POST(request: Request) {
       storedTo = "local dev folder";
     }
 
-    await appendAdminAuditEvent(
+    await recordAdminAuditEvent(
       "product_photo_upload",
       `Uploaded product photo ${safeName} to ${storedTo}.`,
-    ).catch(() => undefined);
+    );
 
     // Only the dev filesystem photo fails to load on the live shop, so only that
     // one warns. Blob and database URLs both work there.

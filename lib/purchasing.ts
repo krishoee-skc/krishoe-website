@@ -12,7 +12,7 @@ import {
 import { getPosSnapshot } from "@/lib/pos";
 import { billKindFromLines, billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
-import { reportingErrors } from "@/lib/report-error";
+import { reportError, reportingErrors } from "@/lib/report-error";
 import {
   addSupplierLedgerToPostgres,
   addSupplierTransactionToPostgres,
@@ -812,7 +812,12 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
           }
         }
       } catch (error) {
-        await writePurchasingData(rollbackData).catch(() => undefined);
+        // A rollback that itself fails leaves the bill posted with its stock
+        // movements half applied — the one case where the books really are
+        // wrong. Report it loudly; the original error still reaches the caller.
+        await writePurchasingData(rollbackData).catch((rollbackError) => {
+          reportError("roll back a partly posted purchase bill", rollbackError);
+        });
         throw error;
       }
       return invoice;

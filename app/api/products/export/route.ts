@@ -1,4 +1,4 @@
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { getProducts } from "@/lib/product-store";
@@ -32,10 +32,10 @@ export async function GET() {
   await requireAdminPermission("exports:read");
 
   const products = await getProducts({ includeDrafts: true });
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "product_export",
     `${products.length} product rows exported as CSV.`,
-  ).catch(() => undefined);
+  );
   const csv = toCsv(
     productCsvHeaders,
     products.map((product) => [

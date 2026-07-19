@@ -5,6 +5,7 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { getConfiguredAdminRole } from "@/lib/admin-permissions";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
+import { reportError } from "@/lib/report-error";
 
 export type AdminAuditActor = {
   actorId?: string;
@@ -388,6 +389,28 @@ export async function appendAdminAuditEvent(
     },
     postgres: () => appendAdminAuditEventToPostgres(event),
   });
+}
+
+// Use this from anywhere that records an action as a side effect of a write
+// that has already happened. The audit trail must never decide whether the
+// write succeeded, so a failure here is reported and dropped rather than
+// surfaced to the admin as a failed save.
+//
+// Every caller used to spell this out as `.catch(() => undefined)`, which threw
+// the reason away — the trail could stop recording and nothing would ever say
+// so. Reporting is the whole difference: the write still stands, but the gap in
+// the trail is visible in the logs.
+export async function recordAdminAuditEvent(
+  action: string,
+  detail: string,
+  status: AdminAuditEvent["status"] = "success",
+  actor?: AdminAuditActor | null,
+) {
+  try {
+    await appendAdminAuditEvent(action, detail, status, actor);
+  } catch (error) {
+    reportError(`record admin audit event ${action}`, error);
+  }
 }
 
 export async function getAdminAuditEvents(limit = 20) {

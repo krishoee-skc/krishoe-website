@@ -1,4 +1,4 @@
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { buildOnlineOrderConversionReport } from "@/lib/order-pos";
@@ -48,10 +48,10 @@ export async function GET(request: Request) {
       posInvoices,
     });
 
-    await appendAdminAuditEvent(
+    await recordAdminAuditEvent(
       "order_conversion_export",
       `${conversionReport.rows.length} online order conversion rows exported as CSV.`,
-    ).catch(() => undefined);
+    );
 
     return csvResponse(
       datedFilename("conversion"),
@@ -92,9 +92,7 @@ export async function GET(request: Request) {
     );
   }
 
-  await appendAdminAuditEvent("order_export", `${orders.length} order rows exported as CSV.`).catch(
-    () => undefined,
-  );
+  await recordAdminAuditEvent("order_export", `${orders.length} order rows exported as CSV.`);
   const csv = toCsv(
     [
       "id",

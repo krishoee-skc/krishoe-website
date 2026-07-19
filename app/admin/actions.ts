@@ -28,7 +28,7 @@ import {
 import { removeProduct, upsertProduct } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 
 // Re-exported from the store rather than re-listed. Kept as a second hand-typed
@@ -91,16 +91,8 @@ function orderProviderFromPosPayment(paymentMethod: PosPaymentMethod): PaymentPr
   return "manual";
 }
 
-// The audit trail must never decide whether the write itself succeeded. This
-// runs after the row is already saved, so a failure here — including one thrown
-// before a promise is returned, which `.catch()` alone would miss — is logged
-// and dropped rather than shown to the admin as a failed save.
 async function auditAdminAction(action: string, detail: string) {
-  try {
-    await appendAdminAuditEvent(action, detail);
-  } catch (error) {
-    reportError(`record admin audit event ${action}`, error);
-  }
+  await recordAdminAuditEvent(action, detail);
 }
 
 export async function updateOrderStatusAction(

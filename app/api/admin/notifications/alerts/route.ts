@@ -1,4 +1,4 @@
-import { appendAdminAuditEvent } from "@/lib/admin-audit";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   createAndDeliverOperationalAlertNotifications,
@@ -39,13 +39,13 @@ export async function POST(request: Request) {
     ? await createAndDeliverOperationalAlertNotifications(limit)
     : await createOperationalAlertNotifications(limit);
 
-  await appendAdminAuditEvent(
+  await recordAdminAuditEvent(
     "operational_alert_notifications_api",
     deliver
       ? `Operational alert API created ${summary.created} notifications and delivered pending queue.`
       : `Operational alert API created ${summary.created} notifications and skipped ${summary.skippedExisting} existing alerts.`,
     summary.created > 0 ? "success" : undefined,
-  ).catch(() => undefined);
+  );
 
   return noStoreJson({
     mode: deliver ? "create-and-deliver" : "create",
