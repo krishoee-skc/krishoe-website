@@ -5,7 +5,10 @@ import { createPosInvoiceAction, repairPosInvoicePostingAction } from "@/app/adm
 import PosInvoiceItems from "@/app/admin/pos/_components/PosInvoiceItems";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
+import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import { getPosSnapshot, type PosInvoice } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
 
@@ -142,13 +145,37 @@ function RepairPostingButton({ invoiceId }: { invoiceId: string }) {
   );
 }
 
+// Four snapshots, the most of any admin page, and costing is the heaviest of
+// them — so this is the page most likely to be caught by a database that is
+// still waking up. Caught here, the real reason survives Next's redaction and
+// reaches the owner; thrown, it becomes a digest and nobody can act on it.
+async function loadPos() {
+  try {
+    return {
+      data: await Promise.all([
+        getPosSnapshot(),
+        getOperationsSnapshot(),
+        getProducts({ includeDrafts: true }),
+        getCostingSnapshot(),
+      ]),
+      error: "",
+    };
+  } catch (error) {
+    reportError("load the POS billing page", error);
+    return { data: null, error: saveFailureMessage(error, "Could not load POS billing.") };
+  }
+}
+
 export default async function AdminPosPage() {
-  const [pos, operations, products, costing] = await Promise.all([
-    getPosSnapshot(),
-    getOperationsSnapshot(),
-    getProducts({ includeDrafts: true }),
-    getCostingSnapshot(),
-  ]);
+  const loaded = await loadPos();
+
+  if (!loaded.data) {
+    return (
+      <LoadFailure what="POS billing" message={loaded.error} retryHref="/admin/pos" />
+    );
+  }
+
+  const [pos, operations, products, costing] = loaded.data;
   const designOptions = [
     ...new Set([
       ...operations.finishedStock.map((stock) => stock.design),
