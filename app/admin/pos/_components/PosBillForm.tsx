@@ -9,13 +9,21 @@ import { posLineIssue } from "@/lib/pos-line-check";
 
 type LedgerOption = { id: string; label: string };
 
-type PosBillFormProps = {
-  ledgers: LedgerOption[];
-  designOptions: string[];
+// A design the shop can sell: how many pairs are on hand, and the price for each
+// channel. The counter picks from these so the rate fills itself and the stock
+// is in view — no typing a name and a price from memory.
+export type SellableItem = {
+  design: string;
+  stock: number;
+  retailRate: number;
+  wholesaleRate: number;
 };
 
-// One item row as the form holds it. Strings, because that is what an input
-// returns; the numbers are parsed only for the running total.
+type PosBillFormProps = {
+  ledgers: LedgerOption[];
+  catalog: SellableItem[];
+};
+
 type ItemRow = {
   key: number;
   sku: string;
@@ -37,28 +45,63 @@ function rowIsTouched(row: ItemRow) {
 const money = (value: number) =>
   `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
+// Wholesale gets its own price; retail and online sell at the shelf price.
+function rateForChannel(channel: string, item: SellableItem) {
+  return channel === "Wholesale" ? item.wholesaleRate : item.retailRate;
+}
+
 const inputBase = "h-10 rounded-md border px-3 text-sm outline-none focus:border-brand-green";
 const inputClass = `${inputBase} border-gray-200 bg-white`;
 const textareaClass =
   "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-// The same box, red when the field is what is holding the bill back.
 function fieldClass(hasError: boolean) {
   return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-gray-200 bg-white"}`;
 }
 
-export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps) {
-  // Open at four rows: enough for the common counter sale without a wall of
-  // empty inputs, and it grows from there.
+export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
   const [nextKey, setNextKey] = useState(4);
+  const [channel, setChannel] = useState("Retail");
   const [state, setState] = useState<ActionState | null>(null);
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
 
+  // Look a design up by name, case-insensitively, so a picked or typed item
+  // finds its stock and price.
+  const catalogByDesign = useMemo(() => {
+    const map = new Map<string, SellableItem>();
+    for (const item of catalog) {
+      map.set(item.design.trim().toLowerCase(), item);
+    }
+    return map;
+  }, [catalog]);
+
+  function lookup(design: string) {
+    return catalogByDesign.get(design.trim().toLowerCase());
+  }
+
   function updateRow(key: number, patch: Partial<ItemRow>) {
     setRows((current) => {
-      const next = current.map((row) => (row.key === key ? { ...row, ...patch } : row));
+      const next = current.map((row) => {
+        if (row.key !== key) {
+          return row;
+        }
+
+        const merged = { ...row, ...patch };
+
+        // Picking or typing a known design fills its price for the current
+        // channel, so the cashier is not keying a rate they already set on the
+        // product. They can still edit it after.
+        if (patch.design !== undefined) {
+          const item = lookup(patch.design);
+          if (item) {
+            merged.rate = String(rateForChannel(channel, item));
+          }
+        }
+
+        return merged;
+      });
 
       if (next[next.length - 1].key === key && rowIsTouched(next[next.length - 1])) {
         next.push(emptyRow(nextKey));
@@ -67,6 +110,18 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
 
       return next;
     });
+  }
+
+  // Switching between retail and wholesale re-prices every matched line, so a
+  // wholesale bill does not quietly keep retail rates.
+  function changeChannel(nextChannel: string) {
+    setChannel(nextChannel);
+    setRows((current) =>
+      current.map((row) => {
+        const item = lookup(row.design);
+        return item ? { ...row, rate: String(rateForChannel(nextChannel, item)) } : row;
+      }),
+    );
   }
 
   const subtotal = useMemo(
@@ -78,9 +133,6 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
     [rows],
   );
 
-  // Submitted here rather than through the form's action so a failure comes back
-  // as a message, not the admin error page, with every line the cashier typed
-  // still on screen to fix.
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -103,14 +155,13 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
       const result = await createPosInvoiceAction(state, formData);
       setState(result);
 
-      // A saved bill opens its receipt — the counter's next move is to print it,
-      // which is what the old flow did too. A failed one stays put with the
-      // reason shown.
       if (result.ok && result.href) {
         router.push(result.href);
       }
     });
   }
+
+  const inStockCount = catalog.filter((item) => item.stock > 0).length;
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -119,7 +170,7 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
       <div className="mb-5">
         <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Bill save posts stock automatically. Select a customer ledger for credit sales.
+          Pick an item and its price fills in. Bill save posts stock automatically.
         </p>
       </div>
 
@@ -128,7 +179,13 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
           <option>Sale</option>
           <option>Return</option>
         </select>
-        <select name="channel" className={inputClass} defaultValue="Retail" aria-label="Sales channel">
+        <select
+          name="channel"
+          className={inputClass}
+          value={channel}
+          onChange={(event) => changeChannel(event.target.value)}
+          aria-label="Sales channel"
+        >
           <option>Retail</option>
           <option>Wholesale</option>
           <option>Online</option>
@@ -159,9 +216,12 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
         <input name="paymentReference" className={inputClass} placeholder="Cheque/QR/ref no." />
       </div>
 
+      {/* In-stock designs first, each showing pairs on hand, so the counter
+          picks from what is actually sellable. Still typeable for anything off
+          the catalog — a return, a one-off. */}
       <datalist id="pos-design-options">
-        {designOptions.map((design) => (
-          <option key={design} value={design} />
+        {catalog.map((item) => (
+          <option key={item.design} value={item.design} label={item.stock > 0 ? `${item.stock} in stock` : "out of stock"} />
         ))}
       </datalist>
 
@@ -180,10 +240,13 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
           <tbody className="divide-y">
             {rows.map((row, index) => {
               const issue = posLineIssue(row);
+              const item = lookup(row.design);
+              const wanted = Number(row.quantity) || 0;
+              const oversell = Boolean(item) && wanted > (item?.stock ?? 0);
 
               return (
                 <tr key={row.key}>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Sku`}
                       className={`${inputClass} w-28`}
@@ -193,18 +256,23 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
                       aria-label={`Item ${index + 1} SKU`}
                     />
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Design`}
                       className={`${fieldClass(Boolean(issue?.design))} min-w-56`}
                       list="pos-design-options"
-                      placeholder="Design name"
+                      placeholder="Type or pick a design"
                       value={row.design}
                       onChange={(event) => updateRow(row.key, { design: event.target.value })}
                       aria-label={`Item ${index + 1} design`}
                     />
+                    {item ? (
+                      <p className={`mt-1 text-xs font-semibold ${oversell ? "text-brand-clay" : "text-brand-muted"}`}>
+                        {oversell ? `Only ${item.stock} in stock` : `${item.stock} in stock`}
+                      </p>
+                    ) : null}
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}SizeRun`}
                       className={`${inputClass} w-24`}
@@ -214,19 +282,19 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
                       aria-label={`Item ${index + 1} size run`}
                     />
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Quantity`}
                       type="number"
                       min="0"
-                      className={`${fieldClass(Boolean(issue?.quantity))} w-24`}
+                      className={`${fieldClass(Boolean(issue?.quantity) || oversell)} w-24`}
                       placeholder="0"
                       value={row.quantity}
                       onChange={(event) => updateRow(row.key, { quantity: event.target.value })}
                       aria-label={`Item ${index + 1} pairs`}
                     />
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Rate`}
                       type="number"
@@ -238,7 +306,7 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
                       aria-label={`Item ${index + 1} rate`}
                     />
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Discount`}
                       type="number"
@@ -257,9 +325,11 @@ export default function PosBillForm({ ledgers, designOptions }: PosBillFormProps
         </table>
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-brand-muted">
-          A new row appears as you fill the last one. Blank rows are ignored.
+          {inStockCount > 0
+            ? `${inStockCount} design${inStockCount === 1 ? "" : "s"} in stock. Pick one and its price fills in.`
+            : "A new row appears as you fill the last one."}
         </p>
         <p className="text-sm font-semibold text-brand-green-ink">Items {money(subtotal)}</p>
       </div>

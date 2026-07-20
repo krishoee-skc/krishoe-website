@@ -176,12 +176,31 @@ export default async function AdminPosPage() {
   }
 
   const [pos, operations, products, costing] = loaded.data;
-  const designOptions = [
-    ...new Set([
-      ...operations.finishedStock.map((stock) => stock.design),
-      ...products.map((product) => product.name),
-    ]),
-  ].sort((a, b) => a.localeCompare(b));
+
+  // What the counter can sell: each design with the pairs on hand and its price
+  // per channel, so picking one fills the rate and shows the stock. Built from
+  // the catalog, which the purchase and production posts keep in step with
+  // finished stock. Prices are stored in paisa, shown and billed in rupees.
+  const sellableByDesign = new Map<string, { design: string; stock: number; retailRate: number; wholesaleRate: number }>();
+  for (const product of products) {
+    const retailRate = Math.round(product.priceValue / 100);
+    sellableByDesign.set(product.name, {
+      design: product.name,
+      stock: product.stock,
+      retailRate,
+      wholesaleRate: product.wholesalePriceValue > 0 ? Math.round(product.wholesalePriceValue / 100) : retailRate,
+    });
+  }
+  // A design that has finished stock but no catalog product still belongs in the
+  // list — the counter can sell it, just without a stored price.
+  for (const stock of operations.finishedStock) {
+    if (!sellableByDesign.has(stock.design)) {
+      sellableByDesign.set(stock.design, { design: stock.design, stock: stock.stockPairs, retailRate: 0, wholesaleRate: 0 });
+    }
+  }
+  const catalog = [...sellableByDesign.values()].sort(
+    (a, b) => b.stock - a.stock || a.design.localeCompare(b.design),
+  );
   const topDesignProfit = costing.designCosting
     .filter((row) => row.soldPairs > 0 || row.returnedPairs > 0 || row.netRevenue !== 0)
     .slice(0, 6);
@@ -402,7 +421,7 @@ export default async function AdminPosPage() {
             id: ledger.id,
             label: `${ledger.customerName} (${ledger.channel})`,
           }))}
-          designOptions={designOptions}
+          catalog={catalog}
         />
 
         <div className="grid gap-6">
