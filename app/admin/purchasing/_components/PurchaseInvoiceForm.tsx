@@ -235,13 +235,6 @@ export default function PurchaseInvoiceForm({
         </p>
       ) : null}
 
-      {/* Suggestions for the typeable trading-goods design field. */}
-      <datalist id="purchase-design-options">
-        {productNames.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-
       <div className="mt-5 space-y-3">
         {rows.map((row, index) => {
           const trading = row.kind === "Trading Goods";
@@ -296,29 +289,34 @@ export default function PurchaseInvoiceForm({
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 {trading ? (
                   <>
-                    {/* Typeable, like the raw-material name: pick a design the
-                        shop already sells, or type a new one being bought for
-                        the first time. A new design starts its stock on save. */}
-                    <input
-                      name={`item${index}Design`}
-                      className={fieldClass(Boolean(issue?.design))}
-                      list="purchase-design-options"
-                      placeholder="Type or pick a design"
-                      value={row.design}
-                      onChange={(event) => updateRow(row.key, { design: event.target.value })}
-                      aria-label={`Item ${index + 1} product`}
-                    />
+                    {/* Just like raw material: a dropdown that lists every
+                        design the shop already sells, plus "New design" for one
+                        bought for the first time — typed in the box beside it.
+                        Both set the same design; a new one starts its stock on
+                        save. Channel is gone: stock is one pool now, so where a
+                        purchase "lands" no longer matters. */}
+                    <input type="hidden" name={`item${index}Design`} value={row.design} />
                     <select
-                      name={`item${index}Channel`}
-                      className={inputClass}
-                      value={row.channel}
-                      onChange={(event) => updateRow(row.key, { channel: event.target.value })}
-                      aria-label={`Item ${index + 1} channel`}
+                      className={fieldClass(Boolean(issue?.design))}
+                      value={productNames.includes(row.design) ? row.design : ""}
+                      onChange={(event) => updateRow(row.key, { design: event.target.value })}
+                      aria-label={`Item ${index + 1} design`}
                     >
-                      <option>Wholesale</option>
-                      <option>Retail</option>
-                      <option>Online</option>
+                      <option value="">＋ New design (type name)</option>
+                      {productNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
                     </select>
+                    <input
+                      className={fieldClass(Boolean(issue?.design))}
+                      placeholder="New design name"
+                      value={productNames.includes(row.design) ? "" : row.design}
+                      disabled={productNames.includes(row.design)}
+                      onChange={(event) => updateRow(row.key, { design: event.target.value })}
+                      aria-label={`Item ${index + 1} new design name`}
+                    />
                     <input
                       name={`item${index}SizeRun`}
                       className={inputClass}
