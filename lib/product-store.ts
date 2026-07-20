@@ -389,8 +389,70 @@ export async function getProducts(options: { includeDrafts?: boolean } = {}) {
   });
 }
 
+// A new finished-goods design — a trading pair bought for the first time, or a
+// production run of a design not yet listed — becomes a catalog product so it
+// shows up in the shop, the way a new raw material shows in the material list.
+// Created as a Draft with no price or photo: the owner adds those and sets it
+// Active. Made once; a later sync finds it by name and leaves it be.
+export function buildDraftProductForDesign(design: string, stock: number): Product {
+  const category = categories[0];
+  const id = crypto.randomUUID();
+
+  return cleanProduct({
+    id,
+    sku: id.slice(0, 8).toUpperCase(),
+    name: design.trim(),
+    category: category.title,
+    categorySlug: category.slug,
+    price: "Rs. 0",
+    priceValue: 0,
+    wholesalePriceValue: 0,
+    minWholesaleQty: 1,
+    image: category.image,
+    gallery: [category.image],
+    badge: undefined,
+    rating: "4.8",
+    description: "",
+    longDescription: "",
+    material: "Premium synthetic finish",
+    fit: "Regular fit",
+    colors: ["Black"],
+    sizes: ["36", "37", "38", "39", "40"],
+    stock: Math.max(0, Math.round(stock)),
+    highlights: [],
+    care: [],
+    reviews: [],
+    status: "Draft",
+    featured: false,
+    bestSeller: false,
+    newArrival: false,
+  });
+}
+
+// Give every finished-goods design a catalog product, creating a Draft for any
+// that has none. Idempotent: a design already listed is matched by name and
+// skipped, so this is safe to run on every stock sync.
+async function ensureProductsForFinishedDesigns(finishedStock: FinishedStock[]) {
+  const products = await getProducts({ includeDrafts: true });
+  const listedKeys = new Set(products.flatMap(productStockAliasKeys));
+  const groups = buildFinishedStockGroups(finishedStock);
+
+  for (const group of groups.values()) {
+    if (!group.design || listedKeys.has(group.key)) {
+      continue;
+    }
+
+    await upsertProduct(buildDraftProductForDesign(group.design, group.stockPairs));
+  }
+}
+
 export async function syncProductCatalogStockWithFinishedStock() {
   const operations = await getOperationsData();
+
+  // Before syncing stock onto products, make sure a product exists for every
+  // finished design — so a design bought or made for the first time appears in
+  // the shop instead of holding stock nothing lists.
+  await ensureProductsForFinishedDesigns(operations.finishedStock);
 
   return runWithDataBackend({
     storeName: "products",
