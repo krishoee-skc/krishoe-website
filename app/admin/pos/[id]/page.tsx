@@ -66,7 +66,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
+      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
@@ -111,7 +111,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <img
               src={`/api/admin/pos/${invoice.id}/barcode`}
               alt={`Barcode for ${invoice.invoiceNumber}`}
-              className="mt-3 h-24 w-full object-contain"
+              className="mt-3 h-24 w-full object-contain print:mt-1 print:h-12"
             />
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -119,7 +119,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <img
               src={`/api/admin/pos/${invoice.id}/qr`}
               alt={`QR code for ${invoice.invoiceNumber}`}
-              className="mx-auto mt-3 h-32 w-32 object-contain"
+              className="mx-auto mt-3 h-32 w-32 object-contain print:mt-1 print:h-16 print:w-16"
             />
           </div>
         </div>
