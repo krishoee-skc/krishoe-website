@@ -202,6 +202,11 @@ export default async function AdminDashboardPage() {
   const activeProducts = products.filter((product) => product.status === "Active");
   const draftProducts = products.length - activeProducts.length;
   const lowStockProducts = products.filter((product) => product.stock <= 5);
+  // Every design, out-of-stock first, so a glance answers both "what do I have"
+  // and "what needs buying".
+  const stockOverview = [...products].sort(
+    (a, b) => a.stock - b.stock || a.name.localeCompare(b.name),
+  );
   const pendingReviews = products.flatMap((product) => product.reviews).filter((review) => review.status === "pending");
   const catalogStockValue = products.reduce((total, product) => total + product.priceValue * product.stock, 0);
   const orderTotal = orders.reduce((total, order) => total + amountFromOrderTotal(order.total), 0);
@@ -277,6 +282,55 @@ export default async function AdminDashboardPage() {
         <StatCard label="Admin role" value={adminAccess.role} detail={`${allowedPermissionCount}/${adminAccess.permissions.length} permissions`} tone={adminAccess.role === "Owner" ? "good" : "warn"} />
         <StatCard label="Launch readiness" value={`${readinessSummary.ready}/${readinessSummary.total}`} detail={`${readinessSummary.blocked} blocked, ${readinessSummary.warnings} warning`} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
       </div>
+
+      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-brand-green-ink">Stock at a glance</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Every design with the pairs on hand and its price. What is out of stock shows first.
+            </p>
+          </div>
+          <Link
+            href="/admin/products"
+            className="text-sm font-bold text-brand-green underline underline-offset-4"
+          >
+            Manage products
+          </Link>
+        </div>
+
+        {stockOverview.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+            No products yet. Buy or make some from Purchasing.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {stockOverview.map((product) => (
+              <div
+                key={product.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-brand-green-ink">{product.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {product.price}
+                    {product.status === "Draft" ? " · Draft" : ""}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${
+                    product.stock > 0
+                      ? "bg-brand-green-tint text-brand-green"
+                      : "bg-brand-clay-tint text-brand-clay"
+                  }`}
+                >
+                  {product.stock > 0 ? `${product.stock} pairs` : "Out"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
