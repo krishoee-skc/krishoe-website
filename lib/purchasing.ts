@@ -6,6 +6,7 @@ import {
   addRawMaterialReceipt,
   addStockMovement,
   getOperationsData,
+  resolveOrCreateRawMaterial,
   type BusinessChannel,
   type RawMaterial,
   getOperationsDataForReports,
@@ -79,6 +80,11 @@ export type PurchaseInvoiceItem = {
 export type CreatePurchaseInvoiceItemInput = {
   kind: PurchaseKind;
   materialId: string;
+  // A raw material line may name a material not in the list yet, the way a bill
+  // can name a new supplier. When materialId is empty and this is set, the
+  // material is found by name or created before the bill posts.
+  materialName?: string;
+  materialUnit?: RawMaterial["unit"];
   design: string;
   channel: BusinessChannel | "";
   sizeRun: string;
@@ -581,10 +587,13 @@ async function nextPurchaseNumber() {
  * meant, so a half-filled one is an error rather than something to drop
  * silently — dropping it would post a bill missing a line the supplier charged.
  */
+const rawMaterialUnits: RawMaterial["unit"][] = ["kg", "meter", "pair", "piece", "liter"];
+
 export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) {
   const touched = items.filter(
     (item) =>
       cleanText(item.materialId) ||
+      cleanText(item.materialName ?? "") ||
       cleanText(item.design) ||
       cleanNumber(item.quantity) > 0 ||
       cleanNumber(item.rate) > 0,
@@ -597,9 +606,15 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
   return touched.map((item, index) => {
     const line = index + 1;
     const kind: PurchaseKind = item.kind === "Trading Goods" ? "Trading Goods" : "Raw Material";
+    const requestedUnit = item.materialUnit;
     const normalized = {
       kind,
       materialId: kind === "Raw Material" ? cleanText(item.materialId) : "",
+      // Carried through for a raw line that names a new material; resolved to an
+      // id before the bill posts. Empty on an existing-material or trading line.
+      materialName: kind === "Raw Material" ? cleanText(item.materialName ?? "") : "",
+      materialUnit:
+        requestedUnit && rawMaterialUnits.includes(requestedUnit) ? requestedUnit : ("piece" as RawMaterial["unit"]),
       design: kind === "Trading Goods" ? cleanText(item.design) : "",
       channel: kind === "Trading Goods" ? item.channel : ("" as BusinessChannel | ""),
       sizeRun: (kind === "Trading Goods" ? cleanText(item.sizeRun) : "") || "Mixed",
@@ -612,8 +627,10 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
       throw new Error(`Item ${line}: quantity and rate are required.`);
     }
 
-    if (normalized.kind === "Raw Material" && !normalized.materialId) {
-      throw new Error(`Item ${line}: choose a raw material.`);
+    // Either an existing material was chosen, or a new one was named — both are
+    // fine; the name is turned into a material before posting.
+    if (normalized.kind === "Raw Material" && !normalized.materialId && !normalized.materialName) {
+      throw new Error(`Item ${line}: choose a raw material, or type a new material name.`);
     }
 
     if (normalized.kind === "Trading Goods" && (!normalized.design || !normalized.channel)) {
@@ -624,9 +641,48 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
   });
 }
 
+// Turn every "new material by name" raw line into a real material id before the
+// bill posts, reusing an existing material of the same name and creating it
+// only when genuinely new. Same name twice on one bill resolves once.
+async function resolveRawMaterialLines<T extends { kind: PurchaseKind; materialId: string; materialName: string; materialUnit: RawMaterial["unit"] }>(
+  items: T[],
+): Promise<T[]> {
+  const needsResolution = items.some(
+    (item) => item.kind === "Raw Material" && !item.materialId && item.materialName,
+  );
+
+  if (!needsResolution) {
+    return items;
+  }
+
+  const idByName = new Map<string, string>();
+  const resolved: T[] = [];
+
+  for (const item of items) {
+    if (item.kind === "Raw Material" && !item.materialId && item.materialName) {
+      const key = item.materialName.toLowerCase();
+      let materialId = idByName.get(key);
+
+      if (!materialId) {
+        const material = await resolveOrCreateRawMaterial(item.materialName, item.materialUnit);
+        materialId = material.id;
+        idByName.set(key, materialId);
+      }
+
+      resolved.push({ ...item, materialId });
+    } else {
+      resolved.push(item);
+    }
+  }
+
+  return resolved;
+}
+
 export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInput, "purchaseNumber">) {
   const purchaseNumber = await nextPurchaseNumber();
-  const items = normalizePurchaseItems(input.items ?? []);
+  // Any raw line that named a new material becomes a real material id here,
+  // before either backend runs, so both see lines that already have an id.
+  const items = await resolveRawMaterialLines(normalizePurchaseItems(input.items ?? []));
   const normalizedInput: CreatePurchaseInvoiceInput = {
     ...input,
     purchaseNumber,

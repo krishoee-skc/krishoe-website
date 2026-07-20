@@ -30,6 +30,8 @@ type ItemRow = {
   key: number;
   kind: PurchaseKind;
   materialId: string;
+  materialName: string;
+  materialUnit: string;
   design: string;
   channel: string;
   sizeRun: string;
@@ -37,11 +39,15 @@ type ItemRow = {
   rate: string;
 };
 
+const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"];
+
 function emptyRow(key: number): ItemRow {
   return {
     key,
     kind: "Raw Material",
     materialId: "",
+    materialName: "",
+    materialUnit: "piece",
     design: "",
     channel: "Wholesale",
     sizeRun: "Mixed",
@@ -51,7 +57,7 @@ function emptyRow(key: number): ItemRow {
 }
 
 function rowIsTouched(row: ItemRow) {
-  return Boolean(row.materialId || row.design || row.quantity || row.rate);
+  return Boolean(row.materialId || row.materialName || row.design || row.quantity || row.rate);
 }
 
 // The exact-field check lives in lib/purchase-line-check.ts so it can be tested
@@ -318,20 +324,48 @@ export default function PurchaseInvoiceForm({
                     />
                   </>
                 ) : (
-                  <select
-                    name={`item${index}MaterialId`}
-                    className={`${fieldClass(Boolean(issue?.material))} md:col-span-3`}
-                    value={row.materialId}
-                    onChange={(event) => updateRow(row.key, { materialId: event.target.value })}
-                    aria-label={`Item ${index + 1} raw material`}
-                  >
-                    <option value="">Select raw material</option>
-                    {rawMaterials.map((material) => (
-                      <option key={material.id} value={material.id}>
-                        {material.name} ({material.unit})
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      name={`item${index}MaterialId`}
+                      className={fieldClass(Boolean(issue?.material))}
+                      value={row.materialId}
+                      onChange={(event) => updateRow(row.key, { materialId: event.target.value })}
+                      aria-label={`Item ${index + 1} raw material`}
+                    >
+                      <option value="">＋ New material (type name)</option>
+                      {rawMaterials.map((material) => (
+                        <option key={material.id} value={material.id}>
+                          {material.name} ({material.unit})
+                        </option>
+                      ))}
+                    </select>
+                    {/* Only when no existing material is chosen: name a new one
+                        and give its unit. Ignored the moment one is picked
+                        above, the way a new supplier name is. */}
+                    <input
+                      name={`item${index}MaterialName`}
+                      className={fieldClass(Boolean(issue?.material))}
+                      placeholder="New material name"
+                      value={row.materialName}
+                      disabled={Boolean(row.materialId)}
+                      onChange={(event) => updateRow(row.key, { materialName: event.target.value })}
+                      aria-label={`Item ${index + 1} new material name`}
+                    />
+                    <select
+                      name={`item${index}MaterialUnit`}
+                      className={inputClass}
+                      value={row.materialUnit}
+                      disabled={Boolean(row.materialId)}
+                      onChange={(event) => updateRow(row.key, { materialUnit: event.target.value })}
+                      aria-label={`Item ${index + 1} new material unit`}
+                    >
+                      {rawMaterialUnits.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {unit}
+                        </option>
+                      ))}
+                    </select>
+                  </>
                 )}
               </div>
 

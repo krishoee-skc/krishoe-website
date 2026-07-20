@@ -782,6 +782,44 @@ export async function addRawMaterial(material: Omit<RawMaterial, "id" | "used">)
   });
 }
 
+// Two spellings of the same material name are the same material: "rexin",
+// "Rexin" and "rexin " are one thing to buy against. Case and spacing are how a
+// name gets typed differently, not how two materials differ.
+function rawMaterialNameKey(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// Find a raw material by name, or make it. Lets a purchase name a material that
+// is not in the list yet — the way a bill can name a new supplier — instead of
+// forcing a detour to add it first. An existing name is reused so the same
+// material never splits into two rows with divided stock.
+export async function resolveOrCreateRawMaterial(
+  name: string,
+  unit: RawMaterial["unit"],
+): Promise<RawMaterial> {
+  const cleanedName = name.trim().replace(/\s+/g, " ");
+
+  if (!cleanedName) {
+    throw new Error("Raw material name is required.");
+  }
+
+  const data = await getOperationsData();
+  const key = rawMaterialNameKey(cleanedName);
+  const existing = data.rawMaterials.find((material) => rawMaterialNameKey(material.name) === key);
+
+  if (existing) {
+    return existing;
+  }
+
+  return addRawMaterial({
+    name: cleanedName,
+    unit,
+    openingStock: 0,
+    received: 0,
+    reorderLevel: 0,
+  });
+}
+
 export async function addRawMaterialReceipt(input: { materialId: string; quantity: number }) {
   const quantity = cleanNumber(input.quantity);
 

@@ -6,7 +6,7 @@ import {
 } from "@/lib/purchase-line-check";
 
 function line(overrides: Partial<PurchaseLineDraft> = {}): PurchaseLineDraft {
-  return { kind: "Trading Goods", materialId: "", design: "", quantity: "", rate: "", ...overrides };
+  return { kind: "Trading Goods", materialId: "", materialName: "", design: "", quantity: "", rate: "", ...overrides };
 }
 
 // The gap the owner hit: quantity and rate typed, product left as "Select
@@ -33,6 +33,14 @@ describe("what a purchase line is still missing", () => {
 
     expect(issue?.material).toBe(true);
     expect(issue?.message).toBe("This line still needs a raw material.");
+  });
+
+  it("accepts a raw line that names a new material instead of picking one", () => {
+    const issue = purchaseLineIssue(
+      line({ kind: "Raw Material", materialName: "rexin", quantity: "50", rate: "350" }),
+    );
+
+    expect(issue).toBeNull();
   });
 
   it("lists what is left when a product is chosen but the numbers are not", () => {

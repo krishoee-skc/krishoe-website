@@ -5,6 +5,8 @@ import type { PurchaseKind } from "@/lib/purchasing";
 export type PurchaseLineDraft = {
   kind: PurchaseKind;
   materialId: string;
+  // A raw line is satisfied by either an existing material or a typed new name.
+  materialName: string;
   design: string;
   quantity: string;
   rate: string;
@@ -23,7 +25,7 @@ export type PurchaseLineIssue = {
 // A line counts as started the moment any of its fields is touched. A blank
 // trailing line is ignored, not flagged — the owner has not begun it.
 export function purchaseLineIsStarted(line: PurchaseLineDraft) {
-  return Boolean(line.materialId || line.design || line.quantity || line.rate);
+  return Boolean(line.materialId || line.materialName || line.design || line.quantity || line.rate);
 }
 
 function joinAnd(parts: string[]) {
@@ -45,7 +47,8 @@ export function purchaseLineIssue(line: PurchaseLineDraft): PurchaseLineIssue | 
 
   const issue: PurchaseLineIssue = {
     design: trading && !line.design,
-    material: !trading && !line.materialId,
+    // A raw line is fine with either an existing material or a new name typed.
+    material: !trading && !line.materialId && !line.materialName,
     quantity: quantity <= 0,
     rate: rate <= 0,
     message: "",

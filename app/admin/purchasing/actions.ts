@@ -20,6 +20,7 @@ import type { BusinessChannel } from "@/lib/operations";
 
 const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
+const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"] as const;
 // A ceiling on what one submitted form can post, not on what a bill may hold.
 // Real bills run to twenty-five or so lines; this only stops a hand-crafted
 // request from asking the server to build an unbounded number of them.
@@ -91,6 +92,14 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
     return {
       kind,
       materialId: textValue(formData, `item${index}MaterialId`),
+      // Set when a raw line names a material not in the list yet; resolved to an
+      // id before the bill posts.
+      materialName: textValue(formData, `item${index}MaterialName`),
+      materialUnit: optionValue(
+        textValue(formData, `item${index}MaterialUnit`),
+        rawMaterialUnits,
+        "piece",
+      ),
       design: textValue(formData, `item${index}Design`),
       channel:
         kind === "Trading Goods"
