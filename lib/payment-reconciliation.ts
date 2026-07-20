@@ -1,7 +1,4 @@
-import {
-  getOperationsData,
-  getOperationsDataForReports,
-} from "@/lib/operations";
+import { getOperationsDataForReports } from "@/lib/operations";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { getPaymentTransactions, type PaymentTransaction } from "@/lib/payment-transactions";
 import {

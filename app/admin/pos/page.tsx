@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { createPosInvoiceAction, repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
-import PosInvoiceItems from "@/app/admin/pos/_components/PosInvoiceItems";
+import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
+import PosBillForm from "@/app/admin/pos/_components/PosBillForm";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
 import LoadFailure from "@/components/admin/LoadFailure";
@@ -397,74 +397,13 @@ export default async function AdminPosPage() {
       </section>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <form action={createPosInvoiceAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Bill save posts stock automatically. Select a customer ledger for credit sales.
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-4">
-            <select name="kind" className={inputClass} defaultValue="Sale" aria-label="Bill type">
-              <option>Sale</option>
-              <option>Return</option>
-            </select>
-            <select name="channel" className={inputClass} defaultValue="Retail" aria-label="Sales channel">
-              <option>Retail</option>
-              <option>Wholesale</option>
-              <option>Online</option>
-            </select>
-            <select name="paymentMethod" className={inputClass} defaultValue="Cash" aria-label="Payment method">
-              <option>Cash</option>
-              <option>Cheque</option>
-              <option>Credit</option>
-              <option>QR</option>
-              <option>eSewa</option>
-              <option>Khalti</option>
-              <option>Bank</option>
-            </select>
-            <input name="cashier" className={inputClass} placeholder="Cashier / counter" />
-          </div>
-
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <input name="customerName" className={inputClass} placeholder="Customer name" />
-            <input name="phone" className={inputClass} placeholder="Phone" />
-            <select name="ledgerId" className={inputClass} defaultValue="" aria-label="Customer ledger">
-              <option value="">No ledger / walk-in</option>
-              {operations.customerLedgers.map((ledger) => (
-                <option key={ledger.id} value={ledger.id}>
-                  {ledger.customerName} ({ledger.channel})
-                </option>
-              ))}
-            </select>
-            <input name="paymentReference" className={inputClass} placeholder="Cheque/QR/ref no." />
-          </div>
-
-          <datalist id="pos-design-options">
-            {designOptions.map((design) => (
-              <option key={design} value={design} />
-            ))}
-          </datalist>
-
-          <div className="mt-5">
-            <PosInvoiceItems />
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <input name="invoiceDiscount" type="number" min="0" className={inputClass} placeholder="Bill discount" />
-            <input name="tax" type="number" min="0" className={inputClass} placeholder="Tax / VAT" />
-            <input name="paidAmount" type="number" min="0" className={inputClass} placeholder="Paid amount" />
-            <textarea name="note" className={textareaClass} placeholder="Delivery, return, QR, or counter note" />
-          </div>
-
-          <button
-            type="submit"
-            className="mt-4 h-11 rounded-full bg-brand-green-ink px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-          >
-            Save bill and open receipt
-          </button>
-        </form>
+        <PosBillForm
+          ledgers={operations.customerLedgers.map((ledger) => ({
+            id: ledger.id,
+            label: `${ledger.customerName} (${ledger.channel})`,
+          }))}
+          designOptions={designOptions}
+        />
 
         <div className="grid gap-6">
           <ScannerPanel

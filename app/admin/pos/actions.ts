@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import {
   createPosInvoice,
   repairPosInvoicePosting,
@@ -61,7 +64,15 @@ function invoiceItems(formData: FormData) {
   }));
 }
 
-export async function createPosInvoiceAction(formData: FormData) {
+// Returns the outcome instead of throwing. A bill that failed used to take the
+// cashier to the admin error page — the whole counter sale gone with it, and no
+// word of why. Now the reason ("Item 2 needs a rate", "POS return must be linked
+// to a customer ledger", an oversell) comes back beside the Save button with the
+// bill still standing, and a saved bill returns the receipt link to open.
+export async function createPosInvoiceAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
   await requireAdminPermission("pos:write");
 
   const kind = optionValue(textValue(formData, "kind"), invoiceKinds, "Sale");
@@ -71,32 +82,38 @@ export async function createPosInvoiceAction(formData: FormData) {
   const paidAmount = numberValue(formData, "paidAmount");
 
   if (paymentMethod === "Credit" && paidAmount > 0) {
-    throw new Error("Credit POS bill cannot have paid amount. Use Cash, QR, Cheque, Bank, eSewa, or Khalti for payments.");
+    return { ok: false, message: "A Credit bill cannot have a paid amount. Use Cash, QR, Cheque, Bank, eSewa, or Khalti." };
   }
 
   if (referencePaymentMethods.includes(paymentMethod) && paidAmount > 0 && !paymentReference) {
-    throw new Error(`${paymentMethod} payment reference is required when paid amount is entered.`);
+    return { ok: false, message: `${paymentMethod} needs a reference number when a paid amount is entered.` };
   }
 
   if (kind === "Return" && !ledgerId) {
-    throw new Error("POS return must be linked to a customer ledger.");
+    return { ok: false, message: "A return must be linked to a customer ledger." };
   }
 
-  const invoice = await createPosInvoice({
-    channel: optionValue(textValue(formData, "channel"), channels, "Retail"),
-    kind,
-    customerName: textValue(formData, "customerName"),
-    phone: textValue(formData, "phone"),
-    cashier: textValue(formData, "cashier"),
-    paymentMethod,
-    paymentReference,
-    ledgerId,
-    invoiceDiscount: numberValue(formData, "invoiceDiscount"),
-    tax: numberValue(formData, "tax"),
-    paidAmount,
-    note: textValue(formData, "note"),
-    items: invoiceItems(formData),
-  });
+  let invoice;
+  try {
+    invoice = await createPosInvoice({
+      channel: optionValue(textValue(formData, "channel"), channels, "Retail"),
+      kind,
+      customerName: textValue(formData, "customerName"),
+      phone: textValue(formData, "phone"),
+      cashier: textValue(formData, "cashier"),
+      paymentMethod,
+      paymentReference,
+      ledgerId,
+      invoiceDiscount: numberValue(formData, "invoiceDiscount"),
+      tax: numberValue(formData, "tax"),
+      paidAmount,
+      note: textValue(formData, "note"),
+      items: invoiceItems(formData),
+    });
+  } catch (error) {
+    reportError("save POS bill", error);
+    return { ok: false, message: saveFailureMessage(error, "Could not save this bill.") };
+  }
 
   await recordAdminAuditEvent(
     "pos_create_invoice",
@@ -109,7 +126,12 @@ export async function createPosInvoiceAction(formData: FormData) {
   revalidatePath("/admin/products");
   revalidatePath("/admin/costing");
   revalidatePath("/shop");
-  redirect(`/admin/pos/${invoice.id}`);
+
+  return {
+    ok: true,
+    message: `Saved ${invoice.invoiceNumber} — Rs. ${invoice.total.toLocaleString("en-IN")}.`,
+    href: `/admin/pos/${invoice.id}`,
+  };
 }
 
 export async function repairPosInvoicePostingAction(formData: FormData) {
