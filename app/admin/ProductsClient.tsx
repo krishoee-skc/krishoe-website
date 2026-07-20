@@ -87,11 +87,31 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                   <Image src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
                 </div>
               </td>
-              <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">{product.name}</td>
+              <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+                {product.name}
+                {/* Stock repeated here, under the name, so it is in view on a
+                    phone without scrolling the wide table sideways to the Stock
+                    column. Clay when there is nothing to sell. */}
+                <span
+                  className={`mt-1 block text-xs font-semibold ${
+                    product.stock > 0 ? "text-brand-muted" : "text-brand-clay"
+                  }`}
+                >
+                  {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                </span>
+              </td>
               <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-700">{product.sku}</td>
               <td className="whitespace-nowrap px-4 py-3 text-gray-700">{product.price}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                {product.stock}
+              <td className="whitespace-nowrap px-4 py-3">
+                <span
+                  className={`inline-flex min-w-9 justify-center rounded-full px-2.5 py-1 text-xs font-black ${
+                    product.stock > 0
+                      ? "bg-brand-green-tint text-brand-green"
+                      : "bg-brand-clay-tint text-brand-clay"
+                  }`}
+                >
+                  {product.stock}
+                </span>
               </td>
               <td className="whitespace-nowrap px-4 py-3">
                 <StatusBadge status={product.status} />
