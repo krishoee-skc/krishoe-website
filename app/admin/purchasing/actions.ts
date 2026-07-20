@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { reportError } from "@/lib/report-error";
 import {
   addSupplierLedger,
   addSupplierTransaction,
@@ -55,16 +58,6 @@ function refreshPurchasingPage(returnTo = "/admin/purchasing") {
   redirect(safeReturnTo(returnTo));
 }
 
-// A trading goods purchase changes what the shop can sell, so the catalog and
-// the storefront have to be refreshed too — not just the admin pages.
-function refreshPurchasingAndCatalog(returnTo = "/admin/purchasing") {
-  revalidatePath("/admin/products");
-  revalidatePath("/shop", "layout");
-  revalidatePath("/product", "layout");
-  revalidatePath("/");
-  refreshPurchasingPage(returnTo);
-}
-
 export async function createSupplierLedgerAction(formData: FormData) {
   await requireAdminPermission("purchasing:write");
 
@@ -111,58 +104,62 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
   });
 }
 
-export async function createPurchaseInvoiceAction(formData: FormData) {
+// Returns the outcome instead of throwing. A purchase that failed used to throw
+// straight to the admin error page — the whole bill, sometimes twenty-five
+// lines of it, gone with no word of what was wrong. Every rule createPurchaseInvoice
+// enforces ("Item 2: choose a raw material", "Choose a supplier") now comes back
+// as a message beside the button, with the form and its lines still standing.
+export async function createPurchaseInvoiceAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
   await requireAdminPermission("purchasing:write");
 
-  const supplierLedgerId = textValue(formData, "supplierLedgerId");
-  const supplierName = textValue(formData, "supplierName");
-  const paidAmount = numberValue(formData, "paidAmount");
-  const paymentMethod = optionValue(textValue(formData, "paymentMethod"), paymentMethods, "Cash");
-  const paymentReference = textValue(formData, "paymentReference");
-
-  if (!supplierLedgerId && !supplierName) {
-    throw new Error("Choose an existing supplier or enter a new supplier name.");
+  let invoice;
+  try {
+    // createPurchaseInvoice drops the blank rows and checks the rest — supplier,
+    // per-line kind, quantity and rate, payment rules — so the reasons live in
+    // one place and each surfaces here by its own words.
+    invoice = await createPurchaseInvoice({
+      supplierLedgerId: textValue(formData, "supplierLedgerId"),
+      supplierName: textValue(formData, "supplierName"),
+      phone: textValue(formData, "phone"),
+      items: purchaseItems(formData),
+      discount: numberValue(formData, "discount"),
+      tax: numberValue(formData, "tax"),
+      paidAmount: numberValue(formData, "paidAmount"),
+      paymentMethod: optionValue(textValue(formData, "paymentMethod"), paymentMethods, "Cash"),
+      paymentReference: textValue(formData, "paymentReference"),
+      note: textValue(formData, "note"),
+    });
+  } catch (error) {
+    reportError("save purchase bill", error);
+    return { ok: false, message: saveFailureMessage(error, "Could not save this purchase.") };
   }
-
-  if (paymentMethod === "Credit" && paidAmount > 0) {
-    throw new Error("Credit purchase cannot have paid amount. Use Cash, Cheque, or Bank for payments.");
-  }
-
-  if ((paymentMethod === "Cheque" || paymentMethod === "Bank") && paidAmount > 0 && !paymentReference) {
-    throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
-  }
-
-  // createPurchaseInvoice drops the blank rows and checks the rest, so the
-  // per-line rules live in one place instead of being restated here.
-  const invoice = await createPurchaseInvoice({
-    supplierLedgerId,
-    supplierName,
-    phone: textValue(formData, "phone"),
-    items: purchaseItems(formData),
-    discount: numberValue(formData, "discount"),
-    tax: numberValue(formData, "tax"),
-    paidAmount,
-    paymentMethod,
-    paymentReference,
-    note: textValue(formData, "note"),
-  });
 
   await recordAdminAuditEvent(
     "purchase_create_invoice",
     `${invoice.purchaseNumber} ${invoice.kind.toLowerCase()} purchase recorded: ${invoice.items.length} item(s), Rs. ${invoice.total}.`,
   );
 
-  const returnTo = textValue(formData, "returnTo");
+  revalidatePath("/admin");
+  revalidatePath("/admin/purchasing");
+  revalidatePath("/admin/operations");
 
-  if (invoice.kind === "Trading Goods") {
-    // createPurchaseInvoice syncs the catalog stock itself, so every caller
-    // gets it and a failure is not swallowed here. This only has to rebuild
-    // the pages that render the new pairs.
-    refreshPurchasingAndCatalog(returnTo);
-    return;
+  // Any bill with a trading line changes what the shop can sell — including a
+  // Mixed bill, which the old Trading-Goods-only check quietly skipped.
+  if (invoice.kind === "Trading Goods" || invoice.kind === "Mixed") {
+    revalidatePath("/admin/products");
+    revalidatePath("/shop", "layout");
+    revalidatePath("/product", "layout");
+    revalidatePath("/");
   }
 
-  refreshPurchasingPage(returnTo);
+  return {
+    ok: true,
+    message: `Saved ${invoice.purchaseNumber} — ${invoice.items.length} item(s), Rs. ${invoice.total.toLocaleString("en-IN")}.`,
+    href: "/admin/purchasing",
+  };
 }
 
 export async function createSupplierTransactionAction(formData: FormData) {

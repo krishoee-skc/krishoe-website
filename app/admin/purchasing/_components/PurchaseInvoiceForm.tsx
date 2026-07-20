@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createPurchaseInvoiceAction } from "@/app/admin/purchasing/actions";
+import type { ActionState } from "@/app/admin/actions";
+import ActionMessage from "@/components/admin/ActionMessage";
 import { billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import type { PurchaseKind, SupplierLedger } from "@/lib/purchasing";
 import type { RawMaterial } from "@/lib/operations";
@@ -64,6 +67,34 @@ export default function PurchaseInvoiceForm({
   const [nextKey, setNextKey] = useState(1);
   const [discount, setDiscount] = useState("");
   const [tax, setTax] = useState("");
+  const [state, setState] = useState<ActionState | null>(null);
+  const [isSaving, startSaving] = useTransition();
+  const router = useRouter();
+
+  // Submitted here rather than through the form's action so a failure comes back
+  // as a message, not the admin error page. The form is never rebuilt from
+  // scratch on failure, so every line the owner typed — twenty-five of them, if
+  // it came to that — is still there to fix and resubmit.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    startSaving(async () => {
+      const result = await createPurchaseInvoiceAction(state, formData);
+      setState(result);
+
+      // A saved bill clears the form for the next one, and pulls the new
+      // invoice into the lists on the page. Stay put so the confirmation is
+      // read, not missed in a redirect.
+      if (result.ok) {
+        setRows([emptyRow(0)]);
+        setNextKey(1);
+        setDiscount("");
+        setTax("");
+        router.refresh();
+      }
+    });
+  }
 
   function updateRow(key: number, patch: Partial<ItemRow>) {
     setRows((current) => {
@@ -109,7 +140,7 @@ export default function PurchaseInvoiceForm({
 
   return (
     <form
-      action={createPurchaseInvoiceAction}
+      onSubmit={handleSubmit}
       className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-5"
     >
       {/* The server reads item0..itemN-1, so it has to know how many rows were
@@ -356,12 +387,16 @@ export default function PurchaseInvoiceForm({
         </dl>
       </div>
 
-      <button
-        type="submit"
-        className="mt-4 h-11 w-full rounded-full bg-brand-green-ink px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink md:w-auto"
-      >
-        Save purchase
-      </button>
+      <div className="mt-4 space-y-3">
+        <ActionMessage state={state} linkLabel="See purchases below" />
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="h-11 w-full rounded-full bg-brand-green-ink px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+        >
+          {isSaving ? "Saving..." : "Save purchase"}
+        </button>
+      </div>
     </form>
   );
 }
