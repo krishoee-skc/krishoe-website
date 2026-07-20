@@ -185,3 +185,29 @@ html {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Printing a receipt.
+   ------------------------------------------------------------------
+   A POS bill printed on A4 came out on two sheets. Two things pushed it over:
+   the admin shell sets a full-screen min-height, which on paper pads the one
+   short page out until a line spills onto a second, and there was no page box
+   at all. This gives it an A4 page with sane margins and lets the receipt take
+   only the height it needs, so a one-page bill stays one page. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    background: #ffffff !important;
+  }
+
+  /* The one that mattered: without this the shell is a full page tall before
+     the receipt even starts. */
+  .min-h-screen {
+    min-height: 0 !important;
+  }
+}

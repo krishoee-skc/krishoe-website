@@ -153,8 +153,11 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           </table>
         </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-[1fr_280px]">
-          <div className="rounded-lg border border-dashed border-gray-200 p-4">
+        <div className="mt-6 grid gap-5 md:grid-cols-[1fr_280px] print:block">
+          {/* Internal reconciliation ids — useful on screen, but not something a
+              customer's printed bill needs, and it was pushing the receipt onto
+              a second sheet. Hidden on paper. */}
+          <div className="rounded-lg border border-dashed border-gray-200 p-4 print:hidden">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Billing IDs</p>
             <div className="mt-3 grid gap-2 text-sm text-gray-600">
               <p>
