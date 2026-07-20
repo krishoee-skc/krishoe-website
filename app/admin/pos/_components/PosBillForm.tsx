@@ -6,6 +6,7 @@ import { createPosInvoiceAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { posLineIssue } from "@/lib/pos-line-check";
+import { autoPaidAmount, posBillTotal } from "@/lib/pos-bill";
 
 type LedgerOption = { id: string; label: string };
 
@@ -63,6 +64,13 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
   const [nextKey, setNextKey] = useState(4);
   const [channel, setChannel] = useState("Retail");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [invoiceDiscount, setInvoiceDiscount] = useState("");
+  const [tax, setTax] = useState("");
+  // The paid amount fills itself to the bill total; the cashier only touches it
+  // to enter a part payment, and once touched it stops following the total.
+  const [paidManual, setPaidManual] = useState("");
+  const [paidTouched, setPaidTouched] = useState(false);
   const [state, setState] = useState<ActionState | null>(null);
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
@@ -133,6 +141,13 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
     [rows],
   );
 
+  const billTotal = posBillTotal(subtotal, Number(invoiceDiscount) || 0, Number(tax) || 0);
+  // Until the cashier types in it, the paid box shows the amount that fills
+  // itself — the full total for a pay-now method, nothing for Credit.
+  const autoPaid = autoPaidAmount(paymentMethod, billTotal);
+  const paidValue = paidTouched ? paidManual : autoPaid > 0 ? String(autoPaid) : "";
+  const isCredit = paymentMethod === "Credit";
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -190,7 +205,13 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
           <option>Wholesale</option>
           <option>Online</option>
         </select>
-        <select name="paymentMethod" className={inputClass} defaultValue="Cash" aria-label="Payment method">
+        <select
+          name="paymentMethod"
+          className={inputClass}
+          value={paymentMethod}
+          onChange={(event) => setPaymentMethod(event.target.value)}
+          aria-label="Payment method"
+        >
           <option>Cash</option>
           <option>Cheque</option>
           <option>Credit</option>
@@ -335,9 +356,42 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <input name="invoiceDiscount" type="number" min="0" className={inputClass} placeholder="Bill discount" />
-        <input name="tax" type="number" min="0" className={inputClass} placeholder="Tax / VAT" />
-        <input name="paidAmount" type="number" min="0" className={inputClass} placeholder="Paid amount" />
+        <input
+          name="invoiceDiscount"
+          type="number"
+          min="0"
+          className={inputClass}
+          placeholder="Bill discount"
+          value={invoiceDiscount}
+          onChange={(event) => setInvoiceDiscount(event.target.value)}
+        />
+        <input
+          name="tax"
+          type="number"
+          min="0"
+          className={inputClass}
+          placeholder="Tax / VAT"
+          value={tax}
+          onChange={(event) => setTax(event.target.value)}
+        />
+        <div className="grid gap-1">
+          <input
+            name="paidAmount"
+            type="number"
+            min="0"
+            className={inputClass}
+            placeholder="Paid amount"
+            value={isCredit ? "" : paidValue}
+            disabled={isCredit}
+            onChange={(event) => {
+              setPaidTouched(true);
+              setPaidManual(event.target.value);
+            }}
+          />
+          {!isCredit && !paidTouched && billTotal > 0 ? (
+            <p className="text-xs text-brand-muted">Full amount — edit if paid in part.</p>
+          ) : null}
+        </div>
         <textarea name="note" className={textareaClass} placeholder="Delivery, return, QR, or counter note" />
       </div>
 
