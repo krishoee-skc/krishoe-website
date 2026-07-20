@@ -5,6 +5,7 @@ import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
 import BottomTabBar from "@/components/BottomTabBar";
 import { themeBootScript } from "@/components/ThemeToggle";
+import VersionWatcher from "@/components/VersionWatcher";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
@@ -111,6 +112,10 @@ export default async function RootLayout({
           {children}
           <BottomTabBar />
         </CommerceProvider>
+        {/* Passed the deployment that served this page, so a tab left open
+            across a deploy can offer a reload instead of silently running old
+            code. Covers the shop and the admin alike. */}
+        <VersionWatcher version={process.env.VERCEL_GIT_COMMIT_SHA ?? ""} />
       </body>
     </html>
   );
