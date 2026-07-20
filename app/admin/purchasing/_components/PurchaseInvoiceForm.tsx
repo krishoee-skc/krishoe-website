@@ -235,6 +235,13 @@ export default function PurchaseInvoiceForm({
         </p>
       ) : null}
 
+      {/* Suggestions for the typeable trading-goods design field. */}
+      <datalist id="purchase-design-options">
+        {productNames.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       <div className="mt-5 space-y-3">
         {rows.map((row, index) => {
           const trading = row.kind === "Trading Goods";
@@ -289,20 +296,18 @@ export default function PurchaseInvoiceForm({
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 {trading ? (
                   <>
-                    <select
+                    {/* Typeable, like the raw-material name: pick a design the
+                        shop already sells, or type a new one being bought for
+                        the first time. A new design starts its stock on save. */}
+                    <input
                       name={`item${index}Design`}
                       className={fieldClass(Boolean(issue?.design))}
+                      list="purchase-design-options"
+                      placeholder="Type or pick a design"
                       value={row.design}
                       onChange={(event) => updateRow(row.key, { design: event.target.value })}
                       aria-label={`Item ${index + 1} product`}
-                    >
-                      <option value="">Select product</option>
-                      {productNames.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <select
                       name={`item${index}Channel`}
                       className={inputClass}
