@@ -236,8 +236,10 @@ function movementMatchesInvoice(
   movement: OperationsData["stockMovements"][number],
   invoice: PosInvoice,
 ) {
+  // Not matched on channel: stock lives in one pool, so a movement's channel is
+  // the pool's, which need not equal the channel the sale was reported on. The
+  // invoice number in the note is unique and is the real link.
   return (
-    movement.channel === invoice.channel &&
     movement.type === invoiceStockMovementType(invoice.kind) &&
     movement.note.includes(invoice.invoiceNumber)
   );
@@ -314,44 +316,41 @@ function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "payme
   }
 }
 
-function resolveStockRow(
-  finishedStock: FinishedStock[],
-  design: string,
-  channel: PosChannel,
-  sizeRun: string,
-) {
-  const matching = finishedStock.filter(
-    (stock) => sameDesign(stock.design, design) && stock.channel === channel,
-  );
+export function resolveStockRow(finishedStock: FinishedStock[], design: string, sizeRun: string) {
+  // One pool per design: a shop holds a design's pairs once, not a separate pile
+  // per channel. Stock bought on wholesale sells on retail or online just the
+  // same, so the row is found by design and size, whatever channel it sits in.
+  // The channel a sale is made on lives on the invoice, for revenue by channel —
+  // it is not a wall around the stock.
+  const matching = finishedStock.filter((stock) => sameDesign(stock.design, design));
 
   // Preference: exact size run, then the aggregate "Mixed" row, then a range
-  // row (e.g. "36-41" that covers this size), then any row. A range is chosen
-  // over a different specific-size row so selling size 41 draws from "36-41",
-  // not from an unrelated "38" row. Mirrors the decrement logic.
+  // row (e.g. "36-41" that covers this size), then the row holding the most —
+  // so a sale draws from where the pairs actually are. Mirrors the decrement.
   return (
     matching.find((stock) => sameDesign(stock.sizeRun, sizeRun)) ??
     matching.find((stock) => sameDesign(stock.sizeRun, "Mixed")) ??
     matching.find((stock) => stock.sizeRun.includes("-")) ??
-    matching[0]
+    [...matching].sort((a, b) => b.stockPairs - a.stockPairs)[0]
   );
 }
 
-function preflightSaleStock(operations: OperationsData, channel: PosChannel, items: PosInvoiceItem[]) {
+export function preflightSaleStock(operations: OperationsData, items: PosInvoiceItem[]) {
   // Sum requested pairs per resolved stock row so a design split across sizes is
   // checked correctly whether it lands on size-specific rows or a shared row.
   const requestedByRow = new Map<string, { stock: FinishedStock; pairs: number; label: string }>();
 
   for (const item of items) {
-    const stock = resolveStockRow(operations.finishedStock, item.design, channel, item.sizeRun);
+    const stock = resolveStockRow(operations.finishedStock, item.design, item.sizeRun);
 
     if (!stock) {
-      throw new Error(`${item.design} ${channel} stock row was not found.`);
+      throw new Error(`${item.design} is not in stock yet.`);
     }
 
     const label =
       stock.sizeRun && stock.sizeRun !== "Mixed"
-        ? `${item.design} ${channel} (size ${stock.sizeRun})`
-        : `${item.design} ${channel}`;
+        ? `${item.design} (size ${stock.sizeRun})`
+        : item.design;
     const existing = requestedByRow.get(stock.id) ?? { stock, pairs: 0, label };
     existing.pairs += item.quantity;
     requestedByRow.set(stock.id, existing);
@@ -536,9 +535,12 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   const creditAmount = input.kind === "Sale" ? Math.max(0, total - paidAmount) : 0;
   validatePaymentInput(input, creditAmount);
 
+  // Loaded once and shared: the stock preflight needs it, and so does deciding
+  // which pool each line's movement draws from.
+  const operations = await getOperationsData();
+
   if (input.kind === "Sale") {
-    const operations = await getOperationsData();
-    preflightSaleStock(operations, input.channel, items);
+    preflightSaleStock(operations, items);
 
     // Wholesale minimum order quantity (MOQ) enforcement.
     if (input.channel === "Wholesale") {
@@ -606,14 +608,22 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
 
   invoice.qrPayload = qrPayloadForInvoice(invoice);
 
-  const stockMovements = items.map<Omit<StockMovement, "id" | "createdAt">>((item) => ({
-    design: item.design,
-    channel: input.channel,
-    sizeRun: item.sizeRun,
-    type: input.kind === "Sale" ? "Sale Out" : "Return In",
-    pairs: item.quantity,
-    note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,
-  }));
+  const stockMovements = items.map<Omit<StockMovement, "id" | "createdAt">>((item) => {
+    // Draw from — or, on a return, add back to — the design's one pool, wherever
+    // it sits, rather than a channel-shaped bucket that may hold nothing. A
+    // design with no stock yet (a first-ever return) starts its pool on the sale
+    // channel.
+    const pool = resolveStockRow(operations.finishedStock, item.design, item.sizeRun);
+
+    return {
+      design: item.design,
+      channel: pool ? pool.channel : input.channel,
+      sizeRun: item.sizeRun,
+      type: input.kind === "Sale" ? "Sale Out" : "Return In",
+      pairs: item.quantity,
+      note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,
+    };
+  });
 
   const needsLedger = (input.kind === "Sale" && creditAmount > 0) || input.kind === "Return";
   const ledgerTransaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null =
