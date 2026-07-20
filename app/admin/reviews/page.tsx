@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import {
   deleteReviewAction,
   updateReviewStatusAction,
@@ -107,12 +108,12 @@ export default async function AdminReviewsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a
+          <ExportButton
             href="/api/admin/reviews/export"
             className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Export CSV
-          </a>
+          </ExportButton>
           <Link
             href="/admin/products"
             className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"

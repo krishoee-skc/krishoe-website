@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
@@ -216,36 +217,36 @@ export default async function AdminPosPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
+          <ExportButton
             href="/api/admin/pos/export?type=invoices"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export POS CSV
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/pos/export?type=posting-review"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Posting review
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/pos/export?type=day-close"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Day close
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/pos/export?type=day-close-detail"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Close detail
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/pos/export?type=profit-close"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Profit close
-          </Link>
+          </ExportButton>
         </div>
       </div>
 

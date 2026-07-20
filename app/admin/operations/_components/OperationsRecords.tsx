@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import {
   updateCustomerLedgerAction,
   updateFinishedStockAction,
@@ -537,12 +538,12 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
             Book stock compared with stock movement trail for closing, audit, and correction.
           </p>
         </div>
-        <Link
+        <ExportButton
           href="/api/admin/operations/export?type=stock-ledger-summary"
           className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export ledger CSV
-        </Link>
+        </ExportButton>
       </div>
 
       {snapshot.reports.stockLedgerRows.length === 0 ? (
@@ -665,12 +666,12 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
             Customer-wise priority, payment due date, and next collection action.
           </p>
         </div>
-        <Link
+        <ExportButton
           href="/api/admin/operations/export?type=ledger-followups"
           className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export follow-ups
-        </Link>
+        </ExportButton>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-4">

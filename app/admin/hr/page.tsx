@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
 import {
   createAttendanceAction,
@@ -156,24 +157,24 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
+          <ExportButton
             href="/api/admin/hr/export?type=employees"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export employees
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/hr/export?type=performance"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export performance
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/hr/export?type=payroll"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export payroll
-          </Link>
+          </ExportButton>
         </div>
       </div>
 
@@ -326,9 +327,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-gray-600">
               {currentMonth}
             </span>
-            <Link href="/api/admin/hr/export?type=payroll-suggestions" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            <ExportButton href="/api/admin/hr/export?type=payroll-suggestions" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Export
-            </Link>
+            </ExportButton>
           </div>
         </div>
         <div className="mt-5 overflow-x-auto">
@@ -428,9 +429,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <Link href="/admin/hr/salary-closing" className="text-sm font-bold text-brand-green-ink underline underline-offset-4">
               Print
             </Link>
-            <Link href="/api/admin/hr/export?type=salary-closing" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            <ExportButton href="/api/admin/hr/export?type=salary-closing" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Export
-            </Link>
+            </ExportButton>
           </div>
         </div>
         <div className="mt-5 overflow-x-auto">
@@ -503,9 +504,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               Match by fingerprint/device id first, then employee name.
             </p>
           </div>
-          <Link href="/api/admin/hr/export?type=fingerprint-template" className="text-sm font-bold text-brand-green underline underline-offset-4">
+          <ExportButton href="/api/admin/hr/export?type=fingerprint-template" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Template CSV
-          </Link>
+          </ExportButton>
         </div>
         <form action={importFingerprintAttendanceAction} className="mt-5 grid gap-4 xl:grid-cols-[1fr_220px]">
           <textarea
@@ -534,9 +535,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               Staff profile, salary basis, fingerprint id, and employment status.
             </p>
           </div>
-          <Link href="/api/admin/hr/export?type=employees" className="text-sm font-bold text-brand-green underline underline-offset-4">
+          <ExportButton href="/api/admin/hr/export?type=employees" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Export
-          </Link>
+          </ExportButton>
         </div>
 
         <div className="mt-5 divide-y divide-gray-100">
@@ -702,9 +703,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               <h2 className="text-lg font-black text-brand-green-ink">Monthly attendance report</h2>
               <p className="mt-1 text-sm text-gray-500">{currentMonth} attendance, overtime, and output signal.</p>
             </div>
-            <Link href="/api/admin/hr/export?type=attendance-summary" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            <ExportButton href="/api/admin/hr/export?type=attendance-summary" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Export
-            </Link>
+            </ExportButton>
           </div>
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -750,9 +751,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               <h2 className="text-lg font-black text-brand-green-ink">Monthly payroll report</h2>
               <p className="mt-1 text-sm text-gray-500">{currentMonth} gross, deduction, net, and payment status.</p>
             </div>
-            <Link href="/api/admin/hr/export?type=payroll-summary" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            <ExportButton href="/api/admin/hr/export?type=payroll-summary" className="text-sm font-bold text-brand-green underline underline-offset-4">
               Export
-            </Link>
+            </ExportButton>
           </div>
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-sm">

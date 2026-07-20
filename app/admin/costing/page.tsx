@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
 import { updateCostingSettingsAction } from "@/app/admin/costing/actions";
 import {
@@ -267,48 +268,48 @@ export default async function AdminCostingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
+          <ExportButton
             href="/api/admin/costing/export?type=designs"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export designs
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=materials"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export materials
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=stock-valuation"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Raw stock value
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=finished-stock-value"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Finished value
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=catalog-stock-sync"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Catalog sync
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=batches"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export batches
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/costing/export?type=periods"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export periods
-          </Link>
+          </ExportButton>
         </div>
       </div>
 

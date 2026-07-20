@@ -1,4 +1,6 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
+import PrintButton from "@/components/admin/PrintButton";
 import type { Metadata } from "next";
 import {
   createSupplierLedgerAction,
@@ -143,36 +145,39 @@ export default async function AdminPurchasingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
+          <ExportButton
             href="/api/admin/purchasing/export?type=invoices"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
           >
             Export purchases
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/purchasing/export?type=suppliers"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export suppliers
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/purchasing/export?type=supplier-aging"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Aging report
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/purchasing/export?type=supplier-payables"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Payment queue
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             href="/api/admin/purchasing/export?type=posting-review"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Posting review
-          </Link>
+          </ExportButton>
+          <PrintButton className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-bold text-brand-green">
+            Print
+          </PrintButton>
         </div>
       </div>
 
@@ -186,7 +191,7 @@ export default async function AdminPurchasingPage() {
         <StatCard label="Month profit signal" value={money(purchasing.summary.monthProfitEstimate)} detail="POS net sales minus purchases" />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr] print:hidden">
         <PurchaseInvoiceForm
           supplierLedgers={purchasing.supplierLedgers}
           rawMaterials={operations.rawMaterials}
@@ -332,12 +337,12 @@ export default async function AdminPurchasingPage() {
               Payable priority, due date, and next action for supplier relationship control.
             </p>
           </div>
-          <Link
+          <ExportButton
             href="/api/admin/purchasing/export?type=supplier-payables"
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export payment queue
-          </Link>
+          </ExportButton>
         </div>
 
         <div className="mb-4 grid gap-3 md:grid-cols-4">
