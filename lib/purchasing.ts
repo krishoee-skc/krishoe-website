@@ -1037,6 +1037,55 @@ function buildSupplierAgingRows(data: PurchasingData): SupplierAgingRow[] {
     });
 }
 
+export type PurchasePostingCheck = {
+  supplierExists: boolean;
+  materialExists: boolean;
+  billPosted: boolean;
+  paymentPosted: boolean;
+  issues: string[];
+};
+
+// Whether a saved bill is soundly posted, and if not, what is off. Pure, so the
+// posting-health panel and its tests read the same rule.
+export function checkPurchaseInvoicePosting(
+  invoice: PurchaseInvoice,
+  linkedTransactions: SupplierTransaction[],
+  supplierIds: Set<string>,
+  materialIds: Set<string>,
+): PurchasePostingCheck {
+  const expectedPaymentType = paymentTransactionType(invoice.paymentMethod);
+  const shouldHavePayment = invoice.paidAmount > 0 && invoice.paymentMethod !== "Credit";
+
+  const supplierExists = supplierIds.has(invoice.supplierLedgerId);
+  // Only raw material lines carry a material id; a trading goods bill has none.
+  // Requiring one flagged every resale purchase as "raw material missing" — a
+  // false alarm on a bill that was posted perfectly, since ready-made pairs go
+  // to finished stock, not the raw material store. So a bill is asked for a
+  // material only when it actually names one.
+  const materialExists = !invoice.materialId || materialIds.has(invoice.materialId);
+  const billPosted = linkedTransactions.some(
+    (transaction) => transaction.type === "Purchase Bill" && transaction.amount === invoice.total,
+  );
+  const paymentPosted =
+    !shouldHavePayment ||
+    linkedTransactions.some(
+      (transaction) => transaction.type === expectedPaymentType && transaction.amount === invoice.paidAmount,
+    );
+  const expectedStatus = purchaseStatus(invoice.total, invoice.paidAmount);
+  const creditPaymentValid = invoice.paymentMethod !== "Credit" || invoice.paidAmount === 0;
+
+  const issues: string[] = [];
+  if (!supplierExists) issues.push("supplier missing");
+  if (!materialExists) issues.push("raw material missing");
+  if (!billPosted) issues.push("purchase bill transaction missing");
+  if (!paymentPosted) issues.push("payment transaction missing");
+  if (invoice.status !== expectedStatus) issues.push("payment status mismatch");
+  if (!creditPaymentValid) issues.push("credit invoice has paid amount");
+  if (invoice.postingStatus !== "Posted") issues.push("invoice not posted");
+
+  return { supplierExists, materialExists, billPosted, paymentPosted, issues };
+}
+
 export async function getPurchasingSnapshot() {
   const [data, pos, operations] = await Promise.all([
     getPurchasingData(),
@@ -1066,29 +1115,8 @@ export async function getPurchasingSnapshot() {
       const linkedTransactions = invoice.supplierTransactionIds
         .map((transactionId) => transactionsById.get(transactionId))
         .filter((transaction): transaction is SupplierTransaction => Boolean(transaction));
-      const expectedPaymentType = paymentTransactionType(invoice.paymentMethod);
       const shouldHavePayment = invoice.paidAmount > 0 && invoice.paymentMethod !== "Credit";
-      const issues: string[] = [];
-      const supplierExists = supplierIds.has(invoice.supplierLedgerId);
-      const materialExists = materialIds.has(invoice.materialId);
-      const billPosted = linkedTransactions.some(
-        (transaction) => transaction.type === "Purchase Bill" && transaction.amount === invoice.total,
-      );
-      const paymentPosted =
-        !shouldHavePayment ||
-        linkedTransactions.some(
-          (transaction) => transaction.type === expectedPaymentType && transaction.amount === invoice.paidAmount,
-        );
-      const expectedStatus = purchaseStatus(invoice.total, invoice.paidAmount);
-      const creditPaymentValid = invoice.paymentMethod !== "Credit" || invoice.paidAmount === 0;
-
-      if (!supplierExists) issues.push("supplier missing");
-      if (!materialExists) issues.push("raw material missing");
-      if (!billPosted) issues.push("purchase bill transaction missing");
-      if (!paymentPosted) issues.push("payment transaction missing");
-      if (invoice.status !== expectedStatus) issues.push("payment status mismatch");
-      if (!creditPaymentValid) issues.push("credit invoice has paid amount");
-      if (invoice.postingStatus !== "Posted") issues.push("invoice not posted");
+      const check = checkPurchaseInvoicePosting(invoice, linkedTransactions, supplierIds, materialIds);
 
       return {
         id: invoice.id,
@@ -1103,12 +1131,12 @@ export async function getPurchasingSnapshot() {
         postingStatus: invoice.postingStatus,
         expectedTransactionCount: 1 + (shouldHavePayment ? 1 : 0),
         linkedTransactionCount: linkedTransactions.length,
-        supplierExists,
-        materialExists,
-        billPosted,
-        paymentPosted,
-        signal: issues.length > 0 ? "Needs Review" : "Posted",
-        issues: issues.join("; "),
+        supplierExists: check.supplierExists,
+        materialExists: check.materialExists,
+        billPosted: check.billPosted,
+        paymentPosted: check.paymentPosted,
+        signal: check.issues.length > 0 ? "Needs Review" : "Posted",
+        issues: check.issues.join("; "),
       };
     })
     .sort((a, b) => {
