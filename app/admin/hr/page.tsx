@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
@@ -51,9 +52,7 @@ function monthKey() {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: false });
 }
 
 function numberParam(value?: string) {

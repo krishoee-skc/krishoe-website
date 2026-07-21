@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatAdminDate } from "@/lib/format-date";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions";
@@ -25,10 +26,7 @@ function money(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: true });
 }
 
 function transactionTone(type: SupplierTransactionType) {

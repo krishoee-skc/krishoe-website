@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
 import {
   createAndDeliverOperationalAlertNotificationsAction,
@@ -45,10 +46,7 @@ function formatDate(value?: string) {
     return "-";
   }
 
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatAdminDate(value, { time: true });
 }
 
 function customerLabel(event: NotificationEvent) {

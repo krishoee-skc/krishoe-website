@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
 import PrintButton from "@/components/admin/PrintButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -29,10 +30,7 @@ function money(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: true });
 }
 
 function invoiceTone(invoice: PurchaseInvoice) {

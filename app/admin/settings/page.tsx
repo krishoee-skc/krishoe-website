@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatAdminDate } from "@/lib/format-date";
 import { adminRoles, requireAdminPermission } from "@/lib/admin-permissions";
 import {
   adminStaffStatuses,
@@ -26,11 +27,7 @@ export const metadata: Metadata = {
 function formatDate(value?: string) {
   if (!value) return "Never";
 
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kathmandu",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: true });
 }
 
 function Field({

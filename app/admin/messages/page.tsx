@@ -1,4 +1,5 @@
 import { getContactMessages } from "@/lib/submissions";
+import { formatAdminDate } from "@/lib/format-date";
 import { updateMessageStatusAction } from "@/app/admin/messages/actions";
 
 export const metadata = {
@@ -8,10 +9,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatAdminDate(value, { time: true });
 }
 
 function statusClass(status: string) {

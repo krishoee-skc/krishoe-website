@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PrintSalarySlipButton from "@/app/admin/hr/payroll/[id]/PrintSalarySlipButton";
@@ -19,9 +20,7 @@ function formatDate(value: string) {
     return "Not paid";
   }
 
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: false });
 }
 
 export async function generateMetadata({ params }: SalarySlipPageProps): Promise<Metadata> {

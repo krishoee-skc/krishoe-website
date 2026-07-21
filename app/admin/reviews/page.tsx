@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
 import {
   deleteReviewAction,
@@ -21,10 +22,7 @@ type ReviewRow = {
 };
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatAdminDate(value, { time: true });
 }
 
 function statusClass(status: Review["status"]) {

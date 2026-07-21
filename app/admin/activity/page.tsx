@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import {
   adminAuditCategories,
   adminAuditFiltersToSearchParams,
@@ -51,10 +52,7 @@ function isToday(date: Date) {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatAdminDate(value, { time: true });
 }
 
 function actorLabel(event: AdminAuditEvent) {

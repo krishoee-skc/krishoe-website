@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -25,9 +26,7 @@ function money(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: false });
 }
 
 function StatBox({
