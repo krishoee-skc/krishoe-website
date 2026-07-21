@@ -1,5 +1,6 @@
 import { deleteOperationRecordAction } from "@/app/admin/operations/actions";
 import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { OperationRecordKind } from "@/lib/operations";
 
 export const inputClass =
@@ -47,23 +48,23 @@ export function SectionTitle({ title, detail }: { title: string; detail: string 
 
 export function SubmitActionButton({ label }: { label: string }) {
   return (
-    <button
-      type="submit"
+    <FormSubmitButton
       className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+      pendingLabel="Saving…"
     >
       {label}
-    </button>
+    </FormSubmitButton>
   );
 }
 
 export function SaveButton({ label = "Save" }: { label?: string }) {
   return (
-    <button
-      type="submit"
+    <FormSubmitButton
       className="h-9 rounded-full bg-brand-green-ink px-3 text-xs font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+      pendingLabel="Saving…"
     >
       {label}
-    </button>
+    </FormSubmitButton>
   );
 }
 

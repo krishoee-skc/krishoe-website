@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import PrintButton from "@/components/admin/PrintButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
 import {
   createSupplierLedgerAction,
@@ -205,9 +206,12 @@ export default async function AdminPurchasingPage() {
               <input name="supplierName" required className={inputClass} placeholder="Supplier name" />
               <input name="phone" className={inputClass} placeholder="Phone" />
               <input name="materialFocus" className={inputClass} placeholder="Material focus" />
-              <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
+              <FormSubmitButton
+                className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white"
+                pendingLabel="Adding…"
+              >
                 Add supplier
-              </button>
+              </FormSubmitButton>
             </div>
           </form>
 
@@ -231,9 +235,12 @@ export default async function AdminPurchasingPage() {
               </select>
               <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
               <textarea name="note" className={textareaClass} placeholder="Payment note or adjustment reason" />
-              <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
+              <FormSubmitButton
+                className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
+                pendingLabel="Recording…"
+              >
                 Record payment
-              </button>
+              </FormSubmitButton>
             </div>
           </form>
         </div>

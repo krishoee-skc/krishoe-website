@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
 import {
@@ -244,9 +245,12 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             </div>
             <input name="fingerprintId" className={inputClass} placeholder="Fingerprint/device id" />
             <textarea name="note" className={textareaClass} placeholder="Skill, address, fingerprint device id, or note" />
-            <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
+            <FormSubmitButton
+              className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
+              pendingLabel="Adding…"
+            >
               Add employee
-            </button>
+            </FormSubmitButton>
           </div>
         </form>
 
@@ -276,9 +280,12 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               <input name="overtimeHours" type="number" min="0" step="0.5" className={inputClass} placeholder="OT hours" />
             </div>
             <textarea name="note" className={textareaClass} placeholder="Shift, reason, or device note" />
-            <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
+            <FormSubmitButton
+              className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white"
+              pendingLabel="Saving…"
+            >
               Save attendance
-            </button>
+            </FormSubmitButton>
           </div>
         </form>
 
@@ -308,9 +315,12 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             </div>
             <input name="paidAt" type="date" className={inputClass} />
             <textarea name="note" className={textareaClass} placeholder="Salary slip, cash/cheque ref, advance, or note" />
-            <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
+            <FormSubmitButton
+              className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
+              pendingLabel="Saving…"
+            >
               Save payroll
-            </button>
+            </FormSubmitButton>
           </div>
         </form>
       </div>
