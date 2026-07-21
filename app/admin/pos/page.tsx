@@ -182,7 +182,10 @@ export default async function AdminPosPage() {
   // per channel, so picking one fills the rate and shows the stock. Built from
   // the catalog, which the purchase and production posts keep in step with
   // finished stock. Prices are stored in paisa, shown and billed in rupees.
-  const sellableByDesign = new Map<string, { design: string; stock: number; retailRate: number; wholesaleRate: number }>();
+  const sellableByDesign = new Map<
+    string,
+    { design: string; stock: number; retailRate: number; wholesaleRate: number; sizes: string }
+  >();
   for (const product of products) {
     const retailRate = Math.round(product.priceValue / 100);
     sellableByDesign.set(product.name, {
@@ -190,13 +193,22 @@ export default async function AdminPosPage() {
       stock: product.stock,
       retailRate,
       wholesaleRate: product.wholesalePriceValue > 0 ? Math.round(product.wholesalePriceValue / 100) : retailRate,
+      // Its size run, so picking the design fills the Size box and the receipt
+      // shows every size without the cashier typing them.
+      sizes: product.sizes.join(", "),
     });
   }
   // A design that has finished stock but no catalog product still belongs in the
   // list — the counter can sell it, just without a stored price.
   for (const stock of operations.finishedStock) {
     if (!sellableByDesign.has(stock.design)) {
-      sellableByDesign.set(stock.design, { design: stock.design, stock: stock.stockPairs, retailRate: 0, wholesaleRate: 0 });
+      sellableByDesign.set(stock.design, {
+        design: stock.design,
+        stock: stock.stockPairs,
+        retailRate: 0,
+        wholesaleRate: 0,
+        sizes: stock.sizeRun && stock.sizeRun !== "Mixed" ? stock.sizeRun : "",
+      });
     }
   }
   const catalog = [...sellableByDesign.values()].sort(

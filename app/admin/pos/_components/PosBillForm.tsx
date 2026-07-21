@@ -18,6 +18,7 @@ export type SellableItem = {
   stock: number;
   retailRate: number;
   wholesaleRate: number;
+  sizes: string;
 };
 
 type PosBillFormProps = {
@@ -105,6 +106,11 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
           const item = lookup(patch.design);
           if (item) {
             merged.rate = String(rateForChannel(channel, item));
+            // Fill the size run from the design so the receipt shows its sizes
+            // without the cashier keying them. Left alone if the design has none.
+            if (item.sizes) {
+              merged.sizeRun = item.sizes;
+            }
           }
         }
 
