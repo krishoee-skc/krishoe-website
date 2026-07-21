@@ -5,9 +5,9 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
 import {
   createSupplierLedgerAction,
-  createSupplierTransactionAction,
 } from "@/app/admin/purchasing/actions";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
+import SupplierPaymentForm from "@/app/admin/purchasing/_components/SupplierPaymentForm";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -23,8 +23,6 @@ export const dynamic = "force-dynamic";
 
 const inputClass =
   "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
-const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -215,34 +213,13 @@ export default async function AdminPurchasingPage() {
             </div>
           </form>
 
-          <form action={createSupplierTransactionAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
-            <div className="mt-4 grid gap-3">
-              <select name="supplierLedgerId" required className={inputClass} defaultValue="">
-                <option value="">Select supplier</option>
-                {purchasing.supplierLedgers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierName} - due {money(supplier.balanceDue)}
-                  </option>
-                ))}
-              </select>
-              <select name="type" className={inputClass} defaultValue="Cash Payment">
-                <option>Cash Payment</option>
-                <option>Cheque Payment</option>
-                <option>Bank Payment</option>
-                <option>Return Adjustment</option>
-                <option>Manual Adjustment</option>
-              </select>
-              <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
-              <textarea name="note" className={textareaClass} placeholder="Payment note or adjustment reason" />
-              <FormSubmitButton
-                className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
-                pendingLabel="Recording…"
-              >
-                Record payment
-              </FormSubmitButton>
-            </div>
-          </form>
+          <SupplierPaymentForm
+            suppliers={purchasing.supplierLedgers.map((supplier) => ({
+              id: supplier.id,
+              name: supplier.supplierName,
+              due: supplier.balanceDue,
+            }))}
+          />
         </div>
       </div>
 
