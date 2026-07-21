@@ -257,6 +257,44 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* The first thing on opening the admin: today's money and what is owed,
+          in a glance, so the day starts with the numbers that matter. */}
+      <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
+        <h2 className="text-lg font-black text-brand-green-ink">Today at a glance</h2>
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+          {[
+            { label: "Today sales", value: money(pos.summary.todayNetSales), tone: "good" as const },
+            { label: "Today purchase", value: money(purchasing.summary.todayPurchase), tone: "plain" as const },
+            { label: "Cash in hand", value: money(pos.todayDayClose.cashAmount), tone: "plain" as const },
+            {
+              label: "To collect",
+              value: money(operations.summary.receivable),
+              tone: operations.summary.receivable > 0 ? ("warn" as const) : ("good" as const),
+            },
+            {
+              label: "To pay",
+              value: money(purchasing.summary.supplierDue),
+              tone: purchasing.summary.supplierDue > 0 ? ("warn" as const) : ("good" as const),
+            },
+          ].map((cell) => (
+            <div key={cell.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{cell.label}</p>
+              <p
+                className={`mt-1 text-lg font-black ${
+                  cell.tone === "good"
+                    ? "text-brand-green"
+                    : cell.tone === "warn"
+                      ? "text-brand-clay"
+                      : "text-brand-green-ink"
+                }`}
+              >
+                {cell.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatCard label="Sales pipeline" value={money(orderTotal)} detail={`${orders.length} orders`} />
         <StatCard label="POS today" value={money(pos.summary.todayNetSales)} detail={`${pos.summary.needsReview} needs review`} tone={pos.summary.needsReview > 0 ? "warn" : "good"} />
