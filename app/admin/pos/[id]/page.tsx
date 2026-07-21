@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import { getPosInvoiceById } from "@/lib/pos";
+import { toBikramSambatNepali } from "@/lib/bikram-sambat";
 
 type PosInvoicePageProps = {
   params: Promise<{ id: string }>;
@@ -77,6 +78,11 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             </h1>
             <p className="mt-2 text-sm text-gray-500">
               {invoice.channel} - {formatDate(invoice.createdAt)}
+            </p>
+            {/* Bikram Sambat beside the English date, so the bill reads
+                naturally to a Nepali reader. */}
+            <p className="mt-0.5 text-sm font-semibold text-brand-green-ink">
+              वि.सं. {toBikramSambatNepali(invoice.createdAt)}
             </p>
           </div>
           <div className="text-right">
