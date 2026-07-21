@@ -20,7 +20,13 @@ import {
   workerStatusOptions,
 } from "@/app/admin/operations/_components/operations-ui";
 
-export default function OperationsQuickEntry({ snapshot }: { snapshot: OperationsSnapshot }) {
+export default function OperationsQuickEntry({
+  snapshot,
+  workerNames = [],
+}: {
+  snapshot: OperationsSnapshot;
+  workerNames?: string[];
+}) {
   const stockDesignOptions = Array.from(
     new Set(snapshot.finishedStock.map((stock) => stock.design).filter(Boolean)),
   ).sort((left, right) => left.localeCompare(right));
@@ -105,7 +111,20 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
 
         <form action={createWorkerTaskAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
           <h3 className="font-black text-brand-green-ink">Worker task</h3>
-          <input name="workerName" required className={inputClass} placeholder="Worker name" />
+          {/* Pick a registered worker from the list, or type one — the same
+              ease the counter has when choosing a design. */}
+          <input
+            name="workerName"
+            required
+            list="worker-name-options"
+            className={inputClass}
+            placeholder="Worker name — type or pick"
+          />
+          <datalist id="worker-name-options">
+            {workerNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
           <select name="batchId" className={inputClass} defaultValue="">
             <option value="">Manual design / no batch</option>
             {snapshot.productionBatches.map((batch) => (
@@ -114,7 +133,17 @@ export default function OperationsQuickEntry({ snapshot }: { snapshot: Operation
               </option>
             ))}
           </select>
-          <input name="design" className={inputClass} placeholder="Design name if no batch" />
+          <input
+            name="design"
+            list="worker-design-options"
+            className={inputClass}
+            placeholder="Design if no batch — type or pick"
+          />
+          <datalist id="worker-design-options">
+            {stockDesignOptions.map((design) => (
+              <option key={design} value={design} />
+            ))}
+          </datalist>
           <div className="grid grid-cols-2 gap-2">
             <select name="station" className={inputClass} defaultValue="Cutting">
               {workerStationOptions.map((option) => (

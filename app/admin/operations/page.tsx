@@ -4,6 +4,8 @@ import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQ
 import OperationsRecords from "@/app/admin/operations/_components/OperationsRecords";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { getHrData } from "@/lib/hr";
+import { reportError } from "@/lib/report-error";
 
 export const metadata: Metadata = {
   title: "Operations | KRISHOE Admin",
@@ -16,6 +18,19 @@ export default async function AdminOperationsPage() {
     getOperationsSnapshot(),
     getCostingSnapshot(),
   ]);
+
+  // The worker-task form picks a name from here instead of typing it. Loaded on
+  // its own and guarded, so an HR hiccup leaves the field typeable rather than
+  // taking the operations page down with it.
+  let workerNames: string[] = [];
+  try {
+    const hr = await getHrData();
+    workerNames = [...new Set(hr.employees.filter((employee) => employee.status === "Active").map((employee) => employee.name))].sort(
+      (left, right) => left.localeCompare(right),
+    );
+  } catch (error) {
+    reportError("load employee names for the worker task form", error);
+  }
 
   return (
     <section className="p-6">
@@ -30,7 +45,7 @@ export default async function AdminOperationsPage() {
       </div>
 
       <OperationsOverview snapshot={snapshot} costing={costing} />
-      <OperationsQuickEntry snapshot={snapshot} />
+      <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} />
       <OperationsRecords snapshot={snapshot} costing={costing} />
     </section>
   );
