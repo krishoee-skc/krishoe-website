@@ -214,6 +214,26 @@ export default async function AdminPosPage() {
     .filter((row) => row.soldPairs > 0 || row.returnedPairs > 0 || row.netRevenue !== 0)
     .slice(0, 6);
 
+  // The most recent actual sale, offered as a one-tap "repeat" for a customer
+  // buying the same run again.
+  const lastSale = pos.recentInvoices.find(
+    (invoice) => invoice.kind !== "Return" && invoice.items.length > 0,
+  );
+  const lastBill = lastSale
+    ? {
+        channel: lastSale.channel,
+        invoiceNumber: lastSale.invoiceNumber,
+        items: lastSale.items.map((item) => ({
+          sku: item.sku ?? "",
+          design: item.design,
+          sizeRun: item.sizeRun ?? "",
+          quantity: String(item.quantity),
+          rate: String(item.rate),
+          discount: String(item.discount ?? 0),
+        })),
+      }
+    : null;
+
   return (
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -431,6 +451,7 @@ export default async function AdminPosPage() {
             label: `${ledger.customerName} (${ledger.channel})`,
           }))}
           catalog={catalog}
+          lastBill={lastBill}
         />
 
         <div className="grid gap-6">

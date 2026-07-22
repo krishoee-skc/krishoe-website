@@ -21,9 +21,27 @@ export type SellableItem = {
   sizes: string;
 };
 
+// The items of the shop's most recent sale, ready to drop back into the form so
+// a repeat order does not have to be keyed again.
+export type RepeatBillItem = {
+  sku: string;
+  design: string;
+  sizeRun: string;
+  quantity: string;
+  rate: string;
+  discount: string;
+};
+
+export type RepeatBill = {
+  channel: string;
+  invoiceNumber: string;
+  items: RepeatBillItem[];
+};
+
 type PosBillFormProps = {
   ledgers: LedgerOption[];
   catalog: SellableItem[];
+  lastBill?: RepeatBill | null;
 };
 
 type ItemRow = {
@@ -61,7 +79,7 @@ function fieldClass(hasError: boolean) {
   return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-gray-200 bg-white"}`;
 }
 
-export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
+export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormProps) {
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
   const [nextKey, setNextKey] = useState(4);
   const [channel, setChannel] = useState("Retail");
@@ -138,6 +156,22 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
     );
   }
 
+  // Drop the last sale's lines back into the form — a repeat customer buying
+  // the same run does not need it all keyed again. The rates come straight from
+  // that bill, so the channel is set without re-pricing.
+  function repeatLastBill() {
+    if (!lastBill || lastBill.items.length === 0) {
+      return;
+    }
+
+    const filled = lastBill.items.map((item, index) => ({ key: index, ...item }));
+    filled.push(emptyRow(filled.length));
+    setRows(filled);
+    setNextKey(filled.length);
+    setChannel(lastBill.channel);
+    setState(null);
+  }
+
   const subtotal = useMemo(
     () =>
       rows.reduce((total, row) => {
@@ -188,11 +222,23 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
     <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <input type="hidden" name="itemCount" value={rows.length} />
 
-      <div className="mb-5">
-        <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Pick an item and its price fills in. Bill save posts stock automatically.
-        </p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Pick an item and its price fills in. Bill save posts stock automatically.
+          </p>
+        </div>
+        {lastBill && lastBill.items.length > 0 ? (
+          <button
+            type="button"
+            onClick={repeatLastBill}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+          >
+            ↻ Repeat last bill
+            <span className="font-mono text-xs opacity-70">{lastBill.invoiceNumber}</span>
+          </button>
+        ) : null}
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
@@ -403,10 +449,12 @@ export default function PosBillForm({ ledgers, catalog }: PosBillFormProps) {
 
       <div className="mt-4 space-y-3">
         <ActionMessage state={state} linkLabel="Open receipt" />
+        {/* Big, full-width on a phone so the counter can tap it without aiming —
+            this is the action the shop runs dozens of times a day. */}
         <button
           type="submit"
           disabled={isSaving}
-          className="h-11 rounded-full bg-brand-green-ink px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-14 w-full rounded-full bg-brand-green-ink px-6 text-base font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
           {isSaving ? "Saving..." : "Save bill and open receipt"}
         </button>
