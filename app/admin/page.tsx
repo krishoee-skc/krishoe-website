@@ -208,6 +208,12 @@ export default async function AdminDashboardPage() {
   const stockOverview = [...products].sort(
     (a, b) => a.stock - b.stock || a.name.localeCompare(b.name),
   );
+  // The designs actually making money, most profit first — the headline of the
+  // profit panel.
+  const topEarners = [...costing.designCosting]
+    .filter((row) => row.soldPairs > 0 && row.grossProfit > 0)
+    .sort((a, b) => b.grossProfit - a.grossProfit)
+    .slice(0, 5);
   const pendingReviews = products.flatMap((product) => product.reviews).filter((review) => review.status === "pending");
   const catalogStockValue = products.reduce((total, product) => total + product.priceValue * product.stock, 0);
   const orderTotal = orders.reduce((total, order) => total + amountFromOrderTotal(order.total), 0);
@@ -314,6 +320,50 @@ export default async function AdminDashboardPage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Profit, up front and plain: what the shop actually kept today, this
+          month, and this year, and which designs earned it. */}
+      <section className="mt-6 rounded-2xl border border-brand-gold-bright/40 bg-brand-cream-soft/50 p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-brand-green-ink">Profit at a glance</h2>
+          <Link href="/admin/costing" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            Costing detail
+          </Link>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {costing.periodReports.map((period) => (
+            <div key={period.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{period.label}</p>
+              <p
+                className={`mt-1 text-xl font-black ${
+                  period.grossProfit >= 0 ? "text-brand-green" : "text-brand-clay"
+                }`}
+              >
+                {money(period.grossProfit)}
+              </p>
+              <p className="mt-1 text-xs text-brand-muted">
+                {period.grossMarginRate}% margin · {period.soldPairs} pairs
+              </p>
+            </div>
+          ))}
+        </div>
+        {topEarners.length > 0 ? (
+          <div className="mt-4">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">Top earning designs</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {topEarners.map((row) => (
+                <span
+                  key={row.design}
+                  className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-white px-3 py-1 text-xs font-bold text-brand-green-ink"
+                >
+                  {row.design}
+                  <span className="text-brand-green">{money(row.grossProfit)}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
