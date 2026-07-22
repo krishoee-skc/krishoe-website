@@ -7,12 +7,14 @@ import {
   ShieldCheckIcon,
   BellIcon,
   StarIcon,
+  SearchIcon,
 } from "@/components/Icons";
 
 // The admin destinations, shared by the desktop sidebar (AdminNav) and the
 // phone nav (AdminMobileNav) so the two never drift apart.
 export const adminNavLinks = [
   { href: "/admin", label: "Dashboard", icon: HomeIcon },
+  { href: "/admin/search", label: "Search", icon: SearchIcon },
   { href: "/admin/stock", label: "Stock", icon: PackageIcon },
   { href: "/admin/pos", label: "POS Billing", icon: CreditCardIcon },
   { href: "/admin/dues", label: "Dues", icon: CreditCardIcon },
