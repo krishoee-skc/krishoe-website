@@ -399,8 +399,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                       <input type="hidden" name="deduction" value={row.deduction} />
                       <input type="hidden" name="status" value="Draft" />
                       <input type="hidden" name="note" value={row.note} />
-                      <button
-                        type="submit"
+                      <FormSubmitButton
                         disabled={row.hasPayroll || row.netPay <= 0}
                         className={`h-9 rounded-full px-4 text-xs font-black ${
                           row.hasPayroll || row.netPay <= 0
@@ -409,7 +408,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                         }`}
                       >
                         {row.hasPayroll ? "Recorded" : "Create draft"}
-                      </button>
+                      </FormSubmitButton>
                     </form>
                   </td>
                 </tr>
@@ -529,9 +528,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <p className="text-xs leading-5 text-gray-500">
               fingerprintId, deviceId, userId, employeeName, timestamp, punchTime, checkIn, checkOut, status, overtimeHours, note.
             </p>
-            <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
+            <FormSubmitButton className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white" pendingLabel="Importing…">
               Import CSV
-            </button>
+            </FormSubmitButton>
           </div>
         </form>
       </section>
@@ -610,9 +609,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                     <input name="baseSalary" type="number" min="0" className={inputClass} defaultValue={employee.baseSalary} placeholder="Monthly salary" />
                     <input name="dailyWage" type="number" min="0" className={inputClass} defaultValue={employee.dailyWage} placeholder="Daily wage" />
                     <input name="pieceRate" type="number" min="0" step="0.01" className={inputClass} defaultValue={employee.pieceRate} placeholder="Piece rate" />
-                    <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
+                    <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white">
                       Save employee
-                    </button>
+                    </FormSubmitButton>
                   </div>
                   <textarea name="note" className={textareaClass} defaultValue={employee.note} placeholder="Employee note" />
                 </form>
@@ -621,9 +620,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                   <form action={updateEmployeeStatusAction}>
                     <input type="hidden" name="id" value={employee.id} />
                     <input type="hidden" name="status" value={employee.status === "Active" ? "Inactive" : "Active"} />
-                    <button type="submit" className="h-10 w-full rounded-full border border-gray-200 px-4 text-sm font-bold text-brand-green-ink">
+                    <FormSubmitButton className="h-10 w-full rounded-full border border-gray-200 px-4 text-sm font-bold text-brand-green-ink">
                       {employee.status === "Active" ? "Mark inactive" : "Mark active"}
-                    </button>
+                    </FormSubmitButton>
                   </form>
                   <form action={deleteHrRecordAction}>
                     <input type="hidden" name="kind" value="employee" />

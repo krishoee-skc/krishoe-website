@@ -16,6 +16,7 @@ import {
   updateStaffStatusAction,
 } from "./actions";
 import ConfirmSubmitButton from "./ConfirmSubmitButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -93,14 +94,13 @@ function SelectField({
   );
 }
 
+// Wraps the shared FormSubmitButton so every settings form that used the old
+// local button now disables on submit and shows "Saving…" for free.
 function SubmitButton({ label }: { label: string }) {
   return (
-    <button
-      type="submit"
-      className="rounded-lg bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-[#08392C]"
-    >
+    <FormSubmitButton className="rounded-lg bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-[#08392C]">
       {label}
-    </button>
+    </FormSubmitButton>
   );
 }
 
@@ -301,9 +301,9 @@ export default async function AdminSettingsPage() {
                               </option>
                             ))}
                           </select>
-                          <button type="submit" className={compactSaveButtonClass}>
+                          <FormSubmitButton className={compactSaveButtonClass}>
                             Save access
-                          </button>
+                          </FormSubmitButton>
                         </form>
                         <p className="mt-2 text-xs text-gray-500">
                           Current branch: {branch?.name ?? staff.branchId}
@@ -349,9 +349,9 @@ export default async function AdminSettingsPage() {
                               className={compactDangerButtonClass}
                             />
                           ) : (
-                            <button type="submit" className={compactNeutralButtonClass}>
+                            <FormSubmitButton className={compactNeutralButtonClass}>
                               Enable
-                            </button>
+                            </FormSubmitButton>
                           )}
                         </form>
                       </td>
