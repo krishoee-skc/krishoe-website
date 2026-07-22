@@ -520,7 +520,7 @@ export default async function AdminPosPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Invoice</th>
@@ -539,24 +539,24 @@ export default async function AdminPosPage() {
 
                   return (
                     <tr key={invoice.id}>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.invoiceNumber}</p>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Customer" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.customerName}</p>
                         <p className="text-xs text-gray-500">{invoice.phone || "-"}</p>
                       </td>
-                      <td className="py-3 pr-3">{invoice.channel}</td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Channel" className="py-3 pr-3">{invoice.channel}</td>
+                      <td data-label="Payment" className="py-3 pr-3">
                         <p className="font-semibold">{invoice.paymentMethod}</p>
                         <p className="text-xs text-gray-500">Paid {money(invoice.paidAmount)}</p>
                       </td>
-                      <td className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
+                      <td data-label="Status" className="py-3 pr-3">
                         <Badge className={statusTone(invoice)}>{invoice.status}</Badge>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Posting" className="py-3 pr-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge className={postingTone(posting?.signal ?? "Needs Review")}>
                             {posting?.signal ?? "Needs Review"}
@@ -569,7 +569,7 @@ export default async function AdminPosPage() {
                           {posting?.issues || `Stock ${posting?.linkedStockMovementCount ?? 0}/${posting?.expectedStockMovementCount ?? 0}`}
                         </p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Receipt" className="py-3 pr-3">
                         <Link href={`/admin/pos/${invoice.id}`} className="font-bold text-brand-green underline underline-offset-4">
                           Open
                         </Link>
