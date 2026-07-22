@@ -19,6 +19,7 @@ const navLinks = [
   { href: "/admin", label: "Dashboard", icon: HomeIcon },
   { href: "/admin/stock", label: "Stock", icon: PackageIcon },
   { href: "/admin/pos", label: "POS Billing", icon: CreditCardIcon },
+  { href: "/admin/dues", label: "Dues", icon: CreditCardIcon },
   { href: "/admin/purchasing", label: "Purchasing", icon: PackageIcon },
   { href: "/admin/costing", label: "Costing", icon: CreditCardIcon },
   { href: "/admin/hr", label: "HR", icon: ShieldCheckIcon },

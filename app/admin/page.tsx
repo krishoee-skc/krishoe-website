@@ -263,35 +263,55 @@ export default async function AdminDashboardPage() {
         <h2 className="text-lg font-black text-brand-green-ink">Today at a glance</h2>
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
           {[
-            { label: "Today sales", value: money(pos.summary.todayNetSales), tone: "good" as const },
-            { label: "Today purchase", value: money(purchasing.summary.todayPurchase), tone: "plain" as const },
-            { label: "Cash in hand", value: money(pos.todayDayClose.cashAmount), tone: "plain" as const },
+            { label: "Today sales", value: money(pos.summary.todayNetSales), tone: "good" as const, href: undefined as string | undefined },
+            { label: "Today purchase", value: money(purchasing.summary.todayPurchase), tone: "plain" as const, href: undefined as string | undefined },
+            { label: "Cash in hand", value: money(pos.todayDayClose.cashAmount), tone: "plain" as const, href: undefined as string | undefined },
             {
               label: "To collect",
               value: money(operations.summary.receivable),
               tone: operations.summary.receivable > 0 ? ("warn" as const) : ("good" as const),
+              href: "/admin/dues",
             },
             {
               label: "To pay",
               value: money(purchasing.summary.supplierDue),
               tone: purchasing.summary.supplierDue > 0 ? ("warn" as const) : ("good" as const),
+              href: "/admin/dues",
             },
-          ].map((cell) => (
-            <div key={cell.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{cell.label}</p>
-              <p
-                className={`mt-1 text-lg font-black ${
-                  cell.tone === "good"
-                    ? "text-brand-green"
-                    : cell.tone === "warn"
-                      ? "text-brand-clay"
-                      : "text-brand-green-ink"
-                }`}
+          ].map((cell) => {
+            const body = (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{cell.label}</p>
+                <p
+                  className={`mt-1 text-lg font-black ${
+                    cell.tone === "good"
+                      ? "text-brand-green"
+                      : cell.tone === "warn"
+                        ? "text-brand-clay"
+                        : "text-brand-green-ink"
+                  }`}
+                >
+                  {cell.value}
+                </p>
+              </>
+            );
+
+            // The two dues cells open the full Dues list — the main way a phone
+            // user (no sidebar) reaches it.
+            return cell.href ? (
+              <Link
+                key={cell.label}
+                href={cell.href}
+                className="rounded-xl border border-brand-green/10 bg-white p-4 transition hover:border-brand-green/40 hover:shadow-sm"
               >
-                {cell.value}
-              </p>
-            </div>
-          ))}
+                {body}
+              </Link>
+            ) : (
+              <div key={cell.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
+                {body}
+              </div>
+            );
+          })}
         </div>
       </section>
 
