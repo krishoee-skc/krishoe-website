@@ -1,4 +1,5 @@
 import AdminNav from "./AdminNav";
+import AdminMobileNav from "./AdminMobileNav";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
 
@@ -15,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         branchId={session?.branchId}
       />
       <main className="flex flex-col bg-gray-50/40">
+        <AdminMobileNav />
         {children}
       </main>
     </div>

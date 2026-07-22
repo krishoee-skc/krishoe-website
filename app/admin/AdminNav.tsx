@@ -4,35 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
-import {
-  HomeIcon,
-  PackageIcon,
-  ShoppingCartIcon,
-  MessageSquareIcon,
-  CreditCardIcon,
-  ShieldCheckIcon,
-  BellIcon,
-  StarIcon,
-} from "@/components/Icons";
-
-const navLinks = [
-  { href: "/admin", label: "Dashboard", icon: HomeIcon },
-  { href: "/admin/stock", label: "Stock", icon: PackageIcon },
-  { href: "/admin/pos", label: "POS Billing", icon: CreditCardIcon },
-  { href: "/admin/dues", label: "Dues", icon: CreditCardIcon },
-  { href: "/admin/purchasing", label: "Purchasing", icon: PackageIcon },
-  { href: "/admin/costing", label: "Costing", icon: CreditCardIcon },
-  { href: "/admin/hr", label: "HR", icon: ShieldCheckIcon },
-  { href: "/admin/operations", label: "Operations", icon: PackageIcon },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingCartIcon },
-  { href: "/admin/payments", label: "Payments", icon: CreditCardIcon },
-  { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
-  { href: "/admin/reviews", label: "Reviews", icon: StarIcon },
-  { href: "/admin/activity", label: "Activity", icon: ShieldCheckIcon },
-  { href: "/admin/settings", label: "Settings", icon: ShieldCheckIcon },
-  { href: "/admin/products", label: "Products", icon: PackageIcon },
-  { href: "/admin/messages", label: "Messages", icon: MessageSquareIcon },
-];
+import { adminNavLinks } from "@/app/admin/nav-links";
 
 export default function AdminNav({
   adminRole,
@@ -79,7 +51,7 @@ export default function AdminNav({
         </div>
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium">
-            {navLinks.map(({ href, label, icon: Icon }) => (
+            {adminNavLinks.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
