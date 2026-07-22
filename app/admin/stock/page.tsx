@@ -4,6 +4,7 @@ import { getProducts } from "@/lib/product-store";
 import { formatPrice } from "@/lib/products";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { LOW_STOCK_THRESHOLD, stockLevel } from "@/lib/stock-thresholds";
 
 export const metadata = {
   title: "Stock | KRISHOE Admin",
@@ -55,8 +56,11 @@ export default async function AdminStockPage() {
   const sorted = [...products].sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name));
   const totalPairs = products.reduce((total, product) => total + product.stock, 0);
   const outOfStock = products.filter((product) => product.stock === 0).length;
-  const lowStock = products.filter((product) => product.stock > 0 && product.stock <= 5).length;
+  const lowStock = products.filter((product) => stockLevel(product.stock) === "low").length;
   const stockValue = products.reduce((total, product) => total + product.priceValue * product.stock, 0);
+  // Everything that needs buying or making, worst first — drives the alert at
+  // the top of the page.
+  const needsRestock = sorted.filter((product) => stockLevel(product.stock) !== "ok");
 
   return (
     <section className="p-6">
@@ -74,6 +78,40 @@ export default async function AdminStockPage() {
           Manage products
         </Link>
       </div>
+
+      {needsRestock.length > 0 ? (
+        <div className="mt-6 rounded-2xl border border-brand-clay bg-brand-clay-tint p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-black text-brand-clay">
+              {needsRestock.length} {needsRestock.length === 1 ? "design needs" : "designs need"} restocking
+            </h2>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-clay">
+              {outOfStock} out · {lowStock} low ({LOW_STOCK_THRESHOLD} or fewer)
+            </p>
+          </div>
+          <p className="mt-1 text-sm font-semibold text-brand-green-ink">
+            किन्न वा बनाउन बाँकी — तल छिटो हेर्नुहोस्।
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {needsRestock.slice(0, 8).map((product) => (
+              <span
+                key={product.id}
+                className="inline-flex items-center gap-2 rounded-full border border-brand-clay/40 bg-white px-3 py-1 text-xs font-bold text-brand-green-ink"
+              >
+                {product.name}
+                <span className={product.stock === 0 ? "text-brand-clay" : "text-brand-gold-ink"}>
+                  {product.stock === 0 ? "Out" : `${product.stock} left`}
+                </span>
+              </span>
+            ))}
+            {needsRestock.length > 8 ? (
+              <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-bold text-brand-clay">
+                +{needsRestock.length - 8} more
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatCard label="Designs" value={products.length} detail="in the catalog" />
@@ -105,15 +143,27 @@ export default async function AdminStockPage() {
                   {product.status === "Draft" ? " · Draft" : ""}
                 </p>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${
-                  product.stock > 0
+              {(() => {
+                const level = stockLevel(product.stock);
+                const badgeTone =
+                  level === "ok"
                     ? "bg-brand-green-tint text-brand-green"
-                    : "bg-brand-clay-tint text-brand-clay"
-                }`}
-              >
-                {product.stock > 0 ? `${product.stock} pairs` : "Out"}
-              </span>
+                    : level === "low"
+                      ? "bg-brand-cream-soft text-brand-gold-ink"
+                      : "bg-brand-clay-tint text-brand-clay";
+                const badgeText =
+                  level === "ok"
+                    ? `${product.stock} pairs`
+                    : level === "low"
+                      ? `Low · ${product.stock}`
+                      : "Out";
+
+                return (
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${badgeTone}`}>
+                    {badgeText}
+                  </span>
+                );
+              })()}
             </div>
           ))}
         </div>

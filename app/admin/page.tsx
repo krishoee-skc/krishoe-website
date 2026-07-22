@@ -12,6 +12,7 @@ import { getPaymentReconciliation } from "@/lib/payment-reconciliation";
 import { getPosSnapshot } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
 import { formatPrice } from "@/lib/products";
+import { isLowOrOut } from "@/lib/stock-thresholds";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
 import {
   getProductionReadinessWithData,
@@ -201,7 +202,7 @@ export default async function AdminDashboardPage() {
   const paymentCheck = readiness.find((check) => check.id === "payment");
   const activeProducts = products.filter((product) => product.status === "Active");
   const draftProducts = products.length - activeProducts.length;
-  const lowStockProducts = products.filter((product) => product.stock <= 5);
+  const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
   // Every design, out-of-stock first, so a glance answers both "what do I have"
   // and "what needs buying".
   const stockOverview = [...products].sort(

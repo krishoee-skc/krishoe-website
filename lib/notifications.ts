@@ -8,6 +8,7 @@ import { getPosSnapshot } from "@/lib/pos";
 import { queryPostgres } from "@/lib/postgres/client";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
+import { isLowOrOut } from "@/lib/stock-thresholds";
 import { reportingErrors } from "@/lib/report-error";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
 
@@ -802,7 +803,9 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
     });
   }
 
-  for (const product of products.filter((item) => item.status === "Active" && item.stock <= 5).slice(0, 5)) {
+  for (const product of products
+    .filter((item) => item.status === "Active" && isLowOrOut(item.stock))
+    .slice(0, 5)) {
     alerts.push({
       id: `catalog-low-${product.id}`,
       category: "catalog",

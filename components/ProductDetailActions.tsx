@@ -7,6 +7,7 @@ import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import ProductOptionSelector from "@/components/ProductOptionSelector";
 import QuantitySelector from "@/components/QuantitySelector";
+import { stockLevel } from "@/lib/stock-thresholds";
 
 type ProductDetailActionsProps = {
   product: Product;
@@ -19,8 +20,9 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const wished = isWishlisted(product.id);
-  const outOfStock = product.stock <= 0;
-  const lowStock = product.stock > 0 && product.stock <= 5;
+  const level = stockLevel(product.stock);
+  const outOfStock = level === "out";
+  const lowStock = level === "low";
 
   const orderMessage = useMemo(
     () =>

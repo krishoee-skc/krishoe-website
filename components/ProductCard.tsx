@@ -3,6 +3,7 @@ import type { Product } from "@/lib/products";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
 import SafeImage from "@/components/SafeImage";
+import { stockLevel } from "@/lib/stock-thresholds";
 
 type ProductCardProps = {
   product: Product;
@@ -16,8 +17,9 @@ export default function ProductCard({
   eager = false,
 }: ProductCardProps) {
   const href = `/product/${product.id}`;
-  const outOfStock = product.stock <= 0;
-  const lowStock = product.stock > 0 && product.stock <= 5;
+  const level = stockLevel(product.stock);
+  const outOfStock = level === "out";
+  const lowStock = level === "low";
   // Shop-grid cards render two-up on phones, so they use a denser mobile
   // layout; collection cards (homepage) keep the full layout everywhere.
   const compact = intent === "shop";
