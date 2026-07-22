@@ -135,7 +135,7 @@ function RepairPostingButton({ invoiceId }: { invoiceId: string }) {
     <form action={repairPosInvoicePostingAction}>
       <input type="hidden" name="id" value={invoiceId} />
       <input type="hidden" name="returnTo" value="/admin/pos" />
-      <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-brand-clay px-3 text-xs font-black text-brand-clay transition hover:bg-brand-clay hover:text-white">
+      <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-brand-clay px-3 text-xs font-black text-brand-clay transition hover:bg-brand-clay hover:text-white">
         Repair
       </FormSubmitButton>
     </form>

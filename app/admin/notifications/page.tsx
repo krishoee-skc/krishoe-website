@@ -281,7 +281,7 @@ export default async function AdminNotificationsPage() {
                       {event.deliveryStatus !== "sent" ? (
                         <form action={retryNotificationAction}>
                           <input type="hidden" name="id" value={event.id} />
-                          <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
+                          <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
                             Retry
                           </FormSubmitButton>
                         </form>

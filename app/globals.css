@@ -41,10 +41,31 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  /* Crisper text everywhere — the default rendering looked slightly heavy on
+     the shop's screens. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Headings break onto balanced lines instead of leaving one orphaned word on
+   the last row — a small thing that makes every title read tidier. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Money and quantities sit in tables and statements; tabular figures give every
+   digit the same width so the columns line up cleanly down the page. */
+table td,
+table th,
+.receipt-print {
+  font-variant-numeric: tabular-nums;
 }
 
 @layer components {

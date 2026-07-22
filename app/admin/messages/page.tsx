@@ -102,7 +102,7 @@ export default async function AdminMessagesPage() {
                       name="status"
                       value={message.status === "New" ? "Replied" : "New"}
                     />
-                    <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
+                    <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
                       {message.status === "New" ? "Mark replied" : "Reopen"}
                     </FormSubmitButton>
                   </form>

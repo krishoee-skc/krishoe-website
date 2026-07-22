@@ -58,7 +58,7 @@ function ReviewStatusButton({
       <input type="hidden" name="productId" value={row.productId} />
       <input type="hidden" name="reviewId" value={row.review.id} />
       <input type="hidden" name="status" value={status} />
-      <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
+      <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
         {label}
       </FormSubmitButton>
     </form>
@@ -190,7 +190,7 @@ export default async function AdminReviewsPage() {
                           <input type="hidden" name="reviewId" value={row.review.id} />
                           <button
                             type="submit"
-                            className="inline-flex h-8 items-center rounded-full border border-red-200 px-3 text-xs font-bold text-red-700 transition hover:bg-red-50"
+                            className="inline-flex h-9 items-center rounded-full border border-red-200 px-3 text-xs font-bold text-red-700 transition hover:bg-red-50"
                           >
                             Delete
                           </button>
