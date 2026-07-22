@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
 import { updateCostingSettingsAction } from "@/app/admin/costing/actions";
 import {
@@ -398,12 +399,9 @@ export default async function AdminCostingPage() {
               Set real labor and overhead rates to turn COGS into true production profit.
             </p>
           </div>
-          <button
-            type="submit"
-            className="h-10 rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-          >
+          <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
             Save cost model
-          </button>
+          </FormSubmitButton>
         </div>
 
         <div className="mt-5 grid gap-6 xl:grid-cols-[1fr_1.2fr]">

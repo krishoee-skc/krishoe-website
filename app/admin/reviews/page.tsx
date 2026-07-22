@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   deleteReviewAction,
   updateReviewStatusAction,
@@ -57,12 +58,9 @@ function ReviewStatusButton({
       <input type="hidden" name="productId" value={row.productId} />
       <input type="hidden" name="reviewId" value={row.review.id} />
       <input type="hidden" name="status" value={status} />
-      <button
-        type="submit"
-        className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-      >
+      <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
         {label}
-      </button>
+      </FormSubmitButton>
     </form>
   );
 }

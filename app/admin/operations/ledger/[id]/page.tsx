@@ -9,6 +9,7 @@ import {
 } from "@/app/admin/operations/actions";
 import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
 import PrintLedgerButton from "@/app/admin/operations/ledger/PrintLedgerButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getCustomerLedgerDetail, type LedgerTransaction } from "@/lib/operations";
 
 type LedgerDetailPageProps = {
@@ -151,9 +152,9 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
               <input name="balanceDue" type="number" min="0" className={inputClass} defaultValue={ledger.balanceDue} aria-label="Balance due" />
               <input name="creditLimit" type="number" min="0" className={inputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" placeholder="Credit limit (0 = no limit)" />
             </div>
-            <button type="submit" className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
+            <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Save customer
-            </button>
+            </FormSubmitButton>
           </form>
 
           <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
@@ -169,9 +170,9 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             </select>
             <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
             <textarea name="note" className={textareaClass} placeholder="Bill number, cheque number, return note, or remark" />
-            <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
+            <FormSubmitButton className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Record transaction
-            </button>
+            </FormSubmitButton>
           </form>
         </div>
 

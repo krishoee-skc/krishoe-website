@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions";
 import PrintSupplierLedgerButton from "@/app/admin/purchasing/supplier/[id]/PrintSupplierLedgerButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   getSupplierLedgerDetail,
   type PurchaseInvoice,
@@ -203,12 +204,9 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
             <textarea name="note" className={textareaClass} placeholder="Voucher, cheque, bank reference, return note, or remark" />
           </div>
-          <button
-            type="submit"
-            className="h-10 w-fit rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-          >
+          <FormSubmitButton className="h-10 w-fit rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
             Record transaction
-          </button>
+          </FormSubmitButton>
         </form>
 
         <div className="mt-8">

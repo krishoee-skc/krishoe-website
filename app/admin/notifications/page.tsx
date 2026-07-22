@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   createAndDeliverOperationalAlertNotificationsAction,
   createOperationalAlertNotificationsAction,
@@ -116,28 +117,19 @@ export default async function AdminNotificationsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <form action={createOperationalAlertNotificationsAction}>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-            >
+            <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
               Create alert notifications
-            </button>
+            </FormSubmitButton>
           </form>
           <form action={createAndDeliverOperationalAlertNotificationsAction}>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-full border border-brand-green bg-white px-3 text-xs font-bold text-brand-green"
-            >
+            <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-brand-green bg-white px-3 text-xs font-bold text-brand-green">
               Create and deliver alerts
-            </button>
+            </FormSubmitButton>
           </form>
           <form action={deliverPendingNotificationsAction}>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"
-            >
+            <FormSubmitButton className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white">
               Deliver pending
-            </button>
+            </FormSubmitButton>
           </form>
           <ExportButton
             href="/api/admin/notifications/export"
@@ -289,12 +281,9 @@ export default async function AdminNotificationsPage() {
                       {event.deliveryStatus !== "sent" ? (
                         <form action={retryNotificationAction}>
                           <input type="hidden" name="id" value={event.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-                          >
+                          <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
                             Retry
-                          </button>
+                          </FormSubmitButton>
                         </form>
                       ) : null}
                     </td>

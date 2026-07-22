@@ -1,6 +1,7 @@
 import { getContactMessages } from "@/lib/submissions";
 import { formatAdminDate } from "@/lib/format-date";
 import { updateMessageStatusAction } from "@/app/admin/messages/actions";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 export const metadata = {
   title: "Messages | KRISHOE Admin",
@@ -101,12 +102,9 @@ export default async function AdminMessagesPage() {
                       name="status"
                       value={message.status === "New" ? "Replied" : "New"}
                     />
-                    <button
-                      type="submit"
-                      className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-                    >
+                    <FormSubmitButton className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
                       {message.status === "New" ? "Mark replied" : "Reopen"}
-                    </button>
+                    </FormSubmitButton>
                   </form>
                 </td>
               </tr>
