@@ -7,6 +7,7 @@ import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getPosInvoiceById } from "@/lib/pos";
 import { formatAdminDate } from "@/lib/format-date";
+import { whatsappToUrl } from "@/lib/commerce";
 
 type PosInvoicePageProps = {
   params: Promise<{ id: string }>;
@@ -39,6 +40,18 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
     notFound();
   }
 
+  // A ready-to-send bill summary for the customer's WhatsApp. Kept short — the
+  // number, what was paid, and anything still due.
+  const whatsappMessage = [
+    `नमस्ते ${invoice.customerName}, KRISHOE बिल ${invoice.invoiceNumber}`,
+    `जम्मा: ${money(invoice.total)}`,
+    `तिरेको: ${money(invoice.paidAmount)}`,
+    invoice.creditAmount > 0 ? `बाँकी: ${money(invoice.creditAmount)}` : "",
+    "धन्यवाद! 🙏",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return (
     <section className="p-6 print:p-0">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -49,6 +62,16 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           Back to POS
         </Link>
         <div className="flex flex-wrap gap-2">
+          {invoice.phone ? (
+            <a
+              href={whatsappToUrl(invoice.phone, whatsappMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500 bg-white px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
+            >
+              WhatsApp bill
+            </a>
+          ) : null}
           {invoice.postingStatus === "Needs Review" ? (
             <form action={repairPosInvoicePostingAction}>
               <input type="hidden" name="id" value={invoice.id} />

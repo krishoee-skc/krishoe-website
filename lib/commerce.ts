@@ -9,6 +9,16 @@ export const whatsappOrderUrl = (message: string) =>
 export const viberOrderUrl = (message: string) =>
   `viber://forward?text=${encodeURIComponent(message)}`;
 
+// Open WhatsApp addressed to a specific customer's number — used to send a
+// customer their bill, the reverse of whatsappOrderUrl (which targets the
+// shop). Nepal numbers are stored locally as 10 digits (98xxxxxxxx); wa.me
+// needs the 977 country code, so add it when it is missing.
+export const whatsappToUrl = (phone: string, message: string) => {
+  const digits = phone.replace(/\D/g, "");
+  const withCode = digits.length === 10 && digits.startsWith("9") ? `977${digits}` : digits;
+  return `https://wa.me/${withCode}?text=${encodeURIComponent(message)}`;
+};
+
 export const shippingOptions = [
   "Kathmandu valley delivery",
   "Store pickup",
