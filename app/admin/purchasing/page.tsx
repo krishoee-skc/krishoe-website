@@ -486,7 +486,7 @@ export default async function AdminPurchasingPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Purchase</th>
@@ -505,7 +505,7 @@ export default async function AdminPurchasingPage() {
 
                   return (
                     <tr key={invoice.id}>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3">
                         {/* Opens the single-bill page, which prints clean on one
                             sheet — no more printing the whole screen. */}
                         <Link
@@ -516,7 +516,7 @@ export default async function AdminPurchasingPage() {
                         </Link>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Supplier" className="py-3 pr-3">
                         <Link
                           href={`/admin/purchasing/supplier/${invoice.supplierLedgerId}`}
                           className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -524,22 +524,22 @@ export default async function AdminPurchasingPage() {
                           {invoice.supplierName}
                         </Link>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Material" className="py-3 pr-3">
                         <p className="font-semibold">{invoice.materialName}</p>
                         <p className="text-xs text-gray-500">{invoice.unit}</p>
                       </td>
-                      <td className="py-3 pr-3">{invoice.quantity}</td>
-                      <td className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
+                      <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
+                      <td data-label="Paid / Due" className="py-3 pr-3">
                         <p>Paid {money(invoice.paidAmount)}</p>
                         <p className="text-xs text-gray-500">Due {money(invoice.creditAmount)}</p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Status" className="py-3 pr-3">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${invoiceTone(invoice)}`}>
                           {invoice.status}
                         </span>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Posting" className="py-3 pr-3">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${postingTone(posting?.signal ?? "Needs Review")}`}>
                           {posting?.signal ?? "Needs Review"}
                         </span>
