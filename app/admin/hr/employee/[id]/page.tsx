@@ -217,7 +217,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
             ) : null}
           </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Date</th>
@@ -230,11 +230,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               <tbody className="divide-y">
                 {detail.attendanceRecords.slice(0, 16).map((record) => (
                   <tr key={record.id}>
-                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{formatDate(record.workDate)}</td>
-                    <td className="py-3 pr-3">{record.status}</td>
-                    <td className="py-3 pr-3">{record.checkIn || "no in"} - {record.checkOut || "no out"}</td>
-                    <td className="py-3 pr-3">{record.overtimeHours}</td>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{formatDate(record.workDate)}</td>
+                    <td data-label="Status" className="py-3 pr-3">{record.status}</td>
+                    <td data-label="Time" className="py-3 pr-3">{record.checkIn || "no in"} - {record.checkOut || "no out"}</td>
+                    <td data-label="OT" className="py-3 pr-3">{record.overtimeHours}</td>
+                    <td data-label="Action" className="py-3 pr-3">
                       <form action={deleteHrRecordAction}>
                         <input type="hidden" name="nextPath" value={nextPath} />
                         <input type="hidden" name="kind" value="attendance" />
@@ -262,7 +262,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Payroll history</h2>
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Period</th>
@@ -274,14 +274,14 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               <tbody className="divide-y">
                 {detail.payrollRecords.slice(0, 16).map((record) => (
                   <tr key={record.id}>
-                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{record.periodLabel}</td>
-                    <td className="py-3 pr-3">{money(record.netPay)}</td>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{record.periodLabel}</td>
+                    <td data-label="Net" className="py-3 pr-3">{money(record.netPay)}</td>
+                    <td data-label="Status" className="py-3 pr-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusClass(record.status)}`}>
                         {record.status}
                       </span>
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Actions" className="py-3 pr-3">
                       <div className="flex flex-wrap gap-3 text-xs font-bold">
                         <Link href={`/admin/hr/payroll/${record.id}`} className="text-brand-green underline underline-offset-4">
                           Slip
@@ -337,7 +337,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
           </Link>
         </div>
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Design</th>
@@ -350,11 +350,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
             <tbody className="divide-y">
               {detail.workerTasks.slice(0, 16).map((task) => (
                 <tr key={task.id}>
-                  <td className="py-3 pr-3 font-bold text-brand-green-ink">{task.design}</td>
-                  <td className="py-3 pr-3">{task.station}</td>
-                  <td className="py-3 pr-3">{task.completedPairs}/{task.targetPairs}</td>
-                  <td className="py-3 pr-3">{task.status}</td>
-                  <td className="py-3 pr-3">{task.cameraZone || "No zone"}</td>
+                  <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{task.design}</td>
+                  <td data-label="Station" className="py-3 pr-3">{task.station}</td>
+                  <td data-label="Output" className="py-3 pr-3">{task.completedPairs}/{task.targetPairs}</td>
+                  <td data-label="Status" className="py-3 pr-3">{task.status}</td>
+                  <td data-label="Camera zone" className="py-3 pr-3">{task.cameraZone || "No zone"}</td>
                 </tr>
               ))}
               {detail.workerTasks.length === 0 ? (

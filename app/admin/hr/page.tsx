@@ -343,7 +343,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
           </div>
         </div>
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Employee</th>
@@ -357,27 +357,27 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <tbody className="divide-y">
               {hr.reports.payrollSuggestions.slice(0, 12).map((row) => (
                 <tr key={row.employeeId}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <Link href={`/admin/hr/employee/${row.employeeId}`} className="font-bold text-brand-green-ink underline-offset-4 hover:underline">
                       {row.employeeName}
                     </Link>
                     <p className="mt-1 text-xs text-gray-500">{row.department}</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Basis" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{row.salaryType}</p>
                     <p className="mt-1 text-xs text-gray-500">Absent deduction {money(row.deduction)}</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Work signal" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{row.presentDays} days | {row.completedPairs} pairs</p>
                     <p className="mt-1 text-xs text-gray-500">Leave {row.leaveDays} | Absent {row.absentDays} | OT {row.overtimeHours}</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Auto pay" className="py-3 pr-3">
                     <p className="font-black text-brand-green">{money(row.netPay)}</p>
                     <p className="mt-1 text-xs text-gray-500">
                       Base {money(row.baseAmount)} | Piece {money(row.pieceAmount)} | OT {money(row.overtimeAmount)}
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Status" className="py-3 pr-3">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${
                       row.statusSignal === "Ready"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -388,7 +388,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                       {row.statusSignal}
                     </span>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Action" className="py-3 pr-3">
                     <form action={createPayrollAction}>
                       <input type="hidden" name="nextPath" value="/admin/hr" />
                       <input type="hidden" name="employeeId" value={row.employeeId} />
@@ -444,7 +444,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
           </div>
         </div>
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Employee</th>
@@ -459,26 +459,26 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <tbody className="divide-y">
               {hr.reports.monthlySalaryClosing.slice(0, 14).map((row) => (
                 <tr key={row.employeeId}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <Link href={`/admin/hr/employee/${row.employeeId}`} className="font-bold text-brand-green-ink underline-offset-4 hover:underline">
                       {row.employeeName}
                     </Link>
                     <p className="mt-1 text-xs text-gray-500">{row.department} | {row.salaryType}</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Work" className="py-3 pr-3">
                     <p>{row.attendanceDays} days</p>
                     <p className="text-xs text-gray-500">{row.completedPairs} pairs</p>
                   </td>
-                  <td className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
-                  <td className="py-3 pr-3">{money(row.recordedNetPay)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Suggested" className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
+                  <td data-label="Recorded" className="py-3 pr-3">{money(row.recordedNetPay)}</td>
+                  <td data-label="Paid/Draft" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green">{money(row.paidNetPay)}</p>
                     <p className="text-xs text-gray-500">Pending {money(row.draftNetPay)}</p>
                   </td>
-                  <td className={`py-3 pr-3 font-black ${row.variance === 0 ? "text-gray-500" : row.variance > 0 ? "text-brand-green" : "text-brand-clay"}`}>
+                  <td data-label="Variance" className={`py-3 pr-3 font-black ${row.variance === 0 ? "text-gray-500" : row.variance > 0 ? "text-brand-green" : "text-brand-clay"}`}>
                     {money(row.variance)}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Status" className="py-3 pr-3">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${
                       row.statusSignal === "Closed"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -658,7 +658,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
         </div>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Worker</th>
@@ -673,24 +673,24 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             <tbody className="divide-y">
               {hr.reports.employeePerformance.slice(0, 20).map((row) => (
                 <tr key={`${row.employeeName}-${row.department}`}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.employeeName}</p>
                     <p className="text-xs text-gray-500">{row.status}</p>
                   </td>
-                  <td className="py-3 pr-3">{row.department}</td>
-                  <td className="py-3 pr-3">{row.doneTaskCount}/{row.taskCount}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Department" className="py-3 pr-3">{row.department}</td>
+                  <td data-label="Tasks" className="py-3 pr-3">{row.doneTaskCount}/{row.taskCount}</td>
+                  <td data-label="Output" className="py-3 pr-3">
                     <span className="font-semibold text-brand-green-ink">{row.completedPairs}/{row.targetPairs}</span>
                     <span className="block text-xs text-gray-500">{row.progressRate}% progress</span>
                   </td>
-                  <td className="py-3 pr-3">{row.attendanceDaysThisMonth} days</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Attendance" className="py-3 pr-3">{row.attendanceDaysThisMonth} days</td>
+                  <td data-label="Payroll" className="py-3 pr-3">
                     {money(row.payrollThisMonth)}
                     {row.piecePayEstimate > 0 ? (
                       <span className="block text-xs text-gray-500">Piece est. {money(row.piecePayEstimate)}</span>
                     ) : null}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Signal" className="py-3 pr-3">
                     <PerformancePill row={row} />
                   </td>
                 </tr>
@@ -719,7 +719,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             </ExportButton>
           </div>
           <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Employee</th>
@@ -733,15 +733,15 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               <tbody className="divide-y">
                 {hr.reports.monthlyAttendanceSummary.slice(0, 12).map((row) => (
                   <tr key={row.employeeId}>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3">
                       <p className="font-bold text-brand-green-ink">{row.employeeName}</p>
                       <p className="text-xs text-gray-500">{row.department}</p>
                     </td>
-                    <td className="py-3 pr-3">{row.presentDays}</td>
-                    <td className="py-3 pr-3">{row.leaveDays}</td>
-                    <td className="py-3 pr-3">{row.absentDays}</td>
-                    <td className="py-3 pr-3">{row.overtimeHours}</td>
-                    <td className="py-3 pr-3">{row.completedPairs}</td>
+                    <td data-label="Present" className="py-3 pr-3">{row.presentDays}</td>
+                    <td data-label="Leave" className="py-3 pr-3">{row.leaveDays}</td>
+                    <td data-label="Absent" className="py-3 pr-3">{row.absentDays}</td>
+                    <td data-label="OT" className="py-3 pr-3">{row.overtimeHours}</td>
+                    <td data-label="Output" className="py-3 pr-3">{row.completedPairs}</td>
                   </tr>
                 ))}
                 {hr.reports.monthlyAttendanceSummary.length === 0 ? (
@@ -767,7 +767,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
             </ExportButton>
           </div>
           <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Employee</th>
@@ -781,12 +781,12 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               <tbody className="divide-y">
                 {hr.reports.monthlyPayrollSummary.slice(0, 12).map((row) => (
                   <tr key={row.id}>
-                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{row.employeeName}</td>
-                    <td className="py-3 pr-3">{money(row.grossPay)}</td>
-                    <td className="py-3 pr-3">{money(row.deduction)}</td>
-                    <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.netPay)}</td>
-                    <td className="py-3 pr-3">{row.status}</td>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{row.employeeName}</td>
+                    <td data-label="Gross" className="py-3 pr-3">{money(row.grossPay)}</td>
+                    <td data-label="Deduction" className="py-3 pr-3">{money(row.deduction)}</td>
+                    <td data-label="Net" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.netPay)}</td>
+                    <td data-label="Status" className="py-3 pr-3">{row.status}</td>
+                    <td data-label="Slip" className="py-3 pr-3">
                       <Link href={`/admin/hr/payroll/${row.id}`} className="font-bold text-brand-green underline underline-offset-4">
                         Open
                       </Link>

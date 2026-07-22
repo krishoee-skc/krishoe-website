@@ -99,7 +99,7 @@ export default async function SalaryClosingReportPage() {
         </div>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Employee</th>
@@ -116,18 +116,18 @@ export default async function SalaryClosingReportPage() {
             <tbody className="divide-y">
               {rows.map((row) => (
                 <tr key={row.employeeId}>
-                  <td className="py-3 pr-3 font-bold text-brand-green-ink">{row.employeeName}</td>
-                  <td className="py-3 pr-3">{row.department}</td>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{row.employeeName}</td>
+                  <td data-label="Department" className="py-3 pr-3">{row.department}</td>
+                  <td data-label="Work" className="py-3 pr-3">
                     <span className="font-semibold text-brand-green-ink">{row.attendanceDays} days</span>
                     <span className="block text-xs text-gray-500">{row.completedPairs} pairs</span>
                   </td>
-                  <td className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
-                  <td className="py-3 pr-3">{money(row.recordedNetPay)}</td>
-                  <td className="py-3 pr-3">{money(row.paidNetPay)}</td>
-                  <td className="py-3 pr-3">{money(row.draftNetPay)}</td>
-                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.variance)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Suggested" className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
+                  <td data-label="Recorded" className="py-3 pr-3">{money(row.recordedNetPay)}</td>
+                  <td data-label="Paid" className="py-3 pr-3">{money(row.paidNetPay)}</td>
+                  <td data-label="Pending" className="py-3 pr-3">{money(row.draftNetPay)}</td>
+                  <td data-label="Variance" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.variance)}</td>
+                  <td data-label="Status" className="py-3 pr-3">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${statusClass(row.statusSignal)}`}>
                       {row.statusSignal}
                     </span>
