@@ -5,7 +5,6 @@ import { getOperationsSnapshot } from "@/lib/operations";
 import { getPurchasingSnapshot, type SupplierAgingRisk } from "@/lib/purchasing";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
-import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = {
   title: "Dues | KRISHOE Admin",
@@ -142,7 +141,7 @@ export default async function AdminDuesPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Customer</th>
@@ -154,7 +153,7 @@ export default async function AdminDuesPage() {
               <tbody className="divide-y">
                 {customerRows.map((row) => (
                   <tr key={row.id}>
-                    <td className="min-w-44 py-3 pr-3">
+                    <td className="reflow-primary min-w-44 py-3 pr-3">
                       <Link
                         href={`/admin/operations/ledger/${row.id}`}
                         className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -163,20 +162,23 @@ export default async function AdminDuesPage() {
                       </Link>
                       <p className="mt-1 text-xs text-gray-400">{row.channel}</p>
                     </td>
-                    <td className="py-3 pr-3 text-gray-600">{row.phone || "-"}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Phone" className="py-3 pr-3 text-gray-600">
+                      {row.phone || "-"}
+                    </td>
+                    <td data-label="Aging" className="py-3 pr-3">
                       <span
                         className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${customerAgingTone(
                           row.agingBucket,
                         )}`}
                       >
                         {row.agingBucket}
+                        {row.daysOutstanding > 0 ? ` · ${row.daysOutstanding}d` : ""}
                       </span>
-                      {row.daysOutstanding > 0 ? (
-                        <p className="mt-1 text-xs text-gray-400">{row.daysOutstanding} days</p>
-                      ) : null}
                     </td>
-                    <td className="py-3 pr-3 text-right text-base font-black text-brand-clay">
+                    <td
+                      data-label="Due"
+                      className="py-3 pr-3 text-right text-base font-black text-brand-clay"
+                    >
                       {money(row.balanceDue)}
                     </td>
                   </tr>
@@ -201,7 +203,7 @@ export default async function AdminDuesPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
@@ -213,7 +215,7 @@ export default async function AdminDuesPage() {
               <tbody className="divide-y">
                 {supplierRows.map((row) => (
                   <tr key={row.supplierLedgerId}>
-                    <td className="min-w-44 py-3 pr-3">
+                    <td className="reflow-primary min-w-44 py-3 pr-3">
                       <Link
                         href={`/admin/purchasing/supplier/${row.supplierLedgerId}`}
                         className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -222,22 +224,23 @@ export default async function AdminDuesPage() {
                       </Link>
                       <p className="mt-1 text-xs text-gray-400">{row.materialFocus || "-"}</p>
                     </td>
-                    <td className="py-3 pr-3 text-gray-600">{row.phone || "-"}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Phone" className="py-3 pr-3 text-gray-600">
+                      {row.phone || "-"}
+                    </td>
+                    <td data-label="Aging" className="py-3 pr-3">
                       <span
                         className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${supplierAgingTone(
                           row.risk,
                         )}`}
                       >
                         {row.risk}
+                        {row.oldestOpenDays > 0 ? ` · ${row.oldestOpenDays}d` : ""}
                       </span>
-                      {row.oldestOpenDays > 0 ? (
-                        <p className="mt-1 text-xs text-gray-400">
-                          {row.oldestOpenDays} days · since {formatAdminDate(row.oldestOpenDate)}
-                        </p>
-                      ) : null}
                     </td>
-                    <td className="py-3 pr-3 text-right text-base font-black text-brand-clay">
+                    <td
+                      data-label="Due"
+                      className="py-3 pr-3 text-right text-base font-black text-brand-clay"
+                    >
                       {money(row.balanceDue)}
                     </td>
                   </tr>
