@@ -88,7 +88,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
         <PrintLedgerButton />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
+      <div className="receipt-print rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
@@ -105,7 +105,11 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-5">
+        {/* Summary cards and the priority banner are on-screen dashboards; on a
+            printed statement they push the trail onto a second sheet and repeat
+            what the header due and the trail already show, so they hide on
+            paper. */}
+        <div className="mt-5 grid gap-4 md:grid-cols-5 print:hidden">
           <StatCard label="Cash paid" value={money(summary.cashPaid)} detail="received" />
           <StatCard label="Cheque paid" value={money(summary.chequePaid)} detail="received" />
           <StatCard label="Credit given" value={money(summary.creditGiven)} detail="sales credit" />
@@ -116,7 +120,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
           <StatCard label="Follow-up due" value={summary.followUpDueDate || "-"} detail={summary.collectionPriority} />
         </div>
 
-        <div className={`mt-5 rounded-lg border p-4 ${collectionPriorityClass(summary.collectionPriority)}`}>
+        <div className={`mt-5 rounded-lg border p-4 print:hidden ${collectionPriorityClass(summary.collectionPriority)}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-black uppercase tracking-[0.16em]">
               Collection priority: {summary.collectionPriority}
