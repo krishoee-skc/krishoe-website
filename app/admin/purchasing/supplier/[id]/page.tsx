@@ -134,7 +134,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
         <PrintSupplierLedgerButton />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
+      <div className="receipt-print rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
@@ -151,7 +151,11 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        {/* The summary cards and the priority banner are on-screen dashboards.
+            On a printed statement they push the trail onto a second sheet and
+            add nothing the header due and the running balance don't already
+            show, so they are hidden on paper. */}
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:hidden">
           <StatCard label="Total purchase" value={money(summary.purchaseTotal)} detail={`${summary.purchaseCount} bills`} />
           <StatCard label="Invoice paid" value={money(summary.paidFromInvoices)} detail="paid on bills" />
           <StatCard label="Payment posted" value={money(summary.paymentTotal)} detail="cash/cheque/bank" />
@@ -169,7 +173,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           </div>
         </div>
 
-        <div className={`mt-5 rounded-lg border p-4 ${paymentPriorityTone(summary.paymentPriority)}`}>
+        <div className={`mt-5 rounded-lg border p-4 print:hidden ${paymentPriorityTone(summary.paymentPriority)}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-black uppercase tracking-[0.16em]">
               Supplier payment priority: {summary.paymentPriority}
