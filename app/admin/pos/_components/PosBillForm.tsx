@@ -15,6 +15,7 @@ type LedgerOption = { id: string; label: string };
 // is in view — no typing a name and a price from memory.
 export type SellableItem = {
   design: string;
+  sku: string;
   stock: number;
   retailRate: number;
   wholesaleRate: number;
@@ -90,6 +91,8 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   // to enter a part payment, and once touched it stops following the total.
   const [paidManual, setPaidManual] = useState("");
   const [paidTouched, setPaidTouched] = useState(false);
+  const [scanCode, setScanCode] = useState("");
+  const [scanNote, setScanNote] = useState("");
   const [state, setState] = useState<ActionState | null>(null);
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
@@ -154,6 +157,44 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
         return item ? { ...row, rate: String(rateForChannel(nextChannel, item)) } : row;
       }),
     );
+  }
+
+  // Scan or type a code and drop the item into the bill. A USB/Bluetooth
+  // scanner "types" the SKU and presses Enter, so this is all it takes to build
+  // a bill by scanning; typing a code by hand works the same way. Scanning the
+  // same item again just adds one more pair.
+  function addByCode(rawCode: string) {
+    const code = rawCode.trim().toLowerCase();
+    if (!code) {
+      return;
+    }
+
+    const item = catalog.find(
+      (entry) =>
+        (entry.sku && entry.sku.trim().toLowerCase() === code) ||
+        entry.design.trim().toLowerCase() === code,
+    );
+
+    if (!item) {
+      setScanNote(`"${rawCode.trim()}" — भेटिएन। SKU वा design हेरेर फेरि गर्नुहोस्।`);
+      return;
+    }
+
+    const existing = rows.find(
+      (row) => rowIsTouched(row) && row.design.trim().toLowerCase() === item.design.trim().toLowerCase(),
+    );
+
+    if (existing) {
+      updateRow(existing.key, { quantity: String((Number(existing.quantity) || 0) + 1) });
+    } else {
+      const target = rows.find((row) => !rowIsTouched(row));
+      if (target) {
+        updateRow(target.key, { sku: item.sku, design: item.design, quantity: "1" });
+      }
+    }
+
+    setScanNote(`${item.design} थपियो।`);
+    setScanCode("");
   }
 
   // Drop the last sale's lines back into the form — a repeat customer buying
@@ -287,6 +328,38 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
           ))}
         </select>
         <input name="paymentReference" className={inputClass} placeholder="Cheque/QR/ref no." />
+      </div>
+
+      {/* Scan or type a code to add an item. A barcode scanner types the SKU
+          and hits Enter; this catches that and drops the item into the bill so
+          the counter never keys the design, price, or size. */}
+      <div className="mt-5 rounded-lg border border-brand-green/30 bg-brand-green-wash/40 p-3">
+        <label className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
+          Scan or type code
+        </label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input
+            value={scanCode}
+            onChange={(event) => setScanCode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addByCode(scanCode);
+              }
+            }}
+            placeholder="Scan barcode or type SKU, then Enter"
+            aria-label="Scan or type a product code"
+            className={`${inputClass} h-12 min-w-0 flex-1 text-base`}
+          />
+          <button
+            type="button"
+            onClick={() => addByCode(scanCode)}
+            className="h-12 rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+          >
+            Add
+          </button>
+        </div>
+        {scanNote ? <p className="mt-2 text-xs font-semibold text-brand-green-ink">{scanNote}</p> : null}
       </div>
 
       {/* In-stock designs first, each showing pairs on hand, so the counter

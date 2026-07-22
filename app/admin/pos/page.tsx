@@ -180,12 +180,15 @@ export default async function AdminPosPage() {
   // finished stock. Prices are stored in paisa, shown and billed in rupees.
   const sellableByDesign = new Map<
     string,
-    { design: string; stock: number; retailRate: number; wholesaleRate: number; sizes: string }
+    { design: string; sku: string; stock: number; retailRate: number; wholesaleRate: number; sizes: string }
   >();
   for (const product of products) {
     const retailRate = Math.round(product.priceValue / 100);
     sellableByDesign.set(product.name, {
       design: product.name,
+      // The SKU a scanner reads — lets a scan or a typed code drop the item
+      // straight into the bill.
+      sku: product.sku,
       stock: product.stock,
       retailRate,
       wholesaleRate: product.wholesalePriceValue > 0 ? Math.round(product.wholesalePriceValue / 100) : retailRate,
@@ -200,6 +203,7 @@ export default async function AdminPosPage() {
     if (!sellableByDesign.has(stock.design)) {
       sellableByDesign.set(stock.design, {
         design: stock.design,
+        sku: "",
         stock: stock.stockPairs,
         retailRate: 0,
         wholesaleRate: 0,
