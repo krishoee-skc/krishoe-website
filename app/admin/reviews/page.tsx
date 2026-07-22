@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import {
   deleteReviewAction,
   updateReviewStatusAction,
@@ -188,12 +189,10 @@ export default async function AdminReviewsPage() {
                         <form action={deleteReviewAction}>
                           <input type="hidden" name="productId" value={row.productId} />
                           <input type="hidden" name="reviewId" value={row.review.id} />
-                          <button
-                            type="submit"
+                          <ConfirmDeleteButton
+                            message={`Delete this review by ${row.review.name}? This cannot be undone.`}
                             className="inline-flex h-9 items-center rounded-full border border-red-200 px-3 text-xs font-bold text-red-700 transition hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                          />
                         </form>
                       </div>
                     </td>

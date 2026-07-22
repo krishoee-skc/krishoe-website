@@ -10,6 +10,7 @@ import {
 } from "@/app/admin/hr/actions";
 import { getEmployeeHrDetail } from "@/lib/hr";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 
 type EmployeeHrPageProps = {
   params: Promise<{ id: string }>;
@@ -238,9 +239,10 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                         <input type="hidden" name="nextPath" value={nextPath} />
                         <input type="hidden" name="kind" value="attendance" />
                         <input type="hidden" name="id" value={record.id} />
-                        <button type="submit" className="text-xs font-bold text-red-700 underline underline-offset-4">
-                          Delete
-                        </button>
+                        <ConfirmDeleteButton
+                          message="Delete this attendance record? This cannot be undone."
+                          className="text-xs font-bold text-red-700 underline underline-offset-4"
+                        />
                       </form>
                     </td>
                   </tr>
@@ -299,9 +301,10 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                             <input type="hidden" name="nextPath" value={nextPath} />
                             <input type="hidden" name="kind" value="payroll" />
                             <input type="hidden" name="id" value={record.id} />
-                            <button type="submit" className="text-red-700 underline underline-offset-4">
-                              Delete
-                            </button>
+                            <ConfirmDeleteButton
+                              message={`Delete the ${record.periodLabel} payroll? This cannot be undone.`}
+                              className="text-red-700 underline underline-offset-4"
+                            />
                           </form>
                         ) : null}
                       </div>
