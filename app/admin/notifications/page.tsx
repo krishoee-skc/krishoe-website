@@ -167,7 +167,7 @@ export default async function AdminNotificationsPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Alert</th>
@@ -181,18 +181,18 @@ export default async function AdminNotificationsPage() {
               <tbody className="divide-y">
                 {alertCenter.alerts.slice(0, 20).map((alert) => (
                   <tr key={alert.id}>
-                    <td className="py-3 pr-3 font-bold text-brand-green-ink">{alert.title}</td>
-                    <td className="py-3 pr-3 capitalize text-gray-600">{alert.category}</td>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{alert.title}</td>
+                    <td data-label="Category" className="py-3 pr-3 capitalize text-gray-600">{alert.category}</td>
+                    <td data-label="Severity" className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${alertClass(alert.severity)}`}>
                         {alert.severity}
                       </span>
                     </td>
-                    <td className="max-w-80 py-3 pr-3 text-gray-600">{alert.detail}</td>
-                    <td className="max-w-96 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
+                    <td data-label="Detail" className="max-w-80 py-3 pr-3 text-gray-600">{alert.detail}</td>
+                    <td data-label="Next action" className="max-w-96 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
                       {alert.action}
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Open" className="py-3 pr-3">
                       <Link
                         href={alert.href}
                         className="font-bold text-brand-green underline underline-offset-4"
@@ -242,7 +242,7 @@ export default async function AdminNotificationsPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Created</th>
@@ -261,23 +261,23 @@ export default async function AdminNotificationsPage() {
               <tbody className="divide-y">
                 {events.map((event) => (
                   <tr key={event.id}>
-                    <td className="whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
+                    <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
                       {formatDate(event.createdAt)}
                     </td>
-                    <td className="py-3 pr-3 font-bold capitalize text-brand-green-ink">{event.type}</td>
-                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{customerLabel(event)}</td>
-                    <td className="py-3 pr-3 text-gray-600">{targetLabel(event)}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Type" className="py-3 pr-3 font-bold capitalize text-brand-green-ink">{event.type}</td>
+                    <td data-label="Customer" className="py-3 pr-3 font-semibold text-brand-green-ink">{customerLabel(event)}</td>
+                    <td data-label="Target" className="py-3 pr-3 text-gray-600">{targetLabel(event)}</td>
+                    <td data-label="Status" className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(event.deliveryStatus)}`}>
                         {event.deliveryStatus}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-bold">{event.deliveryAttempts}</td>
-                    <td className="py-3 pr-3 text-gray-600">{event.lastDeliveryChannel || "-"}</td>
-                    <td className="max-w-72 py-3 pr-3 text-xs text-gray-500">
+                    <td data-label="Attempts" className="py-3 pr-3 font-bold">{event.deliveryAttempts}</td>
+                    <td data-label="Channel" className="py-3 pr-3 text-gray-600">{event.lastDeliveryChannel || "-"}</td>
+                    <td data-label="Last error" className="max-w-72 py-3 pr-3 text-xs text-gray-500">
                       {event.lastDeliveryError || (event.deliveredAt ? `Delivered ${formatDate(event.deliveredAt)}` : "-")}
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Action" className="py-3 pr-3">
                       {event.deliveryStatus !== "sent" ? (
                         <form action={retryNotificationAction}>
                           <input type="hidden" name="id" value={event.id} />

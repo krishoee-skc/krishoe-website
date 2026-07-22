@@ -139,7 +139,7 @@ export default async function AdminReviewsPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Date</th>
@@ -156,26 +156,26 @@ export default async function AdminReviewsPage() {
               <tbody className="divide-y">
                 {rows.map((row) => (
                   <tr key={`${row.productId}:${row.review.id}`}>
-                    <td className="whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
+                    <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
                       {formatDate(row.review.createdAt)}
                     </td>
-                    <td className="min-w-52 py-3 pr-3">
+                    <td data-label="Product" className="min-w-52 py-3 pr-3">
                       <Link href={`/product/${row.productId}`} className="font-bold text-brand-green-ink hover:text-brand-green">
                         {row.productName}
                       </Link>
                       <p className="mt-1 font-mono text-xs text-gray-400">{row.productSku}</p>
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.review.name}</td>
-                    <td className="whitespace-nowrap py-3 pr-3 font-black text-brand-gold-ink">
+                    <td data-label="Customer" className="py-3 pr-3 font-semibold text-brand-green-ink">{row.review.name}</td>
+                    <td data-label="Rating" className="whitespace-nowrap py-3 pr-3 font-black text-brand-gold-ink">
                       {row.review.rating}/5
                     </td>
-                    <td className="min-w-80 max-w-xl py-3 pr-3 leading-6 text-gray-600">{row.review.comment}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Review" className="min-w-80 max-w-xl py-3 pr-3 leading-6 text-gray-600">{row.review.comment}</td>
+                    <td data-label="Status" className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(row.review.status)}`}>
                         {row.review.status}
                       </span>
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Action" className="py-3 pr-3">
                       <div className="flex flex-wrap justify-end gap-2">
                         {row.review.status !== "approved" ? (
                           <ReviewStatusButton row={row} status="approved" label="Approve" />

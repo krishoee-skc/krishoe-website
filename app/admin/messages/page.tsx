@@ -64,7 +64,7 @@ export default async function AdminMessagesPage() {
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <table className="reflow-table min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
               <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Date</th>
@@ -79,22 +79,22 @@ export default async function AdminMessagesPage() {
           <tbody className="divide-y divide-gray-200">
             {messages.map((message) => (
               <tr key={message.id}>
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
+                <td className="reflow-primary whitespace-nowrap px-4 py-3 text-xs text-gray-500">
                   {formatDate(message.createdAt)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3">
+                <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
                   <p className="font-medium text-gray-900">{message.name}</p>
                   <a className="text-xs font-semibold text-brand-green" href={`mailto:${message.email}`}>
                     {message.email}
                   </a>
                 </td>
-                <td className="max-w-xl px-4 py-3 leading-6 text-gray-700">{message.message}</td>
-                <td className="whitespace-nowrap px-4 py-3">
+                <td data-label="Message" className="max-w-xl px-4 py-3 leading-6 text-gray-700">{message.message}</td>
+                <td data-label="Status" className="whitespace-nowrap px-4 py-3">
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(message.status)}`}>
                     {message.status}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3">
+                <td data-label="Action" className="whitespace-nowrap px-4 py-3">
                   <form action={updateMessageStatusAction}>
                     <input type="hidden" name="id" value={message.id} />
                     <input
