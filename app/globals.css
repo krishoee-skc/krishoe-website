@@ -194,8 +194,11 @@ html {
    at all. This gives it an A4 page with sane margins and lets the receipt take
    only the height it needs, so a one-page bill stays one page. */
 @media print {
+  /* Only the margin is set, not the paper size — pinning size to A4 locked the
+     print dialog to A4 and hid the A5/Letter chooser. Left open, the shop picks
+     the paper (A4 for a full page, A5 for a smaller bill) and the layout fits
+     whatever is chosen. */
   @page {
-    size: A4;
     margin: 12mm;
   }
 
