@@ -10,6 +10,7 @@ import {
 import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
 import PrintLedgerButton from "@/app/admin/operations/ledger/PrintLedgerButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import LedgerTransactionFields from "@/app/admin/operations/_components/LedgerTransactionFields";
 import { getCustomerLedgerDetail, type LedgerTransaction } from "@/lib/operations";
 
 type LedgerDetailPageProps = {
@@ -161,15 +162,11 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             <h2 className="font-black text-brand-green-ink">New transaction</h2>
             <input type="hidden" name="ledgerId" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <select name="type" className={inputClass} defaultValue="Cash Payment">
-              <option>Cash Payment</option>
-              <option>Cheque Payment</option>
-              <option>Credit Sale</option>
-              <option>Return Adjustment</option>
-              <option>Manual Adjustment</option>
-            </select>
-            <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
-            <textarea name="note" className={textareaClass} placeholder="Bill number, cheque number, return note, or remark" />
+            <LedgerTransactionFields
+              balanceDue={summary.balanceDue}
+              inputClass={inputClass}
+              textareaClass={textareaClass}
+            />
             <FormSubmitButton className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Record transaction
             </FormSubmitButton>
