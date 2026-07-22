@@ -190,7 +190,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="reflow-table min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
@@ -204,16 +204,16 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {transactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
-                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.type}</td>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
+                      <td data-label="Type" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.type}</td>
+                      <td data-label="Effect" className="py-3 pr-3">
                         <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
                           {transactionEffect(transaction.type)}
                         </span>
                       </td>
-                      <td className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                      <td className="max-w-80 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
-                      <td className="py-3 pr-3 print:hidden">
+                      <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
+                      <td data-label="Note" className="max-w-80 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
+                      <td data-label="Manage" className="py-3 pr-3 print:hidden">
                         <form action={deleteOperationRecordAction}>
                           <input type="hidden" name="kind" value="ledgerTransaction" />
                           <input type="hidden" name="id" value={transaction.id} />
@@ -243,7 +243,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="reflow-table min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
@@ -258,15 +258,15 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {paymentTransactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
-                      <td className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{transaction.orderId}</td>
-                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.paymentStatus}</td>
-                      <td className="py-3 pr-3">{transaction.paymentProvider.toUpperCase()}</td>
-                      <td className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                      <td className="max-w-56 py-3 pr-3 text-gray-600">
+                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
+                      <td data-label="Order" className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{transaction.orderId}</td>
+                      <td data-label="Status" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.paymentStatus}</td>
+                      <td data-label="Provider" className="py-3 pr-3">{transaction.paymentProvider.toUpperCase()}</td>
+                      <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
+                      <td data-label="Reference" className="max-w-56 py-3 pr-3 text-gray-600">
                         {transaction.paymentTransactionId || transaction.paymentReference || "-"}
                       </td>
-                      <td className="max-w-72 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
+                      <td data-label="Note" className="max-w-72 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
                     </tr>
                   ))}
                 </tbody>

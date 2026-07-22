@@ -89,14 +89,14 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 function StatementRow({ row }: { row: SupplierLedgerStatementRow }) {
   return (
     <tr>
-      <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(row.createdAt)}</td>
-      <td className="py-3 pr-3">
+      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(row.createdAt)}</td>
+      <td data-label="Type" className="py-3 pr-3">
         <Badge className={transactionTone(row.type)}>{row.type}</Badge>
       </td>
-      <td className="py-3 pr-3">{row.effect}</td>
-      <td className="py-3 pr-3 font-bold">{money(row.amount)}</td>
-      <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceAfter)}</td>
-      <td className="max-w-96 py-3 pr-3 text-gray-600">{row.note || "-"}</td>
+      <td data-label="Effect" className="py-3 pr-3">{row.effect}</td>
+      <td data-label="Amount" className="py-3 pr-3 font-bold">{money(row.amount)}</td>
+      <td data-label="Balance after" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceAfter)}</td>
+      <td data-label="Note" className="max-w-96 py-3 pr-3 text-gray-600">{row.note || "-"}</td>
     </tr>
   );
 }
@@ -226,7 +226,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="reflow-table min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
@@ -261,7 +261,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="reflow-table min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Purchase</th>
@@ -277,25 +277,25 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                 <tbody className="divide-y">
                   {invoices.map((invoice) => (
                     <tr key={invoice.id}>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Material" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.materialName}</p>
                         <p className="text-xs text-gray-500">{invoice.unit}</p>
                       </td>
-                      <td className="py-3 pr-3">{invoice.quantity}</td>
-                      <td className="py-3 pr-3">{money(invoice.rate)}</td>
-                      <td className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
+                      <td data-label="Rate" className="py-3 pr-3">{money(invoice.rate)}</td>
+                      <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
+                      <td data-label="Paid / Due" className="py-3 pr-3">
                         <p>Paid {money(invoice.paidAmount)}</p>
                         <p className="text-xs text-gray-500">Due {money(invoice.creditAmount)}</p>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Status" className="py-3 pr-3">
                         <Badge className={invoiceTone(invoice)}>{invoice.status}</Badge>
                       </td>
-                      <td className="max-w-64 py-3 pr-3 text-gray-600">
+                      <td data-label="Reference" className="max-w-64 py-3 pr-3 text-gray-600">
                         {invoice.paymentReference || invoice.note || "-"}
                       </td>
                     </tr>

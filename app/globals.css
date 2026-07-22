@@ -224,8 +224,10 @@ table th,
    `reflow-table` to a table turns each row into a card below the md breakpoint:
    the header row is hidden and every cell shows its column name (from
    data-label) beside its value. Desktop is untouched. Give the row's main cell
-   `reflow-primary` to show it as a full-width heading with no label. */
-@media (max-width: 767px) {
+   `reflow-primary` to show it as a full-width heading with no label.
+   Scoped to `screen` so printing (a supplier statement, a bill) always uses the
+   normal table, never the phone cards. */
+@media screen and (max-width: 767px) {
   .reflow-table,
   .reflow-table tbody,
   .reflow-table tr,
