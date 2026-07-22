@@ -5,7 +5,7 @@ import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDetailActions from "@/components/ProductDetailActions";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import ProductCard from "@/components/ProductCard";
 import { StarIcon } from "@/components/Icons";
 import { wholesalePriceLabel } from "@/lib/products";
@@ -64,7 +64,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <div className="flex flex-col gap-4">
               <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-brand-mist">
-                <Image
+                <SafeImage
                   src={product.image}
                   alt={product.name}
                   fill
@@ -77,7 +77,7 @@ export default async function ProductPage({ params }: Props) {
                 <div className="grid grid-cols-4 gap-4">
                   {product.gallery.slice(0, 4).map((imgUrl, index) => (
                     <div key={index} className="relative aspect-square w-full overflow-hidden rounded-xl bg-brand-mist">
-                      <Image
+                      <SafeImage
                         src={imgUrl}
                         alt={`${product.name} gallery image ${index + 1}`}
                         fill

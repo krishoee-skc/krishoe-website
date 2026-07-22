@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
+import SafeImage from "@/components/SafeImage";
 
 type ProductCardProps = {
   product: Product;
@@ -28,7 +28,7 @@ export default function ProductCard({
       className="group overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
       <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-brand-mist">
-        <Image
+        <SafeImage
           src={product.image}
           alt={product.name}
           fill
