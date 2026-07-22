@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ProductForm from "@/app/admin/ProductForm";
 import ProductsClient from "@/app/admin/ProductsClient";
 import { syncProductCatalogStockAction } from "@/app/admin/products/actions";
@@ -62,14 +63,22 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             Create, edit, publish, draft, delete, and sync catalog stock with finished goods.
           </p>
         </div>
-        <form action={syncProductCatalogStockAction}>
-          <FormSubmitButton
-            className="h-10 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
-            pendingLabel="Syncing…"
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/products/labels"
+            className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
-            Sync stock
-          </FormSubmitButton>
-        </form>
+            Barcode labels
+          </Link>
+          <form action={syncProductCatalogStockAction}>
+            <FormSubmitButton
+              className="h-10 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+              pendingLabel="Syncing…"
+            >
+              Sync stock
+            </FormSubmitButton>
+          </form>
+        </div>
       </div>
 
       <div className="mt-6">
