@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getPosInvoiceById } from "@/lib/pos";
 import { formatAdminDate } from "@/lib/format-date";
 
@@ -52,12 +53,9 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <form action={repairPosInvoicePostingAction}>
               <input type="hidden" name="id" value={invoice.id} />
               <input type="hidden" name="returnTo" value={`/admin/pos/${invoice.id}`} />
-              <button
-                type="submit"
-                className="inline-flex h-10 items-center rounded-full border border-brand-clay px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay hover:text-white"
-              >
+              <FormSubmitButton className="inline-flex h-10 items-center rounded-full border border-brand-clay px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay hover:text-white">
                 Repair posting
-              </button>
+              </FormSubmitButton>
             </form>
           ) : null}
           <PrintInvoiceButton />

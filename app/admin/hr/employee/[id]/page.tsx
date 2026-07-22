@@ -9,6 +9,7 @@ import {
   updatePayrollStatusAction,
 } from "@/app/admin/hr/actions";
 import { getEmployeeHrDetail } from "@/lib/hr";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type EmployeeHrPageProps = {
   params: Promise<{ id: string }>;
@@ -168,8 +169,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
             <input type="hidden" name="deduction" value={suggestion.deduction} />
             <input type="hidden" name="status" value="Draft" />
             <input type="hidden" name="note" value={suggestion.note} />
-            <button
-              type="submit"
+            <FormSubmitButton
               disabled={suggestion.hasPayroll || suggestion.netPay <= 0}
               className={`h-10 rounded-full px-4 text-sm font-bold ${
                 suggestion.hasPayroll || suggestion.netPay <= 0
@@ -178,7 +178,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               }`}
             >
               {suggestion.hasPayroll ? "Payroll recorded" : "Create draft payroll"}
-            </button>
+            </FormSubmitButton>
           </form>
         </div>
       </section>
@@ -205,9 +205,9 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                 <div className="mt-3 grid gap-3 md:grid-cols-[150px_1fr_110px]">
                   <input name="overtimeHours" type="number" min="0" step="0.5" className={inputClass} defaultValue={record.overtimeHours} placeholder="OT" />
                   <textarea name="note" className={textareaClass} defaultValue={record.note} placeholder="Attendance note" />
-                  <button type="submit" className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
+                  <FormSubmitButton className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
                     Save
-                  </button>
+                  </FormSubmitButton>
                 </div>
               </form>
             ))}

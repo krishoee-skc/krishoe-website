@@ -2,6 +2,7 @@ import ProductForm from "@/app/admin/ProductForm";
 import ProductsClient from "@/app/admin/ProductsClient";
 import { syncProductCatalogStockAction } from "@/app/admin/products/actions";
 import LoadFailure from "@/components/admin/LoadFailure";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { categories } from "@/lib/products";
 import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -62,12 +63,12 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           </p>
         </div>
         <form action={syncProductCatalogStockAction}>
-          <button
-            type="submit"
+          <FormSubmitButton
             className="h-10 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+            pendingLabel="Syncing…"
           >
             Sync stock
-          </button>
+          </FormSubmitButton>
         </form>
       </div>
 
