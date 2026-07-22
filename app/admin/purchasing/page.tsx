@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { formatAdminDate } from "@/lib/format-date";
 import ExportButton from "@/components/admin/ExportButton";
-import PrintButton from "@/components/admin/PrintButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
 import {
@@ -172,9 +171,6 @@ export default async function AdminPurchasingPage() {
           >
             Posting review
           </ExportButton>
-          <PrintButton className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-bold text-brand-green">
-            Print
-          </PrintButton>
         </div>
       </div>
 
@@ -510,7 +506,14 @@ export default async function AdminPurchasingPage() {
                   return (
                     <tr key={invoice.id}>
                       <td className="py-3 pr-3">
-                        <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
+                        {/* Opens the single-bill page, which prints clean on one
+                            sheet — no more printing the whole screen. */}
+                        <Link
+                          href={`/admin/purchasing/${invoice.id}`}
+                          className="font-mono text-xs font-bold text-brand-green underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green-ink"
+                        >
+                          {invoice.purchaseNumber}
+                        </Link>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
                       </td>
                       <td className="py-3 pr-3">

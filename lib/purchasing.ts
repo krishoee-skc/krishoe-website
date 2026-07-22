@@ -1142,6 +1142,13 @@ export function checkPurchaseInvoicePosting(
   return { supplierExists, materialExists, billPosted, paymentPosted, issues };
 }
 
+// One bill for its own printable page. Reads the whole store and finds it —
+// fine for a single-bill view, and it carries the line items the print needs.
+export async function getPurchaseInvoiceById(id: string) {
+  const data = await getPurchasingData();
+  return data.purchaseInvoices.find((invoice) => invoice.id === id) ?? null;
+}
+
 export async function getPurchasingSnapshot() {
   const [data, pos, operations] = await Promise.all([
     getPurchasingData(),
