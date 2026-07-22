@@ -260,7 +260,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       aria-pressed={row.kind === kind}
                       onClick={() => updateRow(row.key, { kind })}
-                      className={`h-8 rounded-full px-3 text-xs font-semibold transition ${
+                      className={`h-10 rounded-full px-4 text-xs font-semibold transition ${
                         row.kind === kind
                           ? "bg-brand-green text-white shadow-sm"
                           : "text-brand-muted hover:text-brand-green"
@@ -278,7 +278,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       onClick={() => removeRow(row.key)}
                       aria-label={`Remove item ${index + 1}`}
-                      className="h-8 rounded-full border border-gray-200 bg-white px-3 text-xs font-semibold text-brand-clay transition hover:border-brand-clay"
+                      className="h-10 rounded-full border border-gray-200 bg-white px-4 text-xs font-semibold text-brand-clay transition hover:border-brand-clay"
                     >
                       Remove
                     </button>

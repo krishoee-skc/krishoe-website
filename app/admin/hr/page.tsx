@@ -875,9 +875,9 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
                     <form action={updatePayrollStatusAction}>
                       <input type="hidden" name="id" value={record.id} />
                       <input type="hidden" name="status" value={nextPayrollStatus(record.status)} />
-                      <button type="submit" className="text-brand-green-ink underline underline-offset-4">
+                      <FormSubmitButton className="text-brand-green-ink underline underline-offset-4">
                         {nextPayrollStatus(record.status)}
-                      </button>
+                      </FormSubmitButton>
                     </form>
                   ) : null}
                   {record.status !== "Locked" ? (

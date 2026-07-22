@@ -285,6 +285,18 @@ table th,
   .reflow-table td:empty {
     display: none;
   }
+
+  /* Empty-state rows span the whole table with one colspan cell ("No records
+     yet"). Let those read as a plain full-width line, not a labelled card row. */
+  .reflow-table td[colspan] {
+    display: block;
+    text-align: center;
+    border: 0 !important;
+  }
+
+  .reflow-table td[colspan]::before {
+    content: none;
+  }
 }
 
 /* Printing a receipt.

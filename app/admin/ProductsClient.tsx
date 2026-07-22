@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -84,7 +84,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
             <tr key={product.id} className={editingId === product.id ? "bg-brand-mist" : undefined}>
               <td className="whitespace-nowrap px-4 py-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-md bg-gray-100">
-                  <Image src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
+                  <SafeImage src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
                 </div>
               </td>
               <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
