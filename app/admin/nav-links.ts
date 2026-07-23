@@ -26,6 +26,7 @@ export const adminNavLinks = [
   { href: "/admin/payments", label: "Payments", icon: CreditCardIcon },
   { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
   { href: "/admin/reviews", label: "Reviews", icon: StarIcon },
+  { href: "/admin/insights", label: "Customer Voice", icon: StarIcon },
   { href: "/admin/activity", label: "Activity", icon: ShieldCheckIcon },
   { href: "/admin/settings", label: "Settings", icon: ShieldCheckIcon },
   { href: "/admin/products", label: "Products", icon: PackageIcon },

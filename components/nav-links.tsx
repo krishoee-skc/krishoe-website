@@ -16,7 +16,7 @@ export type NavLink = {
 export const navLinks: NavLink[] = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/shop", label: "Shop", Icon: ShoppingBagIcon, hasMegaMenu: true },
-  { href: "/about", label: "About", Icon: InfoIcon },
+  { href: "/about", label: "Our Story", Icon: InfoIcon },
   { href: "/contact", label: "Contact", Icon: MessageSquareIcon },
 ];
 
