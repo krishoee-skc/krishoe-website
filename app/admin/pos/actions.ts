@@ -120,12 +120,9 @@ export async function createPosInvoiceAction(
     `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
   );
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/pos");
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/products");
-  revalidatePath("/admin/costing");
-  revalidatePath("/shop");
+  // A bill changes stock, and the prerendered home/category pages carry stock
+  // badges — refresh everything, not a hand-picked list.
+  revalidatePath("/", "layout");
 
   return {
     ok: true,

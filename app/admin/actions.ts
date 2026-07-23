@@ -280,14 +280,9 @@ export async function createPosInvoiceFromOrderAction(
       "order_convert_to_pos",
       `Order ${order.id} converted to POS invoice ${invoice.invoiceNumber}.`,
     );
-    revalidatePath("/admin");
-    revalidatePath("/admin/orders");
-    revalidatePath("/admin/pos");
-    revalidatePath(`/admin/pos/${invoice.id}`);
-    revalidatePath("/admin/operations");
-    revalidatePath("/admin/costing");
-    revalidatePath("/admin/products");
-    revalidatePath("/shop");
+    // Stock changed, so the prerendered storefront pages (home, categories)
+    // must refresh their sold-out / only-N-left badges too — layout-wide.
+    revalidatePath("/", "layout");
 
     return {
       ok: true,
@@ -358,9 +353,10 @@ export async function upsertProductAction(
   }
 
   await auditAdminAction("product_upsert", `Product ${product.sku} (${product.id}) saved as ${product.status}.`);
-  revalidatePath("/admin/products");
-  revalidatePath("/shop");
-  revalidatePath(`/product/${id}`);
+  // The whole site, not a hand-picked list: the home page and the /shop/[category]
+  // pages are prerendered, and missing them here is why a freshly uploaded photo
+  // "didn't show in the shop" until the next deploy.
+  revalidatePath("/", "layout");
 
   return {
     ok: true,
@@ -389,9 +385,9 @@ export async function deleteProductAction(
   }
 
   await auditAdminAction("product_delete", `Product ${id} deleted.`);
-  revalidatePath("/admin/products");
-  revalidatePath("/shop");
-  revalidatePath(`/product/${id}`);
+  // Layout-wide for the same reason as the save: the prerendered home and
+  // category pages must stop showing the deleted product immediately.
+  revalidatePath("/", "layout");
 
   return { ok: true, message: "Product deleted." };
 }

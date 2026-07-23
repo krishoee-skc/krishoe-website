@@ -15,15 +15,9 @@ export async function syncProductCatalogStockAction() {
     "product_stock_sync",
     `Catalog stock synced: ${result.updatedProducts} updated, ${result.matchedProducts} matched, ${result.unmatchedProducts} unmatched.`,
   );
-  revalidatePath("/admin/products");
-  revalidatePath("/admin/pos");
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/costing");
-  revalidatePath("/shop");
-
-  for (const row of result.rows.filter((item) => item.signal === "Synced")) {
-    revalidatePath(`/product/${row.productId}`);
-  }
+  // Layout-wide: the prerendered home and category pages carry stock badges
+  // too, and a hand-picked list kept missing them.
+  revalidatePath("/", "layout");
 
   redirect("/admin/products");
 }

@@ -151,18 +151,9 @@ export async function createPurchaseInvoiceAction(
     `${invoice.purchaseNumber} ${invoice.kind.toLowerCase()} purchase recorded: ${invoice.items.length} item(s), Rs. ${invoice.total}.`,
   );
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/purchasing");
-  revalidatePath("/admin/operations");
-
-  // Any bill with a trading line changes what the shop can sell — including a
-  // Mixed bill, which the old Trading-Goods-only check quietly skipped.
-  if (invoice.kind === "Trading Goods" || invoice.kind === "Mixed") {
-    revalidatePath("/admin/products");
-    revalidatePath("/shop", "layout");
-    revalidatePath("/product", "layout");
-    revalidatePath("/");
-  }
+  // A purchase changes stock (and can create a new sellable design), and the
+  // prerendered home/category pages carry stock badges — refresh everything.
+  revalidatePath("/", "layout");
 
   return {
     ok: true,
