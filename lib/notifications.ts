@@ -349,22 +349,44 @@ async function postJson(channel: NotificationChannel, event: NotificationEvent) 
     "Content-Type": "application/json",
   };
 
-  if (channel.token) {
-    headers.Authorization = `Bearer ${channel.token}`;
+  // Brevo's free tier is the shop's email provider, and its API wants its own
+  // payload shape with an `api-key` header rather than the generic contract
+  // below. Detected by URL so pointing EMAIL_PROVIDER_URL at Brevo just works
+  // with no extra configuration.
+  const isBrevoEmail = channel.id === "email-http" && channel.url.includes("api.brevo.com");
+  let body: string;
+
+  if (isBrevoEmail) {
+    if (channel.token) {
+      headers["api-key"] = channel.token;
+    }
+    const senderEmail =
+      envValue("EMAIL_SENDER_ADDRESS") || envValue("ADMIN_NOTIFICATION_EMAIL") || "";
+    body = JSON.stringify({
+      sender: { name: "KRISHOE", email: senderEmail },
+      to: [{ email: target }],
+      subject: event.title,
+      textContent: message,
+    });
+  } else {
+    if (channel.token) {
+      headers.Authorization = `Bearer ${channel.token}`;
+    }
+    body = JSON.stringify({
+      source: "krishoe",
+      channel: channel.id,
+      to: target,
+      subject: event.title,
+      message,
+      event,
+    });
   }
 
   try {
     const response = await fetch(channel.url, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        source: "krishoe",
-        channel: channel.id,
-        to: target,
-        subject: event.title,
-        message,
-        event,
-      }),
+      body,
       signal: controller.signal,
     });
 
