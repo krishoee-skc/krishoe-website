@@ -226,7 +226,7 @@ CREATE INDEX IF NOT EXISTS admin_staff_accounts_status_idx ON admin_staff_accoun
 CREATE TABLE IF NOT EXISTS notification_events (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset')),
+  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset', 'operational-alert')),
   title TEXT NOT NULL,
   payload JSONB NOT NULL,
   delivery_status TEXT NOT NULL DEFAULT 'pending' CHECK (delivery_status IN ('pending', 'sent', 'failed', 'skipped')),
@@ -248,7 +248,7 @@ ALTER TABLE notification_events
 
 ALTER TABLE notification_events
   ADD CONSTRAINT notification_events_type_check
-  CHECK (type IN ('order', 'contact', 'password-reset'));
+  CHECK (type IN ('order', 'contact', 'password-reset', 'operational-alert'));
 
 ALTER TABLE notification_events
   DROP CONSTRAINT IF EXISTS notification_events_delivery_status_check;
