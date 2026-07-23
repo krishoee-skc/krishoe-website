@@ -70,7 +70,7 @@ function getPool(storeName: string) {
   return globalThis.krishoePgPool;
 }
 
-async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
+async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 4): Promise<T> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -83,9 +83,12 @@ async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 3): Prom
         throw error;
       }
 
-      // A short backoff so a cold Neon endpoint has a moment to accept the next
-      // connection. No Date/random needed; a fixed step is enough.
-      await new Promise((resolve) => setTimeout(resolve, attempt * 150));
+      // Backoff sized for a Neon compute waking from idle: the first request
+      // after a quiet spell can need a few seconds, and the earlier 150/300ms
+      // steps gave up long before it was ready — the owner met the error page
+      // on the first tap of the day. Up to ~3s of patience turns that into a
+      // slightly slower page instead. No Date/random needed; fixed steps.
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
     }
   }
 

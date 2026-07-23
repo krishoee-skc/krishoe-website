@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 type LoadFailureProps = {
   /** What could not be loaded, in the owner's words: "the purchase bills". */
   what: string;
@@ -31,19 +29,23 @@ export default function LoadFailure({ what, message, retryHref }: LoadFailurePro
           Nothing was changed. This is a read that failed, not a save.
         </p>
 
+        {/* Plain anchors on purpose, not next/link: a client-side navigation can
+            serve this same error back out of the router cache for a while, which
+            made "Try again" look like it never worked — tapped five times, same
+            screen. A full page load always asks the server fresh. */}
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link
+          <a
             href={retryHref}
             className="inline-flex h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
             Try again
-          </Link>
-          <Link
+          </a>
+          <a
             href="/admin"
             className="inline-flex h-11 items-center rounded-full border border-black/10 px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
             Admin home
-          </Link>
+          </a>
         </div>
       </div>
     </section>
