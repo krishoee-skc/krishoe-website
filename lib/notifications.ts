@@ -21,7 +21,8 @@ export type OperationalAlertCategory =
   | "stock"
   | "payment"
   | "posting"
-  | "catalog";
+  | "catalog"
+  | "sales";
 
 export type PasswordResetNotificationPayload = {
   email: string;
@@ -214,6 +215,12 @@ function textSummary(event: NotificationEvent) {
 
   if (event.type === "operational-alert") {
     const alert = event.payload as OperationalAlertNotificationPayload;
+
+    // The daily sales digest is a report the owner reads, not an alert to
+    // triage — send it as plain lines without the Severity/Category chrome.
+    if (alert.category === "sales") {
+      return [event.title, "", alert.detail, "", alert.action, alert.href].join("\n");
+    }
 
     return [
       event.title,
@@ -725,6 +732,51 @@ export async function notifyContactReceived(message: ContactSubmission) {
   });
 
   await reportingErrors(`deliver contact notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
+  return event;
+}
+
+// The evening digest: today's money in one email, the same five numbers the
+// dashboard's "Today at a glance" leads with. Fired once a day by the Vercel
+// cron at /api/cron/daily-sales.
+export async function notifyDailySalesSummary() {
+  const [pos, purchasing, operations] = await Promise.all([
+    getPosSnapshot(),
+    getPurchasingSnapshot(),
+    getOperationsSnapshot(),
+  ]);
+
+  const money = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
+  const today = new Date();
+  const dateLabel = today.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const detail = [
+    `आजको बिक्री (Today sales): ${money(pos.summary.todayNetSales)}`,
+    `आजको किनमेल (Today purchase): ${money(purchasing.summary.todayPurchase)}`,
+    `नगद (Cash in hand): ${money(pos.todayDayClose.cashAmount)}`,
+    `उठाउन बाँकी (To collect): ${money(operations.summary.receivable)}`,
+    `तिर्न बाँकी (To pay): ${money(purchasing.summary.supplierDue)}`,
+  ].join("\n");
+
+  const event = await appendEvent({
+    type: "operational-alert",
+    title: `KRISHOE दैनिक हिसाब — ${dateLabel}`,
+    payload: {
+      alertId: `daily-sales-${today.toISOString().slice(0, 10)}`,
+      category: "sales",
+      severity: "info",
+      detail,
+      action: "पूरा हिसाब dashboard मा हेर्नुहोस्:",
+      href: "https://krishoe-website.vercel.app/admin",
+    },
+  });
+
+  await reportingErrors(`deliver daily sales summary ${event.id}`, () =>
     deliverNotificationEvent(event),
   );
   return event;
