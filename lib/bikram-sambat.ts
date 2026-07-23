@@ -18,6 +18,24 @@ export function toBikramSambatNepali(value: string | Date): string {
   }
 }
 
+// Numeric — "2083/04/07". The owner reads BS dates fastest as plain numbers,
+// so this is what sits beside the English date across the admin. Built from
+// the getters rather than a format string so the zero-padding is certain.
+export function toBikramSambatNumeric(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  try {
+    const bs = new NepaliDate(date);
+    const month = String(bs.getMonth() + 1).padStart(2, "0");
+    const day = String(bs.getDate()).padStart(2, "0");
+    return `${bs.getYear()}/${month}/${day}`;
+  } catch {
+    return "";
+  }
+}
+
 // Roman — "05 Shrawan 2083", for anywhere the surrounding text is English.
 export function toBikramSambatRoman(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
