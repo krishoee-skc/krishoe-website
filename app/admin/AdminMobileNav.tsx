@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
@@ -16,12 +16,15 @@ import { adminNavLinks } from "@/app/admin/nav-links";
 export default function AdminMobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
 
   // Close the menu whenever the route changes, so tapping a link doesn't leave
-  // the sheet hanging open over the new page.
-  useEffect(() => {
+  // the sheet hanging open over the new page. Done as a render-time state
+  // adjustment (React's sanctioned pattern) rather than an effect.
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur lg:hidden print:hidden">

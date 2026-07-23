@@ -21,11 +21,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
-const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
-
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }

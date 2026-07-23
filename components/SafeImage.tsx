@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type ImageProps } from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const DEFAULT_FALLBACK = "/images/product-placeholder.svg";
 
@@ -13,12 +13,15 @@ type SafeImageProps = ImageProps & { fallbackSrc?: string };
 
 export default function SafeImage({ src, fallbackSrc = DEFAULT_FALLBACK, alt, ...rest }: SafeImageProps) {
   const [current, setCurrent] = useState(src);
+  const [prevSrc, setPrevSrc] = useState(src);
 
   // If the product's image is edited (e.g. a photo is finally uploaded), move
-  // off the placeholder and try the new source.
-  useEffect(() => {
+  // off the placeholder and try the new source. Render-time state adjustment —
+  // React's sanctioned pattern for resetting state when a prop changes.
+  if (prevSrc !== src) {
+    setPrevSrc(src);
     setCurrent(src);
-  }, [src]);
+  }
 
   const showingFallback = current === fallbackSrc;
 
