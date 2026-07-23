@@ -67,6 +67,20 @@ export default function ImageUploadField({
 
   const urls = multiple ? splitUrls(value) : value.trim() ? [value.trim()] : [];
 
+  // The ✕ on a preview. Editing a comma-separated list by hand to drop an old
+  // placeholder is not something the owner should have to do.
+  function removeUrl(url: string) {
+    setValue((previous) => {
+      if (!multiple) {
+        return "";
+      }
+
+      return splitUrls(previous)
+        .filter((item) => item !== url)
+        .join(", ");
+    });
+  }
+
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) {
       return;
@@ -176,6 +190,15 @@ export default function ImageUploadField({
               className="relative h-16 w-16 overflow-hidden rounded-lg border border-black/10 bg-brand-mist"
             >
               <Image src={url} alt="" fill sizes="64px" className="object-cover" />
+              <button
+                type="button"
+                onClick={() => removeUrl(url)}
+                aria-label="Remove this photo"
+                title="Remove this photo"
+                className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[10px] font-black text-white transition hover:bg-brand-danger"
+              >
+                ✕
+              </button>
             </span>
           ))}
         </div>
