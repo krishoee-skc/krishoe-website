@@ -550,7 +550,7 @@ export default async function AdminCostingPage() {
         </div>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Catalog product</th>
@@ -565,18 +565,18 @@ export default async function AdminCostingPage() {
             <tbody className="divide-y">
               {costing.catalogStockReconciliation.slice(0, 20).map((row) => (
                 <tr key={row.key}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.productName || "-"}</p>
                     <p className="text-xs text-gray-500">
                       {row.sku || "-"} | {row.productStatus} | {money(row.catalogPrice)}
                     </p>
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.operationsDesign || "-"}</td>
-                  <td className="py-3 pr-3">{row.catalogStock}</td>
-                  <td className="py-3 pr-3">{row.operationsStockPairs}</td>
-                  <td className="py-3 pr-3 font-black text-brand-clay">{row.stockDelta}</td>
-                  <td className="max-w-64 py-3 pr-3 text-gray-600">{row.channelBreakdown}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Operations design" className="py-3 pr-3 font-semibold text-brand-green-ink">{row.operationsDesign || "-"}</td>
+                  <td data-label="Catalog stock" className="py-3 pr-3">{row.catalogStock}</td>
+                  <td data-label="Operations stock" className="py-3 pr-3">{row.operationsStockPairs}</td>
+                  <td data-label="Delta" className="py-3 pr-3 font-black text-brand-clay">{row.stockDelta}</td>
+                  <td data-label="Channels" className="max-w-64 py-3 pr-3 text-gray-600">{row.channelBreakdown}</td>
+                  <td data-label="Signal" className="py-3 pr-3">
                     <CatalogSyncPill row={row} />
                   </td>
                 </tr>
@@ -607,7 +607,7 @@ export default async function AdminCostingPage() {
         </div>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Design</th>
@@ -624,32 +624,32 @@ export default async function AdminCostingPage() {
             <tbody className="divide-y">
               {costing.designCosting.slice(0, 20).map((row) => (
                 <tr key={row.design}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">
                       <DesignPairsDetail row={row} />
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Source" className="py-3 pr-3">
                     <CostSourcePill source={row.costSource} />
                   </td>
-                  <td className="py-3 pr-3 text-brand-green-ink">
+                  <td data-label="Sold" className="py-3 pr-3 text-brand-green-ink">
                     {row.netPairs}
                     {row.returnedPairs > 0 ? (
                       <span className="block text-xs text-gray-500">{row.returnedPairs} returned</span>
                     ) : null}
                   </td>
-                  <td className="py-3 pr-3 font-semibold">{money(row.netRevenue)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Revenue" className="py-3 pr-3 font-semibold">{money(row.netRevenue)}</td>
+                  <td data-label="Unit COGS" className="py-3 pr-3">
                     {money(row.unitCostPerPair)}
                     <span className="block text-xs text-gray-500">
                       <DesignCostBreakdown row={row} />
                     </span>
                   </td>
-                  <td className="py-3 pr-3">{money(row.estimatedCogs)}</td>
-                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.grossProfit)}</td>
-                  <td className="py-3 pr-3">{row.grossMarginRate}%</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Est. COGS" className="py-3 pr-3">{money(row.estimatedCogs)}</td>
+                  <td data-label="Gross profit" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.grossProfit)}</td>
+                  <td data-label="Margin" className="py-3 pr-3">{row.grossMarginRate}%</td>
+                  <td data-label="Status" className="py-3 pr-3">
                     <StatusPill row={row} />
                   </td>
                 </tr>
@@ -680,7 +680,7 @@ export default async function AdminCostingPage() {
         </div>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Design</th>
@@ -696,30 +696,30 @@ export default async function AdminCostingPage() {
             <tbody className="divide-y">
               {costing.finishedStockValuation.map((row) => (
                 <tr key={row.stockId}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">{row.sizeRun}</p>
                   </td>
-                  <td className="py-3 pr-3">{row.channel}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Channel" className="py-3 pr-3">{row.channel}</td>
+                  <td data-label="Stock" className="py-3 pr-3">
                     {row.stockPairs}
                     <span className="block text-xs text-gray-500">
                       Sold {row.soldPairs}, return {row.returnedPairs}
                     </span>
                   </td>
-                  <td className="py-3 pr-3">{money(row.unitCostPerPair)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Unit COGS" className="py-3 pr-3">{money(row.unitCostPerPair)}</td>
+                  <td data-label="Avg sale" className="py-3 pr-3">
                     {money(row.averageSalePrice)}
                     <span className="block text-xs text-gray-500">{row.priceSource}</span>
                   </td>
-                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Stock value" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
+                  <td data-label="Profit potential" className="py-3 pr-3">
                     <p className="font-bold text-brand-green">{money(row.potentialGrossProfit)}</p>
                     <p className="text-xs text-gray-500">
                       Revenue {money(row.potentialRevenue)} | {row.potentialMarginRate}%
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Signal" className="py-3 pr-3">
                     <FinishedStockSignalPill row={row} />
                   </td>
                 </tr>
@@ -751,7 +751,7 @@ export default async function AdminCostingPage() {
           </div>
 
           <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Material</th>
@@ -763,13 +763,13 @@ export default async function AdminCostingPage() {
               <tbody className="divide-y">
                 {costing.materialCostRates.map((row) => (
                   <tr key={row.materialId || row.materialName}>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3">
                       <p className="font-bold text-brand-green-ink">{row.materialName}</p>
                       <p className="text-xs text-gray-500">{row.invoiceCount} invoices, {row.unit}</p>
                     </td>
-                    <td className="py-3 pr-3">{rate(row.purchasedQuantity)}</td>
-                    <td className="py-3 pr-3 font-semibold">{money(row.purchaseTotal)}</td>
-                    <td className="py-3 pr-3">{money(row.averageUnitCost)}</td>
+                    <td data-label="Qty" className="py-3 pr-3">{rate(row.purchasedQuantity)}</td>
+                    <td data-label="Total" className="py-3 pr-3 font-semibold">{money(row.purchaseTotal)}</td>
+                    <td data-label="Avg rate" className="py-3 pr-3">{money(row.averageUnitCost)}</td>
                   </tr>
                 ))}
                 {costing.materialCostRates.length === 0 ? (
@@ -798,7 +798,7 @@ export default async function AdminCostingPage() {
           </div>
 
           <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Batch</th>
@@ -815,23 +815,23 @@ export default async function AdminCostingPage() {
               <tbody className="divide-y">
                 {costing.batchCosting.slice(0, 20).map((row) => (
                   <tr key={row.batchId}>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3">
                       <p className="font-mono text-xs font-bold text-brand-green-ink">{row.batchId}</p>
                       <p className="text-xs text-gray-500">{row.design}</p>
                     </td>
-                    <td className="py-3 pr-3">{row.status}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Status" className="py-3 pr-3">{row.status}</td>
+                    <td data-label="Finished" className="py-3 pr-3">
                       {row.finishedPairs}/{row.plannedPairs}
                       {row.rejectedPairs > 0 ? (
                         <span className="block text-xs text-red-700">{row.rejectedPairs} rejected</span>
                       ) : null}
                     </td>
-                    <td className="py-3 pr-3">{money(row.materialCost)}</td>
-                    <td className="py-3 pr-3">{money(row.laborCost)}</td>
-                    <td className="py-3 pr-3">{money(row.overheadCost)}</td>
-                    <td className="py-3 pr-3 font-semibold">{money(row.totalProductionCost)}</td>
-                    <td className="py-3 pr-3">{money(row.unitCostPerPair)}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Material" className="py-3 pr-3">{money(row.materialCost)}</td>
+                    <td data-label="Labor" className="py-3 pr-3">{money(row.laborCost)}</td>
+                    <td data-label="Overhead" className="py-3 pr-3">{money(row.overheadCost)}</td>
+                    <td data-label="Total COGS" className="py-3 pr-3 font-semibold">{money(row.totalProductionCost)}</td>
+                    <td data-label="Unit COGS" className="py-3 pr-3">{money(row.unitCostPerPair)}</td>
+                    <td data-label="Signal" className="py-3 pr-3">
                       <BatchStatusPill row={row} />
                       {row.missingCostMaterials.length > 0 ? (
                         <p className="mt-1 text-xs text-gray-500">{row.missingCostMaterials.join(", ")}</p>
@@ -874,7 +874,7 @@ export default async function AdminCostingPage() {
         </div>
 
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Material</th>
@@ -888,23 +888,23 @@ export default async function AdminCostingPage() {
             <tbody className="divide-y">
               {costing.rawMaterialStockValuation.map((row) => (
                 <tr key={row.materialId}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.materialName}</p>
                     <p className="text-xs text-gray-500">
                       {row.invoiceCount} purchase invoices, {row.unit}
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Balance" className="py-3 pr-3">
                     {rate(row.balance)}
                     <span className="block text-xs text-gray-500">Reorder {rate(row.reorderLevel)}</span>
                   </td>
-                  <td className="py-3 pr-3">{money(row.averageUnitCost)}</td>
-                  <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Avg cost" className="py-3 pr-3">{money(row.averageUnitCost)}</td>
+                  <td data-label="Stock value" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
+                  <td data-label="Reorder need" className="py-3 pr-3">
                     {rate(row.reorderShortage)}
                     <span className="block text-xs text-gray-500">{money(row.reorderValue)}</span>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Signal" className="py-3 pr-3">
                     {!row.hasPurchaseRate ? (
                       <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-black text-red-800">
                         Rate missing
