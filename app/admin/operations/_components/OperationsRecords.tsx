@@ -136,7 +136,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
         detail="Kati mal banyo, kati bandai cha, kati reject bhayo."
       />
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="reflow-table min-w-full text-sm">
           <thead className="border-b text-left text-gray-500">
             <tr>
               <th className="py-2 pr-3">Design</th>
@@ -151,13 +151,13 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
           <tbody className="divide-y">
             {snapshot.productionBatches.map((batch) => (
               <tr key={batch.id}>
-                <td className="py-3 pr-3 font-semibold text-brand-green-ink">{batch.design}</td>
-                <td className="py-3 pr-3">{batch.plannedPairs}</td>
-                <td className="py-3 pr-3">{batch.finishedPairs}</td>
-                <td className="py-3 pr-3">{batch.inProgressPairs}</td>
-                <td className="py-3 pr-3">{batch.rejectedPairs}</td>
-                <td className="py-3 pr-3">{batch.status}</td>
-                <td className="min-w-80 py-3 pr-3">
+                <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{batch.design}</td>
+                <td data-label="Planned" className="py-3 pr-3">{batch.plannedPairs}</td>
+                <td data-label="Finished" className="py-3 pr-3">{batch.finishedPairs}</td>
+                <td data-label="WIP" className="py-3 pr-3">{batch.inProgressPairs}</td>
+                <td data-label="Reject" className="py-3 pr-3">{batch.rejectedPairs}</td>
+                <td data-label="Stage" className="py-3 pr-3">{batch.status}</td>
+                <td data-label="Manage" className="min-w-80 py-3 pr-3">
                   <form action={updateProductionBatchAction} className="grid gap-2">
                     <input type="hidden" name="id" value={batch.id} />
                     <input name="design" required className={compactInputClass} defaultValue={batch.design} />
@@ -346,7 +346,7 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
         <p className="text-sm text-gray-500">No material consumption has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -361,19 +361,19 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
             <tbody className="divide-y">
               {snapshot.materialConsumptions.map((consumption) => (
                 <tr key={consumption.id}>
-                  <td className="py-3 pr-3 text-xs text-gray-500">
+                  <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
                     {new Date(consumption.createdAt).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
-                  <td className="py-3 pr-3">{consumption.materialName}</td>
-                  <td className="py-3 pr-3 font-bold text-brand-green">
+                  <td data-label="Batch" className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
+                  <td data-label="Material" className="py-3 pr-3">{consumption.materialName}</td>
+                  <td data-label="Used" className="py-3 pr-3 font-bold text-brand-green">
                     {consumption.quantity} {consumption.unit}
                   </td>
-                  <td className="py-3 pr-3 font-bold text-brand-clay">
+                  <td data-label="Wastage" className="py-3 pr-3 font-bold text-brand-clay">
                     {consumption.wastage} {consumption.unit}
                   </td>
-                  <td className="max-w-48 py-3 pr-3 text-gray-600">{consumption.note || "-"}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Note" className="max-w-48 py-3 pr-3 text-gray-600">{consumption.note || "-"}</td>
+                  <td data-label="Manage" className="py-3 pr-3">
                     <DeleteRecordForm kind="materialConsumption" id={consumption.id} />
                   </td>
                 </tr>
@@ -449,7 +449,7 @@ function FinishedStockTable({
     <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <SectionTitle title="Finished stock" detail="Design, channel, stock, COGS value, profit potential, and returns." />
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="reflow-table min-w-full text-sm">
           <thead className="border-b text-left text-gray-500">
             <tr>
               <th className="py-2 pr-3">Design</th>
@@ -470,11 +470,11 @@ function FinishedStockTable({
 
               return (
                 <tr key={stock.id}>
-                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{stock.design}</td>
-                  <td className="py-3 pr-3">{stock.channel}</td>
-                  <td className="py-3 pr-3">{stock.sizeRun}</td>
-                  <td className="py-3 pr-3 font-bold text-brand-green">{stock.stockPairs}</td>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{stock.design}</td>
+                  <td data-label="Channel" className="py-3 pr-3">{stock.channel}</td>
+                  <td data-label="Size" className="py-3 pr-3">{stock.sizeRun}</td>
+                  <td data-label="Stock" className="py-3 pr-3 font-bold text-brand-green">{stock.stockPairs}</td>
+                  <td data-label="Value" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{money(valuation?.stockValue ?? 0)}</p>
                     <p className="text-xs text-gray-500">
                       COGS {money(valuation?.unitCostPerPair ?? 0)} / profit{" "}
@@ -484,9 +484,9 @@ function FinishedStockTable({
                       {valuation?.signal ?? "Needs cost"} / {valuation?.priceSource ?? "Missing"}
                     </p>
                   </td>
-                  <td className="py-3 pr-3">{stock.soldPairs}</td>
-                  <td className="py-3 pr-3">{stock.returnedPairs}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Sold" className="py-3 pr-3">{stock.soldPairs}</td>
+                  <td data-label="Return" className="py-3 pr-3">{stock.returnedPairs}</td>
+                  <td data-label="Health" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockSignalClass(health?.signal ?? "Healthy")}`}>
                       {health?.signal ?? "Healthy"}
                     </span>
@@ -494,7 +494,7 @@ function FinishedStockTable({
                       Sell {health?.sellThroughRate ?? 0}% | return {health?.returnRate ?? 0}%
                     </p>
                   </td>
-                  <td className="min-w-96 py-3 pr-3">
+                  <td data-label="Manage" className="min-w-96 py-3 pr-3">
                     <form action={updateFinishedStockAction} className="grid gap-2">
                       <input type="hidden" name="id" value={stock.id} />
                       <div className="grid grid-cols-[1fr_auto_auto] gap-2">
@@ -550,7 +550,7 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
         <p className="text-sm text-gray-500">No stock ledger rows are available yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Design</th>
@@ -565,27 +565,27 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
             <tbody className="divide-y">
               {snapshot.reports.stockLedgerRows.map((row) => (
                 <tr key={row.id}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{row.design}</p>
                     <p className="text-xs text-gray-500">
                       {row.channel} | {row.sizeRun}
                     </p>
                   </td>
-                  <td className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Book stock" className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
+                  <td data-label="Movement stock" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.movementStockPairs}</p>
                     <p className="text-xs text-gray-500">{row.movementCount} movements</p>
                   </td>
-                  <td className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
+                  <td data-label="Variance" className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
                     {row.variancePairs}
                   </td>
-                  <td className="py-3 pr-3 text-xs font-semibold text-gray-600">
+                  <td data-label="Flow" className="py-3 pr-3 text-xs font-semibold text-gray-600">
                     <p>In {row.productionIn + row.returnIn + row.adjustment}</p>
                     <p>Out {row.dispatchOut + row.saleOut}</p>
                     <p>Market {row.marketSale}</p>
                   </td>
-                  <td className="py-3 pr-3 text-xs text-gray-500">{formatOptionalDate(row.lastMovementAt)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Last movement" className="py-3 pr-3 text-xs text-gray-500">{formatOptionalDate(row.lastMovementAt)}</td>
+                  <td data-label="Signal" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockLedgerSignalClass(row.signal)}`}>
                       {row.signal}
                     </span>
@@ -705,7 +705,7 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
         <p className="text-sm text-gray-500">No customer collection follow-up is due.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Customer</th>
@@ -720,7 +720,7 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
             <tbody className="divide-y">
               {rows.map((ledger) => (
                 <tr key={ledger.id}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${ledger.id}`}
                       className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -731,22 +731,22 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {ledger.channel} | {ledger.phone || "No phone"}
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Priority" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${collectionPriorityClass(ledger.priority)}`}>
                       {ledger.priority}
                     </span>
                   </td>
-                  <td className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
+                  <td data-label="Aging" className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(ledger.agingBucket)}`}>{ledger.agingBucket}</p>
                     <p className="text-xs text-gray-500">{ledger.daysOutstanding} days</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Coverage" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{ledger.collectionCoverageRate}%</p>
                     <p className="text-xs text-gray-500">{money(ledger.collectionTotal)} collected</p>
                   </td>
-                  <td className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
-                  <td className="max-w-72 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
+                  <td data-label="Follow-up" className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
+                  <td data-label="Action" className="max-w-72 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
                     {ledger.nextAction}
                   </td>
                 </tr>
@@ -770,7 +770,7 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
         <p className="text-sm text-gray-500">No dispatch item has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -787,28 +787,28 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
             <tbody className="divide-y">
               {snapshot.vehicleDispatchItems.map((item) => (
                 <tr key={item.id}>
-                  <td className="py-3 pr-3 text-xs text-gray-500">
+                  <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
                     {new Date(item.createdAt).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Vehicle" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.vehicleNumber}</p>
                     <p className="text-xs text-gray-500">{item.marketRoute || "-"}</p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Design" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.design}</p>
                     <p className="text-xs text-gray-500">{item.sizeRun}</p>
                   </td>
-                  <td className="py-3 pr-3">{item.channel}</td>
-                  <td className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
-                  <td className="py-3 pr-3 text-brand-green">{item.soldPairs}</td>
-                  <td className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Channel" className="py-3 pr-3">{item.channel}</td>
+                  <td data-label="Loaded" className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
+                  <td data-label="Sold" className="py-3 pr-3 text-brand-green">{item.soldPairs}</td>
+                  <td data-label="Return" className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
+                  <td data-label="Collection" className="py-3 pr-3">
                     <p>{money(item.cashCollected)} cash</p>
                     <p className="text-xs text-gray-500">
                       {money(item.chequeCollected)} cheque, {money(item.creditAmount)} credit
                     </p>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Manage" className="py-3 pr-3">
                     <DeleteRecordForm kind="vehicleDispatchItem" id={item.id} />
                   </td>
                 </tr>
@@ -826,7 +826,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
     <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <SectionTitle title="Customer ledger" detail="Customer details, cash, cheque, credit, balance due." />
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="reflow-table min-w-full text-sm">
           <thead className="border-b text-left text-gray-500">
             <tr>
               <th className="py-2 pr-3">Customer</th>
@@ -844,7 +844,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
 
               return (
                 <tr key={ledger.id}>
-                  <td className="py-3 pr-3">
+                  <td className="reflow-primary py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${ledger.id}`}
                       className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -853,11 +853,11 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     </Link>
                     <p className="text-xs text-gray-500">{ledger.phone}</p>
                   </td>
-                  <td className="py-3 pr-3">{ledger.channel}</td>
-                  <td className="py-3 pr-3">{money(ledger.cashPaid)}</td>
-                  <td className="py-3 pr-3">{money(ledger.chequePaid)}</td>
-                  <td className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Channel" className="py-3 pr-3">{ledger.channel}</td>
+                  <td data-label="Cash" className="py-3 pr-3">{money(ledger.cashPaid)}</td>
+                  <td data-label="Cheque" className="py-3 pr-3">{money(ledger.chequePaid)}</td>
+                  <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
+                  <td data-label="Aging" className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(aging?.agingBucket ?? "Paid")}`}>
                       {aging?.agingBucket ?? "Paid"}
                     </p>
@@ -865,7 +865,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {aging?.daysOutstanding ?? 0} days | {aging?.collectionCoverageRate ?? 0}% cover
                     </p>
                   </td>
-                  <td className="min-w-80 py-3 pr-3">
+                  <td data-label="Manage" className="min-w-80 py-3 pr-3">
                     <form action={updateCustomerLedgerAction} className="grid gap-2">
                       <input type="hidden" name="id" value={ledger.id} />
                       <input name="customerName" required className={compactInputClass} defaultValue={ledger.customerName} aria-label="Customer name" />
@@ -914,7 +914,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
         <p className="text-sm text-gray-500">No stock movement has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -936,23 +936,23 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
 
                 return (
                   <tr key={movement.id}>
-                    <td className="py-3 pr-3 text-xs text-gray-500">
+                    <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
                       {new Date(movement.createdAt).toLocaleString("en-IN")}
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{movement.design}</td>
-                    <td className="py-3 pr-3">{movement.channel}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Design" className="py-3 pr-3 font-semibold text-brand-green-ink">{movement.design}</td>
+                    <td data-label="Channel" className="py-3 pr-3">{movement.channel}</td>
+                    <td data-label="Type" className="py-3 pr-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockMovementTypeClass(movement.type)}`}>
                         {movement.type}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-bold">{movement.pairs}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Pairs" className="py-3 pr-3 font-bold">{movement.pairs}</td>
+                    <td data-label="Source" className="py-3 pr-3">
                       <p className="font-semibold text-brand-green-ink">{source.label}</p>
                       <p className="text-xs text-gray-500">{source.detail}</p>
                     </td>
-                    <td className="max-w-48 py-3 pr-3 text-gray-600">{movement.note || "-"}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Note" className="max-w-48 py-3 pr-3 text-gray-600">{movement.note || "-"}</td>
+                    <td data-label="Manage" className="py-3 pr-3">
                       <DeleteRecordForm kind="stockMovement" id={movement.id} />
                     </td>
                   </tr>
@@ -974,7 +974,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
         <p className="text-sm text-gray-500">No ledger transaction has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -988,10 +988,10 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
             <tbody className="divide-y">
               {snapshot.ledgerTransactions.map((transaction) => (
                 <tr key={transaction.id}>
-                  <td className="py-3 pr-3 text-xs text-gray-500">
+                  <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
                     {new Date(transaction.createdAt).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Customer" className="py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${transaction.ledgerId}`}
                       className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -999,14 +999,14 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                       {transaction.customerName}
                     </Link>
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Type" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${ledgerTransactionTypeClass(transaction.type)}`}>
                       {transaction.type}
                     </span>
                   </td>
-                  <td className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                  <td className="max-w-56 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
+                  <td data-label="Note" className="max-w-56 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
+                  <td data-label="Manage" className="py-3 pr-3">
                     <DeleteRecordForm kind="ledgerTransaction" id={transaction.id} />
                   </td>
                 </tr>

@@ -460,7 +460,7 @@ export default async function AdminDashboardPage() {
           </div>
 
           <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Order</th>
@@ -473,19 +473,19 @@ export default async function AdminDashboardPage() {
               <tbody className="divide-y">
                 {orders.slice(0, 5).map((order) => (
                   <tr key={order.id}>
-                    <td className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
+                    <td data-label="Customer" className="py-3 pr-3">
                       <p className="font-semibold text-brand-green-ink">{order.name}</p>
                       <p className="text-xs text-gray-500">{order.phone}</p>
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Payment" className="py-3 pr-3">
                       <StatusBadge
                         label={order.paymentStatus}
                         tone={order.paymentStatus === "Paid" ? "good" : order.paymentStatus === "Failed" ? "danger" : "warn"}
                       />
                     </td>
-                    <td className="py-3 pr-3 font-bold">{order.total}</td>
-                    <td className="py-3 pr-3 text-gray-600">{order.status}</td>
+                    <td data-label="Total" className="py-3 pr-3 font-bold">{order.total}</td>
+                    <td data-label="Status" className="py-3 pr-3 text-gray-600">{order.status}</td>
                   </tr>
                 ))}
               </tbody>

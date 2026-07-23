@@ -417,7 +417,7 @@ export default function OrdersClient({
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+      <table className="reflow-table min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Order ID</th>
@@ -455,26 +455,26 @@ export default function OrdersClient({
 
             return (
               <tr key={order.id}>
-                <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-700">{order.id}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                <td className="reflow-primary whitespace-nowrap px-4 py-3 font-mono text-gray-700">{order.id}</td>
+                <td data-label="Date" className="whitespace-nowrap px-4 py-3 text-gray-700">
                   {new Date(order.createdAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
                   })}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3">
+                <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
                   <p className="font-medium text-gray-900">{order.name}</p>
                   <p className="text-xs text-gray-500">{order.phone}</p>
                   {order.email ? <p className="text-xs text-gray-500">{order.email}</p> : null}
                 </td>
-                <td className="px-4 py-3 text-gray-700">
+                <td data-label="Items" className="px-4 py-3 text-gray-700">
                   <p className="max-h-32 min-w-[260px] max-w-[360px] overflow-y-auto whitespace-pre-line rounded-md bg-gray-50 p-3 text-xs leading-6">
                     {order.order}
                   </p>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-700">{order.total}</td>
-                <td className="px-4 py-3 text-gray-700">
+                <td data-label="Total" className="whitespace-nowrap px-4 py-3 text-gray-700">{order.total}</td>
+                <td data-label="Signal" className="px-4 py-3 text-gray-700">
                   <div className="grid min-w-[220px] gap-2">
                     <ConversionPill signal={conversionRow.signal} />
                     <p className="text-xs font-semibold leading-5 text-gray-500">{conversionRow.detail}</p>
@@ -483,7 +483,7 @@ export default function OrdersClient({
                     </p>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-gray-700">
+                <td data-label="Payment" className="px-4 py-3 text-gray-700">
                   <p className="mb-2 max-w-[420px] text-xs font-semibold text-gray-500">
                     {order.payment}
                   </p>
@@ -495,7 +495,7 @@ export default function OrdersClient({
                     )}
                   />
                 </td>
-                <td className="px-4 py-3 text-gray-700">
+                <td data-label="POS" className="px-4 py-3 text-gray-700">
                   <OrderToPosForm
                     order={order}
                     customerLedgers={customerLedgers}
@@ -503,7 +503,7 @@ export default function OrdersClient({
                     conversionRow={conversionRow}
                   />
                 </td>
-                <td className="whitespace-nowrap px-4 py-3">
+                <td data-label="Status" className="whitespace-nowrap px-4 py-3">
                   <OrderStatusSelector order={order} />
                 </td>
               </tr>

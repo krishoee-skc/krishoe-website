@@ -106,14 +106,14 @@ function ProfitPeriodCard({ row }: { row: CostingPeriodRow }) {
 function DesignProfitRow({ row }: { row: DesignCostingRow }) {
   return (
     <tr>
-      <td className="py-2 pr-3">
+      <td className="reflow-primary py-2 pr-3">
         <p className="font-bold text-brand-green-ink">{row.design}</p>
         <p className="text-xs text-gray-500">{row.netPairs} net pairs</p>
       </td>
-      <td className="py-2 pr-3">{money(row.netRevenue)}</td>
-      <td className="py-2 pr-3">{money(row.estimatedCogs)}</td>
-      <td className="py-2 pr-3 font-black text-brand-green-ink">{money(row.grossProfit)}</td>
-      <td className="py-2 pr-3">
+      <td data-label="Revenue" className="py-2 pr-3">{money(row.netRevenue)}</td>
+      <td data-label="COGS" className="py-2 pr-3">{money(row.estimatedCogs)}</td>
+      <td data-label="Profit" className="py-2 pr-3 font-black text-brand-green-ink">{money(row.grossProfit)}</td>
+      <td data-label="Margin" className="py-2 pr-3">
         <Badge className={row.missingCostData ? profitTone(0) : profitTone(row.grossProfit)}>
           {row.missingCostData ? "Needs cost" : `${row.grossMarginRate}%`}
         </Badge>
@@ -315,7 +315,7 @@ export default async function AdminPosPage() {
         <div className="mt-6 grid gap-6 xl:grid-cols-3">
           <div className="overflow-x-auto">
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Payment close</h3>
-            <table className="mt-3 min-w-full text-sm">
+            <table className="reflow-table mt-3 min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Method</th>
@@ -327,10 +327,10 @@ export default async function AdminPosPage() {
               <tbody className="divide-y">
                 {pos.todayDayClose.paymentRows.map((row) => (
                   <tr key={row.paymentMethod}>
-                    <td className="py-2 pr-3 font-bold text-brand-green-ink">{row.paymentMethod}</td>
-                    <td className="py-2 pr-3">{money(row.paidAmount)}</td>
-                    <td className="py-2 pr-3">{money(row.creditAmount)}</td>
-                    <td className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                    <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.paymentMethod}</td>
+                    <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
+                    <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
+                    <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -339,7 +339,7 @@ export default async function AdminPosPage() {
 
           <div className="overflow-x-auto">
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Channel close</h3>
-            <table className="mt-3 min-w-full text-sm">
+            <table className="reflow-table mt-3 min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Channel</th>
@@ -351,10 +351,10 @@ export default async function AdminPosPage() {
               <tbody className="divide-y">
                 {pos.todayDayClose.channelRows.map((row) => (
                   <tr key={row.channel}>
-                    <td className="py-2 pr-3 font-bold text-brand-green-ink">{row.channel}</td>
-                    <td className="py-2 pr-3">{row.invoiceCount}</td>
-                    <td className="py-2 pr-3">{money(row.returnTotal)}</td>
-                    <td className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                    <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.channel}</td>
+                    <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
+                    <td data-label="Return" className="py-2 pr-3">{money(row.returnTotal)}</td>
+                    <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -366,7 +366,7 @@ export default async function AdminPosPage() {
             {pos.todayDayClose.cashierRows.length === 0 ? (
               <p className="mt-3 text-sm text-gray-500">No bills today.</p>
             ) : (
-              <table className="mt-3 min-w-full text-sm">
+              <table className="reflow-table mt-3 min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Cashier</th>
@@ -379,11 +379,11 @@ export default async function AdminPosPage() {
                 <tbody className="divide-y">
                   {pos.todayDayClose.cashierRows.map((row) => (
                     <tr key={row.cashier}>
-                      <td className="py-2 pr-3 font-bold text-brand-green-ink">{row.cashier}</td>
-                      <td className="py-2 pr-3">{row.invoiceCount}</td>
-                      <td className="py-2 pr-3">{money(row.paidAmount)}</td>
-                      <td className="py-2 pr-3">{money(row.creditAmount)}</td>
-                      <td className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                      <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.cashier}</td>
+                      <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
+                      <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
+                      <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
+                      <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -428,7 +428,7 @@ export default async function AdminPosPage() {
           {topDesignProfit.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500">No POS design profit data yet.</p>
           ) : (
-            <table className="mt-3 min-w-full text-sm">
+            <table className="reflow-table mt-3 min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Design</th>

@@ -110,7 +110,7 @@ export default async function AdminPaymentsPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="reflow-table min-w-full text-sm">
                 <thead className="border-b text-left text-gray-500">
                   <tr>
                     <th className="py-2 pr-3">Risk</th>
@@ -123,19 +123,19 @@ export default async function AdminPaymentsPage() {
                 <tbody className="divide-y">
                   {reconciliation.issues.slice(0, 12).map((issue) => (
                     <tr key={issue.id}>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${severityClass(issue.severity)}`}>
                           {issue.severity}
                         </span>
                       </td>
-                      <td className="min-w-72 py-3 pr-3">
+                      <td data-label="Issue" className="min-w-72 py-3 pr-3">
                         <p className="font-bold text-brand-green-ink">{issue.type}</p>
                         <p className="mt-1 text-xs text-gray-500">{issue.detail}</p>
                         {issue.orderId ? <p className="mt-1 font-mono text-xs text-gray-400">{issue.orderId}</p> : null}
                       </td>
-                      <td className="py-3 pr-3 font-semibold text-brand-green-ink">{issue.customerName}</td>
-                      <td className="py-3 pr-3 font-bold">{money(issue.amount)}</td>
-                      <td className="min-w-64 py-3 pr-3 text-xs font-semibold text-gray-600">{issue.recommendation}</td>
+                      <td data-label="Customer" className="py-3 pr-3 font-semibold text-brand-green-ink">{issue.customerName}</td>
+                      <td data-label="Amount" className="py-3 pr-3 font-bold">{money(issue.amount)}</td>
+                      <td data-label="Action" className="min-w-64 py-3 pr-3 text-xs font-semibold text-gray-600">{issue.recommendation}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -170,7 +170,7 @@ export default async function AdminPaymentsPage() {
         <h2 className="text-lg font-black text-brand-green-ink">Recent transaction trail</h2>
         <p className="mt-1 text-sm text-gray-500">Latest admin, system, and gateway payment records.</p>
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="reflow-table min-w-full text-sm">
             <thead className="border-b text-left text-gray-500">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -186,23 +186,23 @@ export default async function AdminPaymentsPage() {
             <tbody className="divide-y">
               {reconciliation.transactions.slice(0, 20).map((transaction) => (
                 <tr key={transaction.id}>
-                  <td className="whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
+                  <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
                     {new Date(transaction.createdAt).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Order" className="py-3 pr-3">
                     <p className="font-mono text-xs text-brand-green-ink">{transaction.orderId}</p>
                     {!transaction.orderExists ? <p className="text-xs font-bold text-brand-clay">Missing order</p> : null}
                   </td>
-                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.customerName}</td>
-                  <td className="py-3 pr-3 uppercase">{transaction.paymentProvider}</td>
-                  <td className="py-3 pr-3">
+                  <td data-label="Customer" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.customerName}</td>
+                  <td data-label="Provider" className="py-3 pr-3 uppercase">{transaction.paymentProvider}</td>
+                  <td data-label="Status" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(transaction.paymentStatus)}`}>
                       {transaction.paymentStatus}
                     </span>
                   </td>
-                  <td className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                  <td className="py-3 pr-3">{transaction.source}</td>
-                  <td className="max-w-56 py-3 pr-3 text-xs text-gray-600">
+                  <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
+                  <td data-label="Source" className="py-3 pr-3">{transaction.source}</td>
+                  <td data-label="Reference" className="max-w-56 py-3 pr-3 text-xs text-gray-600">
                     {transaction.paymentTransactionId || transaction.paymentReference || transaction.paymentCallbackId || "-"}
                   </td>
                 </tr>

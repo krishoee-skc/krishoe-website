@@ -278,7 +278,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Time</th>
@@ -296,30 +296,30 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
 
                   return (
                     <tr key={event.id}>
-                      <td className="whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
+                      <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
                         {formatDate(event.createdAt)}
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Category" className="py-3 pr-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${categoryClass(category)}`}>
                           {category}
                         </span>
                       </td>
-                      <td className="min-w-52 py-3 pr-3 font-bold text-brand-green-ink">
+                      <td data-label="Action" className="min-w-52 py-3 pr-3 font-bold text-brand-green-ink">
                         {prettyAction(event.action)}
                       </td>
-                      <td className="min-w-52 py-3 pr-3">
+                      <td data-label="Actor" className="min-w-52 py-3 pr-3">
                         <p className="font-bold text-brand-green-ink">{actorLabel(event)}</p>
                         {actorDetail(event) ? (
                           <p className="mt-1 text-xs text-gray-500">{actorDetail(event)}</p>
                         ) : null}
                       </td>
-                      <td className="min-w-80 py-3 pr-3 text-gray-600">{event.detail}</td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Detail" className="min-w-80 py-3 pr-3 text-gray-600">{event.detail}</td>
+                      <td data-label="Status" className="py-3 pr-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(event.status)}`}>
                           {event.status}
                         </span>
                       </td>
-                      <td className="py-3 pr-3 font-mono text-xs text-gray-400">{event.id}</td>
+                      <td data-label="Audit ID" className="py-3 pr-3 font-mono text-xs text-gray-400">{event.id}</td>
                     </tr>
                   );
                 })}
