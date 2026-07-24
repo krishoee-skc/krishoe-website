@@ -76,8 +76,8 @@ export default function About() {
           </div>
 
           <h2 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
-            नेपाली हातले बनेको,
-            <span className="mt-1 block text-brand-green">नेपाली पाइतालाई।</span>
+            Shaped by Nepali hands.
+            <span className="mt-1 block text-brand-green">Made to move Nepal.</span>
           </h2>
 
           <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-brand-muted-deep">
