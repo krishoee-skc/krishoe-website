@@ -826,11 +826,40 @@ export async function notifyDailySalesSummary() {
 // we only load the invoice lists and hand them in. Fired by the Vercel crons at
 // /api/cron/weekly-sales (Sunday) and /api/cron/monthly-sales (1st).
 export async function notifyPeriodSalesSummary(kind: PeriodKind) {
-  const [pos, purchasing] = await Promise.all([getPosSnapshot(), getPurchasingSnapshot()]);
-
   const now = new Date();
   const { current, previous } =
     kind === "weekly" ? weeklyRanges(now) : monthlyRanges(now);
+  const periodAlertId = `${kind}-sales-${current.startKey}`;
+  const existingEvents = await getNotificationEvents(maxNotificationEvents);
+  const existingPeriod = existingEvents.find(
+    (event) =>
+      event.type === "operational-alert" &&
+      (event.payload as OperationalAlertNotificationPayload).alertId === periodAlertId,
+  );
+
+  // Both the primary and backup daily cron pass through here on Sundays and
+  // Bikram-Sambat month starts. Retry a miss, but never send the same closed
+  // weekly/monthly report twice.
+  if (existingPeriod?.deliveryStatus === "sent") {
+    return existingPeriod;
+  }
+
+  if (existingPeriod) {
+    const result = await deliverNotificationEvent({
+      ...existingPeriod,
+      deliveryStatus: "pending",
+    });
+    return {
+      ...existingPeriod,
+      deliveryStatus: result.status,
+      deliveryAttempts: existingPeriod.deliveryAttempts + 1,
+      deliveredAt: result.ok ? new Date().toISOString() : existingPeriod.deliveredAt,
+      lastDeliveryError: result.error,
+      lastDeliveryChannel: result.successfulChannels.join(", "),
+    };
+  }
+
+  const [pos, purchasing] = await Promise.all([getPosSnapshot(), getPurchasingSnapshot()]);
 
   // The monthly digest names the Bikram Sambat month it covers ("श्रावण २०८३"),
   // read off a day inside the range; the weekly one is just the last seven days.
@@ -860,7 +889,7 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
     type: "operational-alert",
     title,
     payload: {
-      alertId: `${kind}-sales-${current.startKey}`,
+      alertId: periodAlertId,
       category: "sales",
       severity: "info",
       detail: formatPeriodReportDetail(report),
