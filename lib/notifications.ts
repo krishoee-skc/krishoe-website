@@ -749,6 +749,37 @@ export async function notifyContactReceived(message: ContactSubmission) {
 // dashboard's "Today at a glance" leads with. Fired once a day by the Vercel
 // cron at /api/cron/daily-sales.
 export async function notifyDailySalesSummary() {
+  const today = new Date();
+  const dailyAlertId = `daily-sales-${today.toISOString().slice(0, 10)}`;
+  const existingEvents = await getNotificationEvents(maxNotificationEvents);
+  const existingDaily = existingEvents.find(
+    (event) =>
+      event.type === "operational-alert" &&
+      (event.payload as OperationalAlertNotificationPayload).alertId === dailyAlertId,
+  );
+
+  // The backup cron deliberately runs after the primary one. If the first
+  // delivery succeeded, the backup becomes a no-op. If it failed or ran before
+  // email was configured, retry the same event instead of sending duplicates.
+  if (existingDaily?.deliveryStatus === "sent") {
+    return existingDaily;
+  }
+
+  if (existingDaily) {
+    const result = await deliverNotificationEvent({
+      ...existingDaily,
+      deliveryStatus: "pending",
+    });
+    return {
+      ...existingDaily,
+      deliveryStatus: result.status,
+      deliveryAttempts: existingDaily.deliveryAttempts + 1,
+      deliveredAt: result.ok ? new Date().toISOString() : existingDaily.deliveredAt,
+      lastDeliveryError: result.error,
+      lastDeliveryChannel: result.successfulChannels.join(", "),
+    };
+  }
+
   const [pos, purchasing, operations] = await Promise.all([
     getPosSnapshot(),
     getPurchasingSnapshot(),
@@ -756,7 +787,6 @@ export async function notifyDailySalesSummary() {
   ]);
 
   const money = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
-  const today = new Date();
   const dateLabel = today.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -775,7 +805,7 @@ export async function notifyDailySalesSummary() {
     type: "operational-alert",
     title: `KRISHOE दैनिक हिसाब — ${dateLabel}`,
     payload: {
-      alertId: `daily-sales-${today.toISOString().slice(0, 10)}`,
+      alertId: dailyAlertId,
       category: "sales",
       severity: "info",
       detail,
