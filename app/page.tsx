@@ -23,38 +23,39 @@ export default function Home() {
           visually-hidden heading keeps the real text for SEO and screen
           readers. */}
       <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
-        <div className="relative mx-auto min-h-[72svh] max-w-md overflow-hidden rounded-[1.75rem] bg-brand-green-ink shadow-[0_22px_70px_rgba(11,77,59,0.2)] md:hidden">
+        <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-[#F9C8B3] shadow-[0_22px_70px_rgba(96,43,55,0.2)] md:hidden">
           <Image
-            src="/images/about-craftsmanship-v3.webp"
-            alt="Premium KRISHOE rexine slippers crafted for everyday comfort"
+            src="/images/mobile-hero-colorful-v1.webp"
+            alt="A colorful premium collection of cute KRISHOE rexine slippers"
             fill
             preload
             sizes="100vw"
-            className="object-cover object-[52%_55%]"
+            className="object-cover"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,35,29,0.18)_0%,rgba(16,35,29,0.04)_38%,rgba(16,35,29,0.9)_100%)]" />
-          <div className="absolute inset-x-0 bottom-0 p-6 pb-7 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-gold-bright">
-              Made for Nepal
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,247,238,0.92)_0%,rgba(255,247,238,0.66)_23%,rgba(255,247,238,0)_48%)]" />
+          <div className="absolute inset-x-0 top-0 p-6 pt-7 text-brand-green-ink">
+            <p className="inline-flex rounded-full border border-white/70 bg-white/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#8A3B62] shadow-sm backdrop-blur">
+              Colour your every step
             </p>
-            <h1 className="mt-3 font-display text-4xl font-bold leading-[0.98]">
-              Your step. Your identity.
+            <h1 className="mt-4 max-w-[310px] font-display text-[2.65rem] font-bold leading-[0.92] tracking-[-0.03em]">
+              Cute comfort.
+              <span className="mt-1 block text-[#A83E70]">Confident colour.</span>
             </h1>
-            <p className="mt-3 max-w-sm text-sm font-medium leading-6 text-white/85">
-              Cute, comfortable rexine styles made for confident everyday movement.
+            <p className="mt-3 max-w-[285px] text-sm font-semibold leading-6 text-brand-green-ink/75">
+              Premium rexine styles, shaped for Nepal and made to brighten every move.
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-4 flex gap-2.5">
               <Link
                 href="/shop"
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-gold-bright px-5 text-sm font-black text-brand-green-ink"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-green px-5 text-sm font-black text-white shadow-lg"
               >
                 Shop now
               </Link>
               <Link
                 href="/shop/ladies-slippers"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/50 bg-white/10 px-4 text-sm font-bold text-white backdrop-blur"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/80 bg-white/70 px-4 text-sm font-black text-[#8A3B62] shadow-sm backdrop-blur"
               >
-                View slippers
+                New colours
               </Link>
             </div>
           </div>
