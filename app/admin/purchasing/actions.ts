@@ -6,7 +6,8 @@ import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
-import { reportError } from "@/lib/report-error";
+import { reportError, reportingErrors } from "@/lib/report-error";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
   addSupplierLedger,
   addSupplierTransaction,
@@ -149,6 +150,14 @@ export async function createPurchaseInvoiceAction(
   await recordAdminAuditEvent(
     "purchase_create_invoice",
     `${invoice.purchaseNumber} ${invoice.kind.toLowerCase()} purchase recorded: ${invoice.items.length} item(s), Rs. ${invoice.total}.`,
+  );
+
+  // Trading goods land in finished stock, so recompute the catalog — a new
+  // design bought for the first time appears in the shop, and existing stock
+  // rises, without waiting for a manual Catalog sync. The bill is already saved,
+  // so a sync hiccup is logged, not thrown.
+  await reportingErrors("sync catalog stock after purchase bill", () =>
+    syncProductCatalogStockWithFinishedStock(),
   );
 
   // A purchase changes stock (and can create a new sellable design), and the

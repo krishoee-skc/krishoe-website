@@ -6,7 +6,8 @@ import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
-import { reportError } from "@/lib/report-error";
+import { reportError, reportingErrors } from "@/lib/report-error";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
   createPosInvoice,
   repairPosInvoicePosting,
@@ -14,6 +15,17 @@ import {
   type PosInvoiceKind,
   type PosPaymentMethod,
 } from "@/lib/pos";
+
+// A bill moves finished stock, and the shop reads products.stock — so the
+// catalog is recomputed right after, the same way the operations screens do it.
+// The bill is already saved, so a sync hiccup is logged, never thrown: the sale
+// must not fail for a follow-up step, and the manual Catalog sync stays as a
+// backstop.
+async function syncCatalogStockAfterBill(what: string) {
+  await reportingErrors(`sync catalog stock after ${what}`, () =>
+    syncProductCatalogStockWithFinishedStock(),
+  );
+}
 
 const channels: PosChannel[] = ["Retail", "Wholesale", "Online"];
 const invoiceKinds: PosInvoiceKind[] = ["Sale", "Return"];
@@ -120,6 +132,10 @@ export async function createPosInvoiceAction(
     `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
   );
 
+  // Recompute the catalog stock so the shop shows the pairs this bill just
+  // moved, without waiting for a manual Catalog sync.
+  await syncCatalogStockAfterBill("POS bill");
+
   // A bill changes stock, and the prerendered home/category pages carry stock
   // badges — refresh everything, not a hand-picked list.
   revalidatePath("/", "layout");
@@ -148,6 +164,10 @@ export async function repairPosInvoicePostingAction(formData: FormData) {
       result.createdLedgerTransactionId ? " and 1 ledger transaction" : ""
     }.`,
   );
+
+  // The repair created the stock movements the bill was missing, so recompute
+  // the catalog stock to match.
+  await syncCatalogStockAfterBill("POS posting repair");
 
   revalidatePath("/admin");
   revalidatePath("/admin/pos");
