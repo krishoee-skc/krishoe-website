@@ -202,15 +202,20 @@ describe("the digest date ranges", () => {
     expect(previous).toEqual({ startKey: "2026-07-12", endKey: "2026-07-19" });
   });
 
-  it("monthly covers the whole previous calendar month", () => {
-    const { current, previous } = monthlyRanges(new Date("2026-08-01T02:00:00.000Z"));
-    expect(current).toEqual({ startKey: "2026-07-01", endKey: "2026-08-01" });
-    expect(previous).toEqual({ startKey: "2026-06-01", endKey: "2026-07-01" });
+  // A Nepali shop closes its books on the Bikram Sambat month, whose boundaries
+  // fall mid-English-month. Run on gate 1 of Shrawan 2083 (2026-07-17), "last
+  // month" is Asar (2026-06-15 – 2026-07-17) and the one before is Jestha.
+  it("monthly covers the previous Bikram Sambat month, not the English one", () => {
+    const { current, previous } = monthlyRanges(new Date("2026-07-17T06:00:00.000Z"));
+    expect(current).toEqual({ startKey: "2026-06-15", endKey: "2026-07-17" });
+    expect(previous).toEqual({ startKey: "2026-05-15", endKey: "2026-06-15" });
   });
 
-  it("monthly carries January back into the previous December", () => {
-    const { current, previous } = monthlyRanges(new Date("2026-01-01T02:00:00.000Z"));
-    expect(current).toEqual({ startKey: "2025-12-01", endKey: "2026-01-01" });
-    expect(previous).toEqual({ startKey: "2025-11-01", endKey: "2025-12-01" });
+  // Run on gate 1 of Baisakh 2083 (2026-04-14), the previous BS month is Chaitra
+  // of 2082 — the digest must carry the month index back into the prior BS year.
+  it("monthly carries Baisakh back into the previous Bikram Sambat year", () => {
+    const { current, previous } = monthlyRanges(new Date("2026-04-14T06:00:00.000Z"));
+    expect(current).toEqual({ startKey: "2026-03-15", endKey: "2026-04-14" });
+    expect(previous).toEqual({ startKey: "2026-02-13", endKey: "2026-03-15" });
   });
 });

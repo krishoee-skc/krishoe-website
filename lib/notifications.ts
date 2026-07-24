@@ -4,6 +4,7 @@ import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { getPaymentReconciliation } from "@/lib/payment-reconciliation";
+import { bikramMonthLabel } from "@/lib/bikram-sambat";
 import { getPosSnapshot } from "@/lib/pos";
 import {
   buildPeriodReport,
@@ -798,9 +799,18 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
   const [pos, purchasing] = await Promise.all([getPosSnapshot(), getPurchasingSnapshot()]);
 
   const now = new Date();
-  const label = kind === "weekly" ? "गएको ७ दिन (Last 7 days)" : "गएको महिना (Last month)";
   const { current, previous } =
     kind === "weekly" ? weeklyRanges(now) : monthlyRanges(now);
+
+  // The monthly digest names the Bikram Sambat month it covers ("श्रावण २०८३"),
+  // read off a day inside the range; the weekly one is just the last seven days.
+  const monthName = bikramMonthLabel(`${current.startKey}T06:00:00.000Z`, "np");
+  const label =
+    kind === "weekly"
+      ? "गएको ७ दिन (Last 7 days)"
+      : monthName
+        ? `गएको महिना — ${monthName}`
+        : "गएको महिना (Last month)";
 
   const report = buildPeriodReport({
     kind,
@@ -814,7 +824,7 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
   const title =
     kind === "weekly"
       ? `KRISHOE साप्ताहिक हिसाब — ${report.rangeLabel}`
-      : `KRISHOE मासिक हिसाब — ${report.rangeLabel}`;
+      : `KRISHOE मासिक हिसाब — ${monthName || report.rangeLabel}`;
 
   const event = await appendEvent({
     type: "operational-alert",

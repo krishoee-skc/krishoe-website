@@ -1,4 +1,8 @@
-import { toBikramSambatNumeric } from "@/lib/bikram-sambat";
+import {
+  bikramMonthStartAdKey,
+  bikramYearMonth,
+  toBikramSambatNumeric,
+} from "@/lib/bikram-sambat";
 import type { PosInvoice } from "@/lib/pos";
 import type { PurchaseInvoice } from "@/lib/purchasing";
 
@@ -207,6 +211,7 @@ function money(value: number) {
 // message is a pure function of the report and can be pinned by a test.
 export function formatPeriodReportDetail(report: PeriodReport): string {
   const lines: string[] = [];
+  lines.push(report.label);
   lines.push(`अवधि (Period): ${report.rangeLabel}`);
   lines.push("");
   lines.push(`कुल बिक्री (Net sales): ${money(report.netSales)}`);
@@ -259,15 +264,31 @@ export function weeklyRanges(reference: Date): { current: PeriodRange; previous:
   };
 }
 
-// The calendar month before the run date, plus the month before that. The
-// monthly cron fires on the 1st, so "current" is last month, whole and closed.
+// The Bikram Sambat month before the run date, plus the month before that. A
+// Nepali shop closes its books on the Nepali month (Shrawan, Bhadra…), not the
+// English one, and those boundaries fall mid-English-month — so the range is
+// built from BS month starts, converted to their A.D. calendar days. The monthly
+// digest fires on BS gate 1, so "current" is the BS month just closed.
 export function monthlyRanges(reference: Date): { current: PeriodRange; previous: PeriodRange } {
-  const year = reference.getUTCFullYear();
-  const month = reference.getUTCMonth();
-  // Date.UTC carries a negative month back into the previous year, so
-  // monthStart(1) from January correctly lands on the prior December.
+  const bs = bikramYearMonth(reference);
+
+  if (!bs) {
+    // Only reached if the reference date cannot be converted; fall back to the
+    // English month so the digest still sends something rather than nothing.
+    const year = reference.getUTCFullYear();
+    const month = reference.getUTCMonth();
+    const adStart = (back: number) =>
+      new Date(Date.UTC(year, month - back, 1)).toISOString().slice(0, 10);
+    return {
+      current: { startKey: adStart(1), endKey: adStart(0) },
+      previous: { startKey: adStart(2), endKey: adStart(1) },
+    };
+  }
+
+  // bikramMonthStartAdKey carries a negative month index back into the prior BS
+  // year, so gate 1 of Baisakh still resolves its two preceding months.
   const monthStart = (monthsBack: number) =>
-    new Date(Date.UTC(year, month - monthsBack, 1)).toISOString().slice(0, 10);
+    bikramMonthStartAdKey(bs.year, bs.monthIndex - monthsBack);
   const thisMonthStart = monthStart(0);
   const lastMonthStart = monthStart(1);
   const monthBeforeStart = monthStart(2);

@@ -1,3 +1,4 @@
+import { isBikramMonthStart } from "@/lib/bikram-sambat";
 import {
   notifyDailySalesSummary,
   notifyPeriodSalesSummary,
@@ -20,12 +21,13 @@ export async function GET(request: Request) {
     return new Response("Unauthorized.", { status: 401 });
   }
 
-  // Evaluated in Nepal time: the cron fires at 20:00 NPT, which is still the
-  // same calendar day in UTC (14:15), so the UTC day-of-week and day-of-month
-  // are the Nepali ones the owner would read off a calendar.
+  // The cron fires at 20:00 NPT, still the same calendar day in UTC (14:15), so
+  // the UTC weekday is the Nepali one the owner would read off a calendar. The
+  // monthly digest turns over on the Bikram Sambat month, not the English one —
+  // a Nepali shop closes its books on gate 1 of Shrawan, Bhadra, and so on.
   const now = new Date();
   const isSunday = now.getUTCDay() === 0;
-  const isFirstOfMonth = now.getUTCDate() === 1;
+  const isMonthStart = isBikramMonthStart(now);
 
   const sent: Record<string, string> = {};
 
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (isFirstOfMonth) {
+  if (isMonthStart) {
     try {
       const monthly = await notifyPeriodSalesSummary("monthly");
       sent.monthly = monthly.deliveryStatus;
