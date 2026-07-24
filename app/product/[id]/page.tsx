@@ -8,7 +8,6 @@ import ProductDetailActions from "@/components/ProductDetailActions";
 import SafeImage from "@/components/SafeImage";
 import ProductCard from "@/components/ProductCard";
 import { StarIcon } from "@/components/Icons";
-import { wholesalePriceLabel } from "@/lib/products";
 import ProductReviews from "@/components/ProductReviews";
 import {
   breadcrumbJsonLd,
@@ -104,14 +103,9 @@ export default async function ProductPage({ params }: Props) {
                   {product.rating}
                 </div>
               </div>
-              {wholesalePriceLabel(product) ? (
-                <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-mist px-4 py-1.5 text-sm font-semibold text-brand-green">
-                  Wholesale: {wholesalePriceLabel(product)}
-                  {product.minWholesaleQty > 1 ? (
-                    <span className="text-brand-muted">· min {product.minWholesaleQty} pairs</span>
-                  ) : null}
-                </p>
-              ) : null}
+              {/* The wholesale price is a trade rate, used only at the POS
+                  Wholesale channel — it is deliberately not shown to shoppers
+                  on the storefront. */}
               <p className="mt-6 text-base leading-7 text-brand-muted">{product.description}</p>
 
               <div className="mt-8">
