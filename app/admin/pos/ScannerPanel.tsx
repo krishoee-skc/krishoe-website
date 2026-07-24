@@ -1,5 +1,6 @@
 "use client";
 
+import type { IScannerControls } from "@zxing/browser";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -10,27 +11,9 @@ type KnownInvoice = {
   qrPayload: string;
 };
 
-type BarcodeDetectorResult = {
-  rawValue: string;
-  format?: string;
-};
-
-type BarcodeDetectorInstance = {
-  detect(source: HTMLVideoElement): Promise<BarcodeDetectorResult[]>;
-};
-
-type BarcodeDetectorConstructor = new (options?: {
-  formats?: string[];
-}) => BarcodeDetectorInstance;
-
-type WindowWithBarcodeDetector = Window & {
-  BarcodeDetector?: BarcodeDetectorConstructor;
-};
-
 export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownInvoice[] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const frameRef = useRef<number | null>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [status, setStatus] = useState("Ready");
   const [scanValue, setScanValue] = useState("");
@@ -54,68 +37,98 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
   }, [knownInvoices, scanValue]);
 
   function stopScanner() {
-    if (frameRef.current) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
     setIsScanning(false);
   }
 
   async function startScanner() {
-    const detectorConstructor = (window as WindowWithBarcodeDetector).BarcodeDetector;
-
-    if (!detectorConstructor) {
-      setStatus("Scanner not supported in this browser");
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setStatus("Camera scanning needs HTTPS. You can upload a photo or type the invoice number.");
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
+      stopScanner();
       const video = videoRef.current;
 
       if (!video) {
-        stream.getTracks().forEach((track) => track.stop());
         return;
       }
 
-      const detector = new detectorConstructor({
-        formats: ["qr_code", "code_128", "ean_13", "ean_8", "upc_a", "upc_e"],
-      });
-
-      streamRef.current = stream;
-      video.srcObject = stream;
-      await video.play();
+      setStatus("Starting camera");
       setIsScanning(true);
-      setStatus("Scanning");
-
-      const scanFrame = async () => {
-        try {
-          const results = await detector.detect(video);
-          const rawValue = results[0]?.rawValue?.trim();
-
-          if (rawValue) {
-            setScanValue(rawValue);
-            setStatus(results[0]?.format ? `Detected ${results[0].format}` : "Detected");
-            stopScanner();
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      let detectedDuringStart = false;
+      const controls = await reader.decodeFromConstraints(
+        {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        },
+        video,
+        (result, _error, activeControls) => {
+          if (!result) {
             return;
           }
-        } catch {
-          setStatus("Scanner paused");
-        }
 
-        frameRef.current = requestAnimationFrame(scanFrame);
-      };
+          const rawValue = result.getText().trim();
 
-      frameRef.current = requestAnimationFrame(scanFrame);
-    } catch {
-      setStatus("Camera permission unavailable");
+          if (!rawValue) {
+            return;
+          }
+
+          detectedDuringStart = true;
+          setScanValue(rawValue);
+          setStatus(`Detected ${result.getBarcodeFormat().toString()}`);
+          activeControls.stop();
+          scannerControlsRef.current = null;
+          setIsScanning(false);
+        },
+      );
+
+      if (detectedDuringStart) {
+        controls.stop();
+      } else {
+        scannerControlsRef.current = controls;
+        setStatus("Scanning — point the camera at a QR code or barcode");
+      }
+    } catch (error) {
+      const errorName = error instanceof DOMException ? error.name : "";
+      setStatus(
+        errorName === "NotAllowedError"
+          ? "Camera permission denied. Allow camera access or upload a photo."
+          : errorName === "NotFoundError"
+            ? "No camera was found. Upload a photo or type the invoice number."
+            : "Camera could not start. Upload a photo or type the invoice number.",
+      );
       stopScanner();
+    }
+  }
+
+  async function scanImage(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    stopScanner();
+    setStatus("Reading image");
+    const imageUrl = URL.createObjectURL(file);
+
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      const result = await reader.decodeFromImageUrl(imageUrl);
+      setScanValue(result.getText().trim());
+      setStatus(`Detected ${result.getBarcodeFormat().toString()} from image`);
+    } catch {
+      setStatus("No QR code or barcode found in that image. Try a clearer photo.");
+    } finally {
+      URL.revokeObjectURL(imageUrl);
     }
   }
 
@@ -152,6 +165,19 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
       </div>
 
       <div className="mt-4 grid gap-3">
+        <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-brand-green px-4 text-sm font-bold text-brand-green">
+          Scan from photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(event) => {
+              void scanImage(event.target.files?.[0]);
+              event.currentTarget.value = "";
+            }}
+          />
+        </label>
         <input
           value={scanValue}
           onChange={(event) => setScanValue(event.target.value)}
