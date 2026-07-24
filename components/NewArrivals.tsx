@@ -16,9 +16,11 @@ export default async function NewArrivals() {
           Discover the latest KRISHOE styles.
         </p>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mobile-product-rail md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="mobile-product-slide">
+              <ProductCard product={product} intent="shop" />
+            </div>
           ))}
         </div>
 

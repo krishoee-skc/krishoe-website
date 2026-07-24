@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, ShoppingBagIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 // App-style bottom navigation for phones/tablets. Hidden on desktop (lg+) and
 // on the admin area. Most customers shop from mobile, so the key destinations
@@ -11,6 +12,7 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 export default function BottomTabBar() {
   const pathname = usePathname();
   const { cartCount } = useCommerce();
+  const { text } = useLanguage();
 
   if (pathname.startsWith("/admin")) {
     return null;
@@ -39,12 +41,12 @@ export default function BottomTabBar() {
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 px-2 py-1">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>
             <HomeIcon className="h-5 w-5" />
-            Home
+            {text("Home", "गृह")}
           </Link>
 
           <Link href="/shop" className={tabClass(isShop)} aria-current={isShop ? "page" : undefined}>
             <ShoppingBagIcon className="h-5 w-5" />
-            Shop
+            {text("Shop", "पसल")}
           </Link>
 
           <button
@@ -54,7 +56,7 @@ export default function BottomTabBar() {
             aria-label="Open search"
           >
             <SearchIcon className="h-5 w-5" />
-            Search
+            {text("Search", "खोज")}
           </button>
 
           <Link href="/cart" className={tabClass(isCart)} aria-current={isCart ? "page" : undefined}>
@@ -66,12 +68,12 @@ export default function BottomTabBar() {
                 </span>
               ) : null}
             </span>
-            Cart
+            {text("Cart", "कार्ट")}
           </Link>
 
           <Link href="/account" className={tabClass(isAccount)} aria-current={isAccount ? "page" : undefined}>
             <UserIcon className="h-5 w-5" />
-            Account
+            {text("Account", "खाता")}
           </Link>
         </div>
       </nav>

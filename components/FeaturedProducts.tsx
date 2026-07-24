@@ -25,9 +25,11 @@ export default async function FeaturedProducts() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mobile-product-rail mt-10 md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="mobile-product-slide">
+              <ProductCard product={product} intent="shop" />
+            </div>
           ))}
         </div>
       </div>

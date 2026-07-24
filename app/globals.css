@@ -324,6 +324,50 @@ table th,
   }
 }
 
+/* App-like product discovery on phones: the next card peeks into view, making
+   the horizontal gesture obvious without adding a heavy carousel library. */
+@media screen and (max-width: 767px) {
+  .mobile-product-rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(78vw, 78vw);
+    gap: 14px;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding: 4px 20px 18px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .mobile-product-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-product-slide {
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  /* Admin is operated from a phone in-store. Keep every direct action thumb
+     sized and reclaim horizontal space from desktop-oriented page padding. */
+  .admin-canvas > section,
+  .admin-canvas > div:not(:first-child) {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .admin-canvas button:not([aria-label]),
+  .admin-canvas a[class*="inline-flex"] {
+    min-height: 44px;
+  }
+
+  .admin-canvas form {
+    scroll-margin-top: calc(4.5rem + env(safe-area-inset-top));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

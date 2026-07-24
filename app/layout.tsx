@@ -6,6 +6,8 @@ import { Analytics } from "@/components/commerce/Analytics";
 import BottomTabBar from "@/components/BottomTabBar";
 import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import LanguageProvider from "@/components/LanguageProvider";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
@@ -107,11 +109,14 @@ export default async function RootLayout({
         <StructuredData metadata={metadata} products={products} />
       </head>
       <body className="min-h-full flex flex-col">
+        <ServiceWorkerRegistration />
         <Analytics />
-        <CommerceProvider catalogProducts={products}>
-          {children}
-          <BottomTabBar />
-        </CommerceProvider>
+        <LanguageProvider>
+          <CommerceProvider catalogProducts={products}>
+            {children}
+            <BottomTabBar />
+          </CommerceProvider>
+        </LanguageProvider>
         {/* Passed the deployment that served this page, so a tab left open
             across a deploy can offer a reload instead of silently running old
             code. Covers the shop and the admin alike. */}

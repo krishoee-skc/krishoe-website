@@ -8,6 +8,7 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 import CommandSearch from "@/components/CommandSearch";
 import ThemeToggle from "@/components/ThemeToggle";
 import { isActivePath, navLinks } from "@/components/nav-links";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type NavbarControlsProps = {
   isLoggedIn: boolean;
@@ -30,6 +31,13 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   const pathname = usePathname();
   const { cartCount, wishlistCount } = useCommerce();
   const [isOpen, setIsOpen] = useState(false);
+  const { language, setLanguage, text } = useLanguage();
+  const mobileLabels: Record<string, string> = {
+    Home: "गृह",
+    Shop: "पसल",
+    "Our Story": "हाम्रो कथा",
+    Contact: "सम्पर्क",
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -62,7 +70,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       <Link
         href="/wishlist"
         aria-label="Open wishlist"
-        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist"
+        className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid"
       >
         <HeartIcon className="h-5 w-5" />
         <CountBadge count={wishlistCount} />
@@ -148,17 +156,17 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                     }`}
                   >
                     <Icon className="h-5 w-5" />
-                    {item.label}
+                    {language === "ne" ? mobileLabels[item.label] ?? item.label : item.label}
                   </Link>
                 );
               })}
               {isLoggedIn ? (
                 <Link href={isAdmin ? "/admin" : "/account"} onClick={() => setIsOpen(false)} className="rounded-lg px-4 py-3 text-lg font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green">
-                  My Account
+                  {text("My Account", "मेरो खाता")}
                 </Link>
               ) : (
                 <Link href="/account/login" onClick={() => setIsOpen(false)} className="rounded-lg px-4 py-3 text-lg font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green">
-                  Account
+                  {text("Account", "खाता")}
                 </Link>
               )}
             </nav>
@@ -169,7 +177,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg border border-black/10 p-4 text-sm font-semibold text-brand-green-ink"
               >
-                Wishlist
+                {text("Wishlist", "मनपर्ने")}
                 <span className="mt-1 block text-2xl font-black text-brand-green">{wishlistCount}</span>
               </Link>
               <Link
@@ -177,9 +185,34 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg border border-black/10 p-4 text-sm font-semibold text-brand-green-ink"
               >
-                Cart
+                {text("Cart", "कार्ट")}
                 <span className="mt-1 block text-2xl font-black text-brand-green">{cartCount}</span>
               </Link>
+            </div>
+            <div className="mt-5 rounded-2xl border border-black/10 bg-brand-mist p-3">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-brand-muted">
+                {text("Language", "भाषा")}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLanguage("en")}
+                  className={`min-h-11 rounded-xl text-sm font-black ${
+                    language === "en" ? "bg-brand-green text-white" : "bg-white text-brand-green-ink"
+                  }`}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("ne")}
+                  className={`min-h-11 rounded-xl text-sm font-black ${
+                    language === "ne" ? "bg-brand-green text-white" : "bg-white text-brand-green-ink"
+                  }`}
+                >
+                  नेपाली
+                </button>
+              </div>
             </div>
           </div>
         </div>
