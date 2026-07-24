@@ -5,6 +5,13 @@ import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { getPaymentReconciliation } from "@/lib/payment-reconciliation";
 import { getPosSnapshot } from "@/lib/pos";
+import {
+  buildPeriodReport,
+  formatPeriodReportDetail,
+  monthlyRanges,
+  weeklyRanges,
+  type PeriodKind,
+} from "@/lib/period-report";
 import { queryPostgres } from "@/lib/postgres/client";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
@@ -777,6 +784,52 @@ export async function notifyDailySalesSummary() {
   });
 
   await reportingErrors(`deliver daily sales summary ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
+  return event;
+}
+
+// The weekly and monthly digests. Same delivery path as the daily one, but the
+// numbers cover a stretch and carry the stretch before it for comparison. The
+// maths and the wording live in lib/period-report so they are unit-tested; here
+// we only load the invoice lists and hand them in. Fired by the Vercel crons at
+// /api/cron/weekly-sales (Sunday) and /api/cron/monthly-sales (1st).
+export async function notifyPeriodSalesSummary(kind: PeriodKind) {
+  const [pos, purchasing] = await Promise.all([getPosSnapshot(), getPurchasingSnapshot()]);
+
+  const now = new Date();
+  const label = kind === "weekly" ? "गएको ७ दिन (Last 7 days)" : "गएको महिना (Last month)";
+  const { current, previous } =
+    kind === "weekly" ? weeklyRanges(now) : monthlyRanges(now);
+
+  const report = buildPeriodReport({
+    kind,
+    label,
+    posInvoices: pos.invoices,
+    purchaseInvoices: purchasing.purchaseInvoices,
+    current,
+    previous,
+  });
+
+  const title =
+    kind === "weekly"
+      ? `KRISHOE साप्ताहिक हिसाब — ${report.rangeLabel}`
+      : `KRISHOE मासिक हिसाब — ${report.rangeLabel}`;
+
+  const event = await appendEvent({
+    type: "operational-alert",
+    title,
+    payload: {
+      alertId: `${kind}-sales-${current.startKey}`,
+      category: "sales",
+      severity: "info",
+      detail: formatPeriodReportDetail(report),
+      action: "पूरा हिसाब dashboard मा हेर्नुहोस्:",
+      href: "https://krishoe-website.vercel.app/admin",
+    },
+  });
+
+  await reportingErrors(`deliver ${kind} sales summary ${event.id}`, () =>
     deliverNotificationEvent(event),
   );
   return event;
