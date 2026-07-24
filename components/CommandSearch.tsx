@@ -92,12 +92,13 @@ export default function CommandSearch() {
         </kbd>
       </button>
 
-      {/* Mobile / tablet: compact icon that opens the same palette. */}
+      {/* The lg band only: below lg the bottom tab bar carries Search, and at xl
+          the full pill above takes over — so the top bar never doubles up. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search premium styles"
-        className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist xl:hidden"
+        className="hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid xl:hidden"
       >
         <SearchIcon className="h-5 w-5" />
       </button>

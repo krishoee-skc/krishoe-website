@@ -32,10 +32,15 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       <CommandSearch />
 
-      <ThemeToggle />
+      {/* The theme toggle crowds the phone bar, and the search and cart here
+          double up on the bottom tab bar — keep the top bar to brand + wishlist
+          + cart + menu on phones, and move the toggle into the menu drawer. */}
+      <span className="hidden lg:block">
+        <ThemeToggle />
+      </span>
 
       <Link
         href="/wishlist"
@@ -96,14 +101,17 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                   Premium menu
                 </p>
               </div>
-              <button
-                type="button"
-                aria-label="Close menu"
-                onClick={() => setIsOpen(false)}
-                className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green"
-              >
-                <XIcon className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={() => setIsOpen(false)}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green"
+                >
+                  <XIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <nav className="mt-8 grid gap-1">
