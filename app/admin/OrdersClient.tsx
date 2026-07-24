@@ -15,11 +15,13 @@ import {
   createPosInvoiceFromOrderAction,
   updateOrderPaymentAction,
   updateOrderStatusAction,
-  ORDER_STATUSES,
-  PAYMENT_PROVIDERS,
-  PAYMENT_STATUSES,
   type ActionState,
 } from "./actions";
+import {
+  orderStatuses as ORDER_STATUSES,
+  paymentProviders as PAYMENT_PROVIDERS,
+  paymentStatuses as PAYMENT_STATUSES,
+} from "@/lib/order-constants";
 
 type OrderPosInvoiceLink = {
   id: string;

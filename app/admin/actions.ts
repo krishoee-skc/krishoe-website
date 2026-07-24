@@ -16,27 +16,18 @@ import {
 } from "@/lib/pos";
 import {
   getOrderById,
-  orderStatuses,
-  paymentProviders,
-  paymentStatuses,
   updateOrderPayment,
   updateOrderStatus,
   type OrderStatus,
   type PaymentProvider,
   type PaymentStatus,
 } from "@/lib/submissions";
+import { orderStatuses, paymentStatuses, paymentProviders } from "@/lib/order-constants";
 import { removeProduct, upsertProduct } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-
-// Re-exported from the store rather than re-listed. Kept as a second hand-typed
-// list, adding a status there left the admin unable to pick it — which is
-// exactly what happened to Cancelled.
-export const ORDER_STATUSES = orderStatuses;
-export const PAYMENT_STATUSES = paymentStatuses;
-export const PAYMENT_PROVIDERS = paymentProviders;
 
 export type ActionState = {
   ok: boolean;
@@ -46,13 +37,13 @@ export type ActionState = {
 
 const orderStatusSchema = z.object({
   id: z.string().min(1),
-  status: z.enum(ORDER_STATUSES),
+  status: z.enum(orderStatuses),
 });
 
 const orderPaymentSchema = z.object({
   id: z.string().min(1),
-  paymentStatus: z.enum(PAYMENT_STATUSES),
-  paymentProvider: z.enum(PAYMENT_PROVIDERS),
+  paymentStatus: z.enum(paymentStatuses),
+  paymentProvider: z.enum(paymentProviders),
   paymentReference: z.string().max(180).optional(),
   paymentTransactionId: z.string().max(180).optional(),
   paymentCallbackId: z.string().max(240).optional(),

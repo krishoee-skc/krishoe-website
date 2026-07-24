@@ -7,7 +7,7 @@ import {
   type OrderItem,
   type ReservingOrder,
 } from "@/lib/order-stock";
-import { ORDER_STATUSES } from "@/app/admin/actions";
+import { orderStatuses as ORDER_STATUSES } from "@/lib/order-constants";
 import { orderStatuses } from "@/lib/submissions";
 import type { Product } from "@/lib/products";
 

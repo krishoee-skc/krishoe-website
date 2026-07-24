@@ -50,10 +50,18 @@ export type ContactSubmission = {
   status: "New" | "Replied";
 };
 
-export const orderStatuses = ["New", "Contacted", "Closed", "Cancelled"] as const;
-export const paymentStatuses = ["Unpaid", "Pending", "Paid", "Failed", "Refunded"] as const;
-export const paymentProviders = ["manual", "cod", "esewa", "khalti", "bank", "cash"] as const;
-export const contactStatuses = ["New", "Replied"] as const;
+// Defined in lib/order-constants (a plain module) so the client dropdowns can
+// import them without pulling this server-only file's node:fs/pg into the
+// bundle. Imported for the guards below and re-exported so existing imports
+// from "@/lib/submissions" keep working.
+import {
+  orderStatuses,
+  paymentStatuses,
+  paymentProviders,
+  contactStatuses,
+} from "@/lib/order-constants";
+
+export { orderStatuses, paymentStatuses, paymentProviders, contactStatuses };
 
 const dataDirectory = path.join(process.cwd(), "data");
 const ordersPath = path.join(dataDirectory, "orders.json");
