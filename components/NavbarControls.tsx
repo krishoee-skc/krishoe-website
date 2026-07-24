@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { HeartIcon, MenuIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
@@ -30,6 +30,23 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   const pathname = usePathname();
   const { cartCount, wishlistCount } = useCommerce();
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
 
   return (
     <div className="flex shrink-0 items-center gap-2">
@@ -93,7 +110,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-[min(88vw,390px)] bg-white p-6 shadow-2xl">
+          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>

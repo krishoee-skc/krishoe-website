@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
@@ -26,8 +26,25 @@ export default function AdminMobileNav() {
     setOpen(false);
   }
 
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
   return (
-    <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur lg:hidden print:hidden">
+    <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
           <HomeIcon className="h-5 w-5" />
@@ -48,11 +65,18 @@ export default function AdminMobileNav() {
       </div>
 
       {open ? (
-        <nav
-          aria-label="Admin"
-          className="max-h-[70vh] overflow-auto border-t border-gray-100 px-3 pb-3 pt-2"
-        >
-          <div className="grid grid-cols-2 gap-2">
+        <div className="fixed inset-x-0 bottom-0 top-[calc(3.5rem+env(safe-area-inset-top))] z-50 bg-brand-green-ink/45 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close admin menu overlay"
+            className="absolute inset-0"
+            onClick={() => setOpen(false)}
+          />
+          <nav
+            aria-label="Admin"
+            className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-gray-100 bg-white px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
+          >
+          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
             {adminNavLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
               return (
@@ -80,7 +104,8 @@ export default function AdminMobileNav() {
               Sign out
             </button>
           </form>
-        </nav>
+          </nav>
+        </div>
       ) : null}
     </div>
   );

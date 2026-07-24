@@ -17,8 +17,8 @@ export default function BottomTabBar() {
   }
 
   const tabClass = (active: boolean) =>
-    `flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition ${
-      active ? "text-brand-green" : "text-brand-muted-deep"
+    `relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-bold transition ${
+      active ? "bg-brand-green-wash text-brand-green" : "text-brand-muted-deep"
     }`;
 
   const isHome = pathname === "/";
@@ -30,13 +30,13 @@ export default function BottomTabBar() {
     <>
       {/* Spacer keeps page content clear of the fixed bar (only where the bar
           shows — it is absent on admin and on desktop). */}
-      <div className="h-16 lg:hidden" aria-hidden />
+      <div className="h-[calc(4rem+env(safe-area-inset-bottom))] lg:hidden" aria-hidden />
 
       <nav
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-5">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1 px-2 py-1">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>
             <HomeIcon className="h-5 w-5" />
             Home

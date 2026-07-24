@@ -50,6 +50,21 @@ body {
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+body {
+  overflow-x: clip;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 /* Headings break onto balanced lines instead of leaving one orphaned word on
@@ -228,6 +243,14 @@ table th,
    Scoped to `screen` so printing (a supplier statement, a bill) always uses the
    normal table, never the phone cards. */
 @media screen and (max-width: 767px) {
+  /* iOS zooms the whole page when a focused control is below 16px. Keeping
+     controls at 16px makes checkout and admin data entry feel app-native. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   .reflow-table,
   .reflow-table tbody,
   .reflow-table tr,
@@ -298,6 +321,21 @@ table th,
 
   .reflow-table td[colspan]::before {
     content: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

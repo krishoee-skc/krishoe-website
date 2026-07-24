@@ -11,6 +11,7 @@ import type { Metadata, Viewport } from "next";
 export const pwaViewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   // Colours the phone's status bar. Two entries so it follows the theme rather
   // than leaving a white strip above a dark page.
   themeColor: [

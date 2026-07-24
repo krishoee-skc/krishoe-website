@@ -10,7 +10,7 @@ type NavbarProps = {
 
 export default async function Navbar({ isLoggedIn = false, isAdmin = false }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-50 border-b border-black/10 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-black/10 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 md:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2.5 sm:gap-3">
           <Image
