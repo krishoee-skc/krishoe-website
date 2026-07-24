@@ -38,7 +38,7 @@ export default function About() {
           <div className="absolute -inset-3 rounded-[2rem] border border-brand-gold-bright/25 sm:-inset-5" aria-hidden />
           <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-brand-green-ink shadow-[0_30px_90px_rgba(16,35,29,0.24)] sm:rounded-[2rem]">
             <Image
-              src="/images/about-craftsmanship-v2.webp"
+              src="/images/about-craftsmanship-v3.webp"
               alt="Footwear artisan inspecting a carefully finished shoe beside a premium collection"
               fill
               sizes="(min-width: 1024px) 44vw, (min-width: 640px) 70vw, 92vw"
