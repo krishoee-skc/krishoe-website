@@ -719,11 +719,14 @@ export async function repairPosInvoicePosting(id: string): Promise<PosPostingRep
   const createdStockMovementIds: string[] = [];
 
   for (const group of groupInvoiceItemsByDesign(invoice.items)) {
+    // Count what is already posted for this design across every channel — the
+    // pairs may have been drawn from another pool at sale time. Filtering by the
+    // invoice channel here is what made repair try to re-post pairs that were
+    // never missing, then fail because that channel held nothing.
     const postedPairs = sum(
       linkedStockMovements.filter(
         (movement) =>
           sameDesign(movement.design, group.design) &&
-          movement.channel === invoice.channel &&
           movement.type === expectedStockType,
       ),
       (movement) => movement.pairs,
@@ -734,9 +737,13 @@ export async function repairPosInvoicePosting(id: string): Promise<PosPostingRep
       continue;
     }
 
+    // Draw from the design's pool wherever it sits, the same way a sale does —
+    // not a channel-shaped bucket that may be empty. Falls back to the sale
+    // channel only when the design has no stock row yet.
+    const pool = resolveStockRow(operations.finishedStock, group.design, "Mixed");
     const movement = await addStockMovement({
       design: group.design,
-      channel: invoice.channel,
+      channel: pool ? pool.channel : invoice.channel,
       type: expectedStockType,
       pairs: missingPairs,
       note: invoiceStockMovementNote(invoice, group.design, [...group.skus].join("/"), "repair"),
@@ -792,7 +799,7 @@ function activeInvoices(invoices: PosInvoice[]) {
   return invoices.filter((invoice) => invoice.status !== "Voided");
 }
 
-function buildPosPostingReviewRows(invoices: PosInvoice[], operations: OperationsData) {
+export function buildPosPostingReviewRows(invoices: PosInvoice[], operations: OperationsData) {
   const ledgerIds = new Set(operations.customerLedgers.map((ledger) => ledger.id));
 
   return invoices
@@ -803,11 +810,14 @@ function buildPosPostingReviewRows(invoices: PosInvoice[], operations: Operation
       const itemPairsByDesign = groupInvoiceItemsByDesign(invoice.items);
 
       for (const request of itemPairsByDesign) {
+        // One pool per design: the sale draws from wherever the pairs sit, so a
+        // Retail bill's movement can be recorded on the Wholesale pool. Counting
+        // posted pairs by channel would then miss them and flag a false
+        // "movement missing" — match on design and type only, like the link does.
         const postedPairs = sum(
           linkedStockMovements.filter(
             (movement) =>
               sameDesign(movement.design, request.design) &&
-              movement.channel === invoice.channel &&
               movement.type === expectedStockType,
           ),
           (movement) => movement.pairs,
