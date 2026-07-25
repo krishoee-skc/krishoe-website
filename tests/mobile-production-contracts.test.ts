@@ -75,3 +75,12 @@ describe("scheduled report safety contracts", () => {
     );
   });
 });
+
+describe("database transport safety contracts", () => {
+  it("removes ambiguous legacy sslmode and configures certificate verification explicitly", () => {
+    const client = source("lib/postgres/client.ts");
+    expect(client).toContain('url.searchParams.delete("sslmode")');
+    expect(client).toContain("rejectUnauthorized: true");
+    expect(client).toContain("connectionStringWithoutLegacySslMode(config.databaseUrl)");
+  });
+});

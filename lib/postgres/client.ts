@@ -20,6 +20,19 @@ declare global {
 
 type SslConfig = false | { rejectUnauthorized: boolean };
 
+function connectionStringWithoutLegacySslMode(connectionString: string) {
+  try {
+    const url = new URL(connectionString);
+    // pg-connection-string currently treats `require` as certificate
+    // verification, but its next major release will weaken that meaning. SSL
+    // is configured explicitly below, so remove this ambiguous URL option.
+    url.searchParams.delete("sslmode");
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 function getSslConfig(connectionString: string): SslConfig {
   if (/localhost|127\.0\.0\.1/i.test(connectionString) || process.env.PGSSLMODE === "disable") {
     return false;
@@ -45,7 +58,7 @@ function getPool(storeName: string) {
 
   if (!globalThis.krishoePgPool) {
     const pool = new Pool({
-      connectionString: config.databaseUrl,
+      connectionString: connectionStringWithoutLegacySslMode(config.databaseUrl),
       ssl: getSslConfig(config.databaseUrl),
       // Serverless-friendly. Neon closes idle server connections on its own; by
       // retiring ours a little sooner we hand out fresh ones instead of dead
