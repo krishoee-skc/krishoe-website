@@ -1,5 +1,6 @@
 import AdminNav from "./AdminNav";
 import AdminMobileNav from "./AdminMobileNav";
+import AdminQuickDock from "./AdminQuickDock";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
 
@@ -18,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="admin-canvas min-w-0 overflow-x-clip bg-gray-50/40">
         <AdminMobileNav />
         {children}
+        <AdminQuickDock />
       </main>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   createOperationalAlertNotificationsAction,
   deliverPendingNotificationsAction,
   retryNotificationAction,
+  sendSalesReportNowAction,
 } from "@/app/admin/notifications/actions";
 import {
   getOperationalAlertCenter,
@@ -147,6 +148,28 @@ export default async function AdminNotificationsPage() {
         <StatCard label="Failed" value={failed.length} detail="needs review" />
         <StatCard label="Skipped" value={skipped.length} detail="no channel configured" />
       </div>
+
+      <section className="mt-8 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-brand-green-ink">Sales report delivery check</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+              Daily runs every evening with a one-hour backup. Sunday also sends the weekly
+              digest; Bikram Sambat month-start also sends the monthly digest.
+            </p>
+          </div>
+          <div className="grid w-full grid-cols-1 gap-2 min-[430px]:grid-cols-3 md:w-auto">
+            {(["daily", "weekly", "monthly"] as const).map((kind) => (
+              <form key={kind} action={sendSalesReportNowAction}>
+                <input type="hidden" name="kind" value={kind} />
+                <FormSubmitButton className="min-h-11 w-full rounded-full border border-brand-green bg-white px-4 text-xs font-black capitalize text-brand-green transition hover:bg-brand-green hover:text-white">
+                  Send {kind} now
+                </FormSubmitButton>
+              </form>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

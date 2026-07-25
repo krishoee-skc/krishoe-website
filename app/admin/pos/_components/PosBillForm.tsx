@@ -372,7 +372,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
       </datalist>
 
       <div className="mt-5 overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="reflow-table min-w-full text-sm">
           <thead className="border-b text-left text-gray-500">
             <tr>
               <th className="py-2 pr-3">SKU</th>
@@ -392,7 +392,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
 
               return (
                 <tr key={row.key}>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="SKU" className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Sku`}
                       className={`${inputClass} w-28`}
@@ -402,7 +402,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
                       aria-label={`Item ${index + 1} SKU`}
                     />
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="Design" className="reflow-primary py-2 pr-3 align-top">
                     <input
                       name={`item${index}Design`}
                       className={`${fieldClass(Boolean(issue?.design))} min-w-56`}
@@ -418,7 +418,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
                       </p>
                     ) : null}
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="Size" className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}SizeRun`}
                       className={`${inputClass} w-24`}
@@ -428,7 +428,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
                       aria-label={`Item ${index + 1} size run`}
                     />
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="Pairs" className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Quantity`}
                       type="number"
@@ -440,7 +440,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
                       aria-label={`Item ${index + 1} pairs`}
                     />
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="Rate" className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Rate`}
                       type="number"
@@ -452,7 +452,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
                       aria-label={`Item ${index + 1} rate`}
                     />
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label="Discount" className="py-2 pr-3 align-top">
                     <input
                       name={`item${index}Discount`}
                       type="number"

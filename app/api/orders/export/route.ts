@@ -2,10 +2,7 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { buildOnlineOrderConversionReport } from "@/lib/order-pos";
-import {
-  getOperationsData,
-  getOperationsDataForReports,
-} from "@/lib/operations";
+import { getOperationsDataForReports } from "@/lib/operations";
 import { getPosInvoices } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";

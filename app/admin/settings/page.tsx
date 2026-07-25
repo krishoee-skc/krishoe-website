@@ -242,7 +242,7 @@ export default async function AdminSettingsPage() {
           <div className="grid gap-4">
             <Field label="Name" name="name" placeholder="Owner Name" required />
             <Field label="Email" name="email" type="email" placeholder="owner@krishoe.com" required />
-            <Field label="Password" name="password" type="password" placeholder="Required for new staff" />
+            <Field label="Password (12+ characters)" name="password" type="password" placeholder="Required for new staff" />
             <SelectField label="Role" name="role" value="Viewer" options={adminRoles} />
             <SelectField
               label="Branch"
@@ -263,7 +263,7 @@ export default async function AdminSettingsPage() {
             <p className="mt-1 text-sm text-gray-500">Password hashes are stored server-side and never shown here.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-gray-500">
                 <tr>
                   <th className="py-2 pr-3">Staff</th>
@@ -279,12 +279,12 @@ export default async function AdminSettingsPage() {
 
                   return (
                     <tr key={staff.id}>
-                      <td className="py-3 pr-3">
+                      <td className="reflow-primary py-3 pr-3">
                         <p className="font-black text-brand-green-ink">{staff.name}</p>
                         <p className="text-xs text-gray-500">{staff.email}</p>
                         <p className="mt-1 font-mono text-[11px] text-gray-400">{staff.id}</p>
                       </td>
-                      <td className="min-w-[380px] py-3 pr-3">
+                      <td data-label="Access" className="min-w-[380px] py-3 pr-3">
                         <form action={updateStaffAccessAction} className="grid gap-2 md:grid-cols-[130px_170px_auto]">
                           <input type="hidden" name="id" value={staff.id} />
                           <select name="role" defaultValue={staff.role} className={compactSelectClass}>
@@ -309,13 +309,13 @@ export default async function AdminSettingsPage() {
                           Current branch: {branch?.name ?? staff.branchId}
                         </p>
                       </td>
-                      <td className="min-w-[300px] py-3 pr-3">
+                      <td data-label="Password" className="min-w-[300px] py-3 pr-3">
                         <form action={resetStaffPasswordAction} className="flex flex-wrap items-center gap-2">
                           <input type="hidden" name="id" value={staff.id} />
                           <input
                             name="password"
                             type="password"
-                            minLength={8}
+                            minLength={12}
                             required
                             placeholder="New password"
                             className={compactInputClass}
@@ -327,7 +327,7 @@ export default async function AdminSettingsPage() {
                           />
                         </form>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td data-label="Status" className="py-3 pr-3">
                         <span className={`rounded-full border px-2 py-1 text-xs font-black ${
                           staff.status === "Active"
                             ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -355,7 +355,9 @@ export default async function AdminSettingsPage() {
                           )}
                         </form>
                       </td>
-                      <td className="py-3 pr-3 text-xs text-gray-500">{formatDate(staff.lastLoginAt)}</td>
+                      <td data-label="Last login" className="py-3 pr-3 text-xs text-gray-500">
+                        {formatDate(staff.lastLoginAt)}
+                      </td>
                     </tr>
                   );
                 })}

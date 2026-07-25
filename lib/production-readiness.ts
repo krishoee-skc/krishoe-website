@@ -253,6 +253,27 @@ function notificationStatus(): ReadinessCheck {
   };
 }
 
+function scheduledReportStatus(): ReadinessCheck {
+  const cronProtected = hasLongSecret("CRON_SECRET", 24);
+  const emailReady = hasEnv("EMAIL_PROVIDER_URL") && hasEnv("ADMIN_NOTIFICATION_EMAIL");
+
+  return {
+    id: "scheduled-reports",
+    label: "Daily / weekly / monthly email",
+    status: cronProtected && emailReady ? "ready" : "warning",
+    detail:
+      cronProtected && emailReady
+        ? "Evening report cron, one-hour retry, Sunday weekly digest, and Bikram Sambat month-start digest are protected and email-ready."
+        : "Configure EMAIL_PROVIDER_URL, ADMIN_NOTIFICATION_EMAIL, and a long CRON_SECRET so scheduled business reports are delivered and protected.",
+    envKeys: [
+      "CRON_SECRET",
+      "EMAIL_PROVIDER_URL",
+      "EMAIL_PROVIDER_TOKEN",
+      "ADMIN_NOTIFICATION_EMAIL",
+    ],
+  };
+}
+
 function vercelStatus(): ReadinessCheck {
   const vercelEnv = envValue("VERCEL_ENV");
   const vercelUrl = envValue("VERCEL_URL");
@@ -277,6 +298,7 @@ export function getProductionReadiness(): ReadinessCheck[] {
     databaseStatus(),
     paymentStatus(),
     notificationStatus(),
+    scheduledReportStatus(),
     vercelStatus(),
     {
       id: "security-headers",

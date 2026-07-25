@@ -648,12 +648,12 @@ async function staffRecordFromInput(
     throw new Error("Staff email is required.");
   }
 
-  if (!existing && password.length < 8) {
-    throw new Error("New staff password must be at least 8 characters.");
+  if (!existing && password.length < 12) {
+    throw new Error("New staff password must be at least 12 characters.");
   }
 
-  if (existing && password && password.length < 8) {
-    throw new Error("New password must be at least 8 characters.");
+  if (existing && password && password.length < 12) {
+    throw new Error("New password must be at least 12 characters.");
   }
 
   const stamp = nowIso();

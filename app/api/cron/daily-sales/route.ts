@@ -29,35 +29,33 @@ export async function GET(request: Request) {
   const isSunday = now.getUTCDay() === 0;
   const isMonthStart = isBikramMonthStart(now);
 
+  const jobs = [
+    { name: "daily", run: () => notifyDailySalesSummary() },
+    ...(isSunday
+      ? [{ name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) }]
+      : []),
+    ...(isMonthStart
+      ? [{ name: "monthly", run: () => notifyPeriodSalesSummary("monthly" as const) }]
+      : []),
+  ];
+  const settled = await Promise.allSettled(jobs.map((job) => job.run()));
   const sent: Record<string, string> = {};
+  const failed: string[] = [];
 
-  try {
-    const daily = await notifyDailySalesSummary();
-    sent.daily = daily.deliveryStatus;
-  } catch (error) {
-    reportError("send the daily sales summary", error);
-    return Response.json({ ok: false, stage: "daily" }, { status: 500 });
-  }
-
-  // The wider digests must not fail the daily one behind them, nor each other —
-  // each is reported on its own and a miss is logged, not thrown.
-  if (isSunday) {
-    try {
-      const weekly = await notifyPeriodSalesSummary("weekly");
-      sent.weekly = weekly.deliveryStatus;
-    } catch (error) {
-      reportError("send the weekly sales summary", error);
+  settled.forEach((result, index) => {
+    const name = jobs[index].name;
+    if (result.status === "fulfilled") {
+      sent[name] = result.value.deliveryStatus;
+      if (result.value.deliveryStatus !== "sent") failed.push(name);
+      return;
     }
-  }
 
-  if (isMonthStart) {
-    try {
-      const monthly = await notifyPeriodSalesSummary("monthly");
-      sent.monthly = monthly.deliveryStatus;
-    } catch (error) {
-      reportError("send the monthly sales summary", error);
-    }
-  }
+    failed.push(name);
+    reportError(`send the ${name} sales summary`, result.reason);
+  });
 
-  return Response.json({ ok: true, sent });
+  return Response.json(
+    { ok: failed.length === 0, scheduled: jobs.map((job) => job.name), sent, failed },
+    { status: failed.length === 0 ? 200 : 503 },
+  );
 }

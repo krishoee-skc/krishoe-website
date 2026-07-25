@@ -7,6 +7,8 @@ import {
   createAndDeliverOperationalAlertNotifications,
   createOperationalAlertNotifications,
   deliverPendingNotifications,
+  notifyDailySalesSummary,
+  notifyPeriodSalesSummary,
   retryNotificationEvent,
 } from "@/lib/notifications";
 
@@ -69,6 +71,25 @@ export async function createAndDeliverOperationalAlertNotificationsAction() {
     "operational_alert_notifications_deliver",
     `Created ${summary.created} operational alert notification(s), delivery attempted ${summary.delivery.attempted}, sent ${summary.delivery.sent}, failed ${summary.delivery.failed}, skipped ${summary.delivery.skipped}.`,
     summary.delivery.failed > 0 ? "warning" : "success",
+  );
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
+  revalidatePath("/admin/activity");
+}
+
+export async function sendSalesReportNowAction(formData: FormData) {
+  await requireAdminPermission("notifications:write");
+
+  const kind = textValue(formData, "kind");
+  const event =
+    kind === "weekly" || kind === "monthly"
+      ? await notifyPeriodSalesSummary(kind)
+      : await notifyDailySalesSummary();
+
+  await recordAdminAuditEvent(
+    "sales_report_manual_delivery",
+    `${kind || "daily"} sales report ${event.id} finished with ${event.deliveryStatus}.`,
+    event.deliveryStatus === "sent" ? "success" : "warning",
   );
   revalidatePath("/admin");
   revalidatePath("/admin/notifications");

@@ -127,6 +127,13 @@ export async function updateStaffAccessAction(formData: FormData) {
 
   const staff = await getExistingStaff(formData);
   const nextRole = optionValue(textValue(formData, "role"), adminRoles, staff.role);
+  const settings = await getAdminSettings();
+  const activeOwners = settings.staff.filter(
+    (member) => member.status === "Active" && member.role === "Owner",
+  );
+  if (staff.status === "Active" && staff.role === "Owner" && nextRole !== "Owner" && activeOwners.length <= 1) {
+    throw new Error("Create another active Owner before changing the last Owner role.");
+  }
   const nextBranchId = textValue(formData, "branchId") || staff.branchId;
   const updatedStaff = await saveAdminStaffAccount({
     id: staff.id,
@@ -151,8 +158,8 @@ export async function resetStaffPasswordAction(formData: FormData) {
   const staff = await getExistingStaff(formData);
   const password = textValue(formData, "password");
 
-  if (password.length < 8) {
-    throw new Error("New password must be at least 8 characters.");
+  if (password.length < 12) {
+    throw new Error("New password must be at least 12 characters.");
   }
 
   const updatedStaff = await saveAdminStaffAccount({
@@ -178,6 +185,15 @@ export async function updateStaffStatusAction(formData: FormData) {
 
   const staff = await getExistingStaff(formData);
   const nextStatus = optionValue(textValue(formData, "status"), adminStaffStatuses, staff.status);
+  if (staff.role === "Owner" && staff.status === "Active" && nextStatus !== "Active") {
+    const settings = await getAdminSettings();
+    const activeOwners = settings.staff.filter(
+      (member) => member.status === "Active" && member.role === "Owner",
+    );
+    if (activeOwners.length <= 1) {
+      throw new Error("The last active Owner cannot be disabled.");
+    }
+  }
   const updatedStaff = await saveAdminStaffAccount({
     id: staff.id,
     name: staff.name,

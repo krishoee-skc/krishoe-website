@@ -5,7 +5,6 @@ import { getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getHrData, type HrData } from "@/lib/hr";
 import { getNotificationEvents } from "@/lib/notifications";
 import {
-  getOperationsData,
   type OperationsData,
   getOperationsDataForReports,
 } from "@/lib/operations";

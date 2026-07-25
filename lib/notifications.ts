@@ -814,10 +814,15 @@ export async function notifyDailySalesSummary() {
     },
   });
 
-  await reportingErrors(`deliver daily sales summary ${event.id}`, () =>
-    deliverNotificationEvent(event),
-  );
-  return event;
+  const result = await deliverNotificationEvent(event);
+  return {
+    ...event,
+    deliveryStatus: result.status,
+    deliveryAttempts: event.deliveryAttempts + 1,
+    deliveredAt: result.ok ? new Date().toISOString() : event.deliveredAt,
+    lastDeliveryError: result.error,
+    lastDeliveryChannel: result.successfulChannels.join(", "),
+  };
 }
 
 // The weekly and monthly digests. Same delivery path as the daily one, but the
@@ -898,10 +903,15 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
     },
   });
 
-  await reportingErrors(`deliver ${kind} sales summary ${event.id}`, () =>
-    deliverNotificationEvent(event),
-  );
-  return event;
+  const result = await deliverNotificationEvent(event);
+  return {
+    ...event,
+    deliveryStatus: result.status,
+    deliveryAttempts: event.deliveryAttempts + 1,
+    deliveredAt: result.ok ? new Date().toISOString() : event.deliveredAt,
+    lastDeliveryError: result.error,
+    lastDeliveryChannel: result.successfulChannels.join(", "),
+  };
 }
 
 export async function notifyPasswordResetRequested(payload: PasswordResetNotificationPayload) {
