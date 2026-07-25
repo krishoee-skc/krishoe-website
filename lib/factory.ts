@@ -59,6 +59,18 @@ export type FactoryData = {
 };
 
 export type FactoryProductionEntryStatus = "Submitted" | "Verified" | "Rejected";
+export const factoryRejectReasons = [
+  "Cutting defect",
+  "Stitching defect",
+  "Sole bonding",
+  "Size mismatch",
+  "Colour mismatch",
+  "Finishing defect",
+  "Packing defect",
+  "Material defect",
+  "Other",
+] as const;
+export type FactoryRejectReason = (typeof factoryRejectReasons)[number];
 
 export type FactoryProductionEntry = {
   id: string;
@@ -78,6 +90,12 @@ export type FactoryProductionEntry = {
   remarks: string;
   enteredBy: string;
   createdAt: string;
+  rejectReason: FactoryRejectReason | "";
+  responsibleWorkerId: string;
+  reworkPossible: boolean;
+  verificationNote: string;
+  verifiedBy: string;
+  verifiedAt: string;
 };
 
 export type FactoryProductionEntrySize = {
@@ -353,6 +371,12 @@ type FactoryProductionEntryRow = {
   remarks: string;
   entered_by: string;
   created_at: Date | string;
+  reject_reason: string;
+  responsible_worker_id: string | null;
+  rework_possible: boolean;
+  verification_note: string;
+  verified_by: string;
+  verified_at: Date | string | null;
 };
 
 type FactoryProductionEntrySizeRow = {
@@ -419,7 +443,9 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       "factory",
       `SELECT id, work_order_id, assignment_id, worker_id, worker_name, stage_code,
         entry_date, received_pairs, good_pairs, reject_pairs, rework_pairs,
-        wage_rate_snapshot, calculated_wage, status, remarks, entered_by, created_at
+        wage_rate_snapshot, calculated_wage, status, remarks, entered_by, created_at,
+        reject_reason, responsible_worker_id, rework_possible, verification_note,
+        verified_by, verified_at
        FROM factory_production_entries ORDER BY created_at DESC`,
     ),
     queryPostgres<FactoryProductionEntrySizeRow>(
@@ -526,6 +552,18 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
         enteredBy: row.entered_by,
         createdAt:
           row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+        rejectReason: factoryRejectReasons.includes(row.reject_reason as FactoryRejectReason)
+          ? (row.reject_reason as FactoryRejectReason)
+          : "",
+        responsibleWorkerId: row.responsible_worker_id ?? "",
+        reworkPossible: row.rework_possible,
+        verificationNote: row.verification_note,
+        verifiedBy: row.verified_by,
+        verifiedAt: row.verified_at
+          ? row.verified_at instanceof Date
+            ? row.verified_at.toISOString()
+            : row.verified_at
+          : "",
       })),
     productionEntrySizes: productionEntrySizes.map((row) => ({
       id: row.id,
@@ -1002,14 +1040,14 @@ export async function addFactoryProductionEntry(input: {
   );
   for (const row of sizes) {
     const planned = input.plannedSizes.find((entry) => entry.size === row.size)?.plannedPairs ?? 0;
-    const alreadyProcessed = input.existingEntrySizes
+    const alreadyGood = input.existingEntrySizes
       .filter(
         (entry) =>
           assignmentEntryIds.has(entry.productionEntryId) && entry.size === row.size,
       )
-      .reduce((sum, entry) => sum + entry.receivedPairs, 0);
-    if (row.receivedPairs > planned - alreadyProcessed) {
-      throw new Error(`Size ${row.size} exceeds its remaining planned quantity.`);
+      .reduce((sum, entry) => sum + entry.goodPairs, 0);
+    if (row.goodPairs > planned - alreadyGood) {
+      throw new Error(`Size ${row.size} exceeds its remaining good-pair target.`);
     }
   }
 
@@ -1038,6 +1076,12 @@ export async function addFactoryProductionEntry(input: {
     remarks: input.remarks.trim(),
     enteredBy: input.enteredBy.trim(),
     createdAt: new Date().toISOString(),
+    rejectReason: "",
+    responsibleWorkerId: "",
+    reworkPossible: false,
+    verificationNote: "",
+    verifiedBy: "",
+    verifiedAt: "",
   };
   const sizeRows: FactoryProductionEntrySize[] = sizes.map((row) => ({
     id: createFactoryId("FESIZE"),
@@ -1118,6 +1162,88 @@ export async function addFactoryProductionEntry(input: {
         );
         return { entry, sizes: sizeRows };
       }),
+  });
+}
+
+export async function verifyFactoryProductionEntry(input: {
+  entry: FactoryProductionEntry;
+  decision: "Verified" | "Rejected";
+  rejectReason: FactoryRejectReason | "";
+  responsibleWorkerId: string;
+  reworkPossible: boolean;
+  verificationNote: string;
+  verifiedBy: string;
+}) {
+  if (input.entry.status !== "Submitted") {
+    throw new Error("Only a Submitted production entry can be verified.");
+  }
+  if (
+    input.decision === "Verified" &&
+    (input.entry.rejectPairs > 0 || input.entry.reworkPairs > 0) &&
+    !input.rejectReason
+  ) {
+    throw new Error("Select a QC reason when reject or rework quantity exists.");
+  }
+  if (
+    input.decision === "Verified" &&
+    (input.entry.rejectPairs > 0 || input.entry.reworkPairs > 0) &&
+    input.rejectReason !== "Material defect" &&
+    !input.responsibleWorkerId
+  ) {
+    throw new Error("Select the responsible worker for this QC issue.");
+  }
+  if (input.decision === "Rejected" && !input.verificationNote.trim()) {
+    throw new Error("A note is required when rejecting a submitted entry.");
+  }
+  const verifiedAt = new Date().toISOString();
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const entry = data.productionEntries.find((row) => row.id === input.entry.id);
+      if (!entry || entry.status !== "Submitted") {
+        throw new Error("Submitted production entry was not found.");
+      }
+      Object.assign(entry, {
+        status: input.decision,
+        rejectReason: input.rejectReason,
+        responsibleWorkerId: input.responsibleWorkerId,
+        reworkPossible: input.reworkPossible,
+        verificationNote: input.verificationNote.trim(),
+        verifiedBy: input.verifiedBy.trim(),
+        verifiedAt,
+      });
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return entry;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryProductionEntryRow>(
+        "factory",
+        `UPDATE factory_production_entries
+         SET status = $2, reject_reason = $3, responsible_worker_id = NULLIF($4, ''),
+           rework_possible = $5, verification_note = $6, verified_by = $7,
+           verified_at = $8, updated_at = now()
+         WHERE id = $1 AND status = 'Submitted'
+         RETURNING id, work_order_id, assignment_id, worker_id, worker_name, stage_code,
+           entry_date, received_pairs, good_pairs, reject_pairs, rework_pairs,
+           wage_rate_snapshot, calculated_wage, status, remarks, entered_by, created_at,
+           reject_reason, responsible_worker_id, rework_possible, verification_note,
+           verified_by, verified_at`,
+        [
+          input.entry.id,
+          input.decision,
+          input.rejectReason,
+          input.responsibleWorkerId,
+          input.reworkPossible,
+          input.verificationNote.trim(),
+          input.verifiedBy.trim(),
+          verifiedAt,
+        ],
+      );
+      if (!rows[0]) throw new Error("Submitted production entry was not found.");
+      return { ...input.entry, status: input.decision, verifiedAt };
+    },
   });
 }
 

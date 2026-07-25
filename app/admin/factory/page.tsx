@@ -3,6 +3,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import WorkOrderForm from "@/app/admin/factory/WorkOrderForm";
 import WorkOrderReleaseForm from "@/app/admin/factory/WorkOrderReleaseForm";
 import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
+import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -58,6 +59,7 @@ export default async function FactoryErpPage({
     workOrder?: string;
     released?: string;
     entry?: string;
+    verified?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -557,7 +559,7 @@ export default async function FactoryErpPage({
                                     validEntryIds.has(entry.productionEntryId) &&
                                     entry.size === size.size,
                                 )
-                                .reduce((sum, entry) => sum + entry.receivedPairs, 0),
+                                .reduce((sum, entry) => sum + entry.goodPairs, 0),
                           ),
                         }));
                         return (
@@ -600,6 +602,95 @@ export default async function FactoryErpPage({
           </div>
         </article>
       </div>
+
+      <article className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
+              QC and wage control
+            </p>
+            <h2 className="mt-2 text-xl font-black text-brand-green-ink">
+              Production Verification Inbox
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+              Submitted output becomes wage-eligible only after Owner/Supervisor verification.
+            </p>
+          </div>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+            {factory.productionEntries.filter((entry) => entry.status === "Submitted").length} pending
+          </span>
+        </div>
+        {params?.verified ? (
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+            Production entry verification saved.
+          </p>
+        ) : null}
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          {factory.productionEntries
+            .filter((entry) => entry.status === "Submitted")
+            .map((entry) => {
+              const order = factory.workOrders.find((row) => row.id === entry.workOrderId);
+              const stage = factoryStages.find((row) => row.code === entry.stageCode);
+              const sizeRows = factory.productionEntrySizes.filter(
+                (row) => row.productionEntryId === entry.id,
+              );
+              return (
+                <div key={entry.id} className="rounded-2xl border border-blue-200 bg-blue-50/40 p-4">
+                  <p className="text-xs font-black uppercase tracking-wider text-blue-700">
+                    {order?.workOrderNumber} · {stage?.name}
+                  </p>
+                  <h3 className="mt-1 font-black text-brand-green-ink">{entry.workerName}</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {entry.entryDate} · Received {entry.receivedPairs} · Good {entry.goodPairs} ·
+                    Reject {entry.rejectPairs} · Rework {entry.reworkPairs}
+                  </p>
+                  <p className="mt-1 text-sm font-black text-blue-800">
+                    Wage preview: Rs. {entry.calculatedWage.toLocaleString("en-IN")}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sizeRows.map((row) => (
+                      <span key={row.id} className="rounded-lg bg-white px-2 py-1 text-xs font-bold text-gray-700">
+                        {row.size}: G{row.goodPairs}/R{row.rejectPairs}/RW{row.reworkPairs}
+                      </span>
+                    ))}
+                  </div>
+                  <ProductionVerificationForm
+                    entryId={entry.id}
+                    hasQualityIssue={entry.rejectPairs > 0 || entry.reworkPairs > 0}
+                    workers={hr.employees
+                      .filter((employee) => employee.status === "Active")
+                      .map((employee) => ({ id: employee.id, name: employee.name }))}
+                  />
+                </div>
+              );
+            })}
+          {factory.productionEntries.every((entry) => entry.status !== "Submitted") ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center xl:col-span-2">
+              <p className="font-black text-brand-green-ink">Verification inbox is clear</p>
+              <p className="mt-2 text-sm text-gray-500">New submitted production entries will appear here.</p>
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Verified good"
+            value={factory.productionEntries.filter((entry) => entry.status === "Verified").reduce((sum, entry) => sum + entry.goodPairs, 0)}
+            detail="Approved pairs across all stages"
+            tone="good"
+          />
+          <StatCard
+            label="Verified wage"
+            value={factory.productionEntries.filter((entry) => entry.status === "Verified").reduce((sum, entry) => sum + entry.calculatedWage, 0)}
+            detail="Approved preview; not posted to payroll"
+          />
+          <StatCard
+            label="Rejected entries"
+            value={factory.productionEntries.filter((entry) => entry.status === "Rejected").length}
+            detail="Excluded from output and wage"
+            tone="warn"
+          />
+        </div>
+      </article>
 
       {reviewCount > 0 ? (
         <article className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:p-6">

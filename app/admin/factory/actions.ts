@@ -10,6 +10,7 @@ import {
   addFactoryWorkOrder,
   getFactoryData,
   releaseFactoryWorkOrder,
+  verifyFactoryProductionEntry,
   upsertFactoryBomLine,
   upsertFactoryStageRate,
   upsertFactoryWorkerLink,
@@ -17,6 +18,8 @@ import {
   isFactoryStageCode,
   type FactoryItemStatus,
   type FactoryWorkOrderPriority,
+  factoryRejectReasons,
+  type FactoryRejectReason,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
@@ -247,4 +250,34 @@ export async function createFactoryProductionEntryAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?entry=${encodeURIComponent(result.entry.id)}`);
+}
+
+export async function verifyFactoryProductionEntryAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const entry = factory.productionEntries.find((row) => row.id === text(formData, "entryId"));
+  if (!entry) throw new Error("Production entry was not found.");
+  const decision = text(formData, "decision") === "Rejected" ? "Rejected" : "Verified";
+  const reasonValue = text(formData, "rejectReason");
+  const rejectReason: FactoryRejectReason | "" = factoryRejectReasons.includes(
+    reasonValue as FactoryRejectReason,
+  )
+    ? (reasonValue as FactoryRejectReason)
+    : "";
+
+  await verifyFactoryProductionEntry({
+    entry,
+    decision,
+    rejectReason,
+    responsibleWorkerId: text(formData, "responsibleWorkerId"),
+    reworkPossible: formData.get("reworkPossible") === "on",
+    verificationNote: text(formData, "verificationNote"),
+    verifiedBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_production_entry_verify",
+    `${entry.id} marked ${decision}; ${entry.goodPairs} good pairs, wage Rs. ${entry.calculatedWage}.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?verified=${encodeURIComponent(entry.id)}`);
 }

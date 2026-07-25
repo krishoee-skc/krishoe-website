@@ -735,10 +735,30 @@ CREATE TABLE IF NOT EXISTS factory_production_entries (
     CHECK (status IN ('Submitted', 'Verified', 'Rejected')),
   remarks TEXT NOT NULL DEFAULT '',
   entered_by TEXT NOT NULL DEFAULT '',
+  reject_reason TEXT NOT NULL DEFAULT '',
+  responsible_worker_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  rework_possible BOOLEAN NOT NULL DEFAULT false,
+  verification_note TEXT NOT NULL DEFAULT '',
+  verified_by TEXT NOT NULL DEFAULT '',
+  verified_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (received_pairs = good_pairs + reject_pairs + rework_pairs)
 );
+
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS reject_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS responsible_worker_id TEXT
+    REFERENCES hr_employees(id) ON DELETE SET NULL;
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS rework_possible BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS verification_note TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS verified_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_production_entries
+  ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS factory_production_entries_assignment_idx
   ON factory_production_entries(assignment_id, created_at DESC);
