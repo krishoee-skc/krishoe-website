@@ -84,6 +84,16 @@ describe("mobile production contracts", () => {
     expect(homepage).toContain("bg-[#651B24]/95");
     expect(homepage).not.toContain("Trusted support");
   });
+
+  it("keeps contact and delivery information honest and centralized", () => {
+    const contact = source("app/contact/page.tsx");
+    const checkout = source("components/CheckoutClient.tsx");
+    expect(contact).toContain("businessContact.streetAddress");
+    expect(contact).toContain("businessContact.email");
+    expect(contact).not.toContain("hello@krishoe.com");
+    expect(checkout).toContain("Delivery charge is not included in the product total");
+    expect(source("lib/seo.ts")).toContain("/images/hero-krishoe-gold-v2.png");
+  });
 });
 
 describe("scheduled report safety contracts", () => {

@@ -9,7 +9,7 @@ export const siteConfig = {
     "Shop premium KRISHOE footwear for sandals, slippers, casual shoes, heels, kids styles, and new arrivals in Nepal.",
   shortDescription: "Premium sandals, slippers, shoes, heels, and kids footwear in Nepal.",
   logoPath: "/images/logo.png",
-  defaultImagePath: "/images/hero-banner.png",
+  defaultImagePath: "/images/hero-krishoe-gold-v2.png",
   currency: "NPR",
   email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "skschhapal@gmail.com",
   countryCode: "NP",

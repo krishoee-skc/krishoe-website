@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { businessContact } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Contact KRISHOE | Premium Footwear Nepal",
@@ -28,13 +29,27 @@ export default function ContactPage() {
 
           <div className="mt-8 grid gap-4">
             {[
-              ["Location", "Kathmandu, Nepal"],
-              ["Email", "hello@krishoe.com"],
-              ["Hours", "10:00 AM - 7:00 PM, daily"],
+              [
+                "Location",
+                `${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}`,
+              ],
+              ["Phone", businessContact.phoneDisplay],
+              ["Email", businessContact.email],
+              ["Hours", "10:00 AM - 7:00 PM, Monday-Saturday"],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-black/10 bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">{label}</p>
-                <p className="mt-2 text-lg font-black text-brand-green-ink">{value}</p>
+                {label === "Email" ? (
+                  <a href={`mailto:${value}`} className="mt-2 block break-all text-lg font-black text-brand-green-ink underline-offset-4 hover:underline">
+                    {value}
+                  </a>
+                ) : label === "Phone" ? (
+                  <a href={`tel:${businessContact.phoneTel}`} className="mt-2 block text-lg font-black text-brand-green-ink underline-offset-4 hover:underline">
+                    {value}
+                  </a>
+                ) : (
+                  <p className="mt-2 text-lg font-black text-brand-green-ink">{value}</p>
+                )}
               </div>
             ))}
           </div>

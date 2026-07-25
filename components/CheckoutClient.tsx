@@ -125,6 +125,9 @@ function CheckoutForm({
                 </label>
               ))}
             </div>
+            <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
+              Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.
+            </p>
           </div>
           <div>
             <p className="text-sm font-bold text-brand-green-ink">Payment option</p>
