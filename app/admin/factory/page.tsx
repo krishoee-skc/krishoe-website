@@ -4,6 +4,7 @@ import WorkOrderForm from "@/app/admin/factory/WorkOrderForm";
 import WorkOrderReleaseForm from "@/app/admin/factory/WorkOrderReleaseForm";
 import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
 import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
+import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -16,6 +17,7 @@ import {
   factoryRolloutPhases,
   factoryStages,
   getFactoryData,
+  getFactoryAssignmentSizePlan,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
@@ -60,6 +62,7 @@ export default async function FactoryErpPage({
     released?: string;
     entry?: string;
     verified?: string;
+    handover?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -445,6 +448,11 @@ export default async function FactoryErpPage({
               Production entry submitted for verification. Wage and stock are not posted yet.
             </p>
           ) : null}
+          {params?.handover ? (
+            <p className="mt-4 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-bold text-purple-800">
+              Size-wise stage handover saved and the receiving stage is ready.
+            </p>
+          ) : null}
           <div className="mt-5">
             <WorkOrderForm
               items={factory.items
@@ -543,12 +551,13 @@ export default async function FactoryErpPage({
                     <div className="mt-4 space-y-2">
                       {assignments.map((assignment) => {
                         const stage = factoryStages.find((entry) => entry.code === assignment.stageCode);
+                        const assignmentPlan = getFactoryAssignmentSizePlan(factory, assignment);
                         const validEntries = factory.productionEntries.filter(
                           (entry) =>
                             entry.assignmentId === assignment.id && entry.status !== "Rejected",
                         );
                         const validEntryIds = new Set(validEntries.map((entry) => entry.id));
-                        const remainingSizes = sizes.map((size) => ({
+                        const remainingSizes = assignmentPlan.map((size) => ({
                           size: size.size,
                           remainingPairs: Math.max(
                             0,
@@ -560,6 +569,39 @@ export default async function FactoryErpPage({
                                     entry.size === size.size,
                                 )
                                 .reduce((sum, entry) => sum + entry.goodPairs, 0),
+                          ),
+                        }));
+                        const nextAssignment = assignments.find(
+                          (entry) => entry.sequence === assignment.sequence + 1,
+                        );
+                        const verifiedEntryIds = new Set(
+                          validEntries
+                            .filter((entry) => entry.status === "Verified")
+                            .map((entry) => entry.id),
+                        );
+                        const outgoingHandoverIds = new Set(
+                          factory.stageHandovers
+                            .filter((handover) => handover.fromAssignmentId === assignment.id)
+                            .map((handover) => handover.id),
+                        );
+                        const handoverSizes = sizes.map((size) => ({
+                          size: size.size,
+                          availablePairs: Math.max(
+                            0,
+                            factory.productionEntrySizes
+                              .filter(
+                                (entry) =>
+                                  verifiedEntryIds.has(entry.productionEntryId) &&
+                                  entry.size === size.size,
+                              )
+                              .reduce((sum, entry) => sum + entry.goodPairs, 0) -
+                              factory.stageHandoverSizes
+                                .filter(
+                                  (entry) =>
+                                    outgoingHandoverIds.has(entry.handoverId) &&
+                                    entry.size === size.size,
+                                )
+                                .reduce((sum, entry) => sum + entry.sentPairs, 0),
                           ),
                         }));
                         return (
@@ -585,10 +627,47 @@ export default async function FactoryErpPage({
                                 wageRate={assignment.ratePerGoodPairSnapshot}
                               />
                             ) : null}
+                            {nextAssignment &&
+                            handoverSizes.some((row) => row.availablePairs > 0) ? (
+                              <StageHandoverForm
+                                fromAssignmentId={assignment.id}
+                                sizes={handoverSizes}
+                                toStageName={
+                                  factoryStages.find(
+                                    (entry) => entry.code === nextAssignment.stageCode,
+                                  )?.name ?? nextAssignment.stageCode
+                                }
+                                toWorkerName={nextAssignment.workerName}
+                              />
+                            ) : null}
                           </div>
                         );
                       })}
                     </div>
+                  ) : null}
+                  {factory.stageHandovers.some((handover) => handover.workOrderId === order.id) ? (
+                    <details className="mt-4 rounded-xl border border-purple-100 bg-purple-50 p-3">
+                      <summary className="cursor-pointer text-sm font-black text-purple-900">
+                        Handover history
+                      </summary>
+                      <div className="mt-3 space-y-2">
+                        {factory.stageHandovers
+                          .filter((handover) => handover.workOrderId === order.id)
+                          .map((handover) => (
+                            <div key={handover.id} className="rounded-lg bg-white p-3 text-xs text-gray-700">
+                              <p className="font-black text-purple-950">
+                                {factoryStages.find((stage) => stage.code === handover.fromStageCode)?.name}
+                                {" → "}
+                                {factoryStages.find((stage) => stage.code === handover.toStageCode)?.name}
+                              </p>
+                              <p className="mt-1">
+                                {handover.fromWorkerName} → {handover.toWorkerName} · Sent {handover.sentPairs} · Received {handover.receivedPairs} · Difference {handover.discrepancyPairs}
+                              </p>
+                              {handover.remarks ? <p className="mt-1 font-semibold text-amber-700">{handover.remarks}</p> : null}
+                            </div>
+                          ))}
+                      </div>
+                    </details>
                   ) : null}
                 </div>
               );

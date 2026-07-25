@@ -56,6 +56,36 @@ export type FactoryData = {
   stageAssignments: FactoryStageAssignment[];
   productionEntries: FactoryProductionEntry[];
   productionEntrySizes: FactoryProductionEntrySize[];
+  stageHandovers: FactoryStageHandover[];
+  stageHandoverSizes: FactoryStageHandoverSize[];
+};
+
+export type FactoryStageHandover = {
+  id: string;
+  workOrderId: string;
+  fromAssignmentId: string;
+  toAssignmentId: string;
+  fromStageCode: FactoryStageCode;
+  toStageCode: FactoryStageCode;
+  fromWorkerId: string;
+  fromWorkerName: string;
+  toWorkerId: string;
+  toWorkerName: string;
+  sentPairs: number;
+  receivedPairs: number;
+  discrepancyPairs: number;
+  remarks: string;
+  handedOverBy: string;
+  createdAt: string;
+};
+
+export type FactoryStageHandoverSize = {
+  id: string;
+  handoverId: string;
+  size: string;
+  sentPairs: number;
+  receivedPairs: number;
+  discrepancyPairs: number;
 };
 
 export type FactoryProductionEntryStatus = "Submitted" | "Verified" | "Rejected";
@@ -247,6 +277,8 @@ const emptyFactoryData: FactoryData = {
   stageAssignments: [],
   productionEntries: [],
   productionEntrySizes: [],
+  stageHandovers: [],
+  stageHandoverSizes: [],
 };
 
 function createFactoryId(prefix: string) {
@@ -271,6 +303,8 @@ async function readLocalFactoryData(): Promise<FactoryData> {
       stageAssignments: parsed.stageAssignments ?? [],
       productionEntries: parsed.productionEntries ?? [],
       productionEntrySizes: parsed.productionEntrySizes ?? [],
+      stageHandovers: parsed.stageHandovers ?? [],
+      stageHandoverSizes: parsed.stageHandoverSizes ?? [],
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(emptyFactoryData);
@@ -389,6 +423,34 @@ type FactoryProductionEntrySizeRow = {
   rework_pairs: number | string;
 };
 
+type FactoryStageHandoverRow = {
+  id: string;
+  work_order_id: string;
+  from_assignment_id: string;
+  to_assignment_id: string;
+  from_stage_code: string;
+  to_stage_code: string;
+  from_worker_id: string;
+  from_worker_name: string;
+  to_worker_id: string;
+  to_worker_name: string;
+  sent_pairs: number | string;
+  received_pairs: number | string;
+  discrepancy_pairs: number | string;
+  remarks: string;
+  handed_over_by: string;
+  created_at: Date | string;
+};
+
+type FactoryStageHandoverSizeRow = {
+  id: string;
+  handover_id: string;
+  size: string;
+  sent_pairs: number | string;
+  received_pairs: number | string;
+  discrepancy_pairs: number | string;
+};
+
 async function getFactoryDataFromPostgres(): Promise<FactoryData> {
   const [
     items,
@@ -400,6 +462,8 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     stageAssignments,
     productionEntries,
     productionEntrySizes,
+    stageHandovers,
+    stageHandoverSizes,
   ] = await Promise.all([
     queryPostgres<FactoryItemRow>(
       "factory",
@@ -453,6 +517,19 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       `SELECT id, production_entry_id, size, received_pairs, good_pairs,
         reject_pairs, rework_pairs
        FROM factory_production_entry_sizes ORDER BY size ASC`,
+    ),
+    queryPostgres<FactoryStageHandoverRow>(
+      "factory",
+      `SELECT id, work_order_id, from_assignment_id, to_assignment_id,
+        from_stage_code, to_stage_code, from_worker_id, from_worker_name,
+        to_worker_id, to_worker_name, sent_pairs, received_pairs,
+        discrepancy_pairs, remarks, handed_over_by, created_at
+       FROM factory_stage_handovers ORDER BY created_at DESC`,
+    ),
+    queryPostgres<FactoryStageHandoverSizeRow>(
+      "factory",
+      `SELECT id, handover_id, size, sent_pairs, received_pairs, discrepancy_pairs
+       FROM factory_stage_handover_sizes ORDER BY size ASC`,
     ),
   ]);
 
@@ -573,6 +650,39 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       goodPairs: Number(row.good_pairs),
       rejectPairs: Number(row.reject_pairs),
       reworkPairs: Number(row.rework_pairs),
+    })),
+    stageHandovers: stageHandovers
+      .filter(
+        (row) =>
+          isFactoryStageCode(row.from_stage_code) &&
+          isFactoryStageCode(row.to_stage_code),
+      )
+      .map((row) => ({
+        id: row.id,
+        workOrderId: row.work_order_id,
+        fromAssignmentId: row.from_assignment_id,
+        toAssignmentId: row.to_assignment_id,
+        fromStageCode: row.from_stage_code as FactoryStageCode,
+        toStageCode: row.to_stage_code as FactoryStageCode,
+        fromWorkerId: row.from_worker_id,
+        fromWorkerName: row.from_worker_name,
+        toWorkerId: row.to_worker_id,
+        toWorkerName: row.to_worker_name,
+        sentPairs: Number(row.sent_pairs),
+        receivedPairs: Number(row.received_pairs),
+        discrepancyPairs: Number(row.discrepancy_pairs),
+        remarks: row.remarks,
+        handedOverBy: row.handed_over_by,
+        createdAt:
+          row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+      })),
+    stageHandoverSizes: stageHandoverSizes.map((row) => ({
+      id: row.id,
+      handoverId: row.handover_id,
+      size: row.size,
+      sentPairs: Number(row.sent_pairs),
+      receivedPairs: Number(row.received_pairs),
+      discrepancyPairs: Number(row.discrepancy_pairs),
     })),
   };
 }
@@ -1244,6 +1354,255 @@ export async function verifyFactoryProductionEntry(input: {
       if (!rows[0]) throw new Error("Submitted production entry was not found.");
       return { ...input.entry, status: input.decision, verifiedAt };
     },
+  });
+}
+
+export function getFactoryAssignmentSizePlan(
+  data: Pick<FactoryData, "workOrderSizes" | "stageHandovers" | "stageHandoverSizes">,
+  assignment: FactoryStageAssignment,
+) {
+  if (assignment.sequence === 1) {
+    return data.workOrderSizes.filter((row) => row.workOrderId === assignment.workOrderId);
+  }
+  const incomingIds = new Set(
+    data.stageHandovers
+      .filter((handover) => handover.toAssignmentId === assignment.id)
+      .map((handover) => handover.id),
+  );
+  const receivedBySize = new Map<string, number>();
+  for (const row of data.stageHandoverSizes) {
+    if (incomingIds.has(row.handoverId)) {
+      receivedBySize.set(row.size, (receivedBySize.get(row.size) ?? 0) + row.receivedPairs);
+    }
+  }
+  return [...receivedBySize].map(([size, plannedPairs]) => ({
+    id: `received-${assignment.id}-${size}`,
+    workOrderId: assignment.workOrderId,
+    size,
+    plannedPairs,
+  }));
+}
+
+export type FactoryHandoverSizeInput = {
+  size: string;
+  sentPairs: number;
+  receivedPairs: number;
+};
+
+export function normalizeFactoryHandoverSizes(rows: FactoryHandoverSizeInput[]) {
+  return rows
+    .map((row) => {
+      const sentPairs = Math.max(0, Math.round(Number(row.sentPairs) || 0));
+      const receivedPairs = Math.max(0, Math.round(Number(row.receivedPairs) || 0));
+      if (receivedPairs > sentPairs) {
+        throw new Error(`Size ${row.size}: received quantity cannot exceed sent quantity.`);
+      }
+      return {
+        size: row.size.trim(),
+        sentPairs,
+        receivedPairs,
+        discrepancyPairs: sentPairs - receivedPairs,
+      };
+    })
+    .filter((row) => row.size && row.sentPairs > 0);
+}
+
+export async function addFactoryStageHandover(input: {
+  workOrder: FactoryWorkOrder;
+  fromAssignment: FactoryStageAssignment;
+  toAssignment: FactoryStageAssignment;
+  verifiedEntries: FactoryProductionEntry[];
+  productionEntrySizes: FactoryProductionEntrySize[];
+  previousHandovers: FactoryStageHandover[];
+  previousHandoverSizes: FactoryStageHandoverSize[];
+  sizes: FactoryHandoverSizeInput[];
+  remarks: string;
+  handedOverBy: string;
+}) {
+  if (
+    input.fromAssignment.workOrderId !== input.toAssignment.workOrderId ||
+    input.toAssignment.sequence !== input.fromAssignment.sequence + 1
+  ) {
+    throw new Error("Handover is allowed only to the next stage of the same Work Order.");
+  }
+  const sizes = normalizeFactoryHandoverSizes(input.sizes);
+  if (sizes.length === 0) throw new Error("Enter at least one size quantity to hand over.");
+  const verifiedEntryIds = new Set(
+    input.verifiedEntries
+      .filter(
+        (entry) =>
+          entry.assignmentId === input.fromAssignment.id && entry.status === "Verified",
+      )
+      .map((entry) => entry.id),
+  );
+  const previousHandoverIds = new Set(
+    input.previousHandovers
+      .filter((row) => row.fromAssignmentId === input.fromAssignment.id)
+      .map((row) => row.id),
+  );
+  for (const row of sizes) {
+    const verifiedGood = input.productionEntrySizes
+      .filter(
+        (entry) =>
+          verifiedEntryIds.has(entry.productionEntryId) && entry.size === row.size,
+      )
+      .reduce((sum, entry) => sum + entry.goodPairs, 0);
+    const alreadySent = input.previousHandoverSizes
+      .filter(
+        (entry) =>
+          previousHandoverIds.has(entry.handoverId) && entry.size === row.size,
+      )
+      .reduce((sum, entry) => sum + entry.sentPairs, 0);
+    if (row.sentPairs > verifiedGood - alreadySent) {
+      throw new Error(`Size ${row.size} exceeds verified good quantity available to send.`);
+    }
+  }
+
+  const totals = sizes.reduce(
+    (sum, row) => ({
+      sentPairs: sum.sentPairs + row.sentPairs,
+      receivedPairs: sum.receivedPairs + row.receivedPairs,
+      discrepancyPairs: sum.discrepancyPairs + row.discrepancyPairs,
+    }),
+    { sentPairs: 0, receivedPairs: 0, discrepancyPairs: 0 },
+  );
+  if (totals.discrepancyPairs > 0 && !input.remarks.trim()) {
+    throw new Error("Explain the sent/received discrepancy in remarks.");
+  }
+  const handover: FactoryStageHandover = {
+    id: createFactoryId("FHAND"),
+    workOrderId: input.workOrder.id,
+    fromAssignmentId: input.fromAssignment.id,
+    toAssignmentId: input.toAssignment.id,
+    fromStageCode: input.fromAssignment.stageCode,
+    toStageCode: input.toAssignment.stageCode,
+    fromWorkerId: input.fromAssignment.workerId,
+    fromWorkerName: input.fromAssignment.workerName,
+    toWorkerId: input.toAssignment.workerId,
+    toWorkerName: input.toAssignment.workerName,
+    ...totals,
+    remarks: input.remarks.trim(),
+    handedOverBy: input.handedOverBy.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  const sizeRows: FactoryStageHandoverSize[] = sizes.map((row) => ({
+    id: createFactoryId("FHSIZE"),
+    handoverId: handover.id,
+    ...row,
+  }));
+  const previousSent = input.previousHandovers
+    .filter((row) => row.fromAssignmentId === input.fromAssignment.id)
+    .reduce((sum, row) => sum + row.sentPairs, 0);
+  const sourceCompleted = previousSent + handover.sentPairs >= input.fromAssignment.targetPairs;
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      data.stageHandovers.unshift(handover);
+      data.stageHandoverSizes.push(...sizeRows);
+      const source = data.stageAssignments.find((row) => row.id === input.fromAssignment.id);
+      const target = data.stageAssignments.find((row) => row.id === input.toAssignment.id);
+      if (sourceCompleted && source) source.status = "Completed";
+      if (target?.status === "Waiting") target.status = "Ready";
+      const order = data.workOrders.find((row) => row.id === input.workOrder.id);
+      if (order) order.currentStageCode = input.toAssignment.stageCode;
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return { handover, sizes: sizeRows };
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        await db.query(
+          "SELECT id FROM factory_stage_assignments WHERE id = $1 FOR UPDATE",
+          [input.fromAssignment.id],
+        );
+        for (const row of sizeRows) {
+          const available = await db.query<{ available: number | string }>(
+            `SELECT
+              COALESCE((
+                SELECT SUM(s.good_pairs)
+                FROM factory_production_entry_sizes s
+                JOIN factory_production_entries e ON e.id = s.production_entry_id
+                WHERE e.assignment_id = $1 AND e.status = 'Verified' AND s.size = $2
+              ), 0) - COALESCE((
+                SELECT SUM(hs.sent_pairs)
+                FROM factory_stage_handover_sizes hs
+                JOIN factory_stage_handovers h ON h.id = hs.handover_id
+                WHERE h.from_assignment_id = $1 AND hs.size = $2
+              ), 0) AS available`,
+            [input.fromAssignment.id, row.size],
+          );
+          if (row.sentPairs > Number(available[0]?.available ?? 0)) {
+            throw new Error(`Size ${row.size} no longer has enough verified quantity.`);
+          }
+        }
+        await db.query(
+          `INSERT INTO factory_stage_handovers (
+            id, work_order_id, from_assignment_id, to_assignment_id,
+            from_stage_code, to_stage_code, from_worker_id, from_worker_name,
+            to_worker_id, to_worker_name, sent_pairs, received_pairs,
+            discrepancy_pairs, remarks, handed_over_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          [
+            handover.id,
+            handover.workOrderId,
+            handover.fromAssignmentId,
+            handover.toAssignmentId,
+            handover.fromStageCode,
+            handover.toStageCode,
+            handover.fromWorkerId,
+            handover.fromWorkerName,
+            handover.toWorkerId,
+            handover.toWorkerName,
+            handover.sentPairs,
+            handover.receivedPairs,
+            handover.discrepancyPairs,
+            handover.remarks,
+            handover.handedOverBy,
+          ],
+        );
+        for (const row of sizeRows) {
+          await db.query(
+            `INSERT INTO factory_stage_handover_sizes (
+              id, handover_id, size, sent_pairs, received_pairs, discrepancy_pairs
+            ) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              row.id,
+              row.handoverId,
+              row.size,
+              row.sentPairs,
+              row.receivedPairs,
+              row.discrepancyPairs,
+            ],
+          );
+        }
+        await db.query(
+          `UPDATE factory_stage_assignments
+           SET status = CASE
+             WHEN (
+               SELECT COALESCE(SUM(sent_pairs), 0)
+               FROM factory_stage_handovers
+               WHERE from_assignment_id = $1
+             ) >= target_pairs THEN 'Completed'
+             ELSE status
+           END, updated_at = now()
+           WHERE id = $1`,
+          [input.fromAssignment.id],
+        );
+        await db.query(
+          `UPDATE factory_stage_assignments
+           SET status = CASE WHEN status = 'Waiting' THEN 'Ready' ELSE status END,
+             updated_at = now()
+           WHERE id = $1`,
+          [input.toAssignment.id],
+        );
+        await db.query(
+          `UPDATE factory_work_orders
+           SET current_stage_code = $2, updated_at = now() WHERE id = $1`,
+          [input.workOrder.id, input.toAssignment.stageCode],
+        );
+        return { handover, sizes: sizeRows };
+      }),
   });
 }
 

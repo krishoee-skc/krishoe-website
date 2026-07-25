@@ -5,6 +5,7 @@ import {
   factoryStages,
   normalizeFactoryItem,
   normalizeProductionSizeEntries,
+  normalizeFactoryHandoverSizes,
   normalizeWorkOrderSizes,
   validateFactoryRelease,
 } from "@/lib/factory";
@@ -190,5 +191,21 @@ describe("Factory ERP foundation", () => {
         receivedPairs: 10,
       },
     ]);
+  });
+
+  it("calculates handover discrepancy and blocks receiving more than sent", () => {
+    expect(
+      normalizeFactoryHandoverSizes([
+        { size: "36", sentPairs: 10, receivedPairs: 9 },
+        { size: "37", sentPairs: 0, receivedPairs: 0 },
+      ]),
+    ).toEqual([
+      { size: "36", sentPairs: 10, receivedPairs: 9, discrepancyPairs: 1 },
+    ]);
+    expect(() =>
+      normalizeFactoryHandoverSizes([
+        { size: "36", sentPairs: 8, receivedPairs: 9 },
+      ]),
+    ).toThrow("cannot exceed sent");
   });
 });

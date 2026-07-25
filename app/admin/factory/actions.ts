@@ -7,8 +7,10 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   addFactoryProductionItem,
   addFactoryProductionEntry,
+  addFactoryStageHandover,
   addFactoryWorkOrder,
   getFactoryData,
+  getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
   verifyFactoryProductionEntry,
   upsertFactoryBomLine,
@@ -225,9 +227,10 @@ export async function createFactoryProductionEntryAction(formData: FormData) {
   if (!assignment) throw new Error("Stage assignment was not found.");
   const workOrder = factory.workOrders.find((entry) => entry.id === assignment.workOrderId);
   if (!workOrder) throw new Error("Work Order was not found.");
-  const plannedSizes = factory.workOrderSizes.filter(
-    (entry) => entry.workOrderId === workOrder.id,
-  );
+  const plannedSizes = getFactoryAssignmentSizePlan(factory, assignment);
+  if (plannedSizes.length === 0) {
+    throw new Error("This stage has not received any size quantity yet.");
+  }
 
   const result = await addFactoryProductionEntry({
     workOrder,
@@ -280,4 +283,49 @@ export async function verifyFactoryProductionEntryAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?verified=${encodeURIComponent(entry.id)}`);
+}
+
+export async function createFactoryStageHandoverAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const fromAssignment = factory.stageAssignments.find(
+    (entry) => entry.id === text(formData, "fromAssignmentId"),
+  );
+  if (!fromAssignment) throw new Error("Source stage assignment was not found.");
+  const toAssignment = factory.stageAssignments.find(
+    (entry) =>
+      entry.workOrderId === fromAssignment.workOrderId &&
+      entry.sequence === fromAssignment.sequence + 1,
+  );
+  if (!toAssignment) throw new Error("The next stage assignment was not found.");
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === fromAssignment.workOrderId,
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const plannedSizes = factory.workOrderSizes.filter(
+    (entry) => entry.workOrderId === workOrder.id,
+  );
+
+  const result = await addFactoryStageHandover({
+    workOrder,
+    fromAssignment,
+    toAssignment,
+    verifiedEntries: factory.productionEntries,
+    productionEntrySizes: factory.productionEntrySizes,
+    previousHandovers: factory.stageHandovers,
+    previousHandoverSizes: factory.stageHandoverSizes,
+    sizes: plannedSizes.map((row) => ({
+      size: row.size,
+      sentPairs: Number(text(formData, `sent__${row.size}`)) || 0,
+      receivedPairs: Number(text(formData, `received__${row.size}`)) || 0,
+    })),
+    remarks: text(formData, "remarks"),
+    handedOverBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_stage_handover_create",
+    `${workOrder.workOrderNumber}: ${fromAssignment.stageCode} → ${toAssignment.stageCode}, sent ${result.handover.sentPairs}, received ${result.handover.receivedPairs}, difference ${result.handover.discrepancyPairs}.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?handover=${encodeURIComponent(result.handover.id)}`);
 }

@@ -783,6 +783,51 @@ CREATE TABLE IF NOT EXISTS factory_production_entry_sizes (
 CREATE INDEX IF NOT EXISTS factory_production_entry_sizes_entry_idx
   ON factory_production_entry_sizes(production_entry_id);
 
+CREATE TABLE IF NOT EXISTS factory_stage_handovers (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,
+  from_assignment_id TEXT NOT NULL
+    REFERENCES factory_stage_assignments(id) ON DELETE RESTRICT,
+  to_assignment_id TEXT NOT NULL
+    REFERENCES factory_stage_assignments(id) ON DELETE RESTRICT,
+  from_stage_code TEXT NOT NULL,
+  to_stage_code TEXT NOT NULL,
+  from_worker_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  from_worker_name TEXT NOT NULL,
+  to_worker_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  to_worker_name TEXT NOT NULL,
+  sent_pairs INTEGER NOT NULL CHECK (sent_pairs > 0),
+  received_pairs INTEGER NOT NULL CHECK (received_pairs >= 0),
+  discrepancy_pairs INTEGER NOT NULL CHECK (discrepancy_pairs >= 0),
+  remarks TEXT NOT NULL DEFAULT '',
+  handed_over_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (received_pairs <= sent_pairs),
+  CHECK (discrepancy_pairs = sent_pairs - received_pairs)
+);
+
+CREATE INDEX IF NOT EXISTS factory_stage_handovers_order_idx
+  ON factory_stage_handovers(work_order_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_stage_handovers_from_idx
+  ON factory_stage_handovers(from_assignment_id);
+CREATE INDEX IF NOT EXISTS factory_stage_handovers_to_idx
+  ON factory_stage_handovers(to_assignment_id);
+
+CREATE TABLE IF NOT EXISTS factory_stage_handover_sizes (
+  id TEXT PRIMARY KEY,
+  handover_id TEXT NOT NULL REFERENCES factory_stage_handovers(id) ON DELETE CASCADE,
+  size TEXT NOT NULL,
+  sent_pairs INTEGER NOT NULL CHECK (sent_pairs > 0),
+  received_pairs INTEGER NOT NULL CHECK (received_pairs >= 0),
+  discrepancy_pairs INTEGER NOT NULL CHECK (discrepancy_pairs >= 0),
+  CHECK (received_pairs <= sent_pairs),
+  CHECK (discrepancy_pairs = sent_pairs - received_pairs),
+  UNIQUE (handover_id, size)
+);
+
+CREATE INDEX IF NOT EXISTS factory_stage_handover_sizes_handover_idx
+  ON factory_stage_handover_sizes(handover_id);
+
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (
   id TEXT PRIMARY KEY,
