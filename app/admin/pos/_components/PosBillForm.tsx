@@ -93,6 +93,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   const [paidTouched, setPaidTouched] = useState(false);
   const [scanCode, setScanCode] = useState("");
   const [scanNote, setScanNote] = useState("");
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [state, setState] = useState<ActionState | null>(null);
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
@@ -157,6 +158,30 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
         return item ? { ...row, rate: String(rateForChannel(nextChannel, item)) } : row;
       }),
     );
+  }
+
+  function addCatalogItem(item: SellableItem) {
+    if (item.stock <= 0) {
+      setScanNote(`${item.design} is out of stock.`);
+      return;
+    }
+
+    const existing = rows.find(
+      (row) => rowIsTouched(row) && row.design.trim().toLowerCase() === item.design.trim().toLowerCase(),
+    );
+
+    if (existing) {
+      updateRow(existing.key, { quantity: String((Number(existing.quantity) || 0) + 1) });
+    } else {
+      const target = rows.find((row) => !rowIsTouched(row));
+      if (target) {
+        updateRow(target.key, { sku: item.sku, design: item.design, quantity: "1" });
+      }
+    }
+
+    setScanNote(`${item.design} added to the bill.`);
+    setScanCode("");
+    setIsPickerOpen(false);
   }
 
   // Scan or type a code and drop the item into the bill. A USB/Bluetooth
@@ -258,6 +283,25 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   }
 
   const inStockCount = catalog.filter((item) => item.stock > 0).length;
+  const pickerItems = useMemo(() => {
+    const query = scanCode.trim().toLowerCase();
+    return catalog
+      .filter((item) => {
+        if (!query) {
+          return item.stock > 0;
+        }
+        return [item.design, item.sku, item.sizes].some((value) =>
+          value.trim().toLowerCase().includes(query),
+        );
+      })
+      .sort((first, second) => {
+        if ((first.stock > 0) !== (second.stock > 0)) {
+          return first.stock > 0 ? -1 : 1;
+        }
+        return first.design.localeCompare(second.design);
+      })
+      .slice(0, 10);
+  }, [catalog, scanCode]);
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -337,27 +381,99 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
         <label className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
           Scan or type code
         </label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <input
-            value={scanCode}
-            onChange={(event) => setScanCode(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addByCode(scanCode);
-              }
-            }}
-            placeholder="Scan barcode or type SKU, then Enter"
-            aria-label="Scan or type a product code"
-            className={`${inputClass} h-12 min-w-0 flex-1 text-base`}
-          />
-          <button
-            type="button"
-            onClick={() => addByCode(scanCode)}
-            className="h-12 rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-          >
-            Add
-          </button>
+        <div className="relative mt-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={scanCode}
+              onFocus={() => setIsPickerOpen(true)}
+              onChange={(event) => {
+                setScanCode(event.target.value);
+                setIsPickerOpen(true);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setIsPickerOpen(false);
+                }
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  if (pickerItems.length === 1) {
+                    addCatalogItem(pickerItems[0]);
+                  } else {
+                    addByCode(scanCode);
+                  }
+                }
+              }}
+              placeholder="Search item, SKU, size or scan barcode"
+              aria-label="Search or scan a product"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={isPickerOpen}
+              aria-controls="pos-product-picker"
+              className={`${inputClass} h-12 min-w-0 flex-1 text-base`}
+            />
+            <button
+              type="button"
+              onClick={() => addByCode(scanCode)}
+              className="h-12 rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+            >
+              Add
+            </button>
+          </div>
+          {isPickerOpen ? (
+            <div
+              id="pos-product-picker"
+              role="listbox"
+              aria-label="Available products"
+              className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-80 overflow-y-auto rounded-xl border border-brand-green/20 bg-white p-2 shadow-[0_18px_50px_rgba(11,77,59,0.2)]"
+            >
+              <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1 text-xs font-bold text-brand-muted">
+                <span>{scanCode.trim() ? "Matching items" : "Items ready to sell"}</span>
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(false)}
+                  className="rounded-full px-2 py-1 text-brand-green"
+                >
+                  Close
+                </button>
+              </div>
+              {pickerItems.length > 0 ? (
+                <div className="grid gap-1">
+                  {pickerItems.map((item) => (
+                    <button
+                      key={`${item.sku}-${item.design}`}
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      disabled={item.stock <= 0}
+                      onClick={() => addCatalogItem(item)}
+                      className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-brand-green-wash disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black text-brand-green-ink">
+                          {item.design}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-brand-muted">
+                          {item.sku || "No SKU"} · Size {item.sizes || "Mixed"}
+                        </span>
+                      </span>
+                      <span className="text-right">
+                        <span className="block text-sm font-black text-brand-green">
+                          {money(rateForChannel(channel, item))}
+                        </span>
+                        <span className={item.stock > 0 ? "text-xs font-bold text-brand-muted" : "text-xs font-bold text-brand-clay"}>
+                          {item.stock > 0 ? `${item.stock} pairs` : "Out of stock"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-sm font-semibold text-brand-muted">
+                  No matching item. Try another name, SKU or size.
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
         {scanNote ? <p className="mt-2 text-xs font-semibold text-brand-green-ink">{scanNote}</p> : null}
       </div>

@@ -23,6 +23,15 @@ describe("mobile production contracts", () => {
     expect(source("app/admin/settings/page.tsx")).toContain("reflow-table");
   });
 
+  it("offers a fast stock-aware POS product picker", () => {
+    const pos = source("app/admin/pos/_components/PosBillForm.tsx");
+    expect(pos).toContain("Search item, SKU, size or scan barcode");
+    expect(pos).toContain("Items ready to sell");
+    expect(pos).toContain("addCatalogItem(item)");
+    expect(pos).toContain("item.stock > 0");
+    expect(pos).toContain("rateForChannel(channel, item)");
+  });
+
   it("registers an offline-capable service worker", () => {
     expect(source("components/ServiceWorkerRegistration.tsx")).toContain(
       'navigator.serviceWorker.register("/sw.js"',
