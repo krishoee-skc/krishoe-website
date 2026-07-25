@@ -28,6 +28,29 @@ describe("mobile production contracts", () => {
       'navigator.serviceWorker.register("/sw.js"',
     );
     expect(source("public/sw.js")).toContain('const OFFLINE_URL = "/offline"');
+    expect(source("public/sw.js")).toContain('const CACHE_NAME = "krishoe-shell-v2"');
+    expect(source("public/sw.js")).toContain("event.waitUntil(network");
+  });
+
+  it("supports installed apps in both portrait and landscape", () => {
+    const manifest = source("app/manifest.ts");
+    expect(manifest).toContain('scope: "/"');
+    expect(manifest).not.toContain("orientation:");
+  });
+
+  it("prevents input zoom and horizontal overflow across touch devices", () => {
+    const css = source("app/globals.css");
+    expect(css).toContain("(pointer: coarse)");
+    expect(css).toContain("(max-width: 1024px)");
+    expect(css).toContain("overflow-x: hidden");
+    expect(css).toContain("overflow-x: clip");
+  });
+
+  it("keeps camera scanning usable on iOS and Android", () => {
+    const scanner = source("app/admin/pos/ScannerPanel.tsx");
+    expect(scanner).toContain("playsInline");
+    expect(scanner).toContain('capture="environment"');
+    expect(scanner).toContain('accept="image/*"');
   });
 });
 

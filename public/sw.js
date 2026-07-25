@@ -1,4 +1,4 @@
-const CACHE_NAME = "krishoe-shell-v1";
+const CACHE_NAME = "krishoe-shell-v2";
 const OFFLINE_URL = "/offline";
 const SHELL = [
   OFFLINE_URL,
@@ -38,17 +38,19 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (["image", "style", "script", "font"].includes(event.request.destination)) {
+    const network = fetch(event.request).then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(event.request, response.clone());
+      }
+      return response;
+    });
+
+    // Refresh cached assets in the background without leaving a rejected
+    // promise behind when a phone briefly loses its connection.
+    event.waitUntil(network.then(() => undefined).catch(() => undefined));
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const network = fetch(event.request).then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        });
-        return cached || network;
-      }),
+      caches.match(event.request).then((cached) => cached || network),
     );
   }
 });

@@ -6,12 +6,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "KRISHOE",
     description: "Premium footwear catalog, wishlist, cart, and order requests for KRISHOE.",
     start_url: "/",
+    scope: "/",
     // Opens without the browser's address bar, so an installed KRISHOE looks
     // like an app rather than a bookmarked page.
     display: "standalone",
     background_color: "#F5F7F4",
     theme_color: "#10231D",
-    orientation: "portrait",
     categories: ["shopping", "business"],
     icons: [
       // Android refuses to offer "Install app" unless the manifest carries a

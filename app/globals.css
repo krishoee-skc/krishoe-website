@@ -50,10 +50,13 @@ body {
 
 html {
   scroll-behavior: smooth;
+  /* Safari versions without `clip` support keep the safe `hidden` fallback. */
+  overflow-x: hidden;
   overflow-x: clip;
 }
 
 body {
+  overflow-x: hidden;
   overflow-x: clip;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
@@ -321,6 +324,16 @@ table th,
 
   .reflow-table td[colspan]::before {
     content: none;
+  }
+}
+
+/* iPads and large Android tablets can still trigger Safari's focus zoom even
+   when their CSS viewport is wider than the phone breakpoint. */
+@media (hover: none) and (pointer: coarse) and (max-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 
