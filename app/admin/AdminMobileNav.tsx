@@ -7,13 +7,14 @@ import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
 import { adminNavLinks } from "@/app/admin/nav-links";
+import { canAdmin, type AdminPermission, type AdminRole } from "@/lib/admin-role-permissions";
 
 // Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
 // below 1024px there was no way to move between pages or get home — a real
 // problem because the owner runs the shop from a phone. This sticky top bar
 // gives a permanent home link and a full menu one tap away, and hides on
 // desktop (lg:) where the sidebar takes over, and on paper (print:).
-export default function AdminMobileNav() {
+export default function AdminMobileNav({ adminRole }: { adminRole: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
@@ -77,7 +78,10 @@ export default function AdminMobileNav() {
             className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-gray-100 bg-white px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
           >
           <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-            {adminNavLinks.map(({ href, label, icon: Icon }) => {
+            {adminNavLinks.filter((link) =>
+              !("permission" in link) ||
+              canAdmin(adminRole as AdminRole, link.permission as AdminPermission),
+            ).map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
               return (
                 <Link

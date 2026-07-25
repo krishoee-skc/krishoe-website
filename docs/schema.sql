@@ -590,6 +590,179 @@ CREATE INDEX IF NOT EXISTS worker_tasks_batch_id_idx ON worker_tasks(batch_id);
 CREATE INDEX IF NOT EXISTS worker_tasks_station_idx ON worker_tasks(station);
 CREATE INDEX IF NOT EXISTS worker_tasks_status_idx ON worker_tasks(status);
 
+-- KRISHOE Factory ERP V2 foundation. These tables are additive and remain
+-- separate from the legacy production_batches/worker_tasks tables while the
+-- new workflow runs in shadow mode.
+CREATE TABLE IF NOT EXISTS factory_production_items (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  nepali_name TEXT NOT NULL DEFAULT '',
+  english_name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT '',
+  product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+  colors TEXT[] NOT NULL DEFAULT '{}',
+  sizes TEXT[] NOT NULL DEFAULT '{}',
+  stage_codes TEXT[] NOT NULL,
+  standard_minutes_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (standard_minutes_per_pair >= 0),
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (cardinality(stage_codes) > 0)
+);
+
+CREATE INDEX IF NOT EXISTS factory_production_items_status_idx
+  ON factory_production_items(status);
+CREATE INDEX IF NOT EXISTS factory_production_items_product_id_idx
+  ON factory_production_items(product_id);
+
+CREATE TABLE IF NOT EXISTS factory_item_bom (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES factory_production_items(id) ON DELETE CASCADE,
+  material_id TEXT NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  material_name TEXT NOT NULL,
+  unit TEXT NOT NULL CHECK (unit IN ('kg', 'meter', 'pair', 'piece', 'liter')),
+  quantity_per_pair NUMERIC NOT NULL CHECK (quantity_per_pair > 0),
+  wastage_percent NUMERIC NOT NULL DEFAULT 0 CHECK (wastage_percent >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (item_id, material_id)
+);
+
+CREATE INDEX IF NOT EXISTS factory_item_bom_item_id_idx ON factory_item_bom(item_id);
+CREATE INDEX IF NOT EXISTS factory_item_bom_material_id_idx ON factory_item_bom(material_id);
+
+CREATE TABLE IF NOT EXISTS factory_item_stage_rates (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES factory_production_items(id) ON DELETE CASCADE,
+  stage_code TEXT NOT NULL,
+  rate_per_good_pair NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_good_pair >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (item_id, stage_code)
+);
+
+CREATE INDEX IF NOT EXISTS factory_item_stage_rates_item_id_idx
+  ON factory_item_stage_rates(item_id);
+
+CREATE TABLE IF NOT EXISTS factory_worker_links (
+  employee_id TEXT PRIMARY KEY REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  stage_codes TEXT[] NOT NULL DEFAULT '{}',
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS factory_worker_links_active_idx ON factory_worker_links(active);
+
+CREATE TABLE IF NOT EXISTS factory_work_orders (
+  id TEXT PRIMARY KEY,
+  work_order_number TEXT NOT NULL UNIQUE,
+  lot_number TEXT NOT NULL UNIQUE,
+  item_id TEXT NOT NULL REFERENCES factory_production_items(id) ON DELETE RESTRICT,
+  item_code TEXT NOT NULL,
+  item_name TEXT NOT NULL,
+  color TEXT NOT NULL,
+  created_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  due_date DATE NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'Normal' CHECK (priority IN ('Normal', 'High', 'Urgent')),
+  current_stage_code TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Draft'
+    CHECK (status IN ('Draft', 'Released', 'In Progress', 'Completed', 'Cancelled')),
+  total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
+  remarks TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS factory_work_orders_item_id_idx ON factory_work_orders(item_id);
+CREATE INDEX IF NOT EXISTS factory_work_orders_status_idx ON factory_work_orders(status);
+CREATE INDEX IF NOT EXISTS factory_work_orders_due_date_idx ON factory_work_orders(due_date);
+
+CREATE TABLE IF NOT EXISTS factory_work_order_sizes (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,
+  size TEXT NOT NULL,
+  planned_pairs INTEGER NOT NULL CHECK (planned_pairs > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (work_order_id, size)
+);
+
+CREATE INDEX IF NOT EXISTS factory_work_order_sizes_order_idx
+  ON factory_work_order_sizes(work_order_id);
+
+CREATE TABLE IF NOT EXISTS factory_stage_assignments (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,
+  stage_code TEXT NOT NULL,
+  sequence INTEGER NOT NULL CHECK (sequence > 0),
+  worker_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  worker_name TEXT NOT NULL,
+  target_pairs INTEGER NOT NULL CHECK (target_pairs > 0),
+  status TEXT NOT NULL DEFAULT 'Waiting'
+    CHECK (status IN ('Waiting', 'Ready', 'In Progress', 'Paused', 'Completed')),
+  rate_per_good_pair_snapshot NUMERIC NOT NULL DEFAULT 0
+    CHECK (rate_per_good_pair_snapshot >= 0),
+  camera_zone TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (work_order_id, stage_code),
+  UNIQUE (work_order_id, sequence)
+);
+
+CREATE INDEX IF NOT EXISTS factory_stage_assignments_order_idx
+  ON factory_stage_assignments(work_order_id, sequence);
+CREATE INDEX IF NOT EXISTS factory_stage_assignments_worker_idx
+  ON factory_stage_assignments(worker_id);
+CREATE INDEX IF NOT EXISTS factory_stage_assignments_status_idx
+  ON factory_stage_assignments(status);
+
+CREATE TABLE IF NOT EXISTS factory_production_entries (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,
+  assignment_id TEXT NOT NULL REFERENCES factory_stage_assignments(id) ON DELETE RESTRICT,
+  worker_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  worker_name TEXT NOT NULL,
+  stage_code TEXT NOT NULL,
+  entry_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  received_pairs INTEGER NOT NULL CHECK (received_pairs > 0),
+  good_pairs INTEGER NOT NULL DEFAULT 0 CHECK (good_pairs >= 0),
+  reject_pairs INTEGER NOT NULL DEFAULT 0 CHECK (reject_pairs >= 0),
+  rework_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rework_pairs >= 0),
+  wage_rate_snapshot NUMERIC NOT NULL DEFAULT 0 CHECK (wage_rate_snapshot >= 0),
+  calculated_wage NUMERIC NOT NULL DEFAULT 0 CHECK (calculated_wage >= 0),
+  status TEXT NOT NULL DEFAULT 'Submitted'
+    CHECK (status IN ('Submitted', 'Verified', 'Rejected')),
+  remarks TEXT NOT NULL DEFAULT '',
+  entered_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (received_pairs = good_pairs + reject_pairs + rework_pairs)
+);
+
+CREATE INDEX IF NOT EXISTS factory_production_entries_assignment_idx
+  ON factory_production_entries(assignment_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_production_entries_worker_idx
+  ON factory_production_entries(worker_id, entry_date DESC);
+CREATE INDEX IF NOT EXISTS factory_production_entries_status_idx
+  ON factory_production_entries(status);
+
+CREATE TABLE IF NOT EXISTS factory_production_entry_sizes (
+  id TEXT PRIMARY KEY,
+  production_entry_id TEXT NOT NULL
+    REFERENCES factory_production_entries(id) ON DELETE CASCADE,
+  size TEXT NOT NULL,
+  received_pairs INTEGER NOT NULL CHECK (received_pairs > 0),
+  good_pairs INTEGER NOT NULL DEFAULT 0 CHECK (good_pairs >= 0),
+  reject_pairs INTEGER NOT NULL DEFAULT 0 CHECK (reject_pairs >= 0),
+  rework_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rework_pairs >= 0),
+  CHECK (received_pairs = good_pairs + reject_pairs + rework_pairs),
+  UNIQUE (production_entry_id, size)
+);
+
+CREATE INDEX IF NOT EXISTS factory_production_entry_sizes_entry_idx
+  ON factory_production_entry_sizes(production_entry_id);
+
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (
   id TEXT PRIMARY KEY,

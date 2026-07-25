@@ -21,6 +21,7 @@ export const adminNavLinks = [
   { href: "/admin/purchasing", label: "Purchasing", icon: PackageIcon },
   { href: "/admin/costing", label: "Costing", icon: CreditCardIcon },
   { href: "/admin/hr", label: "HR", icon: ShieldCheckIcon },
+  { href: "/admin/factory", label: "Factory ERP", icon: PackageIcon, permission: "factory:write" },
   { href: "/admin/operations", label: "Operations", icon: PackageIcon },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCartIcon },
   { href: "/admin/payments", label: "Payments", icon: CreditCardIcon },
