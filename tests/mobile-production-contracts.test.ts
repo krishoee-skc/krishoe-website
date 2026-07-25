@@ -58,7 +58,9 @@ describe("mobile production contracts", () => {
     expect(homepage).toContain("/images/hero-krishoe-gold-v2.png");
     expect(homepage).toContain("/images/mobile-hero-krishoe-gold-v2.png");
     expect(homepage).toContain("Your Identity.");
-    expect(homepage).toContain("KRISHOE Signature Collection");
+    expect(homepage).toContain("The Signature Collection");
+    expect(homepage).toContain("/icons/icon.svg");
+    expect(homepage).toContain("Walk with Authority");
   });
 });
 

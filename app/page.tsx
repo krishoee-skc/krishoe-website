@@ -34,10 +34,27 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,252,246,0.96)_0%,rgba(255,252,246,0.78)_25%,rgba(255,252,246,0)_48%)]" />
           <div className="absolute inset-x-0 top-0 p-6 pt-7 text-brand-green-ink">
-            <p className="inline-flex rounded-full border border-[#C9A24D]/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#9A7024] shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/icons/icon.svg"
+                alt=""
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-xl shadow-md"
+              />
+              <div>
+                <p className="font-display text-2xl font-black leading-none tracking-[0.08em] text-brand-green">
+                  KRISHOE
+                </p>
+                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.22em] text-[#9A7024]">
+                  Walk with Authority
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 inline-flex rounded-full border border-[#C9A24D]/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#9A7024] shadow-sm backdrop-blur">
               The Signature Collection
             </p>
-            <h1 className="mt-4 max-w-[310px] font-display text-[2.65rem] font-bold leading-[0.92] tracking-[-0.03em]">
+            <h1 className="mt-3 max-w-[310px] font-display text-[2.4rem] font-bold leading-[0.92] tracking-[-0.03em]">
               Your Step.
               <span className="mt-1 block text-[#7A1818]">Your Identity.</span>
             </h1>
@@ -76,10 +93,27 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,246,0.97)_0%,rgba(255,252,246,0.84)_35%,rgba(255,252,246,0.08)_62%)]" />
           <div className="absolute inset-y-0 left-0 flex w-[48%] flex-col justify-center px-[clamp(3rem,6vw,6rem)] pb-24">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-[#A47A28]">
-              KRISHOE Signature Collection
+            <div className="flex items-center gap-4">
+              <Image
+                src="/icons/icon.svg"
+                alt=""
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-2xl shadow-lg"
+              />
+              <div>
+                <p className="font-display text-4xl font-black leading-none tracking-[0.08em] text-brand-green">
+                  KRISHOE
+                </p>
+                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#A47A28]">
+                  Walk with Authority
+                </p>
+              </div>
+            </div>
+            <p className="mt-7 text-xs font-black uppercase tracking-[0.28em] text-[#A47A28]">
+              The Signature Collection
             </p>
-            <h1 className="mt-6 font-display text-[clamp(4rem,6vw,6.5rem)] font-bold leading-[0.86] tracking-[-0.045em] text-brand-green-ink">
+            <h1 className="mt-5 font-display text-[clamp(3.75rem,5.5vw,6rem)] font-bold leading-[0.86] tracking-[-0.045em] text-brand-green-ink">
               Your Step.
               <span className="mt-3 block text-[#7A1818]">Your Identity.</span>
             </h1>
