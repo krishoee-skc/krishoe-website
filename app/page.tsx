@@ -23,26 +23,26 @@ export default function Home() {
           visually-hidden heading keeps the real text for SEO and screen
           readers. */}
       <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
-        <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-[#F9C8B3] shadow-[0_22px_70px_rgba(96,43,55,0.2)] md:hidden">
+        <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-[#F7EFE2] shadow-[0_22px_70px_rgba(59,42,24,0.18)] md:hidden">
           <Image
-            src="/images/mobile-hero-colorful-v1.webp"
-            alt="A colorful premium collection of cute KRISHOE rexine slippers"
+            src="/images/mobile-hero-krishoe-gold-v2.png"
+            alt="Premium champagne-gold KRISHOE sandals with artisan-inspired detailing"
             fill
             preload
             sizes="100vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,247,238,0.92)_0%,rgba(255,247,238,0.66)_23%,rgba(255,247,238,0)_48%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,252,246,0.96)_0%,rgba(255,252,246,0.78)_25%,rgba(255,252,246,0)_48%)]" />
           <div className="absolute inset-x-0 top-0 p-6 pt-7 text-brand-green-ink">
-            <p className="inline-flex rounded-full border border-white/70 bg-white/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#8A3B62] shadow-sm backdrop-blur">
-              Colour your every step
+            <p className="inline-flex rounded-full border border-[#C9A24D]/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#9A7024] shadow-sm backdrop-blur">
+              The Signature Collection
             </p>
             <h1 className="mt-4 max-w-[310px] font-display text-[2.65rem] font-bold leading-[0.92] tracking-[-0.03em]">
-              Cute comfort.
-              <span className="mt-1 block text-[#A83E70]">Confident colour.</span>
+              Your Step.
+              <span className="mt-1 block text-[#7A1818]">Your Identity.</span>
             </h1>
             <p className="mt-3 max-w-[285px] text-sm font-semibold leading-6 text-brand-green-ink/75">
-              Premium rexine styles, shaped for Nepal and made to brighten every move.
+              Premium comfort, artisan detail and confident style—crafted for Nepal.
             </p>
             <div className="mt-4 flex gap-2.5">
               <Link
@@ -52,10 +52,10 @@ export default function Home() {
                 Shop now
               </Link>
               <Link
-                href="/shop/ladies-slippers"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/80 bg-white/70 px-4 text-sm font-black text-[#8A3B62] shadow-sm backdrop-blur"
+                href="/shop/ladies-sandals"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#C9A24D]/50 bg-white/75 px-4 text-sm font-black text-brand-green shadow-sm backdrop-blur"
               >
-                New colours
+                Explore
               </Link>
             </div>
           </div>
@@ -63,20 +63,46 @@ export default function Home() {
         <Link
           href="/shop"
           aria-label="Shop KRISHOE premium footwear — Your Step, Your Identity"
-          className="mx-auto hidden max-w-7xl overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(11,77,59,0.12)] transition hover:shadow-[0_28px_80px_rgba(11,77,59,0.18)] md:block"
+          className="relative mx-auto hidden min-h-[clamp(560px,65vw,760px)] max-w-7xl overflow-hidden rounded-[2rem] bg-[#F7EFE2] shadow-[0_24px_80px_rgba(11,77,59,0.14)] transition hover:shadow-[0_30px_90px_rgba(11,77,59,0.2)] md:block"
         >
-          <h1 className="sr-only">
-            Your Step. Your Identity. KRISHOE premium footwear crafted for Nepal with style, comfort and quality.
-          </h1>
           <Image
-            src="/images/hero-banner.png"
+            src="/images/hero-krishoe-gold-v2.png"
             alt="KRISHOE — Your Step. Your Identity. Premium footwear crafted for Nepal."
             width={1536}
             height={1024}
             priority
             sizes="100vw"
-            className="h-auto w-full"
+            className="absolute inset-0 h-full w-full object-cover"
           />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,246,0.97)_0%,rgba(255,252,246,0.84)_35%,rgba(255,252,246,0.08)_62%)]" />
+          <div className="absolute inset-y-0 left-0 flex w-[48%] flex-col justify-center px-[clamp(3rem,6vw,6rem)] pb-24">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-[#A47A28]">
+              KRISHOE Signature Collection
+            </p>
+            <h1 className="mt-6 font-display text-[clamp(4rem,6vw,6.5rem)] font-bold leading-[0.86] tracking-[-0.045em] text-brand-green-ink">
+              Your Step.
+              <span className="mt-3 block text-[#7A1818]">Your Identity.</span>
+            </h1>
+            <p className="mt-7 max-w-xl text-[clamp(1rem,1.35vw,1.2rem)] font-medium leading-8 text-brand-green-ink/70">
+              Premium comfort, artisan detail and confident style—crafted for Nepal.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <span className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-brand-green px-8 py-3.5 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(11,77,59,0.24)]">
+                Shop now
+              </span>
+              <span className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[#B88B32] bg-white/65 px-8 py-3.5 text-sm font-black uppercase tracking-[0.1em] text-brand-green-ink backdrop-blur">
+                Explore collection
+              </span>
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 grid grid-cols-4 border-t border-white/20 bg-brand-green/95 px-8 py-5 text-white backdrop-blur">
+            {["Premium quality", "Superior comfort", "Made for Nepal", "Trusted support"].map((label) => (
+              <div key={label} className="flex items-center justify-center gap-3 border-r border-white/20 px-3 text-center text-xs font-black uppercase tracking-[0.12em] last:border-r-0 lg:text-sm">
+                <span className="h-2 w-2 rounded-full bg-[#D7AE52]" />
+                {label}
+              </div>
+            ))}
+          </div>
         </Link>
       </section>
 

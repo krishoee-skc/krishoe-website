@@ -52,6 +52,14 @@ describe("mobile production contracts", () => {
     expect(scanner).toContain('capture="environment"');
     expect(scanner).toContain('accept="image/*"');
   });
+
+  it("serves dedicated premium hero artwork for desktop and mobile", () => {
+    const homepage = source("app/page.tsx");
+    expect(homepage).toContain("/images/hero-krishoe-gold-v2.png");
+    expect(homepage).toContain("/images/mobile-hero-krishoe-gold-v2.png");
+    expect(homepage).toContain("Your Identity.");
+    expect(homepage).toContain("KRISHOE Signature Collection");
+  });
 });
 
 describe("scheduled report safety contracts", () => {
