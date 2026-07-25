@@ -129,14 +129,10 @@ export default function Home() {
               </span>
             </div>
           </div>
-          <div className="absolute inset-x-0 bottom-0 grid grid-cols-4 border-t border-white/20 bg-brand-green/95 px-8 py-5 text-white backdrop-blur">
-            {["Premium quality", "Superior comfort", "Made for Nepal", "Trusted support"].map((label) => (
-              <div key={label} className="flex items-center justify-center gap-3 border-r border-white/20 px-3 text-center text-xs font-black uppercase tracking-[0.12em] last:border-r-0 lg:text-sm">
-                <span className="h-2 w-2 rounded-full bg-[#D7AE52]" />
-                {label}
-              </div>
-            ))}
-          </div>
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-[72px] border-t-2 border-[#D7AE52] bg-[#651B24]/95 shadow-[0_-14px_36px_rgba(101,27,36,0.16)] backdrop-blur"
+          />
         </Link>
       </section>
 

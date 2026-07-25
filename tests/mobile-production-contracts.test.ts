@@ -61,6 +61,8 @@ describe("mobile production contracts", () => {
     expect(homepage).toContain("The Signature Collection");
     expect(homepage).toContain("/icons/icon.svg");
     expect(homepage).toContain("Walk with Authority");
+    expect(homepage).toContain("bg-[#651B24]/95");
+    expect(homepage).not.toContain("Trusted support");
   });
 });
 
