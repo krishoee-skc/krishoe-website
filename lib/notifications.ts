@@ -193,9 +193,13 @@ function eventFromRow(row: NotificationEventRow): NotificationEvent {
   });
 }
 
-function textSummary(event: NotificationEvent) {
+export function textSummary(event: NotificationEvent) {
   if (event.type === "order") {
     const order = event.payload as OrderSubmission;
+    const cleanOrder = (order.items ?? []).reduce(
+      (summary, item) => summary.split(` (${item.productId})`).join(""),
+      order.order,
+    );
 
     return [
       event.title,
@@ -206,7 +210,7 @@ function textSummary(event: NotificationEvent) {
       `Payment: ${order.payment || order.paymentProvider}`,
       `Delivery: ${order.delivery || "-"}`,
       `Address: ${order.address}`,
-      `Order: ${order.order}`,
+      `Order: ${cleanOrder}`,
     ].filter(Boolean).join("\n");
   }
 

@@ -255,7 +255,8 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
         </form>
 
         <form action={createAttendanceAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Attendance</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">Daily worker worksheet</h2>
+          <p className="mt-1 text-sm text-gray-500">Record attendance, shift time and overtime in one entry.</p>
           <div className="mt-4 grid gap-3">
             <select name="employeeId" required className={inputClass} defaultValue="" aria-label="Employee">
               <option value="">Select employee</option>
@@ -275,8 +276,8 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
               </select>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <input name="checkIn" className={inputClass} placeholder="Check in" />
-              <input name="checkOut" className={inputClass} placeholder="Check out" />
+              <input name="checkIn" type="time" className={inputClass} aria-label="Check in time" />
+              <input name="checkOut" type="time" className={inputClass} aria-label="Check out time" />
               <input name="overtimeHours" type="number" min="0" step="0.5" className={inputClass} placeholder="OT hours" />
             </div>
             <textarea name="note" className={textareaClass} placeholder="Shift, reason, or device note" />

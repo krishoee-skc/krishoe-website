@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { validateDeliveryArea } from "@/lib/commerce";
 import { getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
@@ -121,6 +122,12 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
 
   if (!customerProfile.ok) {
     return errorState(customerProfile.message);
+  }
+
+  const deliveryError = validateDeliveryArea(delivery, customerProfile.profile.address ?? "");
+
+  if (deliveryError) {
+    return errorState(deliveryError);
   }
 
   if (

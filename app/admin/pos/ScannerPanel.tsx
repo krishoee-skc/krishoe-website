@@ -104,7 +104,7 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
           ? "Camera permission denied. Allow camera access or upload a photo."
           : errorName === "NotFoundError"
             ? "No camera was found. Upload a photo or type the invoice number."
-            : "Camera could not start. Upload a photo or type the invoice number.",
+            : "Camera could not start. On iPhone, open Safari Settings and allow Camera, or upload a photo.",
       );
       stopScanner();
     }
@@ -161,7 +161,16 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-gray-100 bg-black">
-        <video ref={videoRef} muted playsInline className="aspect-video w-full object-cover" />
+        <video
+          ref={videoRef}
+          muted
+          playsInline
+          autoPlay
+          preload="metadata"
+          disablePictureInPicture
+          aria-label="Live invoice barcode camera preview"
+          className="aspect-video w-full object-cover"
+        />
       </div>
 
       <div className="mt-4 grid gap-3">

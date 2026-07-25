@@ -25,6 +25,42 @@ export const shippingOptions = [
   "Nationwide courier coordination",
 ];
 
+const outsideValleyPlaces = [
+  "bharatpur",
+  "chitwan",
+  "pokhara",
+  "biratnagar",
+  "birgunj",
+  "butwal",
+  "hetauda",
+  "janakpur",
+  "dharan",
+  "itahari",
+  "nepalgunj",
+  "dhangadhi",
+  "surkhet",
+  "baglung",
+  "birtamod",
+  "damak",
+];
+
+export function validateDeliveryArea(delivery: string, address: string) {
+  if (!shippingOptions.includes(delivery)) {
+    return "Please choose a valid delivery option.";
+  }
+
+  if (delivery !== "Kathmandu valley delivery") {
+    return "";
+  }
+
+  const normalizedAddress = address.toLowerCase();
+  const outsidePlace = outsideValleyPlaces.find((place) => normalizedAddress.includes(place));
+
+  return outsidePlace
+    ? `${outsidePlace.charAt(0).toUpperCase()}${outsidePlace.slice(1)} is outside Kathmandu Valley. Please choose Nationwide courier coordination.`
+    : "";
+}
+
 export const paymentOptions = [
   "Cash on delivery",
   "eSewa / Khalti link after stock confirmation",

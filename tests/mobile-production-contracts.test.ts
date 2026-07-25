@@ -58,8 +58,19 @@ describe("mobile production contracts", () => {
   it("keeps camera scanning usable on iOS and Android", () => {
     const scanner = source("app/admin/pos/ScannerPanel.tsx");
     expect(scanner).toContain("playsInline");
+    expect(scanner).toContain("autoPlay");
+    expect(scanner).toContain('preload="metadata"');
     expect(scanner).toContain('capture="environment"');
     expect(scanner).toContain('accept="image/*"');
+  });
+
+  it("keeps the worker worksheet fast on mobile", () => {
+    const hr = source("app/admin/hr/page.tsx");
+    expect(hr).toContain("Daily worker worksheet");
+    expect(hr).toContain('name="checkIn" type="time"');
+    expect(hr).toContain('name="checkOut" type="time"');
+    expect(hr).toContain("Monthly attendance report");
+    expect(hr).toContain("Monthly payroll report");
   });
 
   it("serves dedicated premium hero artwork for desktop and mobile", () => {

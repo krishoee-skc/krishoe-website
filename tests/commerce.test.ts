@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { viberOrderUrl, whatsappOrderUrl } from "@/lib/commerce";
+import { validateDeliveryArea, viberOrderUrl, whatsappOrderUrl } from "@/lib/commerce";
 
 describe("order channel links", () => {
   it("builds a wa.me URL with the message URL-encoded", () => {
@@ -15,5 +15,23 @@ describe("order channel links", () => {
   it("builds a viber forward URL with the message URL-encoded", () => {
     const message = "Hello KRISHOE";
     expect(viberOrderUrl(message)).toBe(`viber://forward?text=${encodeURIComponent(message)}`);
+  });
+});
+
+describe("delivery area validation", () => {
+  it("redirects an explicitly outside-valley address to nationwide courier", () => {
+    expect(validateDeliveryArea("Kathmandu valley delivery", "Bharatpur, Chitwan")).toMatch(
+      /outside Kathmandu Valley/,
+    );
+  });
+
+  it("allows valley delivery when the address does not identify an outside city", () => {
+    expect(validateDeliveryArea("Kathmandu valley delivery", "New Road, Kathmandu")).toBe("");
+  });
+
+  it("rejects an invented delivery option", () => {
+    expect(validateDeliveryArea("Teleport", "Kathmandu")).toBe(
+      "Please choose a valid delivery option.",
+    );
   });
 });
