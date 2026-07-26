@@ -7,6 +7,7 @@ import {
   assertFinishedStockPosting,
   calculateEarnedWage,
   normalizeSizeBreakdown,
+  productionStages,
   type ProductionStage,
   type SizeBreakdown,
   type WorkerPaymentDirection,
@@ -79,6 +80,41 @@ export type QcStockPosting = {
   approvedBy: string;
 };
 
+export type ProductionMaterial = {
+  id: string;
+  name: string;
+  unit: string;
+  averageUnitCost: number;
+};
+
+export type ItemMaterial = {
+  id: string;
+  itemId: string;
+  materialId: string;
+  materialName: string;
+  unit: string;
+  quantityPerPair: number;
+  wastagePercent: number;
+  averageUnitCost: number;
+  costPerPair: number;
+};
+
+export type ProductionCostCard = {
+  id: string;
+  effectiveFrom: string;
+  itemId: string;
+  itemName: string;
+  materialCostPerPair: number;
+  laborCostPerPair: number;
+  otherDirectCostPerPair: number;
+  makingCostPerPair: number;
+  wholesaleProfitPercent: number;
+  wholesalePrice: number;
+  retailExtraAmount: number;
+  retailPrice: number;
+  approvedBy: string;
+};
+
 type ItemRow = {
   id: string;
   name: string;
@@ -145,6 +181,40 @@ type QcPostingRow = {
   approved_by: string;
 };
 
+type ProductionMaterialRow = {
+  id: string;
+  name: string;
+  unit: string;
+  average_unit_cost: number | string;
+};
+
+type ItemMaterialRow = {
+  id: string;
+  item_id: string;
+  material_id: string;
+  material_name_snapshot: string;
+  unit_snapshot: string;
+  quantity_per_pair: number | string;
+  wastage_percent: number | string;
+  average_unit_cost: number | string;
+};
+
+type CostCardRow = {
+  id: string;
+  effective_from: Date | string;
+  item_id: string;
+  item_name_snapshot: string;
+  material_cost_per_pair: number | string;
+  labor_cost_per_pair: number | string;
+  other_direct_cost_per_pair: number | string;
+  making_cost_per_pair: number | string;
+  wholesale_profit_percent: number | string;
+  wholesale_price: number | string;
+  retail_extra_amount: number | string;
+  retail_price: number | string;
+  approved_by: string;
+};
+
 function numeric(value: number | string) {
   return Math.round(Number(value) * 100) / 100;
 }
@@ -158,7 +228,10 @@ function id(prefix: string) {
 }
 
 export async function getProductionAccountingSnapshot() {
-  const [items, rates, workEntries, payments, qcPostings, balances, hr, products] = await Promise.all([
+  const [
+    items, rates, workEntries, payments, qcPostings, balances, materials,
+    itemMaterials, costCards, hr, products,
+  ] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
       `SELECT id, name, category, production_type, size_group, catalog_product_id, status
@@ -221,6 +294,39 @@ export async function getProductionAccountingSnapshot() {
        LEFT JOIN paid USING (employee_id)
        ORDER BY employee_name`,
     ),
+    queryPostgres<ProductionMaterialRow>(
+      "production costing materials",
+      `SELECT materials.id, materials.name, materials.unit,
+         coalesce(sum(lines.line_total) / nullif(sum(lines.quantity), 0), 0) AS average_unit_cost
+       FROM raw_materials materials
+       LEFT JOIN purchase_invoice_items lines
+         ON lines.material_id = materials.id AND lines.kind = 'Raw Material'
+       GROUP BY materials.id, materials.name, materials.unit
+       ORDER BY materials.name`,
+    ),
+    queryPostgres<ItemMaterialRow>(
+      "production item materials",
+      `SELECT bom.id, bom.item_id, bom.material_id, bom.material_name_snapshot,
+         bom.unit_snapshot, bom.quantity_per_pair, bom.wastage_percent,
+         coalesce(sum(lines.line_total) / nullif(sum(lines.quantity), 0), 0) AS average_unit_cost
+       FROM production_item_materials bom
+       LEFT JOIN purchase_invoice_items lines
+         ON lines.material_id = bom.material_id AND lines.kind = 'Raw Material'
+       GROUP BY bom.id, bom.item_id, bom.material_id, bom.material_name_snapshot,
+         bom.unit_snapshot, bom.quantity_per_pair, bom.wastage_percent
+       ORDER BY bom.item_id, bom.material_name_snapshot`,
+    ),
+    queryPostgres<CostCardRow>(
+      "production cost cards",
+      `SELECT DISTINCT ON (item_id)
+         id, effective_from, item_id, item_name_snapshot,
+         material_cost_per_pair, labor_cost_per_pair, other_direct_cost_per_pair,
+         making_cost_per_pair, wholesale_profit_percent, wholesale_price,
+         retail_extra_amount, retail_price, approved_by
+       FROM production_cost_cards
+       WHERE effective_from <= CURRENT_DATE
+       ORDER BY item_id, effective_from DESC, created_at DESC`,
+    ),
     getHrData(),
     getProducts({ includeDrafts: true }),
   ]);
@@ -275,8 +381,49 @@ export async function getProductionAccountingSnapshot() {
       paid: numeric(row.paid),
       balance: numeric(row.balance),
     })),
+    materials: materials.map((row) => ({
+      id: row.id,
+      name: row.name,
+      unit: row.unit,
+      averageUnitCost: numeric(row.average_unit_cost),
+    })),
+    itemMaterials: itemMaterials.map((row) => {
+      const quantity = numeric(row.quantity_per_pair);
+      const wastage = numeric(row.wastage_percent);
+      const rate = numeric(row.average_unit_cost);
+      return {
+        id: row.id,
+        itemId: row.item_id,
+        materialId: row.material_id,
+        materialName: row.material_name_snapshot,
+        unit: row.unit_snapshot,
+        quantityPerPair: quantity,
+        wastagePercent: wastage,
+        averageUnitCost: rate,
+        costPerPair: numeric(quantity * (1 + wastage / 100) * rate),
+      };
+    }),
+    costCards: costCards.map(costCardFromRow),
     employees: hr.employees.filter((employee) => employee.status === "Active"),
     products,
+  };
+}
+
+function costCardFromRow(row: CostCardRow): ProductionCostCard {
+  return {
+    id: row.id,
+    effectiveFrom: isoDate(row.effective_from),
+    itemId: row.item_id,
+    itemName: row.item_name_snapshot,
+    materialCostPerPair: numeric(row.material_cost_per_pair),
+    laborCostPerPair: numeric(row.labor_cost_per_pair),
+    otherDirectCostPerPair: numeric(row.other_direct_cost_per_pair),
+    makingCostPerPair: numeric(row.making_cost_per_pair),
+    wholesaleProfitPercent: numeric(row.wholesale_profit_percent),
+    wholesalePrice: numeric(row.wholesale_price),
+    retailExtraAmount: numeric(row.retail_extra_amount),
+    retailPrice: numeric(row.retail_price),
+    approvedBy: row.approved_by,
   };
 }
 
@@ -423,6 +570,133 @@ export async function mapProductionItemToCatalog(itemId: string, catalogProductI
     [itemId, catalogProductId],
   );
   if (!rows[0]) throw new Error("Production item not found.");
+}
+
+export async function setProductionItemMaterial(input: {
+  itemId: string;
+  materialId: string;
+  quantityPerPair: number;
+  wastagePercent: number;
+  note: string;
+}) {
+  const materialRows = await queryPostgres<{ id: string; name: string; unit: string }>(
+    "production item material lookup",
+    "SELECT id, name, unit FROM raw_materials WHERE id = $1",
+    [input.materialId],
+  );
+  const material = materialRows[0];
+  if (!material) throw new Error("Raw material not found.");
+  if (input.quantityPerPair <= 0) throw new Error("Material quantity per pair must be greater than zero.");
+
+  await queryPostgres(
+    "set production item material",
+    `INSERT INTO production_item_materials (
+       id, item_id, material_id, material_name_snapshot, unit_snapshot,
+       quantity_per_pair, wastage_percent, note
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (item_id, material_id) DO UPDATE SET
+       material_name_snapshot = EXCLUDED.material_name_snapshot,
+       unit_snapshot = EXCLUDED.unit_snapshot,
+       quantity_per_pair = EXCLUDED.quantity_per_pair,
+       wastage_percent = EXCLUDED.wastage_percent,
+       note = EXCLUDED.note, updated_at = now()`,
+    [
+      id("bom"), input.itemId, material.id, material.name, material.unit,
+      input.quantityPerPair, input.wastagePercent, input.note,
+    ],
+  );
+}
+
+export async function approveProductionCostCard(input: {
+  itemId: string;
+  effectiveFrom: string;
+  otherDirectCostPerPair: number;
+  wholesaleProfitPercent: number;
+  retailExtraAmount: number;
+  approvedBy: string;
+  note: string;
+}) {
+  return transactionPostgres("approve production cost card", async (db) => {
+    const itemRows = await db.query<ItemRow>(
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
+       FROM production_items WHERE id = $1 AND status = 'Active' FOR SHARE`,
+      [input.itemId],
+    );
+    const item = itemRows[0];
+    if (!item) throw new Error("Active production item not found.");
+    if (item.production_type === "Resale") {
+      throw new Error("Resale item cost comes from Purchasing.");
+    }
+
+    const materialRows = await db.query<{
+      cost: number | string;
+      material_count: number | string;
+      missing_rate_count: number | string;
+    }>(
+      `SELECT coalesce(sum(
+         bom.quantity_per_pair * (1 + bom.wastage_percent / 100) *
+         coalesce(rates.average_unit_cost, 0)
+       ), 0) AS cost,
+       count(bom.id) AS material_count,
+       count(bom.id) FILTER (WHERE coalesce(rates.average_unit_cost, 0) <= 0) AS missing_rate_count
+       FROM production_item_materials bom
+       LEFT JOIN (
+         SELECT material_id, sum(line_total) / nullif(sum(quantity), 0) AS average_unit_cost
+         FROM purchase_invoice_items WHERE kind = 'Raw Material' GROUP BY material_id
+       ) rates ON rates.material_id = bom.material_id
+       WHERE bom.item_id = $1`,
+      [input.itemId],
+    );
+    const laborRows = await db.query<{ cost: number | string; stage_count: number | string }>(
+      `SELECT coalesce(sum(rate_per_pair), 0) AS cost, count(*) AS stage_count
+       FROM (
+         SELECT DISTINCT ON (stage) stage, rate_per_pair
+         FROM production_stage_rates
+         WHERE item_id = $1 AND status = 'Active' AND effective_from <= $2::date
+         ORDER BY stage, effective_from DESC, created_at DESC
+       ) current_rates`,
+      [input.itemId, input.effectiveFrom],
+    );
+
+    if (Number(materialRows[0]?.material_count ?? 0) <= 0) {
+      throw new Error("Add at least one material recipe before approving cost.");
+    }
+    if (Number(materialRows[0]?.missing_rate_count ?? 0) > 0) {
+      throw new Error("Every recipe material needs a real Purchasing rate before cost approval.");
+    }
+    if (Number(laborRows[0]?.stage_count ?? 0) < productionStages.length) {
+      throw new Error("Set all four production stage wage rates before approving cost.");
+    }
+
+    const materialCost = numeric(materialRows[0]?.cost ?? 0);
+    const laborCost = numeric(laborRows[0]?.cost ?? 0);
+    const directCost = numeric(input.otherDirectCostPerPair);
+    const makingCost = numeric(materialCost + laborCost + directCost);
+    const wholesalePrice = numeric(makingCost * (1 + input.wholesaleProfitPercent / 100));
+    const retailPrice = numeric(wholesalePrice + input.retailExtraAmount);
+    const cardId = id("cost");
+
+    const rows = await db.query<CostCardRow>(
+      `INSERT INTO production_cost_cards (
+         id, effective_from, item_id, item_name_snapshot,
+         material_cost_per_pair, labor_cost_per_pair, other_direct_cost_per_pair,
+         making_cost_per_pair, wholesale_profit_percent, wholesale_price,
+         retail_extra_amount, retail_price, approved_by, note
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+       )
+       RETURNING id, effective_from, item_id, item_name_snapshot,
+         material_cost_per_pair, labor_cost_per_pair, other_direct_cost_per_pair,
+         making_cost_per_pair, wholesale_profit_percent, wholesale_price,
+         retail_extra_amount, retail_price, approved_by`,
+      [
+        cardId, input.effectiveFrom, item.id, item.name, materialCost, laborCost,
+        directCost, makingCost, input.wholesaleProfitPercent, wholesalePrice,
+        input.retailExtraAmount, retailPrice, input.approvedBy, input.note,
+      ],
+    );
+    return costCardFromRow(rows[0]);
+  });
 }
 
 export async function setProductionStageRate(input: {

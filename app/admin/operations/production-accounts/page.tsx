@@ -7,6 +7,8 @@ import {
   createWorkerPaymentAction,
   mapProductionItemAction,
   approvePackingQcAction,
+  approveCostCardAction,
+  saveItemMaterialAction,
   saveStageRateAction,
 } from "./actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
@@ -196,8 +198,82 @@ export default async function ProductionAccountsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
+        <form action={saveItemMaterialAction} className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">3. Material recipe per pair</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Quantity uses the material&apos;s purchase unit. Example: Rexine 0.40 meter or Buckle 2 pieces per pair.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <select name="itemId" className={input} required defaultValue="">
+              <option value="" disabled>Select manufactured item</option>
+              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+            <select name="materialId" className={input} required defaultValue="">
+              <option value="" disabled>Select raw material</option>
+              {data.materials.map((material) => (
+                <option key={material.id} value={material.id}>
+                  {material.name} · {material.unit} · {money(material.averageUnitCost)}/{material.unit}
+                </option>
+              ))}
+            </select>
+            <input name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} placeholder="Quantity per pair" required />
+            <input name="wastagePercent" type="number" min="0" step="0.01" className={input} placeholder="Wastage % (optional)" defaultValue="0" />
+            <input name="note" className={`${input} sm:col-span-2`} placeholder="Recipe note" />
+          </div>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving material…">Save material recipe</FormSubmitButton>
+        </form>
+
+        <form action={approveCostCardAction} className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">4. Owner-approved price card</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Material cost + four stage wages + direct cost. Rent, electricity and salary are excluded.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <select name="itemId" className={input} required defaultValue="">
+              <option value="" disabled>Select manufactured item</option>
+              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+            <input name="effectiveFrom" type="date" className={input} defaultValue={date} required />
+            <input name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} placeholder="Other direct cost/pair" defaultValue="0" />
+            <input name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} placeholder="Wholesale profit %" required />
+            <input name="retailExtraAmount" type="number" min="0" step="0.01" className={input} placeholder="Retail extra Rs." required />
+            <input name="note" className={input} placeholder="Approval note" />
+          </div>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">Calculate & approve cost</FormSubmitButton>
+        </form>
+      </div>
+
+      <div className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">Current product cost sheets</h2>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {data.costCards.map((cost) => (
+            <article key={cost.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-brand-green-ink">{cost.itemName}</p>
+                  <p className="mt-1 text-xs text-gray-500">Effective {cost.effectiveFrom} · Owner {cost.approvedBy}</p>
+                </div>
+                <p className="text-lg font-black text-brand-green">{money(cost.makingCostPerPair)}</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div><span className="text-gray-500">Material</span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
+                <div><span className="text-gray-500">Wages</span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
+                <div><span className="text-gray-500">Wholesale</span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
+                <div><span className="text-gray-500">Retail</span><p className="font-black">{money(cost.retailPrice)}</p></div>
+              </div>
+            </article>
+          ))}
+          {data.costCards.length === 0 ? <p className="text-sm text-gray-500">No approved product cost sheet yet.</p> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
         <form action={createWorkEntryAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">3. Completed work</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">5. Completed work</h2>
           <p className="mt-1 text-sm text-gray-500">Enter only when the worker hands over completed work. Owner approval is immediate.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="employeeId" className={input} required defaultValue="">
@@ -220,7 +296,7 @@ export default async function ProductionAccountsPage() {
         </form>
 
         <form action={createWorkerPaymentAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">4. Worker cash</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">6. Worker cash</h2>
           <p className="mt-1 text-sm text-gray-500">Cash paid is separate from work earned and automatically reduces the balance.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="employeeId" className={input} required defaultValue="">

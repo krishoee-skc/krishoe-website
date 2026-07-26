@@ -11,8 +11,10 @@ import {
   addProductionItem,
   addWorkerPayment,
   approvePackingQcAndPostStock,
+  approveProductionCostCard,
   mapProductionItemToCatalog,
   setProductionStageRate,
+  setProductionItemMaterial,
 } from "@/lib/production-accounting";
 import {
   productionStages,
@@ -119,6 +121,44 @@ export async function saveStageRateAction(formData: FormData) {
   await recordAdminAuditEvent(
     "production_stage_rate_save",
     `${stage} wage set to Rs. ${ratePerPair}/pair.`,
+  );
+  refresh();
+}
+
+export async function saveItemMaterialAction(formData: FormData) {
+  await ownerContext();
+  const itemId = text(formData, "itemId");
+  const materialId = text(formData, "materialId");
+  if (!itemId || !materialId) throw new Error("Item and raw material are required.");
+
+  await setProductionItemMaterial({
+    itemId,
+    materialId,
+    quantityPerPair: amount(formData, "quantityPerPair"),
+    wastagePercent: amount(formData, "wastagePercent"),
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_item_material_save",
+    `Material ${materialId} recipe saved for production item ${itemId}.`,
+  );
+  refresh();
+}
+
+export async function approveCostCardAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const card = await approveProductionCostCard({
+    itemId: text(formData, "itemId"),
+    effectiveFrom: text(formData, "effectiveFrom"),
+    otherDirectCostPerPair: amount(formData, "otherDirectCostPerPair"),
+    wholesaleProfitPercent: amount(formData, "wholesaleProfitPercent"),
+    retailExtraAmount: amount(formData, "retailExtraAmount"),
+    approvedBy,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_cost_card_approve",
+    `${card.itemName} cost approved: making Rs. ${card.makingCostPerPair}, wholesale Rs. ${card.wholesalePrice}, retail Rs. ${card.retailPrice}.`,
   );
   refresh();
 }

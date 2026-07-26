@@ -639,6 +639,43 @@ CREATE TABLE IF NOT EXISTS production_stage_rates (
 CREATE INDEX IF NOT EXISTS production_stage_rates_item_idx
   ON production_stage_rates(item_id, stage, effective_from DESC);
 
+CREATE TABLE IF NOT EXISTS production_item_materials (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
+  material_id TEXT NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  material_name_snapshot TEXT NOT NULL,
+  unit_snapshot TEXT NOT NULL,
+  quantity_per_pair NUMERIC NOT NULL CHECK (quantity_per_pair > 0),
+  wastage_percent NUMERIC NOT NULL DEFAULT 0 CHECK (wastage_percent >= 0),
+  note TEXT NOT NULL DEFAULT '',
+  UNIQUE (item_id, material_id)
+);
+
+CREATE INDEX IF NOT EXISTS production_item_materials_item_idx ON production_item_materials(item_id);
+
+CREATE TABLE IF NOT EXISTS production_cost_cards (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
+  item_name_snapshot TEXT NOT NULL,
+  material_cost_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (material_cost_per_pair >= 0),
+  labor_cost_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (labor_cost_per_pair >= 0),
+  other_direct_cost_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (other_direct_cost_per_pair >= 0),
+  making_cost_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (making_cost_per_pair >= 0),
+  wholesale_profit_percent NUMERIC NOT NULL DEFAULT 0 CHECK (wholesale_profit_percent >= 0),
+  wholesale_price NUMERIC NOT NULL DEFAULT 0 CHECK (wholesale_price >= 0),
+  retail_extra_amount NUMERIC NOT NULL DEFAULT 0 CHECK (retail_extra_amount >= 0),
+  retail_price NUMERIC NOT NULL DEFAULT 0 CHECK (retail_price >= 0),
+  approved_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS production_cost_cards_item_idx
+  ON production_cost_cards(item_id, effective_from DESC, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS production_work_entries (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
