@@ -49,6 +49,19 @@ export type WorkerBalance = {
   balance: number;
 };
 
+export type WorkerPayment = {
+  id: string;
+  paymentDate: string;
+  employeeId: string;
+  employeeName: string;
+  paymentType: WorkerPaymentType;
+  direction: WorkerPaymentDirection;
+  amount: number;
+  receiptNumber: string;
+  approvedBy: string;
+  note: string;
+};
+
 type ItemRow = {
   id: string;
   name: string;
@@ -88,6 +101,19 @@ type BalanceRow = {
   balance: number | string;
 };
 
+type PaymentRow = {
+  id: string;
+  payment_date: Date | string;
+  employee_id: string;
+  employee_name_snapshot: string;
+  payment_type: WorkerPaymentType;
+  direction: WorkerPaymentDirection;
+  amount: number | string;
+  receipt_number: string;
+  approved_by: string;
+  note: string;
+};
+
 function numeric(value: number | string) {
   return Math.round(Number(value) * 100) / 100;
 }
@@ -101,7 +127,7 @@ function id(prefix: string) {
 }
 
 export async function getProductionAccountingSnapshot() {
-  const [items, rates, workEntries, balances, hr] = await Promise.all([
+  const [items, rates, workEntries, payments, balances, hr] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
       `SELECT id, name, category, production_type, size_group, status
@@ -122,6 +148,14 @@ export async function getProductionAccountingSnapshot() {
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
        ORDER BY work_date DESC, created_at DESC LIMIT 30`,
+    ),
+    queryPostgres<PaymentRow>(
+      "recent worker payments",
+      `SELECT id, payment_date, employee_id, employee_name_snapshot,
+         payment_type, direction, amount, receipt_number, approved_by, note
+       FROM worker_payments
+       WHERE reversed_at IS NULL
+       ORDER BY payment_date DESC, created_at DESC LIMIT 30`,
     ),
     queryPostgres<BalanceRow>(
       "worker balances",
@@ -180,6 +214,7 @@ export async function getProductionAccountingSnapshot() {
       earnedWage: numeric(row.earned_wage),
       status: row.status,
     })),
+    payments: payments.map(paymentFromRow),
     balances: balances.map((row) => ({
       employeeId: row.employee_id,
       employeeName: row.employee_name,
@@ -188,6 +223,125 @@ export async function getProductionAccountingSnapshot() {
       balance: numeric(row.balance),
     })),
     employees: hr.employees.filter((employee) => employee.status === "Active"),
+  };
+}
+
+function paymentFromRow(row: PaymentRow): WorkerPayment {
+  return {
+    id: row.id,
+    paymentDate: isoDate(row.payment_date),
+    employeeId: row.employee_id,
+    employeeName: row.employee_name_snapshot,
+    paymentType: row.payment_type,
+    direction: row.direction,
+    amount: numeric(row.amount),
+    receiptNumber: row.receipt_number,
+    approvedBy: row.approved_by,
+    note: row.note,
+  };
+}
+
+function workFromRow(row: WorkRow): WorkEntry {
+  return {
+    id: row.id,
+    workDate: isoDate(row.work_date),
+    employeeId: row.employee_id,
+    employeeName: row.employee_name_snapshot,
+    itemName: row.item_name_snapshot,
+    stage: row.stage,
+    totalPairs: Number(row.total_pairs),
+    rejectedPairs: Number(row.rejected_pairs),
+    ratePerPair: numeric(row.rate_per_pair_snapshot),
+    earnedWage: numeric(row.earned_wage),
+    status: row.status,
+  };
+}
+
+export async function getWorkerProductionAccount(
+  employeeId: string,
+  period: { start: string; end: string },
+) {
+  const hr = await getHrData();
+  const employee = hr.employees.find((row) => row.id === employeeId);
+  if (!employee) return null;
+
+  const [allWork, allPayments, periodWork, periodPayments] = await Promise.all([
+    queryPostgres<WorkRow>(
+      "worker work ledger",
+      `SELECT id, work_date, employee_id, employee_name_snapshot,
+         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         rate_per_pair_snapshot, earned_wage, status
+       FROM production_work_entries
+       WHERE employee_id = $1 ORDER BY work_date DESC, created_at DESC LIMIT 100`,
+      [employeeId],
+    ),
+    queryPostgres<PaymentRow>(
+      "worker payment ledger",
+      `SELECT id, payment_date, employee_id, employee_name_snapshot,
+         payment_type, direction, amount, receipt_number, approved_by, note
+       FROM worker_payments
+       WHERE employee_id = $1 AND reversed_at IS NULL
+       ORDER BY payment_date DESC, created_at DESC LIMIT 100`,
+      [employeeId],
+    ),
+    queryPostgres<WorkRow>(
+      "worker Friday work statement",
+      `SELECT id, work_date, employee_id, employee_name_snapshot,
+         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         rate_per_pair_snapshot, earned_wage, status
+       FROM production_work_entries
+       WHERE employee_id = $1 AND status = 'Approved'
+         AND work_date BETWEEN $2::date AND $3::date
+       ORDER BY work_date, created_at`,
+      [employeeId, period.start, period.end],
+    ),
+    queryPostgres<PaymentRow>(
+      "worker Friday payment statement",
+      `SELECT id, payment_date, employee_id, employee_name_snapshot,
+         payment_type, direction, amount, receipt_number, approved_by, note
+       FROM worker_payments
+       WHERE employee_id = $1 AND reversed_at IS NULL
+         AND payment_date BETWEEN $2::date AND $3::date
+       ORDER BY payment_date, created_at`,
+      [employeeId, period.start, period.end],
+    ),
+  ]);
+
+  const work = allWork.map(workFromRow);
+  const payments = allPayments.map(paymentFromRow);
+  const weekWork = periodWork.map(workFromRow);
+  const weekPayments = periodPayments.map(paymentFromRow);
+  const totalEarned = work
+    .filter((row) => row.status === "Approved")
+    .reduce((total, row) => total + row.earnedWage, 0);
+  const totalPaid = payments.reduce(
+    (total, row) => total + (row.direction === "Added" ? -row.amount : row.amount),
+    0,
+  );
+
+  return {
+    employee,
+    work,
+    payments,
+    period,
+    statement: {
+      pairs: weekWork.reduce((total, row) => total + row.totalPairs, 0),
+      rejectedPairs: weekWork.reduce((total, row) => total + row.rejectedPairs, 0),
+      earned: numeric(weekWork.reduce((total, row) => total + row.earnedWage, 0)),
+      paid: numeric(
+        weekPayments.reduce(
+          (total, row) => total + (row.direction === "Added" ? -row.amount : row.amount),
+          0,
+        ),
+      ),
+      work: weekWork,
+      payments: weekPayments,
+    },
+    lifetime: {
+      earned: numeric(totalEarned),
+      paid: numeric(totalPaid),
+      balance: numeric(totalEarned - totalPaid),
+    },
   };
 }
 

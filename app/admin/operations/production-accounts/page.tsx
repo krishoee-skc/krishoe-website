@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   createProductionItemAction,
@@ -134,16 +135,64 @@ export default async function ProductionAccountsPage() {
         <h2 className="text-lg font-black text-brand-green-ink">Worker balance</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {data.balances.map((row) => (
-            <article key={row.employeeId} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <Link
+              key={row.employeeId}
+              href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}`}
+              className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-brand-green"
+            >
               <p className="font-black text-brand-green-ink">{row.employeeName}</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                 <div><span className="text-gray-500">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
                 <div><span className="text-gray-500">Cash/adjustment</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
                 <div><span className="text-gray-500">Balance</span><p className={`mt-1 font-black ${row.balance < 0 ? "text-brand-clay" : "text-brand-green"}`}>{money(row.balance)}</p></div>
               </div>
-            </article>
+              <p className="mt-3 text-xs font-black text-brand-green">Open full ledger →</p>
+            </Link>
           ))}
           {data.balances.length === 0 ? <p className="text-sm text-gray-500">No worker ledger yet. The clean start begins at zero.</p> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <div className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">Current item-stage rates</h2>
+          <div className="mt-4 space-y-2">
+            {data.rates.map((rate) => {
+              const item = data.items.find((row) => row.id === rate.itemId);
+              return (
+                <div key={rate.id} className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm">
+                  <div>
+                    <p className="font-black text-brand-green-ink">{item?.name ?? "Unknown item"}</p>
+                    <p className="text-gray-500">{rate.stage} · from {rate.effectiveFrom}</p>
+                  </div>
+                  <p className="font-black text-brand-green">{money(rate.ratePerPair)}/pair</p>
+                </div>
+              );
+            })}
+            {data.rates.length === 0 ? <p className="text-sm text-gray-500">No stage wage rate yet.</p> : null}
+          </div>
+        </div>
+
+        <div className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">Recent cash & adjustments</h2>
+          <div className="mt-4 space-y-2">
+            {data.payments.map((payment) => (
+              <Link
+                key={payment.id}
+                href={`/admin/operations/production-accounts/worker/${encodeURIComponent(payment.employeeId)}`}
+                className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm transition hover:bg-brand-green-wash"
+              >
+                <div>
+                  <p className="font-black text-brand-green-ink">{payment.employeeName} · {payment.paymentType}</p>
+                  <p className="text-gray-500">{payment.paymentDate} · {payment.receiptNumber}</p>
+                </div>
+                <p className={payment.direction === "Added" ? "font-black text-brand-green" : "font-black text-brand-clay"}>
+                  {payment.direction === "Added" ? "+" : "−"}{money(payment.amount)}
+                </p>
+              </Link>
+            ))}
+            {data.payments.length === 0 ? <p className="text-sm text-gray-500">No cash entry yet.</p> : null}
+          </div>
         </div>
       </div>
 
