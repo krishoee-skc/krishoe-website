@@ -16,6 +16,7 @@ import {
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
   postFactoryMaterialIssue,
+  postFactoryFinishedStock,
   returnFactoryMaterialIssue,
   verifyFactoryProductionEntry,
   upsertFactoryBomLine,
@@ -32,6 +33,7 @@ import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
 import { getPurchasingData } from "@/lib/purchasing";
 import { buildMaterialCostRates } from "@/lib/costing";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -464,4 +466,28 @@ export async function finalizeFactoryMaterialIssueAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?materialFinalized=${encodeURIComponent(finalized.id)}`);
+}
+
+export async function postFactoryFinishedStockAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === text(formData, "workOrderId"),
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const result = await postFactoryFinishedStock({
+    data: factory,
+    workOrder,
+    postedBy: session.name || session.email || "Owner",
+  });
+  await syncProductCatalogStockWithFinishedStock();
+  await recordAdminAuditEvent(
+    "factory_finished_stock_post",
+    `${workOrder.workOrderNumber}: ${result.postedPairs} ${workOrder.itemName} pairs posted size-wise to finished stock and catalog synchronized.`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath("/admin/stock");
+  revalidatePath("/admin/operations");
+  revalidatePath("/shop");
+  redirect(`/admin/factory?stockPosted=${encodeURIComponent(workOrder.workOrderNumber)}`);
 }

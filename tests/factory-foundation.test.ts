@@ -12,6 +12,8 @@ import {
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
   validateFactoryRelease,
+  validateFactoryStockPosting,
+  type FactoryData,
   type FactoryMaterialIssue,
 } from "@/lib/factory";
 import type { Employee } from "@/lib/hr";
@@ -398,5 +400,76 @@ describe("factory material issue safeguards", () => {
         finalizedBy: "Owner",
       }),
     ).rejects.toThrow("must equal");
+  });
+});
+
+describe("finished stock posting safeguards", () => {
+  it("accepts one reconciled packing approval with finalized materials", () => {
+    const workOrder = {
+      id: "wo-stock",
+      workOrderNumber: "WO-STOCK",
+      lotNumber: "LOT-STOCK",
+      itemId: "item-1",
+      itemCode: "LH-01",
+      itemName: "Ladies Heel",
+      color: "Black",
+      createdDate: "2026-07-26",
+      dueDate: "2026-07-27",
+      priority: "Normal" as const,
+      currentStageCode: "packing" as const,
+      status: "Ready for Stock" as const,
+      totalPairs: 10,
+      remarks: "",
+      createdBy: "Owner",
+    };
+    const data = {
+      workOrderSizes: [
+        { id: "s36", workOrderId: workOrder.id, size: "36", plannedPairs: 4 },
+        { id: "s37", workOrderId: workOrder.id, size: "37", plannedPairs: 6 },
+      ],
+      packingApprovals: [
+        {
+          id: "pack-1",
+          workOrderId: workOrder.id,
+          packingAssignmentId: "assignment-1",
+          approvedPairs: 10,
+          approvedBy: "Packing",
+          stockMovementIds: [],
+          stockPostedBy: "",
+          stockPostedAt: "",
+          note: "",
+          createdAt: "2026-07-26T00:00:00.000Z",
+        },
+      ],
+      materialIssues: [
+        {
+          id: "issue-stock",
+          workOrderId: workOrder.id,
+          materialId: "rm-1",
+          materialName: "Rexine",
+          unit: "meter",
+          quantity: 8,
+          unitCostSnapshot: 100,
+          totalCost: 800,
+          status: "Posted",
+          postedBy: "Owner",
+          postedAt: "2026-07-26T00:00:00.000Z",
+          returnedQuantity: 0,
+          finalizedBy: "Owner",
+          finalizedAt: "2026-07-26T01:00:00.000Z",
+          consumedQuantity: 8,
+          wastageQuantity: 0,
+          note: "",
+          createdBy: "Owner",
+          createdAt: "2026-07-26T00:00:00.000Z",
+        },
+      ],
+    } as unknown as FactoryData;
+
+    expect(validateFactoryStockPosting(data, workOrder).sizes).toHaveLength(2);
+    data.packingApprovals[0].stockPostedAt = "2026-07-26T02:00:00.000Z";
+    expect(() => validateFactoryStockPosting(data, workOrder)).toThrow(
+      "already posted",
+    );
   });
 });

@@ -4,6 +4,7 @@ import { writeFileAtomic } from "@/lib/atomic-json";
 import { runWithDataBackend } from "@/lib/data-backend";
 import type { Employee } from "@/lib/hr";
 import type { ProductionBatch, WorkerTask } from "@/lib/operations";
+import { insertStockMovement } from "@/lib/operations-postgres";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
 export type FactoryItemStatus = "Active" | "Inactive";
@@ -120,6 +121,9 @@ export type FactoryPackingApproval = {
   packingAssignmentId: string;
   approvedPairs: number;
   approvedBy: string;
+  stockMovementIds: string[];
+  stockPostedBy: string;
+  stockPostedAt: string;
   note: string;
   createdAt: string;
 };
@@ -498,6 +502,9 @@ type FactoryPackingApprovalRow = {
   packing_assignment_id: string;
   approved_pairs: number | string;
   approved_by: string;
+  stock_movement_ids: string[];
+  stock_posted_by: string;
+  stock_posted_at: Date | string | null;
   note: string;
   created_at: Date | string;
 };
@@ -609,7 +616,8 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     queryPostgres<FactoryPackingApprovalRow>(
       "factory",
       `SELECT id, work_order_id, packing_assignment_id, approved_pairs,
-        approved_by, note, created_at
+        approved_by, stock_movement_ids, stock_posted_by, stock_posted_at,
+        note, created_at
        FROM factory_packing_approvals ORDER BY created_at DESC`,
     ),
     queryPostgres<FactoryMaterialIssueRow>(
@@ -779,6 +787,12 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       packingAssignmentId: row.packing_assignment_id,
       approvedPairs: Number(row.approved_pairs),
       approvedBy: row.approved_by,
+      stockMovementIds: row.stock_movement_ids ?? [],
+      stockPostedBy: row.stock_posted_by,
+      stockPostedAt:
+        row.stock_posted_at instanceof Date
+          ? row.stock_posted_at.toISOString()
+          : (row.stock_posted_at ?? ""),
       note: row.note,
       createdAt:
         row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
@@ -1808,6 +1822,9 @@ export async function approveFactoryPacking(input: {
     packingAssignmentId: readiness.packingAssignment.id,
     approvedPairs: readiness.approvedPairs,
     approvedBy: input.approvedBy.trim(),
+    stockMovementIds: [],
+    stockPostedBy: "",
+    stockPostedAt: "",
     note: input.note.trim(),
     createdAt: new Date().toISOString(),
   };
@@ -1894,6 +1911,184 @@ export async function approveFactoryPacking(input: {
           [approval.workOrderId],
         );
         return approval;
+      }),
+  });
+}
+
+export function validateFactoryStockPosting(
+  data: FactoryData,
+  workOrder: FactoryWorkOrder,
+) {
+  if (workOrder.status !== "Ready for Stock") {
+    throw new Error("Only a Work Order marked Ready for Stock can be posted.");
+  }
+  const approval = data.packingApprovals.find(
+    (entry) => entry.workOrderId === workOrder.id,
+  );
+  if (!approval) throw new Error("Packing approval was not found.");
+  if (approval.stockPostedAt || approval.stockMovementIds.length > 0) {
+    throw new Error("This Work Order is already posted to finished stock.");
+  }
+  const sizes = data.workOrderSizes.filter(
+    (entry) => entry.workOrderId === workOrder.id && entry.plannedPairs > 0,
+  );
+  if (
+    sizes.length === 0 ||
+    sizes.reduce((sum, entry) => sum + entry.plannedPairs, 0) !==
+      approval.approvedPairs
+  ) {
+    throw new Error("Size plan no longer reconciles with packing approval.");
+  }
+  const issues = data.materialIssues.filter(
+    (entry) => entry.workOrderId === workOrder.id && entry.status !== "Cancelled",
+  );
+  if (issues.length === 0) {
+    throw new Error("Raw materials must be issued and finalized before stock posting.");
+  }
+  if (issues.some((entry) => entry.status !== "Posted" || !entry.finalizedAt)) {
+    throw new Error("Finalize every raw-material issue before stock posting.");
+  }
+  return { approval, sizes };
+}
+
+export async function postFactoryFinishedStock(input: {
+  data: FactoryData;
+  workOrder: FactoryWorkOrder;
+  postedBy: string;
+}) {
+  const posting = validateFactoryStockPosting(input.data, input.workOrder);
+  const postedAt = new Date().toISOString();
+  const movementNote = `Factory ${input.workOrder.workOrderNumber} · ${input.workOrder.color}`;
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const operations = await import("@/lib/operations");
+      const liveData = await readLocalFactoryData();
+      const liveOrder = liveData.workOrders.find(
+        (entry) => entry.id === input.workOrder.id,
+      );
+      if (!liveOrder) throw new Error("Work Order was not found.");
+      const livePosting = validateFactoryStockPosting(liveData, liveOrder);
+      const movements = [];
+      for (const size of livePosting.sizes) {
+        movements.push(
+          await operations.addStockMovement({
+            design: liveOrder.itemName,
+            channel: "Factory",
+            sizeRun: size.size,
+            type: "Production In",
+            pairs: size.plannedPairs,
+            note: movementNote,
+          }),
+        );
+      }
+      livePosting.approval.stockMovementIds = movements.map((entry) => entry.id);
+      livePosting.approval.stockPostedBy = input.postedBy.trim();
+      livePosting.approval.stockPostedAt = postedAt;
+      liveOrder.status = "Completed";
+      await writeFileAtomic(factoryDataPath, JSON.stringify(liveData, null, 2));
+      return {
+        approval: livePosting.approval,
+        movements,
+        postedPairs: movements.reduce((sum, entry) => sum + entry.pairs, 0),
+      };
+    },
+    postgres: () =>
+      transactionPostgres("factory finished stock", async (db) => {
+        const approvals = await db.query<{
+          id: string;
+          approved_pairs: number | string;
+          stock_movement_ids: string[];
+          stock_posted_at: Date | string | null;
+        }>(
+          `SELECT id, approved_pairs, stock_movement_ids, stock_posted_at
+           FROM factory_packing_approvals
+           WHERE work_order_id = $1 FOR UPDATE`,
+          [input.workOrder.id],
+        );
+        const approval = approvals[0];
+        if (
+          !approval ||
+          approval.stock_posted_at ||
+          (approval.stock_movement_ids ?? []).length > 0
+        ) {
+          throw new Error("Packing approval was not found or stock is already posted.");
+        }
+        const orders = await db.query<{ status: FactoryWorkOrderStatus }>(
+          "SELECT status FROM factory_work_orders WHERE id = $1 FOR UPDATE",
+          [input.workOrder.id],
+        );
+        if (orders[0]?.status !== "Ready for Stock") {
+          throw new Error("Work Order is no longer Ready for Stock.");
+        }
+        const sizes = await db.query<{ size: string; planned_pairs: number | string }>(
+          `SELECT size, planned_pairs FROM factory_work_order_sizes
+           WHERE work_order_id = $1 AND planned_pairs > 0 ORDER BY size`,
+          [input.workOrder.id],
+        );
+        const sizeTotal = sizes.reduce(
+          (sum, entry) => sum + Number(entry.planned_pairs),
+          0,
+        );
+        if (sizes.length === 0 || sizeTotal !== Number(approval.approved_pairs)) {
+          throw new Error("Size plan no longer reconciles with packing approval.");
+        }
+        const materialState = await db.query<{
+          active_count: number | string;
+          pending_count: number | string;
+        }>(
+          `SELECT
+             COUNT(*) FILTER (WHERE status <> 'Cancelled') AS active_count,
+             COUNT(*) FILTER (
+               WHERE status <> 'Cancelled'
+                 AND (status <> 'Posted' OR finalized_at IS NULL)
+             ) AS pending_count
+           FROM factory_material_issues WHERE work_order_id = $1`,
+          [input.workOrder.id],
+        );
+        if (
+          Number(materialState[0]?.active_count ?? 0) === 0 ||
+          Number(materialState[0]?.pending_count ?? 0) > 0
+        ) {
+          throw new Error("Raw-material issues must be finalized before stock posting.");
+        }
+        const movements = [];
+        for (const size of sizes) {
+          movements.push(
+            await insertStockMovement(db, {
+              design: input.workOrder.itemName,
+              channel: "Factory",
+              sizeRun: size.size,
+              type: "Production In",
+              pairs: Number(size.planned_pairs),
+              note: movementNote,
+            }),
+          );
+        }
+        const movementIds = movements.map((entry) => entry.id);
+        await db.query(
+          `UPDATE factory_packing_approvals
+           SET stock_movement_ids = $2, stock_posted_by = $3,
+             stock_posted_at = $4
+           WHERE id = $1 AND stock_posted_at IS NULL`,
+          [approval.id, movementIds, input.postedBy.trim(), postedAt],
+        );
+        await db.query(
+          `UPDATE factory_work_orders
+           SET status = 'Completed', updated_at = now() WHERE id = $1`,
+          [input.workOrder.id],
+        );
+        return {
+          approval: {
+            ...posting.approval,
+            stockMovementIds: movementIds,
+            stockPostedBy: input.postedBy.trim(),
+            stockPostedAt: postedAt,
+          },
+          movements,
+          postedPairs: sizeTotal,
+        };
       }),
   });
 }

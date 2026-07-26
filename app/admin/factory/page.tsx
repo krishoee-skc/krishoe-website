@@ -8,6 +8,7 @@ import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
 import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
 import MaterialIssuePostingControls from "@/app/admin/factory/MaterialIssuePostingControls";
+import FinishedStockPostingForm from "@/app/admin/factory/FinishedStockPostingForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -75,6 +76,7 @@ export default async function FactoryErpPage({
     materialPosted?: string;
     materialReturned?: string;
     materialFinalized?: string;
+    stockPosted?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -492,6 +494,11 @@ export default async function FactoryErpPage({
               Material consumption and wastage finalized with an audit record.
             </p>
           ) : null}
+          {params?.stockPosted ? (
+            <p className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
+              {params.stockPosted} posted size-wise to finished stock. Operations, POS and shop stock are synchronized.
+            </p>
+          ) : null}
           <div className="mt-5">
             <WorkOrderForm
               items={factory.items
@@ -526,6 +533,18 @@ export default async function FactoryErpPage({
               const item = factory.items.find((entry) => entry.id === order.itemId);
               const assignments = factory.stageAssignments.filter((entry) => entry.workOrderId === order.id);
               const packingReadiness = getFactoryPackingReadiness(factory, order);
+              const packingApproval = factory.packingApprovals.find(
+                (entry) => entry.workOrderId === order.id,
+              );
+              const activeMaterialIssues = factory.materialIssues.filter(
+                (entry) =>
+                  entry.workOrderId === order.id && entry.status !== "Cancelled",
+              );
+              const materialsFinalized =
+                activeMaterialIssues.length > 0 &&
+                activeMaterialIssues.every(
+                  (entry) => entry.status === "Posted" && Boolean(entry.finalizedAt),
+                );
               const verifiedWage = factory.productionEntries
                 .filter(
                   (entry) =>
@@ -663,6 +682,29 @@ export default async function FactoryErpPage({
                           ))}
                       </div>
                     </details>
+                  ) : null}
+                  {packingApproval ? (
+                    packingApproval.stockPostedAt ? (
+                      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+                        Stock posted: {packingApproval.approvedPairs} pairs ·{" "}
+                        {packingApproval.stockMovementIds.length} size movements · by{" "}
+                        {packingApproval.stockPostedBy} ·{" "}
+                        {new Date(packingApproval.stockPostedAt).toLocaleString("en-NP")}
+                      </p>
+                    ) : (
+                      <FinishedStockPostingForm
+                        workOrderId={order.id}
+                        pairs={packingApproval.approvedPairs}
+                        canPost={
+                          order.status === "Ready for Stock" && materialsFinalized
+                        }
+                        message={
+                          materialsFinalized
+                            ? "Packing and material reconciliation are complete. Owner confirmation will increase finished stock."
+                            : "Post and finalize every raw-material issue before finished stock can increase."
+                        }
+                      />
+                    )
                   ) : null}
                   {order.status === "Draft" && item ? (
                     <WorkOrderReleaseForm

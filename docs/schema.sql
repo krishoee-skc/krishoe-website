@@ -842,9 +842,19 @@ CREATE TABLE IF NOT EXISTS factory_packing_approvals (
     REFERENCES factory_stage_assignments(id) ON DELETE RESTRICT,
   approved_pairs INTEGER NOT NULL CHECK (approved_pairs > 0),
   approved_by TEXT NOT NULL,
+  stock_movement_ids TEXT[] NOT NULL DEFAULT '{}',
+  stock_posted_by TEXT NOT NULL DEFAULT '',
+  stock_posted_at TIMESTAMPTZ,
   note TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE factory_packing_approvals
+  ADD COLUMN IF NOT EXISTS stock_movement_ids TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE factory_packing_approvals
+  ADD COLUMN IF NOT EXISTS stock_posted_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_packing_approvals
+  ADD COLUMN IF NOT EXISTS stock_posted_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS factory_packing_approvals_created_idx
   ON factory_packing_approvals(created_at DESC);
