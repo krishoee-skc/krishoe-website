@@ -235,6 +235,59 @@ export default async function FactoryErpPage({
         </div>
       </article>
 
+      <article
+        id="factory-bottlenecks"
+        className={`mt-6 rounded-3xl border p-5 shadow-sm sm:p-6 ${
+          dashboard.pausedStages.length > 0
+            ? "border-red-200 bg-gradient-to-br from-red-50 to-white"
+            : "border-emerald-200 bg-emerald-50"
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-red-700">
+              Bottleneck board
+            </p>
+            <h2 className="mt-2 text-xl font-black text-brand-green-ink">
+              Paused production stages
+            </h2>
+          </div>
+          <span className="rounded-full bg-red-700 px-3 py-1.5 text-xs font-black text-white">
+            {dashboard.pausedStages.length} blocked
+          </span>
+        </div>
+        {dashboard.pausedStages.length > 0 ? (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {dashboard.pausedStages.map((stage) => (
+              <Link
+                key={stage.assignmentId}
+                href={factoryWorkOrderTracePath(stage.workOrderId)}
+                className="rounded-2xl border border-red-100 bg-white p-4 transition hover:border-red-300"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-red-700">
+                      {stage.workOrderNumber}
+                    </p>
+                    <p className="mt-1 font-black text-brand-green-ink">
+                      {stage.stageName} - {stage.workerName}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900">
+                    {stage.pausedHours}h paused
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-red-800">{stage.reason}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm font-bold text-emerald-800">
+            No active production stage is paused.
+          </p>
+        )}
+      </article>
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Active employees"

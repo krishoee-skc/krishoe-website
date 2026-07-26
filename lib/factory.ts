@@ -519,6 +519,17 @@ export type FactoryDashboard = {
   estimatedWagesPending: number;
   workersWithoutEntry: number;
   materialVarianceLines: number;
+  pausedStages: Array<{
+    assignmentId: string;
+    workOrderId: string;
+    workOrderNumber: string;
+    stageCode: FactoryStageCode;
+    stageName: string;
+    workerName: string;
+    reason: string;
+    pausedAt: string;
+    pausedHours: number;
+  }>;
   stagePending: Array<{
     stageCode: FactoryStageCode;
     stageName: string;
@@ -765,6 +776,7 @@ export function getFactoryPerformanceReport(
 export function getFactoryDashboard(
   data: FactoryData,
   today = new Date().toISOString().slice(0, 10),
+  now = new Date(),
 ): FactoryDashboard {
   const activeOrderIds = new Set(
     data.workOrders
@@ -865,6 +877,39 @@ export function getFactoryDashboard(
       (entry) => Math.abs(entry.varianceQuantity) > 0.0001,
     ).length;
   }
+  const ordersById = new Map(data.workOrders.map((order) => [order.id, order]));
+  const pausedStages = data.stageAssignments
+    .filter(
+      (assignment) =>
+        assignment.status === "Paused" &&
+        activeOrderIds.has(assignment.workOrderId),
+    )
+    .map((assignment) => {
+      const order = ordersById.get(assignment.workOrderId);
+      const pausedTime = assignment.pausedAt
+        ? new Date(assignment.pausedAt).getTime()
+        : Number.NaN;
+      return {
+        assignmentId: assignment.id,
+        workOrderId: assignment.workOrderId,
+        workOrderNumber: order?.workOrderNumber ?? assignment.workOrderId,
+        stageCode: assignment.stageCode,
+        stageName:
+          factoryStages.find((stage) => stage.code === assignment.stageCode)?.name ??
+          assignment.stageCode,
+        workerName: assignment.workerName,
+        reason: assignment.pauseReason || "Reason not recorded",
+        pausedAt: assignment.pausedAt || "",
+        pausedHours: Number.isFinite(pausedTime)
+          ? Math.max(0, Math.floor((now.getTime() - pausedTime) / 3_600_000))
+          : 0,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.pausedHours - left.pausedHours ||
+        left.workOrderNumber.localeCompare(right.workOrderNumber),
+    );
 
   return {
     todayGoodPairs: todayVerified.reduce((sum, entry) => sum + entry.goodPairs, 0),
@@ -885,6 +930,7 @@ export function getFactoryDashboard(
       (workerId) => !workersWithEntryToday.has(workerId),
     ).length,
     materialVarianceLines,
+    pausedStages,
     stagePending,
     topOutputWorker: topOutput
       ? { workerName: topOutput[0], pairs: topOutput[1] }

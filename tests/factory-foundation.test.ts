@@ -680,6 +680,7 @@ describe("factory command dashboard", () => {
     expect(dashboard.overdueWorkOrders).toBe(1);
     expect(dashboard.readyForStockPairs).toBe(12);
     expect(dashboard.workersWithoutEntry).toBe(1);
+    expect(dashboard.pausedStages).toEqual([]);
     expect(
       dashboard.stagePending.find((entry) => entry.stageCode === "upper")
         ?.pendingPairs,

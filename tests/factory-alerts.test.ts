@@ -30,6 +30,17 @@ describe("Factory operational alerts", () => {
           targetPairs: 10,
           status: "In Progress",
         },
+        {
+          id: "assignment-paused",
+          workOrderId: "wo-overdue",
+          stageCode: "upper",
+          workerId: "worker-2",
+          workerName: "Mina",
+          targetPairs: 10,
+          status: "Paused",
+          pauseReason: "Material shortage",
+          pausedAt: "2026-07-25T00:00:00.000Z",
+        },
       ],
       productionEntries: [
         {
@@ -79,6 +90,7 @@ describe("Factory operational alerts", () => {
     expect(alerts.map((alert) => alert.id)).toEqual(
       expect.arrayContaining([
         "factory-overdue-work-orders",
+        "factory-paused-stages",
         "factory-qc-pending",
         "factory-ready-stock-pending",
         "factory-material-variance",

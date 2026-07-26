@@ -983,6 +983,19 @@ export function buildFactoryOperationalAlerts(
       amount: dashboard.overdueWorkOrders,
     });
   }
+  if (dashboard.pausedStages.length > 0) {
+    const oldest = dashboard.pausedStages[0];
+    alerts.push({
+      id: "factory-paused-stages",
+      category: "factory",
+      severity: "critical",
+      title: "Factory production stage paused",
+      detail: `${dashboard.pausedStages.length} active stage(s) are blocked. Oldest: ${oldest.workOrderNumber} ${oldest.stageName}, ${oldest.pausedHours} hour(s).`,
+      action: "Review the bottleneck reason and resume only after the issue is solved.",
+      href: "/admin/factory#factory-bottlenecks",
+      amount: dashboard.pausedStages.length,
+    });
+  }
   if (dashboard.pendingVerificationEntries > 0) {
     alerts.push({
       id: "factory-qc-pending",
