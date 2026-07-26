@@ -507,6 +507,50 @@ export function filterFactoryWorkOrders(
   });
 }
 
+export function getFactoryStationAssignments(
+  data: Pick<FactoryData, "workOrders" | "stageAssignments">,
+  filters: {
+    query?: string;
+    workerId?: string;
+    stageCode?: FactoryStageCode | "";
+  } = {},
+) {
+  const orderById = new Map(data.workOrders.map((order) => [order.id, order]));
+  const query = filters.query?.trim().toLocaleLowerCase() ?? "";
+  return data.stageAssignments
+    .filter((assignment) => {
+      const order = orderById.get(assignment.workOrderId);
+      if (
+        !order ||
+        ["Completed", "Cancelled", "Draft"].includes(order.status) ||
+        order.currentStageCode !== assignment.stageCode ||
+        !["Ready", "In Progress", "Paused"].includes(assignment.status)
+      ) {
+        return false;
+      }
+      if (filters.workerId && assignment.workerId !== filters.workerId) return false;
+      if (filters.stageCode && assignment.stageCode !== filters.stageCode) return false;
+      if (!query) return true;
+      return [
+        order.workOrderNumber,
+        order.lotNumber,
+        order.itemCode,
+        order.itemName,
+        order.color,
+        assignment.workerName,
+      ].some((value) => value.toLocaleLowerCase().includes(query));
+    })
+    .map((assignment) => ({
+      assignment,
+      workOrder: orderById.get(assignment.workOrderId)!,
+    }))
+    .sort(
+      (left, right) =>
+        left.workOrder.dueDate.localeCompare(right.workOrder.dueDate) ||
+        left.workOrder.workOrderNumber.localeCompare(right.workOrder.workOrderNumber),
+    );
+}
+
 export type FactoryWorkOrderSize = {
   id: string;
   workOrderId: string;

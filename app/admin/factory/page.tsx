@@ -151,12 +151,20 @@ export default async function FactoryErpPage({
           Owner-controlled posting · audit protected
         </div>
         <div className="mt-4">
-          <Link
-            href="/admin/factory/reports?period=daily"
-            className="inline-flex min-h-11 items-center rounded-xl bg-amber-300 px-4 text-sm font-black text-brand-green-ink"
-          >
-            Open daily / weekly / monthly reports
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/factory/station"
+              className="inline-flex min-h-11 items-center rounded-xl bg-white px-4 text-sm font-black text-brand-green-ink"
+            >
+              Open Station Mode
+            </Link>
+            <Link
+              href="/admin/factory/reports?period=daily"
+              className="inline-flex min-h-11 items-center rounded-xl bg-amber-300 px-4 text-sm font-black text-brand-green-ink"
+            >
+              Open daily / weekly / monthly reports
+            </Link>
+          </div>
         </div>
       </header>
 

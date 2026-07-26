@@ -20,6 +20,7 @@ import {
   getFactoryWorkOrderCancellationBlockers,
   getFactoryStagePauseTransition,
   filterFactoryWorkOrders,
+  getFactoryStationAssignments,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -238,6 +239,46 @@ describe("Factory ERP foundation", () => {
         { query: "lot-red" },
       ).map((order) => order.id),
     ).toEqual(["wo-2"]);
+  });
+
+  it("shows only the current active stage in Station Mode", () => {
+    const workOrders = [
+      {
+        id: "wo-station",
+        workOrderNumber: "WO-STATION",
+        lotNumber: "LOT-STATION",
+        itemCode: "LH",
+        itemName: "Ladies Heel",
+        color: "Black",
+        dueDate: "2026-07-27",
+        status: "In Progress",
+        currentStageCode: "fiber-stitching",
+      },
+    ] as FactoryData["workOrders"];
+    const stageAssignments = [
+      {
+        id: "waiting",
+        workOrderId: "wo-station",
+        stageCode: "bottom-lasting",
+        workerId: "emp-2",
+        workerName: "Shyam",
+        status: "Waiting",
+      },
+      {
+        id: "active",
+        workOrderId: "wo-station",
+        stageCode: "fiber-stitching",
+        workerId: "emp-1",
+        workerName: "Ram",
+        status: "In Progress",
+      },
+    ] as FactoryData["stageAssignments"];
+    expect(
+      getFactoryStationAssignments(
+        { workOrders, stageAssignments },
+        { workerId: "emp-1", stageCode: "fiber-stitching" },
+      ).map((row) => row.assignment.id),
+    ).toEqual(["active"]);
   });
 
   it("audits legacy name linkage without mutating records", () => {
