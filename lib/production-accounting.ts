@@ -1279,6 +1279,35 @@ export async function addWorkerPayment(input: {
   return receiptNumber;
 }
 
+export async function reverseWorkerPayment(input: {
+  paymentId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  const rows = await queryPostgres<{
+    receipt_number: string;
+    employee_id: string;
+    employee_name_snapshot: string;
+    amount: number | string;
+  }>(
+    "reverse worker payment",
+    `UPDATE worker_payments
+     SET reversed_at = now(), reversal_reason = $2
+     WHERE id = $1 AND reversed_at IS NULL
+     RETURNING receipt_number, employee_id, employee_name_snapshot, amount`,
+    [input.paymentId, `${input.reason} · Reversed by ${input.reversedBy}`],
+  );
+  if (!rows[0]) {
+    throw new Error("Payment was not found or has already been reversed.");
+  }
+  return {
+    receiptNumber: rows[0].receipt_number,
+    employeeId: rows[0].employee_id,
+    employeeName: rows[0].employee_name_snapshot,
+    amount: numeric(rows[0].amount),
+  };
+}
+
 export async function approvePackingQcAndPostStock(input: {
   itemId: string;
   workOrderId: string;

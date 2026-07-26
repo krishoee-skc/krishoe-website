@@ -15,6 +15,7 @@ import {
   createProductionWorkOrder,
   createProductionHandover,
   mapProductionItemToCatalog,
+  reverseWorkerPayment,
   setProductionStageRate,
   setProductionItemMaterial,
 } from "@/lib/production-accounting";
@@ -264,6 +265,28 @@ export async function createWorkerPaymentAction(formData: FormData) {
     `${paymentType} Rs. ${paymentAmount} approved for ${employee.name}; ${receipt}.`,
   );
   revalidatePath(`/admin/operations/production-accounts/worker/${employee.id}`);
+  refresh();
+}
+
+export async function reverseWorkerPaymentAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  if (text(formData, "reverseConfirmed") !== "yes") {
+    throw new Error("Confirm the payment reversal.");
+  }
+  const reason = text(formData, "reason");
+  if (reason.length < 5) {
+    throw new Error("Write a clear reversal reason (at least 5 characters).");
+  }
+  const result = await reverseWorkerPayment({
+    paymentId: text(formData, "paymentId"),
+    reason,
+    reversedBy: approvedBy,
+  });
+  await recordAdminAuditEvent(
+    "worker_cash_reverse",
+    `${result.receiptNumber} Rs. ${result.amount} reversed for ${result.employeeName}: ${reason}.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/worker/${result.employeeId}`);
   refresh();
 }
 

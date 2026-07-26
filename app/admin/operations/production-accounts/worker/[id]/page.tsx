@@ -5,7 +5,7 @@ import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
-import { createWorkerPaymentAction } from "../../actions";
+import { createWorkerPaymentAction, reverseWorkerPaymentAction } from "../../actions";
 
 export const metadata: Metadata = { title: "Worker Ledger | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -225,6 +225,34 @@ export default async function WorkerProductionLedgerPage({
                     {row.direction === "Added" ? "+" : "−"}{money(row.amount)}
                   </p>
                 </div>
+                <details className="mt-3 border-t border-gray-100 pt-3">
+                  <summary className="cursor-pointer text-xs font-black text-brand-clay">
+                    Correct a mistaken cash entry
+                  </summary>
+                  <form action={reverseWorkerPaymentAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                    <input type="hidden" name="paymentId" value={row.id} />
+                    <p className="text-xs leading-5 text-red-900">
+                      This keeps receipt {row.receiptNumber} in history but removes its effect from the worker balance.
+                    </p>
+                    <input
+                      name="reason"
+                      minLength={5}
+                      className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm"
+                      placeholder="Reason for reversal"
+                      required
+                    />
+                    <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                      <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                      I confirm this receipt is a mistaken entry.
+                    </label>
+                    <FormSubmitButton
+                      className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white"
+                      pendingLabel="Reversing…"
+                    >
+                      Reverse this payment
+                    </FormSubmitButton>
+                  </form>
+                </details>
               </article>
             ))}
             {account.payments.length === 0 ? <p className="text-sm text-gray-500">No cash or adjustment entry yet.</p> : null}
