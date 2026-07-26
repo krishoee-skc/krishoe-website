@@ -465,6 +465,10 @@ export function factoryWorkOrderTracePath(workOrderId: string) {
   return `/admin/factory/work-orders/${encodeURIComponent(workOrderId.trim())}`;
 }
 
+export function factoryWorkOrderWorksheetPath(workOrderId: string) {
+  return `${factoryWorkOrderTracePath(workOrderId)}/worksheet`;
+}
+
 export function factoryWorkOrderTraceUrl(origin: string, workOrderId: string) {
   return `${new URL(origin).origin}${factoryWorkOrderTracePath(workOrderId)}`;
 }

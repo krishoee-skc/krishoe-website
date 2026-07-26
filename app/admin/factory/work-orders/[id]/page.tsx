@@ -6,6 +6,7 @@ import CctvReferenceForm from "@/app/admin/factory/work-orders/[id]/CctvReferenc
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   factoryStages,
+  factoryWorkOrderWorksheetPath,
   getFactoryData,
   getFactoryWorkOrderCosting,
 } from "@/lib/factory";
@@ -74,6 +75,12 @@ export default async function FactoryWorkOrderTracePage({
       <div className="mx-auto max-w-6xl">
         <Link href="/admin/factory" className="text-sm font-black text-brand-green">
           ← Factory ERP
+        </Link>
+        <Link
+          href={factoryWorkOrderWorksheetPath(order.id)}
+          className="ml-3 inline-flex min-h-10 items-center rounded-xl border border-brand-green px-3 text-xs font-black text-brand-green print:hidden"
+        >
+          Print worksheet
         </Link>
 
         <header className="mt-4 overflow-hidden rounded-3xl bg-brand-green-ink p-5 text-white shadow-lg sm:p-8">

@@ -25,6 +25,7 @@ import {
   factoryRolloutPhases,
   factoryStages,
   factoryWorkOrderTracePath,
+  factoryWorkOrderWorksheetPath,
   filterFactoryWorkOrders,
   getFactoryData,
   getFactoryDashboard,
@@ -891,6 +892,12 @@ export default async function FactoryErpPage({
                     >
                       View / print QR
                     </a>
+                    <Link
+                      href={factoryWorkOrderWorksheetPath(order.id)}
+                      className="inline-flex min-h-10 items-center rounded-xl border border-brand-clay px-4 text-xs font-black text-brand-clay"
+                    >
+                      Print worksheet
+                    </Link>
                   </div>
                   {order.status === "Cancelled" ? (
                     <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900">

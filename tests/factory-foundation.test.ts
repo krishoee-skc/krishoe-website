@@ -5,6 +5,7 @@ import {
   factoryStages,
   factoryWorkOrderTracePath,
   factoryWorkOrderTraceUrl,
+  factoryWorkOrderWorksheetPath,
   normalizeFactoryItem,
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
@@ -74,6 +75,12 @@ describe("Factory ERP foundation", () => {
       "finishing",
       "packing",
     ]);
+  });
+
+  it("builds a stable printable Work Order worksheet path", () => {
+    expect(factoryWorkOrderWorksheetPath("FWO 1")).toBe(
+      "/admin/factory/work-orders/FWO%201/worksheet",
+    );
   });
 
   it("reassigns only future stage work with a clean rate snapshot", () => {
