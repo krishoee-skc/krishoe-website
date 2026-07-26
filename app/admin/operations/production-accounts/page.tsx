@@ -38,13 +38,27 @@ function today() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
 }
 
+function shiftDate(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
 
-export default async function ProductionAccountsPage() {
+export default async function ProductionAccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ settlementDate?: string }>;
+}) {
+  const query = await searchParams;
   const date = today();
-  const weeklyPeriod = saturdayToFridayPeriod(date);
+  const reportDate = /^\d{4}-\d{2}-\d{2}$/.test(query.settlementDate ?? "")
+    ? query.settlementDate!
+    : date;
+  const weeklyPeriod = saturdayToFridayPeriod(reportDate);
   const [data, control, weeklySettlements] = await Promise.all([
     getProductionAccountingSnapshot(),
     getProductionControlSummary(),
@@ -527,18 +541,53 @@ export default async function ProductionAccountsPage() {
               Total suggested payable: <strong className="text-brand-green-ink">{money(weeklyPayable)}</strong>
             </p>
           </div>
-          <ExportButton
-            href={`/api/admin/operations/production-export?type=weekly-settlements&date=${date}`}
-            className="min-h-11 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+          <div className="flex flex-wrap gap-2">
+            <form className="flex gap-2">
+              <input
+                name="settlementDate"
+                type="date"
+                defaultValue={reportDate}
+                className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold"
+              />
+              <button className="min-h-11 rounded-xl border border-brand-green px-3 text-xs font-black text-brand-green">
+                View week
+              </button>
+            </form>
+            <ExportButton
+              href={`/api/admin/operations/production-export?type=weekly-settlements&date=${reportDate}`}
+              className="min-h-11 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+            >
+              Download payment sheet
+            </ExportButton>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={`?settlementDate=${shiftDate(reportDate, -7)}`}
+            className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
           >
-            Download payment sheet
-          </ExportButton>
+            ← Previous week
+          </Link>
+          {reportDate !== date ? (
+            <Link
+              href={`?settlementDate=${date}`}
+              className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
+            >
+              Current week
+            </Link>
+          ) : null}
+          <Link
+            href={`?settlementDate=${shiftDate(reportDate, 7)}`}
+            className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
+          >
+            Next week →
+          </Link>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {weeklySettlements.map((row) => (
             <Link
               key={row.employeeId}
-              href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}?date=${date}`}
+              href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}?date=${reportDate}`}
               className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-brand-green"
             >
               <div className="flex items-start justify-between gap-3">
