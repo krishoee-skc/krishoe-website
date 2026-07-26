@@ -21,6 +21,7 @@ import {
   getFactoryStagePauseTransition,
   filterFactoryWorkOrders,
   getFactoryStationAssignments,
+  getFactoryQcInbox,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -279,6 +280,54 @@ describe("Factory ERP foundation", () => {
         { workerId: "emp-1", stageCode: "fiber-stitching" },
       ).map((row) => row.assignment.id),
     ).toEqual(["active"]);
+  });
+
+  it("prioritizes QC issues and supports issue-only filtering", () => {
+    const workOrders = [
+      {
+        id: "wo-qc",
+        workOrderNumber: "WO-QC",
+        lotNumber: "LOT-QC",
+        itemCode: "LH",
+        itemName: "Ladies Heel",
+        color: "Black",
+      },
+    ] as FactoryData["workOrders"];
+    const productionEntries = [
+      {
+        id: "clean",
+        workOrderId: "wo-qc",
+        workerId: "emp-1",
+        workerName: "Ram",
+        stageCode: "upper",
+        status: "Submitted",
+        rejectPairs: 0,
+        reworkPairs: 0,
+        createdAt: "2026-07-26T10:00:00.000Z",
+      },
+      {
+        id: "issue",
+        workOrderId: "wo-qc",
+        workerId: "emp-2",
+        workerName: "Mina",
+        stageCode: "finishing",
+        status: "Submitted",
+        rejectPairs: 2,
+        reworkPairs: 1,
+        createdAt: "2026-07-26T11:00:00.000Z",
+      },
+    ] as FactoryData["productionEntries"];
+    expect(
+      getFactoryQcInbox({ productionEntries, workOrders }).map(
+        (row) => row.entry.id,
+      ),
+    ).toEqual(["issue", "clean"]);
+    expect(
+      getFactoryQcInbox(
+        { productionEntries, workOrders },
+        { issuesOnly: true, stageCode: "finishing" },
+      ).map((row) => row.entry.id),
+    ).toEqual(["issue"]);
   });
 
   it("audits legacy name linkage without mutating records", () => {

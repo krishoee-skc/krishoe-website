@@ -406,7 +406,12 @@ export async function verifyFactoryProductionEntryAction(formData: FormData) {
     `${entry.id} marked ${decision}; ${entry.goodPairs} good pairs, wage Rs. ${entry.calculatedWage}.`,
   );
   revalidatePath("/admin/factory");
-  redirect(`/admin/factory?verified=${encodeURIComponent(entry.id)}`);
+  revalidatePath("/admin/factory/qc");
+  const destination =
+    text(formData, "returnTo") === "/admin/factory/qc"
+      ? "/admin/factory/qc"
+      : "/admin/factory";
+  redirect(`${destination}?verified=${encodeURIComponent(entry.id)}`);
 }
 
 export async function createFactoryStageHandoverAction(formData: FormData) {

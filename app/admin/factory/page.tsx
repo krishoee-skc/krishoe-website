@@ -159,6 +159,12 @@ export default async function FactoryErpPage({
               Open Station Mode
             </Link>
             <Link
+              href="/admin/factory/qc"
+              className="inline-flex min-h-11 items-center rounded-xl border border-white/40 px-4 text-sm font-black text-white"
+            >
+              Open QC Mode
+            </Link>
+            <Link
               href="/admin/factory/reports?period=daily"
               className="inline-flex min-h-11 items-center rounded-xl bg-amber-300 px-4 text-sm font-black text-brand-green-ink"
             >

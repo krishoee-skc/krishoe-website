@@ -6,14 +6,17 @@ export default function ProductionVerificationForm({
   entryId,
   hasQualityIssue,
   workers,
+  returnTo,
 }: {
   entryId: string;
   hasQualityIssue: boolean;
   workers: Array<{ id: string; name: string }>;
+  returnTo?: "/admin/factory/qc";
 }) {
   return (
     <form action={verifyFactoryProductionEntryAction} className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
       <input type="hidden" name="entryId" value={entryId} />
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <p className="text-xs font-black uppercase tracking-wider text-blue-900">
         Owner / Supervisor verification
       </p>

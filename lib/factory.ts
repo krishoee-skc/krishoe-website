@@ -551,6 +551,43 @@ export function getFactoryStationAssignments(
     );
 }
 
+export function getFactoryQcInbox(
+  data: Pick<FactoryData, "productionEntries" | "workOrders">,
+  filters: {
+    query?: string;
+    stageCode?: FactoryStageCode | "";
+    workerId?: string;
+    issuesOnly?: boolean;
+  } = {},
+) {
+  const orderById = new Map(data.workOrders.map((order) => [order.id, order]));
+  const query = filters.query?.trim().toLocaleLowerCase() ?? "";
+  return data.productionEntries
+    .filter((entry) => {
+      if (entry.status !== "Submitted") return false;
+      if (filters.stageCode && entry.stageCode !== filters.stageCode) return false;
+      if (filters.workerId && entry.workerId !== filters.workerId) return false;
+      if (filters.issuesOnly && entry.rejectPairs + entry.reworkPairs === 0) return false;
+      if (!query) return true;
+      const order = orderById.get(entry.workOrderId);
+      return [
+        order?.workOrderNumber ?? "",
+        order?.lotNumber ?? "",
+        order?.itemCode ?? "",
+        order?.itemName ?? "",
+        order?.color ?? "",
+        entry.workerName,
+      ].some((value) => value.toLocaleLowerCase().includes(query));
+    })
+    .map((entry) => ({ entry, workOrder: orderById.get(entry.workOrderId) }))
+    .sort(
+      (left, right) =>
+        Number(right.entry.rejectPairs + right.entry.reworkPairs > 0) -
+          Number(left.entry.rejectPairs + left.entry.reworkPairs > 0) ||
+        left.entry.createdAt.localeCompare(right.entry.createdAt),
+    );
+}
+
 export type FactoryWorkOrderSize = {
   id: string;
   workOrderId: string;
