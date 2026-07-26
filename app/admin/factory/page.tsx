@@ -11,6 +11,7 @@ import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
 import MaterialIssuePostingControls from "@/app/admin/factory/MaterialIssuePostingControls";
 import FinishedStockPostingForm from "@/app/admin/factory/FinishedStockPostingForm";
+import WorkOrderCancellationForm from "@/app/admin/factory/WorkOrderCancellationForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -28,6 +29,7 @@ import {
   getFactoryAssignmentSizePlan,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
+  getFactoryWorkOrderCancellationBlockers,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
@@ -652,6 +654,8 @@ export default async function FactoryErpPage({
               const bom = factory.bomLines.filter((line) => line.itemId === order.itemId);
               const item = factory.items.find((entry) => entry.id === order.itemId);
               const assignments = factory.stageAssignments.filter((entry) => entry.workOrderId === order.id);
+              const cancellationBlockers =
+                getFactoryWorkOrderCancellationBlockers(factory, order);
               const packingReadiness = getFactoryPackingReadiness(factory, order);
               const packingApproval = factory.packingApprovals.find(
                 (entry) => entry.workOrderId === order.id,
@@ -751,6 +755,20 @@ export default async function FactoryErpPage({
                       View / print QR
                     </a>
                   </div>
+                  {order.status === "Cancelled" ? (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900">
+                      <p className="font-black">Cancelled: {order.cancellationReason || "No reason recorded."}</p>
+                      <p className="mt-1">
+                        By {order.cancelledBy || "Admin"}
+                        {order.cancelledAt
+                          ? ` at ${new Date(order.cancelledAt).toLocaleString("en-NP")}`
+                          : ""}
+                      </p>
+                    </div>
+                  ) : null}
+                  {cancellationBlockers.length === 0 ? (
+                    <WorkOrderCancellationForm workOrderId={order.id} />
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {sizes.map((row) => (
                       <span key={row.id} className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700">

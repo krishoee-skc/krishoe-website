@@ -671,9 +671,19 @@ CREATE TABLE IF NOT EXISTS factory_work_orders (
   total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
   remarks TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  cancellation_reason TEXT NOT NULL DEFAULT '',
+  cancelled_by TEXT NOT NULL DEFAULT '',
+  cancelled_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE factory_work_orders
+  ADD COLUMN IF NOT EXISTS cancellation_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_work_orders
+  ADD COLUMN IF NOT EXISTS cancelled_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_work_orders
+  ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 
 ALTER TABLE factory_work_orders
   DROP CONSTRAINT IF EXISTS factory_work_orders_status_check;

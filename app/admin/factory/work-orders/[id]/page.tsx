@@ -114,6 +114,16 @@ export default async function FactoryWorkOrderTracePage({
             CCTV footage lookup reference saved. No video file was uploaded.
           </p>
         ) : null}
+        {order.status === "Cancelled" ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+            <p className="font-black">Work Order cancelled</p>
+            <p className="mt-1">{order.cancellationReason || "No reason recorded."}</p>
+            <p className="mt-1 text-xs">
+              By {order.cancelledBy || "Admin"}
+              {order.cancelledAt ? ` at ${dateTime(order.cancelledAt)}` : ""}
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[

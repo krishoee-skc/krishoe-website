@@ -16,6 +16,7 @@ import {
   getFactoryPerformanceReport,
   getFactoryWageCandidates,
   getFactoryWorkOrderCosting,
+  getFactoryWorkOrderCancellationBlockers,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -109,6 +110,34 @@ describe("Factory ERP foundation", () => {
         cameraZone: "",
       }),
     ).toThrow("completed stage");
+  });
+
+  it("blocks unsafe Work Order cancellation after production or material posting", () => {
+    const order = {
+      id: "wo-cancel",
+      status: "Released",
+    } as FactoryData["workOrders"][number];
+    expect(
+      getFactoryWorkOrderCancellationBlockers(
+        { productionEntries: [], materialIssues: [], packingApprovals: [] },
+        order,
+      ),
+    ).toEqual([]);
+    expect(
+      getFactoryWorkOrderCancellationBlockers(
+        {
+          productionEntries: [{ workOrderId: order.id }] as FactoryData["productionEntries"],
+          materialIssues: [
+            { workOrderId: order.id, status: "Posted" },
+          ] as FactoryData["materialIssues"],
+          packingApprovals: [],
+        },
+        order,
+      ),
+    ).toEqual([
+      "Production entries already exist.",
+      "Posted raw material must be reconciled before cancellation.",
+    ]);
   });
 
   it("audits legacy name linkage without mutating records", () => {

@@ -346,6 +346,9 @@ export type FactoryWorkOrder = {
   totalPairs: number;
   remarks: string;
   createdBy: string;
+  cancellationReason?: string;
+  cancelledBy?: string;
+  cancelledAt?: string;
 };
 
 export function factoryWorkOrderTracePath(workOrderId: string) {
@@ -931,6 +934,9 @@ type FactoryWorkOrderRow = {
   total_pairs: number | string;
   remarks: string;
   created_by: string;
+  cancellation_reason: string;
+  cancelled_by: string;
+  cancelled_at: Date | string | null;
 };
 
 type FactoryWorkOrderSizeRow = {
@@ -1131,7 +1137,8 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       "factory",
       `SELECT id, work_order_number, lot_number, item_id, item_code, item_name,
         color, created_date, due_date, priority, current_stage_code, status,
-        total_pairs, remarks, created_by
+        total_pairs, remarks, created_by, cancellation_reason, cancelled_by,
+        cancelled_at
        FROM factory_work_orders ORDER BY created_at DESC`,
     ),
     queryPostgres<FactoryWorkOrderSizeRow>(
@@ -1261,6 +1268,9 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       totalPairs: Number(row.total_pairs),
       remarks: row.remarks,
       createdBy: row.created_by,
+      cancellationReason: row.cancellation_reason,
+      cancelledBy: row.cancelled_by,
+      cancelledAt: row.cancelled_at ? new Date(row.cancelled_at).toISOString() : "",
     })),
     workOrderSizes: workOrderSizes.map((row) => ({
       id: row.id,
@@ -1713,6 +1723,9 @@ export async function addFactoryWorkOrder(input: {
     totalPairs: sizes.reduce((sum, row) => sum + row.plannedPairs, 0),
     remarks: input.remarks.trim(),
     createdBy: input.createdBy.trim(),
+    cancellationReason: "",
+    cancelledBy: "",
+    cancelledAt: "",
   };
   const sizeRows = sizes.map((row) => ({
     id: createFactoryId("FWOS"),
@@ -1792,6 +1805,133 @@ export function validateFactoryRelease(input: {
   if (byStage.size !== input.item.stageCodes.length) {
     throw new Error("Assignments must match the configured item stages.");
   }
+}
+
+export function getFactoryWorkOrderCancellationBlockers(
+  data: Pick<FactoryData, "productionEntries" | "materialIssues" | "packingApprovals">,
+  workOrder: FactoryWorkOrder,
+) {
+  const blockers: string[] = [];
+  if (!["Draft", "Released"].includes(workOrder.status)) {
+    blockers.push("Only a Draft or Released Work Order can be cancelled.");
+  }
+  if (data.productionEntries.some((entry) => entry.workOrderId === workOrder.id)) {
+    blockers.push("Production entries already exist.");
+  }
+  if (
+    data.materialIssues.some(
+      (entry) => entry.workOrderId === workOrder.id && entry.status === "Posted",
+    )
+  ) {
+    blockers.push("Posted raw material must be reconciled before cancellation.");
+  }
+  if (data.packingApprovals.some((entry) => entry.workOrderId === workOrder.id)) {
+    blockers.push("Packing approval already exists.");
+  }
+  return blockers;
+}
+
+export async function cancelFactoryWorkOrder(input: {
+  workOrder: FactoryWorkOrder;
+  data: Pick<FactoryData, "productionEntries" | "materialIssues" | "packingApprovals">;
+  reason: string;
+  cancelledBy: string;
+}) {
+  const reason = input.reason.trim().slice(0, 500);
+  const cancelledBy = input.cancelledBy.trim();
+  if (reason.length < 5) throw new Error("Enter a clear cancellation reason.");
+  const blockers = getFactoryWorkOrderCancellationBlockers(input.data, input.workOrder);
+  if (blockers.length > 0) throw new Error(blockers.join(" "));
+  const cancelledAt = new Date().toISOString();
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const order = data.workOrders.find((entry) => entry.id === input.workOrder.id);
+      if (!order) throw new Error("Work Order was not found.");
+      const liveBlockers = getFactoryWorkOrderCancellationBlockers(data, order);
+      if (liveBlockers.length > 0) throw new Error(liveBlockers.join(" "));
+      Object.assign(order, {
+        status: "Cancelled" as const,
+        currentStageCode: "",
+        cancellationReason: reason,
+        cancelledBy,
+        cancelledAt,
+      });
+      data.stageAssignments
+        .filter((entry) => entry.workOrderId === order.id)
+        .forEach((entry) => {
+          entry.status = "Paused";
+        });
+      data.materialIssues
+        .filter(
+          (entry) => entry.workOrderId === order.id && entry.status === "Draft",
+        )
+        .forEach((entry) => {
+          entry.status = "Cancelled";
+        });
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return order;
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        const locked = await db.query<{ id: string; status: FactoryWorkOrderStatus }>(
+          "SELECT id, status FROM factory_work_orders WHERE id = $1 FOR UPDATE",
+          [input.workOrder.id],
+        );
+        if (!locked[0] || !["Draft", "Released"].includes(locked[0].status)) {
+          throw new Error("Work Order is no longer available for cancellation.");
+        }
+        const counts = await db.query<{
+          production_count: number | string;
+          posted_material_count: number | string;
+          packing_count: number | string;
+        }>(
+          `SELECT
+             (SELECT COUNT(*) FROM factory_production_entries WHERE work_order_id = $1) AS production_count,
+             (SELECT COUNT(*) FROM factory_material_issues WHERE work_order_id = $1 AND status = 'Posted') AS posted_material_count,
+             (SELECT COUNT(*) FROM factory_packing_approvals WHERE work_order_id = $1) AS packing_count`,
+          [input.workOrder.id],
+        );
+        const state = counts[0];
+        if (
+          Number(state?.production_count) > 0 ||
+          Number(state?.posted_material_count) > 0 ||
+          Number(state?.packing_count) > 0
+        ) {
+          throw new Error("Work Order activity changed; cancellation was stopped safely.");
+        }
+        await db.query(
+          `UPDATE factory_work_orders
+           SET status = 'Cancelled', current_stage_code = '',
+             cancellation_reason = $2, cancelled_by = $3, cancelled_at = $4,
+             updated_at = now()
+           WHERE id = $1`,
+          [input.workOrder.id, reason, cancelledBy, cancelledAt],
+        );
+        await db.query(
+          `UPDATE factory_stage_assignments
+           SET status = 'Paused', updated_at = now()
+           WHERE work_order_id = $1 AND status <> 'Completed'`,
+          [input.workOrder.id],
+        );
+        await db.query(
+          `UPDATE factory_material_issues
+           SET status = 'Cancelled', updated_at = now()
+           WHERE work_order_id = $1 AND status = 'Draft'`,
+          [input.workOrder.id],
+        );
+        return {
+          ...input.workOrder,
+          status: "Cancelled" as const,
+          currentStageCode: "" as const,
+          cancellationReason: reason,
+          cancelledBy,
+          cancelledAt,
+        };
+      }),
+  });
 }
 
 export async function releaseFactoryWorkOrder(input: {

@@ -14,6 +14,7 @@ import {
   finalizeFactoryMaterialIssue,
   addFactoryWorkOrder,
   approveFactoryWageSettlement,
+  cancelFactoryWorkOrder,
   getFactoryData,
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
@@ -240,6 +241,30 @@ export async function releaseFactoryWorkOrderAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?released=${encodeURIComponent(workOrder.workOrderNumber)}`);
+}
+
+export async function cancelFactoryWorkOrderAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === text(formData, "workOrderId"),
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const reason = text(formData, "reason");
+  const cancelledBy = session.name || session.email || "Admin";
+  await cancelFactoryWorkOrder({
+    workOrder,
+    data: factory,
+    reason,
+    cancelledBy,
+  });
+  await recordAdminAuditEvent(
+    "factory_work_order_cancel",
+    `${workOrder.workOrderNumber} cancelled by ${cancelledBy}. Reason: ${reason}`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath(factoryWorkOrderTracePath(workOrder.id));
+  redirect(`/admin/factory?cancelled=${encodeURIComponent(workOrder.workOrderNumber)}`);
 }
 
 export async function createFactoryProductionEntryAction(formData: FormData) {
