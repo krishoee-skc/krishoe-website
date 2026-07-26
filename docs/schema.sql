@@ -484,6 +484,18 @@ CREATE TABLE IF NOT EXISTS hr_employees (
 ALTER TABLE hr_employees
   ADD COLUMN IF NOT EXISTS fingerprint_id TEXT NOT NULL DEFAULT '';
 
+ALTER TABLE hr_employees
+  DROP CONSTRAINT IF EXISTS hr_employees_department_check;
+
+ALTER TABLE hr_employees
+  ADD CONSTRAINT hr_employees_department_check CHECK (
+    department IN (
+      'Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final',
+      'Cutting', 'Stitching', 'Sole Press', 'Finishing', 'Packing', 'QC',
+      'Administration', 'Sales', 'Marketing', 'Dispatch'
+    )
+  );
+
 CREATE INDEX IF NOT EXISTS hr_employees_department_idx ON hr_employees(department);
 CREATE INDEX IF NOT EXISTS hr_employees_status_idx ON hr_employees(status);
 CREATE INDEX IF NOT EXISTS hr_employees_fingerprint_id_idx ON hr_employees(fingerprint_id);
@@ -604,8 +616,12 @@ CREATE TABLE IF NOT EXISTS production_items (
   note TEXT NOT NULL DEFAULT ''
 );
 
+ALTER TABLE production_items
+  ADD COLUMN IF NOT EXISTS catalog_product_id TEXT REFERENCES products(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS production_items_status_idx ON production_items(status);
 CREATE INDEX IF NOT EXISTS production_items_category_idx ON production_items(category);
+CREATE INDEX IF NOT EXISTS production_items_catalog_product_idx ON production_items(catalog_product_id);
 
 CREATE TABLE IF NOT EXISTS production_stage_rates (
   id TEXT PRIMARY KEY,

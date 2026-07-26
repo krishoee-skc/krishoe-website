@@ -1,4 +1,5 @@
 import { getHrData, type Employee } from "@/lib/hr";
+import { getProducts } from "@/lib/product-store";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import {
   assertWorkQuantity,
@@ -16,6 +17,7 @@ export type ProductionItem = {
   category: string;
   productionType: "Manufactured" | "Resale" | "Mixed";
   sizeGroup: "Baby" | "Kids" | "Ladies" | "Gents" | "Mixed";
+  catalogProductId: string;
   status: "Active" | "Inactive";
 };
 
@@ -68,6 +70,7 @@ type ItemRow = {
   category: string;
   production_type: ProductionItem["productionType"];
   size_group: ProductionItem["sizeGroup"];
+  catalog_product_id: string | null;
   status: ProductionItem["status"];
 };
 
@@ -127,10 +130,10 @@ function id(prefix: string) {
 }
 
 export async function getProductionAccountingSnapshot() {
-  const [items, rates, workEntries, payments, balances, hr] = await Promise.all([
+  const [items, rates, workEntries, payments, balances, hr, products] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
-      `SELECT id, name, category, production_type, size_group, status
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
        FROM production_items ORDER BY status, name`,
     ),
     queryPostgres<RateRow>(
@@ -183,6 +186,7 @@ export async function getProductionAccountingSnapshot() {
        ORDER BY employee_name`,
     ),
     getHrData(),
+    getProducts({ includeDrafts: true }),
   ]);
 
   return {
@@ -192,6 +196,7 @@ export async function getProductionAccountingSnapshot() {
       category: row.category,
       productionType: row.production_type,
       sizeGroup: row.size_group,
+      catalogProductId: row.catalog_product_id ?? "",
       status: row.status,
     })),
     rates: rates.map((row) => ({
@@ -223,6 +228,7 @@ export async function getProductionAccountingSnapshot() {
       balance: numeric(row.balance),
     })),
     employees: hr.employees.filter((employee) => employee.status === "Active"),
+    products,
   };
 }
 
@@ -349,12 +355,26 @@ export async function addProductionItem(input: Omit<ProductionItem, "id" | "stat
   const rows = await queryPostgres<ItemRow>(
     "create production item",
     `INSERT INTO production_items
-       (id, name, category, production_type, size_group, status)
-     VALUES ($1, $2, $3, $4, $5, 'Active')
-     RETURNING id, name, category, production_type, size_group, status`,
-    [id("pitem"), input.name, input.category, input.productionType, input.sizeGroup],
+       (id, name, category, production_type, size_group, catalog_product_id, status)
+     VALUES ($1, $2, $3, $4, $5, nullif($6, ''), 'Active')
+     RETURNING id, name, category, production_type, size_group, catalog_product_id, status`,
+    [
+      id("pitem"), input.name, input.category, input.productionType,
+      input.sizeGroup, input.catalogProductId,
+    ],
   );
   return rows[0];
+}
+
+export async function mapProductionItemToCatalog(itemId: string, catalogProductId: string) {
+  const rows = await queryPostgres<{ id: string }>(
+    "map production item to catalog",
+    `UPDATE production_items
+     SET catalog_product_id = nullif($2, ''), updated_at = now()
+     WHERE id = $1 RETURNING id`,
+    [itemId, catalogProductId],
+  );
+  if (!rows[0]) throw new Error("Production item not found.");
 }
 
 export async function setProductionStageRate(input: {
@@ -390,7 +410,7 @@ export async function addApprovedWorkEntry(input: {
 
   return transactionPostgres("approve production work", async (db) => {
     const itemRows = await db.query<ItemRow>(
-      `SELECT id, name, category, production_type, size_group, status
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
        FROM production_items WHERE id = $1 AND status = 'Active' FOR SHARE`,
       [input.itemId],
     );

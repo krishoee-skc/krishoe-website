@@ -8,6 +8,7 @@ import {
   addApprovedWorkEntry,
   addProductionItem,
   addWorkerPayment,
+  mapProductionItemToCatalog,
   setProductionStageRate,
 } from "@/lib/production-accounting";
 import {
@@ -83,8 +84,23 @@ export async function createProductionItemAction(formData: FormData) {
     category: text(formData, "category"),
     productionType: option(text(formData, "productionType"), productionTypes, "Manufactured"),
     sizeGroup: option(text(formData, "sizeGroup"), sizeGroups, "Mixed"),
+    catalogProductId: text(formData, "catalogProductId"),
   });
   await recordAdminAuditEvent("production_item_create", `Production item ${name} created.`);
+  refresh();
+}
+
+export async function mapProductionItemAction(formData: FormData) {
+  await ownerContext();
+  const itemId = text(formData, "itemId");
+  const catalogProductId = text(formData, "catalogProductId");
+  if (!itemId) throw new Error("Production item is required.");
+
+  await mapProductionItemToCatalog(itemId, catalogProductId);
+  await recordAdminAuditEvent(
+    "production_item_catalog_map",
+    `Production item ${itemId} catalog mapping changed to ${catalogProductId || "none"}.`,
+  );
   refresh();
 }
 

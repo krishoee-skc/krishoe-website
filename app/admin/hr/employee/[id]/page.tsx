@@ -112,6 +112,23 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </span>
       </div>
 
+      {employee.salaryType === "Piece Rate" ? (
+        <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-black text-emerald-950">Item-stage production wage</p>
+            <p className="mt-1 text-sm text-emerald-800">
+              Weekly kharcha, advance and actual item-stage earnings are kept in Production Accounts. HR payroll remains for monthly/daily staff.
+            </p>
+          </div>
+          <Link
+            href={`/admin/operations/production-accounts/worker/${encodeURIComponent(employee.id)}`}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-brand-green px-4 text-sm font-black text-white"
+          >
+            Open work & wage ledger
+          </Link>
+        </div>
+      ) : null}
+
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatBox label="Attendance" value={detail.summary.attendanceDays} detail={`${detail.summary.presentRecords} records`} />
         <StatBox label="Output" value={detail.summary.completedPairs} detail={`${detail.summary.progressRate}% progress`} />

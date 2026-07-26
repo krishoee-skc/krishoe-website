@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertWorkQuantity,
+  assertFinishedStockPosting,
   calculateEarnedWage,
   saturdayToFridayPeriod,
   sizeBreakdownTotal,
@@ -47,5 +48,39 @@ describe("production accounting rules", () => {
       start: "2026-08-01",
       end: "2026-08-07",
     });
+  });
+
+  it("blocks factory stock until catalog mapping and packing QC exist", () => {
+    expect(() =>
+      assertFinishedStockPosting({
+        productionType: "Manufactured",
+        catalogProductId: "",
+        packingQcApproved: true,
+        totalPairs: 20,
+        sizeBreakdown: {},
+      }),
+    ).toThrow("Link the production item");
+
+    expect(() =>
+      assertFinishedStockPosting({
+        productionType: "Manufactured",
+        catalogProductId: "product-1",
+        packingQcApproved: false,
+        totalPairs: 20,
+        sizeBreakdown: {},
+      }),
+    ).toThrow("Packing/QC approval");
+  });
+
+  it("allows a mapped manufactured item after packing QC", () => {
+    expect(() =>
+      assertFinishedStockPosting({
+        productionType: "Manufactured",
+        catalogProductId: "product-1",
+        packingQcApproved: true,
+        totalPairs: 20,
+        sizeBreakdown: { "36": 8, "37": 12 },
+      }),
+    ).not.toThrow();
   });
 });

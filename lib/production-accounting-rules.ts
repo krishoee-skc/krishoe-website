@@ -35,6 +35,14 @@ export type WorkerLedgerLine = {
   reversed?: boolean;
 };
 
+export type FinishedStockPostingInput = {
+  productionType: "Manufactured" | "Resale" | "Mixed";
+  catalogProductId: string;
+  packingQcApproved: boolean;
+  totalPairs: number;
+  sizeBreakdown: SizeBreakdown;
+};
+
 function money(value: number) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
@@ -112,4 +120,24 @@ export function saturdayToFridayPeriod(value: string) {
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
   return { start: isoDay(start), end: isoDay(end) };
+}
+
+export function assertFinishedStockPosting(input: FinishedStockPostingInput) {
+  if (input.productionType === "Resale") {
+    throw new Error("Resale items enter stock from Purchasing, not factory production.");
+  }
+  if (!input.catalogProductId.trim()) {
+    throw new Error("Link the production item to a catalog product first.");
+  }
+  if (!input.packingQcApproved) {
+    throw new Error("Packing/QC approval is required before finished stock posting.");
+  }
+  if (whole(input.totalPairs) <= 0) {
+    throw new Error("Finished pairs must be greater than zero.");
+  }
+
+  const sizedPairs = sizeBreakdownTotal(input.sizeBreakdown);
+  if (sizedPairs > 0 && sizedPairs !== whole(input.totalPairs)) {
+    throw new Error("Finished size-wise pairs must match total pairs.");
+  }
 }

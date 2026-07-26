@@ -5,6 +5,7 @@ import {
   createProductionItemAction,
   createWorkEntryAction,
   createWorkerPaymentAction,
+  mapProductionItemAction,
   saveStageRateAction,
 } from "./actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
@@ -68,6 +69,14 @@ export default async function ProductionAccountsPage() {
             <select name="sizeGroup" className={input} defaultValue="Ladies">
               <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
             </select>
+            <select name="catalogProductId" className={`${input} sm:col-span-2`} defaultValue="">
+              <option value="">No catalog/stock link yet</option>
+              {data.products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} · {product.sku || product.id}
+                </option>
+              ))}
+            </select>
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving item…">Save item</FormSubmitButton>
         </form>
@@ -87,6 +96,40 @@ export default async function ProductionAccountsPage() {
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving rate…">Save wage rate</FormSubmitButton>
         </form>
       </div>
+
+      <form action={mapProductionItemAction} className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">Stock catalog mapping</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Link a factory item to the exact shop/POS product. This prepares safe QC-approved stock posting; it does not change stock yet.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+          <select name="itemId" className={input} required defaultValue="">
+            <option value="" disabled>Select production item</option>
+            {activeItems.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <select name="catalogProductId" className={input} defaultValue="">
+            <option value="">Remove catalog link</option>
+            {data.products.map((product) => (
+              <option key={product.id} value={product.id}>{product.name} · {product.sku || product.id}</option>
+            ))}
+          </select>
+          <FormSubmitButton className={button} pendingLabel="Linking…">Save link</FormSubmitButton>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {activeItems.map((item) => {
+            const product = data.products.find((row) => row.id === item.catalogProductId);
+            return (
+              <span key={item.id} className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                product ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}>
+                {item.name}: {product ? product.name : "stock link pending"}
+              </span>
+            );
+          })}
+        </div>
+      </form>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={createWorkEntryAction} className={card}>

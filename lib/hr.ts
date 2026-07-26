@@ -7,6 +7,10 @@ import { getOperationsData, type WorkerTask } from "@/lib/operations";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
 export const hrDepartments = [
+  "Upper",
+  "Fiber Preparation",
+  "Fiber Silai",
+  "Bottom Final",
   "Cutting",
   "Stitching",
   "Sole Press",
