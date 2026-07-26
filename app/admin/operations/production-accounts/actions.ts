@@ -232,6 +232,11 @@ export async function createWorkEntryAction(formData: FormData) {
 export async function createWorkerPaymentAction(formData: FormData) {
   const { approvedBy } = await ownerContext();
   const employee = await activeEmployee(text(formData, "employeeId"));
+  const statementStart = text(formData, "statementStart");
+  const statementEnd = text(formData, "statementEnd");
+  if ((statementStart || statementEnd) && text(formData, "cashConfirmed") !== "yes") {
+    throw new Error("Confirm that cash was handed to the worker.");
+  }
   const paymentType = option<WorkerPaymentType>(
     text(formData, "paymentType"),
     workerPaymentTypes,
@@ -241,6 +246,10 @@ export async function createWorkerPaymentAction(formData: FormData) {
   if (paymentAmount <= 0) throw new Error("Payment amount must be greater than zero.");
 
   const direction = paymentType === "Bonus" ? "Added" : paymentType === "Deduction" ? "Recovered" : "Paid";
+  const suppliedNote = text(formData, "note");
+  const statementNote = statementStart && statementEnd
+    ? `Statement ${statementStart} to ${statementEnd}`
+    : "";
   const receipt = await addWorkerPayment({
     employee,
     paymentDate: text(formData, "paymentDate"),
@@ -248,12 +257,13 @@ export async function createWorkerPaymentAction(formData: FormData) {
     direction,
     amount: paymentAmount,
     approvedBy,
-    note: text(formData, "note"),
+    note: [statementNote, suppliedNote].filter(Boolean).join(" · "),
   });
   await recordAdminAuditEvent(
     "worker_cash_approve",
     `${paymentType} Rs. ${paymentAmount} approved for ${employee.name}; ${receipt}.`,
   );
+  revalidatePath(`/admin/operations/production-accounts/worker/${employee.id}`);
   refresh();
 }
 

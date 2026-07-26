@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ExportButton from "@/components/admin/ExportButton";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
+import { createWorkerPaymentAction } from "../../actions";
 
 export const metadata: Metadata = { title: "Worker Ledger | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -121,6 +123,72 @@ export default async function WorkerProductionLedgerPage({
           </p>
         </div>
       </div>
+
+      <form action={createWorkerPaymentAction} className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Owner cash approval</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">Record Saturday kharcha</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+              Suggested amount is the current payable balance. Edit it to the cash actually handed over;
+              the remaining amount automatically stays in the worker ledger.
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+            Suggested {money(account.statement.payable)}
+          </span>
+        </div>
+
+        <input type="hidden" name="employeeId" value={account.employee.id} />
+        <input type="hidden" name="paymentType" value="Saturday Kharcha" />
+        <input type="hidden" name="statementStart" value={period.start} />
+        <input type="hidden" name="statementEnd" value={period.end} />
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm font-bold text-brand-green-ink">
+            Cash amount
+            <input
+              name="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              defaultValue={account.statement.payable || ""}
+              className="mt-2 min-h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm font-bold text-brand-green-ink">
+            Payment date
+            <input
+              name="paymentDate"
+              type="date"
+              defaultValue={nepalToday()}
+              className="mt-2 min-h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
+              required
+            />
+          </label>
+          <label className="text-sm font-bold text-brand-green-ink sm:col-span-2">
+            Note (optional)
+            <input
+              name="note"
+              className="mt-2 min-h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
+              placeholder="Worker request or payment detail"
+            />
+          </label>
+        </div>
+
+        <label className="mt-4 flex min-h-12 items-center gap-3 rounded-xl bg-gray-50 px-3 text-sm font-bold text-brand-green-ink">
+          <input name="cashConfirmed" type="checkbox" value="yes" required className="size-5 accent-brand-green" />
+          I confirm this cash was handed to the worker.
+        </label>
+
+        <FormSubmitButton
+          className="mt-4 min-h-12 rounded-xl bg-brand-green px-5 text-sm font-black text-white"
+          pendingLabel="Recording cash…"
+        >
+          Approve & record cash
+        </FormSubmitButton>
+      </form>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
