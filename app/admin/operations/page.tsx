@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
 import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQuickEntry";
 import OperationsRecords from "@/app/admin/operations/_components/OperationsRecords";
@@ -42,6 +43,12 @@ export default async function AdminOperationsPage() {
           Raw material, production progress, worker tasks, QC, finished stock,
           vehicle dispatch, sales return, and customer ledger control.
         </p>
+        <Link
+          href="/admin/operations/production-accounts"
+          className="mt-4 inline-flex min-h-12 items-center rounded-xl bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink"
+        >
+          Open production wages & kharcha
+        </Link>
       </div>
 
       <OperationsOverview snapshot={snapshot} costing={costing} />

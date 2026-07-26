@@ -590,6 +590,94 @@ CREATE INDEX IF NOT EXISTS worker_tasks_batch_id_idx ON worker_tasks(batch_id);
 CREATE INDEX IF NOT EXISTS worker_tasks_station_idx ON worker_tasks(station);
 CREATE INDEX IF NOT EXISTS worker_tasks_status_idx ON worker_tasks(status);
 
+-- Production accounting foundation. These tables stay beside the legacy
+-- production tables so existing history and commercial modules are untouched.
+CREATE TABLE IF NOT EXISTS production_items (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT '',
+  production_type TEXT NOT NULL CHECK (production_type IN ('Manufactured', 'Resale', 'Mixed')),
+  size_group TEXT NOT NULL CHECK (size_group IN ('Baby', 'Kids', 'Ladies', 'Gents', 'Mixed')),
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+  note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS production_items_status_idx ON production_items(status);
+CREATE INDEX IF NOT EXISTS production_items_category_idx ON production_items(category);
+
+CREATE TABLE IF NOT EXISTS production_stage_rates (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  rate_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_pair >= 0),
+  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+  note TEXT NOT NULL DEFAULT '',
+  UNIQUE (item_id, stage, effective_from)
+);
+
+CREATE INDEX IF NOT EXISTS production_stage_rates_item_idx
+  ON production_stage_rates(item_id, stage, effective_from DESC);
+
+CREATE TABLE IF NOT EXISTS production_work_entries (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  work_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_name_snapshot TEXT NOT NULL,
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
+  item_name_snapshot TEXT NOT NULL,
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
+  size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
+  rejected_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rejected_pairs >= 0),
+  rework_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rework_pairs >= 0),
+  rate_per_pair_snapshot NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_pair_snapshot >= 0),
+  earned_wage NUMERIC NOT NULL DEFAULT 0 CHECK (earned_wage >= 0),
+  status TEXT NOT NULL DEFAULT 'Submitted' CHECK (status IN ('Submitted', 'Approved', 'Reversed')),
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TIMESTAMPTZ,
+  note TEXT NOT NULL DEFAULT '',
+  CONSTRAINT production_work_entry_quantity_check
+    CHECK (rejected_pairs + rework_pairs <= total_pairs)
+);
+
+CREATE INDEX IF NOT EXISTS production_work_entries_employee_idx
+  ON production_work_entries(employee_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS production_work_entries_item_idx
+  ON production_work_entries(item_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS production_work_entries_status_idx
+  ON production_work_entries(status, work_date DESC);
+
+CREATE TABLE IF NOT EXISTS worker_payments (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_name_snapshot TEXT NOT NULL,
+  payment_type TEXT NOT NULL CHECK (
+    payment_type IN ('Saturday Kharcha', 'Midweek Advance', 'Final Settlement', 'Bonus', 'Deduction', 'Correction')
+  ),
+  direction TEXT NOT NULL CHECK (direction IN ('Paid', 'Added', 'Recovered')),
+  amount NUMERIC NOT NULL CHECK (amount > 0),
+  payment_method TEXT NOT NULL DEFAULT 'Cash' CHECK (payment_method IN ('Cash')),
+  receipt_number TEXT NOT NULL UNIQUE,
+  approved_by TEXT NOT NULL,
+  approved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  note TEXT NOT NULL DEFAULT '',
+  reversed_at TIMESTAMPTZ,
+  reversal_reason TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS worker_payments_employee_idx
+  ON worker_payments(employee_id, payment_date DESC);
+CREATE INDEX IF NOT EXISTS worker_payments_date_idx
+  ON worker_payments(payment_date DESC);
+
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (
   id TEXT PRIMARY KEY,
