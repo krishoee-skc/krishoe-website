@@ -25,6 +25,7 @@ import {
   factoryRolloutPhases,
   factoryStages,
   factoryWorkOrderTracePath,
+  filterFactoryWorkOrders,
   getFactoryData,
   getFactoryDashboard,
   getFactoryAssignmentSizePlan,
@@ -84,6 +85,10 @@ export default async function FactoryErpPage({
     materialReturned?: string;
     materialFinalized?: string;
     stockPosted?: string;
+    q?: string;
+    orderStatus?: string;
+    orderPriority?: string;
+    orderStage?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -102,6 +107,32 @@ export default async function FactoryErpPage({
   });
   const reviewCount = audit.unlinkedLegacyTaskCount + audit.ambiguousLegacyTaskCount;
   const dashboard = getFactoryDashboard(factory);
+  const orderStatus = [
+    "Draft",
+    "Released",
+    "In Progress",
+    "Ready for Stock",
+    "Completed",
+    "Cancelled",
+  ].includes(params?.orderStatus ?? "")
+    ? (params?.orderStatus as (typeof factory.workOrders)[number]["status"])
+    : "";
+  const orderPriority = ["Normal", "High", "Urgent"].includes(
+    params?.orderPriority ?? "",
+  )
+    ? (params?.orderPriority as (typeof factory.workOrders)[number]["priority"])
+    : "";
+  const orderStage = factoryStages.some(
+    (stage) => stage.code === params?.orderStage,
+  )
+    ? (params?.orderStage as (typeof factoryStages)[number]["code"])
+    : "";
+  const filteredWorkOrders = filterFactoryWorkOrders(factory, {
+    query: params?.q,
+    status: orderStatus,
+    priority: orderPriority,
+    stageCode: orderStage,
+  });
 
   return (
     <section className="p-4 sm:p-6">
@@ -699,11 +730,63 @@ export default async function FactoryErpPage({
               <h2 className="mt-2 text-xl font-black text-brand-green-ink">Work Orders</h2>
             </div>
             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">
-              {factory.workOrders.length} orders
+              {filteredWorkOrders.length} of {factory.workOrders.length} orders
             </span>
           </div>
+          <form
+            action="/admin/factory"
+            className="mt-4 grid gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 sm:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_auto]"
+          >
+            <input
+              name="q"
+              defaultValue={params?.q}
+              placeholder="Search WO, lot, item or colour"
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+            />
+            <select
+              name="orderStatus"
+              defaultValue={orderStatus}
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+            >
+              <option value="">All statuses</option>
+              {["Draft", "Released", "In Progress", "Ready for Stock", "Completed", "Cancelled"].map(
+                (status) => <option key={status}>{status}</option>,
+              )}
+            </select>
+            <select
+              name="orderPriority"
+              defaultValue={orderPriority}
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+            >
+              <option value="">All priorities</option>
+              {["Normal", "High", "Urgent"].map((priority) => (
+                <option key={priority}>{priority}</option>
+              ))}
+            </select>
+            <select
+              name="orderStage"
+              defaultValue={orderStage}
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+            >
+              <option value="">All active stages</option>
+              {factoryStages.map((stage) => (
+                <option key={stage.code} value={stage.code}>{stage.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button className="min-h-11 flex-1 rounded-xl bg-brand-green px-4 text-xs font-black text-white">
+                Apply
+              </button>
+              <Link
+                href="/admin/factory"
+                className="inline-flex min-h-11 items-center rounded-xl border border-gray-300 px-3 text-xs font-black text-gray-700"
+              >
+                Clear
+              </Link>
+            </div>
+          </form>
           <div className="mt-5 space-y-4">
-            {factory.workOrders.map((order) => {
+            {filteredWorkOrders.map((order) => {
               const sizes = factory.workOrderSizes.filter((row) => row.workOrderId === order.id);
               const bom = factory.bomLines.filter((line) => line.itemId === order.itemId);
               const item = factory.items.find((entry) => entry.id === order.itemId);
@@ -1102,10 +1185,10 @@ export default async function FactoryErpPage({
                 </div>
               );
             })}
-            {factory.workOrders.length === 0 ? (
+            {filteredWorkOrders.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-300 px-5 py-10 text-center">
-                <p className="font-black text-brand-green-ink">No Work Orders yet</p>
-                <p className="mt-2 text-sm text-gray-500">Create the first mixed-size draft for the pilot.</p>
+                <p className="font-black text-brand-green-ink">No matching Work Orders</p>
+                <p className="mt-2 text-sm text-gray-500">Clear filters or create a new mixed-size Work Order.</p>
               </div>
             ) : null}
           </div>

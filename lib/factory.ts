@@ -469,6 +469,40 @@ export function factoryWorkOrderTraceUrl(origin: string, workOrderId: string) {
   return `${new URL(origin).origin}${factoryWorkOrderTracePath(workOrderId)}`;
 }
 
+export function filterFactoryWorkOrders(
+  data: Pick<FactoryData, "workOrders" | "stageAssignments">,
+  filters: {
+    query?: string;
+    status?: FactoryWorkOrderStatus | "";
+    priority?: FactoryWorkOrderPriority | "";
+    stageCode?: FactoryStageCode | "";
+  },
+) {
+  const query = filters.query?.trim().toLocaleLowerCase() ?? "";
+  return data.workOrders.filter((order) => {
+    if (filters.status && order.status !== filters.status) return false;
+    if (filters.priority && order.priority !== filters.priority) return false;
+    if (filters.stageCode) {
+      const hasStage = data.stageAssignments.some(
+        (assignment) =>
+          assignment.workOrderId === order.id &&
+          assignment.stageCode === filters.stageCode &&
+          assignment.status !== "Completed",
+      );
+      if (!hasStage) return false;
+    }
+    if (!query) return true;
+    return [
+      order.workOrderNumber,
+      order.lotNumber,
+      order.itemCode,
+      order.itemName,
+      order.color,
+      order.createdBy,
+    ].some((value) => value.toLocaleLowerCase().includes(query));
+  });
+}
+
 export type FactoryWorkOrderSize = {
   id: string;
   workOrderId: string;

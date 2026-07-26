@@ -18,6 +18,7 @@ import {
   getFactoryWorkOrderCosting,
   getFactoryWorkOrderCancellationBlockers,
   getFactoryStagePauseTransition,
+  filterFactoryWorkOrders,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -179,6 +180,57 @@ describe("Factory ERP foundation", () => {
         changedBy: "Owner",
       }).status,
     ).toBe("In Progress");
+  });
+
+  it("filters the Work Order command list by search, status and active stage", () => {
+    const workOrders = [
+      {
+        id: "wo-1",
+        workOrderNumber: "WO-1001",
+        lotNumber: "LOT-BLACK",
+        itemCode: "LH-01",
+        itemName: "Ladies Heel",
+        color: "Black",
+        status: "In Progress",
+        priority: "Urgent",
+        createdBy: "Owner",
+      },
+      {
+        id: "wo-2",
+        workOrderNumber: "WO-1002",
+        lotNumber: "LOT-RED",
+        itemCode: "KS-01",
+        itemName: "Kids Sandal",
+        color: "Red",
+        status: "Draft",
+        priority: "Normal",
+        createdBy: "Owner",
+      },
+    ] as FactoryData["workOrders"];
+    const stageAssignments = [
+      {
+        workOrderId: "wo-1",
+        stageCode: "fiber-stitching",
+        status: "In Progress",
+      },
+    ] as FactoryData["stageAssignments"];
+    expect(
+      filterFactoryWorkOrders(
+        { workOrders, stageAssignments },
+        {
+          query: "ladies",
+          status: "In Progress",
+          priority: "Urgent",
+          stageCode: "fiber-stitching",
+        },
+      ).map((order) => order.id),
+    ).toEqual(["wo-1"]);
+    expect(
+      filterFactoryWorkOrders(
+        { workOrders, stageAssignments },
+        { query: "lot-red" },
+      ).map((order) => order.id),
+    ).toEqual(["wo-2"]);
   });
 
   it("audits legacy name linkage without mutating records", () => {
