@@ -114,6 +114,14 @@ export default async function FactoryErpPage({
         <div className="mt-5 inline-flex rounded-full border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-amber-200">
           Owner-controlled posting · audit protected
         </div>
+        <div className="mt-4">
+          <Link
+            href="/admin/factory/reports?period=daily"
+            className="inline-flex min-h-11 items-center rounded-xl bg-amber-300 px-4 text-sm font-black text-brand-green-ink"
+          >
+            Open daily / weekly / monthly reports
+          </Link>
+        </div>
       </header>
 
       <article className="mt-6 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm sm:p-6">

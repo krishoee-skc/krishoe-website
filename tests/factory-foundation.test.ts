@@ -11,6 +11,7 @@ import {
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
   getFactoryDashboard,
+  getFactoryPerformanceReport,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -573,5 +574,76 @@ describe("factory command dashboard", () => {
     ).toBe(4);
     expect(dashboard.topOutputWorker).toEqual({ workerName: "Ram", pairs: 6 });
     expect(dashboard.highestQualityWorker?.qualityRate).toBe(75);
+  });
+});
+
+describe("factory period performance report", () => {
+  it("groups only verified in-range production by worker, stage, and item", () => {
+    const data = {
+      workOrders: [
+        {
+          id: "wo-report",
+          itemId: "item-1",
+          itemCode: "LH-01",
+          itemName: "Ladies Heel",
+          status: "Completed",
+          createdDate: "2026-07-26",
+        },
+      ],
+      productionEntries: [
+        {
+          id: "verified-1",
+          workOrderId: "wo-report",
+          workerId: "worker-1",
+          workerName: "Ram",
+          stageCode: "upper",
+          entryDate: "2026-07-26",
+          goodPairs: 8,
+          rejectPairs: 1,
+          reworkPairs: 1,
+          calculatedWage: 80,
+          status: "Verified",
+        },
+        {
+          id: "submitted-1",
+          workOrderId: "wo-report",
+          workerId: "worker-1",
+          workerName: "Ram",
+          stageCode: "upper",
+          entryDate: "2026-07-26",
+          goodPairs: 20,
+          rejectPairs: 0,
+          reworkPairs: 0,
+          calculatedWage: 200,
+          status: "Submitted",
+        },
+        {
+          id: "outside-1",
+          workOrderId: "wo-report",
+          workerId: "worker-2",
+          workerName: "Sita",
+          stageCode: "packing",
+          entryDate: "2026-07-20",
+          goodPairs: 30,
+          rejectPairs: 0,
+          reworkPairs: 0,
+          calculatedWage: 150,
+          status: "Verified",
+        },
+      ],
+    } as unknown as FactoryData;
+
+    const report = getFactoryPerformanceReport(
+      data,
+      "2026-07-26",
+      "2026-07-26",
+    );
+    expect(report.goodPairs).toBe(8);
+    expect(report.verifiedWage).toBe(80);
+    expect(report.completedWorkOrders).toBe(1);
+    expect(report.workers).toHaveLength(1);
+    expect(report.workers[0].qualityRate).toBe(80);
+    expect(report.stages[0].label).toBe("Upper");
+    expect(report.items[0].label).toContain("Ladies Heel");
   });
 });

@@ -297,6 +297,121 @@ export type FactoryDashboard = {
   } | null;
 };
 
+export type FactoryPerformanceReportRow = {
+  key: string;
+  label: string;
+  goodPairs: number;
+  rejectPairs: number;
+  reworkPairs: number;
+  verifiedWage: number;
+  qualityRate: number;
+  entryCount: number;
+};
+
+export type FactoryPerformanceReport = {
+  from: string;
+  to: string;
+  goodPairs: number;
+  rejectPairs: number;
+  reworkPairs: number;
+  verifiedWage: number;
+  entryCount: number;
+  completedWorkOrders: number;
+  workers: FactoryPerformanceReportRow[];
+  stages: FactoryPerformanceReportRow[];
+  items: FactoryPerformanceReportRow[];
+};
+
+function performanceRows(
+  entries: FactoryProductionEntry[],
+  keyFor: (entry: FactoryProductionEntry) => { key: string; label: string },
+) {
+  const groups = new Map<
+    string,
+    Omit<FactoryPerformanceReportRow, "qualityRate">
+  >();
+  for (const entry of entries) {
+    const identity = keyFor(entry);
+    const row = groups.get(identity.key) ?? {
+      ...identity,
+      goodPairs: 0,
+      rejectPairs: 0,
+      reworkPairs: 0,
+      verifiedWage: 0,
+      entryCount: 0,
+    };
+    row.goodPairs += entry.goodPairs;
+    row.rejectPairs += entry.rejectPairs;
+    row.reworkPairs += entry.reworkPairs;
+    row.verifiedWage += entry.calculatedWage;
+    row.entryCount += 1;
+    groups.set(identity.key, row);
+  }
+  return [...groups.values()]
+    .map((row) => {
+      const inspected = row.goodPairs + row.rejectPairs + row.reworkPairs;
+      return {
+        ...row,
+        verifiedWage: Math.round(row.verifiedWage * 100) / 100,
+        qualityRate:
+          inspected > 0 ? Math.round((row.goodPairs / inspected) * 10000) / 100 : 0,
+      };
+    })
+    .sort((a, b) => b.goodPairs - a.goodPairs || a.label.localeCompare(b.label));
+}
+
+export function getFactoryPerformanceReport(
+  data: FactoryData,
+  from: string,
+  to: string,
+): FactoryPerformanceReport {
+  if (!from || !to || from > to) {
+    throw new Error("A valid Factory report date range is required.");
+  }
+  const entries = data.productionEntries.filter(
+    (entry) =>
+      entry.status === "Verified" &&
+      entry.entryDate >= from &&
+      entry.entryDate <= to,
+  );
+  const orderById = new Map(data.workOrders.map((order) => [order.id, order]));
+  const stages = performanceRows(entries, (entry) => ({
+    key: entry.stageCode,
+    label: factoryStages.find((stage) => stage.code === entry.stageCode)?.name ??
+      entry.stageCode,
+  }));
+  const report = {
+    from,
+    to,
+    goodPairs: entries.reduce((sum, entry) => sum + entry.goodPairs, 0),
+    rejectPairs: entries.reduce((sum, entry) => sum + entry.rejectPairs, 0),
+    reworkPairs: entries.reduce((sum, entry) => sum + entry.reworkPairs, 0),
+    verifiedWage:
+      Math.round(entries.reduce((sum, entry) => sum + entry.calculatedWage, 0) * 100) /
+      100,
+    entryCount: entries.length,
+    completedWorkOrders: data.workOrders.filter(
+      (order) =>
+        order.status === "Completed" &&
+        order.createdDate >= from &&
+        order.createdDate <= to,
+    ).length,
+    workers: performanceRows(entries, (entry) => ({
+      key: entry.workerId,
+      label: entry.workerName,
+    })),
+    stages,
+    items: performanceRows(entries, (entry) => {
+      const order = orderById.get(entry.workOrderId);
+      return {
+        key: order?.itemId ?? entry.workOrderId,
+        label: order ? `${order.itemCode} · ${order.itemName}` : entry.workOrderId,
+      };
+    }),
+  };
+  return report;
+}
+
 export function getFactoryDashboard(
   data: FactoryData,
   today = new Date().toISOString().slice(0, 10),
