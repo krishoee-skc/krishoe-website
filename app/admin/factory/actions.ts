@@ -17,6 +17,7 @@ import {
   getFactoryData,
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
+  reassignFactoryStageWorker,
   postFactoryMaterialIssue,
   postFactoryFinishedStock,
   returnFactoryMaterialIssue,
@@ -278,6 +279,48 @@ export async function createFactoryProductionEntryAction(formData: FormData) {
   const query = new URLSearchParams({ entry: result.entry.id });
   if (offlineDraftId) query.set("offlineSynced", offlineDraftId);
   redirect(`/admin/factory?${query.toString()}`);
+}
+
+export async function reassignFactoryStageWorkerAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const hr = await getHrData();
+  const assignment = factory.stageAssignments.find(
+    (entry) => entry.id === text(formData, "assignmentId"),
+  );
+  if (!assignment) throw new Error("Stage assignment was not found.");
+  const employee = hr.employees.find(
+    (entry) =>
+      entry.id === text(formData, "workerId") && entry.status === "Active",
+  );
+  if (!employee) throw new Error("Select an active HR employee.");
+  const workerLink = factory.workerLinks.find(
+    (entry) =>
+      entry.employeeId === employee.id &&
+      entry.active &&
+      entry.stageCodes.includes(assignment.stageCode),
+  );
+  if (!workerLink) {
+    throw new Error("This worker is not enabled for the selected factory stage.");
+  }
+  const previousWorker = assignment.workerName;
+  const updated = await reassignFactoryStageWorker({
+    assignment,
+    workerId: employee.id,
+    workerName: employee.name,
+    ratePerGoodPair: Number(text(formData, "ratePerGoodPair")),
+    cameraZone: text(formData, "cameraZone"),
+  });
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === assignment.workOrderId,
+  );
+  await recordAdminAuditEvent(
+    "factory_stage_worker_reassign",
+    `${workOrder?.workOrderNumber ?? assignment.workOrderId} ${assignment.stageCode}: ${previousWorker} changed to ${updated.workerName} by ${session.name || session.email || "Admin"}; future rate Rs. ${updated.ratePerGoodPairSnapshot}/pair.`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath(factoryWorkOrderTracePath(assignment.workOrderId));
+  redirect(`/admin/factory?reassigned=${encodeURIComponent(assignment.id)}`);
 }
 
 export async function verifyFactoryProductionEntryAction(formData: FormData) {

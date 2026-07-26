@@ -248,6 +248,79 @@ export type FactoryStageAssignment = {
   cameraZone: string;
 };
 
+export function normalizeFactoryAssignmentReassignment(input: {
+  assignment: FactoryStageAssignment;
+  workerId: string;
+  workerName: string;
+  ratePerGoodPair: number;
+  cameraZone: string;
+}) {
+  if (input.assignment.status === "Completed") {
+    throw new Error("A completed stage cannot be reassigned.");
+  }
+  const workerId = input.workerId.trim();
+  const workerName = input.workerName.trim();
+  if (!workerId || !workerName) throw new Error("Select an active stage worker.");
+  const ratePerGoodPairSnapshot =
+    Math.round(Number(input.ratePerGoodPair) * 100) / 100;
+  if (!Number.isFinite(ratePerGoodPairSnapshot) || ratePerGoodPairSnapshot < 0) {
+    throw new Error("Enter a valid non-negative wage rate.");
+  }
+  return {
+    workerId,
+    workerName,
+    ratePerGoodPairSnapshot,
+    cameraZone: input.cameraZone.trim().slice(0, 100),
+  };
+}
+
+export async function reassignFactoryStageWorker(input: {
+  assignment: FactoryStageAssignment;
+  workerId: string;
+  workerName: string;
+  ratePerGoodPair: number;
+  cameraZone: string;
+}) {
+  const update = normalizeFactoryAssignmentReassignment(input);
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const assignment = data.stageAssignments.find(
+        (entry) => entry.id === input.assignment.id,
+      );
+      if (!assignment || assignment.status === "Completed") {
+        throw new Error("Stage assignment is no longer available for reassignment.");
+      }
+      Object.assign(assignment, update);
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return assignment;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryStageAssignmentRow>(
+        "factory",
+        `UPDATE factory_stage_assignments
+         SET worker_id = $2, worker_name = $3, rate_per_good_pair_snapshot = $4,
+           camera_zone = $5, updated_at = now()
+         WHERE id = $1 AND status <> 'Completed'
+         RETURNING id, work_order_id, stage_code, sequence, worker_id, worker_name,
+           target_pairs, status, rate_per_good_pair_snapshot, camera_zone`,
+        [
+          input.assignment.id,
+          update.workerId,
+          update.workerName,
+          update.ratePerGoodPairSnapshot,
+          update.cameraZone,
+        ],
+      );
+      if (!rows[0]) {
+        throw new Error("Stage assignment is no longer available for reassignment.");
+      }
+      return { ...input.assignment, ...update };
+    },
+  });
+}
+
 export type FactoryWorkOrderStatus =
   | "Draft"
   | "Released"

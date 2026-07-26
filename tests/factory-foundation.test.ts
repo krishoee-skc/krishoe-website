@@ -9,6 +9,7 @@ import {
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
   normalizeFactoryCctvReference,
+  normalizeFactoryAssignmentReassignment,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
   getFactoryDashboard,
@@ -70,6 +71,44 @@ describe("Factory ERP foundation", () => {
       "finishing",
       "packing",
     ]);
+  });
+
+  it("reassigns only future stage work with a clean rate snapshot", () => {
+    const assignment = {
+      id: "assign-1",
+      workOrderId: "wo-1",
+      stageCode: "upper" as const,
+      sequence: 1,
+      workerId: "emp-old",
+      workerName: "Old Worker",
+      targetPairs: 60,
+      status: "In Progress" as const,
+      ratePerGoodPairSnapshot: 10,
+      cameraZone: "Upper A",
+    };
+    expect(
+      normalizeFactoryAssignmentReassignment({
+        assignment,
+        workerId: " emp-new ",
+        workerName: " New Worker ",
+        ratePerGoodPair: 12.345,
+        cameraZone: " Upper B ",
+      }),
+    ).toEqual({
+      workerId: "emp-new",
+      workerName: "New Worker",
+      ratePerGoodPairSnapshot: 12.35,
+      cameraZone: "Upper B",
+    });
+    expect(() =>
+      normalizeFactoryAssignmentReassignment({
+        assignment: { ...assignment, status: "Completed" },
+        workerId: "emp-new",
+        workerName: "New Worker",
+        ratePerGoodPair: 12,
+        cameraZone: "",
+      }),
+    ).toThrow("completed stage");
   });
 
   it("audits legacy name linkage without mutating records", () => {

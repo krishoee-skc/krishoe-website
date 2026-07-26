@@ -6,6 +6,7 @@ import WorkOrderReleaseForm from "@/app/admin/factory/WorkOrderReleaseForm";
 import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
 import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
 import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
+import StageWorkerReassignmentForm from "@/app/admin/factory/StageWorkerReassignmentForm";
 import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
 import MaterialIssuePostingControls from "@/app/admin/factory/MaterialIssuePostingControls";
@@ -919,6 +920,30 @@ export default async function FactoryErpPage({
                               <p className="mt-2 font-bold text-emerald-800">
                                 {validEntries.length} entries · {validEntries.reduce((sum, entry) => sum + entry.goodPairs, 0)} good · Rs. {validEntries.reduce((sum, entry) => sum + entry.calculatedWage, 0).toLocaleString("en-IN")} pending verification
                               </p>
+                            ) : null}
+                            {assignment.status !== "Completed" ? (
+                              <StageWorkerReassignmentForm
+                                assignmentId={assignment.id}
+                                currentWorkerId={assignment.workerId}
+                                currentRate={assignment.ratePerGoodPairSnapshot}
+                                cameraZone={assignment.cameraZone}
+                                workers={factory.workerLinks
+                                  .filter(
+                                    (link) =>
+                                      link.active &&
+                                      link.stageCodes.includes(assignment.stageCode),
+                                  )
+                                  .flatMap((link) => {
+                                    const employee = hr.employees.find(
+                                      (entry) =>
+                                        entry.id === link.employeeId &&
+                                        entry.status === "Active",
+                                    );
+                                    return employee
+                                      ? [{ id: employee.id, name: employee.name }]
+                                      : [];
+                                  })}
+                              />
                             ) : null}
                             {["Ready", "In Progress"].includes(assignment.status) &&
                             remainingSizes.some((row) => row.remainingPairs > 0) ? (
