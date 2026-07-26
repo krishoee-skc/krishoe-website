@@ -6,6 +6,7 @@ import {
   createWorkEntryAction,
   createWorkerPaymentAction,
   mapProductionItemAction,
+  approvePackingQcAction,
   saveStageRateAction,
 } from "./actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
@@ -130,6 +131,69 @@ export default async function ProductionAccountsPage() {
           })}
         </div>
       </form>
+
+      <form action={approvePackingQcAction} className={`${card} border-emerald-200`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Final gate</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">Packing/QC → Finished stock</h2>
+            <p className="mt-1 max-w-3xl text-sm text-gray-500">
+              Only good packed pairs are posted. Saving creates one Production In movement and updates the linked shop/POS stock.
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+            Owner approval required
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <select name="itemId" className={input} required defaultValue="">
+            <option value="" disabled>Select mapped manufactured item</option>
+            {activeItems
+              .filter((item) => item.productionType !== "Resale" && item.catalogProductId)
+              .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <select name="packingEmployeeId" className={input} defaultValue="">
+            <option value="">Packing checker not selected</option>
+            {data.employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
+            ))}
+          </select>
+          <input name="qcDate" type="date" className={input} defaultValue={date} required />
+          <input name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
+          <input name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
+          <input name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
+          <input name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
+          <FormSubmitButton className={button} pendingLabel="Posting stock…">
+            Approve & post stock
+          </FormSubmitButton>
+        </div>
+      </form>
+
+      <div className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">Recent Packing/QC stock postings</h2>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {data.qcPostings.map((posting) => (
+            <article key={posting.id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
+                  <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Packing/QC: {posting.packingEmployeeName || "Owner verified"} · Approved by {posting.approvedBy}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-brand-green">+{posting.totalPairs} pairs</p>
+                  {posting.rejectedPairs ? <p className="mt-1 text-xs font-bold text-brand-clay">Reject {posting.rejectedPairs}</p> : null}
+                </div>
+              </div>
+            </article>
+          ))}
+          {data.qcPostings.length === 0 ? (
+            <p className="text-sm text-gray-500">No Packing/QC stock posting yet.</p>
+          ) : null}
+        </div>
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={createWorkEntryAction} className={card}>

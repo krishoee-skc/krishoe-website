@@ -735,6 +735,31 @@ ALTER TABLE stock_movements
 CREATE INDEX IF NOT EXISTS stock_movements_created_at_idx ON stock_movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS stock_movements_design_channel_idx ON stock_movements(design, channel);
 
+CREATE TABLE IF NOT EXISTS production_qc_postings (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  qc_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  approval_reference TEXT NOT NULL UNIQUE,
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
+  item_name_snapshot TEXT NOT NULL,
+  catalog_product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  catalog_product_name_snapshot TEXT NOT NULL,
+  packing_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  packing_employee_name_snapshot TEXT NOT NULL DEFAULT '',
+  total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
+  rejected_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rejected_pairs >= 0),
+  size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
+  stock_movement_id TEXT NOT NULL REFERENCES stock_movements(id) ON DELETE RESTRICT,
+  stock_posted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  approved_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS production_qc_postings_item_idx
+  ON production_qc_postings(item_id, qc_date DESC);
+CREATE INDEX IF NOT EXISTS production_qc_postings_catalog_idx
+  ON production_qc_postings(catalog_product_id, qc_date DESC);
+
 -- Vehicle dispatch, market return, and collection
 CREATE TABLE IF NOT EXISTS vehicle_dispatches (
   id TEXT PRIMARY KEY,

@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getHrData } from "@/lib/hr";
+import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { reportingErrors } from "@/lib/report-error";
 import {
   addApprovedWorkEntry,
   addProductionItem,
   addWorkerPayment,
+  approvePackingQcAndPostStock,
   mapProductionItemToCatalog,
   setProductionStageRate,
 } from "@/lib/production-accounting";
@@ -166,6 +169,34 @@ export async function createWorkerPaymentAction(formData: FormData) {
   await recordAdminAuditEvent(
     "worker_cash_approve",
     `${paymentType} Rs. ${paymentAmount} approved for ${employee.name}; ${receipt}.`,
+  );
+  refresh();
+}
+
+export async function approvePackingQcAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const packingEmployeeId = text(formData, "packingEmployeeId");
+  const packingEmployee = packingEmployeeId ? await activeEmployee(packingEmployeeId) : undefined;
+  const totalPairs = integer(formData, "totalPairs");
+  const rejectedPairs = integer(formData, "rejectedPairs");
+
+  const result = await approvePackingQcAndPostStock({
+    itemId: text(formData, "itemId"),
+    packingEmployee,
+    qcDate: text(formData, "qcDate"),
+    totalPairs,
+    rejectedPairs,
+    sizeBreakdown: sizeBreakdown(text(formData, "sizeBreakdown")),
+    approvedBy,
+    note: text(formData, "note"),
+  });
+
+  await reportingErrors("sync catalog after production QC", () =>
+    syncProductCatalogStockWithFinishedStock(),
+  );
+  await recordAdminAuditEvent(
+    "production_qc_stock_post",
+    `${result.approvalReference}: ${totalPairs} finished pairs posted to stock; ${rejectedPairs} rejected.`,
   );
   refresh();
 }

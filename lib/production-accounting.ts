@@ -1,8 +1,10 @@
 import { getHrData, type Employee } from "@/lib/hr";
 import { getProducts } from "@/lib/product-store";
+import { insertStockMovement } from "@/lib/operations-postgres";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import {
   assertWorkQuantity,
+  assertFinishedStockPosting,
   calculateEarnedWage,
   normalizeSizeBreakdown,
   type ProductionStage,
@@ -64,6 +66,19 @@ export type WorkerPayment = {
   note: string;
 };
 
+export type QcStockPosting = {
+  id: string;
+  qcDate: string;
+  approvalReference: string;
+  itemName: string;
+  catalogProductName: string;
+  packingEmployeeName: string;
+  totalPairs: number;
+  rejectedPairs: number;
+  stockMovementId: string;
+  approvedBy: string;
+};
+
 type ItemRow = {
   id: string;
   name: string;
@@ -117,6 +132,19 @@ type PaymentRow = {
   note: string;
 };
 
+type QcPostingRow = {
+  id: string;
+  qc_date: Date | string;
+  approval_reference: string;
+  item_name_snapshot: string;
+  catalog_product_name_snapshot: string;
+  packing_employee_name_snapshot: string;
+  total_pairs: number | string;
+  rejected_pairs: number | string;
+  stock_movement_id: string;
+  approved_by: string;
+};
+
 function numeric(value: number | string) {
   return Math.round(Number(value) * 100) / 100;
 }
@@ -130,7 +158,7 @@ function id(prefix: string) {
 }
 
 export async function getProductionAccountingSnapshot() {
-  const [items, rates, workEntries, payments, balances, hr, products] = await Promise.all([
+  const [items, rates, workEntries, payments, qcPostings, balances, hr, products] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
       `SELECT id, name, category, production_type, size_group, catalog_product_id, status
@@ -159,6 +187,14 @@ export async function getProductionAccountingSnapshot() {
        FROM worker_payments
        WHERE reversed_at IS NULL
        ORDER BY payment_date DESC, created_at DESC LIMIT 30`,
+    ),
+    queryPostgres<QcPostingRow>(
+      "recent production QC stock postings",
+      `SELECT id, qc_date, approval_reference, item_name_snapshot,
+         catalog_product_name_snapshot, packing_employee_name_snapshot,
+         total_pairs, rejected_pairs, stock_movement_id, approved_by
+       FROM production_qc_postings
+       ORDER BY qc_date DESC, created_at DESC LIMIT 30`,
     ),
     queryPostgres<BalanceRow>(
       "worker balances",
@@ -220,6 +256,18 @@ export async function getProductionAccountingSnapshot() {
       status: row.status,
     })),
     payments: payments.map(paymentFromRow),
+    qcPostings: qcPostings.map((row) => ({
+      id: row.id,
+      qcDate: isoDate(row.qc_date),
+      approvalReference: row.approval_reference,
+      itemName: row.item_name_snapshot,
+      catalogProductName: row.catalog_product_name_snapshot,
+      packingEmployeeName: row.packing_employee_name_snapshot,
+      totalPairs: Number(row.total_pairs),
+      rejectedPairs: Number(row.rejected_pairs),
+      stockMovementId: row.stock_movement_id,
+      approvedBy: row.approved_by,
+    })),
     balances: balances.map((row) => ({
       employeeId: row.employee_id,
       employeeName: row.employee_name,
@@ -473,4 +521,73 @@ export async function addWorkerPayment(input: {
     ],
   );
   return receiptNumber;
+}
+
+export async function approvePackingQcAndPostStock(input: {
+  itemId: string;
+  packingEmployee?: Employee;
+  qcDate: string;
+  totalPairs: number;
+  rejectedPairs: number;
+  sizeBreakdown: SizeBreakdown;
+  approvedBy: string;
+  note: string;
+}) {
+  return transactionPostgres("approve packing QC and post stock", async (db) => {
+    const itemRows = await db.query<ItemRow>(
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
+       FROM production_items WHERE id = $1 AND status = 'Active' FOR UPDATE`,
+      [input.itemId],
+    );
+    const item = itemRows[0];
+    if (!item) throw new Error("Active production item not found.");
+
+    const productRows = await db.query<{ id: string; name: string }>(
+      `SELECT id, name FROM products WHERE id = $1 FOR UPDATE`,
+      [item.catalog_product_id ?? ""],
+    );
+    const product = productRows[0];
+
+    assertFinishedStockPosting({
+      productionType: item.production_type,
+      catalogProductId: product?.id ?? "",
+      packingQcApproved: true,
+      totalPairs: input.totalPairs,
+      sizeBreakdown: input.sizeBreakdown,
+    });
+
+    const approvalReference =
+      `KR-QC-${input.qcDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+    const movement = await insertStockMovement(db, {
+      design: product.name,
+      channel: "Factory",
+      sizeRun: "Mixed",
+      type: "Production In",
+      pairs: input.totalPairs,
+      note: `${approvalReference} · ${item.name} packing/QC approved`,
+    });
+    const postingId = id("qc");
+
+    await db.query(
+      `INSERT INTO production_qc_postings (
+         id, qc_date, approval_reference, item_id, item_name_snapshot,
+         catalog_product_id, catalog_product_name_snapshot,
+         packing_employee_id, packing_employee_name_snapshot,
+         total_pairs, rejected_pairs, size_breakdown, stock_movement_id,
+         approved_by, note
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9,
+         $10, $11, $12::jsonb, $13, $14, $15
+       )`,
+      [
+        postingId, input.qcDate, approvalReference, item.id, item.name,
+        product.id, product.name, input.packingEmployee?.id ?? null,
+        input.packingEmployee?.name ?? "", input.totalPairs, input.rejectedPairs,
+        JSON.stringify(normalizeSizeBreakdown(input.sizeBreakdown)),
+        movement.id, input.approvedBy, input.note,
+      ],
+    );
+
+    return { id: postingId, approvalReference, stockMovementId: movement.id };
+  });
 }

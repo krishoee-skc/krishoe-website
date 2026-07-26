@@ -314,6 +314,21 @@ export default async function AdminCostingPage() {
         </div>
       </div>
 
+      <div className="mt-6 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-black text-emerald-950">New item-stage wage costing</p>
+          <p className="mt-1 text-sm text-emerald-800">
+            Actual Upper, Fiber Preparation, Fiber Silai and Bottom Final rates now live in Production Accounts. The factory model below remains for legacy batches.
+          </p>
+        </div>
+        <Link
+          href="/admin/operations/production-accounts"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-brand-green px-4 text-sm font-black text-white"
+        >
+          Open item-stage rates
+        </Link>
+      </div>
+
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatCard
           label="Material purchase"
@@ -394,9 +409,9 @@ export default async function AdminCostingPage() {
       <form action={updateCostingSettingsAction} className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Factory cost model</h2>
+            <h2 className="text-lg font-black text-brand-green-ink">Legacy batch cost model</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Set real labor and overhead rates to turn COGS into true production profit.
+              Kept for existing Cutting/Stitching/Sole Press batch history. New factory items use item-stage rates in Production Accounts.
             </p>
           </div>
           <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
