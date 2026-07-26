@@ -244,6 +244,7 @@ export async function releaseFactoryWorkOrderAction(formData: FormData) {
 export async function createFactoryProductionEntryAction(formData: FormData) {
   const { session } = await requireAdminPermission("factory:write");
   const assignmentId = text(formData, "assignmentId");
+  const offlineDraftId = text(formData, "offlineDraftId");
   const factory = await getFactoryData();
   const assignment = factory.stageAssignments.find((entry) => entry.id === assignmentId);
   if (!assignment) throw new Error("Stage assignment was not found.");
@@ -274,7 +275,9 @@ export async function createFactoryProductionEntryAction(formData: FormData) {
     `${workOrder.workOrderNumber} ${assignment.stageCode}: ${result.entry.goodPairs} good, ${result.entry.rejectPairs} reject, ${result.entry.reworkPairs} rework submitted.`,
   );
   revalidatePath("/admin/factory");
-  redirect(`/admin/factory?entry=${encodeURIComponent(result.entry.id)}`);
+  const query = new URLSearchParams({ entry: result.entry.id });
+  if (offlineDraftId) query.set("offlineSynced", offlineDraftId);
+  redirect(`/admin/factory?${query.toString()}`);
 }
 
 export async function verifyFactoryProductionEntryAction(formData: FormData) {

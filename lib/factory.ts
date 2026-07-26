@@ -3355,7 +3355,7 @@ export async function addFactoryCctvReference(input: {
 export const factoryRolloutPhases = [
   { number: 1, name: "Foundation", scope: "Worker ID linkage, production item master, stages, roles and permissions", status: "In progress" },
   { number: 2, name: "Planning", scope: "Work orders, lots, BOM, colour and mixed-size worksheets", status: "Pending" },
-  { number: 3, name: "Factory execution", scope: "Partial entries, handovers, QC, reject/rework and offline queue", status: "Pending" },
+  { number: 3, name: "Factory execution", scope: "Partial entries, handovers, QC, reject/rework and offline queue", status: "In progress" },
   { number: 4, name: "Money and stock", scope: "Rate snapshots, verified wages, actual costing and stock posting", status: "Pending" },
   { number: 5, name: "Control", scope: "Lot QR, dashboards, reports, audit history and CCTV references", status: "Pending" },
 ] as const;
