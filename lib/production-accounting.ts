@@ -674,6 +674,102 @@ export async function getWorkerProductionAccount(
   };
 }
 
+export async function getProductionWorkOrderDetail(workOrderId: string) {
+  const orderRows = await queryPostgres<WorkOrderRow>(
+    "production Work Order detail",
+    `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+       size_breakdown, planned_pairs, due_date, priority, current_stage,
+       status, created_by
+     FROM production_work_orders WHERE id = $1 LIMIT 1`,
+    [workOrderId],
+  );
+  if (!orderRows[0]) return null;
+
+  const [workRows, handoverRows, qcRows] = await Promise.all([
+    queryPostgres<WorkRow>(
+      "Work Order production entries",
+      `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
+         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         rate_per_pair_snapshot, earned_wage, status
+       FROM production_work_entries
+       WHERE work_order_id = $1 ORDER BY work_date, created_at`,
+      [workOrderId],
+    ),
+    queryPostgres<HandoverRow>(
+      "Work Order handovers",
+      `SELECT id, handover_date, work_order_id, work_order_number_snapshot,
+         from_stage, to_stage, from_employee_name_snapshot,
+         to_employee_name_snapshot, sent_pairs, received_pairs
+       FROM production_stage_handovers
+       WHERE work_order_id = $1 ORDER BY handover_date, created_at`,
+      [workOrderId],
+    ),
+    queryPostgres<QcPostingRow>(
+      "Work Order QC postings",
+      `SELECT id, qc_date, approval_reference, work_order_id, item_name_snapshot,
+         catalog_product_name_snapshot, packing_employee_name_snapshot,
+         total_pairs, rejected_pairs, stock_movement_id, approved_by
+       FROM production_qc_postings
+       WHERE work_order_id = $1 ORDER BY qc_date, created_at`,
+      [workOrderId],
+    ),
+  ]);
+
+  const work = workRows.map(workFromRow);
+  const handovers = handoverRows.map((row) => ({
+    id: row.id,
+    handoverDate: isoDate(row.handover_date),
+    workOrderId: row.work_order_id,
+    workOrderNumber: row.work_order_number_snapshot,
+    fromStage: row.from_stage,
+    toStage: row.to_stage,
+    fromEmployeeName: row.from_employee_name_snapshot,
+    toEmployeeName: row.to_employee_name_snapshot,
+    sentPairs: Number(row.sent_pairs),
+    receivedPairs: Number(row.received_pairs),
+    ...handoverSignal(Number(row.sent_pairs), Number(row.received_pairs)),
+  }));
+  const qcPostings: QcStockPosting[] = qcRows.map((row) => ({
+    id: row.id,
+    qcDate: isoDate(row.qc_date),
+    approvalReference: row.approval_reference,
+    workOrderId: row.work_order_id ?? "",
+    itemName: row.item_name_snapshot,
+    catalogProductName: row.catalog_product_name_snapshot,
+    packingEmployeeName: row.packing_employee_name_snapshot,
+    totalPairs: Number(row.total_pairs),
+    rejectedPairs: Number(row.rejected_pairs),
+    stockMovementId: row.stock_movement_id,
+    approvedBy: row.approved_by,
+  }));
+  const order = workOrderFromRow(orderRows[0]);
+
+  return {
+    order,
+    work,
+    handovers,
+    qcPostings,
+    stageProgress: productionStages.map((stage) => {
+      const rows = work.filter((entry) => entry.stage === stage && entry.status === "Approved");
+      const goodPairs = rows.reduce(
+        (total, entry) => total + entry.totalPairs - entry.rejectedPairs,
+        0,
+      );
+      return {
+        stage,
+        goodPairs,
+        rejectedPairs: rows.reduce((total, entry) => total + entry.rejectedPairs, 0),
+        wage: numeric(rows.reduce((total, entry) => total + entry.earnedWage, 0)),
+        complete: goodPairs >= order.plannedPairs,
+      };
+    }),
+    qcSummary: {
+      goodPairs: qcPostings.reduce((total, row) => total + row.totalPairs, 0),
+      rejectedPairs: qcPostings.reduce((total, row) => total + row.rejectedPairs, 0),
+    },
+  };
+}
+
 export async function addProductionItem(input: Omit<ProductionItem, "id" | "status">) {
   const rows = await queryPostgres<ItemRow>(
     "create production item",

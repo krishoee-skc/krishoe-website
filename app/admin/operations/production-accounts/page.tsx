@@ -307,7 +307,11 @@ export default async function ProductionAccountsPage() {
           <h2 className="text-lg font-black text-brand-green-ink">Active Work Orders</h2>
           <div className="mt-4 space-y-3">
             {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
-              <article key={order.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+              <Link
+                key={order.id}
+                href={`/admin/operations/production-accounts/work-order/${encodeURIComponent(order.id)}`}
+                className="block rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm transition hover:border-brand-green"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-black text-brand-green-ink">{order.workOrderNumber} · {order.itemName}</p>
@@ -322,7 +326,8 @@ export default async function ProductionAccountsPage() {
                   <p className="font-bold text-brand-green">Current: {order.currentStage}</p>
                   <p className="text-xs font-bold text-gray-500">{order.status}</p>
                 </div>
-              </article>
+                <p className="mt-3 text-xs font-black text-brand-green">Open lot history & QR →</p>
+              </Link>
             ))}
             {data.workOrders.length === 0 ? <p className="text-sm text-gray-500">No Work Order yet.</p> : null}
           </div>
