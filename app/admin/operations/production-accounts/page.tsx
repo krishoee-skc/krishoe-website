@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   createProductionItemAction,
@@ -43,13 +44,43 @@ export default async function ProductionAccountsPage() {
 
   return (
     <section className="mx-auto max-w-7xl space-y-5 p-4 pb-28 sm:p-6">
-      <header>
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory accounts</p>
         <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Production, wages & kharcha</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
           Owner-approved work, item/stage wage, midweek advance and Saturday kharcha—without mixing work earned with cash paid.
         </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["work-orders", "Work Orders"],
+            ["work-entries", "Work & wage"],
+            ["worker-payments", "Kharcha"],
+            ["handovers", "Handovers"],
+            ["qc-stock", "QC & stock"],
+            ["cost-cards", "Cost cards"],
+          ].map(([type, label], index) => (
+            <ExportButton
+              key={type}
+              href={`/api/admin/operations/production-export?type=${type}`}
+              className={index === 0
+                ? "min-h-10 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+                : "min-h-10 rounded-full border border-gray-200 bg-white px-4 text-xs font-black text-brand-green-ink"}
+            >
+              {label} CSV
+            </ExportButton>
+          ))}
+        </div>
       </header>
+
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+        <p className="font-black text-blue-950">Friday statement workflow</p>
+        <p className="mt-1 text-sm leading-6 text-blue-800">
+          Download <strong>Work & wage</strong> and <strong>Kharcha</strong>. Filter dates from Saturday to Friday,
+          then compare earned wage, cash paid and remaining worker balance before Saturday payment.
+        </p>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
