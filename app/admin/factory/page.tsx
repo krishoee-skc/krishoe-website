@@ -6,6 +6,7 @@ import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
 import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
 import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
 import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
+import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -20,10 +21,13 @@ import {
   getFactoryData,
   getFactoryAssignmentSizePlan,
   getFactoryPackingReadiness,
+  getFactoryMaterialPlan,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { getPurchasingData } from "@/lib/purchasing";
+import { buildMaterialCostRates } from "@/lib/costing";
 
 export const metadata: Metadata = { title: "Factory ERP | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -66,15 +70,18 @@ export default async function FactoryErpPage({
     verified?: string;
     handover?: string;
     packed?: string;
+    materialDraft?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
-  const [hr, operations, factory, params] = await Promise.all([
+  const [hr, operations, factory, purchasing, params] = await Promise.all([
     getHrData(),
     getOperationsData(),
     getFactoryData(),
+    getPurchasingData(),
     searchParams,
   ]);
+  const materialRates = buildMaterialCostRates(purchasing.purchaseInvoices);
   const audit = auditFactoryFoundation({
     employees: hr.employees,
     productionBatches: operations.productionBatches,
@@ -461,6 +468,11 @@ export default async function FactoryErpPage({
               {params.packed} passed packing reconciliation and is Ready for Stock. Sellable stock is unchanged.
             </p>
           ) : null}
+          {params?.materialDraft ? (
+            <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-800">
+              Raw-material issue draft saved with a purchase-cost snapshot. Inventory stock is unchanged.
+            </p>
+          ) : null}
           <div className="mt-5">
             <WorkOrderForm
               items={factory.items
@@ -501,6 +513,40 @@ export default async function FactoryErpPage({
                     entry.workOrderId === order.id && entry.status === "Verified",
                 )
                 .reduce((sum, entry) => sum + entry.calculatedWage, 0);
+              const materialPlan = getFactoryMaterialPlan({
+                workOrder: order,
+                bomLines: factory.bomLines,
+                materialIssues: factory.materialIssues,
+              });
+              const materialOptions = materialPlan.map((line) => {
+                const material = operations.rawMaterials.find(
+                  (entry) => entry.id === line.materialId,
+                );
+                const rate =
+                  materialRates.find((entry) => entry.materialId === line.materialId)
+                    ?.averageUnitCost ?? 0;
+                return {
+                  bomLineId: line.id,
+                  name: line.materialName,
+                  unit: line.unit,
+                  plannedQuantity: line.plannedQuantity,
+                  allocatedQuantity: line.allocatedQuantity,
+                  remainingQuantity: line.remainingQuantity,
+                  availableStock: material
+                    ? Math.max(
+                        0,
+                        material.openingStock + material.received - material.used,
+                      )
+                    : 0,
+                  averageUnitCost: rate,
+                };
+              });
+              const draftMaterialCost = factory.materialIssues
+                .filter(
+                  (issue) =>
+                    issue.workOrderId === order.id && issue.status !== "Cancelled",
+                )
+                .reduce((sum, issue) => sum + issue.totalCost, 0);
               const releaseStages = (item?.stageCodes ?? []).map((code) => ({
                 code,
                 rate:
@@ -557,8 +603,36 @@ export default async function FactoryErpPage({
                   </details>
                   <p className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">
                     Verified production wage: Rs. {verifiedWage.toLocaleString("en-IN")}
-                    {" · "}Material cost awaits actual issue and purchase-rate posting.
+                    {" · "}Draft material cost: Rs. {draftMaterialCost.toLocaleString("en-IN")}
+                    {" · "}Combined preview: Rs. {(verifiedWage + draftMaterialCost).toLocaleString("en-IN")}
                   </p>
+                  {materialOptions.length > 0 &&
+                  !["Completed", "Cancelled"].includes(order.status) ? (
+                    <MaterialIssueDraftForm
+                      workOrderId={order.id}
+                      materials={materialOptions}
+                    />
+                  ) : null}
+                  {factory.materialIssues.some(
+                    (issue) => issue.workOrderId === order.id,
+                  ) ? (
+                    <details className="mt-3 rounded-xl border border-orange-100 bg-orange-50 p-3">
+                      <summary className="cursor-pointer text-sm font-black text-orange-900">
+                        Material issue ledger
+                      </summary>
+                      <div className="mt-3 space-y-2">
+                        {factory.materialIssues
+                          .filter((issue) => issue.workOrderId === order.id)
+                          .map((issue) => (
+                            <p key={issue.id} className="rounded-lg bg-white p-2 text-xs text-gray-700">
+                              <strong>{issue.materialName}</strong>: {issue.quantity} {issue.unit}
+                              {" · "}Rs. {issue.totalCost.toLocaleString("en-IN")}
+                              {" · "}{issue.status}
+                            </p>
+                          ))}
+                      </div>
+                    </details>
+                  ) : null}
                   {order.status === "Draft" && item ? (
                     <WorkOrderReleaseForm
                       workOrderId={order.id}

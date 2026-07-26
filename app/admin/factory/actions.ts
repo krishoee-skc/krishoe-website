@@ -9,6 +9,7 @@ import {
   addFactoryProductionEntry,
   addFactoryStageHandover,
   approveFactoryPacking,
+  addFactoryMaterialIssueDraft,
   addFactoryWorkOrder,
   getFactoryData,
   getFactoryAssignmentSizePlan,
@@ -26,6 +27,8 @@ import {
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
+import { getPurchasingData } from "@/lib/purchasing";
+import { buildMaterialCostRates } from "@/lib/costing";
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -350,4 +353,51 @@ export async function approveFactoryPackingAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?packed=${encodeURIComponent(workOrder.workOrderNumber)}`);
+}
+
+export async function createFactoryMaterialIssueDraftAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const [factory, operations, purchasing] = await Promise.all([
+    getFactoryData(),
+    getOperationsData(),
+    getPurchasingData(),
+  ]);
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === text(formData, "workOrderId"),
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const bomLine = factory.bomLines.find(
+    (entry) =>
+      entry.id === text(formData, "bomLineId") &&
+      entry.itemId === workOrder.itemId,
+  );
+  if (!bomLine) throw new Error("Selected BOM material was not found.");
+  const material = operations.rawMaterials.find(
+    (entry) => entry.id === bomLine.materialId,
+  );
+  if (!material) throw new Error("Raw material inventory record was not found.");
+  const rates = buildMaterialCostRates(purchasing.purchaseInvoices);
+  const rate =
+    rates.find((entry) => entry.materialId === material.id)?.averageUnitCost ?? 0;
+  const availableStock = Math.max(
+    0,
+    material.openingStock + material.received - material.used,
+  );
+
+  const issue = await addFactoryMaterialIssueDraft({
+    workOrder,
+    bomLine,
+    existingIssues: factory.materialIssues,
+    quantity: Number(text(formData, "quantity")) || 0,
+    availableStock,
+    unitCostSnapshot: rate,
+    note: text(formData, "note"),
+    createdBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_material_issue_draft",
+    `${workOrder.workOrderNumber}: draft ${issue.quantity} ${issue.unit} ${issue.materialName}, cost Rs. ${issue.totalCost}. Raw stock unchanged.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?materialDraft=${encodeURIComponent(issue.id)}`);
 }

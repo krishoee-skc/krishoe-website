@@ -7,6 +7,7 @@ import {
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
   getFactoryPackingReadiness,
+  getFactoryMaterialPlan,
   normalizeWorkOrderSizes,
   validateFactoryRelease,
 } from "@/lib/factory";
@@ -290,5 +291,60 @@ describe("Factory ERP foundation", () => {
         workOrder,
       ).ready,
     ).toBe(true);
+  });
+
+  it("tracks BOM allocation and material variance per Work Order", () => {
+    const workOrder = {
+      id: "wo-material",
+      workOrderNumber: "WO-MAT",
+      lotNumber: "LOT-MAT",
+      itemId: "item-1",
+      itemCode: "LH-01",
+      itemName: "Ladies Heel",
+      color: "Black",
+      createdDate: "2026-07-26",
+      dueDate: "2026-07-27",
+      priority: "Normal" as const,
+      currentStageCode: "upper" as const,
+      status: "Draft" as const,
+      totalPairs: 10,
+      remarks: "",
+      createdBy: "Owner",
+    };
+    const plan = getFactoryMaterialPlan({
+      workOrder,
+      bomLines: [
+        {
+          id: "bom-rexine",
+          itemId: "item-1",
+          materialId: "rm-rexine",
+          materialName: "Rexine",
+          unit: "meter",
+          quantityPerPair: 0.2,
+          wastagePercent: 10,
+        },
+      ],
+      materialIssues: [
+        {
+          id: "issue-1",
+          workOrderId: workOrder.id,
+          materialId: "rm-rexine",
+          materialName: "Rexine",
+          unit: "meter",
+          quantity: 1.2,
+          unitCostSnapshot: 100,
+          totalCost: 120,
+          status: "Draft",
+          note: "",
+          createdBy: "Owner",
+          createdAt: "2026-07-26T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(plan[0].plannedQuantity).toBe(2.2);
+    expect(plan[0].allocatedQuantity).toBe(1.2);
+    expect(plan[0].remainingQuantity).toBe(1);
+    expect(plan[0].varianceQuantity).toBe(-1);
   });
 });

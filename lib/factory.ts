@@ -59,6 +59,24 @@ export type FactoryData = {
   stageHandovers: FactoryStageHandover[];
   stageHandoverSizes: FactoryStageHandoverSize[];
   packingApprovals: FactoryPackingApproval[];
+  materialIssues: FactoryMaterialIssue[];
+};
+
+export type FactoryMaterialIssueStatus = "Draft" | "Posted" | "Cancelled";
+
+export type FactoryMaterialIssue = {
+  id: string;
+  workOrderId: string;
+  materialId: string;
+  materialName: string;
+  unit: FactoryMaterialUnit;
+  quantity: number;
+  unitCostSnapshot: number;
+  totalCost: number;
+  status: FactoryMaterialIssueStatus;
+  note: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 export type FactoryStageHandover = {
@@ -292,6 +310,7 @@ const emptyFactoryData: FactoryData = {
   stageHandovers: [],
   stageHandoverSizes: [],
   packingApprovals: [],
+  materialIssues: [],
 };
 
 function createFactoryId(prefix: string) {
@@ -319,6 +338,7 @@ async function readLocalFactoryData(): Promise<FactoryData> {
       stageHandovers: parsed.stageHandovers ?? [],
       stageHandoverSizes: parsed.stageHandoverSizes ?? [],
       packingApprovals: parsed.packingApprovals ?? [],
+      materialIssues: parsed.materialIssues ?? [],
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(emptyFactoryData);
@@ -475,6 +495,21 @@ type FactoryPackingApprovalRow = {
   created_at: Date | string;
 };
 
+type FactoryMaterialIssueRow = {
+  id: string;
+  work_order_id: string;
+  material_id: string;
+  material_name: string;
+  unit: FactoryMaterialUnit;
+  quantity: number | string;
+  unit_cost_snapshot: number | string;
+  total_cost: number | string;
+  status: FactoryMaterialIssueStatus;
+  note: string;
+  created_by: string;
+  created_at: Date | string;
+};
+
 async function getFactoryDataFromPostgres(): Promise<FactoryData> {
   const [
     items,
@@ -489,6 +524,7 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     stageHandovers,
     stageHandoverSizes,
     packingApprovals,
+    materialIssues,
   ] = await Promise.all([
     queryPostgres<FactoryItemRow>(
       "factory",
@@ -561,6 +597,12 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       `SELECT id, work_order_id, packing_assignment_id, approved_pairs,
         approved_by, note, created_at
        FROM factory_packing_approvals ORDER BY created_at DESC`,
+    ),
+    queryPostgres<FactoryMaterialIssueRow>(
+      "factory",
+      `SELECT id, work_order_id, material_id, material_name, unit, quantity,
+        unit_cost_snapshot, total_cost, status, note, created_by, created_at
+       FROM factory_material_issues ORDER BY created_at DESC`,
     ),
   ]);
 
@@ -722,6 +764,21 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       approvedPairs: Number(row.approved_pairs),
       approvedBy: row.approved_by,
       note: row.note,
+      createdAt:
+        row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    })),
+    materialIssues: materialIssues.map((row) => ({
+      id: row.id,
+      workOrderId: row.work_order_id,
+      materialId: row.material_id,
+      materialName: row.material_name,
+      unit: row.unit,
+      quantity: Number(row.quantity),
+      unitCostSnapshot: Number(row.unit_cost_snapshot),
+      totalCost: Number(row.total_cost),
+      status: row.status,
+      note: row.note,
+      createdBy: row.created_by,
       createdAt:
         row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     })),
@@ -1810,6 +1867,120 @@ export async function approveFactoryPacking(input: {
         );
         return approval;
       }),
+  });
+}
+
+export function getFactoryMaterialPlan(input: {
+  workOrder: FactoryWorkOrder;
+  bomLines: FactoryBomLine[];
+  materialIssues: FactoryMaterialIssue[];
+}) {
+  return input.bomLines
+    .filter((line) => line.itemId === input.workOrder.itemId)
+    .map((line) => {
+      const requirement = calculateBomRequirement(line, input.workOrder.totalPairs);
+      const allocatedQuantity = input.materialIssues
+        .filter(
+          (issue) =>
+            issue.workOrderId === input.workOrder.id &&
+            issue.materialId === line.materialId &&
+            issue.status !== "Cancelled",
+        )
+        .reduce((sum, issue) => sum + issue.quantity, 0);
+      return {
+        ...line,
+        plannedQuantity: requirement.requiredQuantity,
+        allocatedQuantity: Math.round(allocatedQuantity * 10000) / 10000,
+        remainingQuantity:
+          Math.round(Math.max(0, requirement.requiredQuantity - allocatedQuantity) * 10000) /
+          10000,
+        varianceQuantity:
+          Math.round((allocatedQuantity - requirement.requiredQuantity) * 10000) / 10000,
+      };
+    });
+}
+
+export async function addFactoryMaterialIssueDraft(input: {
+  workOrder: FactoryWorkOrder;
+  bomLine: FactoryBomLine;
+  existingIssues: FactoryMaterialIssue[];
+  quantity: number;
+  availableStock: number;
+  unitCostSnapshot: number;
+  note: string;
+  createdBy: string;
+}) {
+  if (["Completed", "Cancelled"].includes(input.workOrder.status)) {
+    throw new Error("Materials cannot be allocated to a closed Work Order.");
+  }
+  const quantity = Math.round(Math.max(0, Number(input.quantity) || 0) * 10000) / 10000;
+  if (quantity <= 0) throw new Error("Material issue quantity must be greater than zero.");
+  if (quantity > input.availableStock) {
+    throw new Error("Material issue draft exceeds currently available raw stock.");
+  }
+  const plan = getFactoryMaterialPlan({
+    workOrder: input.workOrder,
+    bomLines: [input.bomLine],
+    materialIssues: input.existingIssues,
+  })[0];
+  if (plan && quantity > plan.remainingQuantity && !input.note.trim()) {
+    throw new Error("Explain the material variance when allocation exceeds the BOM plan.");
+  }
+  const unitCostSnapshot =
+    Math.round(Math.max(0, Number(input.unitCostSnapshot) || 0) * 10000) / 10000;
+  const issue: FactoryMaterialIssue = {
+    id: createFactoryId("FMAT"),
+    workOrderId: input.workOrder.id,
+    materialId: input.bomLine.materialId,
+    materialName: input.bomLine.materialName,
+    unit: input.bomLine.unit,
+    quantity,
+    unitCostSnapshot,
+    totalCost: Math.round(quantity * unitCostSnapshot * 100) / 100,
+    status: "Draft",
+    note: input.note.trim(),
+    createdBy: input.createdBy.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      data.materialIssues.unshift(issue);
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return issue;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryMaterialIssueRow>(
+        "factory",
+        `INSERT INTO factory_material_issues (
+          id, work_order_id, material_id, material_name, unit, quantity,
+          unit_cost_snapshot, total_cost, status, note, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Draft', $9, $10)
+        RETURNING id, work_order_id, material_id, material_name, unit, quantity,
+          unit_cost_snapshot, total_cost, status, note, created_by, created_at`,
+        [
+          issue.id,
+          issue.workOrderId,
+          issue.materialId,
+          issue.materialName,
+          issue.unit,
+          issue.quantity,
+          issue.unitCostSnapshot,
+          issue.totalCost,
+          issue.note,
+          issue.createdBy,
+        ],
+      );
+      const row = rows[0];
+      return {
+        ...issue,
+        id: row.id,
+        createdAt:
+          row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+      };
+    },
   });
 }
 

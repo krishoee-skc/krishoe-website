@@ -849,6 +849,30 @@ CREATE TABLE IF NOT EXISTS factory_packing_approvals (
 CREATE INDEX IF NOT EXISTS factory_packing_approvals_created_idx
   ON factory_packing_approvals(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS factory_material_issues (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE RESTRICT,
+  material_id TEXT NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  material_name TEXT NOT NULL,
+  unit TEXT NOT NULL CHECK (unit IN ('kg', 'meter', 'pair', 'piece', 'liter')),
+  quantity NUMERIC NOT NULL CHECK (quantity > 0),
+  unit_cost_snapshot NUMERIC NOT NULL DEFAULT 0 CHECK (unit_cost_snapshot >= 0),
+  total_cost NUMERIC NOT NULL DEFAULT 0 CHECK (total_cost >= 0),
+  status TEXT NOT NULL DEFAULT 'Draft'
+    CHECK (status IN ('Draft', 'Posted', 'Cancelled')),
+  note TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS factory_material_issues_order_idx
+  ON factory_material_issues(work_order_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_material_issues_material_idx
+  ON factory_material_issues(material_id);
+CREATE INDEX IF NOT EXISTS factory_material_issues_status_idx
+  ON factory_material_issues(status);
+
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (
   id TEXT PRIMARY KEY,
