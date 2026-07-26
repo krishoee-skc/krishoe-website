@@ -703,6 +703,31 @@ CREATE INDEX IF NOT EXISTS production_work_orders_status_idx
 CREATE INDEX IF NOT EXISTS production_work_orders_item_idx
   ON production_work_orders(item_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS production_stage_handovers (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  handover_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  work_order_id TEXT NOT NULL REFERENCES production_work_orders(id) ON DELETE RESTRICT,
+  work_order_number_snapshot TEXT NOT NULL,
+  from_stage TEXT NOT NULL CHECK (
+    from_stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')
+  ),
+  to_stage TEXT NOT NULL CHECK (
+    to_stage IN ('Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+  ),
+  from_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  from_employee_name_snapshot TEXT NOT NULL DEFAULT '',
+  to_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  to_employee_name_snapshot TEXT NOT NULL DEFAULT '',
+  sent_pairs INTEGER NOT NULL CHECK (sent_pairs > 0),
+  received_pairs INTEGER NOT NULL CHECK (received_pairs >= 0),
+  approved_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS production_stage_handovers_order_idx
+  ON production_stage_handovers(work_order_id, handover_date DESC);
+
 CREATE TABLE IF NOT EXISTS production_work_entries (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -809,6 +834,7 @@ CREATE TABLE IF NOT EXISTS production_qc_postings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   qc_date DATE NOT NULL DEFAULT CURRENT_DATE,
   approval_reference TEXT NOT NULL UNIQUE,
+  work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT,
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
   item_name_snapshot TEXT NOT NULL,
   catalog_product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
@@ -823,6 +849,9 @@ CREATE TABLE IF NOT EXISTS production_qc_postings (
   approved_by TEXT NOT NULL,
   note TEXT NOT NULL DEFAULT ''
 );
+
+ALTER TABLE production_qc_postings
+  ADD COLUMN IF NOT EXISTS work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT;
 
 CREATE INDEX IF NOT EXISTS production_qc_postings_item_idx
   ON production_qc_postings(item_id, qc_date DESC);

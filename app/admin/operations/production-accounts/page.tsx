@@ -10,6 +10,7 @@ import {
   approveCostCardAction,
   saveItemMaterialAction,
   createWorkOrderAction,
+  createHandoverAction,
   saveStageRateAction,
 } from "./actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
@@ -149,6 +150,12 @@ export default async function ProductionAccountsPage() {
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <select name="workOrderId" className={input} defaultValue="">
+            <option value="">No Work Order link (legacy/manual)</option>
+            {data.workOrders.filter((order) => order.status === "Ready for QC").map((order) => (
+              <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
+            ))}
+          </select>
           <select name="itemId" className={input} required defaultValue="">
             <option value="" disabled>Select mapped manufactured item</option>
             {activeItems
@@ -181,6 +188,7 @@ export default async function ProductionAccountsPage() {
                 <div>
                   <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
                   <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
+                  {posting.workOrderId ? <p className="mt-1 text-xs font-bold text-emerald-800">Work Order linked</p> : null}
                   <p className="mt-1 text-xs text-gray-500">
                     Packing/QC: {posting.packingEmployeeName || "Owner verified"} · Approved by {posting.approvedBy}
                   </p>
@@ -317,6 +325,63 @@ export default async function ProductionAccountsPage() {
               </article>
             ))}
             {data.workOrders.length === 0 ? <p className="text-sm text-gray-500">No Work Order yet.</p> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <form action={createHandoverAction} className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
+          <p className="mt-1 text-sm text-gray-500">Record who sent, who received and any quantity difference.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <select name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
+              <option value="" disabled>Select active Work Order</option>
+              {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
+                <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
+              ))}
+            </select>
+            <select name="fromStage" className={input}>
+              {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
+            </select>
+            <input name="handoverDate" type="date" className={input} defaultValue={date} required />
+            <select name="fromEmployeeId" className={input} defaultValue="">
+              <option value="">Sender not selected</option>
+              {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+            </select>
+            <select name="toEmployeeId" className={input} defaultValue="">
+              <option value="">Receiver not selected</option>
+              {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+            </select>
+            <input name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
+            <input name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
+            <input name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
+          </div>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving handover…">Save handover</FormSubmitButton>
+        </form>
+
+        <div className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">Recent handovers</h2>
+          <div className="mt-4 space-y-3">
+            {data.handovers.map((handover) => (
+              <article key={handover.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-black text-brand-green-ink">{handover.workOrderNumber}</p>
+                    <p className="mt-1 text-gray-500">{handover.fromStage} → {handover.toStage}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {handover.fromEmployeeName || "Sender"} → {handover.toEmployeeName || "Receiver"} · {handover.handoverDate}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black">{handover.sentPairs} → {handover.receivedPairs}</p>
+                    <p className={`mt-1 text-xs font-black ${handover.signal === "Matched" ? "text-brand-green" : "text-brand-clay"}`}>
+                      {handover.signal}{handover.difference ? ` ${handover.difference}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {data.handovers.length === 0 ? <p className="text-sm text-gray-500">No stage handover yet.</p> : null}
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import {
   sizeBreakdownTotal,
   workerLedgerBalance,
   nextProductionStage,
+  handoverSignal,
 } from "@/lib/production-accounting-rules";
 
 describe("production accounting rules", () => {
@@ -90,5 +91,11 @@ describe("production accounting rules", () => {
     expect(nextProductionStage("Fiber Preparation")).toBe("Fiber Silai");
     expect(nextProductionStage("Fiber Silai")).toBe("Bottom Final");
     expect(nextProductionStage("Bottom Final")).toBe("Packing / QC");
+  });
+
+  it("shows stage handover shortages and excesses", () => {
+    expect(handoverSignal(60, 60)).toEqual({ signal: "Matched", difference: 0 });
+    expect(handoverSignal(60, 58)).toEqual({ signal: "Short", difference: 2 });
+    expect(handoverSignal(60, 61)).toEqual({ signal: "Excess", difference: 1 });
   });
 });

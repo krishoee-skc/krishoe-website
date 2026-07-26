@@ -13,6 +13,7 @@ import {
   approvePackingQcAndPostStock,
   approveProductionCostCard,
   createProductionWorkOrder,
+  createProductionHandover,
   mapProductionItemToCatalog,
   setProductionStageRate,
   setProductionItemMaterial,
@@ -183,6 +184,28 @@ export async function createWorkOrderAction(formData: FormData) {
   refresh();
 }
 
+export async function createHandoverAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const fromEmployeeId = text(formData, "fromEmployeeId");
+  const toEmployeeId = text(formData, "toEmployeeId");
+  const handover = await createProductionHandover({
+    workOrderId: text(formData, "workOrderId"),
+    handoverDate: text(formData, "handoverDate"),
+    fromStage: option<ProductionStage>(text(formData, "fromStage"), productionStages, "Upper"),
+    fromEmployee: fromEmployeeId ? await activeEmployee(fromEmployeeId) : undefined,
+    toEmployee: toEmployeeId ? await activeEmployee(toEmployeeId) : undefined,
+    sentPairs: integer(formData, "sentPairs"),
+    receivedPairs: integer(formData, "receivedPairs"),
+    approvedBy,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_stage_handover",
+    `${handover.workOrderNumber} handed to ${handover.toStage}.`,
+  );
+  refresh();
+}
+
 export async function createWorkEntryAction(formData: FormData) {
   const { approvedBy } = await ownerContext();
   const employee = await activeEmployee(text(formData, "employeeId"));
@@ -243,6 +266,7 @@ export async function approvePackingQcAction(formData: FormData) {
 
   const result = await approvePackingQcAndPostStock({
     itemId: text(formData, "itemId"),
+    workOrderId: text(formData, "workOrderId"),
     packingEmployee,
     qcDate: text(formData, "qcDate"),
     totalPairs,

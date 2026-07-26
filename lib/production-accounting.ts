@@ -8,6 +8,7 @@ import {
   calculateEarnedWage,
   normalizeSizeBreakdown,
   nextProductionStage,
+  handoverSignal,
   productionStages,
   type ProductionStage,
   type SizeBreakdown,
@@ -63,6 +64,21 @@ export type ProductionWorkOrder = {
   createdBy: string;
 };
 
+export type ProductionHandover = {
+  id: string;
+  handoverDate: string;
+  workOrderId: string;
+  workOrderNumber: string;
+  fromStage: ProductionStage;
+  toStage: ProductionStage | "Packing / QC";
+  fromEmployeeName: string;
+  toEmployeeName: string;
+  sentPairs: number;
+  receivedPairs: number;
+  signal: "Matched" | "Short" | "Excess";
+  difference: number;
+};
+
 export type WorkerBalance = {
   employeeId: string;
   employeeName: string;
@@ -88,6 +104,7 @@ export type QcStockPosting = {
   id: string;
   qcDate: string;
   approvalReference: string;
+  workOrderId: string;
   itemName: string;
   catalogProductName: string;
   packingEmployeeName: string;
@@ -180,6 +197,19 @@ type WorkOrderRow = {
   created_by: string;
 };
 
+type HandoverRow = {
+  id: string;
+  handover_date: Date | string;
+  work_order_id: string;
+  work_order_number_snapshot: string;
+  from_stage: ProductionStage;
+  to_stage: ProductionStage | "Packing / QC";
+  from_employee_name_snapshot: string;
+  to_employee_name_snapshot: string;
+  sent_pairs: number | string;
+  received_pairs: number | string;
+};
+
 type BalanceRow = {
   employee_id: string;
   employee_name: string;
@@ -205,6 +235,7 @@ type QcPostingRow = {
   id: string;
   qc_date: Date | string;
   approval_reference: string;
+  work_order_id: string | null;
   item_name_snapshot: string;
   catalog_product_name_snapshot: string;
   packing_employee_name_snapshot: string;
@@ -262,7 +293,7 @@ function id(prefix: string) {
 
 export async function getProductionAccountingSnapshot() {
   const [
-    items, rates, workOrders, workEntries, payments, qcPostings, balances, materials,
+    items, rates, workOrders, handovers, workEntries, payments, qcPostings, balances, materials,
     itemMaterials, costCards, hr, products,
   ] = await Promise.all([
     queryPostgres<ItemRow>(
@@ -288,6 +319,14 @@ export async function getProductionAccountingSnapshot() {
          WHEN 'Ready for QC' THEN 2 ELSE 3 END, due_date NULLS LAST, created_at DESC
        LIMIT 50`,
     ),
+    queryPostgres<HandoverRow>(
+      "production stage handovers",
+      `SELECT id, handover_date, work_order_id, work_order_number_snapshot,
+         from_stage, to_stage, from_employee_name_snapshot,
+         to_employee_name_snapshot, sent_pairs, received_pairs
+       FROM production_stage_handovers
+       ORDER BY handover_date DESC, created_at DESC LIMIT 50`,
+    ),
     queryPostgres<WorkRow>(
       "production work entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -306,7 +345,7 @@ export async function getProductionAccountingSnapshot() {
     ),
     queryPostgres<QcPostingRow>(
       "recent production QC stock postings",
-      `SELECT id, qc_date, approval_reference, item_name_snapshot,
+      `SELECT id, qc_date, approval_reference, work_order_id, item_name_snapshot,
          catalog_product_name_snapshot, packing_employee_name_snapshot,
          total_pairs, rejected_pairs, stock_movement_id, approved_by
        FROM production_qc_postings
@@ -392,6 +431,22 @@ export async function getProductionAccountingSnapshot() {
       effectiveFrom: isoDate(row.effective_from),
     })),
     workOrders: workOrders.map(workOrderFromRow),
+    handovers: handovers.map((row) => {
+      const result = handoverSignal(Number(row.sent_pairs), Number(row.received_pairs));
+      return {
+        id: row.id,
+        handoverDate: isoDate(row.handover_date),
+        workOrderId: row.work_order_id,
+        workOrderNumber: row.work_order_number_snapshot,
+        fromStage: row.from_stage,
+        toStage: row.to_stage,
+        fromEmployeeName: row.from_employee_name_snapshot,
+        toEmployeeName: row.to_employee_name_snapshot,
+        sentPairs: Number(row.sent_pairs),
+        receivedPairs: Number(row.received_pairs),
+        ...result,
+      };
+    }),
     workEntries: workEntries.map((row) => ({
       id: row.id,
       workDate: isoDate(row.work_date),
@@ -411,6 +466,7 @@ export async function getProductionAccountingSnapshot() {
       id: row.id,
       qcDate: isoDate(row.qc_date),
       approvalReference: row.approval_reference,
+      workOrderId: row.work_order_id ?? "",
       itemName: row.item_name_snapshot,
       catalogProductName: row.catalog_product_name_snapshot,
       packingEmployeeName: row.packing_employee_name_snapshot,
@@ -731,6 +787,57 @@ export async function createProductionWorkOrder(input: {
   });
 }
 
+export async function createProductionHandover(input: {
+  workOrderId: string;
+  handoverDate: string;
+  fromStage: ProductionStage;
+  fromEmployee?: Employee;
+  toEmployee?: Employee;
+  sentPairs: number;
+  receivedPairs: number;
+  approvedBy: string;
+  note: string;
+}) {
+  const toStage = nextProductionStage(input.fromStage);
+  handoverSignal(input.sentPairs, input.receivedPairs);
+
+  return transactionPostgres("create production handover", async (db) => {
+    const orders = await db.query<WorkOrderRow>(
+      `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+         size_breakdown, planned_pairs, due_date, priority, current_stage,
+         status, created_by
+       FROM production_work_orders
+       WHERE id = $1 AND status NOT IN ('Completed', 'Cancelled') FOR UPDATE`,
+      [input.workOrderId],
+    );
+    const order = orders[0];
+    if (!order) throw new Error("Open Work Order not found.");
+    if (input.sentPairs > Number(order.planned_pairs) || input.receivedPairs > Number(order.planned_pairs)) {
+      throw new Error("Handover quantity cannot exceed Work Order planned pairs.");
+    }
+
+    const handoverId = id("handover");
+    await db.query(
+      `INSERT INTO production_stage_handovers (
+         id, handover_date, work_order_id, work_order_number_snapshot,
+         from_stage, to_stage, from_employee_id, from_employee_name_snapshot,
+         to_employee_id, to_employee_name_snapshot, sent_pairs, received_pairs,
+         approved_by, note
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+       )`,
+      [
+        handoverId, input.handoverDate, order.id, order.work_order_number,
+        input.fromStage, toStage, input.fromEmployee?.id ?? null,
+        input.fromEmployee?.name ?? "", input.toEmployee?.id ?? null,
+        input.toEmployee?.name ?? "", input.sentPairs, input.receivedPairs,
+        input.approvedBy, input.note,
+      ],
+    );
+    return { id: handoverId, workOrderNumber: order.work_order_number, toStage };
+  });
+}
+
 export async function approveProductionCostCard(input: {
   itemId: string;
   effectiveFrom: string;
@@ -963,6 +1070,7 @@ export async function addWorkerPayment(input: {
 
 export async function approvePackingQcAndPostStock(input: {
   itemId: string;
+  workOrderId: string;
   packingEmployee?: Employee;
   qcDate: string;
   totalPairs: number;
@@ -994,6 +1102,30 @@ export async function approvePackingQcAndPostStock(input: {
       sizeBreakdown: input.sizeBreakdown,
     });
 
+    let workOrder: WorkOrderRow | undefined;
+    if (input.workOrderId) {
+      const orders = await db.query<WorkOrderRow>(
+        `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+           size_breakdown, planned_pairs, due_date, priority, current_stage,
+           status, created_by
+         FROM production_work_orders
+         WHERE id = $1 AND status = 'Ready for QC' FOR UPDATE`,
+        [input.workOrderId],
+      );
+      workOrder = orders[0];
+      if (!workOrder) throw new Error("Work Order must be Ready for QC.");
+      if (workOrder.item_id !== item.id) throw new Error("QC item does not match Work Order item.");
+
+      const previous = await db.query<{ accounted: number | string }>(
+        `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
+         FROM production_qc_postings WHERE work_order_id = $1`,
+        [input.workOrderId],
+      );
+      if (Number(previous[0]?.accounted ?? 0) + input.totalPairs + input.rejectedPairs > Number(workOrder.planned_pairs)) {
+        throw new Error("QC good and rejected pairs exceed Work Order planned pairs.");
+      }
+    }
+
     const approvalReference =
       `KR-QC-${input.qcDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
     const movement = await insertStockMovement(db, {
@@ -1008,23 +1140,39 @@ export async function approvePackingQcAndPostStock(input: {
 
     await db.query(
       `INSERT INTO production_qc_postings (
-         id, qc_date, approval_reference, item_id, item_name_snapshot,
+         id, qc_date, approval_reference, work_order_id, item_id, item_name_snapshot,
          catalog_product_id, catalog_product_name_snapshot,
          packing_employee_id, packing_employee_name_snapshot,
          total_pairs, rejected_pairs, size_breakdown, stock_movement_id,
          approved_by, note
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9,
-         $10, $11, $12::jsonb, $13, $14, $15
+         $1, $2, $3, nullif($4, ''), $5, $6, $7, $8, $9, $10,
+         $11, $12, $13::jsonb, $14, $15, $16
        )`,
       [
-        postingId, input.qcDate, approvalReference, item.id, item.name,
-        product.id, product.name, input.packingEmployee?.id ?? null,
+        postingId, input.qcDate, approvalReference, input.workOrderId, item.id,
+        item.name, product.id, product.name, input.packingEmployee?.id ?? null,
         input.packingEmployee?.name ?? "", input.totalPairs, input.rejectedPairs,
         JSON.stringify(normalizeSizeBreakdown(input.sizeBreakdown)),
         movement.id, input.approvedBy, input.note,
       ],
     );
+
+    if (workOrder) {
+      const totals = await db.query<{ accounted: number | string }>(
+        `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
+         FROM production_qc_postings WHERE work_order_id = $1`,
+        [workOrder.id],
+      );
+      if (Number(totals[0]?.accounted ?? 0) >= Number(workOrder.planned_pairs)) {
+        await db.query(
+          `UPDATE production_work_orders
+           SET status = 'Completed', current_stage = 'Packing / QC', updated_at = now()
+           WHERE id = $1`,
+          [workOrder.id],
+        );
+      }
+    }
 
     return { id: postingId, approvalReference, stockMovementId: movement.id };
   });

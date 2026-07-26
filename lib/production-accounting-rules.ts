@@ -148,3 +148,12 @@ export function nextProductionStage(stage: ProductionStage) {
     ? productionStages[index + 1]
     : "Packing / QC";
 }
+
+export function handoverSignal(sentPairs: number, receivedPairs: number) {
+  const sent = whole(sentPairs);
+  const received = whole(receivedPairs);
+  if (sent <= 0) throw new Error("Sent pairs must be greater than zero.");
+  if (received === sent) return { signal: "Matched" as const, difference: 0 };
+  if (received < sent) return { signal: "Short" as const, difference: sent - received };
+  return { signal: "Excess" as const, difference: received - sent };
+}
