@@ -61,6 +61,32 @@ export type FactoryData = {
   stageHandoverSizes: FactoryStageHandoverSize[];
   packingApprovals: FactoryPackingApproval[];
   materialIssues: FactoryMaterialIssue[];
+  wageSettlements: FactoryWageSettlement[];
+  wageSettlementEntries: FactoryWageSettlementEntry[];
+};
+
+export type FactoryWageSettlementStatus = "Approved" | "Paid";
+
+export type FactoryWageSettlement = {
+  id: string;
+  workerId: string;
+  workerName: string;
+  fromDate: string;
+  toDate: string;
+  goodPairs: number;
+  amount: number;
+  status: FactoryWageSettlementStatus;
+  approvedBy: string;
+  approvedAt: string;
+  paidBy: string;
+  paidAt: string;
+  note: string;
+};
+
+export type FactoryWageSettlementEntry = {
+  settlementId: string;
+  productionEntryId: string;
+  amountSnapshot: number;
 };
 
 export type FactoryMaterialIssueStatus = "Draft" | "Posted" | "Cancelled";
@@ -600,6 +626,8 @@ const emptyFactoryData: FactoryData = {
   stageHandoverSizes: [],
   packingApprovals: [],
   materialIssues: [],
+  wageSettlements: [],
+  wageSettlementEntries: [],
 };
 
 function createFactoryId(prefix: string) {
@@ -628,6 +656,8 @@ async function readLocalFactoryData(): Promise<FactoryData> {
       stageHandoverSizes: parsed.stageHandoverSizes ?? [],
       packingApprovals: parsed.packingApprovals ?? [],
       materialIssues: parsed.materialIssues ?? [],
+      wageSettlements: parsed.wageSettlements ?? [],
+      wageSettlementEntries: parsed.wageSettlementEntries ?? [],
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(emptyFactoryData);
@@ -809,6 +839,28 @@ type FactoryMaterialIssueRow = {
   created_at: Date | string;
 };
 
+type FactoryWageSettlementRow = {
+  id: string;
+  worker_id: string;
+  worker_name: string;
+  from_date: Date | string;
+  to_date: Date | string;
+  good_pairs: number | string;
+  amount: number | string;
+  status: FactoryWageSettlementStatus;
+  approved_by: string;
+  approved_at: Date | string;
+  paid_by: string;
+  paid_at: Date | string | null;
+  note: string;
+};
+
+type FactoryWageSettlementEntryRow = {
+  settlement_id: string;
+  production_entry_id: string;
+  amount_snapshot: number | string;
+};
+
 async function getFactoryDataFromPostgres(): Promise<FactoryData> {
   const [
     items,
@@ -824,6 +876,8 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     stageHandoverSizes,
     packingApprovals,
     materialIssues,
+    wageSettlements,
+    wageSettlementEntries,
   ] = await Promise.all([
     queryPostgres<FactoryItemRow>(
       "factory",
@@ -905,6 +959,17 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
         consumed_quantity, wastage_quantity, finalized_by, finalized_at,
         note, created_by, created_at
        FROM factory_material_issues ORDER BY created_at DESC`,
+    ),
+    queryPostgres<FactoryWageSettlementRow>(
+      "factory",
+      `SELECT id, worker_id, worker_name, from_date, to_date, good_pairs,
+        amount, status, approved_by, approved_at, paid_by, paid_at, note
+       FROM factory_wage_settlements ORDER BY approved_at DESC`,
+    ),
+    queryPostgres<FactoryWageSettlementEntryRow>(
+      "factory",
+      `SELECT settlement_id, production_entry_id, amount_snapshot
+       FROM factory_wage_settlement_entries`,
     ),
   ]);
 
@@ -1101,6 +1166,33 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       createdBy: row.created_by,
       createdAt:
         row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    })),
+    wageSettlements: wageSettlements.map((row) => ({
+      id: row.id,
+      workerId: row.worker_id,
+      workerName: row.worker_name,
+      fromDate: factoryDateOnly(row.from_date),
+      toDate: factoryDateOnly(row.to_date),
+      goodPairs: Number(row.good_pairs),
+      amount: Number(row.amount),
+      status: row.status,
+      approvedBy: row.approved_by,
+      approvedAt:
+        row.approved_at instanceof Date
+          ? row.approved_at.toISOString()
+          : row.approved_at,
+      paidBy: row.paid_by,
+      paidAt: row.paid_at
+        ? row.paid_at instanceof Date
+          ? row.paid_at.toISOString()
+          : row.paid_at
+        : "",
+      note: row.note,
+    })),
+    wageSettlementEntries: wageSettlementEntries.map((row) => ({
+      settlementId: row.settlement_id,
+      productionEntryId: row.production_entry_id,
+      amountSnapshot: Number(row.amount_snapshot),
     })),
   };
 }
@@ -2738,6 +2830,223 @@ export async function finalizeFactoryMaterialIssue(input: {
         wastageQuantity,
         finalizedBy: input.finalizedBy.trim(),
         finalizedAt,
+      };
+    },
+  });
+}
+
+export type FactoryWageCandidate = {
+  workerId: string;
+  workerName: string;
+  entryIds: string[];
+  goodPairs: number;
+  amount: number;
+};
+
+export function getFactoryWageCandidates(
+  data: FactoryData,
+  fromDate: string,
+  toDate: string,
+) {
+  if (!fromDate || !toDate || fromDate > toDate) {
+    throw new Error("A valid wage settlement date range is required.");
+  }
+  const settledEntryIds = new Set(
+    data.wageSettlementEntries.map((entry) => entry.productionEntryId),
+  );
+  const candidates = new Map<string, FactoryWageCandidate>();
+  for (const entry of data.productionEntries) {
+    if (
+      entry.status !== "Verified" ||
+      entry.entryDate < fromDate ||
+      entry.entryDate > toDate ||
+      entry.calculatedWage <= 0 ||
+      settledEntryIds.has(entry.id)
+    ) {
+      continue;
+    }
+    const candidate = candidates.get(entry.workerId) ?? {
+      workerId: entry.workerId,
+      workerName: entry.workerName,
+      entryIds: [],
+      goodPairs: 0,
+      amount: 0,
+    };
+    candidate.entryIds.push(entry.id);
+    candidate.goodPairs += entry.goodPairs;
+    candidate.amount += entry.calculatedWage;
+    candidates.set(entry.workerId, candidate);
+  }
+  return [...candidates.values()]
+    .map((entry) => ({
+      ...entry,
+      amount: Math.round(entry.amount * 100) / 100,
+    }))
+    .sort((a, b) => b.amount - a.amount || a.workerName.localeCompare(b.workerName));
+}
+
+export async function approveFactoryWageSettlement(input: {
+  data: FactoryData;
+  workerId: string;
+  fromDate: string;
+  toDate: string;
+  approvedBy: string;
+  note: string;
+}) {
+  const selected = getFactoryWageCandidates(
+    input.data,
+    input.fromDate,
+    input.toDate,
+  ).find((entry) => entry.workerId === input.workerId);
+  if (!selected) throw new Error("No unsettled verified wage was found for this worker.");
+  const settlement: FactoryWageSettlement = {
+    id: createFactoryId("FWAGE"),
+    workerId: selected.workerId,
+    workerName: selected.workerName,
+    fromDate: input.fromDate,
+    toDate: input.toDate,
+    goodPairs: selected.goodPairs,
+    amount: selected.amount,
+    status: "Approved",
+    approvedBy: input.approvedBy.trim(),
+    approvedAt: new Date().toISOString(),
+    paidBy: "",
+    paidAt: "",
+    note: input.note.trim(),
+  };
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const live = getFactoryWageCandidates(
+        data,
+        input.fromDate,
+        input.toDate,
+      ).find((entry) => entry.workerId === input.workerId);
+      if (!live) throw new Error("Verified wages were already settled.");
+      settlement.workerName = live.workerName;
+      settlement.goodPairs = live.goodPairs;
+      settlement.amount = live.amount;
+      data.wageSettlements.unshift(settlement);
+      data.wageSettlementEntries.push(
+        ...live.entryIds.map((productionEntryId) => ({
+          settlementId: settlement.id,
+          productionEntryId,
+          amountSnapshot:
+            data.productionEntries.find((entry) => entry.id === productionEntryId)
+              ?.calculatedWage ?? 0,
+        })),
+      );
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return settlement;
+    },
+    postgres: () =>
+      transactionPostgres("factory wage settlement", async (db) => {
+        const entries = await db.query<{
+          id: string;
+          worker_name: string;
+          good_pairs: number | string;
+          calculated_wage: number | string;
+        }>(
+          `SELECT e.id, e.worker_name, e.good_pairs, e.calculated_wage
+           FROM factory_production_entries e
+           WHERE e.worker_id = $1
+             AND e.status = 'Verified'
+             AND e.entry_date BETWEEN $2 AND $3
+             AND e.calculated_wage > 0
+             AND NOT EXISTS (
+               SELECT 1 FROM factory_wage_settlement_entries se
+               WHERE se.production_entry_id = e.id
+             )
+           ORDER BY e.entry_date, e.created_at
+           FOR UPDATE`,
+          [input.workerId, input.fromDate, input.toDate],
+        );
+        if (entries.length === 0) {
+          throw new Error("Verified wages were already settled or no longer eligible.");
+        }
+        const amount =
+          Math.round(
+            entries.reduce((sum, entry) => sum + Number(entry.calculated_wage), 0) *
+              100,
+          ) / 100;
+        const goodPairs = entries.reduce(
+          (sum, entry) => sum + Number(entry.good_pairs),
+          0,
+        );
+        const workerName = entries[0].worker_name;
+        await db.query(
+          `INSERT INTO factory_wage_settlements (
+             id, worker_id, worker_name, from_date, to_date, good_pairs,
+             amount, status, approved_by, approved_at, note
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'Approved', $8, $9, $10)`,
+          [
+            settlement.id,
+            input.workerId,
+            workerName,
+            input.fromDate,
+            input.toDate,
+            goodPairs,
+            amount,
+            settlement.approvedBy,
+            settlement.approvedAt,
+            settlement.note,
+          ],
+        );
+        for (const entry of entries) {
+          await db.query(
+            `INSERT INTO factory_wage_settlement_entries (
+               settlement_id, production_entry_id, amount_snapshot
+             ) VALUES ($1, $2, $3)`,
+            [settlement.id, entry.id, Number(entry.calculated_wage)],
+          );
+        }
+        return { ...settlement, workerName, goodPairs, amount };
+      }),
+  });
+}
+
+export async function markFactoryWageSettlementPaid(input: {
+  settlement: FactoryWageSettlement;
+  paidBy: string;
+}) {
+  if (input.settlement.status !== "Approved") {
+    throw new Error("Only an Approved wage settlement can be marked Paid.");
+  }
+  const paidAt = new Date().toISOString();
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const settlement = data.wageSettlements.find(
+        (entry) => entry.id === input.settlement.id,
+      );
+      if (!settlement || settlement.status !== "Approved") {
+        throw new Error("Wage settlement was not found or already Paid.");
+      }
+      settlement.status = "Paid";
+      settlement.paidBy = input.paidBy.trim();
+      settlement.paidAt = paidAt;
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return settlement;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryWageSettlementRow>(
+        "factory",
+        `UPDATE factory_wage_settlements
+         SET status = 'Paid', paid_by = $2, paid_at = $3
+         WHERE id = $1 AND status = 'Approved'
+         RETURNING id, worker_id, worker_name, from_date, to_date, good_pairs,
+           amount, status, approved_by, approved_at, paid_by, paid_at, note`,
+        [input.settlement.id, input.paidBy.trim(), paidAt],
+      );
+      if (!rows[0]) throw new Error("Wage settlement was not found or already Paid.");
+      return {
+        ...input.settlement,
+        status: "Paid" as const,
+        paidBy: input.paidBy.trim(),
+        paidAt,
       };
     },
   });

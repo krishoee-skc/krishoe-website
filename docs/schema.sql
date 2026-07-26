@@ -789,6 +789,37 @@ CREATE TABLE IF NOT EXISTS factory_production_entry_sizes (
 CREATE INDEX IF NOT EXISTS factory_production_entry_sizes_entry_idx
   ON factory_production_entry_sizes(production_entry_id);
 
+CREATE TABLE IF NOT EXISTS factory_wage_settlements (
+  id TEXT PRIMARY KEY,
+  worker_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  worker_name TEXT NOT NULL,
+  from_date DATE NOT NULL,
+  to_date DATE NOT NULL,
+  good_pairs INTEGER NOT NULL DEFAULT 0 CHECK (good_pairs >= 0),
+  amount NUMERIC NOT NULL DEFAULT 0 CHECK (amount >= 0),
+  status TEXT NOT NULL DEFAULT 'Approved' CHECK (status IN ('Approved', 'Paid')),
+  approved_by TEXT NOT NULL,
+  approved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  paid_by TEXT NOT NULL DEFAULT '',
+  paid_at TIMESTAMPTZ,
+  note TEXT NOT NULL DEFAULT '',
+  CHECK (from_date <= to_date)
+);
+
+CREATE TABLE IF NOT EXISTS factory_wage_settlement_entries (
+  settlement_id TEXT NOT NULL
+    REFERENCES factory_wage_settlements(id) ON DELETE RESTRICT,
+  production_entry_id TEXT NOT NULL UNIQUE
+    REFERENCES factory_production_entries(id) ON DELETE RESTRICT,
+  amount_snapshot NUMERIC NOT NULL DEFAULT 0 CHECK (amount_snapshot >= 0),
+  PRIMARY KEY (settlement_id, production_entry_id)
+);
+
+CREATE INDEX IF NOT EXISTS factory_wage_settlements_worker_idx
+  ON factory_wage_settlements(worker_id, from_date, to_date);
+CREATE INDEX IF NOT EXISTS factory_wage_settlements_status_idx
+  ON factory_wage_settlements(status);
+
 CREATE TABLE IF NOT EXISTS factory_stage_handovers (
   id TEXT PRIMARY KEY,
   work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,

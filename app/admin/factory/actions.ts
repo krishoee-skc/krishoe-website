@@ -12,6 +12,7 @@ import {
   addFactoryMaterialIssueDraft,
   finalizeFactoryMaterialIssue,
   addFactoryWorkOrder,
+  approveFactoryWageSettlement,
   getFactoryData,
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
@@ -24,6 +25,7 @@ import {
   upsertFactoryWorkerLink,
   factoryStages,
   isFactoryStageCode,
+  markFactoryWageSettlementPaid,
   type FactoryItemStatus,
   type FactoryWorkOrderPriority,
   factoryRejectReasons,
@@ -490,4 +492,46 @@ export async function postFactoryFinishedStockAction(formData: FormData) {
   revalidatePath("/admin/operations");
   revalidatePath("/shop");
   redirect(`/admin/factory?stockPosted=${encodeURIComponent(workOrder.workOrderNumber)}`);
+}
+
+export async function approveFactoryWageSettlementAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const settlement = await approveFactoryWageSettlement({
+    data: factory,
+    workerId: text(formData, "workerId"),
+    fromDate: text(formData, "fromDate"),
+    toDate: text(formData, "toDate"),
+    approvedBy: session.name || session.email || "Owner",
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "factory_wage_settlement_approve",
+    `${settlement.workerName}: Rs. ${settlement.amount} approved for ${settlement.goodPairs} verified good pairs (${settlement.fromDate} to ${settlement.toDate}).`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath("/admin/factory/reports");
+  redirect(
+    `/admin/factory/reports?period=custom&from=${settlement.fromDate}&to=${settlement.toDate}&wageApproved=${encodeURIComponent(settlement.id)}`,
+  );
+}
+
+export async function markFactoryWageSettlementPaidAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const settlement = factory.wageSettlements.find(
+    (entry) => entry.id === text(formData, "settlementId"),
+  );
+  if (!settlement) throw new Error("Wage settlement was not found.");
+  const paid = await markFactoryWageSettlementPaid({
+    settlement,
+    paidBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_wage_settlement_paid",
+    `${paid.workerName}: Factory piece wage Rs. ${paid.amount} marked Paid.`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath("/admin/factory/reports");
+  redirect(`/admin/factory/reports?wagePaid=${encodeURIComponent(paid.id)}`);
 }

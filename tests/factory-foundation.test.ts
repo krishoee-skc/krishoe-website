@@ -12,6 +12,7 @@ import {
   getFactoryMaterialPlan,
   getFactoryDashboard,
   getFactoryPerformanceReport,
+  getFactoryWageCandidates,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -645,5 +646,60 @@ describe("factory period performance report", () => {
     expect(report.workers[0].qualityRate).toBe(80);
     expect(report.stages[0].label).toBe("Upper");
     expect(report.items[0].label).toContain("Ladies Heel");
+  });
+});
+
+describe("factory piece-wage settlement candidates", () => {
+  it("includes verified wages once and excludes already linked entries", () => {
+    const data = {
+      productionEntries: [
+        {
+          id: "entry-wage-1",
+          workerId: "worker-1",
+          workerName: "Ram",
+          entryDate: "2026-07-26",
+          goodPairs: 10,
+          calculatedWage: 180,
+          status: "Verified",
+        },
+        {
+          id: "entry-wage-2",
+          workerId: "worker-1",
+          workerName: "Ram",
+          entryDate: "2026-07-26",
+          goodPairs: 5,
+          calculatedWage: 90,
+          status: "Verified",
+        },
+        {
+          id: "entry-submitted",
+          workerId: "worker-1",
+          workerName: "Ram",
+          entryDate: "2026-07-26",
+          goodPairs: 20,
+          calculatedWage: 360,
+          status: "Submitted",
+        },
+      ],
+      wageSettlementEntries: [
+        {
+          settlementId: "settlement-old",
+          productionEntryId: "entry-wage-1",
+          amountSnapshot: 180,
+        },
+      ],
+    } as unknown as FactoryData;
+
+    expect(
+      getFactoryWageCandidates(data, "2026-07-26", "2026-07-26"),
+    ).toEqual([
+      {
+        workerId: "worker-1",
+        workerName: "Ram",
+        entryIds: ["entry-wage-2"],
+        goodPairs: 5,
+        amount: 90,
+      },
+    ]);
   });
 });
