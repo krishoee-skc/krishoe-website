@@ -7,6 +7,7 @@ import { getCostingSnapshot } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { getHrData } from "@/lib/hr";
 import { reportError } from "@/lib/report-error";
+import { getProductionControlSummary } from "@/lib/production-accounting";
 
 export const metadata: Metadata = {
   title: "Operations | KRISHOE Admin",
@@ -15,9 +16,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminOperationsPage() {
-  const [snapshot, costing] = await Promise.all([
+  const [snapshot, costing, productionControl] = await Promise.all([
     getOperationsSnapshot(),
     getCostingSnapshot(),
+    getProductionControlSummary(),
   ]);
 
   // The worker-task form picks a name from here instead of typing it. Loaded on
@@ -49,6 +51,21 @@ export default async function AdminOperationsPage() {
         >
           Open production wages & kharcha
         </Link>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["Active factory lots", productionControl.activeWorkOrders, `${productionControl.overdueWorkOrders} overdue`],
+          ["Today good output", `${productionControl.todayGoodPairs} pairs`, `${productionControl.todayRejectedPairs} rejected`],
+          ["Ready for QC", productionControl.readyForQc, `${productionControl.todayStockPairs} pairs stocked today`],
+          ["Worker balance due", `Rs. ${productionControl.workerBalanceDue.toLocaleString("en-IN")}`, `${productionControl.handoverMismatches} handover mismatch`],
+        ].map(([label, value, detail]) => (
+          <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-gray-500">{label}</p>
+            <p className="mt-2 text-xl font-black text-brand-green-ink">{value}</p>
+            <p className="mt-2 text-xs font-bold text-gray-500">{detail}</p>
+          </div>
+        ))}
       </div>
 
       <OperationsOverview snapshot={snapshot} costing={costing} />

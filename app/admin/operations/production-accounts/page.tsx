@@ -13,7 +13,7 @@ import {
   createHandoverAction,
   saveStageRateAction,
 } from "./actions";
-import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
+import { getProductionAccountingSnapshot, getProductionControlSummary } from "@/lib/production-accounting";
 import { productionStages, workerPaymentTypes } from "@/lib/production-accounting-rules";
 
 export const metadata: Metadata = { title: "Production Accounts | KRISHOE Admin" };
@@ -34,7 +34,10 @@ function money(value: number) {
 }
 
 export default async function ProductionAccountsPage() {
-  const data = await getProductionAccountingSnapshot();
+  const [data, control] = await Promise.all([
+    getProductionAccountingSnapshot(),
+    getProductionControlSummary(),
+  ]);
   const activeItems = data.items.filter((item) => item.status === "Active");
   const date = today();
 
@@ -48,17 +51,46 @@ export default async function ProductionAccountsPage() {
         </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Active items", activeItems.length],
-          ["Approved work entries", data.workEntries.filter((row) => row.status === "Approved").length],
-          ["Worker balances", data.balances.length],
-        ].map(([label, value]) => (
+          ["Active Work Orders", control.activeWorkOrders, `${control.overdueWorkOrders} overdue`],
+          ["Today good output", `${control.todayGoodPairs} pairs`, `${control.todayRejectedPairs} rejected`],
+          ["Ready for QC", control.readyForQc, `${control.todayStockPairs} pairs posted today`],
+          ["Worker balance due", money(control.workerBalanceDue), `${money(control.todayEarnedWage)} earned today`],
+        ].map(([label, value, detail]) => (
           <div key={label} className={card}>
             <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
             <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
+            <p className="mt-2 text-xs font-bold text-gray-500">{detail}</p>
           </div>
         ))}
+      </div>
+
+      {(control.overdueWorkOrders > 0 || control.handoverMismatches > 0) ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {control.overdueWorkOrders > 0 ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900">
+              {control.overdueWorkOrders} Work Order overdue—review due dates and current stage.
+            </div>
+          ) : null}
+          {control.handoverMismatches > 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              {control.handoverMismatches} handover records have Short/Excess quantity.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">Stage-wise pending Work Orders</h2>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
+            <div key={stage} className="rounded-xl bg-gray-50 p-3">
+              <p className="text-xs font-bold text-gray-500">{stage}</p>
+              <p className="mt-1 text-xl font-black text-brand-green-ink">{control.stagePending[stage] ?? 0}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">

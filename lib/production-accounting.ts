@@ -279,12 +279,91 @@ type CostCardRow = {
   approved_by: string;
 };
 
+type ProductionControlRow = {
+  active_work_orders: number | string;
+  overdue_work_orders: number | string;
+  ready_for_qc: number | string;
+  today_good_pairs: number | string;
+  today_rejected_pairs: number | string;
+  today_earned_wage: number | string;
+  today_stock_pairs: number | string;
+  handover_mismatches: number | string;
+  worker_balance_due: number | string;
+};
+
 function numeric(value: number | string) {
   return Math.round(Number(value) * 100) / 100;
 }
 
 function isoDate(value: Date | string) {
   return (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
+}
+
+export async function getProductionControlSummary() {
+  const [rows, stages] = await Promise.all([
+    queryPostgres<ProductionControlRow>(
+      "production control summary",
+      `WITH earned AS (
+         SELECT employee_id, coalesce(sum(earned_wage), 0) AS amount
+         FROM production_work_entries WHERE status = 'Approved' GROUP BY employee_id
+       ), paid AS (
+         SELECT employee_id, coalesce(sum(CASE
+           WHEN direction IN ('Paid', 'Recovered') THEN amount
+           WHEN direction = 'Added' THEN -amount ELSE 0 END), 0) AS amount
+         FROM worker_payments WHERE reversed_at IS NULL GROUP BY employee_id
+       ), people AS (
+         SELECT employee_id FROM earned UNION SELECT employee_id FROM paid
+       )
+       SELECT
+         (SELECT count(*) FROM production_work_orders
+          WHERE status NOT IN ('Completed', 'Cancelled')) AS active_work_orders,
+         (SELECT count(*) FROM production_work_orders
+          WHERE status NOT IN ('Completed', 'Cancelled')
+            AND due_date IS NOT NULL AND due_date < CURRENT_DATE) AS overdue_work_orders,
+         (SELECT count(*) FROM production_work_orders
+          WHERE status = 'Ready for QC') AS ready_for_qc,
+         (SELECT coalesce(sum(total_pairs - rejected_pairs), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_good_pairs,
+         (SELECT coalesce(sum(rejected_pairs), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_rejected_pairs,
+         (SELECT coalesce(sum(earned_wage), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_earned_wage,
+         (SELECT coalesce(sum(total_pairs), 0)
+          FROM production_qc_postings WHERE qc_date = CURRENT_DATE) AS today_stock_pairs,
+         (SELECT count(*) FROM production_stage_handovers
+          WHERE sent_pairs <> received_pairs) AS handover_mismatches,
+         (SELECT coalesce(sum(greatest(
+           coalesce(earned.amount, 0) - coalesce(paid.amount, 0), 0
+         )), 0)
+          FROM people
+          LEFT JOIN earned USING (employee_id)
+          LEFT JOIN paid USING (employee_id)) AS worker_balance_due`,
+    ),
+    queryPostgres<{ current_stage: ProductionWorkOrder["currentStage"]; count: number | string }>(
+      "production stage pending summary",
+      `SELECT current_stage, count(*) AS count
+       FROM production_work_orders
+       WHERE status NOT IN ('Completed', 'Cancelled')
+       GROUP BY current_stage`,
+    ),
+  ]);
+  const row = rows[0];
+  const count = (value: number | string | undefined) => Number(value ?? 0);
+  return {
+    activeWorkOrders: count(row?.active_work_orders),
+    overdueWorkOrders: count(row?.overdue_work_orders),
+    readyForQc: count(row?.ready_for_qc),
+    todayGoodPairs: count(row?.today_good_pairs),
+    todayRejectedPairs: count(row?.today_rejected_pairs),
+    todayEarnedWage: numeric(row?.today_earned_wage ?? 0),
+    todayStockPairs: count(row?.today_stock_pairs),
+    handoverMismatches: count(row?.handover_mismatches),
+    workerBalanceDue: numeric(row?.worker_balance_due ?? 0),
+    stagePending: Object.fromEntries(stages.map((stage) => [stage.current_stage, count(stage.count)])),
+  };
 }
 
 function id(prefix: string) {
