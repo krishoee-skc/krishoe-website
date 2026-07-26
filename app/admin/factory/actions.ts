@@ -7,6 +7,7 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   addFactoryProductionItem,
   addFactoryProductionEntry,
+  addFactoryCctvReference,
   addFactoryStageHandover,
   approveFactoryPacking,
   addFactoryMaterialIssueDraft,
@@ -29,6 +30,9 @@ import {
   type FactoryItemStatus,
   type FactoryWorkOrderPriority,
   factoryRejectReasons,
+  factoryCctvIncidentTypes,
+  factoryWorkOrderTracePath,
+  type FactoryCctvIncidentType,
   type FactoryRejectReason,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
@@ -44,6 +48,13 @@ function text(formData: FormData, key: string) {
 
 function list(formData: FormData, key: string) {
   return text(formData, key).split(",").map((value) => value.trim()).filter(Boolean);
+}
+
+function factoryLocalDateTime(formData: FormData, key: string) {
+  const value = text(formData, key);
+  return value && !/(Z|[+-]\d{2}:\d{2})$/i.test(value)
+    ? `${value}+05:45`
+    : value;
 }
 
 export async function createFactoryItemAction(formData: FormData) {
@@ -534,4 +545,39 @@ export async function markFactoryWageSettlementPaidAction(formData: FormData) {
   revalidatePath("/admin/factory");
   revalidatePath("/admin/factory/reports");
   redirect(`/admin/factory/reports?wagePaid=${encodeURIComponent(paid.id)}`);
+}
+
+export async function addFactoryCctvReferenceAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === text(formData, "workOrderId"),
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const stageCode = text(formData, "stageCode");
+  if (!isFactoryStageCode(stageCode)) throw new Error("Factory stage is invalid.");
+  const incidentValue = text(formData, "incidentType");
+  const incidentType = factoryCctvIncidentTypes.includes(
+    incidentValue as FactoryCctvIncidentType,
+  )
+    ? (incidentValue as FactoryCctvIncidentType)
+    : "Routine verification";
+  const reference = await addFactoryCctvReference({
+    workOrder,
+    stageCode,
+    cameraZone: text(formData, "cameraZone"),
+    startedAt: factoryLocalDateTime(formData, "startedAt"),
+    endedAt: factoryLocalDateTime(formData, "endedAt"),
+    referenceUrl: text(formData, "referenceUrl"),
+    incidentType,
+    note: text(formData, "note"),
+    createdBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_cctv_reference",
+    `${workOrder.workOrderNumber}: ${reference.incidentType} CCTV reference saved for ${reference.cameraZone}, ${reference.startedAt} to ${reference.endedAt}.`,
+  );
+  const tracePath = factoryWorkOrderTracePath(workOrder.id);
+  revalidatePath(tracePath);
+  redirect(`${tracePath}?cctvSaved=${encodeURIComponent(reference.id)}`);
 }

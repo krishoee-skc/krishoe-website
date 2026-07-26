@@ -8,6 +8,7 @@ import {
   normalizeFactoryItem,
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
+  normalizeFactoryCctvReference,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
   getFactoryDashboard,
@@ -793,5 +794,50 @@ describe("factory Work Order actual costing", () => {
       reworkPairs: 1,
       missingMaterialRates: 0,
     });
+  });
+});
+
+describe("factory CCTV reference safeguards", () => {
+  const baseReference = {
+    workOrderId: "wo-1",
+    stageCode: "upper" as const,
+    cameraZone: "Upper Camera 1",
+    startedAt: "2026-07-26T10:00:00+05:45",
+    endedAt: "2026-07-26T10:15:00+05:45",
+    referenceUrl: "https://dvr.example/clip/1",
+    incidentType: "Routine verification" as const,
+    note: "",
+    createdBy: "Owner",
+  };
+
+  it("normalizes a safe timestamp/link reference without storing video", () => {
+    expect(normalizeFactoryCctvReference(baseReference)).toMatchObject({
+      cameraZone: "Upper Camera 1",
+      referenceUrl: "https://dvr.example/clip/1",
+      startedAt: "2026-07-26T04:15:00.000Z",
+      endedAt: "2026-07-26T04:30:00.000Z",
+    });
+  });
+
+  it("rejects unsafe links, reversed time windows, and incidents without notes", () => {
+    expect(() =>
+      normalizeFactoryCctvReference({
+        ...baseReference,
+        referenceUrl: "javascript:alert(1)",
+      }),
+    ).toThrow("http or https");
+    expect(() =>
+      normalizeFactoryCctvReference({
+        ...baseReference,
+        startedAt: baseReference.endedAt,
+        endedAt: baseReference.startedAt,
+      }),
+    ).toThrow("time window");
+    expect(() =>
+      normalizeFactoryCctvReference({
+        ...baseReference,
+        incidentType: "Safety incident",
+      }),
+    ).toThrow("Incident note");
   });
 });

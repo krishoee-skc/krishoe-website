@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CctvReferenceForm from "@/app/admin/factory/work-orders/[id]/CctvReferenceForm";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import {
   factoryStages,
@@ -22,11 +23,14 @@ function dateTime(value: string) {
 
 export default async function FactoryWorkOrderTracePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ cctvSaved?: string }>;
 }) {
   await requireAdminPermission("factory:write");
   const { id } = await params;
+  const pageParams = await searchParams;
   const factory = await getFactoryData();
   const order = factory.workOrders.find((entry) => entry.id === id);
   if (!order) notFound();
@@ -48,6 +52,22 @@ export default async function FactoryWorkOrderTracePage({
   const wages = verifiedEntries.reduce((sum, entry) => sum + entry.calculatedWage, 0);
   const materialCost = issues.reduce((sum, entry) => sum + entry.totalCost, 0);
   const costing = getFactoryWorkOrderCosting(factory, order);
+  const productionItem = factory.items.find((entry) => entry.id === order.itemId);
+  const cctvStages =
+    assignments.length > 0
+      ? assignments.map((assignment) => ({
+          code: assignment.stageCode,
+          name: stageName(assignment.stageCode),
+          cameraZone: assignment.cameraZone,
+        }))
+      : (productionItem?.stageCodes ?? []).map((code) => ({
+          code,
+          name: stageName(code),
+          cameraZone: "",
+        }));
+  const cctvReferences = factory.cctvReferences.filter(
+    (entry) => entry.workOrderId === order.id,
+  );
 
   return (
     <section className="p-4 sm:p-6">
@@ -89,6 +109,11 @@ export default async function FactoryWorkOrderTracePage({
             </div>
           </div>
         </header>
+        {pageParams?.cctvSaved ? (
+          <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-bold text-blue-800">
+            CCTV footage lookup reference saved. No video file was uploaded.
+          </p>
+        ) : null}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -288,6 +313,64 @@ export default async function FactoryWorkOrderTracePage({
             </p>
           ) : null}
         </article>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <CctvReferenceForm
+            workOrderId={order.id}
+            stages={cctvStages}
+          />
+          <article className="rounded-3xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-blue-700">
+                  Investigation support
+                </p>
+                <h2 className="mt-1 text-lg font-black text-blue-950">
+                  CCTV reference timeline
+                </h2>
+              </div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">
+                {cctvReferences.length} records
+              </span>
+            </div>
+            <div className="mt-4 space-y-3">
+              {cctvReferences.map((reference) => (
+                <div key={reference.id} className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-black text-blue-950">{reference.incidentType}</p>
+                      <p className="mt-1 text-blue-800">
+                        {stageName(reference.stageCode)} · {reference.cameraZone}
+                      </p>
+                    </div>
+                    {reference.referenceUrl ? (
+                      <a
+                        href={reference.referenceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg bg-white px-3 py-2 font-black text-blue-800 underline underline-offset-4"
+                      >
+                        Open footage reference
+                      </a>
+                    ) : null}
+                  </div>
+                  <p className="mt-3 font-semibold text-gray-700">
+                    {dateTime(reference.startedAt)} → {dateTime(reference.endedAt)}
+                  </p>
+                  <p className="mt-2 text-gray-600">{reference.note || "No additional note."}</p>
+                  <p className="mt-2 text-[11px] text-gray-500">
+                    Saved by {reference.createdBy} · {dateTime(reference.createdAt)}
+                  </p>
+                </div>
+              ))}
+              {cctvReferences.length === 0 ? (
+                <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+                  No CCTV reference saved for this lot.
+                </p>
+              ) : null}
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );

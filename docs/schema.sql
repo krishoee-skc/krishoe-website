@@ -820,6 +820,34 @@ CREATE INDEX IF NOT EXISTS factory_wage_settlements_worker_idx
 CREATE INDEX IF NOT EXISTS factory_wage_settlements_status_idx
   ON factory_wage_settlements(status);
 
+CREATE TABLE IF NOT EXISTS factory_cctv_references (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL
+    REFERENCES factory_work_orders(id) ON DELETE RESTRICT,
+  stage_code TEXT NOT NULL,
+  camera_zone TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ NOT NULL,
+  reference_url TEXT NOT NULL DEFAULT '',
+  incident_type TEXT NOT NULL
+    CHECK (incident_type IN (
+      'Routine verification',
+      'Reject / rework evidence',
+      'Quantity discrepancy',
+      'Safety incident',
+      'Other'
+    )),
+  note TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (started_at <= ended_at)
+);
+
+CREATE INDEX IF NOT EXISTS factory_cctv_references_order_idx
+  ON factory_cctv_references(work_order_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS factory_cctv_references_stage_idx
+  ON factory_cctv_references(stage_code, camera_zone, started_at DESC);
+
 CREATE TABLE IF NOT EXISTS factory_stage_handovers (
   id TEXT PRIMARY KEY,
   work_order_id TEXT NOT NULL REFERENCES factory_work_orders(id) ON DELETE CASCADE,

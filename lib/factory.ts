@@ -63,6 +63,30 @@ export type FactoryData = {
   materialIssues: FactoryMaterialIssue[];
   wageSettlements: FactoryWageSettlement[];
   wageSettlementEntries: FactoryWageSettlementEntry[];
+  cctvReferences: FactoryCctvReference[];
+};
+
+export const factoryCctvIncidentTypes = [
+  "Routine verification",
+  "Reject / rework evidence",
+  "Quantity discrepancy",
+  "Safety incident",
+  "Other",
+] as const;
+export type FactoryCctvIncidentType = (typeof factoryCctvIncidentTypes)[number];
+
+export type FactoryCctvReference = {
+  id: string;
+  workOrderId: string;
+  stageCode: FactoryStageCode;
+  cameraZone: string;
+  startedAt: string;
+  endedAt: string;
+  referenceUrl: string;
+  incidentType: FactoryCctvIncidentType;
+  note: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 export type FactoryWageSettlementStatus = "Approved" | "Paid";
@@ -742,6 +766,7 @@ const emptyFactoryData: FactoryData = {
   materialIssues: [],
   wageSettlements: [],
   wageSettlementEntries: [],
+  cctvReferences: [],
 };
 
 function createFactoryId(prefix: string) {
@@ -772,6 +797,7 @@ async function readLocalFactoryData(): Promise<FactoryData> {
       materialIssues: parsed.materialIssues ?? [],
       wageSettlements: parsed.wageSettlements ?? [],
       wageSettlementEntries: parsed.wageSettlementEntries ?? [],
+      cctvReferences: parsed.cctvReferences ?? [],
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(emptyFactoryData);
@@ -975,6 +1001,20 @@ type FactoryWageSettlementEntryRow = {
   amount_snapshot: number | string;
 };
 
+type FactoryCctvReferenceRow = {
+  id: string;
+  work_order_id: string;
+  stage_code: string;
+  camera_zone: string;
+  started_at: Date | string;
+  ended_at: Date | string;
+  reference_url: string;
+  incident_type: FactoryCctvIncidentType;
+  note: string;
+  created_by: string;
+  created_at: Date | string;
+};
+
 async function getFactoryDataFromPostgres(): Promise<FactoryData> {
   const [
     items,
@@ -992,6 +1032,7 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     materialIssues,
     wageSettlements,
     wageSettlementEntries,
+    cctvReferences,
   ] = await Promise.all([
     queryPostgres<FactoryItemRow>(
       "factory",
@@ -1084,6 +1125,12 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       "factory",
       `SELECT settlement_id, production_entry_id, amount_snapshot
        FROM factory_wage_settlement_entries`,
+    ),
+    queryPostgres<FactoryCctvReferenceRow>(
+      "factory",
+      `SELECT id, work_order_id, stage_code, camera_zone, started_at, ended_at,
+        reference_url, incident_type, note, created_by, created_at
+       FROM factory_cctv_references ORDER BY started_at DESC`,
     ),
   ]);
 
@@ -1308,6 +1355,28 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       productionEntryId: row.production_entry_id,
       amountSnapshot: Number(row.amount_snapshot),
     })),
+    cctvReferences: cctvReferences
+      .filter((row) => isFactoryStageCode(row.stage_code))
+      .map((row) => ({
+        id: row.id,
+        workOrderId: row.work_order_id,
+        stageCode: row.stage_code as FactoryStageCode,
+        cameraZone: row.camera_zone,
+        startedAt:
+          row.started_at instanceof Date
+            ? row.started_at.toISOString()
+            : row.started_at,
+        endedAt:
+          row.ended_at instanceof Date ? row.ended_at.toISOString() : row.ended_at,
+        referenceUrl: row.reference_url,
+        incidentType: row.incident_type,
+        note: row.note,
+        createdBy: row.created_by,
+        createdAt:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : row.created_at,
+      })),
   };
 }
 
@@ -3162,6 +3231,123 @@ export async function markFactoryWageSettlementPaid(input: {
         paidBy: input.paidBy.trim(),
         paidAt,
       };
+    },
+  });
+}
+
+export function normalizeFactoryCctvReference(
+  input: Omit<FactoryCctvReference, "id" | "createdAt">,
+) {
+  if (!isFactoryStageCode(input.stageCode)) {
+    throw new Error("A valid Factory stage is required for CCTV reference.");
+  }
+  if (!factoryCctvIncidentTypes.includes(input.incidentType)) {
+    throw new Error("A valid CCTV incident type is required.");
+  }
+  const cameraZone = input.cameraZone.trim();
+  if (!cameraZone) throw new Error("Camera zone is required.");
+  const started = new Date(input.startedAt);
+  const ended = new Date(input.endedAt);
+  if (
+    Number.isNaN(started.getTime()) ||
+    Number.isNaN(ended.getTime()) ||
+    started.getTime() > ended.getTime()
+  ) {
+    throw new Error("CCTV start/end time window is invalid.");
+  }
+  const referenceUrl = input.referenceUrl.trim();
+  if (referenceUrl) {
+    let parsed: URL;
+    try {
+      parsed = new URL(referenceUrl);
+    } catch {
+      throw new Error("CCTV reference link must be a valid http(s) URL.");
+    }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error("CCTV reference link must use http or https.");
+    }
+  }
+  const note = input.note.trim();
+  if (!referenceUrl && !note) {
+    throw new Error("Add a DVR reference link or a footage lookup note.");
+  }
+  if (input.incidentType !== "Routine verification" && !note) {
+    throw new Error("Incident note is required.");
+  }
+  return {
+    ...input,
+    cameraZone,
+    startedAt: started.toISOString(),
+    endedAt: ended.toISOString(),
+    referenceUrl,
+    note,
+    createdBy: input.createdBy.trim(),
+  };
+}
+
+export async function addFactoryCctvReference(input: {
+  workOrder: FactoryWorkOrder;
+  stageCode: FactoryStageCode;
+  cameraZone: string;
+  startedAt: string;
+  endedAt: string;
+  referenceUrl: string;
+  incidentType: FactoryCctvIncidentType;
+  note: string;
+  createdBy: string;
+}) {
+  const normalized = normalizeFactoryCctvReference({
+    workOrderId: input.workOrder.id,
+    stageCode: input.stageCode,
+    cameraZone: input.cameraZone,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    referenceUrl: input.referenceUrl,
+    incidentType: input.incidentType,
+    note: input.note,
+    createdBy: input.createdBy,
+  });
+  const reference: FactoryCctvReference = {
+    ...normalized,
+    id: createFactoryId("FCCTV"),
+    createdAt: new Date().toISOString(),
+  };
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      if (!data.workOrders.some((entry) => entry.id === input.workOrder.id)) {
+        throw new Error("Work Order was not found.");
+      }
+      data.cctvReferences.unshift(reference);
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return reference;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryCctvReferenceRow>(
+        "factory",
+        `INSERT INTO factory_cctv_references (
+           id, work_order_id, stage_code, camera_zone, started_at, ended_at,
+           reference_url, incident_type, note, created_by, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING id, work_order_id, stage_code, camera_zone, started_at,
+           ended_at, reference_url, incident_type, note, created_by, created_at`,
+        [
+          reference.id,
+          reference.workOrderId,
+          reference.stageCode,
+          reference.cameraZone,
+          reference.startedAt,
+          reference.endedAt,
+          reference.referenceUrl,
+          reference.incidentType,
+          reference.note,
+          reference.createdBy,
+          reference.createdAt,
+        ],
+      );
+      if (!rows[0]) throw new Error("CCTV reference could not be saved.");
+      return reference;
     },
   });
 }
