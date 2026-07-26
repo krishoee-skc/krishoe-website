@@ -3,6 +3,8 @@ import {
   auditFactoryFoundation,
   calculateBomRequirement,
   factoryStages,
+  factoryWorkOrderTracePath,
+  factoryWorkOrderTraceUrl,
   normalizeFactoryItem,
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
@@ -471,5 +473,19 @@ describe("finished stock posting safeguards", () => {
     expect(() => validateFactoryStockPosting(data, workOrder)).toThrow(
       "already posted",
     );
+  });
+});
+
+describe("factory lot trace links", () => {
+  it("builds an encoded Owner-only trace path and absolute QR URL", () => {
+    expect(factoryWorkOrderTracePath("WO lot/1")).toBe(
+      "/admin/factory/work-orders/WO%20lot%2F1",
+    );
+    expect(
+      factoryWorkOrderTraceUrl(
+        "https://krishoe-website.vercel.app/api/factory/qr",
+        "WO-1",
+      ),
+    ).toBe("https://krishoe-website.vercel.app/admin/factory/work-orders/WO-1");
   });
 });

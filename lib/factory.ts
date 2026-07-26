@@ -225,6 +225,14 @@ export type FactoryWorkOrder = {
   createdBy: string;
 };
 
+export function factoryWorkOrderTracePath(workOrderId: string) {
+  return `/admin/factory/work-orders/${encodeURIComponent(workOrderId.trim())}`;
+}
+
+export function factoryWorkOrderTraceUrl(origin: string, workOrderId: string) {
+  return `${new URL(origin).origin}${factoryWorkOrderTracePath(workOrderId)}`;
+}
+
 export type FactoryWorkOrderSize = {
   id: string;
   workOrderId: string;

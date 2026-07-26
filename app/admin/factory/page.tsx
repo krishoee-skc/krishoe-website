@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import WorkOrderForm from "@/app/admin/factory/WorkOrderForm";
 import WorkOrderReleaseForm from "@/app/admin/factory/WorkOrderReleaseForm";
@@ -20,6 +21,7 @@ import {
   calculateBomRequirement,
   factoryRolloutPhases,
   factoryStages,
+  factoryWorkOrderTracePath,
   getFactoryData,
   getFactoryAssignmentSizePlan,
   getFactoryPackingReadiness,
@@ -104,11 +106,11 @@ export default async function FactoryErpPage({
         <h1 className="mt-2 text-3xl font-black sm:text-4xl">Factory ERP</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-emerald-50/85 sm:text-base">
           A parallel production system that protects the existing HR, sales, POS,
-          purchasing and stock flows. Foundation revision is active; automatic wage
-          and stock posting remain safely disabled until the pilot is verified.
+          purchasing and stock flows. Worker, material, packing and finished-stock
+          records now connect through one controlled Work Order chain.
         </p>
         <div className="mt-5 inline-flex rounded-full border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-amber-200">
-          Shadow mode · no live stock or payroll changes
+          Owner-controlled posting · audit protected
         </div>
       </header>
 
@@ -614,6 +616,22 @@ export default async function FactoryErpPage({
                       <p className="mt-1 text-sm text-gray-500">{order.color} · {order.totalPairs} pairs · Due {order.dueDate}</p>
                     </div>
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700">{order.status}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href={factoryWorkOrderTracePath(order.id)}
+                      className="inline-flex min-h-10 items-center rounded-xl bg-brand-green-ink px-4 text-xs font-black text-white"
+                    >
+                      Open lot trace
+                    </Link>
+                    <a
+                      href={`/api/admin/factory/work-orders/${order.id}/qr`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-10 items-center rounded-xl border border-brand-green px-4 text-xs font-black text-brand-green"
+                    >
+                      View / print QR
+                    </a>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {sizes.map((row) => (
