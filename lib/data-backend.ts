@@ -17,7 +17,6 @@ const implementedPostgresStores = [
   "notification events",
   "rate limit attempts",
   "admin settings",
-  "factory",
 ] as const;
 const pendingPostgresStores = [] as const;
 

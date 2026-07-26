@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { adminNavLinks } from "@/app/admin/nav-links";
-import { canAdmin, type AdminPermission, type AdminRole } from "@/lib/admin-role-permissions";
 
 export default function AdminNav({
   adminRole,
@@ -52,10 +51,7 @@ export default function AdminNav({
         </div>
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium">
-            {adminNavLinks.filter((link) =>
-              !("permission" in link) ||
-              canAdmin(adminRole as AdminRole, link.permission as AdminPermission),
-            ).map(({ href, label, icon: Icon }) => (
+            {adminNavLinks.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}

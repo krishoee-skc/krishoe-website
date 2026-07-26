@@ -15,7 +15,6 @@ export const adminPermissions = [
   "backup:export",
   "costing:write",
   "exports:read",
-  "factory:write",
   "hr:write",
   "messages:write",
   "notifications:write",
@@ -36,10 +35,7 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
   Owner: new Set(adminPermissions),
   Manager: new Set(
     adminPermissions.filter(
-      (permission) =>
-        permission !== "backup:export" &&
-        permission !== "factory:write" &&
-        permission !== "settings:write",
+      (permission) => permission !== "backup:export" && permission !== "settings:write",
     ),
   ),
   Accountant: new Set([

@@ -16,12 +16,6 @@ import {
 import { queryPostgres } from "@/lib/postgres/client";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
-import {
-  getFactoryDashboard,
-  getFactoryData,
-  getFactoryWageCandidates,
-  type FactoryData,
-} from "@/lib/factory";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { reportingErrors } from "@/lib/report-error";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
@@ -36,7 +30,6 @@ export type OperationalAlertCategory =
   | "payment"
   | "posting"
   | "catalog"
-  | "factory"
   | "sales";
 
 export type PasswordResetNotificationPayload = {
@@ -965,113 +958,15 @@ function alertAmountRank(alert: OperationalAlert) {
   return alert.amount ?? 0;
 }
 
-export function buildFactoryOperationalAlerts(
-  factory: FactoryData,
-  today = new Date().toISOString().slice(0, 10),
-): OperationalAlert[] {
-  const dashboard = getFactoryDashboard(factory, today);
-  const alerts: OperationalAlert[] = [];
-  if (dashboard.overdueWorkOrders > 0) {
-    alerts.push({
-      id: "factory-overdue-work-orders",
-      category: "factory",
-      severity: "critical",
-      title: "Factory Work Orders overdue",
-      detail: `${dashboard.overdueWorkOrders} active Work Order(s) are past their due date.`,
-      action: "Open Factory ERP and prioritize overdue lots by current stage.",
-      href: "/admin/factory",
-      amount: dashboard.overdueWorkOrders,
-    });
-  }
-  if (dashboard.pausedStages.length > 0) {
-    const oldest = dashboard.pausedStages[0];
-    alerts.push({
-      id: "factory-paused-stages",
-      category: "factory",
-      severity: "critical",
-      title: "Factory production stage paused",
-      detail: `${dashboard.pausedStages.length} active stage(s) are blocked. Oldest: ${oldest.workOrderNumber} ${oldest.stageName}, ${oldest.pausedHours} hour(s).`,
-      action: "Review the bottleneck reason and resume only after the issue is solved.",
-      href: "/admin/factory#factory-bottlenecks",
-      amount: dashboard.pausedStages.length,
-    });
-  }
-  if (dashboard.pendingVerificationEntries > 0) {
-    alerts.push({
-      id: "factory-qc-pending",
-      category: "factory",
-      severity: "warning",
-      title: "Factory QC verification pending",
-      detail: `${dashboard.pendingVerificationEntries} production entry/entries await QC verification.`,
-      action: "Verify good, reject and rework quantities before wage or stock posting.",
-      href: "/admin/factory",
-      amount: dashboard.pendingVerificationEntries,
-    });
-  }
-  if (dashboard.readyForStockPairs > 0) {
-    alerts.push({
-      id: "factory-ready-stock-pending",
-      category: "factory",
-      severity: "warning",
-      title: "Finished production waiting stock posting",
-      detail: `${dashboard.readyForStockPairs} packed pair(s) are Ready for Stock.`,
-      action: "Confirm finalized materials, then post the Work Order to sellable stock.",
-      href: "/admin/factory",
-      amount: dashboard.readyForStockPairs,
-    });
-  }
-  if (dashboard.materialVarianceLines > 0) {
-    alerts.push({
-      id: "factory-material-variance",
-      category: "factory",
-      severity: "warning",
-      title: "Factory material plan variance",
-      detail: `${dashboard.materialVarianceLines} active BOM material line(s) differ from issued quantity.`,
-      action: "Review material issues, returns, consumption and wastage before stock posting.",
-      href: "/admin/factory",
-      amount: dashboard.materialVarianceLines,
-    });
-  }
-  if (dashboard.workersWithoutEntry > 0) {
-    alerts.push({
-      id: "factory-workers-without-entry",
-      category: "factory",
-      severity: "info",
-      title: "Assigned workers without today entry",
-      detail: `${dashboard.workersWithoutEntry} active assigned worker(s) have no production entry today.`,
-      action: "Check paused work or collect the missing daily worksheet entry.",
-      href: "/admin/factory",
-      amount: dashboard.workersWithoutEntry,
-    });
-  }
-  const monthStart = `${today.slice(0, 7)}-01`;
-  const wageCandidates = getFactoryWageCandidates(factory, monthStart, today);
-  const wageAmount = wageCandidates.reduce((sum, entry) => sum + entry.amount, 0);
-  if (wageAmount > 0) {
-    alerts.push({
-      id: "factory-piece-wage-pending",
-      category: "factory",
-      severity: "warning",
-      title: "Verified Factory wages await approval",
-      detail: `${wageCandidates.length} worker settlement(s), ${money(wageAmount)} verified piece wage pending.`,
-      action: "Review the Factory report and approve eligible production wages once.",
-      href: `/admin/factory/reports?period=custom&from=${monthStart}&to=${today}`,
-      amount: wageAmount,
-    });
-  }
-  return alerts;
-}
-
 export async function getOperationalAlertCenter(): Promise<OperationalAlertCenter> {
-  const [operations, purchasing, pos, paymentReconciliation, products, factory] = await Promise.all([
+  const [operations, purchasing, pos, paymentReconciliation, products] = await Promise.all([
     getOperationsSnapshot(),
     getPurchasingSnapshot(),
     getPosSnapshot(),
     getPaymentReconciliation(),
     getProducts({ includeDrafts: true }),
-    getFactoryData(),
   ]);
-  const alerts: OperationalAlert[] = buildFactoryOperationalAlerts(factory);
+  const alerts: OperationalAlert[] = [];
 
   for (const ledger of operations.reports.ledgerCollectionFollowups.slice(0, 5)) {
     if (ledger.priority === "Clear") continue;
