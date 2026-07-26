@@ -667,13 +667,19 @@ CREATE TABLE IF NOT EXISTS factory_work_orders (
   priority TEXT NOT NULL DEFAULT 'Normal' CHECK (priority IN ('Normal', 'High', 'Urgent')),
   current_stage_code TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'Draft'
-    CHECK (status IN ('Draft', 'Released', 'In Progress', 'Completed', 'Cancelled')),
+    CHECK (status IN ('Draft', 'Released', 'In Progress', 'Ready for Stock', 'Completed', 'Cancelled')),
   total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
   remarks TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE factory_work_orders
+  DROP CONSTRAINT IF EXISTS factory_work_orders_status_check;
+ALTER TABLE factory_work_orders
+  ADD CONSTRAINT factory_work_orders_status_check
+  CHECK (status IN ('Draft', 'Released', 'In Progress', 'Ready for Stock', 'Completed', 'Cancelled'));
 
 CREATE INDEX IF NOT EXISTS factory_work_orders_item_id_idx ON factory_work_orders(item_id);
 CREATE INDEX IF NOT EXISTS factory_work_orders_status_idx ON factory_work_orders(status);
@@ -827,6 +833,21 @@ CREATE TABLE IF NOT EXISTS factory_stage_handover_sizes (
 
 CREATE INDEX IF NOT EXISTS factory_stage_handover_sizes_handover_idx
   ON factory_stage_handover_sizes(handover_id);
+
+CREATE TABLE IF NOT EXISTS factory_packing_approvals (
+  id TEXT PRIMARY KEY,
+  work_order_id TEXT NOT NULL UNIQUE
+    REFERENCES factory_work_orders(id) ON DELETE RESTRICT,
+  packing_assignment_id TEXT NOT NULL UNIQUE
+    REFERENCES factory_stage_assignments(id) ON DELETE RESTRICT,
+  approved_pairs INTEGER NOT NULL CHECK (approved_pairs > 0),
+  approved_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS factory_packing_approvals_created_idx
+  ON factory_packing_approvals(created_at DESC);
 
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (

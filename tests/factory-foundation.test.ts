@@ -6,6 +6,7 @@ import {
   normalizeFactoryItem,
   normalizeProductionSizeEntries,
   normalizeFactoryHandoverSizes,
+  getFactoryPackingReadiness,
   normalizeWorkOrderSizes,
   validateFactoryRelease,
 } from "@/lib/factory";
@@ -207,5 +208,87 @@ describe("Factory ERP foundation", () => {
         { size: "36", sentPairs: 8, receivedPairs: 9 },
       ]),
     ).toThrow("cannot exceed sent");
+  });
+
+  it("marks packing ready only when every planned size has verified good pairs", () => {
+    const workOrder = {
+      id: "wo-1",
+      workOrderNumber: "WO-1",
+      lotNumber: "LOT-1",
+      itemId: "item-1",
+      itemCode: "LH-01",
+      itemName: "Ladies Heel",
+      color: "Black",
+      createdDate: "2026-07-26",
+      dueDate: "2026-07-27",
+      priority: "Normal" as const,
+      currentStageCode: "packing" as const,
+      status: "In Progress" as const,
+      totalPairs: 10,
+      remarks: "",
+      createdBy: "Owner",
+    };
+    const packingAssignment = {
+      id: "assignment-pack",
+      workOrderId: workOrder.id,
+      stageCode: "packing" as const,
+      sequence: 1,
+      workerId: "emp-1",
+      workerName: "Mina",
+      targetPairs: 10,
+      status: "In Progress" as const,
+      ratePerGoodPairSnapshot: 5,
+      cameraZone: "",
+    };
+    const entry = {
+      id: "entry-1",
+      workOrderId: workOrder.id,
+      assignmentId: packingAssignment.id,
+      workerId: "emp-1",
+      workerName: "Mina",
+      stageCode: "packing" as const,
+      entryDate: "2026-07-26",
+      receivedPairs: 10,
+      goodPairs: 10,
+      rejectPairs: 0,
+      reworkPairs: 0,
+      wageRateSnapshot: 5,
+      calculatedWage: 50,
+      status: "Verified" as const,
+      remarks: "",
+      enteredBy: "Owner",
+      createdAt: "2026-07-26T00:00:00.000Z",
+      rejectReason: "" as const,
+      responsibleWorkerId: "",
+      reworkPossible: false,
+      verificationNote: "",
+      verifiedBy: "Owner",
+      verifiedAt: "2026-07-26T00:01:00.000Z",
+    };
+
+    expect(
+      getFactoryPackingReadiness(
+        {
+          workOrderSizes: [
+            { id: "size-36", workOrderId: workOrder.id, size: "36", plannedPairs: 10 },
+          ],
+          stageAssignments: [packingAssignment],
+          productionEntries: [entry],
+          productionEntrySizes: [
+            {
+              id: "entry-size-36",
+              productionEntryId: entry.id,
+              size: "36",
+              receivedPairs: 10,
+              goodPairs: 10,
+              rejectPairs: 0,
+              reworkPairs: 0,
+            },
+          ],
+          packingApprovals: [],
+        },
+        workOrder,
+      ).ready,
+    ).toBe(true);
   });
 });

@@ -58,6 +58,7 @@ export type FactoryData = {
   productionEntrySizes: FactoryProductionEntrySize[];
   stageHandovers: FactoryStageHandover[];
   stageHandoverSizes: FactoryStageHandoverSize[];
+  packingApprovals: FactoryPackingApproval[];
 };
 
 export type FactoryStageHandover = {
@@ -86,6 +87,16 @@ export type FactoryStageHandoverSize = {
   sentPairs: number;
   receivedPairs: number;
   discrepancyPairs: number;
+};
+
+export type FactoryPackingApproval = {
+  id: string;
+  workOrderId: string;
+  packingAssignmentId: string;
+  approvedPairs: number;
+  approvedBy: string;
+  note: string;
+  createdAt: string;
 };
 
 export type FactoryProductionEntryStatus = "Submitted" | "Verified" | "Rejected";
@@ -162,6 +173,7 @@ export type FactoryWorkOrderStatus =
   | "Draft"
   | "Released"
   | "In Progress"
+  | "Ready for Stock"
   | "Completed"
   | "Cancelled";
 export type FactoryWorkOrderPriority = "Normal" | "High" | "Urgent";
@@ -279,6 +291,7 @@ const emptyFactoryData: FactoryData = {
   productionEntrySizes: [],
   stageHandovers: [],
   stageHandoverSizes: [],
+  packingApprovals: [],
 };
 
 function createFactoryId(prefix: string) {
@@ -305,6 +318,7 @@ async function readLocalFactoryData(): Promise<FactoryData> {
       productionEntrySizes: parsed.productionEntrySizes ?? [],
       stageHandovers: parsed.stageHandovers ?? [],
       stageHandoverSizes: parsed.stageHandoverSizes ?? [],
+      packingApprovals: parsed.packingApprovals ?? [],
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(emptyFactoryData);
@@ -451,6 +465,16 @@ type FactoryStageHandoverSizeRow = {
   discrepancy_pairs: number | string;
 };
 
+type FactoryPackingApprovalRow = {
+  id: string;
+  work_order_id: string;
+  packing_assignment_id: string;
+  approved_pairs: number | string;
+  approved_by: string;
+  note: string;
+  created_at: Date | string;
+};
+
 async function getFactoryDataFromPostgres(): Promise<FactoryData> {
   const [
     items,
@@ -464,6 +488,7 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     productionEntrySizes,
     stageHandovers,
     stageHandoverSizes,
+    packingApprovals,
   ] = await Promise.all([
     queryPostgres<FactoryItemRow>(
       "factory",
@@ -530,6 +555,12 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       "factory",
       `SELECT id, handover_id, size, sent_pairs, received_pairs, discrepancy_pairs
        FROM factory_stage_handover_sizes ORDER BY size ASC`,
+    ),
+    queryPostgres<FactoryPackingApprovalRow>(
+      "factory",
+      `SELECT id, work_order_id, packing_assignment_id, approved_pairs,
+        approved_by, note, created_at
+       FROM factory_packing_approvals ORDER BY created_at DESC`,
     ),
   ]);
 
@@ -683,6 +714,16 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       sentPairs: Number(row.sent_pairs),
       receivedPairs: Number(row.received_pairs),
       discrepancyPairs: Number(row.discrepancy_pairs),
+    })),
+    packingApprovals: packingApprovals.map((row) => ({
+      id: row.id,
+      workOrderId: row.work_order_id,
+      packingAssignmentId: row.packing_assignment_id,
+      approvedPairs: Number(row.approved_pairs),
+      approvedBy: row.approved_by,
+      note: row.note,
+      createdAt:
+        row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     })),
   };
 }
@@ -1602,6 +1643,172 @@ export async function addFactoryStageHandover(input: {
           [input.workOrder.id, input.toAssignment.stageCode],
         );
         return { handover, sizes: sizeRows };
+      }),
+  });
+}
+
+export function getFactoryPackingReadiness(
+  data: Pick<
+    FactoryData,
+    | "workOrderSizes"
+    | "stageAssignments"
+    | "productionEntries"
+    | "productionEntrySizes"
+    | "packingApprovals"
+  >,
+  workOrder: FactoryWorkOrder,
+) {
+  const assignments = data.stageAssignments
+    .filter((row) => row.workOrderId === workOrder.id)
+    .sort((left, right) => left.sequence - right.sequence);
+  const packingAssignment = assignments.at(-1);
+  const entries = packingAssignment
+    ? data.productionEntries.filter((row) => row.assignmentId === packingAssignment.id)
+    : [];
+  const verifiedIds = new Set(
+    entries.filter((entry) => entry.status === "Verified").map((entry) => entry.id),
+  );
+  const sizes = data.workOrderSizes
+    .filter((row) => row.workOrderId === workOrder.id)
+    .map((row) => {
+      const verifiedGood = data.productionEntrySizes
+        .filter(
+          (entry) =>
+            verifiedIds.has(entry.productionEntryId) && entry.size === row.size,
+        )
+        .reduce((sum, entry) => sum + entry.goodPairs, 0);
+      return {
+        size: row.size,
+        plannedPairs: row.plannedPairs,
+        verifiedGood,
+        shortagePairs: Math.max(0, row.plannedPairs - verifiedGood),
+      };
+    });
+  const pendingEntries = entries.filter((entry) => entry.status === "Submitted").length;
+  const existingApproval = data.packingApprovals.find(
+    (approval) => approval.workOrderId === workOrder.id,
+  );
+
+  return {
+    packingAssignment,
+    sizes,
+    pendingEntries,
+    approvedPairs: sizes.reduce((sum, row) => sum + row.verifiedGood, 0),
+    ready:
+      Boolean(packingAssignment) &&
+      !existingApproval &&
+      pendingEntries === 0 &&
+      sizes.length > 0 &&
+      sizes.every((row) => row.shortagePairs === 0),
+    existingApproval,
+  };
+}
+
+export async function approveFactoryPacking(input: {
+  data: FactoryData;
+  workOrder: FactoryWorkOrder;
+  approvedBy: string;
+  note: string;
+}) {
+  if (!["Released", "In Progress"].includes(input.workOrder.status)) {
+    throw new Error("This Work Order is not awaiting final packing approval.");
+  }
+  const readiness = getFactoryPackingReadiness(input.data, input.workOrder);
+  if (!readiness.packingAssignment || !readiness.ready) {
+    throw new Error("Packing cannot be approved until every planned size is verified.");
+  }
+  const approval: FactoryPackingApproval = {
+    id: createFactoryId("FPACK"),
+    workOrderId: input.workOrder.id,
+    packingAssignmentId: readiness.packingAssignment.id,
+    approvedPairs: readiness.approvedPairs,
+    approvedBy: input.approvedBy.trim(),
+    note: input.note.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const liveReadiness = getFactoryPackingReadiness(data, input.workOrder);
+      if (!liveReadiness.ready) throw new Error("Packing readiness changed; review again.");
+      data.packingApprovals.unshift(approval);
+      const assignment = data.stageAssignments.find(
+        (row) => row.id === approval.packingAssignmentId,
+      );
+      if (assignment) assignment.status = "Completed";
+      const order = data.workOrders.find((row) => row.id === input.workOrder.id);
+      if (order) order.status = "Ready for Stock";
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return approval;
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        await db.query(
+          "SELECT id FROM factory_work_orders WHERE id = $1 FOR UPDATE",
+          [input.workOrder.id],
+        );
+        const readinessRows = await db.query<{
+          size: string;
+          planned_pairs: number | string;
+          verified_good: number | string;
+        }>(
+          `SELECT s.size, s.planned_pairs,
+            COALESCE(SUM(es.good_pairs) FILTER (WHERE e.status = 'Verified'), 0) AS verified_good
+           FROM factory_work_order_sizes s
+           LEFT JOIN factory_stage_assignments a
+             ON a.work_order_id = s.work_order_id
+            AND a.sequence = (
+              SELECT MAX(a2.sequence) FROM factory_stage_assignments a2
+              WHERE a2.work_order_id = s.work_order_id
+            )
+           LEFT JOIN factory_production_entries e ON e.assignment_id = a.id
+           LEFT JOIN factory_production_entry_sizes es
+             ON es.production_entry_id = e.id AND es.size = s.size
+           WHERE s.work_order_id = $1
+           GROUP BY s.size, s.planned_pairs`,
+          [input.workOrder.id],
+        );
+        const pending = await db.query<{ count: number | string }>(
+          `SELECT COUNT(*) AS count
+           FROM factory_production_entries
+           WHERE assignment_id = $1 AND status = 'Submitted'`,
+          [approval.packingAssignmentId],
+        );
+        if (
+          Number(pending[0]?.count ?? 0) > 0 ||
+          readinessRows.length === 0 ||
+          readinessRows.some(
+            (row) => Number(row.verified_good) < Number(row.planned_pairs),
+          )
+        ) {
+          throw new Error("Packing readiness changed; review again.");
+        }
+        await db.query(
+          `INSERT INTO factory_packing_approvals (
+            id, work_order_id, packing_assignment_id, approved_pairs, approved_by, note
+          ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            approval.id,
+            approval.workOrderId,
+            approval.packingAssignmentId,
+            approval.approvedPairs,
+            approval.approvedBy,
+            approval.note,
+          ],
+        );
+        await db.query(
+          `UPDATE factory_stage_assignments
+           SET status = 'Completed', updated_at = now() WHERE id = $1`,
+          [approval.packingAssignmentId],
+        );
+        await db.query(
+          `UPDATE factory_work_orders
+           SET status = 'Ready for Stock', updated_at = now() WHERE id = $1`,
+          [approval.workOrderId],
+        );
+        return approval;
       }),
   });
 }

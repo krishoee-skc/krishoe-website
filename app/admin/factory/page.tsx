@@ -5,6 +5,7 @@ import WorkOrderReleaseForm from "@/app/admin/factory/WorkOrderReleaseForm";
 import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
 import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
 import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
+import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -18,6 +19,7 @@ import {
   factoryStages,
   getFactoryData,
   getFactoryAssignmentSizePlan,
+  getFactoryPackingReadiness,
 } from "@/lib/factory";
 import { getHrData } from "@/lib/hr";
 import { getOperationsData } from "@/lib/operations";
@@ -63,6 +65,7 @@ export default async function FactoryErpPage({
     entry?: string;
     verified?: string;
     handover?: string;
+    packed?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -453,6 +456,11 @@ export default async function FactoryErpPage({
               Size-wise stage handover saved and the receiving stage is ready.
             </p>
           ) : null}
+          {params?.packed ? (
+            <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-800">
+              {params.packed} passed packing reconciliation and is Ready for Stock. Sellable stock is unchanged.
+            </p>
+          ) : null}
           <div className="mt-5">
             <WorkOrderForm
               items={factory.items
@@ -474,7 +482,7 @@ export default async function FactoryErpPage({
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
                 Shadow-mode planning
               </p>
-              <h2 className="mt-2 text-xl font-black text-brand-green-ink">Draft Work Orders</h2>
+              <h2 className="mt-2 text-xl font-black text-brand-green-ink">Work Orders</h2>
             </div>
             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">
               {factory.workOrders.length} orders
@@ -486,6 +494,13 @@ export default async function FactoryErpPage({
               const bom = factory.bomLines.filter((line) => line.itemId === order.itemId);
               const item = factory.items.find((entry) => entry.id === order.itemId);
               const assignments = factory.stageAssignments.filter((entry) => entry.workOrderId === order.id);
+              const packingReadiness = getFactoryPackingReadiness(factory, order);
+              const verifiedWage = factory.productionEntries
+                .filter(
+                  (entry) =>
+                    entry.workOrderId === order.id && entry.status === "Verified",
+                )
+                .reduce((sum, entry) => sum + entry.calculatedWage, 0);
               const releaseStages = (item?.stageCodes ?? []).map((code) => ({
                 code,
                 rate:
@@ -540,6 +555,10 @@ export default async function FactoryErpPage({
                       {bom.length === 0 ? <p className="text-xs text-amber-700">BOM not configured for this item.</p> : null}
                     </div>
                   </details>
+                  <p className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">
+                    Verified production wage: Rs. {verifiedWage.toLocaleString("en-IN")}
+                    {" · "}Material cost awaits actual issue and purchase-rate posting.
+                  </p>
                   {order.status === "Draft" && item ? (
                     <WorkOrderReleaseForm
                       workOrderId={order.id}
@@ -668,6 +687,29 @@ export default async function FactoryErpPage({
                           ))}
                       </div>
                     </details>
+                  ) : null}
+                  {packingReadiness.packingAssignment &&
+                  !packingReadiness.existingApproval &&
+                  order.status !== "Draft" ? (
+                    <PackingApprovalForm
+                      workOrderId={order.id}
+                      rows={packingReadiness.sizes}
+                      pendingEntries={packingReadiness.pendingEntries}
+                      ready={packingReadiness.ready}
+                    />
+                  ) : null}
+                  {packingReadiness.existingApproval ? (
+                    <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-900">
+                      <p className="font-black">
+                        Ready for Stock · {packingReadiness.existingApproval.approvedPairs} pairs
+                      </p>
+                      <p className="mt-1">
+                        Approved by {packingReadiness.existingApproval.approvedBy}
+                      </p>
+                      <p className="mt-1 font-bold">
+                        Stock posting is still locked in shadow mode.
+                      </p>
+                    </div>
                   ) : null}
                 </div>
               );

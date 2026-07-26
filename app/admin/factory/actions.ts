@@ -8,6 +8,7 @@ import {
   addFactoryProductionItem,
   addFactoryProductionEntry,
   addFactoryStageHandover,
+  approveFactoryPacking,
   addFactoryWorkOrder,
   getFactoryData,
   getFactoryAssignmentSizePlan,
@@ -328,4 +329,25 @@ export async function createFactoryStageHandoverAction(formData: FormData) {
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?handover=${encodeURIComponent(result.handover.id)}`);
+}
+
+export async function approveFactoryPackingAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === text(formData, "workOrderId"),
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const approval = await approveFactoryPacking({
+    data: factory,
+    workOrder,
+    approvedBy: session.name || session.email || "Owner",
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "factory_packing_approve",
+    `${workOrder.workOrderNumber}: ${approval.approvedPairs} packed pairs marked Ready for Stock. No stock was posted.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?packed=${encodeURIComponent(workOrder.workOrderNumber)}`);
 }
