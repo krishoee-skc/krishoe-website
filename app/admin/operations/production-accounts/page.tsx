@@ -14,8 +14,16 @@ import {
   createHandoverAction,
   saveStageRateAction,
 } from "./actions";
-import { getProductionAccountingSnapshot, getProductionControlSummary } from "@/lib/production-accounting";
-import { productionStages, workerPaymentTypes } from "@/lib/production-accounting-rules";
+import {
+  getProductionAccountingSnapshot,
+  getProductionControlSummary,
+  getWeeklyWorkerSettlements,
+} from "@/lib/production-accounting";
+import {
+  productionStages,
+  saturdayToFridayPeriod,
+  workerPaymentTypes,
+} from "@/lib/production-accounting-rules";
 
 export const metadata: Metadata = { title: "Production Accounts | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -35,12 +43,15 @@ function money(value: number) {
 }
 
 export default async function ProductionAccountsPage() {
-  const [data, control] = await Promise.all([
+  const date = today();
+  const weeklyPeriod = saturdayToFridayPeriod(date);
+  const [data, control, weeklySettlements] = await Promise.all([
     getProductionAccountingSnapshot(),
     getProductionControlSummary(),
+    getWeeklyWorkerSettlements(weeklyPeriod),
   ]);
   const activeItems = data.items.filter((item) => item.status === "Active");
-  const date = today();
+  const weeklyPayable = weeklySettlements.reduce((total, row) => total + row.payable, 0);
 
   return (
     <section className="mx-auto max-w-7xl space-y-5 p-4 pb-28 sm:p-6">
@@ -503,6 +514,53 @@ export default async function ProductionAccountsPage() {
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Approving cash…">Owner approve cash</FormSubmitButton>
         </form>
+      </div>
+
+      <div className={card}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Saturday payment center</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">
+              {weeklyPeriod.start} to {weeklyPeriod.end}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Total suggested payable: <strong className="text-brand-green-ink">{money(weeklyPayable)}</strong>
+            </p>
+          </div>
+          <ExportButton
+            href={`/api/admin/operations/production-export?type=weekly-settlements&date=${date}`}
+            className="min-h-11 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+          >
+            Download payment sheet
+          </ExportButton>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {weeklySettlements.map((row) => (
+            <Link
+              key={row.employeeId}
+              href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}?date=${date}`}
+              className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-brand-green"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-black text-brand-green-ink">{row.employeeName}</p>
+                <p className={`text-sm font-black ${row.closingBalance >= 0 ? "text-brand-green" : "text-brand-clay"}`}>
+                  {row.closingBalance >= 0 ? money(row.payable) : `Advance ${money(row.advanceBalance)}`}
+                </p>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div><span className="text-gray-500">Opening</span><p className="mt-1 font-black">{money(row.openingBalance)}</p></div>
+                <div><span className="text-gray-500">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
+                <div><span className="text-gray-500">Cash</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
+              </div>
+              <p className="mt-3 text-xs font-bold text-gray-500">
+                {row.completedPairs} pairs · {row.rejectedPairs} rejected
+              </p>
+            </Link>
+          ))}
+          {weeklySettlements.length === 0 ? (
+            <p className="text-sm text-gray-500">No piece worker or production ledger yet.</p>
+          ) : null}
+        </div>
       </div>
 
       <div className={card}>

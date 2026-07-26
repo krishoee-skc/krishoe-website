@@ -1,14 +1,17 @@
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { queryPostgres } from "@/lib/postgres/client";
-import { getWorkerProductionAccount } from "@/lib/production-accounting";
+import {
+  getWeeklyWorkerSettlements,
+  getWorkerProductionAccount,
+} from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 
 export const dynamic = "force-dynamic";
 
 const exportTypes = [
   "work-orders", "work-entries", "worker-payments",
-  "handovers", "qc-stock", "cost-cards", "worker-statement",
+  "handovers", "qc-stock", "cost-cards", "worker-statement", "weekly-settlements",
 ] as const;
 type ExportType = (typeof exportTypes)[number];
 type ExportRow = Record<string, string | number | Date | null>;
@@ -161,6 +164,31 @@ export async function GET(request: Request) {
     );
     const name = `krishoe-worker-statement-${employeeId}-${period.start}-to-${period.end}.csv`;
     return csvResponse(name, csv);
+  }
+
+  if (type === "weekly-settlements") {
+    const requestedDate = searchParams.get("date") ?? "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+      return Response.json({ error: "date (YYYY-MM-DD) is required." }, { status: 400 });
+    }
+    const period = saturdayToFridayPeriod(requestedDate);
+    const settlements = await getWeeklyWorkerSettlements(period);
+    const csv = toCsv(
+      [
+        "employeeId", "workerName", "periodStart", "periodEnd", "openingBalance",
+        "completedPairs", "rejectedPairs", "earned", "cash/adjustment",
+        "closingBalance", "saturdayPayable", "advanceRemaining",
+      ],
+      settlements.map((row) => [
+        row.employeeId, row.employeeName, period.start, period.end, row.openingBalance,
+        row.completedPairs, row.rejectedPairs, row.earned, row.paid,
+        row.closingBalance, row.payable, row.advanceBalance,
+      ]),
+    );
+    return csvResponse(
+      `krishoe-saturday-payment-sheet-${period.start}-to-${period.end}.csv`,
+      csv,
+    );
   }
 
   const name = `krishoe-production-${type}-${new Date().toISOString().slice(0, 10)}.csv`;

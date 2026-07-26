@@ -225,6 +225,16 @@ type WorkerAccountTotalsRow = {
   opening_paid: number | string;
 };
 
+type WeeklySettlementRow = {
+  employee_id: string;
+  employee_name: string;
+  opening_balance: number | string;
+  completed_pairs: number | string;
+  rejected_pairs: number | string;
+  earned: number | string;
+  paid: number | string;
+};
+
 type PaymentRow = {
   id: string;
   payment_date: Date | string;
@@ -371,6 +381,80 @@ export async function getProductionControlSummary() {
     workerBalanceDue: numeric(row?.worker_balance_due ?? 0),
     stagePending: Object.fromEntries(stages.map((stage) => [stage.current_stage, count(stage.count)])),
   };
+}
+
+export async function getWeeklyWorkerSettlements(period: { start: string; end: string }) {
+  const rows = await queryPostgres<WeeklySettlementRow>(
+    "weekly worker settlement center",
+    `SELECT employees.id AS employee_id, employees.name AS employee_name,
+       coalesce((
+         SELECT sum(entries.earned_wage)
+         FROM production_work_entries entries
+         WHERE entries.employee_id = employees.id AND entries.status = 'Approved'
+           AND entries.work_date < $1::date
+       ), 0) - coalesce((
+         SELECT sum(CASE
+           WHEN payments.direction IN ('Paid', 'Recovered') THEN payments.amount
+           WHEN payments.direction = 'Added' THEN -payments.amount ELSE 0 END)
+         FROM worker_payments payments
+         WHERE payments.employee_id = employees.id AND payments.reversed_at IS NULL
+           AND payments.payment_date < $1::date
+       ), 0) AS opening_balance,
+       coalesce((
+         SELECT sum(entries.total_pairs)
+         FROM production_work_entries entries
+         WHERE entries.employee_id = employees.id AND entries.status = 'Approved'
+           AND entries.work_date BETWEEN $1::date AND $2::date
+       ), 0) AS completed_pairs,
+       coalesce((
+         SELECT sum(entries.rejected_pairs)
+         FROM production_work_entries entries
+         WHERE entries.employee_id = employees.id AND entries.status = 'Approved'
+           AND entries.work_date BETWEEN $1::date AND $2::date
+       ), 0) AS rejected_pairs,
+       coalesce((
+         SELECT sum(entries.earned_wage)
+         FROM production_work_entries entries
+         WHERE entries.employee_id = employees.id AND entries.status = 'Approved'
+           AND entries.work_date BETWEEN $1::date AND $2::date
+       ), 0) AS earned,
+       coalesce((
+         SELECT sum(CASE
+           WHEN payments.direction IN ('Paid', 'Recovered') THEN payments.amount
+           WHEN payments.direction = 'Added' THEN -payments.amount ELSE 0 END)
+         FROM worker_payments payments
+         WHERE payments.employee_id = employees.id AND payments.reversed_at IS NULL
+           AND payments.payment_date BETWEEN $1::date AND $2::date
+       ), 0) AS paid
+     FROM hr_employees employees
+     WHERE employees.status = 'Active'
+       AND (
+         employees.salary_type = 'Piece Rate'
+         OR EXISTS (SELECT 1 FROM production_work_entries entry WHERE entry.employee_id = employees.id)
+         OR EXISTS (SELECT 1 FROM worker_payments payment WHERE payment.employee_id = employees.id)
+       )
+     ORDER BY employees.name`,
+    [period.start, period.end],
+  );
+
+  return rows.map((row) => {
+    const openingBalance = numeric(row.opening_balance);
+    const earned = numeric(row.earned);
+    const paid = numeric(row.paid);
+    const closingBalance = numeric(openingBalance + earned - paid);
+    return {
+      employeeId: row.employee_id,
+      employeeName: row.employee_name,
+      openingBalance,
+      completedPairs: Number(row.completed_pairs),
+      rejectedPairs: Number(row.rejected_pairs),
+      earned,
+      paid,
+      closingBalance,
+      payable: Math.max(0, closingBalance),
+      advanceBalance: Math.max(0, -closingBalance),
+    };
+  });
 }
 
 function id(prefix: string) {
