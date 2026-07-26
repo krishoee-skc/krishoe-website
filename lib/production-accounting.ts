@@ -1338,6 +1338,87 @@ export async function addApprovedWorkEntry(input: {
   });
 }
 
+export async function reverseProductionWorkEntry(input: {
+  entryId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  return transactionPostgres("reverse production work entry", async (db) => {
+    const entryRows = await db.query<{
+      id: string;
+      employee_id: string;
+      employee_name_snapshot: string;
+      work_order_id: string | null;
+      earned_wage: number | string;
+      status: WorkEntry["status"];
+    }>(
+      `SELECT id, employee_id, employee_name_snapshot, work_order_id, earned_wage, status
+       FROM production_work_entries WHERE id = $1 FOR UPDATE`,
+      [input.entryId],
+    );
+    const entry = entryRows[0];
+    if (!entry || entry.status !== "Approved") {
+      throw new Error("Approved work entry was not found or has already been reversed.");
+    }
+
+    if (entry.work_order_id) {
+      const qcRows = await db.query<{ count: number | string }>(
+        `SELECT count(*) AS count FROM production_qc_postings WHERE work_order_id = $1`,
+        [entry.work_order_id],
+      );
+      if (Number(qcRows[0]?.count ?? 0) > 0) {
+        throw new Error("This lot already posted finished stock. Reverse its QC/stock posting first.");
+      }
+    }
+
+    await db.query(
+      `UPDATE production_work_entries
+       SET status = 'Reversed', reversed_at = now(), reversal_reason = $2
+       WHERE id = $1`,
+      [input.entryId, `${input.reason} · Reversed by ${input.reversedBy}`],
+    );
+
+    if (entry.work_order_id) {
+      const orderRows = await db.query<{ planned_pairs: number | string; status: ProductionWorkOrder["status"] }>(
+        `SELECT planned_pairs, status FROM production_work_orders WHERE id = $1 FOR UPDATE`,
+        [entry.work_order_id],
+      );
+      if (orderRows[0] && orderRows[0].status !== "Cancelled") {
+        const progressRows = await db.query<{ stage: ProductionStage; good_pairs: number | string }>(
+          `SELECT stage, coalesce(sum(total_pairs - rejected_pairs), 0) AS good_pairs
+           FROM production_work_entries
+           WHERE work_order_id = $1 AND status = 'Approved'
+           GROUP BY stage`,
+          [entry.work_order_id],
+        );
+        const progress = new Map(progressRows.map((row) => [row.stage, Number(row.good_pairs)]));
+        const plannedPairs = Number(orderRows[0].planned_pairs);
+        const firstIncomplete = productionStages.find((stage) => (progress.get(stage) ?? 0) < plannedPairs);
+        const approvedEntryCount = progressRows.length;
+
+        await db.query(
+          `UPDATE production_work_orders SET current_stage = $2, status = $3, updated_at = now()
+           WHERE id = $1`,
+          [
+            entry.work_order_id,
+            firstIncomplete ?? "Packing / QC",
+            firstIncomplete
+              ? firstIncomplete === "Upper" && approvedEntryCount === 0 ? "Planning" : "In Progress"
+              : "Ready for QC",
+          ],
+        );
+      }
+    }
+
+    return {
+      employeeId: entry.employee_id,
+      employeeName: entry.employee_name_snapshot,
+      workOrderId: entry.work_order_id ?? "",
+      earnedWage: numeric(entry.earned_wage),
+    };
+  });
+}
+
 export async function addWorkerPayment(input: {
   employee: Employee;
   paymentDate: string;

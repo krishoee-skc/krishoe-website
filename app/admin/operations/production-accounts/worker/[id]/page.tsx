@@ -5,7 +5,11 @@ import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
-import { createWorkerPaymentAction, reverseWorkerPaymentAction } from "../../actions";
+import {
+  createWorkerPaymentAction,
+  reverseProductionWorkEntryAction,
+  reverseWorkerPaymentAction,
+} from "../../actions";
 
 export const metadata: Metadata = { title: "Worker Ledger | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -202,8 +206,44 @@ export default async function WorkerProductionLedgerPage({
                     <p className="mt-1 text-gray-500">{row.workDate} · {row.totalPairs} pairs · rate {money(row.ratePerPair)}</p>
                     {row.rejectedPairs ? <p className="mt-1 text-brand-clay">Reject: {row.rejectedPairs} pairs</p> : null}
                   </div>
-                  <p className="font-black text-brand-green">{money(row.earnedWage)}</p>
+                  <p className={`font-black ${row.status === "Reversed" ? "text-gray-400 line-through" : "text-brand-green"}`}>
+                    {money(row.earnedWage)}
+                  </p>
                 </div>
+                {row.status === "Reversed" ? (
+                  <p className="mt-2 rounded-lg bg-gray-100 px-2 py-1 text-xs font-black text-gray-600">
+                    Reversed — excluded from wage and production progress
+                  </p>
+                ) : (
+                  <details className="mt-3 border-t border-gray-100 pt-3">
+                    <summary className="cursor-pointer text-xs font-black text-brand-clay">
+                      Correct a mistaken work entry
+                    </summary>
+                    <form action={reverseProductionWorkEntryAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                      <input type="hidden" name="entryId" value={row.id} />
+                      <p className="text-xs leading-5 text-red-900">
+                        This removes the wage and recalculates the linked Work Order stage. Finished-stock lots cannot be reversed here.
+                      </p>
+                      <input
+                        name="reason"
+                        minLength={5}
+                        className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm"
+                        placeholder="Reason for work reversal"
+                        required
+                      />
+                      <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                        <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                        I confirm this completed-work entry is incorrect.
+                      </label>
+                      <FormSubmitButton
+                        className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white"
+                        pendingLabel="Reversing…"
+                      >
+                        Reverse this work
+                      </FormSubmitButton>
+                    </form>
+                  </details>
+                )}
               </article>
             ))}
             {account.work.length === 0 ? <p className="text-sm text-gray-500">No work entry yet.</p> : null}

@@ -753,6 +753,10 @@ CREATE TABLE IF NOT EXISTS production_work_entries (
 
 ALTER TABLE production_work_entries
   ADD COLUMN IF NOT EXISTS work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT;
+ALTER TABLE production_work_entries
+  ADD COLUMN IF NOT EXISTS reversed_at TIMESTAMPTZ;
+ALTER TABLE production_work_entries
+  ADD COLUMN IF NOT EXISTS reversal_reason TEXT NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS production_work_entries_employee_idx
   ON production_work_entries(employee_id, work_date DESC);
