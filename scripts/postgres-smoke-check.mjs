@@ -436,7 +436,11 @@ async function getIntegrity(client) {
         SELECT count(*) AS value
         FROM purchase_invoices invoices
         LEFT JOIN raw_materials materials ON materials.id = invoices.material_id
-        WHERE materials.id IS NULL
+        -- Trading-goods and mixed invoices legitimately keep the legacy
+        -- invoice-level material_id NULL; their real links live on
+        -- purchase_invoice_items. Only a non-null id that finds no material is
+        -- an orphan.
+        WHERE invoices.material_id IS NOT NULL AND materials.id IS NULL
       `,
     ),
     orphanPurchaseInvoiceSupplierTransactions: await scalar(
