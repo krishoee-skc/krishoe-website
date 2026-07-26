@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ExportButton from "@/components/admin/ExportButton";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 
@@ -65,31 +66,59 @@ export default async function WorkerProductionLedgerPage({
               {period.start} to {period.end}
             </h2>
           </div>
-          <form className="flex gap-2">
-            <input
-              name="date"
-              type="date"
-              defaultValue={selectedDate}
-              className="min-h-12 rounded-xl border border-gray-200 px-3 text-sm"
-            />
-            <button className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green">
-              View week
-            </button>
-          </form>
+          <div className="flex flex-wrap gap-2">
+            <form className="flex gap-2">
+              <input
+                name="date"
+                type="date"
+                defaultValue={selectedDate}
+                className="min-h-12 rounded-xl border border-gray-200 px-3 text-sm"
+              />
+              <button className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green">
+                View week
+              </button>
+            </form>
+            <ExportButton
+              href={`/api/admin/operations/production-export?type=worker-statement&employeeId=${encodeURIComponent(id)}&date=${selectedDate}`}
+              className="min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white"
+            >
+              Download statement
+            </ExportButton>
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           {[
+            ["Opening balance", money(account.statement.openingBalance)],
             ["Completed", `${account.statement.pairs} pairs`],
             ["Rejected", `${account.statement.rejectedPairs} pairs`],
             ["Earned", money(account.statement.earned)],
             ["Cash/adjustment", money(account.statement.paid)],
+            ["Closing balance", money(account.statement.closingBalance)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl bg-gray-50 p-3">
               <p className="text-xs font-bold text-gray-500">{label}</p>
               <p className="mt-1 font-black text-brand-green-ink">{value}</p>
             </div>
           ))}
+        </div>
+
+        <div className={`mt-4 rounded-xl p-4 ${
+          account.statement.closingBalance >= 0
+            ? "border border-emerald-200 bg-emerald-50 text-emerald-950"
+            : "border border-amber-200 bg-amber-50 text-amber-950"
+        }`}>
+          <p className="text-xs font-black uppercase tracking-wider">
+            {account.statement.closingBalance >= 0 ? "Saturday payable" : "Advance remaining"}
+          </p>
+          <p className="mt-1 text-2xl font-black">
+            {money(account.statement.closingBalance >= 0
+              ? account.statement.payable
+              : account.statement.advanceBalance)}
+          </p>
+          <p className="mt-1 text-xs font-bold opacity-75">
+            Opening balance + this week earned − cash/adjustments
+          </p>
         </div>
       </div>
 

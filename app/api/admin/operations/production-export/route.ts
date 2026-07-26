@@ -1,12 +1,14 @@
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { queryPostgres } from "@/lib/postgres/client";
+import { getWorkerProductionAccount } from "@/lib/production-accounting";
+import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 
 export const dynamic = "force-dynamic";
 
 const exportTypes = [
   "work-orders", "work-entries", "worker-payments",
-  "handovers", "qc-stock", "cost-cards",
+  "handovers", "qc-stock", "cost-cards", "worker-statement",
 ] as const;
 type ExportType = (typeof exportTypes)[number];
 type ExportRow = Record<string, string | number | Date | null>;
@@ -88,13 +90,79 @@ async function getRows(type: ExportType) {
 
 export async function GET(request: Request) {
   await requireAdminPermission("exports:read");
-  const type = new URL(request.url).searchParams.get("type");
+  const searchParams = new URL(request.url).searchParams;
+  const type = searchParams.get("type");
   if (!isExportType(type)) {
     return Response.json(
       { error: "Invalid production export type.", validTypes: exportTypes },
       { status: 400 },
     );
   }
+
+  if (type === "worker-statement") {
+    const employeeId = searchParams.get("employeeId")?.trim() ?? "";
+    const requestedDate = searchParams.get("date") ?? "";
+    if (!employeeId || !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+      return Response.json(
+        { error: "employeeId and date (YYYY-MM-DD) are required." },
+        { status: 400 },
+      );
+    }
+
+    const period = saturdayToFridayPeriod(requestedDate);
+    const account = await getWorkerProductionAccount(employeeId, period);
+    if (!account) return Response.json({ error: "Worker not found." }, { status: 404 });
+
+    let runningBalance = account.statement.openingBalance;
+    const transactions = [
+      ...account.statement.work.map((row) => ({
+        date: row.workDate,
+        order: 0,
+        kind: "Earned Wage",
+        detail: `${row.itemName} / ${row.stage}`,
+        pairs: row.totalPairs,
+        rate: row.ratePerPair,
+        earned: row.earnedWage,
+        paid: 0,
+        adjustment: 0,
+      })),
+      ...account.statement.payments.map((row) => ({
+        date: row.paymentDate,
+        order: 1,
+        kind: row.paymentType,
+        detail: `${row.direction}${row.receiptNumber ? ` / ${row.receiptNumber}` : ""}`,
+        pairs: 0,
+        rate: 0,
+        earned: 0,
+        paid: row.direction === "Paid" || row.direction === "Recovered" ? row.amount : 0,
+        adjustment: row.direction === "Added" ? row.amount : 0,
+      })),
+    ].sort((left, right) => left.date.localeCompare(right.date) || left.order - right.order);
+
+    const rows: Array<Array<string | number>> = [
+      [period.start, "Opening Balance", account.employee.name, 0, 0, 0, 0, runningBalance],
+      ...transactions.map((row) => {
+        runningBalance += row.earned + row.adjustment - row.paid;
+        return [
+          row.date, row.kind, row.detail, row.pairs, row.rate,
+          row.earned + row.adjustment, row.paid, runningBalance,
+        ];
+      }),
+    ];
+    rows.push([
+      period.end, "Closing / Saturday Payable", account.employee.name,
+      account.statement.pairs, 0, account.statement.earned,
+      account.statement.paid, account.statement.closingBalance,
+    ]);
+
+    const csv = toCsv(
+      ["date", "type", "detail", "pairs", "rate", "credit/earned", "cash paid", "balance"],
+      rows,
+    );
+    const name = `krishoe-worker-statement-${employeeId}-${period.start}-to-${period.end}.csv`;
+    return csvResponse(name, csv);
+  }
+
   const name = `krishoe-production-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
   return csvResponse(name, rowsToCsv(await getRows(type)));
 }

@@ -218,6 +218,13 @@ type BalanceRow = {
   balance: number | string;
 };
 
+type WorkerAccountTotalsRow = {
+  total_earned: number | string;
+  total_paid: number | string;
+  opening_earned: number | string;
+  opening_paid: number | string;
+};
+
 type PaymentRow = {
   id: string;
   payment_date: Date | string;
@@ -673,7 +680,7 @@ export async function getWorkerProductionAccount(
   const employee = hr.employees.find((row) => row.id === employeeId);
   if (!employee) return null;
 
-  const [allWork, allPayments, periodWork, periodPayments] = await Promise.all([
+  const [allWork, allPayments, periodWork, periodPayments, totalsRows] = await Promise.all([
     queryPostgres<WorkRow>(
       "worker work ledger",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -713,19 +720,49 @@ export async function getWorkerProductionAccount(
        ORDER BY payment_date, created_at`,
       [employeeId, period.start, period.end],
     ),
+    queryPostgres<WorkerAccountTotalsRow>(
+      "worker account totals",
+      `SELECT
+         (SELECT coalesce(sum(earned_wage), 0)
+          FROM production_work_entries
+          WHERE employee_id = $1 AND status = 'Approved') AS total_earned,
+         (SELECT coalesce(sum(CASE
+            WHEN direction IN ('Paid', 'Recovered') THEN amount
+            WHEN direction = 'Added' THEN -amount ELSE 0 END), 0)
+          FROM worker_payments
+          WHERE employee_id = $1 AND reversed_at IS NULL) AS total_paid,
+         (SELECT coalesce(sum(earned_wage), 0)
+          FROM production_work_entries
+          WHERE employee_id = $1 AND status = 'Approved'
+            AND work_date < $2::date) AS opening_earned,
+         (SELECT coalesce(sum(CASE
+            WHEN direction IN ('Paid', 'Recovered') THEN amount
+            WHEN direction = 'Added' THEN -amount ELSE 0 END), 0)
+          FROM worker_payments
+          WHERE employee_id = $1 AND reversed_at IS NULL
+            AND payment_date < $2::date) AS opening_paid`,
+      [employeeId, period.start],
+    ),
   ]);
 
   const work = allWork.map(workFromRow);
   const payments = allPayments.map(paymentFromRow);
   const weekWork = periodWork.map(workFromRow);
   const weekPayments = periodPayments.map(paymentFromRow);
-  const totalEarned = work
-    .filter((row) => row.status === "Approved")
-    .reduce((total, row) => total + row.earnedWage, 0);
-  const totalPaid = payments.reduce(
-    (total, row) => total + (row.direction === "Added" ? -row.amount : row.amount),
-    0,
+  const totals = totalsRows[0];
+  const totalEarned = numeric(totals?.total_earned ?? 0);
+  const totalPaid = numeric(totals?.total_paid ?? 0);
+  const openingBalance = numeric(
+    numeric(totals?.opening_earned ?? 0) - numeric(totals?.opening_paid ?? 0),
   );
+  const periodEarned = numeric(weekWork.reduce((total, row) => total + row.earnedWage, 0));
+  const periodPaid = numeric(
+    weekPayments.reduce(
+      (total, row) => total + (row.direction === "Added" ? -row.amount : row.amount),
+      0,
+    ),
+  );
+  const closingBalance = numeric(openingBalance + periodEarned - periodPaid);
 
   return {
     employee,
@@ -735,13 +772,12 @@ export async function getWorkerProductionAccount(
     statement: {
       pairs: weekWork.reduce((total, row) => total + row.totalPairs, 0),
       rejectedPairs: weekWork.reduce((total, row) => total + row.rejectedPairs, 0),
-      earned: numeric(weekWork.reduce((total, row) => total + row.earnedWage, 0)),
-      paid: numeric(
-        weekPayments.reduce(
-          (total, row) => total + (row.direction === "Added" ? -row.amount : row.amount),
-          0,
-        ),
-      ),
+      openingBalance,
+      earned: periodEarned,
+      paid: periodPaid,
+      closingBalance,
+      payable: Math.max(0, closingBalance),
+      advanceBalance: Math.max(0, -closingBalance),
       work: weekWork,
       payments: weekPayments,
     },
