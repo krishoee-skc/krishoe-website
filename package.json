@@ -13,7 +13,8 @@
     "backup:export": "node scripts/export-admin-backup.mjs",
     "db:schema": "node scripts/apply-postgres-schema.mjs",
     "db:import": "node scripts/import-backup-to-postgres.mjs",
-    "db:smoke": "node scripts/postgres-smoke-check.mjs"
+    "db:smoke": "node scripts/postgres-smoke-check.mjs",
+    "business:clean-start": "node scripts/clean-business-start.mjs"
   },
   "overrides": {
     "postcss": "$postcss"
