@@ -6,6 +6,7 @@ import {
   saturdayToFridayPeriod,
   sizeBreakdownTotal,
   workerLedgerBalance,
+  nextProductionStage,
 } from "@/lib/production-accounting-rules";
 
 describe("production accounting rules", () => {
@@ -82,5 +83,12 @@ describe("production accounting rules", () => {
         sizeBreakdown: { "36": 8, "37": 12 },
       }),
     ).not.toThrow();
+  });
+
+  it("follows the real KRISHOE factory stage order", () => {
+    expect(nextProductionStage("Upper")).toBe("Fiber Preparation");
+    expect(nextProductionStage("Fiber Preparation")).toBe("Fiber Silai");
+    expect(nextProductionStage("Fiber Silai")).toBe("Bottom Final");
+    expect(nextProductionStage("Bottom Final")).toBe("Packing / QC");
   });
 });

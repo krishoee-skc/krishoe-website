@@ -9,6 +9,7 @@ import {
   approvePackingQcAction,
   approveCostCardAction,
   saveItemMaterialAction,
+  createWorkOrderAction,
   saveStageRateAction,
 } from "./actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
@@ -272,10 +273,67 @@ export default async function ProductionAccountsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
+        <form action={createWorkOrderAction} className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">5. New Work Order / Lot</h2>
+          <p className="mt-1 text-sm text-gray-500">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <select name="itemId" className={input} required defaultValue="">
+              <option value="" disabled>Select manufactured item</option>
+              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+            <input name="colour" className={input} placeholder="Colour, e.g. Black" required />
+            <input name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
+            <input name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
+            <input name="dueDate" type="date" className={input} />
+            <select name="priority" className={input} defaultValue="Normal">
+              <option>Normal</option><option>High</option><option>Urgent</option>
+            </select>
+            <input name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
+          </div>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Creating Work Order…">Create Work Order</FormSubmitButton>
+        </form>
+
+        <div className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">Active Work Orders</h2>
+          <div className="mt-4 space-y-3">
+            {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
+              <article key={order.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-black text-brand-green-ink">{order.workOrderNumber} · {order.itemName}</p>
+                    <p className="mt-1 text-gray-500">{order.colour} · {order.plannedPairs} pairs · due {order.dueDate || "not set"}</p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                    order.priority === "Urgent" ? "bg-red-50 text-red-800" :
+                    order.priority === "High" ? "bg-amber-50 text-amber-800" : "bg-white text-gray-700"
+                  }`}>{order.priority}</span>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="font-bold text-brand-green">Current: {order.currentStage}</p>
+                  <p className="text-xs font-bold text-gray-500">{order.status}</p>
+                </div>
+              </article>
+            ))}
+            {data.workOrders.length === 0 ? <p className="text-sm text-gray-500">No Work Order yet.</p> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
         <form action={createWorkEntryAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">5. Completed work</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">6. Completed work</h2>
           <p className="mt-1 text-sm text-gray-500">Enter only when the worker hands over completed work. Owner approval is immediate.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <select name="workOrderId" className={`${input} sm:col-span-2`} defaultValue="">
+              <option value="">No Work Order link (legacy/manual)</option>
+              {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
+                <option key={order.id} value={order.id}>
+                  {order.workOrderNumber} · {order.itemName} · {order.colour} · current {order.currentStage}
+                </option>
+              ))}
+            </select>
             <select name="employeeId" className={input} required defaultValue="">
               <option value="" disabled>Select worker</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.id}</option>)}
@@ -296,7 +354,7 @@ export default async function ProductionAccountsPage() {
         </form>
 
         <form action={createWorkerPaymentAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">6. Worker cash</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>
           <p className="mt-1 text-sm text-gray-500">Cash paid is separate from work earned and automatically reduces the balance.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="employeeId" className={input} required defaultValue="">

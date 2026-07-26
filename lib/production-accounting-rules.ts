@@ -141,3 +141,10 @@ export function assertFinishedStockPosting(input: FinishedStockPostingInput) {
     throw new Error("Finished size-wise pairs must match total pairs.");
   }
 }
+
+export function nextProductionStage(stage: ProductionStage) {
+  const index = productionStages.indexOf(stage);
+  return index >= 0 && index < productionStages.length - 1
+    ? productionStages[index + 1]
+    : "Packing / QC";
+}

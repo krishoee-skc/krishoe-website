@@ -7,6 +7,7 @@ import {
   assertFinishedStockPosting,
   calculateEarnedWage,
   normalizeSizeBreakdown,
+  nextProductionStage,
   productionStages,
   type ProductionStage,
   type SizeBreakdown,
@@ -37,6 +38,7 @@ export type WorkEntry = {
   workDate: string;
   employeeId: string;
   employeeName: string;
+  workOrderId: string;
   itemName: string;
   stage: ProductionStage;
   totalPairs: number;
@@ -44,6 +46,21 @@ export type WorkEntry = {
   ratePerPair: number;
   earnedWage: number;
   status: "Submitted" | "Approved" | "Reversed";
+};
+
+export type ProductionWorkOrder = {
+  id: string;
+  workOrderNumber: string;
+  itemId: string;
+  itemName: string;
+  colour: string;
+  sizeBreakdown: SizeBreakdown;
+  plannedPairs: number;
+  dueDate: string;
+  priority: "Normal" | "High" | "Urgent";
+  currentStage: ProductionStage | "Packing / QC";
+  status: "Planning" | "In Progress" | "Ready for QC" | "Completed" | "Cancelled";
+  createdBy: string;
 };
 
 export type WorkerBalance = {
@@ -138,6 +155,7 @@ type WorkRow = {
   work_date: Date | string;
   employee_id: string;
   employee_name_snapshot: string;
+  work_order_id: string | null;
   item_name_snapshot: string;
   stage: ProductionStage;
   total_pairs: number | string;
@@ -145,6 +163,21 @@ type WorkRow = {
   rate_per_pair_snapshot: number | string;
   earned_wage: number | string;
   status: WorkEntry["status"];
+};
+
+type WorkOrderRow = {
+  id: string;
+  work_order_number: string;
+  item_id: string;
+  item_name_snapshot: string;
+  colour: string;
+  size_breakdown: SizeBreakdown | string;
+  planned_pairs: number | string;
+  due_date: Date | string | null;
+  priority: ProductionWorkOrder["priority"];
+  current_stage: ProductionWorkOrder["currentStage"];
+  status: ProductionWorkOrder["status"];
+  created_by: string;
 };
 
 type BalanceRow = {
@@ -229,7 +262,7 @@ function id(prefix: string) {
 
 export async function getProductionAccountingSnapshot() {
   const [
-    items, rates, workEntries, payments, qcPostings, balances, materials,
+    items, rates, workOrders, workEntries, payments, qcPostings, balances, materials,
     itemMaterials, costCards, hr, products,
   ] = await Promise.all([
     queryPostgres<ItemRow>(
@@ -245,9 +278,19 @@ export async function getProductionAccountingSnapshot() {
        WHERE status = 'Active' AND effective_from <= CURRENT_DATE
        ORDER BY item_id, stage, effective_from DESC, created_at DESC`,
     ),
+    queryPostgres<WorkOrderRow>(
+      "production work orders",
+      `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+         size_breakdown, planned_pairs, due_date, priority, current_stage,
+         status, created_by
+       FROM production_work_orders
+       ORDER BY CASE status WHEN 'In Progress' THEN 0 WHEN 'Planning' THEN 1
+         WHEN 'Ready for QC' THEN 2 ELSE 3 END, due_date NULLS LAST, created_at DESC
+       LIMIT 50`,
+    ),
     queryPostgres<WorkRow>(
       "production work entries",
-      `SELECT id, work_date, employee_id, employee_name_snapshot,
+      `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
          item_name_snapshot, stage, total_pairs, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
@@ -348,11 +391,13 @@ export async function getProductionAccountingSnapshot() {
       ratePerPair: numeric(row.rate_per_pair),
       effectiveFrom: isoDate(row.effective_from),
     })),
+    workOrders: workOrders.map(workOrderFromRow),
     workEntries: workEntries.map((row) => ({
       id: row.id,
       workDate: isoDate(row.work_date),
       employeeId: row.employee_id,
       employeeName: row.employee_name_snapshot,
+      workOrderId: row.work_order_id ?? "",
       itemName: row.item_name_snapshot,
       stage: row.stage,
       totalPairs: Number(row.total_pairs),
@@ -442,12 +487,39 @@ function paymentFromRow(row: PaymentRow): WorkerPayment {
   };
 }
 
+function jsonSizes(value: SizeBreakdown | string) {
+  if (typeof value !== "string") return normalizeSizeBreakdown(value ?? {});
+  try {
+    return normalizeSizeBreakdown(JSON.parse(value));
+  } catch {
+    return {};
+  }
+}
+
+function workOrderFromRow(row: WorkOrderRow): ProductionWorkOrder {
+  return {
+    id: row.id,
+    workOrderNumber: row.work_order_number,
+    itemId: row.item_id,
+    itemName: row.item_name_snapshot,
+    colour: row.colour,
+    sizeBreakdown: jsonSizes(row.size_breakdown),
+    plannedPairs: Number(row.planned_pairs),
+    dueDate: row.due_date ? isoDate(row.due_date) : "",
+    priority: row.priority,
+    currentStage: row.current_stage,
+    status: row.status,
+    createdBy: row.created_by,
+  };
+}
+
 function workFromRow(row: WorkRow): WorkEntry {
   return {
     id: row.id,
     workDate: isoDate(row.work_date),
     employeeId: row.employee_id,
     employeeName: row.employee_name_snapshot,
+    workOrderId: row.work_order_id ?? "",
     itemName: row.item_name_snapshot,
     stage: row.stage,
     totalPairs: Number(row.total_pairs),
@@ -469,7 +541,7 @@ export async function getWorkerProductionAccount(
   const [allWork, allPayments, periodWork, periodPayments] = await Promise.all([
     queryPostgres<WorkRow>(
       "worker work ledger",
-      `SELECT id, work_date, employee_id, employee_name_snapshot,
+      `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
          item_name_snapshot, stage, total_pairs, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
@@ -487,7 +559,7 @@ export async function getWorkerProductionAccount(
     ),
     queryPostgres<WorkRow>(
       "worker Friday work statement",
-      `SELECT id, work_date, employee_id, employee_name_snapshot,
+      `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
          item_name_snapshot, stage, total_pairs, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
@@ -607,6 +679,58 @@ export async function setProductionItemMaterial(input: {
   );
 }
 
+export async function createProductionWorkOrder(input: {
+  itemId: string;
+  colour: string;
+  sizeBreakdown: SizeBreakdown;
+  plannedPairs: number;
+  dueDate: string;
+  priority: ProductionWorkOrder["priority"];
+  createdBy: string;
+  note: string;
+}) {
+  if (input.plannedPairs <= 0) throw new Error("Planned pairs must be greater than zero.");
+  const sizedPairs = Object.values(normalizeSizeBreakdown(input.sizeBreakdown))
+    .reduce((total, pairs) => total + pairs, 0);
+  if (sizedPairs > 0 && sizedPairs !== input.plannedPairs) {
+    throw new Error("Work Order size-wise pairs must match planned pairs.");
+  }
+
+  return transactionPostgres("create production work order", async (db) => {
+    const itemRows = await db.query<ItemRow>(
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
+       FROM production_items WHERE id = $1 AND status = 'Active' FOR SHARE`,
+      [input.itemId],
+    );
+    const item = itemRows[0];
+    if (!item || item.production_type === "Resale") {
+      throw new Error("Active manufactured production item not found.");
+    }
+    const orderId = id("wo");
+    const workOrderNumber =
+      `WO-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const rows = await db.query<WorkOrderRow>(
+      `INSERT INTO production_work_orders (
+         id, work_order_number, item_id, item_name_snapshot, colour,
+         size_breakdown, planned_pairs, due_date, priority, current_stage,
+         status, created_by, note
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6::jsonb, $7, nullif($8, '')::date,
+         $9, 'Upper', 'Planning', $10, $11
+       )
+       RETURNING id, work_order_number, item_id, item_name_snapshot, colour,
+         size_breakdown, planned_pairs, due_date, priority, current_stage,
+         status, created_by`,
+      [
+        orderId, workOrderNumber, item.id, item.name, input.colour,
+        JSON.stringify(normalizeSizeBreakdown(input.sizeBreakdown)),
+        input.plannedPairs, input.dueDate, input.priority, input.createdBy, input.note,
+      ],
+    );
+    return workOrderFromRow(rows[0]);
+  });
+}
+
 export async function approveProductionCostCard(input: {
   itemId: string;
   effectiveFrom: string;
@@ -718,6 +842,7 @@ export async function setProductionStageRate(input: {
 
 export async function addApprovedWorkEntry(input: {
   employee: Employee;
+  workOrderId: string;
   itemId: string;
   stage: ProductionStage;
   workDate: string;
@@ -738,6 +863,20 @@ export async function addApprovedWorkEntry(input: {
     );
     if (!itemRows[0]) throw new Error("Active production item not found.");
 
+    if (input.workOrderId) {
+      const orderRows = await db.query<WorkOrderRow>(
+        `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+           size_breakdown, planned_pairs, due_date, priority, current_stage,
+           status, created_by
+         FROM production_work_orders
+         WHERE id = $1 AND status NOT IN ('Completed', 'Cancelled') FOR UPDATE`,
+        [input.workOrderId],
+      );
+      const order = orderRows[0];
+      if (!order) throw new Error("Open Work Order not found.");
+      if (order.item_id !== input.itemId) throw new Error("Work Order item does not match work entry item.");
+    }
+
     const rateRows = await db.query<RateRow>(
       `SELECT id, item_id, stage, rate_per_pair, effective_from
        FROM production_stage_rates
@@ -753,21 +892,46 @@ export async function addApprovedWorkEntry(input: {
     const entryId = id("work");
     await db.query(
       `INSERT INTO production_work_entries (
-         id, work_date, employee_id, employee_name_snapshot, item_id,
+         id, work_date, employee_id, employee_name_snapshot, work_order_id, item_id,
          item_name_snapshot, stage, total_pairs, size_breakdown,
          rejected_pairs, rework_pairs, rate_per_pair_snapshot, earned_wage,
          status, approved_by, approved_at, note
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb,
-         $10, $11, $12, $13, 'Approved', $14, now(), $15
+         $1, $2, $3, $4, nullif($5, ''), $6, $7, $8, $9, $10::jsonb,
+         $11, $12, $13, $14, 'Approved', $15, now(), $16
        )`,
       [
-        entryId, input.workDate, input.employee.id, input.employee.name, input.itemId,
-        itemRows[0].name, input.stage, input.totalPairs,
+        entryId, input.workDate, input.employee.id, input.employee.name,
+        input.workOrderId, input.itemId, itemRows[0].name, input.stage, input.totalPairs,
         JSON.stringify(normalizeSizeBreakdown(input.sizeBreakdown)),
         input.rejectedPairs, input.reworkPairs, rate, earned, input.approvedBy, input.note,
       ],
     );
+
+    if (input.workOrderId) {
+      const totals = await db.query<{ completed: number | string; planned: number | string }>(
+        `SELECT coalesce(sum(entries.total_pairs - entries.rejected_pairs), 0) AS completed,
+           orders.planned_pairs AS planned
+         FROM production_work_orders orders
+         LEFT JOIN production_work_entries entries
+           ON entries.work_order_id = orders.id AND entries.stage = $2
+             AND entries.status = 'Approved'
+         WHERE orders.id = $1
+         GROUP BY orders.planned_pairs`,
+        [input.workOrderId, input.stage],
+      );
+      const stageComplete = Number(totals[0]?.completed ?? 0) >= Number(totals[0]?.planned ?? 0);
+      await db.query(
+        `UPDATE production_work_orders SET
+           status = CASE WHEN $3 THEN
+             CASE WHEN $2 = 'Bottom Final' THEN 'Ready for QC' ELSE 'In Progress' END
+             ELSE 'In Progress' END,
+           current_stage = CASE WHEN $3 THEN $4 ELSE current_stage END,
+           updated_at = now()
+         WHERE id = $1`,
+        [input.workOrderId, input.stage, stageComplete, nextProductionStage(input.stage)],
+      );
+    }
     return { id: entryId, earned };
   });
 }

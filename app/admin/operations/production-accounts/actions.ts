@@ -12,6 +12,7 @@ import {
   addWorkerPayment,
   approvePackingQcAndPostStock,
   approveProductionCostCard,
+  createProductionWorkOrder,
   mapProductionItemToCatalog,
   setProductionStageRate,
   setProductionItemMaterial,
@@ -163,11 +164,31 @@ export async function approveCostCardAction(formData: FormData) {
   refresh();
 }
 
+export async function createWorkOrderAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const order = await createProductionWorkOrder({
+    itemId: text(formData, "itemId"),
+    colour: text(formData, "colour"),
+    sizeBreakdown: sizeBreakdown(text(formData, "sizeBreakdown")),
+    plannedPairs: integer(formData, "plannedPairs"),
+    dueDate: text(formData, "dueDate"),
+    priority: option(text(formData, "priority"), ["Normal", "High", "Urgent"] as const, "Normal"),
+    createdBy: approvedBy,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_work_order_create",
+    `${order.workOrderNumber}: ${order.itemName}, ${order.plannedPairs} pairs created.`,
+  );
+  refresh();
+}
+
 export async function createWorkEntryAction(formData: FormData) {
   const { approvedBy } = await ownerContext();
   const employee = await activeEmployee(text(formData, "employeeId"));
   const result = await addApprovedWorkEntry({
     employee,
+    workOrderId: text(formData, "workOrderId"),
     itemId: text(formData, "itemId"),
     stage: option<ProductionStage>(text(formData, "stage"), productionStages, "Upper"),
     workDate: text(formData, "workDate"),

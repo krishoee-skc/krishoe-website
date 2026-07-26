@@ -676,6 +676,33 @@ CREATE TABLE IF NOT EXISTS production_cost_cards (
 CREATE INDEX IF NOT EXISTS production_cost_cards_item_idx
   ON production_cost_cards(item_id, effective_from DESC, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS production_work_orders (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  work_order_number TEXT NOT NULL UNIQUE,
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
+  item_name_snapshot TEXT NOT NULL,
+  colour TEXT NOT NULL DEFAULT '',
+  size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
+  planned_pairs INTEGER NOT NULL CHECK (planned_pairs > 0),
+  due_date DATE,
+  priority TEXT NOT NULL DEFAULT 'Normal' CHECK (priority IN ('Normal', 'High', 'Urgent')),
+  current_stage TEXT NOT NULL DEFAULT 'Upper' CHECK (
+    current_stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+  ),
+  status TEXT NOT NULL DEFAULT 'Planning' CHECK (
+    status IN ('Planning', 'In Progress', 'Ready for QC', 'Completed', 'Cancelled')
+  ),
+  created_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS production_work_orders_status_idx
+  ON production_work_orders(status, due_date);
+CREATE INDEX IF NOT EXISTS production_work_orders_item_idx
+  ON production_work_orders(item_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS production_work_entries (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -699,12 +726,17 @@ CREATE TABLE IF NOT EXISTS production_work_entries (
     CHECK (rejected_pairs + rework_pairs <= total_pairs)
 );
 
+ALTER TABLE production_work_entries
+  ADD COLUMN IF NOT EXISTS work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT;
+
 CREATE INDEX IF NOT EXISTS production_work_entries_employee_idx
   ON production_work_entries(employee_id, work_date DESC);
 CREATE INDEX IF NOT EXISTS production_work_entries_item_idx
   ON production_work_entries(item_id, work_date DESC);
 CREATE INDEX IF NOT EXISTS production_work_entries_status_idx
   ON production_work_entries(status, work_date DESC);
+CREATE INDEX IF NOT EXISTS production_work_entries_work_order_idx
+  ON production_work_entries(work_order_id, stage, work_date DESC);
 
 CREATE TABLE IF NOT EXISTS worker_payments (
   id TEXT PRIMARY KEY,
