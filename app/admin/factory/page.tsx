@@ -7,6 +7,7 @@ import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificati
 import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
 import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
+import MaterialIssuePostingControls from "@/app/admin/factory/MaterialIssuePostingControls";
 import {
   createFactoryItemAction,
   saveFactoryBomLineAction,
@@ -71,6 +72,9 @@ export default async function FactoryErpPage({
     handover?: string;
     packed?: string;
     materialDraft?: string;
+    materialPosted?: string;
+    materialReturned?: string;
+    materialFinalized?: string;
   }>;
 }) {
   await requireAdminPermission("factory:write");
@@ -473,6 +477,21 @@ export default async function FactoryErpPage({
               Raw-material issue draft saved with a purchase-cost snapshot. Inventory stock is unchanged.
             </p>
           ) : null}
+          {params?.materialPosted ? (
+            <p className="mt-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-800">
+              Material issue confirmed and raw inventory deducted safely.
+            </p>
+          ) : null}
+          {params?.materialReturned ? (
+            <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800">
+              Unused production material returned to raw inventory.
+            </p>
+          ) : null}
+          {params?.materialFinalized ? (
+            <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+              Material consumption and wastage finalized with an audit record.
+            </p>
+          ) : null}
           <div className="mt-5">
             <WorkOrderForm
               items={factory.items
@@ -624,11 +643,23 @@ export default async function FactoryErpPage({
                         {factory.materialIssues
                           .filter((issue) => issue.workOrderId === order.id)
                           .map((issue) => (
-                            <p key={issue.id} className="rounded-lg bg-white p-2 text-xs text-gray-700">
-                              <strong>{issue.materialName}</strong>: {issue.quantity} {issue.unit}
-                              {" · "}Rs. {issue.totalCost.toLocaleString("en-IN")}
-                              {" · "}{issue.status}
-                            </p>
+                            <div key={issue.id} className="rounded-lg bg-white p-2 text-xs text-gray-700">
+                              <p>
+                                <strong>{issue.materialName}</strong>: {issue.quantity} {issue.unit}
+                                {" · "}Rs. {issue.totalCost.toLocaleString("en-IN")}
+                                {" · "}{issue.status}
+                                {issue.returnedQuantity > 0
+                                  ? ` · returned ${issue.returnedQuantity}`
+                                  : ""}
+                              </p>
+                              {issue.postedAt ? (
+                                <p className="mt-1 text-[11px] text-gray-500">
+                                  Posted by {issue.postedBy} ·{" "}
+                                  {new Date(issue.postedAt).toLocaleString("en-NP")}
+                                </p>
+                              ) : null}
+                              <MaterialIssuePostingControls issue={issue} />
+                            </div>
                           ))}
                       </div>
                     </details>

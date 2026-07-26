@@ -860,11 +860,33 @@ CREATE TABLE IF NOT EXISTS factory_material_issues (
   total_cost NUMERIC NOT NULL DEFAULT 0 CHECK (total_cost >= 0),
   status TEXT NOT NULL DEFAULT 'Draft'
     CHECK (status IN ('Draft', 'Posted', 'Cancelled')),
+  posted_by TEXT NOT NULL DEFAULT '',
+  posted_at TIMESTAMPTZ,
+  returned_quantity NUMERIC NOT NULL DEFAULT 0 CHECK (returned_quantity >= 0),
+  consumed_quantity NUMERIC NOT NULL DEFAULT 0 CHECK (consumed_quantity >= 0),
+  wastage_quantity NUMERIC NOT NULL DEFAULT 0 CHECK (wastage_quantity >= 0),
+  finalized_by TEXT NOT NULL DEFAULT '',
+  finalized_at TIMESTAMPTZ,
   note TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS posted_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS posted_at TIMESTAMPTZ;
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS returned_quantity NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS consumed_quantity NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS wastage_quantity NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS finalized_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_material_issues
+  ADD COLUMN IF NOT EXISTS finalized_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS factory_material_issues_order_idx
   ON factory_material_issues(work_order_id, created_at DESC);

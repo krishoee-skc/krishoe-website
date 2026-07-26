@@ -8,8 +8,11 @@ import {
   normalizeFactoryHandoverSizes,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
+  finalizeFactoryMaterialIssue,
+  returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
   validateFactoryRelease,
+  type FactoryMaterialIssue,
 } from "@/lib/factory";
 import type { Employee } from "@/lib/hr";
 import type { ProductionBatch, WorkerTask } from "@/lib/operations";
@@ -335,6 +338,13 @@ describe("Factory ERP foundation", () => {
           unitCostSnapshot: 100,
           totalCost: 120,
           status: "Draft",
+          postedBy: "",
+          postedAt: "",
+          returnedQuantity: 0,
+          consumedQuantity: 0,
+          wastageQuantity: 0,
+          finalizedBy: "",
+          finalizedAt: "",
           note: "",
           createdBy: "Owner",
           createdAt: "2026-07-26T00:00:00.000Z",
@@ -346,5 +356,47 @@ describe("Factory ERP foundation", () => {
     expect(plan[0].allocatedQuantity).toBe(1.2);
     expect(plan[0].remainingQuantity).toBe(1);
     expect(plan[0].varianceQuantity).toBe(-1);
+  });
+});
+
+describe("factory material issue safeguards", () => {
+  const postedIssue: FactoryMaterialIssue = {
+    id: "issue-posted",
+    workOrderId: "wo-1",
+    materialId: "rm-1",
+    materialName: "Rexine",
+    unit: "meter",
+    quantity: 10,
+    unitCostSnapshot: 100,
+    totalCost: 1000,
+    status: "Posted",
+    postedBy: "Owner",
+    postedAt: "2026-07-26T00:00:00.000Z",
+    returnedQuantity: 2,
+    consumedQuantity: 0,
+    wastageQuantity: 0,
+    finalizedBy: "",
+    finalizedAt: "",
+    note: "",
+    createdBy: "Owner",
+    createdAt: "2026-07-26T00:00:00.000Z",
+  };
+
+  it("rejects a return larger than the unclassified balance", async () => {
+    await expect(
+      returnFactoryMaterialIssue({ issue: postedIssue, quantity: 9, note: "Unused" }),
+    ).rejects.toThrow("exceeds");
+  });
+
+  it("requires consumed plus wastage to reconcile after returns", async () => {
+    await expect(
+      finalizeFactoryMaterialIssue({
+        issue: postedIssue,
+        consumedQuantity: 7,
+        wastageQuantity: 0,
+        note: "",
+        finalizedBy: "Owner",
+      }),
+    ).rejects.toThrow("must equal");
   });
 });

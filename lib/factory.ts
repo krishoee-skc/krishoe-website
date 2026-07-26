@@ -74,6 +74,13 @@ export type FactoryMaterialIssue = {
   unitCostSnapshot: number;
   totalCost: number;
   status: FactoryMaterialIssueStatus;
+  postedBy: string;
+  postedAt: string;
+  returnedQuantity: number;
+  consumedQuantity: number;
+  wastageQuantity: number;
+  finalizedBy: string;
+  finalizedAt: string;
   note: string;
   createdBy: string;
   createdAt: string;
@@ -505,6 +512,13 @@ type FactoryMaterialIssueRow = {
   unit_cost_snapshot: number | string;
   total_cost: number | string;
   status: FactoryMaterialIssueStatus;
+  posted_by: string;
+  posted_at: Date | string | null;
+  returned_quantity: number | string;
+  consumed_quantity: number | string;
+  wastage_quantity: number | string;
+  finalized_by: string;
+  finalized_at: Date | string | null;
   note: string;
   created_by: string;
   created_at: Date | string;
@@ -601,7 +615,9 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     queryPostgres<FactoryMaterialIssueRow>(
       "factory",
       `SELECT id, work_order_id, material_id, material_name, unit, quantity,
-        unit_cost_snapshot, total_cost, status, note, created_by, created_at
+        unit_cost_snapshot, total_cost, status, posted_by, posted_at, returned_quantity,
+        consumed_quantity, wastage_quantity, finalized_by, finalized_at,
+        note, created_by, created_at
        FROM factory_material_issues ORDER BY created_at DESC`,
     ),
   ]);
@@ -777,6 +793,18 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
       unitCostSnapshot: Number(row.unit_cost_snapshot),
       totalCost: Number(row.total_cost),
       status: row.status,
+      postedBy: row.posted_by,
+      postedAt:
+        row.posted_at instanceof Date ? row.posted_at.toISOString() : (row.posted_at ?? ""),
+      returnedQuantity: Number(row.returned_quantity),
+      consumedQuantity: Number(row.consumed_quantity),
+      wastageQuantity: Number(row.wastage_quantity),
+      finalizedBy: row.finalized_by,
+      finalizedAt: row.finalized_at
+        ? row.finalized_at instanceof Date
+          ? row.finalized_at.toISOString()
+          : row.finalized_at
+        : "",
       note: row.note,
       createdBy: row.created_by,
       createdAt:
@@ -1938,6 +1966,13 @@ export async function addFactoryMaterialIssueDraft(input: {
     unitCostSnapshot,
     totalCost: Math.round(quantity * unitCostSnapshot * 100) / 100,
     status: "Draft",
+    postedBy: "",
+    postedAt: "",
+    returnedQuantity: 0,
+    consumedQuantity: 0,
+    wastageQuantity: 0,
+    finalizedBy: "",
+    finalizedAt: "",
     note: input.note.trim(),
     createdBy: input.createdBy.trim(),
     createdAt: new Date().toISOString(),
@@ -1959,7 +1994,9 @@ export async function addFactoryMaterialIssueDraft(input: {
           unit_cost_snapshot, total_cost, status, note, created_by
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Draft', $9, $10)
         RETURNING id, work_order_id, material_id, material_name, unit, quantity,
-          unit_cost_snapshot, total_cost, status, note, created_by, created_at`,
+          unit_cost_snapshot, total_cost, status, posted_by, posted_at, returned_quantity,
+          consumed_quantity, wastage_quantity, finalized_by, finalized_at,
+          note, created_by, created_at`,
         [
           issue.id,
           issue.workOrderId,
@@ -1979,6 +2016,255 @@ export async function addFactoryMaterialIssueDraft(input: {
         id: row.id,
         createdAt:
           row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+      };
+    },
+  });
+}
+
+export async function postFactoryMaterialIssue(input: {
+  issue: FactoryMaterialIssue;
+  postedBy: string;
+}) {
+  if (input.issue.status !== "Draft") throw new Error("Only a Draft material issue can be posted.");
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const operations = await import("@/lib/operations");
+      const operationData = await operations.getOperationsData();
+      const material = operationData.rawMaterials.find(
+        (row) => row.id === input.issue.materialId,
+      );
+      if (!material) throw new Error("Raw material was not found.");
+      const available = material.openingStock + material.received - material.used;
+      if (input.issue.quantity > available) throw new Error("Not enough raw material stock.");
+      await operations.updateRawMaterial(material.id, {
+        ...material,
+        used: material.used + input.issue.quantity,
+      });
+      const data = await readLocalFactoryData();
+      const issue = data.materialIssues.find((row) => row.id === input.issue.id);
+      if (!issue || issue.status !== "Draft") throw new Error("Draft material issue was not found.");
+      issue.status = "Posted";
+      issue.postedBy = input.postedBy.trim();
+      issue.postedAt = new Date().toISOString();
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return issue;
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        const issues = await db.query<FactoryMaterialIssueRow>(
+          `SELECT id, work_order_id, material_id, material_name, unit, quantity,
+            unit_cost_snapshot, total_cost, status, posted_by, posted_at, returned_quantity,
+            consumed_quantity, wastage_quantity, finalized_by, finalized_at,
+            note, created_by, created_at
+           FROM factory_material_issues WHERE id = $1 FOR UPDATE`,
+          [input.issue.id],
+        );
+        const issue = issues[0];
+        if (!issue || issue.status !== "Draft") {
+          throw new Error("Draft material issue was not found or already posted.");
+        }
+        const materials = await db.query<{
+          id: string;
+          opening_stock: number | string;
+          received: number | string;
+          used: number | string;
+        }>(
+          `SELECT id, opening_stock, received, used
+           FROM raw_materials WHERE id = $1 FOR UPDATE`,
+          [issue.material_id],
+        );
+        const material = materials[0];
+        if (!material) throw new Error("Raw material was not found.");
+        const available =
+          Number(material.opening_stock) + Number(material.received) - Number(material.used);
+        if (Number(issue.quantity) > available) throw new Error("Not enough raw material stock.");
+        await db.query(
+          "UPDATE raw_materials SET used = used + $2 WHERE id = $1",
+          [issue.material_id, Number(issue.quantity)],
+        );
+        await db.query(
+          `UPDATE factory_material_issues
+           SET status = 'Posted', posted_by = $2, posted_at = now(), updated_at = now()
+           WHERE id = $1`,
+          [issue.id, input.postedBy.trim()],
+        );
+        return {
+          ...input.issue,
+          status: "Posted" as const,
+          postedBy: input.postedBy.trim(),
+          postedAt: new Date().toISOString(),
+        };
+      }),
+  });
+}
+
+export async function returnFactoryMaterialIssue(input: {
+  issue: FactoryMaterialIssue;
+  quantity: number;
+  note: string;
+}) {
+  if (input.issue.status !== "Posted" || input.issue.finalizedAt) {
+    throw new Error("Only an unfinalized Posted issue can receive a material return.");
+  }
+  const quantity = Math.round(Math.max(0, Number(input.quantity) || 0) * 10000) / 10000;
+  const returnable =
+    input.issue.quantity -
+    input.issue.returnedQuantity -
+    input.issue.consumedQuantity -
+    input.issue.wastageQuantity;
+  if (quantity <= 0 || quantity > returnable) {
+    throw new Error("Return quantity exceeds the unclassified issued quantity.");
+  }
+  if (!input.note.trim()) throw new Error("Material return reason is required.");
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const operations = await import("@/lib/operations");
+      const operationData = await operations.getOperationsData();
+      const material = operationData.rawMaterials.find(
+        (row) => row.id === input.issue.materialId,
+      );
+      if (!material || material.used < quantity) throw new Error("Raw material usage cannot be reversed.");
+      await operations.updateRawMaterial(material.id, {
+        ...material,
+        used: material.used - quantity,
+      });
+      const data = await readLocalFactoryData();
+      const issue = data.materialIssues.find((row) => row.id === input.issue.id);
+      if (!issue) throw new Error("Posted material issue was not found.");
+      issue.returnedQuantity += quantity;
+      issue.totalCost =
+        Math.round((issue.quantity - issue.returnedQuantity) * issue.unitCostSnapshot * 100) / 100;
+      issue.note = [issue.note, input.note.trim()].filter(Boolean).join(" | ");
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return issue;
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        const issues = await db.query<FactoryMaterialIssueRow>(
+          `SELECT id, work_order_id, material_id, material_name, unit, quantity,
+            unit_cost_snapshot, total_cost, status, posted_by, posted_at, returned_quantity,
+            consumed_quantity, wastage_quantity, finalized_by, finalized_at,
+            note, created_by, created_at
+           FROM factory_material_issues WHERE id = $1 FOR UPDATE`,
+          [input.issue.id],
+        );
+        const issue = issues[0];
+        if (!issue || issue.status !== "Posted" || issue.finalized_at) {
+          throw new Error("Posted material issue was not found or is already finalized.");
+        }
+        const liveReturnable =
+          Number(issue.quantity) -
+          Number(issue.returned_quantity) -
+          Number(issue.consumed_quantity) -
+          Number(issue.wastage_quantity);
+        if (quantity > liveReturnable) {
+          throw new Error("Return quantity exceeds the remaining issued quantity.");
+        }
+        const materials = await db.query<{ used: number | string }>(
+          "SELECT used FROM raw_materials WHERE id = $1 FOR UPDATE",
+          [issue.material_id],
+        );
+        if (!materials[0] || Number(materials[0].used) < quantity) {
+          throw new Error("Raw material usage cannot be reversed.");
+        }
+        await db.query(
+          "UPDATE raw_materials SET used = used - $2 WHERE id = $1",
+          [issue.material_id, quantity],
+        );
+        await db.query(
+          `UPDATE factory_material_issues
+           SET returned_quantity = returned_quantity + $2,
+             total_cost = ROUND((quantity - returned_quantity - $2) * unit_cost_snapshot, 2),
+             note = CASE WHEN note = '' THEN $3 ELSE note || ' | ' || $3 END,
+             updated_at = now()
+           WHERE id = $1`,
+          [issue.id, quantity, input.note.trim()],
+        );
+        return {
+          ...input.issue,
+          returnedQuantity: Number(issue.returned_quantity) + quantity,
+          totalCost:
+            Math.round(
+              (Number(issue.quantity) - Number(issue.returned_quantity) - quantity) *
+                Number(issue.unit_cost_snapshot) *
+                100,
+            ) / 100,
+        };
+      }),
+  });
+}
+
+export async function finalizeFactoryMaterialIssue(input: {
+  issue: FactoryMaterialIssue;
+  consumedQuantity: number;
+  wastageQuantity: number;
+  note: string;
+  finalizedBy: string;
+}) {
+  if (input.issue.status !== "Posted" || input.issue.finalizedAt) {
+    throw new Error("Only an unfinalized Posted issue can be finalized.");
+  }
+  const consumedQuantity =
+    Math.round(Math.max(0, Number(input.consumedQuantity) || 0) * 10000) / 10000;
+  const wastageQuantity =
+    Math.round(Math.max(0, Number(input.wastageQuantity) || 0) * 10000) / 10000;
+  const unreturned = input.issue.quantity - input.issue.returnedQuantity;
+  if (Math.abs(consumedQuantity + wastageQuantity - unreturned) > 0.0001) {
+    throw new Error("Consumed plus wastage must equal issued quantity after returns.");
+  }
+  if (wastageQuantity > 0 && !input.note.trim()) {
+    throw new Error("Wastage reason is required.");
+  }
+  const finalizedAt = new Date().toISOString();
+
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const issue = data.materialIssues.find((row) => row.id === input.issue.id);
+      if (!issue || issue.finalizedAt) throw new Error("Material issue was already finalized.");
+      issue.consumedQuantity = consumedQuantity;
+      issue.wastageQuantity = wastageQuantity;
+      issue.finalizedBy = input.finalizedBy.trim();
+      issue.finalizedAt = finalizedAt;
+      issue.note = [issue.note, input.note.trim()].filter(Boolean).join(" | ");
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return issue;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<FactoryMaterialIssueRow>(
+        "factory",
+        `UPDATE factory_material_issues
+         SET consumed_quantity = $2, wastage_quantity = $3, finalized_by = $4,
+           finalized_at = $5,
+           note = CASE WHEN $6 = '' THEN note WHEN note = '' THEN $6 ELSE note || ' | ' || $6 END,
+           updated_at = now()
+         WHERE id = $1 AND status = 'Posted' AND finalized_at IS NULL
+           AND ABS(($2 + $3) - (quantity - returned_quantity)) < 0.0001
+         RETURNING id, work_order_id, material_id, material_name, unit, quantity,
+           unit_cost_snapshot, total_cost, status, posted_by, posted_at, returned_quantity,
+           consumed_quantity, wastage_quantity, finalized_by, finalized_at,
+           note, created_by, created_at`,
+        [
+          input.issue.id,
+          consumedQuantity,
+          wastageQuantity,
+          input.finalizedBy.trim(),
+          finalizedAt,
+          input.note.trim(),
+        ],
+      );
+      if (!rows[0]) throw new Error("Material issue changed or was already finalized.");
+      return {
+        ...input.issue,
+        consumedQuantity,
+        wastageQuantity,
+        finalizedBy: input.finalizedBy.trim(),
+        finalizedAt,
       };
     },
   });

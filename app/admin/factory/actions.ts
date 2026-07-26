@@ -10,10 +10,13 @@ import {
   addFactoryStageHandover,
   approveFactoryPacking,
   addFactoryMaterialIssueDraft,
+  finalizeFactoryMaterialIssue,
   addFactoryWorkOrder,
   getFactoryData,
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
+  postFactoryMaterialIssue,
+  returnFactoryMaterialIssue,
   verifyFactoryProductionEntry,
   upsertFactoryBomLine,
   upsertFactoryStageRate,
@@ -400,4 +403,65 @@ export async function createFactoryMaterialIssueDraftAction(formData: FormData) 
   );
   revalidatePath("/admin/factory");
   redirect(`/admin/factory?materialDraft=${encodeURIComponent(issue.id)}`);
+}
+
+export async function postFactoryMaterialIssueAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const issue = factory.materialIssues.find(
+    (entry) => entry.id === text(formData, "issueId"),
+  );
+  if (!issue) throw new Error("Material issue was not found.");
+  const posted = await postFactoryMaterialIssue({
+    issue,
+    postedBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_material_issue_post",
+    `${posted.materialName}: ${posted.quantity} ${posted.unit} posted to production and deducted from raw stock.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?materialPosted=${encodeURIComponent(posted.id)}`);
+}
+
+export async function returnFactoryMaterialIssueAction(formData: FormData) {
+  await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const issue = factory.materialIssues.find(
+    (entry) => entry.id === text(formData, "issueId"),
+  );
+  if (!issue) throw new Error("Material issue was not found.");
+  const returned = await returnFactoryMaterialIssue({
+    issue,
+    quantity: Number(text(formData, "quantity")) || 0,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "factory_material_issue_return",
+    `${returned.materialName}: ${text(formData, "quantity")} ${returned.unit} returned to raw stock.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?materialReturned=${encodeURIComponent(returned.id)}`);
+}
+
+export async function finalizeFactoryMaterialIssueAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const issue = factory.materialIssues.find(
+    (entry) => entry.id === text(formData, "issueId"),
+  );
+  if (!issue) throw new Error("Material issue was not found.");
+  const finalized = await finalizeFactoryMaterialIssue({
+    issue,
+    consumedQuantity: Number(text(formData, "consumedQuantity")) || 0,
+    wastageQuantity: Number(text(formData, "wastageQuantity")) || 0,
+    note: text(formData, "note"),
+    finalizedBy: session.name || session.email || "Owner",
+  });
+  await recordAdminAuditEvent(
+    "factory_material_issue_finalize",
+    `${finalized.materialName}: ${finalized.consumedQuantity} ${finalized.unit} consumed, ${finalized.wastageQuantity} ${finalized.unit} wastage finalized.`,
+  );
+  revalidatePath("/admin/factory");
+  redirect(`/admin/factory?materialFinalized=${encodeURIComponent(finalized.id)}`);
 }
