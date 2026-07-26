@@ -17,6 +17,7 @@ import {
   getFactoryWageCandidates,
   getFactoryWorkOrderCosting,
   getFactoryWorkOrderCancellationBlockers,
+  getFactoryStagePauseTransition,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -138,6 +139,46 @@ describe("Factory ERP foundation", () => {
       "Production entries already exist.",
       "Posted raw material must be reconciled before cancellation.",
     ]);
+  });
+
+  it("pauses the current stage with a reason and resumes to the correct state", () => {
+    const workOrder = {
+      id: "wo-pause",
+      status: "In Progress",
+      currentStageCode: "upper",
+    } as FactoryData["workOrders"][number];
+    const assignment = {
+      id: "assign-pause",
+      workOrderId: workOrder.id,
+      stageCode: "upper",
+      status: "In Progress",
+    } as FactoryData["stageAssignments"][number];
+    const paused = getFactoryStagePauseTransition({
+      assignment,
+      workOrder,
+      productionEntries: [],
+      action: "pause",
+      reason: " Material shortage ",
+      changedBy: "Owner",
+    });
+    expect(paused.status).toBe("Paused");
+    expect(paused.pauseReason).toBe("Material shortage");
+
+    expect(
+      getFactoryStagePauseTransition({
+        assignment: { ...assignment, status: "Paused" },
+        workOrder,
+        productionEntries: [
+          {
+            assignmentId: assignment.id,
+            status: "Verified",
+          },
+        ] as FactoryData["productionEntries"],
+        action: "resume",
+        reason: "",
+        changedBy: "Owner",
+      }).status,
+    ).toBe("In Progress");
   });
 
   it("audits legacy name linkage without mutating records", () => {

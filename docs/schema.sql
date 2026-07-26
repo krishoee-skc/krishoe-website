@@ -720,11 +720,21 @@ CREATE TABLE IF NOT EXISTS factory_stage_assignments (
   rate_per_good_pair_snapshot NUMERIC NOT NULL DEFAULT 0
     CHECK (rate_per_good_pair_snapshot >= 0),
   camera_zone TEXT NOT NULL DEFAULT '',
+  pause_reason TEXT NOT NULL DEFAULT '',
+  paused_by TEXT NOT NULL DEFAULT '',
+  paused_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (work_order_id, stage_code),
   UNIQUE (work_order_id, sequence)
 );
+
+ALTER TABLE factory_stage_assignments
+  ADD COLUMN IF NOT EXISTS pause_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_stage_assignments
+  ADD COLUMN IF NOT EXISTS paused_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_stage_assignments
+  ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS factory_stage_assignments_order_idx
   ON factory_stage_assignments(work_order_id, sequence);

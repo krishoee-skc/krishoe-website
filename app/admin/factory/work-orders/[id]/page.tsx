@@ -187,6 +187,12 @@ export default async function FactoryWorkOrderTracePage({
                           Camera zone: {assignment.cameraZone}
                         </p>
                       ) : null}
+                      {assignment.status === "Paused" && assignment.pauseReason ? (
+                        <p className="mt-2 rounded-lg bg-amber-100 p-2 text-xs font-bold text-amber-900">
+                          Paused: {assignment.pauseReason}
+                          {assignment.pausedBy ? ` - ${assignment.pausedBy}` : ""}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 );

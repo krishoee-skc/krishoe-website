@@ -246,6 +246,9 @@ export type FactoryStageAssignment = {
   status: FactoryStageAssignmentStatus;
   ratePerGoodPairSnapshot: number;
   cameraZone: string;
+  pauseReason?: string;
+  pausedBy?: string;
+  pausedAt?: string;
 };
 
 export function normalizeFactoryAssignmentReassignment(input: {
@@ -318,6 +321,113 @@ export async function reassignFactoryStageWorker(input: {
       }
       return { ...input.assignment, ...update };
     },
+  });
+}
+
+export function getFactoryStagePauseTransition(input: {
+  assignment: FactoryStageAssignment;
+  workOrder: FactoryWorkOrder;
+  productionEntries: FactoryProductionEntry[];
+  action: "pause" | "resume";
+  reason: string;
+  changedBy: string;
+}) {
+  if (["Completed", "Cancelled"].includes(input.workOrder.status)) {
+    throw new Error("A closed Work Order stage cannot be changed.");
+  }
+  if (input.workOrder.currentStageCode !== input.assignment.stageCode) {
+    throw new Error("Only the current production stage can be paused or resumed.");
+  }
+  if (input.action === "pause") {
+    if (!["Ready", "In Progress"].includes(input.assignment.status)) {
+      throw new Error("Only an active stage can be paused.");
+    }
+    const reason = input.reason.trim().slice(0, 500);
+    if (reason.length < 5) throw new Error("Enter a clear pause reason.");
+    return {
+      status: "Paused" as const,
+      pauseReason: reason,
+      pausedBy: input.changedBy.trim(),
+      pausedAt: new Date().toISOString(),
+    };
+  }
+  if (input.assignment.status !== "Paused") {
+    throw new Error("Only a paused stage can be resumed.");
+  }
+  const hasProduction = input.productionEntries.some(
+    (entry) =>
+      entry.assignmentId === input.assignment.id && entry.status !== "Rejected",
+  );
+  return {
+    status: hasProduction ? ("In Progress" as const) : ("Ready" as const),
+    pauseReason: "",
+    pausedBy: "",
+    pausedAt: "",
+  };
+}
+
+export async function changeFactoryStagePauseState(input: {
+  assignment: FactoryStageAssignment;
+  workOrder: FactoryWorkOrder;
+  productionEntries: FactoryProductionEntry[];
+  action: "pause" | "resume";
+  reason: string;
+  changedBy: string;
+}) {
+  const transition = getFactoryStagePauseTransition(input);
+  return runWithDataBackend({
+    storeName: "factory",
+    localJson: async () => {
+      const data = await readLocalFactoryData();
+      const assignment = data.stageAssignments.find(
+        (entry) => entry.id === input.assignment.id,
+      );
+      const order = data.workOrders.find((entry) => entry.id === input.workOrder.id);
+      if (!assignment || !order) throw new Error("Factory stage was not found.");
+      const liveTransition = getFactoryStagePauseTransition({
+        ...input,
+        assignment,
+        workOrder: order,
+        productionEntries: data.productionEntries,
+      });
+      Object.assign(assignment, liveTransition);
+      await writeFileAtomic(factoryDataPath, JSON.stringify(data, null, 2));
+      return assignment;
+    },
+    postgres: () =>
+      transactionPostgres("factory", async (db) => {
+        const orders = await db.query<{ status: FactoryWorkOrderStatus; current_stage_code: string }>(
+          "SELECT status, current_stage_code FROM factory_work_orders WHERE id = $1 FOR UPDATE",
+          [input.workOrder.id],
+        );
+        const liveOrder = orders[0];
+        if (
+          !liveOrder ||
+          ["Completed", "Cancelled"].includes(liveOrder.status) ||
+          liveOrder.current_stage_code !== input.assignment.stageCode
+        ) {
+          throw new Error("This is no longer the active Work Order stage.");
+        }
+        const expectedStatus =
+          input.action === "pause" ? ["Ready", "In Progress"] : ["Paused"];
+        const rows = await db.query<{ id: string }>(
+          `UPDATE factory_stage_assignments
+           SET status = $2, pause_reason = $3, paused_by = $4,
+             paused_at = $5, updated_at = now()
+           WHERE id = $1 AND status = ANY($6::text[])
+           RETURNING id`,
+          [
+            input.assignment.id,
+            transition.status,
+            transition.pauseReason,
+            transition.pausedBy,
+            transition.pausedAt || null,
+            expectedStatus,
+          ],
+        );
+        if (!rows[0]) throw new Error("Stage status changed; please reload and try again.");
+        return { ...input.assignment, ...transition };
+      }),
   });
 }
 
@@ -957,6 +1067,9 @@ type FactoryStageAssignmentRow = {
   status: FactoryStageAssignmentStatus;
   rate_per_good_pair_snapshot: number | string;
   camera_zone: string;
+  pause_reason: string;
+  paused_by: string;
+  paused_at: Date | string | null;
 };
 
 type FactoryProductionEntryRow = {
@@ -1149,7 +1262,8 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
     queryPostgres<FactoryStageAssignmentRow>(
       "factory",
       `SELECT id, work_order_id, stage_code, sequence, worker_id, worker_name,
-        target_pairs, status, rate_per_good_pair_snapshot, camera_zone
+        target_pairs, status, rate_per_good_pair_snapshot, camera_zone,
+        pause_reason, paused_by, paused_at
        FROM factory_stage_assignments ORDER BY work_order_id, sequence ASC`,
     ),
     queryPostgres<FactoryProductionEntryRow>(
@@ -1291,6 +1405,9 @@ async function getFactoryDataFromPostgres(): Promise<FactoryData> {
         status: row.status,
         ratePerGoodPairSnapshot: Number(row.rate_per_good_pair_snapshot),
         cameraZone: row.camera_zone,
+        pauseReason: row.pause_reason,
+        pausedBy: row.paused_by,
+        pausedAt: row.paused_at ? new Date(row.paused_at).toISOString() : "",
       })),
     productionEntries: productionEntries
       .filter((row) => isFactoryStageCode(row.stage_code))

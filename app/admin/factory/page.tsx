@@ -7,6 +7,7 @@ import ProductionEntryForm from "@/app/admin/factory/ProductionEntryForm";
 import ProductionVerificationForm from "@/app/admin/factory/ProductionVerificationForm";
 import StageHandoverForm from "@/app/admin/factory/StageHandoverForm";
 import StageWorkerReassignmentForm from "@/app/admin/factory/StageWorkerReassignmentForm";
+import StagePauseControls from "@/app/admin/factory/StagePauseControls";
 import PackingApprovalForm from "@/app/admin/factory/PackingApprovalForm";
 import MaterialIssueDraftForm from "@/app/admin/factory/MaterialIssueDraftForm";
 import MaterialIssuePostingControls from "@/app/admin/factory/MaterialIssuePostingControls";
@@ -938,6 +939,15 @@ export default async function FactoryErpPage({
                               <p className="mt-2 font-bold text-emerald-800">
                                 {validEntries.length} entries · {validEntries.reduce((sum, entry) => sum + entry.goodPairs, 0)} good · Rs. {validEntries.reduce((sum, entry) => sum + entry.calculatedWage, 0).toLocaleString("en-IN")} pending verification
                               </p>
+                            ) : null}
+                            {order.currentStageCode === assignment.stageCode ? (
+                              <StagePauseControls
+                                assignmentId={assignment.id}
+                                status={assignment.status}
+                                pauseReason={assignment.pauseReason}
+                                pausedBy={assignment.pausedBy}
+                                pausedAt={assignment.pausedAt}
+                              />
                             ) : null}
                             {assignment.status !== "Completed" ? (
                               <StageWorkerReassignmentForm

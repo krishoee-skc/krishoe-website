@@ -15,6 +15,7 @@ import {
   addFactoryWorkOrder,
   approveFactoryWageSettlement,
   cancelFactoryWorkOrder,
+  changeFactoryStagePauseState,
   getFactoryData,
   getFactoryAssignmentSizePlan,
   releaseFactoryWorkOrder,
@@ -346,6 +347,36 @@ export async function reassignFactoryStageWorkerAction(formData: FormData) {
   revalidatePath("/admin/factory");
   revalidatePath(factoryWorkOrderTracePath(assignment.workOrderId));
   redirect(`/admin/factory?reassigned=${encodeURIComponent(assignment.id)}`);
+}
+
+export async function changeFactoryStagePauseStateAction(formData: FormData) {
+  const { session } = await requireAdminPermission("factory:write");
+  const factory = await getFactoryData();
+  const assignment = factory.stageAssignments.find(
+    (entry) => entry.id === text(formData, "assignmentId"),
+  );
+  if (!assignment) throw new Error("Stage assignment was not found.");
+  const workOrder = factory.workOrders.find(
+    (entry) => entry.id === assignment.workOrderId,
+  );
+  if (!workOrder) throw new Error("Work Order was not found.");
+  const action = text(formData, "stageAction") === "resume" ? "resume" : "pause";
+  const changedBy = session.name || session.email || "Admin";
+  const result = await changeFactoryStagePauseState({
+    assignment,
+    workOrder,
+    productionEntries: factory.productionEntries,
+    action,
+    reason: text(formData, "reason"),
+    changedBy,
+  });
+  await recordAdminAuditEvent(
+    action === "pause" ? "factory_stage_pause" : "factory_stage_resume",
+    `${workOrder.workOrderNumber} ${assignment.stageCode} ${action}d by ${changedBy}${action === "pause" ? `: ${result.pauseReason}` : "."}`,
+  );
+  revalidatePath("/admin/factory");
+  revalidatePath(factoryWorkOrderTracePath(workOrder.id));
+  redirect(`/admin/factory?stageState=${encodeURIComponent(result.id)}`);
 }
 
 export async function verifyFactoryProductionEntryAction(formData: FormData) {
