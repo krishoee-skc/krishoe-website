@@ -10,6 +10,7 @@ import {
   getFactoryData,
   getFactoryPerformanceReport,
   getFactoryWageCandidates,
+  getFactoryWorkOrderCosting,
   type FactoryPerformanceReportRow,
 } from "@/lib/factory";
 
@@ -108,6 +109,19 @@ export default async function FactoryReportsPage({
   const factory = await getFactoryData();
   const report = getFactoryPerformanceReport(factory, range.from, range.to);
   const wageCandidates = getFactoryWageCandidates(factory, range.from, range.to);
+  const costingRows = factory.workOrders
+    .filter(
+      (order) =>
+        (order.createdDate >= range.from && order.createdDate <= range.to) ||
+        factory.productionEntries.some(
+          (entry) =>
+            entry.workOrderId === order.id &&
+            entry.entryDate >= range.from &&
+            entry.entryDate <= range.to,
+        ),
+    )
+    .map((order) => ({ order, costing: getFactoryWorkOrderCosting(factory, order) }))
+    .sort((a, b) => b.order.createdDate.localeCompare(a.order.createdDate));
   const exportQuery = new URLSearchParams(range).toString();
 
   return (
@@ -211,6 +225,68 @@ export default async function FactoryReportsPage({
 
         <div className="mt-6 space-y-6">
           <ReportTable title="Worker performance" rows={report.workers} />
+          <article className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 p-5">
+              <h2 className="text-lg font-black text-brand-green-ink">
+                Work Order actual costing
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">
+                BOM and stage plans compared with issued-material and verified-wage snapshots.
+              </p>
+            </div>
+            <div className="overflow-x-auto p-5">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="text-xs uppercase tracking-wider text-gray-500">
+                  <tr>
+                    <th className="pb-3 pr-3">Work Order</th>
+                    <th className="pb-3 pr-3">Item</th>
+                    <th className="pb-3 pr-3">Output</th>
+                    <th className="pb-3 pr-3">Planned</th>
+                    <th className="pb-3 pr-3">Actual</th>
+                    <th className="pb-3 pr-3">Variance</th>
+                    <th className="pb-3 pr-3">Actual/pair</th>
+                    <th className="pb-3">Cost signal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {costingRows.map(({ order, costing }) => (
+                    <tr key={order.id} className="border-t border-gray-100">
+                      <td className="py-3 pr-3">
+                        <Link
+                          href={`/admin/factory/work-orders/${order.id}`}
+                          className="font-black text-brand-green underline underline-offset-4"
+                        >
+                          {order.workOrderNumber}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-3">{order.itemName}</td>
+                      <td className="py-3 pr-3">{costing.outputPairs}</td>
+                      <td className="py-3 pr-3">Rs. {costing.plannedTotalCost.toLocaleString("en-IN")}</td>
+                      <td className="py-3 pr-3 font-black">Rs. {costing.actualTotalCost.toLocaleString("en-IN")}</td>
+                      <td className={`py-3 pr-3 font-black ${
+                        costing.totalVariance > 0 ? "text-red-700" : "text-emerald-700"
+                      }`}>
+                        Rs. {costing.totalVariance.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-3 pr-3">Rs. {costing.actualCostPerPair.toLocaleString("en-IN")}</td>
+                      <td className="py-3">
+                        {costing.missingMaterialRates > 0
+                          ? `${costing.missingMaterialRates} missing rates`
+                          : costing.outputPairs === 0
+                            ? "Output pending"
+                            : "Costed"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {costingRows.length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  No Work Order activity in this period.
+                </p>
+              ) : null}
+            </div>
+          </article>
           <article className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>

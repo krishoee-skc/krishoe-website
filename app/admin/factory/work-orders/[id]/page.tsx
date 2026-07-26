@@ -3,7 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { factoryStages, getFactoryData } from "@/lib/factory";
+import {
+  factoryStages,
+  getFactoryData,
+  getFactoryWorkOrderCosting,
+} from "@/lib/factory";
 
 export const metadata: Metadata = { title: "Lot Trace | KRISHOE Factory" };
 export const dynamic = "force-dynamic";
@@ -43,6 +47,7 @@ export default async function FactoryWorkOrderTracePage({
   const reworkPairs = verifiedEntries.reduce((sum, entry) => sum + entry.reworkPairs, 0);
   const wages = verifiedEntries.reduce((sum, entry) => sum + entry.calculatedWage, 0);
   const materialCost = issues.reduce((sum, entry) => sum + entry.totalCost, 0);
+  const costing = getFactoryWorkOrderCosting(factory, order);
 
   return (
     <section className="p-4 sm:p-6">
@@ -226,6 +231,63 @@ export default async function FactoryWorkOrderTracePage({
             </article>
           </div>
         </div>
+
+        <article className="mt-6 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-amber-700">
+                Snapshot-safe actual costing
+              </p>
+              <h2 className="mt-1 text-xl font-black text-amber-950">
+                Planned vs actual cost
+              </h2>
+            </div>
+            <p className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-amber-900">
+              {costing.outputPairs} output pairs
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Planned material", costing.plannedMaterialCost],
+              ["Actual material", costing.actualMaterialCost],
+              ["Planned labour", costing.plannedLabourCost],
+              ["Verified labour", costing.actualLabourCost],
+              ["Planned total", costing.plannedTotalCost],
+              ["Actual total", costing.actualTotalCost],
+              ["Planned / pair", costing.plannedCostPerPair],
+              ["Actual / pair", costing.actualCostPerPair],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-amber-100 bg-white p-3">
+                <p className="text-[11px] font-black uppercase tracking-wider text-gray-500">
+                  {label}
+                </p>
+                <p className="mt-2 font-black text-brand-green-ink">
+                  Rs. {Number(value).toLocaleString("en-IN")}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <p className={`rounded-xl p-3 text-xs font-black ${
+              costing.totalVariance > 0
+                ? "bg-red-50 text-red-800"
+                : "bg-emerald-50 text-emerald-800"
+            }`}>
+              Total variance: Rs. {costing.totalVariance.toLocaleString("en-IN")}
+            </p>
+            <p className="rounded-xl bg-orange-50 p-3 text-xs font-black text-orange-800">
+              Wastage cost: Rs. {costing.wastageCost.toLocaleString("en-IN")}
+            </p>
+            <p className="rounded-xl bg-gray-100 p-3 text-xs font-black text-gray-700">
+              Reject {costing.rejectPairs} · rework {costing.reworkPairs}
+            </p>
+          </div>
+          {costing.missingMaterialRates > 0 ? (
+            <p className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-800">
+              {costing.missingMaterialRates} BOM material rates are missing; planned cost is incomplete.
+            </p>
+          ) : null}
+        </article>
       </div>
     </section>
   );

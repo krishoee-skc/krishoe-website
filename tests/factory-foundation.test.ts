@@ -13,6 +13,7 @@ import {
   getFactoryDashboard,
   getFactoryPerformanceReport,
   getFactoryWageCandidates,
+  getFactoryWorkOrderCosting,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -701,5 +702,96 @@ describe("factory piece-wage settlement candidates", () => {
         amount: 90,
       },
     ]);
+  });
+});
+
+describe("factory Work Order actual costing", () => {
+  it("uses BOM plans, issue rate snapshots, verified wages, and packed output", () => {
+    const workOrder = {
+      id: "wo-cost",
+      itemId: "item-cost",
+      totalPairs: 10,
+    } as FactoryData["workOrders"][number];
+    const data = {
+      bomLines: [
+        {
+          id: "bom-1",
+          itemId: "item-cost",
+          materialId: "rm-1",
+          materialName: "Rexine",
+          unit: "meter",
+          quantityPerPair: 0.2,
+          wastagePercent: 10,
+        },
+      ],
+      materialIssues: [
+        {
+          id: "issue-cost",
+          workOrderId: "wo-cost",
+          materialId: "rm-1",
+          quantity: 2.5,
+          unitCostSnapshot: 100,
+          totalCost: 240,
+          status: "Posted",
+          wastageQuantity: 0.2,
+        },
+      ],
+      stageAssignments: [
+        {
+          id: "upper-cost",
+          workOrderId: "wo-cost",
+          sequence: 1,
+          targetPairs: 10,
+          ratePerGoodPairSnapshot: 10,
+        },
+        {
+          id: "packing-cost",
+          workOrderId: "wo-cost",
+          sequence: 2,
+          targetPairs: 10,
+          ratePerGoodPairSnapshot: 5,
+        },
+      ],
+      productionEntries: [
+        {
+          id: "entry-upper",
+          workOrderId: "wo-cost",
+          assignmentId: "upper-cost",
+          status: "Verified",
+          calculatedWage: 100,
+          rejectPairs: 1,
+          reworkPairs: 0,
+          goodPairs: 10,
+        },
+        {
+          id: "entry-packing",
+          workOrderId: "wo-cost",
+          assignmentId: "packing-cost",
+          status: "Verified",
+          calculatedWage: 50,
+          rejectPairs: 0,
+          reworkPairs: 1,
+          goodPairs: 10,
+        },
+      ],
+      packingApprovals: [{ workOrderId: "wo-cost", approvedPairs: 10 }],
+    } as unknown as FactoryData;
+
+    expect(getFactoryWorkOrderCosting(data, workOrder)).toMatchObject({
+      plannedMaterialCost: 220,
+      actualMaterialCost: 240,
+      wastageCost: 20,
+      plannedLabourCost: 150,
+      actualLabourCost: 150,
+      plannedTotalCost: 370,
+      actualTotalCost: 390,
+      totalVariance: 20,
+      outputPairs: 10,
+      plannedCostPerPair: 37,
+      actualCostPerPair: 39,
+      rejectPairs: 1,
+      reworkPairs: 1,
+      missingMaterialRates: 0,
+    });
   });
 });

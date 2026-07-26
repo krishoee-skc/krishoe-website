@@ -348,6 +348,120 @@ export type FactoryPerformanceReport = {
   items: FactoryPerformanceReportRow[];
 };
 
+export type FactoryWorkOrderCosting = {
+  workOrderId: string;
+  plannedMaterialCost: number;
+  actualMaterialCost: number;
+  materialVariance: number;
+  wastageCost: number;
+  plannedLabourCost: number;
+  actualLabourCost: number;
+  labourVariance: number;
+  plannedTotalCost: number;
+  actualTotalCost: number;
+  totalVariance: number;
+  outputPairs: number;
+  plannedCostPerPair: number;
+  actualCostPerPair: number;
+  rejectPairs: number;
+  reworkPairs: number;
+  missingMaterialRates: number;
+};
+
+function moneyNumber(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+export function getFactoryWorkOrderCosting(
+  data: FactoryData,
+  workOrder: FactoryWorkOrder,
+): FactoryWorkOrderCosting {
+  const bomLines = data.bomLines.filter((line) => line.itemId === workOrder.itemId);
+  const issues = data.materialIssues.filter(
+    (issue) =>
+      issue.workOrderId === workOrder.id && issue.status !== "Cancelled",
+  );
+  let missingMaterialRates = 0;
+  const plannedMaterialCost = bomLines.reduce((sum, line) => {
+    const matching = issues.filter(
+      (issue) => issue.materialId === line.materialId && issue.unitCostSnapshot > 0,
+    );
+    const issuedQuantity = matching.reduce((total, issue) => total + issue.quantity, 0);
+    const weightedRate =
+      issuedQuantity > 0
+        ? matching.reduce(
+            (total, issue) => total + issue.quantity * issue.unitCostSnapshot,
+            0,
+          ) / issuedQuantity
+        : 0;
+    if (weightedRate <= 0) missingMaterialRates += 1;
+    return (
+      sum +
+      calculateBomRequirement(line, workOrder.totalPairs).requiredQuantity *
+        weightedRate
+    );
+  }, 0);
+  const postedIssues = issues.filter((issue) => issue.status === "Posted");
+  const actualMaterialCost = postedIssues.reduce(
+    (sum, issue) => sum + issue.totalCost,
+    0,
+  );
+  const wastageCost = postedIssues.reduce(
+    (sum, issue) => sum + issue.wastageQuantity * issue.unitCostSnapshot,
+    0,
+  );
+  const assignments = data.stageAssignments.filter(
+    (assignment) => assignment.workOrderId === workOrder.id,
+  );
+  const plannedLabourCost = assignments.reduce(
+    (sum, assignment) =>
+      sum + assignment.targetPairs * assignment.ratePerGoodPairSnapshot,
+    0,
+  );
+  const verified = data.productionEntries.filter(
+    (entry) => entry.workOrderId === workOrder.id && entry.status === "Verified",
+  );
+  const actualLabourCost = verified.reduce(
+    (sum, entry) => sum + entry.calculatedWage,
+    0,
+  );
+  const packing = data.packingApprovals.find(
+    (approval) => approval.workOrderId === workOrder.id,
+  );
+  const finalAssignment = [...assignments].sort((a, b) => b.sequence - a.sequence)[0];
+  const outputPairs =
+    packing?.approvedPairs ??
+    verified
+      .filter((entry) => entry.assignmentId === finalAssignment?.id)
+      .reduce((sum, entry) => sum + entry.goodPairs, 0);
+  const plannedTotalCost = plannedMaterialCost + plannedLabourCost;
+  const actualTotalCost = actualMaterialCost + actualLabourCost;
+
+  return {
+    workOrderId: workOrder.id,
+    plannedMaterialCost: moneyNumber(plannedMaterialCost),
+    actualMaterialCost: moneyNumber(actualMaterialCost),
+    materialVariance: moneyNumber(actualMaterialCost - plannedMaterialCost),
+    wastageCost: moneyNumber(wastageCost),
+    plannedLabourCost: moneyNumber(plannedLabourCost),
+    actualLabourCost: moneyNumber(actualLabourCost),
+    labourVariance: moneyNumber(actualLabourCost - plannedLabourCost),
+    plannedTotalCost: moneyNumber(plannedTotalCost),
+    actualTotalCost: moneyNumber(actualTotalCost),
+    totalVariance: moneyNumber(actualTotalCost - plannedTotalCost),
+    outputPairs,
+    plannedCostPerPair:
+      workOrder.totalPairs > 0
+        ? moneyNumber(plannedTotalCost / workOrder.totalPairs)
+        : 0,
+    actualCostPerPair:
+      outputPairs > 0 ? moneyNumber(actualTotalCost / outputPairs) : 0,
+    rejectPairs: verified.reduce((sum, entry) => sum + entry.rejectPairs, 0),
+    reworkPairs: verified.reduce((sum, entry) => sum + entry.reworkPairs, 0),
+    missingMaterialRates,
+  };
+}
+
 function performanceRows(
   entries: FactoryProductionEntry[],
   keyFor: (entry: FactoryProductionEntry) => { key: string; label: string },
