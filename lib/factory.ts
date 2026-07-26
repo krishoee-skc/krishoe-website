@@ -273,6 +273,161 @@ export type FactoryStageCode = (typeof factoryStages)[number]["code"];
 
 const factoryStageCodeSet = new Set<string>(factoryStages.map((stage) => stage.code));
 
+export type FactoryDashboard = {
+  todayGoodPairs: number;
+  todayRejectPairs: number;
+  todayReworkPairs: number;
+  overdueWorkOrders: number;
+  readyForStockPairs: number;
+  pendingVerificationEntries: number;
+  estimatedWagesPending: number;
+  workersWithoutEntry: number;
+  materialVarianceLines: number;
+  stagePending: Array<{
+    stageCode: FactoryStageCode;
+    stageName: string;
+    pendingPairs: number;
+    activeTasks: number;
+  }>;
+  topOutputWorker: { workerName: string; pairs: number } | null;
+  highestQualityWorker: {
+    workerName: string;
+    qualityRate: number;
+    inspectedPairs: number;
+  } | null;
+};
+
+export function getFactoryDashboard(
+  data: FactoryData,
+  today = new Date().toISOString().slice(0, 10),
+): FactoryDashboard {
+  const activeOrderIds = new Set(
+    data.workOrders
+      .filter((order) => !["Completed", "Cancelled"].includes(order.status))
+      .map((order) => order.id),
+  );
+  const verified = data.productionEntries.filter((entry) => entry.status === "Verified");
+  const submitted = data.productionEntries.filter((entry) => entry.status === "Submitted");
+  const todayVerified = verified.filter((entry) => entry.entryDate === today);
+  const verifiedGoodByAssignment = new Map<string, number>();
+  for (const entry of verified) {
+    verifiedGoodByAssignment.set(
+      entry.assignmentId,
+      (verifiedGoodByAssignment.get(entry.assignmentId) ?? 0) + entry.goodPairs,
+    );
+  }
+
+  const stagePending = factoryStages.map((stage) => {
+    const tasks = data.stageAssignments.filter(
+      (assignment) =>
+        activeOrderIds.has(assignment.workOrderId) &&
+        assignment.stageCode === stage.code &&
+        assignment.status !== "Completed",
+    );
+    return {
+      stageCode: stage.code,
+      stageName: stage.name,
+      pendingPairs: tasks.reduce(
+        (sum, task) =>
+          sum +
+          Math.max(
+            0,
+            task.targetPairs - (verifiedGoodByAssignment.get(task.id) ?? 0),
+          ),
+        0,
+      ),
+      activeTasks: tasks.length,
+    };
+  });
+
+  const outputByWorker = new Map<string, number>();
+  const qualityByWorker = new Map<
+    string,
+    { workerName: string; good: number; inspected: number }
+  >();
+  for (const entry of todayVerified) {
+    outputByWorker.set(
+      entry.workerName,
+      (outputByWorker.get(entry.workerName) ?? 0) + entry.goodPairs,
+    );
+  }
+  for (const entry of verified) {
+    const quality = qualityByWorker.get(entry.workerId) ?? {
+      workerName: entry.workerName,
+      good: 0,
+      inspected: 0,
+    };
+    quality.good += entry.goodPairs;
+    quality.inspected += entry.goodPairs + entry.rejectPairs + entry.reworkPairs;
+    qualityByWorker.set(entry.workerId, quality);
+  }
+  const topOutput = [...outputByWorker.entries()].sort((a, b) => b[1] - a[1])[0];
+  const highestQuality = [...qualityByWorker.values()]
+    .filter((entry) => entry.inspected > 0)
+    .map((entry) => ({
+      workerName: entry.workerName,
+      qualityRate: Math.round((entry.good / entry.inspected) * 10000) / 100,
+      inspectedPairs: entry.inspected,
+    }))
+    .sort(
+      (a, b) =>
+        b.qualityRate - a.qualityRate || b.inspectedPairs - a.inspectedPairs,
+    )[0];
+
+  const workersWithEntryToday = new Set(
+    data.productionEntries
+      .filter((entry) => entry.entryDate === today)
+      .map((entry) => entry.workerId),
+  );
+  const expectedWorkers = new Set(
+    data.stageAssignments
+      .filter(
+        (entry) =>
+          activeOrderIds.has(entry.workOrderId) &&
+          ["Ready", "In Progress", "Paused"].includes(entry.status),
+      )
+      .map((entry) => entry.workerId),
+  );
+
+  let materialVarianceLines = 0;
+  for (const order of data.workOrders.filter((entry) => activeOrderIds.has(entry.id))) {
+    const plan = getFactoryMaterialPlan({
+      workOrder: order,
+      bomLines: data.bomLines,
+      materialIssues: data.materialIssues,
+    });
+    materialVarianceLines += plan.filter(
+      (entry) => Math.abs(entry.varianceQuantity) > 0.0001,
+    ).length;
+  }
+
+  return {
+    todayGoodPairs: todayVerified.reduce((sum, entry) => sum + entry.goodPairs, 0),
+    todayRejectPairs: todayVerified.reduce((sum, entry) => sum + entry.rejectPairs, 0),
+    todayReworkPairs: todayVerified.reduce((sum, entry) => sum + entry.reworkPairs, 0),
+    overdueWorkOrders: data.workOrders.filter(
+      (order) => activeOrderIds.has(order.id) && order.dueDate < today,
+    ).length,
+    readyForStockPairs: data.workOrders
+      .filter((order) => order.status === "Ready for Stock")
+      .reduce((sum, order) => sum + order.totalPairs, 0),
+    pendingVerificationEntries: submitted.length,
+    estimatedWagesPending: submitted.reduce(
+      (sum, entry) => sum + entry.calculatedWage,
+      0,
+    ),
+    workersWithoutEntry: [...expectedWorkers].filter(
+      (workerId) => !workersWithEntryToday.has(workerId),
+    ).length,
+    materialVarianceLines,
+    stagePending,
+    topOutputWorker: topOutput
+      ? { workerName: topOutput[0], pairs: topOutput[1] }
+      : null,
+    highestQualityWorker: highestQuality ?? null,
+  };
+}
+
 export function isFactoryStageCode(value: string): value is FactoryStageCode {
   return factoryStageCodeSet.has(value);
 }

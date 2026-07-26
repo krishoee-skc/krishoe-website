@@ -23,6 +23,7 @@ import {
   factoryStages,
   factoryWorkOrderTracePath,
   getFactoryData,
+  getFactoryDashboard,
   getFactoryAssignmentSizePlan,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
@@ -96,6 +97,7 @@ export default async function FactoryErpPage({
     workerTasks: operations.workerTasks,
   });
   const reviewCount = audit.unlinkedLegacyTaskCount + audit.ambiguousLegacyTaskCount;
+  const dashboard = getFactoryDashboard(factory);
 
   return (
     <section className="p-4 sm:p-6">
@@ -113,6 +115,113 @@ export default async function FactoryErpPage({
           Owner-controlled posting · audit protected
         </div>
       </header>
+
+      <article className="mt-6 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-clay">
+              Live command center
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-brand-green-ink">
+              Today&apos;s factory pulse
+            </h2>
+          </div>
+          <span className="rounded-full bg-brand-green-ink px-3 py-1.5 text-xs font-black text-white">
+            Verified production only
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Good pairs today"
+            value={dashboard.todayGoodPairs}
+            detail={`${dashboard.todayRejectPairs} reject · ${dashboard.todayReworkPairs} rework`}
+            tone="good"
+          />
+          <StatCard
+            label="Overdue orders"
+            value={dashboard.overdueWorkOrders}
+            detail="active Work Orders past due date"
+            tone={dashboard.overdueWorkOrders > 0 ? "warn" : "good"}
+          />
+          <StatCard
+            label="Ready for stock"
+            value={dashboard.readyForStockPairs}
+            detail="packed pairs waiting Owner posting"
+            tone={dashboard.readyForStockPairs > 0 ? "warn" : "default"}
+          />
+          <StatCard
+            label="Needs verification"
+            value={dashboard.pendingVerificationEntries}
+            detail={`estimated wage Rs. ${dashboard.estimatedWagesPending.toLocaleString("en-IN")}`}
+            tone={dashboard.pendingVerificationEntries > 0 ? "warn" : "good"}
+          />
+        </div>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+          <div>
+            <h3 className="text-sm font-black text-brand-green-ink">Stage-wise pending pairs</h3>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {dashboard.stagePending.map((stage) => (
+                <div key={stage.stageCode} className="rounded-2xl border border-gray-100 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-black text-gray-700">{stage.stageName}</p>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                      stage.pendingPairs > 0
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-emerald-100 text-emerald-800"
+                    }`}>
+                      {stage.pendingPairs}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    {stage.activeTasks} active tasks
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-700">
+                Top output today
+              </p>
+              <p className="mt-2 text-lg font-black text-brand-green-ink">
+                {dashboard.topOutputWorker?.workerName ?? "No verified entry"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {dashboard.topOutputWorker
+                  ? `${dashboard.topOutputWorker.pairs} good pairs`
+                  : "Production verification will update this automatically."}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-blue-100 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-wider text-blue-700">
+                Highest quality
+              </p>
+              <p className="mt-2 text-lg font-black text-brand-green-ink">
+                {dashboard.highestQualityWorker?.workerName ?? "No verified entry"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {dashboard.highestQualityWorker
+                  ? `${dashboard.highestQualityWorker.qualityRate}% · ${dashboard.highestQualityWorker.inspectedPairs} inspected`
+                  : "Quality rank appears after QC verification."}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-amber-100 bg-white p-3">
+                <p className="text-2xl font-black text-amber-800">{dashboard.workersWithoutEntry}</p>
+                <p className="mt-1 text-[11px] font-bold text-gray-500">workers without today&apos;s entry</p>
+              </div>
+              <div className="rounded-2xl border border-orange-100 bg-white p-3">
+                <p className="text-2xl font-black text-orange-800">{dashboard.materialVarianceLines}</p>
+                <p className="mt-1 text-[11px] font-bold text-gray-500">material lines with variance</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

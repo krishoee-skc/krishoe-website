@@ -10,6 +10,7 @@ import {
   normalizeFactoryHandoverSizes,
   getFactoryPackingReadiness,
   getFactoryMaterialPlan,
+  getFactoryDashboard,
   finalizeFactoryMaterialIssue,
   returnFactoryMaterialIssue,
   normalizeWorkOrderSizes,
@@ -487,5 +488,90 @@ describe("factory lot trace links", () => {
         "WO-1",
       ),
     ).toBe("https://krishoe-website.vercel.app/admin/factory/work-orders/WO-1");
+  });
+});
+
+describe("factory command dashboard", () => {
+  it("uses verified daily output and assignment balances for live KPIs", () => {
+    const data = {
+      workOrders: [
+        {
+          id: "wo-dashboard",
+          workOrderNumber: "WO-DASH",
+          dueDate: "2026-07-25",
+          status: "In Progress",
+        },
+        {
+          id: "wo-ready",
+          workOrderNumber: "WO-READY",
+          dueDate: "2026-07-30",
+          status: "Ready for Stock",
+          totalPairs: 12,
+        },
+      ],
+      stageAssignments: [
+        {
+          id: "assignment-1",
+          workOrderId: "wo-dashboard",
+          stageCode: "upper",
+          workerId: "worker-1",
+          workerName: "Ram",
+          targetPairs: 10,
+          status: "In Progress",
+        },
+        {
+          id: "assignment-2",
+          workOrderId: "wo-ready",
+          stageCode: "packing",
+          workerId: "worker-2",
+          workerName: "Sita",
+          targetPairs: 12,
+          status: "Ready",
+        },
+      ],
+      productionEntries: [
+        {
+          id: "entry-verified",
+          assignmentId: "assignment-1",
+          workerId: "worker-1",
+          workerName: "Ram",
+          entryDate: "2026-07-26",
+          goodPairs: 6,
+          rejectPairs: 1,
+          reworkPairs: 1,
+          calculatedWage: 60,
+          status: "Verified",
+        },
+        {
+          id: "entry-submitted",
+          assignmentId: "assignment-1",
+          workerId: "worker-1",
+          workerName: "Ram",
+          entryDate: "2026-07-26",
+          goodPairs: 2,
+          rejectPairs: 0,
+          reworkPairs: 0,
+          calculatedWage: 20,
+          status: "Submitted",
+        },
+      ],
+      bomLines: [],
+      materialIssues: [],
+    } as unknown as FactoryData;
+
+    const dashboard = getFactoryDashboard(data, "2026-07-26");
+    expect(dashboard.todayGoodPairs).toBe(6);
+    expect(dashboard.todayRejectPairs).toBe(1);
+    expect(dashboard.pendingVerificationEntries).toBe(1);
+    expect(dashboard.estimatedWagesPending).toBe(20);
+    expect(dashboard.overdueWorkOrders).toBe(1);
+    expect(dashboard.readyForStockPairs).toBe(12);
+    expect(dashboard.workersWithoutEntry).toBe(1);
+    expect(
+      dashboard.stagePending.find((entry) => entry.stageCode === "upper")
+        ?.pendingPairs,
+    ).toBe(4);
+    expect(dashboard.topOutputWorker).toEqual({ workerName: "Ram", pairs: 6 });
+    expect(dashboard.highestQualityWorker?.qualityRate).toBe(75);
   });
 });
