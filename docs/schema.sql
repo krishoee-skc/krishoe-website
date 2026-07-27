@@ -856,6 +856,12 @@ CREATE TABLE IF NOT EXISTS production_qc_postings (
 
 ALTER TABLE production_qc_postings
   ADD COLUMN IF NOT EXISTS work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT;
+ALTER TABLE production_qc_postings
+  ADD COLUMN IF NOT EXISTS reversed_at TIMESTAMPTZ;
+ALTER TABLE production_qc_postings
+  ADD COLUMN IF NOT EXISTS reversal_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE production_qc_postings
+  ADD COLUMN IF NOT EXISTS reversal_stock_movement_id TEXT REFERENCES stock_movements(id) ON DELETE RESTRICT;
 
 CREATE INDEX IF NOT EXISTS production_qc_postings_item_idx
   ON production_qc_postings(item_id, qc_date DESC);

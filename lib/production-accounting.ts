@@ -349,7 +349,8 @@ export async function getProductionControlSummary() {
           FROM production_work_entries
           WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_earned_wage,
          (SELECT coalesce(sum(total_pairs), 0)
-          FROM production_qc_postings WHERE qc_date = CURRENT_DATE) AS today_stock_pairs,
+          FROM production_qc_postings
+          WHERE qc_date = CURRENT_DATE AND reversed_at IS NULL) AS today_stock_pairs,
          (SELECT count(*) FROM production_stage_handovers
           WHERE sent_pairs <> received_pairs) AS handover_mismatches,
          (SELECT coalesce(sum(greatest(
@@ -519,6 +520,7 @@ export async function getProductionAccountingSnapshot() {
          catalog_product_name_snapshot, packing_employee_name_snapshot,
          total_pairs, rejected_pairs, stock_movement_id, approved_by
        FROM production_qc_postings
+       WHERE reversed_at IS NULL
        ORDER BY qc_date DESC, created_at DESC LIMIT 30`,
     ),
     queryPostgres<BalanceRow>(
@@ -909,7 +911,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
          catalog_product_name_snapshot, packing_employee_name_snapshot,
          total_pairs, rejected_pairs, stock_movement_id, approved_by
        FROM production_qc_postings
-       WHERE work_order_id = $1 ORDER BY qc_date, created_at`,
+       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY qc_date, created_at`,
       [workOrderId],
     ),
   ]);
@@ -1363,7 +1365,8 @@ export async function reverseProductionWorkEntry(input: {
 
     if (entry.work_order_id) {
       const qcRows = await db.query<{ count: number | string }>(
-        `SELECT count(*) AS count FROM production_qc_postings WHERE work_order_id = $1`,
+        `SELECT count(*) AS count FROM production_qc_postings
+         WHERE work_order_id = $1 AND reversed_at IS NULL`,
         [entry.work_order_id],
       );
       if (Number(qcRows[0]?.count ?? 0) > 0) {
@@ -1523,7 +1526,7 @@ export async function approvePackingQcAndPostStock(input: {
 
       const previous = await db.query<{ accounted: number | string }>(
         `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
-         FROM production_qc_postings WHERE work_order_id = $1`,
+         FROM production_qc_postings WHERE work_order_id = $1 AND reversed_at IS NULL`,
         [input.workOrderId],
       );
       if (Number(previous[0]?.accounted ?? 0) + input.totalPairs + input.rejectedPairs > Number(workOrder.planned_pairs)) {
@@ -1566,7 +1569,7 @@ export async function approvePackingQcAndPostStock(input: {
     if (workOrder) {
       const totals = await db.query<{ accounted: number | string }>(
         `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
-         FROM production_qc_postings WHERE work_order_id = $1`,
+         FROM production_qc_postings WHERE work_order_id = $1 AND reversed_at IS NULL`,
         [workOrder.id],
       );
       if (Number(totals[0]?.accounted ?? 0) >= Number(workOrder.planned_pairs)) {
@@ -1580,5 +1583,117 @@ export async function approvePackingQcAndPostStock(input: {
     }
 
     return { id: postingId, approvalReference, stockMovementId: movement.id };
+  });
+}
+
+export async function reversePackingQcAndStock(input: {
+  postingId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  return transactionPostgres("reverse packing QC and stock", async (db) => {
+    const postingRows = await db.query<{
+      id: string;
+      approval_reference: string;
+      work_order_id: string | null;
+      catalog_product_name_snapshot: string;
+      total_pairs: number | string;
+      stock_movement_id: string;
+    }>(
+      `SELECT id, approval_reference, work_order_id, catalog_product_name_snapshot,
+         total_pairs, stock_movement_id
+       FROM production_qc_postings
+       WHERE id = $1 AND reversed_at IS NULL FOR UPDATE`,
+      [input.postingId],
+    );
+    const posting = postingRows[0];
+    if (!posting) throw new Error("Active QC posting was not found or is already reversed.");
+
+    const movementRows = await db.query<{
+      id: string;
+      design: string;
+      channel: string;
+      size_run: string;
+      type: string;
+      pairs: number | string;
+    }>(
+      `SELECT id, design, channel, size_run, type, pairs
+       FROM stock_movements WHERE id = $1 FOR UPDATE`,
+      [posting.stock_movement_id],
+    );
+    const movement = movementRows[0];
+    if (!movement || movement.type !== "Production In") {
+      throw new Error("Original Production In movement was not found.");
+    }
+
+    const stockRows = await db.query<{ id: string; stock_pairs: number | string }>(
+      `SELECT id, stock_pairs FROM finished_stock
+       WHERE lower(design) = lower($1) AND channel = $2
+       ORDER BY CASE WHEN size_run = $3 THEN 0 WHEN size_run = 'Mixed' THEN 1 ELSE 2 END,
+         created_at DESC
+       LIMIT 1 FOR UPDATE`,
+      [movement.design, movement.channel, movement.size_run || "Mixed"],
+    );
+    const stock = stockRows[0];
+    const pairs = Number(posting.total_pairs);
+    if (!stock || Number(stock.stock_pairs) < pairs) {
+      throw new Error(
+        "Finished stock is lower than this QC posting. Return sold/dispatched pairs before reversal.",
+      );
+    }
+
+    await db.query(
+      `UPDATE finished_stock SET stock_pairs = stock_pairs - $2, updated_at = now()
+       WHERE id = $1`,
+      [stock.id, pairs],
+    );
+
+    const reversalMovementId = id("MOVE");
+    await db.query(
+      `INSERT INTO stock_movements
+         (id, created_at, design, channel, size_run, type, pairs, note)
+       VALUES ($1, now(), $2, $3, $4, 'Adjustment', $5, $6)`,
+      [
+        reversalMovementId, movement.design, movement.channel, movement.size_run || "Mixed",
+        pairs, `${posting.approval_reference} reversal · ${input.reason}`,
+      ],
+    );
+    await db.query(
+      `UPDATE production_qc_postings SET reversed_at = now(), reversal_reason = $2,
+         reversal_stock_movement_id = $3 WHERE id = $1`,
+      [
+        posting.id, `${input.reason} · Reversed by ${input.reversedBy}`,
+        reversalMovementId,
+      ],
+    );
+
+    if (posting.work_order_id) {
+      const orderRows = await db.query<{ planned_pairs: number | string }>(
+        `SELECT planned_pairs FROM production_work_orders WHERE id = $1 FOR UPDATE`,
+        [posting.work_order_id],
+      );
+      const totals = await db.query<{ accounted: number | string }>(
+        `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
+         FROM production_qc_postings
+         WHERE work_order_id = $1 AND reversed_at IS NULL`,
+        [posting.work_order_id],
+      );
+      const completed =
+        Number(totals[0]?.accounted ?? 0) >= Number(orderRows[0]?.planned_pairs ?? 0);
+      await db.query(
+        `UPDATE production_work_orders
+         SET status = $2, current_stage = 'Packing / QC', updated_at = now()
+         WHERE id = $1 AND status <> 'Cancelled'`,
+        [posting.work_order_id, completed ? "Completed" : "Ready for QC"],
+      );
+    }
+
+    return {
+      approvalReference: posting.approval_reference,
+      workOrderId: posting.work_order_id ?? "",
+      productName: posting.catalog_product_name_snapshot,
+      pairs,
+      reversalMovementId,
+    };
   });
 }

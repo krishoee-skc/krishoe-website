@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
+import { reversePackingQcAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Work Order Tracking | KRISHOE Admin" };
@@ -128,6 +130,35 @@ export default async function WorkOrderDetailPage({
             <article key={row.id} className="rounded-xl bg-white p-3 text-sm">
               <p className="font-black text-brand-green-ink">{row.approvalReference} · +{row.totalPairs} good pairs</p>
               <p className="mt-1 text-gray-500">{row.qcDate} · reject {row.rejectedPairs} · {row.packingEmployeeName || "Owner verified"} · stock movement {row.stockMovementId}</p>
+              <details className="mt-3 border-t border-gray-100 pt-3">
+                <summary className="cursor-pointer text-xs font-black text-brand-clay">
+                  Correct this QC/stock posting
+                </summary>
+                <form action={reversePackingQcAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                  <input type="hidden" name="postingId" value={row.id} />
+                  <p className="text-xs leading-5 text-red-900">
+                    This removes {row.totalPairs} pairs from finished stock and returns the Work Order to Ready for QC.
+                    It is blocked if those pairs have already left available stock.
+                  </p>
+                  <input
+                    name="reason"
+                    minLength={5}
+                    className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm"
+                    placeholder="Reason for QC/stock reversal"
+                    required
+                  />
+                  <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                    <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                    I confirm this QC and stock posting is incorrect.
+                  </label>
+                  <FormSubmitButton
+                    className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white"
+                    pendingLabel="Reversing stock…"
+                  >
+                    Reverse QC & stock
+                  </FormSubmitButton>
+                </form>
+              </details>
             </article>
           ))}
           {detail.qcPostings.length === 0 ? <p className="text-sm text-emerald-800">Not posted to finished stock yet.</p> : null}

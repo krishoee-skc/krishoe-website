@@ -16,6 +16,7 @@ import {
   createProductionHandover,
   mapProductionItemToCatalog,
   reverseProductionWorkEntry,
+  reversePackingQcAndStock,
   reverseWorkerPayment,
   setProductionStageRate,
   setProductionItemMaterial,
@@ -313,6 +314,34 @@ export async function reverseProductionWorkEntryAction(formData: FormData) {
   if (result.workOrderId) {
     revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
   }
+  refresh();
+}
+
+export async function reversePackingQcAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  if (text(formData, "reverseConfirmed") !== "yes") {
+    throw new Error("Confirm the QC and finished-stock reversal.");
+  }
+  const reason = text(formData, "reason");
+  if (reason.length < 5) {
+    throw new Error("Write a clear reversal reason (at least 5 characters).");
+  }
+  const result = await reversePackingQcAndStock({
+    postingId: text(formData, "postingId"),
+    reason,
+    reversedBy: approvedBy,
+  });
+  await reportingErrors("sync catalog after QC reversal", () =>
+    syncProductCatalogStockWithFinishedStock(),
+  );
+  await recordAdminAuditEvent(
+    "production_qc_stock_reverse",
+    `${result.approvalReference}: ${result.pairs} ${result.productName} pairs reversed; ${reason}.`,
+  );
+  if (result.workOrderId) {
+    revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
+  }
+  revalidatePath("/admin/stock");
   refresh();
 }
 

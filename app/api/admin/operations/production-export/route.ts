@@ -76,6 +76,9 @@ async function getRows(type: ExportType) {
        qc.packing_employee_name_snapshot AS "packingQcWorker",
        qc.total_pairs AS "goodPairs", qc.rejected_pairs AS "rejectedPairs",
        qc.stock_movement_id AS "stockMovementId", qc.approved_by AS "approvedBy",
+       CASE WHEN qc.reversed_at IS NULL THEN 'Active' ELSE 'Reversed' END AS status,
+       qc.reversal_reason AS "reversalReason",
+       qc.reversal_stock_movement_id AS "reversalStockMovementId",
        qc.created_at AS "createdAt" FROM production_qc_postings qc
        LEFT JOIN production_work_orders orders ON orders.id = qc.work_order_id
        ORDER BY qc.qc_date DESC, qc.created_at DESC`);
