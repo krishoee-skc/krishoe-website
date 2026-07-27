@@ -18,6 +18,7 @@ import {
 } from "./actions";
 import {
   getProductionAccountingSnapshot,
+  getProductionAcceptanceAudit,
   getProductionControlSummary,
   getWeeklyWorkerSettlements,
 } from "@/lib/production-accounting";
@@ -61,10 +62,11 @@ export default async function ProductionAccountsPage({
     ? query.settlementDate!
     : date;
   const weeklyPeriod = saturdayToFridayPeriod(reportDate);
-  const [data, control, weeklySettlements] = await Promise.all([
+  const [data, control, weeklySettlements, acceptance] = await Promise.all([
     getProductionAccountingSnapshot(),
     getProductionControlSummary(),
     getWeeklyWorkerSettlements(weeklyPeriod),
+    getProductionAcceptanceAudit(),
   ]);
   const activeItems = data.items.filter((item) => item.status === "Active");
   const weeklyPayable = weeklySettlements.reduce((total, row) => total + row.payable, 0);
@@ -138,6 +140,48 @@ export default async function ProductionAccountsPage({
           ) : null}
         </div>
       ) : null}
+
+      <div className={`rounded-2xl border p-4 shadow-sm sm:p-5 ${
+        acceptance.integrityIssues === 0
+          ? "border-emerald-200 bg-emerald-50"
+          : "border-red-200 bg-red-50"
+      }`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Production chain audit</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">
+              {acceptance.integrityIssues === 0 ? "Core data integrity passed" : `${acceptance.integrityIssues} integrity issue(s)`}
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Read-only check; it never creates, changes or deletes factory transactions.
+            </p>
+          </div>
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${
+            acceptance.integrityIssues === 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+          }`}>
+            {acceptance.integrityIssues === 0 ? "SAFE" : "REVIEW"}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            ["Worker links", acceptance.orphanWorkEntries],
+            ["Completed without QC", acceptance.completedWithoutQc],
+            ["QC-stock links", acceptance.qcWithoutStockMovement],
+            ["Active order links", acceptance.activeOrderItemMismatch],
+            ["Duplicate submissions", acceptance.duplicateSubmissionKeys],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-xl bg-white p-3 text-sm">
+              <p className="text-xs font-bold text-gray-500">{label}</p>
+              <p className={`mt-1 text-xl font-black ${Number(value) === 0 ? "text-emerald-700" : "text-red-700"}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+          <span className="rounded-full bg-white px-3 py-1">Items needing 4 wage rates: {acceptance.itemsMissingRates}</span>
+          <span className="rounded-full bg-white px-3 py-1">Items needing BOM: {acceptance.itemsMissingBom}</span>
+          <span className="rounded-full bg-white px-3 py-1">Items needing stock link: {acceptance.itemsMissingCatalog}</span>
+        </div>
+      </div>
 
       <div className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">Stage-wise pending Work Orders</h2>

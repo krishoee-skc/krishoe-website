@@ -450,6 +450,77 @@ export async function getProductionControlSummary() {
   };
 }
 
+export async function getProductionAcceptanceAudit() {
+  const rows = await queryPostgres<{
+    orphan_work_entries: number | string;
+    completed_without_qc: number | string;
+    qc_without_stock_movement: number | string;
+    active_order_item_mismatch: number | string;
+    duplicate_submission_keys: number | string;
+    items_missing_rates: number | string;
+    items_missing_bom: number | string;
+    items_missing_catalog: number | string;
+  }>(
+    "production acceptance audit",
+    `SELECT
+       (SELECT count(*) FROM production_work_entries entries
+        LEFT JOIN hr_employees employees ON employees.id = entries.employee_id
+        WHERE employees.id IS NULL) AS orphan_work_entries,
+       (SELECT count(*) FROM production_work_orders orders
+        WHERE orders.status = 'Completed'
+          AND NOT EXISTS (
+            SELECT 1 FROM production_qc_postings qc
+            WHERE qc.work_order_id = orders.id AND qc.reversed_at IS NULL
+          )) AS completed_without_qc,
+       (SELECT count(*) FROM production_qc_postings qc
+        LEFT JOIN stock_movements movements ON movements.id = qc.stock_movement_id
+        WHERE qc.reversed_at IS NULL AND movements.id IS NULL) AS qc_without_stock_movement,
+       (SELECT count(*) FROM production_work_orders orders
+        LEFT JOIN production_items items ON items.id = orders.item_id
+        WHERE orders.status NOT IN ('Completed', 'Cancelled')
+          AND (items.id IS NULL OR items.status <> 'Active')) AS active_order_item_mismatch,
+       (SELECT count(*) FROM (
+          SELECT source_submission_key FROM production_work_entries
+          WHERE source_submission_key IS NOT NULL
+          GROUP BY source_submission_key HAVING count(*) > 1
+        ) duplicates) AS duplicate_submission_keys,
+       (SELECT count(*) FROM production_items items
+        WHERE items.status = 'Active' AND items.production_type <> 'Resale'
+          AND (
+            SELECT count(DISTINCT rates.stage) FROM production_stage_rates rates
+            WHERE rates.item_id = items.id AND rates.status = 'Active'
+              AND rates.effective_from <= CURRENT_DATE
+          ) < 4) AS items_missing_rates,
+       (SELECT count(*) FROM production_items items
+        WHERE items.status = 'Active' AND items.production_type <> 'Resale'
+          AND NOT EXISTS (
+            SELECT 1 FROM production_item_materials bom WHERE bom.item_id = items.id
+          )) AS items_missing_bom,
+       (SELECT count(*) FROM production_items items
+        WHERE items.status = 'Active' AND items.production_type <> 'Resale'
+          AND items.catalog_product_id IS NULL) AS items_missing_catalog`,
+  );
+  const row = rows[0];
+  const count = (value: number | string | undefined) => Number(value ?? 0);
+  const integrityIssues =
+    count(row?.orphan_work_entries) +
+    count(row?.completed_without_qc) +
+    count(row?.qc_without_stock_movement) +
+    count(row?.active_order_item_mismatch) +
+    count(row?.duplicate_submission_keys);
+  return {
+    integrityIssues,
+    orphanWorkEntries: count(row?.orphan_work_entries),
+    completedWithoutQc: count(row?.completed_without_qc),
+    qcWithoutStockMovement: count(row?.qc_without_stock_movement),
+    activeOrderItemMismatch: count(row?.active_order_item_mismatch),
+    duplicateSubmissionKeys: count(row?.duplicate_submission_keys),
+    itemsMissingRates: count(row?.items_missing_rates),
+    itemsMissingBom: count(row?.items_missing_bom),
+    itemsMissingCatalog: count(row?.items_missing_catalog),
+  };
+}
+
 export async function getProductionPeriodSummary(period: {
   start: string;
   end: string;
