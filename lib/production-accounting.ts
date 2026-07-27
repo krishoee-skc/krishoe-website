@@ -1339,6 +1339,60 @@ export async function createProductionWorkOrder(input: {
   });
 }
 
+export async function updateProductionWorkOrderSchedule(input: {
+  workOrderId: string;
+  dueDate: string;
+  priority: ProductionWorkOrder["priority"];
+}) {
+  const rows = await queryPostgres<{ work_order_number: string }>(
+    "update Work Order schedule",
+    `UPDATE production_work_orders
+     SET due_date = nullif($2, '')::date, priority = $3, updated_at = now()
+     WHERE id = $1 AND status NOT IN ('Completed', 'Cancelled')
+     RETURNING work_order_number`,
+    [input.workOrderId, input.dueDate, input.priority],
+  );
+  if (!rows[0]) throw new Error("Open Work Order was not found.");
+  return { workOrderNumber: rows[0].work_order_number };
+}
+
+export async function cancelProductionWorkOrder(input: {
+  workOrderId: string;
+  reason: string;
+  cancelledBy: string;
+}) {
+  return transactionPostgres("cancel production Work Order", async (db) => {
+    const orders = await db.query<{ work_order_number: string; status: ProductionWorkOrder["status"] }>(
+      `SELECT work_order_number, status FROM production_work_orders
+       WHERE id = $1 FOR UPDATE`,
+      [input.workOrderId],
+    );
+    const order = orders[0];
+    if (!order || order.status === "Cancelled") {
+      throw new Error("Work Order was not found or is already cancelled.");
+    }
+    if (order.status === "Completed") {
+      throw new Error("Completed Work Order cannot be cancelled.");
+    }
+    const qcRows = await db.query<{ count: number | string }>(
+      `SELECT count(*) AS count FROM production_qc_postings
+       WHERE work_order_id = $1 AND reversed_at IS NULL`,
+      [input.workOrderId],
+    );
+    if (Number(qcRows[0]?.count ?? 0) > 0) {
+      throw new Error("Reverse active QC/finished-stock postings before cancelling this Work Order.");
+    }
+    await db.query(
+      `UPDATE production_work_orders
+       SET status = 'Cancelled', cancelled_at = now(), cancellation_reason = $2,
+         updated_at = now()
+       WHERE id = $1`,
+      [input.workOrderId, `${input.reason} · Cancelled by ${input.cancelledBy}`],
+    );
+    return { workOrderNumber: order.work_order_number };
+  });
+}
+
 export async function createProductionHandover(input: {
   workOrderId: string;
   handoverDate: string;

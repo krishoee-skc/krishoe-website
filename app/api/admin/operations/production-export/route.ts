@@ -35,7 +35,8 @@ async function getRows(type: ExportType) {
       `SELECT work_order_number AS "workOrderNumber", item_name_snapshot AS "itemName",
        colour, size_breakdown::text AS "sizeBreakdown", planned_pairs AS "plannedPairs",
        due_date AS "dueDate", priority, current_stage AS "currentStage", status,
-       created_by AS "createdBy", created_at AS "createdAt"
+       created_by AS "createdBy", cancelled_at AS "cancelledAt",
+       cancellation_reason AS "cancellationReason", created_at AS "createdAt"
        FROM production_work_orders ORDER BY created_at DESC`);
   }
   if (type === "work-entries") {

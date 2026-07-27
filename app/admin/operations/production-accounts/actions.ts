@@ -13,6 +13,7 @@ import {
   addWorkerPayment,
   approvePackingQcAndPostStock,
   approveProductionCostCard,
+  cancelProductionWorkOrder,
   createProductionWorkOrder,
   createProductionHandover,
   mapProductionItemToCatalog,
@@ -23,6 +24,7 @@ import {
   reverseWorkerPayment,
   setProductionStageRate,
   setProductionItemMaterial,
+  updateProductionWorkOrderSchedule,
 } from "@/lib/production-accounting";
 import {
   productionStages,
@@ -187,6 +189,43 @@ export async function createWorkOrderAction(formData: FormData) {
     "production_work_order_create",
     `${order.workOrderNumber}: ${order.itemName}, ${order.plannedPairs} pairs created.`,
   );
+  refresh();
+}
+
+export async function updateWorkOrderScheduleAction(formData: FormData) {
+  await ownerContext();
+  const result = await updateProductionWorkOrderSchedule({
+    workOrderId: text(formData, "workOrderId"),
+    dueDate: text(formData, "dueDate"),
+    priority: option(text(formData, "priority"), ["Normal", "High", "Urgent"] as const, "Normal"),
+  });
+  await recordAdminAuditEvent(
+    "production_work_order_schedule",
+    `${result.workOrderNumber} due date/priority updated.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
+  refresh();
+}
+
+export async function cancelWorkOrderAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  if (text(formData, "cancelConfirmed") !== "yes") {
+    throw new Error("Confirm the Work Order cancellation.");
+  }
+  const reason = text(formData, "reason");
+  if (reason.length < 5) {
+    throw new Error("Write a clear cancellation reason (at least 5 characters).");
+  }
+  const result = await cancelProductionWorkOrder({
+    workOrderId: text(formData, "workOrderId"),
+    reason,
+    cancelledBy: approvedBy,
+  });
+  await recordAdminAuditEvent(
+    "production_work_order_cancel",
+    `${result.workOrderNumber} cancelled: ${reason}.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
   refresh();
 }
 

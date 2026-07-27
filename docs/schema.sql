@@ -703,6 +703,11 @@ CREATE INDEX IF NOT EXISTS production_work_orders_status_idx
 CREATE INDEX IF NOT EXISTS production_work_orders_item_idx
   ON production_work_orders(item_id, created_at DESC);
 
+ALTER TABLE production_work_orders
+  ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+ALTER TABLE production_work_orders
+  ADD COLUMN IF NOT EXISTS cancellation_reason TEXT NOT NULL DEFAULT '';
+
 CREATE TABLE IF NOT EXISTS production_material_consumptions (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
+  cancelWorkOrderAction,
   createMaterialConsumptionAction,
   reverseHandoverAction,
   reverseMaterialConsumptionAction,
   reversePackingQcAction,
+  updateWorkOrderScheduleAction,
 } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,46 @@ export default async function WorkOrderDetailPage({
           </div>
         </div>
       </header>
+
+      {!["Completed", "Cancelled"].includes(order.status) ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <form action={updateWorkOrderScheduleAction} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="font-black text-brand-green-ink">Schedule control</h2>
+            <p className="mt-1 text-xs leading-5 text-gray-500">Update planning details without changing item, sizes or production history.</p>
+            <input type="hidden" name="workOrderId" value={order.id} />
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <input name="dueDate" type="date" defaultValue={order.dueDate} className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
+              <select name="priority" defaultValue={order.priority} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm">
+                <option>Normal</option><option>High</option><option>Urgent</option>
+              </select>
+            </div>
+            <FormSubmitButton className="mt-3 min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white" pendingLabel="Updating schedule…">
+              Update schedule
+            </FormSubmitButton>
+          </form>
+
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <h2 className="font-black text-red-950">Stop this Work Order</h2>
+            <p className="mt-1 text-xs leading-5 text-red-900">
+              Work, wage, handover and material history remain. Active QC/stock must be reversed first.
+            </p>
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-black text-red-800">Open cancellation control</summary>
+              <form action={cancelWorkOrderAction} className="mt-3 space-y-3">
+                <input type="hidden" name="workOrderId" value={order.id} />
+                <input name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm" placeholder="Reason for cancellation" required />
+                <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                  <input name="cancelConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                  I confirm production on this lot must stop.
+                </label>
+                <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Cancelling Work Order…">
+                  Cancel Work Order
+                </FormSubmitButton>
+              </form>
+            </details>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[
