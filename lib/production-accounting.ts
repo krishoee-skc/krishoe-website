@@ -384,7 +384,7 @@ export async function getProductionControlSummary() {
           FROM production_qc_postings
           WHERE qc_date = CURRENT_DATE AND reversed_at IS NULL) AS today_stock_pairs,
          (SELECT count(*) FROM production_stage_handovers
-          WHERE sent_pairs <> received_pairs) AS handover_mismatches,
+          WHERE sent_pairs <> received_pairs AND reversed_at IS NULL) AS handover_mismatches,
          (SELECT coalesce(sum(greatest(
            coalesce(earned.amount, 0) - coalesce(paid.amount, 0), 0
          )), 0)
@@ -528,6 +528,7 @@ export async function getProductionAccountingSnapshot() {
          from_stage, to_stage, from_employee_name_snapshot,
          to_employee_name_snapshot, sent_pairs, received_pairs, received_size_breakdown
        FROM production_stage_handovers
+       WHERE reversed_at IS NULL
        ORDER BY handover_date DESC, created_at DESC LIMIT 50`,
     ),
     queryPostgres<WorkRow>(
@@ -958,7 +959,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
          from_stage, to_stage, from_employee_name_snapshot,
          to_employee_name_snapshot, sent_pairs, received_pairs, received_size_breakdown
        FROM production_stage_handovers
-       WHERE work_order_id = $1 ORDER BY handover_date, created_at`,
+       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY handover_date, created_at`,
       [workOrderId],
     ),
     queryPostgres<QcPostingRow>(
@@ -1375,7 +1376,7 @@ export async function createProductionHandover(input: {
     if (input.receivedPairs > 0) {
       const previousSizes = await db.query<{ received_size_breakdown: SizeBreakdown | string }>(
         `SELECT received_size_breakdown FROM production_stage_handovers
-         WHERE work_order_id = $1 AND to_stage = $2`,
+         WHERE work_order_id = $1 AND to_stage = $2 AND reversed_at IS NULL`,
         [input.workOrderId, toStage],
       );
       assertCumulativeSizePlan(
@@ -1406,6 +1407,35 @@ export async function createProductionHandover(input: {
     );
     return { id: handoverId, workOrderNumber: order.work_order_number, toStage };
   });
+}
+
+export async function reverseProductionHandover(input: {
+  handoverId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  const rows = await queryPostgres<{
+    work_order_id: string;
+    work_order_number_snapshot: string;
+    from_stage: ProductionStage;
+    to_stage: ProductionStage | "Packing / QC";
+  }>(
+    "reverse production handover",
+    `UPDATE production_stage_handovers
+     SET reversed_at = now(), reversal_reason = $2
+     WHERE id = $1 AND reversed_at IS NULL
+     RETURNING work_order_id, work_order_number_snapshot, from_stage, to_stage`,
+    [input.handoverId, `${input.reason} · Reversed by ${input.reversedBy}`],
+  );
+  if (!rows[0]) {
+    throw new Error("Active handover was not found or has already been reversed.");
+  }
+  return {
+    workOrderId: rows[0].work_order_id,
+    workOrderNumber: rows[0].work_order_number_snapshot,
+    fromStage: rows[0].from_stage,
+    toStage: rows[0].to_stage,
+  };
 }
 
 export async function approveProductionCostCard(input: {

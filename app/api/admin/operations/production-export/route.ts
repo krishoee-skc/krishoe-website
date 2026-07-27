@@ -67,7 +67,9 @@ async function getRows(type: ExportType) {
        received_pairs AS "receivedPairs",
        received_size_breakdown::text AS "receivedSizeBreakdown",
        received_pairs - sent_pairs AS difference,
-       approved_by AS "approvedBy", note, created_at AS "createdAt"
+       approved_by AS "approvedBy", note,
+       CASE WHEN reversed_at IS NULL THEN 'Active' ELSE 'Reversed' END AS status,
+       reversal_reason AS "reversalReason", created_at AS "createdAt"
        FROM production_stage_handovers ORDER BY handover_date DESC, created_at DESC`);
   }
   if (type === "qc-stock") {

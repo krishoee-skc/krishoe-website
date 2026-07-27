@@ -18,6 +18,7 @@ import {
   mapProductionItemToCatalog,
   reverseProductionWorkEntry,
   reversePackingQcAndStock,
+  reverseProductionHandover,
   reverseWorkOrderMaterialConsumption,
   reverseWorkerPayment,
   setProductionStageRate,
@@ -209,6 +210,28 @@ export async function createHandoverAction(formData: FormData) {
     "production_stage_handover",
     `${handover.workOrderNumber} handed to ${handover.toStage}.`,
   );
+  refresh();
+}
+
+export async function reverseHandoverAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  if (text(formData, "reverseConfirmed") !== "yes") {
+    throw new Error("Confirm the stage handover reversal.");
+  }
+  const reason = text(formData, "reason");
+  if (reason.length < 5) {
+    throw new Error("Write a clear reversal reason (at least 5 characters).");
+  }
+  const result = await reverseProductionHandover({
+    handoverId: text(formData, "handoverId"),
+    reason,
+    reversedBy: approvedBy,
+  });
+  await recordAdminAuditEvent(
+    "production_handover_reverse",
+    `${result.workOrderNumber} ${result.fromStage} to ${result.toStage} handover reversed: ${reason}.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
   refresh();
 }
 

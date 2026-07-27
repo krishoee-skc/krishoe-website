@@ -750,6 +750,10 @@ CREATE TABLE IF NOT EXISTS production_stage_handovers (
 
 ALTER TABLE production_stage_handovers
   ADD COLUMN IF NOT EXISTS received_size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE production_stage_handovers
+  ADD COLUMN IF NOT EXISTS reversed_at TIMESTAMPTZ;
+ALTER TABLE production_stage_handovers
+  ADD COLUMN IF NOT EXISTS reversal_reason TEXT NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS production_stage_handovers_order_idx
   ON production_stage_handovers(work_order_id, handover_date DESC);

@@ -6,6 +6,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
   createMaterialConsumptionAction,
+  reverseHandoverAction,
   reverseMaterialConsumptionAction,
   reversePackingQcAction,
 } from "../../actions";
@@ -262,6 +263,31 @@ export default async function WorkOrderDetailPage({
                   </div>
                   <div className="text-right"><p className="font-black">{row.sentPairs} → {row.receivedPairs}</p><p className={row.signal === "Matched" ? "text-xs font-black text-brand-green" : "text-xs font-black text-brand-clay"}>{row.signal}</p></div>
                 </div>
+                <details className="mt-3 border-t border-gray-200 pt-3">
+                  <summary className="cursor-pointer text-xs font-black text-brand-clay">
+                    Correct this handover
+                  </summary>
+                  <form action={reverseHandoverAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                    <input type="hidden" name="handoverId" value={row.id} />
+                    <p className="text-xs leading-5 text-red-900">
+                      The record stays in audit history but is removed from active quantity and size calculations.
+                    </p>
+                    <input
+                      name="reason"
+                      minLength={5}
+                      className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm"
+                      placeholder="Reason for handover reversal"
+                      required
+                    />
+                    <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                      <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                      I confirm this handover is incorrect.
+                    </label>
+                    <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Reversing handover…">
+                      Reverse handover
+                    </FormSubmitButton>
+                  </form>
+                </details>
               </article>
             ))}
             {detail.handovers.length === 0 ? <p className="text-sm text-gray-500">No handover yet.</p> : null}
