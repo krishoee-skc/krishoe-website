@@ -75,6 +75,63 @@ export default async function WorkOrderDetailPage({
         </div>
       </div>
 
+      <div className={`rounded-2xl border p-4 shadow-sm sm:p-5 ${
+        detail.materialSummary.shortageCount > 0
+          ? "border-amber-200 bg-amber-50"
+          : "border-emerald-200 bg-emerald-50"
+      }`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">BOM material plan</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">Required raw materials</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Planned pairs × material per pair + recipe wastage. This is planning only; stock is not consumed yet.
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className={`text-sm font-black ${detail.materialSummary.shortageCount ? "text-amber-900" : "text-emerald-900"}`}>
+              {detail.materialSummary.shortageCount
+                ? `${detail.materialSummary.shortageCount} shortage warning`
+                : "All recipe materials ready"}
+            </p>
+            <p className="mt-1 text-xs font-bold text-gray-600">
+              Estimated material {money(detail.materialSummary.estimatedCost)}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {detail.materialPlan.map((row) => (
+            <article key={row.materialId} className="rounded-xl border border-white/80 bg-white p-4 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-brand-green-ink">{row.materialName}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {row.quantityPerPair} {row.unit}/pair + {row.wastagePercent}% wastage
+                  </p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-black ${
+                  row.signal === "Ready"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-amber-100 text-amber-900"
+                }`}>
+                  {row.signal}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div><span className="text-gray-500">Required</span><p className="mt-1 font-black">{row.requiredQuantity} {row.unit}</p></div>
+                <div><span className="text-gray-500">Available</span><p className="mt-1 font-black">{row.availableQuantity} {row.unit}</p></div>
+                <div><span className="text-gray-500">Short</span><p className={`mt-1 font-black ${row.shortageQuantity ? "text-brand-clay" : "text-brand-green"}`}>{row.shortageQuantity} {row.unit}</p></div>
+              </div>
+            </article>
+          ))}
+          {detail.materialPlan.length === 0 ? (
+            <p className="text-sm text-amber-900">
+              No material recipe is linked to this item yet. Add its BOM in Production Accounts before issuing materials.
+            </p>
+          ) : null}
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">Stage progress</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-4">

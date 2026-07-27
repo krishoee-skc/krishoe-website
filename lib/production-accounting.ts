@@ -235,6 +235,18 @@ type WeeklySettlementRow = {
   paid: number | string;
 };
 
+type WorkOrderMaterialPlanRow = {
+  material_id: string;
+  material_name: string;
+  unit: string;
+  quantity_per_pair: number | string;
+  wastage_percent: number | string;
+  opening_stock: number | string;
+  received: number | string;
+  used: number | string;
+  average_unit_cost: number | string;
+};
+
 type PaymentRow = {
   id: string;
   payment_date: Date | string;
@@ -886,7 +898,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
   );
   if (!orderRows[0]) return null;
 
-  const [workRows, handoverRows, qcRows] = await Promise.all([
+  const [workRows, handoverRows, qcRows, materialRows] = await Promise.all([
     queryPostgres<WorkRow>(
       "Work Order production entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -913,6 +925,24 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
        FROM production_qc_postings
        WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY qc_date, created_at`,
       [workOrderId],
+    ),
+    queryPostgres<WorkOrderMaterialPlanRow>(
+      "Work Order material plan",
+      `SELECT bom.material_id, bom.material_name_snapshot AS material_name,
+         bom.unit_snapshot AS unit, bom.quantity_per_pair, bom.wastage_percent,
+         materials.opening_stock, materials.received, materials.used,
+         coalesce(rates.average_unit_cost, 0) AS average_unit_cost
+       FROM production_item_materials bom
+       JOIN raw_materials materials ON materials.id = bom.material_id
+       LEFT JOIN (
+         SELECT material_id, sum(line_total) / nullif(sum(quantity), 0) AS average_unit_cost
+         FROM purchase_invoice_items
+         WHERE kind = 'Raw Material'
+         GROUP BY material_id
+       ) rates ON rates.material_id = bom.material_id
+       WHERE bom.item_id = $1
+       ORDER BY bom.material_name_snapshot`,
+      [orderRows[0].item_id],
     ),
   ]);
 
@@ -944,9 +974,40 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     approvedBy: row.approved_by,
   }));
   const order = workOrderFromRow(orderRows[0]);
+  const materialPlan = materialRows.map((row) => {
+    const quantityPerPair = numeric(row.quantity_per_pair);
+    const wastagePercent = numeric(row.wastage_percent);
+    const requiredQuantity = numeric(
+      order.plannedPairs * quantityPerPair * (1 + wastagePercent / 100),
+    );
+    const availableQuantity = numeric(
+      Number(row.opening_stock) + Number(row.received) - Number(row.used),
+    );
+    const shortageQuantity = numeric(Math.max(0, requiredQuantity - availableQuantity));
+    const averageUnitCost = numeric(row.average_unit_cost);
+    return {
+      materialId: row.material_id,
+      materialName: row.material_name,
+      unit: row.unit,
+      quantityPerPair,
+      wastagePercent,
+      requiredQuantity,
+      availableQuantity,
+      shortageQuantity,
+      averageUnitCost,
+      estimatedCost: numeric(requiredQuantity * averageUnitCost),
+      signal: shortageQuantity > 0 ? "Shortage" as const : "Ready" as const,
+    };
+  });
 
   return {
     order,
+    materialPlan,
+    materialSummary: {
+      materialCount: materialPlan.length,
+      shortageCount: materialPlan.filter((row) => row.signal === "Shortage").length,
+      estimatedCost: numeric(materialPlan.reduce((total, row) => total + row.estimatedCost, 0)),
+    },
     work,
     handovers,
     qcPostings,
