@@ -18,8 +18,11 @@ const links = [
   { href: "/admin/search", label: "Search", Icon: SearchIcon },
 ];
 
-export default function AdminQuickDock() {
+export default function AdminQuickDock({ adminRole }: { adminRole: string }) {
   const pathname = usePathname();
+  const visibleLinks = adminRole === "Factory"
+    ? [{ href: "/admin/factory", label: "Factory", Icon: PackageIcon }]
+    : links;
 
   if (pathname === "/admin/login") return null;
 
@@ -30,8 +33,8 @@ export default function AdminQuickDock() {
         aria-label="Admin quick actions"
         className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-white/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl lg:hidden print:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-          {links.map(({ href, label, Icon }) => {
+        <div className={`mx-auto grid max-w-md gap-1 ${adminRole === "Factory" ? "grid-cols-1" : "grid-cols-5"}`}>
+          {visibleLinks.map(({ href, label, Icon }) => {
             const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
             return (
               <Link

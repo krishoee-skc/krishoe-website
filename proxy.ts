@@ -81,6 +81,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (
+    isProtectedAdmin(pathname) &&
+    adminSession &&
+    getSessionAdminRole(adminSession) === "Factory" &&
+    !pathname.startsWith("/admin/factory")
+  ) {
+    return NextResponse.redirect(new URL("/admin/factory", request.url));
+  }
+
   if (isCustomerAuthPage(pathname) && hasCustomerSession) {
     return NextResponse.redirect(new URL(safeCustomerNextPath(request.nextUrl.searchParams.get("next")), request.url));
   }

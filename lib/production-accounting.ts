@@ -845,6 +845,40 @@ export async function getProductionAccountingSnapshot() {
   };
 }
 
+export async function getProductionFactoryEntrySnapshot() {
+  const [items, workOrders, hr] = await Promise.all([
+    queryPostgres<ItemRow>(
+      "factory entry production items",
+      `SELECT id, name, category, production_type, size_group, catalog_product_id, status
+       FROM production_items
+       WHERE status = 'Active' AND production_type <> 'Resale'
+       ORDER BY name`,
+    ),
+    queryPostgres<WorkOrderRow>(
+      "factory entry work orders",
+      `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+         size_breakdown, planned_pairs, due_date, priority, current_stage,
+         status, created_by
+       FROM production_work_orders
+       WHERE status NOT IN ('Completed', 'Cancelled')
+       ORDER BY due_date NULLS LAST, created_at DESC
+       LIMIT 100`,
+    ),
+    getHrData(),
+  ]);
+  return {
+    items: items.map((row) => ({
+      id: row.id,
+      name: row.name,
+      sizeGroup: row.size_group,
+    })),
+    workOrders: workOrders.map(workOrderFromRow),
+    employees: hr.employees
+      .filter((employee) => employee.status === "Active")
+      .map((employee) => ({ id: employee.id, name: employee.name, department: employee.department })),
+  };
+}
+
 function costCardFromRow(row: CostCardRow): ProductionCostCard {
   return {
     id: row.id,

@@ -5,6 +5,7 @@ export const adminRoles = [
   "HR",
   "Inventory",
   "Sales",
+  "Factory",
   "Viewer",
 ] as const;
 
@@ -22,6 +23,7 @@ export const adminPermissions = [
   "orders:write",
   "payments:write",
   "pos:write",
+  "production:entry",
   "products:write",
   "purchasing:write",
   "readiness:read",
@@ -67,6 +69,11 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "pos:write",
     "readiness:read",
     "reviews:write",
+  ]),
+  Factory: new Set([
+    "activity:read",
+    "production:entry",
+    "readiness:read",
   ]),
   Viewer: new Set(["activity:read", "exports:read", "readiness:read"]),
 };

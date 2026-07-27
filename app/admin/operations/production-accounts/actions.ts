@@ -80,6 +80,13 @@ async function ownerContext() {
   };
 }
 
+async function factoryEntryContext() {
+  const context = await requireAdminPermission("production:entry");
+  return {
+    approvedBy: context.session.name || context.session.email || context.role,
+  };
+}
+
 async function activeEmployee(employeeId: string) {
   const hr = await getHrData();
   const employee = hr.employees.find((row) => row.id === employeeId && row.status === "Active");
@@ -89,6 +96,7 @@ async function activeEmployee(employeeId: string) {
 
 function refresh() {
   revalidatePath("/admin/operations/production-accounts");
+  revalidatePath("/admin/factory");
 }
 
 function nepalTimestamp(value: string) {
@@ -207,7 +215,7 @@ export async function approveCostCardAction(formData: FormData) {
 }
 
 export async function createWorkOrderAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
+  const { approvedBy } = await factoryEntryContext();
   const order = await createProductionWorkOrder({
     itemId: text(formData, "itemId"),
     colour: text(formData, "colour"),
@@ -241,7 +249,7 @@ export async function updateWorkOrderScheduleAction(formData: FormData) {
 }
 
 export async function createCctvReferenceAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
+  const { approvedBy } = await factoryEntryContext();
   const workOrderId = text(formData, "workOrderId");
   const stage = option<ProductionStage | "Packing / QC">(
     text(formData, "stage"),
@@ -290,7 +298,7 @@ export async function cancelWorkOrderAction(formData: FormData) {
 }
 
 export async function createHandoverAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
+  const { approvedBy } = await factoryEntryContext();
   const fromEmployeeId = text(formData, "fromEmployeeId");
   const toEmployeeId = text(formData, "toEmployeeId");
   const handover = await createProductionHandover({

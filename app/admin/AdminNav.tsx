@@ -18,6 +18,9 @@ export default function AdminNav({
   branchId?: string;
 }) {
   const pathname = usePathname();
+  const links = adminRole === "Factory"
+    ? adminNavLinks.filter((link) => link.href === "/admin/factory")
+    : adminNavLinks;
 
   return (
     <div className="hidden border-r bg-white lg:block print:hidden">
@@ -51,7 +54,7 @@ export default function AdminNav({
         </div>
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium">
-            {adminNavLinks.map(({ href, label, icon: Icon }) => (
+            {links.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
