@@ -43,6 +43,7 @@ export type WorkEntry = {
   itemName: string;
   stage: ProductionStage;
   totalPairs: number;
+  sizeBreakdown: SizeBreakdown;
   rejectedPairs: number;
   ratePerPair: number;
   earnedWage: number;
@@ -110,6 +111,7 @@ export type QcStockPosting = {
   packingEmployeeName: string;
   totalPairs: number;
   rejectedPairs: number;
+  sizeBreakdown: SizeBreakdown;
   stockMovementId: string;
   approvedBy: string;
 };
@@ -176,6 +178,7 @@ type WorkRow = {
   item_name_snapshot: string;
   stage: ProductionStage;
   total_pairs: number | string;
+  size_breakdown: SizeBreakdown | string;
   rejected_pairs: number | string;
   rate_per_pair_snapshot: number | string;
   earned_wage: number | string;
@@ -284,6 +287,7 @@ type QcPostingRow = {
   packing_employee_name_snapshot: string;
   total_pairs: number | string;
   rejected_pairs: number | string;
+  size_breakdown: SizeBreakdown | string;
   stock_movement_id: string;
   approved_by: string;
 };
@@ -527,7 +531,7 @@ export async function getProductionAccountingSnapshot() {
     queryPostgres<WorkRow>(
       "production work entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
-         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         item_name_snapshot, stage, total_pairs, size_breakdown, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
        ORDER BY work_date DESC, created_at DESC LIMIT 30`,
@@ -544,7 +548,7 @@ export async function getProductionAccountingSnapshot() {
       "recent production QC stock postings",
       `SELECT id, qc_date, approval_reference, work_order_id, item_name_snapshot,
          catalog_product_name_snapshot, packing_employee_name_snapshot,
-         total_pairs, rejected_pairs, stock_movement_id, approved_by
+         total_pairs, rejected_pairs, size_breakdown, stock_movement_id, approved_by
        FROM production_qc_postings
        WHERE reversed_at IS NULL
        ORDER BY qc_date DESC, created_at DESC LIMIT 30`,
@@ -654,6 +658,7 @@ export async function getProductionAccountingSnapshot() {
       itemName: row.item_name_snapshot,
       stage: row.stage,
       totalPairs: Number(row.total_pairs),
+      sizeBreakdown: jsonSizes(row.size_breakdown),
       rejectedPairs: Number(row.rejected_pairs),
       ratePerPair: numeric(row.rate_per_pair_snapshot),
       earnedWage: numeric(row.earned_wage),
@@ -670,6 +675,7 @@ export async function getProductionAccountingSnapshot() {
       packingEmployeeName: row.packing_employee_name_snapshot,
       totalPairs: Number(row.total_pairs),
       rejectedPairs: Number(row.rejected_pairs),
+      sizeBreakdown: jsonSizes(row.size_breakdown),
       stockMovementId: row.stock_movement_id,
       approvedBy: row.approved_by,
     })),
@@ -750,6 +756,26 @@ function jsonSizes(value: SizeBreakdown | string) {
   }
 }
 
+function assertCumulativeSizePlan(
+  planned: SizeBreakdown,
+  existing: SizeBreakdown[],
+  incoming: SizeBreakdown,
+  label: string,
+) {
+  if (Object.keys(planned).length === 0) return;
+  const normalizedIncoming = normalizeSizeBreakdown(incoming);
+  if (Object.keys(normalizedIncoming).length === 0) {
+    throw new Error(`${label} size-wise quantity is required for this Work Order.`);
+  }
+  for (const [size, pairs] of Object.entries(normalizedIncoming)) {
+    if (!planned[size]) throw new Error(`Size ${size} is not in this Work Order plan.`);
+    const previous = existing.reduce((total, row) => total + (row[size] ?? 0), 0);
+    if (previous + pairs > planned[size]) {
+      throw new Error(`Size ${size} exceeds planned ${planned[size]} pairs.`);
+    }
+  }
+}
+
 function workOrderFromRow(row: WorkOrderRow): ProductionWorkOrder {
   return {
     id: row.id,
@@ -777,6 +803,7 @@ function workFromRow(row: WorkRow): WorkEntry {
     itemName: row.item_name_snapshot,
     stage: row.stage,
     totalPairs: Number(row.total_pairs),
+    sizeBreakdown: jsonSizes(row.size_breakdown),
     rejectedPairs: Number(row.rejected_pairs),
     ratePerPair: numeric(row.rate_per_pair_snapshot),
     earnedWage: numeric(row.earned_wage),
@@ -796,7 +823,7 @@ export async function getWorkerProductionAccount(
     queryPostgres<WorkRow>(
       "worker work ledger",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
-         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         item_name_snapshot, stage, total_pairs, size_breakdown, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
        WHERE employee_id = $1 ORDER BY work_date DESC, created_at DESC LIMIT 100`,
@@ -814,7 +841,7 @@ export async function getWorkerProductionAccount(
     queryPostgres<WorkRow>(
       "worker Friday work statement",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
-         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         item_name_snapshot, stage, total_pairs, size_breakdown, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
        WHERE employee_id = $1 AND status = 'Approved'
@@ -916,7 +943,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     queryPostgres<WorkRow>(
       "Work Order production entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
-         item_name_snapshot, stage, total_pairs, rejected_pairs,
+         item_name_snapshot, stage, total_pairs, size_breakdown, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
        WHERE work_order_id = $1 ORDER BY work_date, created_at`,
@@ -935,7 +962,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
       "Work Order QC postings",
       `SELECT id, qc_date, approval_reference, work_order_id, item_name_snapshot,
          catalog_product_name_snapshot, packing_employee_name_snapshot,
-         total_pairs, rejected_pairs, stock_movement_id, approved_by
+         total_pairs, rejected_pairs, size_breakdown, stock_movement_id, approved_by
        FROM production_qc_postings
        WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY qc_date, created_at`,
       [workOrderId],
@@ -994,6 +1021,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     packingEmployeeName: row.packing_employee_name_snapshot,
     totalPairs: Number(row.total_pairs),
     rejectedPairs: Number(row.rejected_pairs),
+    sizeBreakdown: jsonSizes(row.size_breakdown),
     stockMovementId: row.stock_movement_id,
     approvedBy: row.approved_by,
   }));
@@ -1070,6 +1098,12 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
         rejectedPairs: rows.reduce((total, entry) => total + entry.rejectedPairs, 0),
         wage: numeric(rows.reduce((total, entry) => total + entry.earnedWage, 0)),
         complete: goodPairs >= order.plannedPairs,
+        sizeProgress: Object.fromEntries(
+          Object.keys(order.sizeBreakdown).map((size) => [
+            size,
+            rows.reduce((total, entry) => total + (entry.sizeBreakdown[size] ?? 0), 0),
+          ]),
+        ),
       };
     }),
     qcSummary: {
@@ -1495,6 +1529,17 @@ export async function addApprovedWorkEntry(input: {
       const order = orderRows[0];
       if (!order) throw new Error("Open Work Order not found.");
       if (order.item_id !== input.itemId) throw new Error("Work Order item does not match work entry item.");
+      const previousSizes = await db.query<{ size_breakdown: SizeBreakdown | string }>(
+        `SELECT size_breakdown FROM production_work_entries
+         WHERE work_order_id = $1 AND stage = $2 AND status = 'Approved'`,
+        [input.workOrderId, input.stage],
+      );
+      assertCumulativeSizePlan(
+        jsonSizes(order.size_breakdown),
+        previousSizes.map((row) => jsonSizes(row.size_breakdown)),
+        input.sizeBreakdown,
+        input.stage,
+      );
     }
 
     const rateRows = await db.query<RateRow>(
@@ -1740,6 +1785,17 @@ export async function approvePackingQcAndPostStock(input: {
       if (!workOrder) throw new Error("Work Order must be Ready for QC.");
       if (workOrder.item_id !== item.id) throw new Error("QC item does not match Work Order item.");
 
+      const previousSizes = await db.query<{ size_breakdown: SizeBreakdown | string }>(
+        `SELECT size_breakdown FROM production_qc_postings
+         WHERE work_order_id = $1 AND reversed_at IS NULL`,
+        [input.workOrderId],
+      );
+      assertCumulativeSizePlan(
+        jsonSizes(workOrder.size_breakdown),
+        previousSizes.map((row) => jsonSizes(row.size_breakdown)),
+        input.sizeBreakdown,
+        "Packing/QC",
+      );
       const previous = await db.query<{ accounted: number | string }>(
         `SELECT coalesce(sum(total_pairs + rejected_pairs), 0) AS accounted
          FROM production_qc_postings WHERE work_order_id = $1 AND reversed_at IS NULL`,

@@ -204,6 +204,11 @@ export default async function WorkerProductionLedgerPage({
                   <div>
                     <p className="font-black text-brand-green-ink">{row.itemName} · {row.stage}</p>
                     <p className="mt-1 text-gray-500">{row.workDate} · {row.totalPairs} pairs · rate {money(row.ratePerPair)}</p>
+                    {Object.keys(row.sizeBreakdown).length ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Sizes: {Object.entries(row.sizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
+                      </p>
+                    ) : null}
                     {row.rejectedPairs ? <p className="mt-1 text-brand-clay">Reject: {row.rejectedPairs} pairs</p> : null}
                   </div>
                   <p className={`font-black ${row.status === "Reversed" ? "text-gray-400 line-through" : "text-brand-green"}`}>

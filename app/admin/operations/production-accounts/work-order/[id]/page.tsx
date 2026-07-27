@@ -212,6 +212,13 @@ export default async function WorkOrderDetailPage({
               <p className="font-black text-brand-green-ink">{row.stage}</p>
               <p className="mt-3 text-xl font-black text-brand-green">{row.goodPairs}/{order.plannedPairs}</p>
               <p className="mt-1 text-xs text-gray-500">Reject {row.rejectedPairs} · Wage {money(row.wage)}</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {Object.entries(row.sizeProgress).map(([size, pairs]) => (
+                  <span key={size} className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-gray-600">
+                    {size}: {pairs}/{order.sizeBreakdown[size]}
+                  </span>
+                ))}
+              </div>
               <p className="mt-2 text-xs font-black uppercase tracking-wider">{row.complete ? "Complete" : "Pending"}</p>
             </article>
           ))}
@@ -225,7 +232,13 @@ export default async function WorkOrderDetailPage({
             {detail.work.map((row) => (
               <article key={row.id} className="rounded-xl bg-gray-50 p-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <div><p className="font-black">{row.employeeName} · {row.stage}</p><p className="mt-1 text-gray-500">{row.workDate} · {row.totalPairs} pairs · reject {row.rejectedPairs}</p></div>
+                  <div>
+                    <p className="font-black">{row.employeeName} · {row.stage}</p>
+                    <p className="mt-1 text-gray-500">{row.workDate} · {row.totalPairs} pairs · reject {row.rejectedPairs}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {Object.entries(row.sizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
+                    </p>
+                  </div>
                   <p className="font-black text-brand-green">{money(row.earnedWage)}</p>
                 </div>
               </article>
@@ -257,6 +270,9 @@ export default async function WorkOrderDetailPage({
             <article key={row.id} className="rounded-xl bg-white p-3 text-sm">
               <p className="font-black text-brand-green-ink">{row.approvalReference} · +{row.totalPairs} good pairs</p>
               <p className="mt-1 text-gray-500">{row.qcDate} · reject {row.rejectedPairs} · {row.packingEmployeeName || "Owner verified"} · stock movement {row.stockMovementId}</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Sizes: {Object.entries(row.sizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
+              </p>
               <details className="mt-3 border-t border-gray-100 pt-3">
                 <summary className="cursor-pointer text-xs font-black text-brand-clay">
                   Correct this QC/stock posting
