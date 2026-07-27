@@ -247,6 +247,20 @@ type WorkOrderMaterialPlanRow = {
   average_unit_cost: number | string;
 };
 
+type ProductionMaterialConsumptionRow = {
+  id: string;
+  consumption_date: Date | string;
+  work_order_id: string;
+  work_order_number_snapshot: string;
+  material_id: string;
+  material_name_snapshot: string;
+  unit_snapshot: string;
+  quantity: number | string;
+  wastage: number | string;
+  approved_by: string;
+  note: string;
+};
+
 type PaymentRow = {
   id: string;
   payment_date: Date | string;
@@ -898,7 +912,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
   );
   if (!orderRows[0]) return null;
 
-  const [workRows, handoverRows, qcRows, materialRows] = await Promise.all([
+  const [workRows, handoverRows, qcRows, materialRows, consumptionRows] = await Promise.all([
     queryPostgres<WorkRow>(
       "Work Order production entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -944,6 +958,16 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
        ORDER BY bom.material_name_snapshot`,
       [orderRows[0].item_id],
     ),
+    queryPostgres<ProductionMaterialConsumptionRow>(
+      "Work Order material consumption",
+      `SELECT id, consumption_date, work_order_id, work_order_number_snapshot,
+         material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+         approved_by, note
+       FROM production_material_consumptions
+       WHERE work_order_id = $1 AND reversed_at IS NULL
+       ORDER BY consumption_date DESC, created_at DESC`,
+      [workOrderId],
+    ),
   ]);
 
   const work = workRows.map(workFromRow);
@@ -974,6 +998,20 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     approvedBy: row.approved_by,
   }));
   const order = workOrderFromRow(orderRows[0]);
+  const materialConsumptions = consumptionRows.map((row) => ({
+    id: row.id,
+    consumptionDate: isoDate(row.consumption_date),
+    workOrderId: row.work_order_id,
+    workOrderNumber: row.work_order_number_snapshot,
+    materialId: row.material_id,
+    materialName: row.material_name_snapshot,
+    unit: row.unit_snapshot,
+    quantity: numeric(row.quantity),
+    wastage: numeric(row.wastage),
+    total: numeric(Number(row.quantity) + Number(row.wastage)),
+    approvedBy: row.approved_by,
+    note: row.note,
+  }));
   const materialPlan = materialRows.map((row) => {
     const quantityPerPair = numeric(row.quantity_per_pair);
     const wastagePercent = numeric(row.wastage_percent);
@@ -985,6 +1023,11 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     );
     const shortageQuantity = numeric(Math.max(0, requiredQuantity - availableQuantity));
     const averageUnitCost = numeric(row.average_unit_cost);
+    const actualConsumed = numeric(
+      materialConsumptions
+        .filter((entry) => entry.materialId === row.material_id)
+        .reduce((total, entry) => total + entry.total, 0),
+    );
     return {
       materialId: row.material_id,
       materialName: row.material_name,
@@ -994,6 +1037,9 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
       requiredQuantity,
       availableQuantity,
       shortageQuantity,
+      actualConsumed,
+      plannedRemaining: numeric(Math.max(0, requiredQuantity - actualConsumed)),
+      consumptionVariance: numeric(actualConsumed - requiredQuantity),
       averageUnitCost,
       estimatedCost: numeric(requiredQuantity * averageUnitCost),
       signal: shortageQuantity > 0 ? "Shortage" as const : "Ready" as const,
@@ -1003,6 +1049,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
   return {
     order,
     materialPlan,
+    materialConsumptions,
     materialSummary: {
       materialCount: materialPlan.length,
       shortageCount: materialPlan.filter((row) => row.signal === "Shortage").length,
@@ -1091,6 +1138,114 @@ export async function setProductionItemMaterial(input: {
       input.quantityPerPair, input.wastagePercent, input.note,
     ],
   );
+}
+
+export async function addWorkOrderMaterialConsumption(input: {
+  workOrderId: string;
+  materialId: string;
+  consumptionDate: string;
+  quantity: number;
+  wastage: number;
+  approvedBy: string;
+  note: string;
+}) {
+  const total = numeric(input.quantity + input.wastage);
+  if (total <= 0) throw new Error("Material quantity or wastage must be greater than zero.");
+
+  return transactionPostgres("approve Work Order material consumption", async (db) => {
+    const rows = await db.query<{
+      work_order_number: string;
+      material_name: string;
+      unit: string;
+      opening_stock: number | string;
+      received: number | string;
+      used: number | string;
+    }>(
+      `SELECT orders.work_order_number, materials.name AS material_name, materials.unit,
+         materials.opening_stock, materials.received, materials.used
+       FROM production_work_orders orders
+       JOIN production_item_materials bom
+         ON bom.item_id = orders.item_id AND bom.material_id = $2
+       JOIN raw_materials materials ON materials.id = bom.material_id
+       WHERE orders.id = $1 AND orders.status <> 'Cancelled'
+       FOR UPDATE OF orders, materials`,
+      [input.workOrderId, input.materialId],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("Open Work Order material recipe was not found.");
+    const available = numeric(Number(row.opening_stock) + Number(row.received) - Number(row.used));
+    if (total > available) {
+      throw new Error(`${row.material_name} has only ${available} ${row.unit} available.`);
+    }
+
+    const consumptionId = id("matuse");
+    await db.query(
+      `INSERT INTO production_material_consumptions (
+         id, consumption_date, work_order_id, work_order_number_snapshot,
+         material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+         approved_by, note
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        consumptionId, input.consumptionDate, input.workOrderId, row.work_order_number,
+        input.materialId, row.material_name, row.unit, input.quantity, input.wastage,
+        input.approvedBy, input.note,
+      ],
+    );
+    await db.query(
+      `UPDATE raw_materials SET used = used + $2 WHERE id = $1`,
+      [input.materialId, total],
+    );
+    return {
+      id: consumptionId,
+      workOrderNumber: row.work_order_number,
+      materialName: row.material_name,
+      unit: row.unit,
+      total,
+    };
+  });
+}
+
+export async function reverseWorkOrderMaterialConsumption(input: {
+  consumptionId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  return transactionPostgres("reverse Work Order material consumption", async (db) => {
+    const rows = await db.query<ProductionMaterialConsumptionRow>(
+      `SELECT id, consumption_date, work_order_id, work_order_number_snapshot,
+         material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+         approved_by, note
+       FROM production_material_consumptions
+       WHERE id = $1 AND reversed_at IS NULL FOR UPDATE`,
+      [input.consumptionId],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("Active material consumption was not found or is already reversed.");
+    const total = numeric(Number(row.quantity) + Number(row.wastage));
+    const materialRows = await db.query<{ used: number | string }>(
+      `SELECT used FROM raw_materials WHERE id = $1 FOR UPDATE`,
+      [row.material_id],
+    );
+    if (!materialRows[0] || Number(materialRows[0].used) < total) {
+      throw new Error("Raw material used balance is lower than this entry; review stock first.");
+    }
+    await db.query(
+      `UPDATE raw_materials SET used = used - $2 WHERE id = $1`,
+      [row.material_id, total],
+    );
+    await db.query(
+      `UPDATE production_material_consumptions
+       SET reversed_at = now(), reversal_reason = $2 WHERE id = $1`,
+      [row.id, `${input.reason} · Reversed by ${input.reversedBy}`],
+    );
+    return {
+      workOrderId: row.work_order_id,
+      workOrderNumber: row.work_order_number_snapshot,
+      materialName: row.material_name_snapshot,
+      total,
+      unit: row.unit_snapshot,
+    };
+  });
 }
 
 export async function createProductionWorkOrder(input: {

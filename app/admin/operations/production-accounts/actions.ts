@@ -9,6 +9,7 @@ import { reportingErrors } from "@/lib/report-error";
 import {
   addApprovedWorkEntry,
   addProductionItem,
+  addWorkOrderMaterialConsumption,
   addWorkerPayment,
   approvePackingQcAndPostStock,
   approveProductionCostCard,
@@ -17,6 +18,7 @@ import {
   mapProductionItemToCatalog,
   reverseProductionWorkEntry,
   reversePackingQcAndStock,
+  reverseWorkOrderMaterialConsumption,
   reverseWorkerPayment,
   setProductionStageRate,
   setProductionItemMaterial,
@@ -229,6 +231,49 @@ export async function createWorkEntryAction(formData: FormData) {
     "production_work_approve",
     `${employee.name} work approved; earned wage Rs. ${result.earned}.`,
   );
+  refresh();
+}
+
+export async function createMaterialConsumptionAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const result = await addWorkOrderMaterialConsumption({
+    workOrderId: text(formData, "workOrderId"),
+    materialId: text(formData, "materialId"),
+    consumptionDate: text(formData, "consumptionDate"),
+    quantity: amount(formData, "quantity"),
+    wastage: amount(formData, "wastage"),
+    approvedBy,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_material_consume",
+    `${result.workOrderNumber}: ${result.total} ${result.unit} ${result.materialName} consumed.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
+  revalidatePath("/admin/stock");
+  refresh();
+}
+
+export async function reverseMaterialConsumptionAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  if (text(formData, "reverseConfirmed") !== "yes") {
+    throw new Error("Confirm the material consumption reversal.");
+  }
+  const reason = text(formData, "reason");
+  if (reason.length < 5) {
+    throw new Error("Write a clear reversal reason (at least 5 characters).");
+  }
+  const result = await reverseWorkOrderMaterialConsumption({
+    consumptionId: text(formData, "consumptionId"),
+    reason,
+    reversedBy: approvedBy,
+  });
+  await recordAdminAuditEvent(
+    "production_material_reverse",
+    `${result.workOrderNumber}: ${result.total} ${result.unit} ${result.materialName} reversed; ${reason}.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
+  revalidatePath("/admin/stock");
   refresh();
 }
 

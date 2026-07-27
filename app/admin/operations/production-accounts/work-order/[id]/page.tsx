@@ -4,13 +4,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
-import { reversePackingQcAction } from "../../actions";
+import {
+  createMaterialConsumptionAction,
+  reverseMaterialConsumptionAction,
+  reversePackingQcAction,
+} from "../../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Work Order Tracking | KRISHOE Admin" };
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+}
+
+function nepalToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
 }
 
 export default async function WorkOrderDetailPage({
@@ -122,6 +130,32 @@ export default async function WorkOrderDetailPage({
                 <div><span className="text-gray-500">Available</span><p className="mt-1 font-black">{row.availableQuantity} {row.unit}</p></div>
                 <div><span className="text-gray-500">Short</span><p className={`mt-1 font-black ${row.shortageQuantity ? "text-brand-clay" : "text-brand-green"}`}>{row.shortageQuantity} {row.unit}</p></div>
               </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-2 text-xs">
+                <div><span className="text-gray-500">Actual used</span><p className="mt-1 font-black">{row.actualConsumed} {row.unit}</p></div>
+                <div><span className="text-gray-500">Plan remaining</span><p className="mt-1 font-black">{row.plannedRemaining} {row.unit}</p></div>
+              </div>
+              <details className="mt-3 border-t border-gray-100 pt-3">
+                <summary className="cursor-pointer text-xs font-black text-brand-green">
+                  Record actual consumption
+                </summary>
+                <form action={createMaterialConsumptionAction} className="mt-3 grid gap-3 rounded-xl bg-emerald-50 p-3 sm:grid-cols-2">
+                  <input type="hidden" name="workOrderId" value={order.id} />
+                  <input type="hidden" name="materialId" value={row.materialId} />
+                  <label className="text-xs font-bold text-brand-green-ink">
+                    Used quantity ({row.unit})
+                    <input name="quantity" type="number" min="0" step="0.001" className="mt-1 min-h-11 w-full rounded-xl border border-emerald-200 bg-white px-3" required />
+                  </label>
+                  <label className="text-xs font-bold text-brand-green-ink">
+                    Wastage ({row.unit})
+                    <input name="wastage" type="number" min="0" step="0.001" defaultValue="0" className="mt-1 min-h-11 w-full rounded-xl border border-emerald-200 bg-white px-3" />
+                  </label>
+                  <input name="consumptionDate" type="date" defaultValue={nepalToday()} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 text-sm" required />
+                  <input name="note" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 text-sm" placeholder="Issue/usage note" />
+                  <FormSubmitButton className="min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white sm:col-span-2" pendingLabel="Recording material…">
+                    Owner approve consumption
+                  </FormSubmitButton>
+                </form>
+              </details>
             </article>
           ))}
           {detail.materialPlan.length === 0 ? (
@@ -131,6 +165,42 @@ export default async function WorkOrderDetailPage({
           ) : null}
         </div>
       </div>
+
+      {detail.materialConsumptions.length > 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-lg font-black text-brand-green-ink">Actual material consumption history</h2>
+          <div className="mt-4 space-y-3">
+            {detail.materialConsumptions.map((row) => (
+              <article key={row.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-black text-brand-green-ink">{row.materialName}</p>
+                    <p className="mt-1 text-gray-500">
+                      {row.consumptionDate} · used {row.quantity} {row.unit} · wastage {row.wastage} {row.unit}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Approved by {row.approvedBy}{row.note ? ` · ${row.note}` : ""}</p>
+                  </div>
+                  <p className="font-black text-brand-clay">−{row.total} {row.unit}</p>
+                </div>
+                <details className="mt-3 border-t border-gray-200 pt-3">
+                  <summary className="cursor-pointer text-xs font-black text-brand-clay">Correct this material entry</summary>
+                  <form action={reverseMaterialConsumptionAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                    <input type="hidden" name="consumptionId" value={row.id} />
+                    <input name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm" placeholder="Reason for reversal" required />
+                    <label className="flex items-center gap-2 text-xs font-bold text-red-900">
+                      <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
+                      I confirm this material usage entry is incorrect.
+                    </label>
+                    <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Reversing material…">
+                      Reverse material usage
+                    </FormSubmitButton>
+                  </form>
+                </details>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">Stage progress</h2>

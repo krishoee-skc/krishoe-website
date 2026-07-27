@@ -703,6 +703,29 @@ CREATE INDEX IF NOT EXISTS production_work_orders_status_idx
 CREATE INDEX IF NOT EXISTS production_work_orders_item_idx
   ON production_work_orders(item_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS production_material_consumptions (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  consumption_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  work_order_id TEXT NOT NULL REFERENCES production_work_orders(id) ON DELETE RESTRICT,
+  work_order_number_snapshot TEXT NOT NULL,
+  material_id TEXT NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
+  material_name_snapshot TEXT NOT NULL,
+  unit_snapshot TEXT NOT NULL,
+  quantity NUMERIC NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+  wastage NUMERIC NOT NULL DEFAULT 0 CHECK (wastage >= 0),
+  approved_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  reversed_at TIMESTAMPTZ,
+  reversal_reason TEXT NOT NULL DEFAULT '',
+  CONSTRAINT production_material_consumption_total_check CHECK (quantity + wastage > 0)
+);
+
+CREATE INDEX IF NOT EXISTS production_material_consumptions_order_idx
+  ON production_material_consumptions(work_order_id, consumption_date DESC);
+CREATE INDEX IF NOT EXISTS production_material_consumptions_material_idx
+  ON production_material_consumptions(material_id, consumption_date DESC);
+
 CREATE TABLE IF NOT EXISTS production_stage_handovers (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
