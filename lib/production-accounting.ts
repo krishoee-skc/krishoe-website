@@ -1837,10 +1837,22 @@ export async function addApprovedWorkEntry(input: {
   sizeBreakdown: SizeBreakdown;
   approvedBy: string;
   note: string;
+  sourceSubmissionKey?: string;
 }) {
   assertWorkQuantity({ ...input, ratePerPair: 0 }, input.sizeBreakdown);
 
   return transactionPostgres("approve production work", async (db) => {
+    if (input.sourceSubmissionKey) {
+      const existing = await db.query<{ id: string; earned_wage: number | string }>(
+        `SELECT id, earned_wage FROM production_work_entries
+         WHERE source_submission_key = $1 LIMIT 1`,
+        [input.sourceSubmissionKey],
+      );
+      if (existing[0]) {
+        return { id: existing[0].id, earned: numeric(existing[0].earned_wage) };
+      }
+    }
+
     const itemRows = await db.query<ItemRow>(
       `SELECT id, name, category, production_type, size_group, catalog_product_id, status
        FROM production_items WHERE id = $1 AND status = 'Active' FOR SHARE`,
@@ -1902,16 +1914,17 @@ export async function addApprovedWorkEntry(input: {
          id, work_date, employee_id, employee_name_snapshot, work_order_id, item_id,
          item_name_snapshot, stage, total_pairs, size_breakdown,
          rejected_pairs, rework_pairs, rate_per_pair_snapshot, earned_wage,
-         status, approved_by, approved_at, note
+         status, approved_by, approved_at, note, source_submission_key
        ) VALUES (
          $1, $2, $3, $4, nullif($5, ''), $6, $7, $8, $9, $10::jsonb,
-         $11, $12, $13, $14, 'Approved', $15, now(), $16
+         $11, $12, $13, $14, 'Approved', $15, now(), $16, nullif($17, '')
        )`,
       [
         entryId, input.workDate, input.employee.id, input.employee.name,
         input.workOrderId, input.itemId, itemRows[0].name, input.stage, input.totalPairs,
         JSON.stringify(normalizeSizeBreakdown(input.sizeBreakdown)),
         input.rejectedPairs, input.reworkPairs, rate, earned, input.approvedBy, input.note,
+        input.sourceSubmissionKey ?? "",
       ],
     );
 

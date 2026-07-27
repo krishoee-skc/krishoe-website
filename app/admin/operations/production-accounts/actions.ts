@@ -349,6 +349,7 @@ export async function createWorkEntryAction(formData: FormData) {
     sizeBreakdown: sizeBreakdown(text(formData, "sizeBreakdown")),
     approvedBy,
     note: text(formData, "note"),
+    sourceSubmissionKey: text(formData, "sourceSubmissionKey"),
   });
   await recordAdminAuditEvent(
     "production_work_approve",

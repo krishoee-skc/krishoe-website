@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import OfflineProductionWorkForm from "@/components/admin/OfflineProductionWorkForm";
 import {
   createProductionItemAction,
   createWorkEntryAction,
@@ -539,36 +540,25 @@ export default async function ProductionAccountsPage({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={createWorkEntryAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">6. Completed work</h2>
-          <p className="mt-1 text-sm text-gray-500">Enter only when the worker hands over completed work. Owner approval is immediate.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="workOrderId" className={`${input} sm:col-span-2`} defaultValue="">
-              <option value="">No Work Order link (legacy/manual)</option>
-              {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
-                <option key={order.id} value={order.id}>
-                  {order.workOrderNumber} · {order.itemName} · {order.colour} · current {order.currentStage}
-                </option>
-              ))}
-            </select>
-            <select name="employeeId" className={input} required defaultValue="">
-              <option value="" disabled>Select worker</option>
-              {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.id}</option>)}
-            </select>
-            <select name="itemId" className={input} required defaultValue="">
-              <option value="" disabled>Select item</option>
-              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            <select name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
-            <input name="workDate" type="date" className={input} defaultValue={date} required />
-            <input name="totalPairs" type="number" min="1" className={input} placeholder="Total completed pairs" required />
-            <input name="sizeBreakdown" className={input} placeholder="Optional: 36:10, 37:15" />
-            <input name="rejectedPairs" type="number" min="0" className={input} placeholder="Rejected pairs" defaultValue="0" />
-            <input name="reworkPairs" type="number" min="0" className={input} placeholder="Rework pairs" defaultValue="0" />
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Remark (optional)" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Approving work…">Approve completed work</FormSubmitButton>
-        </form>
+        <OfflineProductionWorkForm
+          action={createWorkEntryAction}
+          className={card}
+          today={date}
+          stages={[...productionStages]}
+          workOrders={data.workOrders
+            .filter((order) => !["Completed", "Cancelled"].includes(order.status))
+            .map((order) => ({
+              id: order.id,
+              label: `${order.workOrderNumber} · ${order.itemName} · ${order.colour} · current ${order.currentStage}`,
+            }))}
+          employees={data.employees.map((employee) => ({
+            id: employee.id,
+            label: `${employee.name} · ${employee.id}`,
+          }))}
+          items={activeItems
+            .filter((item) => item.productionType !== "Resale")
+            .map((item) => ({ id: item.id, label: item.name }))}
+        />
 
         <form action={createWorkerPaymentAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>

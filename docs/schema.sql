@@ -834,6 +834,12 @@ ALTER TABLE production_work_entries
 
 CREATE INDEX IF NOT EXISTS production_work_entries_employee_idx
   ON production_work_entries(employee_id, work_date DESC);
+
+ALTER TABLE production_work_entries
+  ADD COLUMN IF NOT EXISTS source_submission_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS production_work_entries_submission_key_idx
+  ON production_work_entries(source_submission_key)
+  WHERE source_submission_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS production_work_entries_item_idx
   ON production_work_entries(item_id, work_date DESC);
 CREATE INDEX IF NOT EXISTS production_work_entries_status_idx
