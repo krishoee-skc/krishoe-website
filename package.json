@@ -12,6 +12,7 @@
     "test:run": "vitest run",
     "backup:export": "node scripts/export-admin-backup.mjs",
     "db:schema": "node scripts/apply-postgres-schema.mjs",
+    "audit:production": "node --env-file=.env.local scripts/audit-production-integrity.mjs",
     "db:import": "node scripts/import-backup-to-postgres.mjs",
     "db:smoke": "node scripts/postgres-smoke-check.mjs",
     "business:clean-start": "node scripts/clean-business-start.mjs"
