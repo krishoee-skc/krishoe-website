@@ -639,6 +639,24 @@ CREATE TABLE IF NOT EXISTS production_stage_rates (
 CREATE INDEX IF NOT EXISTS production_stage_rates_item_idx
   ON production_stage_rates(item_id, stage, effective_from DESC);
 
+CREATE TABLE IF NOT EXISTS production_worker_stage_rates (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_name_snapshot TEXT NOT NULL,
+  item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  rate_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_pair >= 0),
+  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+  note TEXT NOT NULL DEFAULT '',
+  UNIQUE (employee_id, item_id, stage, effective_from)
+);
+
+CREATE INDEX IF NOT EXISTS production_worker_stage_rates_lookup_idx
+  ON production_worker_stage_rates(employee_id, item_id, stage, effective_from DESC);
+
 CREATE TABLE IF NOT EXISTS production_item_materials (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

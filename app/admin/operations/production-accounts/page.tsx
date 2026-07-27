@@ -13,6 +13,7 @@ import {
   createWorkOrderAction,
   createHandoverAction,
   saveStageRateAction,
+  saveWorkerStageRateAction,
 } from "./actions";
 import {
   getProductionAccountingSnapshot,
@@ -189,6 +190,54 @@ export default async function ProductionAccountsPage({
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving rate…">Save wage rate</FormSubmitButton>
         </form>
       </div>
+
+      <form action={saveWorkerStageRateAction} className={`${card} border-amber-200`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-black text-brand-green-ink">Special worker wage override</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Use only when one worker has a different item-stage rate. Otherwise the normal rate above applies.
+            </p>
+          </div>
+          <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+            Owner only
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <select name="employeeId" className={input} required defaultValue="">
+            <option value="" disabled>Select worker</option>
+            {data.employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
+            ))}
+          </select>
+          <select name="itemId" className={input} required defaultValue="">
+            <option value="" disabled>Select item</option>
+            {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <select name="stage" className={input}>
+            {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
+          </select>
+          <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
+          <input name="effectiveFrom" type="date" className={input} defaultValue={date} required />
+          <input name="note" className={`${input} sm:col-span-2`} placeholder="Reason / agreement note (optional)" />
+          <FormSubmitButton className={button} pendingLabel="Saving override…">Save special rate</FormSubmitButton>
+        </div>
+        {data.workerRates.length > 0 ? (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {data.workerRates.map((rate) => {
+              const item = data.items.find((row) => row.id === rate.itemId);
+              return (
+                <div key={rate.id} className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-sm">
+                  <p className="font-black text-brand-green-ink">{rate.employeeName} · {item?.name ?? "Item"}</p>
+                  <p className="mt-1 text-gray-600">{rate.stage} · from {rate.effectiveFrom}</p>
+                  <p className="mt-1 font-black text-amber-800">{money(rate.ratePerPair)}/pair</p>
+                  {rate.note ? <p className="mt-1 text-xs text-gray-500">{rate.note}</p> : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </form>
 
       <form action={mapProductionItemAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">Stock catalog mapping</h2>

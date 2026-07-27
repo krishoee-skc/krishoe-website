@@ -23,6 +23,7 @@ import {
   reverseWorkOrderMaterialConsumption,
   reverseWorkerPayment,
   setProductionStageRate,
+  setProductionWorkerStageRate,
   setProductionItemMaterial,
   updateProductionWorkOrderSchedule,
 } from "@/lib/production-accounting";
@@ -131,6 +132,30 @@ export async function saveStageRateAction(formData: FormData) {
   await recordAdminAuditEvent(
     "production_stage_rate_save",
     `${stage} wage set to Rs. ${ratePerPair}/pair.`,
+  );
+  refresh();
+}
+
+export async function saveWorkerStageRateAction(formData: FormData) {
+  await ownerContext();
+  const employee = await activeEmployee(text(formData, "employeeId"));
+  const itemId = text(formData, "itemId");
+  const stage = option<ProductionStage>(text(formData, "stage"), productionStages, "Upper");
+  const ratePerPair = amount(formData, "ratePerPair");
+  const effectiveFrom = text(formData, "effectiveFrom");
+  if (!itemId || !effectiveFrom) throw new Error("Worker, item and effective date are required.");
+
+  await setProductionWorkerStageRate({
+    employee,
+    itemId,
+    stage,
+    ratePerPair,
+    effectiveFrom,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_worker_stage_rate_save",
+    `${employee.name} special ${stage} wage set to Rs. ${ratePerPair}/pair.`,
   );
   refresh();
 }

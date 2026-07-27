@@ -34,6 +34,12 @@ export type StageRate = {
   effectiveFrom: string;
 };
 
+export type WorkerStageRate = StageRate & {
+  employeeId: string;
+  employeeName: string;
+  note: string;
+};
+
 export type WorkEntry = {
   id: string;
   workDate: string;
@@ -168,6 +174,12 @@ type RateRow = {
   stage: ProductionStage;
   rate_per_pair: number | string;
   effective_from: Date | string;
+};
+
+type WorkerRateRow = RateRow & {
+  employee_id: string;
+  employee_name_snapshot: string;
+  note: string;
 };
 
 type WorkRow = {
@@ -496,8 +508,8 @@ function id(prefix: string) {
 
 export async function getProductionAccountingSnapshot() {
   const [
-    items, rates, workOrders, handovers, workEntries, payments, qcPostings, balances, materials,
-    itemMaterials, costCards, hr, products,
+    items, rates, workerRates, workOrders, handovers, workEntries, payments, qcPostings, balances,
+    materials, itemMaterials, costCards, hr, products,
   ] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
@@ -511,6 +523,15 @@ export async function getProductionAccountingSnapshot() {
        FROM production_stage_rates
        WHERE status = 'Active' AND effective_from <= CURRENT_DATE
        ORDER BY item_id, stage, effective_from DESC, created_at DESC`,
+    ),
+    queryPostgres<WorkerRateRow>(
+      "production worker stage rates",
+      `SELECT DISTINCT ON (employee_id, item_id, stage)
+         id, employee_id, employee_name_snapshot, item_id, stage,
+         rate_per_pair, effective_from, note
+       FROM production_worker_stage_rates
+       WHERE status = 'Active' AND effective_from <= CURRENT_DATE
+       ORDER BY employee_id, item_id, stage, effective_from DESC, created_at DESC`,
     ),
     queryPostgres<WorkOrderRow>(
       "production work orders",
@@ -634,6 +655,16 @@ export async function getProductionAccountingSnapshot() {
       stage: row.stage,
       ratePerPair: numeric(row.rate_per_pair),
       effectiveFrom: isoDate(row.effective_from),
+    })),
+    workerRates: workerRates.map((row) => ({
+      id: row.id,
+      employeeId: row.employee_id,
+      employeeName: row.employee_name_snapshot,
+      itemId: row.item_id,
+      stage: row.stage,
+      ratePerPair: numeric(row.rate_per_pair),
+      effectiveFrom: isoDate(row.effective_from),
+      note: row.note,
     })),
     workOrders: workOrders.map(workOrderFromRow),
     handovers: handovers.map((row) => {
@@ -1601,6 +1632,36 @@ export async function setProductionStageRate(input: {
   );
 }
 
+export async function setProductionWorkerStageRate(input: {
+  employee: Employee;
+  itemId: string;
+  stage: ProductionStage;
+  ratePerPair: number;
+  effectiveFrom: string;
+  note: string;
+}) {
+  await queryPostgres(
+    "set production worker stage rate",
+    `INSERT INTO production_worker_stage_rates (
+       id, employee_id, employee_name_snapshot, item_id, stage,
+       rate_per_pair, effective_from, status, note
+     )
+     SELECT $1, $2, $3, items.id, $5, $6, $7, 'Active', $8
+     FROM production_items items
+     WHERE items.id = $4 AND items.status = 'Active'
+     ON CONFLICT (employee_id, item_id, stage, effective_from) DO UPDATE SET
+       employee_name_snapshot = EXCLUDED.employee_name_snapshot,
+       rate_per_pair = EXCLUDED.rate_per_pair,
+       status = 'Active',
+       note = EXCLUDED.note,
+       updated_at = now()`,
+    [
+      id("pwrate"), input.employee.id, input.employee.name, input.itemId, input.stage,
+      input.ratePerPair, input.effectiveFrom, input.note,
+    ],
+  );
+}
+
 export async function addApprovedWorkEntry(input: {
   employee: Employee;
   workOrderId: string;
@@ -1651,11 +1712,22 @@ export async function addApprovedWorkEntry(input: {
 
     const rateRows = await db.query<RateRow>(
       `SELECT id, item_id, stage, rate_per_pair, effective_from
-       FROM production_stage_rates
-       WHERE item_id = $1 AND stage = $2 AND status = 'Active'
-         AND effective_from <= $3::date
-       ORDER BY effective_from DESC, created_at DESC LIMIT 1`,
-      [input.itemId, input.stage, input.workDate],
+       FROM (
+         SELECT id, item_id, stage, rate_per_pair, effective_from,
+           created_at, 0 AS rate_priority
+         FROM production_worker_stage_rates
+         WHERE employee_id = $1 AND item_id = $2 AND stage = $3
+           AND status = 'Active' AND effective_from <= $4::date
+         UNION ALL
+         SELECT id, item_id, stage, rate_per_pair, effective_from,
+           created_at, 1 AS rate_priority
+         FROM production_stage_rates
+         WHERE item_id = $2 AND stage = $3
+           AND status = 'Active' AND effective_from <= $4::date
+       ) available_rates
+       ORDER BY rate_priority, effective_from DESC, created_at DESC
+       LIMIT 1`,
+      [input.employee.id, input.itemId, input.stage, input.workDate],
     );
     if (!rateRows[0]) throw new Error("Set this item and stage wage rate first.");
 
