@@ -2,6 +2,7 @@ import { isBikramMonthStart } from "@/lib/bikram-sambat";
 import {
   notifyDailySalesSummary,
   notifyPeriodSalesSummary,
+  notifyProductionSummary,
 } from "@/lib/notifications";
 import { reportError } from "@/lib/report-error";
 
@@ -31,11 +32,18 @@ export async function GET(request: Request) {
 
   const jobs = [
     { name: "daily", run: () => notifyDailySalesSummary() },
+    { name: "daily-production", run: () => notifyProductionSummary("daily") },
     ...(isSunday
-      ? [{ name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) }]
+      ? [
+          { name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) },
+          { name: "weekly-production", run: () => notifyProductionSummary("weekly" as const) },
+        ]
       : []),
     ...(isMonthStart
-      ? [{ name: "monthly", run: () => notifyPeriodSalesSummary("monthly" as const) }]
+      ? [
+          { name: "monthly", run: () => notifyPeriodSalesSummary("monthly" as const) },
+          { name: "monthly-production", run: () => notifyProductionSummary("monthly" as const) },
+        ]
       : []),
   ];
   const settled = await Promise.allSettled(jobs.map((job) => job.run()));

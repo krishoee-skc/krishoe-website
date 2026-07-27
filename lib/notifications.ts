@@ -15,6 +15,11 @@ import {
 } from "@/lib/period-report";
 import { queryPostgres } from "@/lib/postgres/client";
 import { getProducts } from "@/lib/product-store";
+import {
+  getProductionControlSummary,
+  getProductionPeriodSummary,
+  type ProductionPeriodSummary,
+} from "@/lib/production-accounting";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { reportingErrors } from "@/lib/report-error";
@@ -30,7 +35,8 @@ export type OperationalAlertCategory =
   | "payment"
   | "posting"
   | "catalog"
-  | "sales";
+  | "sales"
+  | "production";
 
 export type PasswordResetNotificationPayload = {
   email: string;
@@ -230,7 +236,7 @@ export function textSummary(event: NotificationEvent) {
 
     // The daily sales digest is a report the owner reads, not an alert to
     // triage — send it as plain lines without the Severity/Category chrome.
-    if (alert.category === "sales") {
+    if (alert.category === "sales" || alert.category === "production") {
       return [event.title, "", alert.detail, "", alert.action, alert.href].join("\n");
     }
 
@@ -907,6 +913,99 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
     },
   });
 
+  const result = await deliverNotificationEvent(event);
+  return {
+    ...event,
+    deliveryStatus: result.status,
+    deliveryAttempts: event.deliveryAttempts + 1,
+    deliveredAt: result.ok ? new Date().toISOString() : event.deliveredAt,
+    lastDeliveryError: result.error,
+    lastDeliveryChannel: result.successfulChannels.join(", "),
+  };
+}
+
+function tomorrowKey(dateKey: string) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+export function formatProductionReportDetail(
+  report: ProductionPeriodSummary,
+  control: Awaited<ReturnType<typeof getProductionControlSummary>>,
+) {
+  const money = (value: number) =>
+    `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return [
+    `Good production: ${report.goodPairs} pairs`,
+    `Rejected / correction pending: ${report.rejectedPairs} pairs`,
+    `Finished stock posted: ${report.stockPostedPairs} pairs`,
+    `Worker wage earned: ${money(report.earnedWage)}`,
+    `Worker cash paid: ${money(report.cashPaid)}`,
+    `Completed Work Orders: ${report.completedWorkOrders}`,
+    `Top output worker: ${report.topWorker ? `${report.topWorker.name} (${report.topWorker.goodPairs} pairs)` : "No entry"}`,
+    "",
+    `Current active Work Orders: ${control.activeWorkOrders}`,
+    `Overdue Work Orders: ${control.overdueWorkOrders}`,
+    `Ready for packing/QC: ${control.readyForQc}`,
+    `Handover mismatches: ${control.handoverMismatches}`,
+    `Total worker balance due: ${money(control.workerBalanceDue)}`,
+  ].join("\n");
+}
+
+export async function notifyProductionSummary(kind: "daily" | PeriodKind) {
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const range =
+    kind === "daily"
+      ? { startKey: todayKey, endKey: tomorrowKey(todayKey) }
+      : kind === "weekly"
+        ? weeklyRanges(now).current
+        : monthlyRanges(now).current;
+  const alertId = `${kind}-production-${range.startKey}`;
+  const existingEvents = await getNotificationEvents(maxNotificationEvents);
+  const existing = existingEvents.find(
+    (event) =>
+      event.type === "operational-alert" &&
+      (event.payload as OperationalAlertNotificationPayload).alertId === alertId,
+  );
+
+  if (existing?.deliveryStatus === "sent") return existing;
+  if (existing) {
+    const result = await deliverNotificationEvent({ ...existing, deliveryStatus: "pending" });
+    return {
+      ...existing,
+      deliveryStatus: result.status,
+      deliveryAttempts: existing.deliveryAttempts + 1,
+      deliveredAt: result.ok ? new Date().toISOString() : existing.deliveredAt,
+      lastDeliveryError: result.error,
+      lastDeliveryChannel: result.successfulChannels.join(", "),
+    };
+  }
+
+  const [report, control] = await Promise.all([
+    getProductionPeriodSummary({ start: range.startKey, end: range.endKey }),
+    getProductionControlSummary(),
+  ]);
+  const label = kind === "daily" ? todayKey : `${range.startKey} to ${range.endKey}`;
+  const title =
+    kind === "daily"
+      ? `KRISHOE Daily Factory Report — ${todayKey}`
+      : kind === "weekly"
+        ? `KRISHOE Weekly Factory Report — ${label}`
+        : `KRISHOE Monthly Factory Report — ${label}`;
+  const event = await appendEvent({
+    type: "operational-alert",
+    title,
+    payload: {
+      alertId,
+      category: "production",
+      severity: "info",
+      detail: formatProductionReportDetail(report, control),
+      action: "Open Production Accounts:",
+      href: "https://krishoe-website.vercel.app/admin/operations/production-accounts",
+    },
+  });
   const result = await deliverNotificationEvent(event);
   return {
     ...event,

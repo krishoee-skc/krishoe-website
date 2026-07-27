@@ -352,6 +352,16 @@ type ProductionControlRow = {
   worker_balance_due: number | string;
 };
 
+export type ProductionPeriodSummary = {
+  goodPairs: number;
+  rejectedPairs: number;
+  earnedWage: number;
+  cashPaid: number;
+  stockPostedPairs: number;
+  completedWorkOrders: number;
+  topWorker: { name: string; goodPairs: number } | null;
+};
+
 function numeric(value: number | string) {
   return Math.round(Number(value) * 100) / 100;
 }
@@ -425,6 +435,80 @@ export async function getProductionControlSummary() {
     handoverMismatches: count(row?.handover_mismatches),
     workerBalanceDue: numeric(row?.worker_balance_due ?? 0),
     stagePending: Object.fromEntries(stages.map((stage) => [stage.current_stage, count(stage.count)])),
+  };
+}
+
+export async function getProductionPeriodSummary(period: {
+  start: string;
+  end: string;
+}): Promise<ProductionPeriodSummary> {
+  const [rows, workers] = await Promise.all([
+    queryPostgres<{
+      good_pairs: number | string;
+      rejected_pairs: number | string;
+      earned_wage: number | string;
+      cash_paid: number | string;
+      stock_posted_pairs: number | string;
+      completed_work_orders: number | string;
+    }>(
+      "production period report",
+      `SELECT
+         (SELECT coalesce(sum(total_pairs - rejected_pairs), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved'
+            AND work_date >= $1::date AND work_date < $2::date) AS good_pairs,
+         (SELECT coalesce(sum(rejected_pairs), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved'
+            AND work_date >= $1::date AND work_date < $2::date) AS rejected_pairs,
+         (SELECT coalesce(sum(earned_wage), 0)
+          FROM production_work_entries
+          WHERE status = 'Approved'
+            AND work_date >= $1::date AND work_date < $2::date) AS earned_wage,
+         (SELECT coalesce(sum(CASE
+            WHEN direction = 'Paid' THEN amount
+            WHEN direction = 'Recovered' THEN -amount
+            WHEN direction = 'Added' THEN -amount ELSE 0 END), 0)
+          FROM worker_payments
+          WHERE reversed_at IS NULL
+            AND payment_date >= $1::date AND payment_date < $2::date) AS cash_paid,
+         (SELECT coalesce(sum(total_pairs), 0)
+          FROM production_qc_postings
+          WHERE reversed_at IS NULL
+            AND qc_date >= $1::date AND qc_date < $2::date) AS stock_posted_pairs,
+         (SELECT count(*)
+          FROM production_work_orders
+          WHERE status = 'Completed'
+            AND updated_at >= $1::date AND updated_at < $2::date) AS completed_work_orders`,
+      [period.start, period.end],
+    ),
+    queryPostgres<{
+      employee_name: string;
+      good_pairs: number | string;
+    }>(
+      "production period top worker",
+      `SELECT max(employee_name_snapshot) AS employee_name,
+         sum(total_pairs - rejected_pairs) AS good_pairs
+       FROM production_work_entries
+       WHERE status = 'Approved'
+         AND work_date >= $1::date AND work_date < $2::date
+       GROUP BY employee_id
+       ORDER BY good_pairs DESC, employee_name
+       LIMIT 1`,
+      [period.start, period.end],
+    ),
+  ]);
+  const row = rows[0];
+  return {
+    goodPairs: Number(row?.good_pairs ?? 0),
+    rejectedPairs: Number(row?.rejected_pairs ?? 0),
+    earnedWage: numeric(row?.earned_wage ?? 0),
+    cashPaid: numeric(row?.cash_paid ?? 0),
+    stockPostedPairs: Number(row?.stock_posted_pairs ?? 0),
+    completedWorkOrders: Number(row?.completed_work_orders ?? 0),
+    topWorker: workers[0]
+      ? { name: workers[0].employee_name, goodPairs: Number(workers[0].good_pairs) }
+      : null,
   };
 }
 
