@@ -447,6 +447,11 @@ export default async function ProductionAccountsPage({
             </select>
             <input name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
             <input name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
+            <input
+              name="receivedSizeBreakdown"
+              className={`${input} sm:col-span-2`}
+              placeholder="Received sizes: 36:10, 37:15"
+            />
             <input name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving handover…">Save handover</FormSubmitButton>
@@ -464,6 +469,11 @@ export default async function ProductionAccountsPage({
                     <p className="mt-1 text-xs text-gray-500">
                       {handover.fromEmployeeName || "Sender"} → {handover.toEmployeeName || "Receiver"} · {handover.handoverDate}
                     </p>
+                    {Object.keys(handover.receivedSizeBreakdown).length ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Sizes: {Object.entries(handover.receivedSizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-right">
                     <p className="font-black">{handover.sentPairs} → {handover.receivedPairs}</p>

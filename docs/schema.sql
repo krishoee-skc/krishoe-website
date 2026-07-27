@@ -748,6 +748,9 @@ CREATE TABLE IF NOT EXISTS production_stage_handovers (
   note TEXT NOT NULL DEFAULT ''
 );
 
+ALTER TABLE production_stage_handovers
+  ADD COLUMN IF NOT EXISTS received_size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 CREATE INDEX IF NOT EXISTS production_stage_handovers_order_idx
   ON production_stage_handovers(work_order_id, handover_date DESC);
 

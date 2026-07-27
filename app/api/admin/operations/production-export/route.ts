@@ -64,7 +64,9 @@ async function getRows(type: ExportType) {
        work_order_number_snapshot AS "workOrderNumber", from_stage AS "fromStage",
        to_stage AS "toStage", from_employee_name_snapshot AS "fromWorker",
        to_employee_name_snapshot AS "toWorker", sent_pairs AS "sentPairs",
-       received_pairs AS "receivedPairs", received_pairs - sent_pairs AS difference,
+       received_pairs AS "receivedPairs",
+       received_size_breakdown::text AS "receivedSizeBreakdown",
+       received_pairs - sent_pairs AS difference,
        approved_by AS "approvedBy", note, created_at AS "createdAt"
        FROM production_stage_handovers ORDER BY handover_date DESC, created_at DESC`);
   }

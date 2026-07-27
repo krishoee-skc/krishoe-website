@@ -201,6 +201,7 @@ export async function createHandoverAction(formData: FormData) {
     toEmployee: toEmployeeId ? await activeEmployee(toEmployeeId) : undefined,
     sentPairs: integer(formData, "sentPairs"),
     receivedPairs: integer(formData, "receivedPairs"),
+    receivedSizeBreakdown: sizeBreakdown(text(formData, "receivedSizeBreakdown")),
     approvedBy,
     note: text(formData, "note"),
   });

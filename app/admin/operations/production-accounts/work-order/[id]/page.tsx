@@ -253,7 +253,13 @@ export default async function WorkOrderDetailPage({
             {detail.handovers.map((row) => (
               <article key={row.id} className="rounded-xl bg-gray-50 p-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <div><p className="font-black">{row.fromStage} → {row.toStage}</p><p className="mt-1 text-gray-500">{row.fromEmployeeName || "Sender"} → {row.toEmployeeName || "Receiver"} · {row.handoverDate}</p></div>
+                  <div>
+                    <p className="font-black">{row.fromStage} → {row.toStage}</p>
+                    <p className="mt-1 text-gray-500">{row.fromEmployeeName || "Sender"} → {row.toEmployeeName || "Receiver"} · {row.handoverDate}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Sizes: {Object.entries(row.receivedSizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ") || "Not recorded"}
+                    </p>
+                  </div>
                   <div className="text-right"><p className="font-black">{row.sentPairs} → {row.receivedPairs}</p><p className={row.signal === "Matched" ? "text-xs font-black text-brand-green" : "text-xs font-black text-brand-clay"}>{row.signal}</p></div>
                 </div>
               </article>

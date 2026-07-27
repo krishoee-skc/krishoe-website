@@ -76,6 +76,7 @@ export type ProductionHandover = {
   toEmployeeName: string;
   sentPairs: number;
   receivedPairs: number;
+  receivedSizeBreakdown: SizeBreakdown;
   signal: "Matched" | "Short" | "Excess";
   difference: number;
 };
@@ -211,6 +212,7 @@ type HandoverRow = {
   to_employee_name_snapshot: string;
   sent_pairs: number | string;
   received_pairs: number | string;
+  received_size_breakdown: SizeBreakdown | string;
 };
 
 type BalanceRow = {
@@ -524,7 +526,7 @@ export async function getProductionAccountingSnapshot() {
       "production stage handovers",
       `SELECT id, handover_date, work_order_id, work_order_number_snapshot,
          from_stage, to_stage, from_employee_name_snapshot,
-         to_employee_name_snapshot, sent_pairs, received_pairs
+         to_employee_name_snapshot, sent_pairs, received_pairs, received_size_breakdown
        FROM production_stage_handovers
        ORDER BY handover_date DESC, created_at DESC LIMIT 50`,
     ),
@@ -646,6 +648,7 @@ export async function getProductionAccountingSnapshot() {
         toEmployeeName: row.to_employee_name_snapshot,
         sentPairs: Number(row.sent_pairs),
         receivedPairs: Number(row.received_pairs),
+        receivedSizeBreakdown: jsonSizes(row.received_size_breakdown),
         ...result,
       };
     }),
@@ -953,7 +956,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
       "Work Order handovers",
       `SELECT id, handover_date, work_order_id, work_order_number_snapshot,
          from_stage, to_stage, from_employee_name_snapshot,
-         to_employee_name_snapshot, sent_pairs, received_pairs
+         to_employee_name_snapshot, sent_pairs, received_pairs, received_size_breakdown
        FROM production_stage_handovers
        WHERE work_order_id = $1 ORDER BY handover_date, created_at`,
       [workOrderId],
@@ -1009,6 +1012,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     toEmployeeName: row.to_employee_name_snapshot,
     sentPairs: Number(row.sent_pairs),
     receivedPairs: Number(row.received_pairs),
+    receivedSizeBreakdown: jsonSizes(row.received_size_breakdown),
     ...handoverSignal(Number(row.sent_pairs), Number(row.received_pairs)),
   }));
   const qcPostings: QcStockPosting[] = qcRows.map((row) => ({
@@ -1342,6 +1346,7 @@ export async function createProductionHandover(input: {
   toEmployee?: Employee;
   sentPairs: number;
   receivedPairs: number;
+  receivedSizeBreakdown: SizeBreakdown;
   approvedBy: string;
   note: string;
 }) {
@@ -1362,6 +1367,24 @@ export async function createProductionHandover(input: {
     if (input.sentPairs > Number(order.planned_pairs) || input.receivedPairs > Number(order.planned_pairs)) {
       throw new Error("Handover quantity cannot exceed Work Order planned pairs.");
     }
+    const receivedSizes = normalizeSizeBreakdown(input.receivedSizeBreakdown);
+    const sizedTotal = Object.values(receivedSizes).reduce((total, pairs) => total + pairs, 0);
+    if (sizedTotal !== input.receivedPairs) {
+      throw new Error("Handover received size-wise pairs must match received pairs.");
+    }
+    if (input.receivedPairs > 0) {
+      const previousSizes = await db.query<{ received_size_breakdown: SizeBreakdown | string }>(
+        `SELECT received_size_breakdown FROM production_stage_handovers
+         WHERE work_order_id = $1 AND to_stage = $2`,
+        [input.workOrderId, toStage],
+      );
+      assertCumulativeSizePlan(
+        jsonSizes(order.size_breakdown),
+        previousSizes.map((row) => jsonSizes(row.received_size_breakdown)),
+        receivedSizes,
+        `${toStage} handover`,
+      );
+    }
 
     const handoverId = id("handover");
     await db.query(
@@ -1369,16 +1392,16 @@ export async function createProductionHandover(input: {
          id, handover_date, work_order_id, work_order_number_snapshot,
          from_stage, to_stage, from_employee_id, from_employee_name_snapshot,
          to_employee_id, to_employee_name_snapshot, sent_pairs, received_pairs,
-         approved_by, note
+         received_size_breakdown, approved_by, note
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15
        )`,
       [
         handoverId, input.handoverDate, order.id, order.work_order_number,
         input.fromStage, toStage, input.fromEmployee?.id ?? null,
         input.fromEmployee?.name ?? "", input.toEmployee?.id ?? null,
         input.toEmployee?.name ?? "", input.sentPairs, input.receivedPairs,
-        input.approvedBy, input.note,
+        JSON.stringify(receivedSizes), input.approvedBy, input.note,
       ],
     );
     return { id: handoverId, workOrderNumber: order.work_order_number, toStage };
