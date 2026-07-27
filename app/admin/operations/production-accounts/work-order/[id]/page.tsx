@@ -6,6 +6,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
   cancelWorkOrderAction,
+  createCctvReferenceAction,
   createMaterialConsumptionAction,
   reverseHandoverAction,
   reverseMaterialConsumptionAction,
@@ -22,6 +23,29 @@ function money(value: number) {
 
 function nepalToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
+}
+
+function nepalDateTime(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kathmandu",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(value);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((row) => row.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}
+
+function nepalDisplay(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kathmandu",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 export default async function WorkOrderDetailPage({
@@ -123,6 +147,64 @@ export default async function WorkOrderDetailPage({
               {size}: {pairs}
             </span>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-800">CCTV trace</p>
+            <h2 className="mt-1 text-lg font-black text-brand-green-ink">Camera time reference</h2>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Save only the camera zone and time window. Footage remains in the camera system.
+            </p>
+          </div>
+          <Link href="/admin/security" className="w-fit text-xs font-black text-sky-800 underline underline-offset-4">
+            Open camera apps
+          </Link>
+        </div>
+        <form action={createCctvReferenceAction} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <input type="hidden" name="workOrderId" value={order.id} />
+          <select name="stage" defaultValue={order.currentStage} className="min-h-11 rounded-xl border border-sky-200 bg-white px-3 text-sm">
+            {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
+              <option key={stage}>{stage}</option>
+            ))}
+          </select>
+          <input name="cameraZone" className="min-h-11 rounded-xl border border-sky-200 bg-white px-3 text-sm" placeholder="Camera zone, e.g. Fiber Silai table" required />
+          <input name="cctvReference" className="min-h-11 rounded-xl border border-sky-200 bg-white px-3 text-sm" placeholder="Camera/DVR reference (optional)" />
+          <label className="text-xs font-bold text-brand-green-ink">
+            Start time
+            <input name="windowStart" type="datetime-local" defaultValue={nepalDateTime()} className="mt-1 min-h-11 w-full rounded-xl border border-sky-200 bg-white px-3 text-sm" required />
+          </label>
+          <label className="text-xs font-bold text-brand-green-ink">
+            End time
+            <input name="windowEnd" type="datetime-local" defaultValue={nepalDateTime()} className="mt-1 min-h-11 w-full rounded-xl border border-sky-200 bg-white px-3 text-sm" required />
+          </label>
+          <input name="evidenceReference" className="min-h-11 rounded-xl border border-sky-200 bg-white px-3 text-sm" placeholder="Evidence link/photo reference (optional)" />
+          <input name="note" className="min-h-11 rounded-xl border border-sky-200 bg-white px-3 text-sm sm:col-span-2" placeholder="Incident / verification note" />
+          <FormSubmitButton className="min-h-11 rounded-xl bg-sky-800 px-4 text-xs font-black text-white" pendingLabel="Saving CCTV reference…">
+            Save camera reference
+          </FormSubmitButton>
+        </form>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {detail.cctvReferences.map((row) => (
+            <article key={row.id} className="rounded-xl border border-sky-100 bg-white p-3 text-sm">
+              <p className="font-black text-brand-green-ink">{row.stage} · {row.cameraZone}</p>
+              <p className="mt-1 text-gray-600">{nepalDisplay(row.windowStart)} → {nepalDisplay(row.windowEnd)}</p>
+              <p className="mt-1 text-xs text-gray-500">
+                {row.cctvReference || "No DVR reference"} · recorded by {row.recordedBy}
+              </p>
+              {row.evidenceReference ? (
+                /^https?:\/\//i.test(row.evidenceReference)
+                  ? <a href={row.evidenceReference} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-black text-sky-800 underline">Open evidence</a>
+                  : <p className="mt-2 text-xs font-bold text-sky-800">Evidence: {row.evidenceReference}</p>
+              ) : null}
+              {row.note ? <p className="mt-2 text-xs text-gray-500">{row.note}</p> : null}
+            </article>
+          ))}
+          {detail.cctvReferences.length === 0 ? (
+            <p className="text-sm text-sky-900">No camera reference recorded for this Work Order.</p>
+          ) : null}
         </div>
       </div>
 

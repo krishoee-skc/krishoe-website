@@ -726,6 +726,27 @@ ALTER TABLE production_work_orders
 ALTER TABLE production_work_orders
   ADD COLUMN IF NOT EXISTS cancellation_reason TEXT NOT NULL DEFAULT '';
 
+CREATE TABLE IF NOT EXISTS production_cctv_references (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  work_order_id TEXT NOT NULL REFERENCES production_work_orders(id) ON DELETE RESTRICT,
+  work_order_number_snapshot TEXT NOT NULL,
+  stage TEXT NOT NULL CHECK (
+    stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+  ),
+  camera_zone TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL,
+  window_end TIMESTAMPTZ NOT NULL,
+  cctv_reference TEXT NOT NULL DEFAULT '',
+  evidence_reference TEXT NOT NULL DEFAULT '',
+  recorded_by TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  CHECK (window_end >= window_start)
+);
+
+CREATE INDEX IF NOT EXISTS production_cctv_references_order_idx
+  ON production_cctv_references(work_order_id, window_start DESC);
+
 CREATE TABLE IF NOT EXISTS production_material_consumptions (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

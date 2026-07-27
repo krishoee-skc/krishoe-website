@@ -71,6 +71,18 @@ export type ProductionWorkOrder = {
   createdBy: string;
 };
 
+export type ProductionCctvReference = {
+  id: string;
+  stage: ProductionStage | "Packing / QC";
+  cameraZone: string;
+  windowStart: string;
+  windowEnd: string;
+  cctvReference: string;
+  evidenceReference: string;
+  recordedBy: string;
+  note: string;
+};
+
 export type ProductionHandover = {
   id: string;
   handoverDate: string;
@@ -1058,7 +1070,7 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
   );
   if (!orderRows[0]) return null;
 
-  const [workRows, handoverRows, qcRows, materialRows, consumptionRows] = await Promise.all([
+  const [workRows, handoverRows, qcRows, materialRows, consumptionRows, cctvRows] = await Promise.all([
     queryPostgres<WorkRow>(
       "Work Order production entries",
       `SELECT id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -1112,6 +1124,25 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
        FROM production_material_consumptions
        WHERE work_order_id = $1 AND reversed_at IS NULL
        ORDER BY consumption_date DESC, created_at DESC`,
+      [workOrderId],
+    ),
+    queryPostgres<{
+      id: string;
+      stage: ProductionCctvReference["stage"];
+      camera_zone: string;
+      window_start: Date | string;
+      window_end: Date | string;
+      cctv_reference: string;
+      evidence_reference: string;
+      recorded_by: string;
+      note: string;
+    }>(
+      "Work Order CCTV references",
+      `SELECT id, stage, camera_zone, window_start, window_end,
+         cctv_reference, evidence_reference, recorded_by, note
+       FROM production_cctv_references
+       WHERE work_order_id = $1
+       ORDER BY window_start DESC, created_at DESC`,
       [workOrderId],
     ),
   ]);
@@ -1198,6 +1229,17 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
     order,
     materialPlan,
     materialConsumptions,
+    cctvReferences: cctvRows.map((row) => ({
+      id: row.id,
+      stage: row.stage,
+      cameraZone: row.camera_zone,
+      windowStart: new Date(row.window_start).toISOString(),
+      windowEnd: new Date(row.window_end).toISOString(),
+      cctvReference: row.cctv_reference,
+      evidenceReference: row.evidence_reference,
+      recordedBy: row.recorded_by,
+      note: row.note,
+    })),
     materialSummary: {
       materialCount: materialPlan.length,
       shortageCount: materialPlan.filter((row) => row.signal === "Shortage").length,
@@ -1231,6 +1273,43 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
       rejectedPairs: qcPostings.reduce((total, row) => total + row.rejectedPairs, 0),
     },
   };
+}
+
+export async function addProductionCctvReference(input: {
+  workOrderId: string;
+  stage: ProductionStage | "Packing / QC";
+  cameraZone: string;
+  windowStart: string;
+  windowEnd: string;
+  cctvReference: string;
+  evidenceReference: string;
+  recordedBy: string;
+  note: string;
+}) {
+  if (!input.cameraZone.trim()) throw new Error("Camera zone is required.");
+  if (!input.windowStart || !input.windowEnd) throw new Error("Camera start and end time are required.");
+  if (new Date(input.windowEnd).getTime() < new Date(input.windowStart).getTime()) {
+    throw new Error("Camera end time cannot be before start time.");
+  }
+  const rows = await queryPostgres<{ id: string; work_order_number: string }>(
+    "add production CCTV reference",
+    `INSERT INTO production_cctv_references (
+       id, work_order_id, work_order_number_snapshot, stage, camera_zone,
+       window_start, window_end, cctv_reference, evidence_reference, recorded_by, note
+     )
+     SELECT $1, orders.id, orders.work_order_number, $3, $4,
+       $5::timestamptz, $6::timestamptz, $7, $8, $9, $10
+     FROM production_work_orders orders
+     WHERE orders.id = $2
+     RETURNING id, work_order_number_snapshot AS work_order_number`,
+    [
+      id("cctv"), input.workOrderId, input.stage, input.cameraZone.trim(),
+      input.windowStart, input.windowEnd, input.cctvReference.trim(),
+      input.evidenceReference.trim(), input.recordedBy, input.note.trim(),
+    ],
+  );
+  if (!rows[0]) throw new Error("Work Order not found.");
+  return rows[0];
 }
 
 export async function addProductionItem(input: Omit<ProductionItem, "id" | "status">) {

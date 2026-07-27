@@ -8,6 +8,7 @@ import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
   addApprovedWorkEntry,
+  addProductionCctvReference,
   addProductionItem,
   addWorkOrderMaterialConsumption,
   addWorkerPayment,
@@ -88,6 +89,13 @@ async function activeEmployee(employeeId: string) {
 
 function refresh() {
   revalidatePath("/admin/operations/production-accounts");
+}
+
+function nepalTimestamp(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    throw new Error("Valid camera date and time are required.");
+  }
+  return `${value}:00+05:45`;
 }
 
 export async function createProductionItemAction(formData: FormData) {
@@ -229,6 +237,33 @@ export async function updateWorkOrderScheduleAction(formData: FormData) {
     `${result.workOrderNumber} due date/priority updated.`,
   );
   revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
+  refresh();
+}
+
+export async function createCctvReferenceAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const workOrderId = text(formData, "workOrderId");
+  const stage = option<ProductionStage | "Packing / QC">(
+    text(formData, "stage"),
+    [...productionStages, "Packing / QC"] as const,
+    "Upper",
+  );
+  const result = await addProductionCctvReference({
+    workOrderId,
+    stage,
+    cameraZone: text(formData, "cameraZone"),
+    windowStart: nepalTimestamp(text(formData, "windowStart")),
+    windowEnd: nepalTimestamp(text(formData, "windowEnd")),
+    cctvReference: text(formData, "cctvReference"),
+    evidenceReference: text(formData, "evidenceReference"),
+    recordedBy: approvedBy,
+    note: text(formData, "note"),
+  });
+  await recordAdminAuditEvent(
+    "production_cctv_reference_create",
+    `${result.work_order_number} ${stage} camera reference saved.`,
+  );
+  revalidatePath(`/admin/operations/production-accounts/work-order/${workOrderId}`);
   refresh();
 }
 
