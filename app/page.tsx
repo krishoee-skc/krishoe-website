@@ -61,16 +61,16 @@ export default function Home() {
             <p className="mt-3 max-w-[285px] text-sm font-semibold leading-6 text-brand-green-ink/75">
               Premium comfort, artisan detail and confident style—crafted for Nepal.
             </p>
-            <div className="mt-4 flex gap-2.5">
+            <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-2.5">
               <Link
                 href="/shop"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-green px-5 text-sm font-black text-white shadow-lg"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-5 py-2.5 text-sm font-black text-white shadow-lg transition hover:shadow-xl md:min-h-11 md:py-0"
               >
                 Shop now
               </Link>
               <Link
                 href="/shop/ladies-sandals"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#C9A24D]/50 bg-white/75 px-4 text-sm font-black text-brand-green shadow-sm backdrop-blur"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#C9A24D]/50 bg-white/75 px-4 py-2.5 text-sm font-black text-brand-green shadow-sm backdrop-blur transition hover:bg-white/85 md:min-h-11 md:py-0"
               >
                 Explore
               </Link>

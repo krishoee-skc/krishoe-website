@@ -69,7 +69,7 @@ function CheckoutForm({
               required
               maxLength={80}
               autoComplete="name"
-              className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
+              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
               placeholder="Your name"
             />
           </label>
@@ -83,7 +83,7 @@ function CheckoutForm({
               maxLength={20}
               pattern="^\+?[0-9\s().-]{7,20}$"
               autoComplete="tel"
-              className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
+              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
               placeholder="+977..."
             />
           </label>
@@ -95,7 +95,7 @@ function CheckoutForm({
               type="email"
               maxLength={120}
               autoComplete="email"
-              className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
+              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
               placeholder="you@example.com"
             />
           </label>

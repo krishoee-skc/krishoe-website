@@ -1,0 +1,583 @@
+(node:12508) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async FeaturedProducts (components\FeaturedProducts.tsx:6:29)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2144196266',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async BestSeller (components\BestSeller.tsx:5:31)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2620601484',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async NewArrivals (components\NewArrivals.tsx:6:21)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '3116186863',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async FeaturedProducts (components\FeaturedProducts.tsx:6:29)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2144196266',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async BestSeller (components\BestSeller.tsx:5:31)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2620601484',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async NewArrivals (components\NewArrivals.tsx:6:21)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '3116186863',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getOrdersFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1740:18)
+    at async Promise.all (index 1)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async FeaturedProducts (components\FeaturedProducts.tsx:6:29)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2144196266',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async BestSeller (components\BestSeller.tsx:5:31)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '2620601484',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async NewArrivals (components\NewArrivals.tsx:6:21)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '3116186863',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async ShopPage (app\shop\page.tsx:29:64)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '4139296843',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async ShopPage (app\shop\page.tsx:29:64)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '4139296843',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⨯ AggregateError: 
+    at async (lib\postgres\client.ts:104:20)
+    at async withConnectionRetry (lib\postgres\client.ts:78:14)
+    at async getProductsFromPostgres (lib\product-store.ts:310:16)
+    at async ShopPage (app\shop\page.tsx:29:64)
+  102 | ): Promise<TRecord[]> {
+  103 |   return withConnectionRetry(async () => {
+> 104 |     const result = await getPool(storeName).query<TRecord>(sql, params);
+      |                    ^
+  105 |     return result.rows;
+  106 |   });
+  107 | } {
+  code: 'EACCES',
+  digest: '4139296843',
+  [errors]: [
+    Error: connect EACCES 18.138.49.39:5432
+        at <unknown> (Error: connect EACCES 18.138.49.39:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '18.138.49.39',
+      port: 5432
+    },
+    Error: connect EACCES 13.251.17.193:5432
+        at <unknown> (Error: connect EACCES 13.251.17.193:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '13.251.17.193',
+      port: 5432
+    },
+    Error: connect EACCES 3.0.167.45:5432
+        at <unknown> (Error: connect EACCES 3.0.167.45:5432) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '3.0.167.45',
+      port: 5432
+    }
+  ]
+}
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+[krishoe] load catalog for the storefront layout failed: AggregateError: 
+    at C:\Users\TP\Downloads\krishoe-website\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1465:24
+    at async withConnectionRetry (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:1447:20)
+    at async getProductsFromPostgres (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:5709:18)
+    at async Promise.all (index 0)
+    at async loadBuyableProducts (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6432:35)
+    at async RootLayout (C:\Users\TP\Downloads\krishoe-website\.next\dev\server\chunks\ssr\[root-of-the-server]__1d7_e90._.js:6443:22)
+⚠ Found a change in next.config.js. Restarting the server to apply the changes...

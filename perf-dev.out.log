@@ -1,0 +1,35 @@
+
+> kshreer@0.1.0 dev
+> next dev -p 3000 --port 3005
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3005
+- Network:       http://192.168.10.7:3005
+- Environments: .env.local
+✓ Ready in 1406ms
+Creating turbopack project { dir: 'C:\\Users\\TP\\Downloads\\krishoe-website', testMode: true }
+
+ GET / 500 in 7.4s (next.js: 2.4s, application-code: 5.0s)
+ GET / 500 in 420ms (next.js: 8ms, application-code: 412ms)
+ GET / 500 in 549ms (next.js: 5ms, application-code: 545ms)
+ GET /shop 200 in 2.5s (next.js: 1575ms, application-code: 910ms)
+ GET /shop 200 in 355ms (next.js: 8ms, application-code: 347ms)
+ GET /shop 200 in 238ms (next.js: 5ms, application-code: 233ms)
+ GET /cart 200 in 1101ms (next.js: 849ms, application-code: 252ms)
+ GET /cart 200 in 190ms (next.js: 5ms, application-code: 185ms)
+ GET /cart 200 in 202ms (next.js: 4ms, application-code: 198ms)
+ GET /api/version 200 in 134ms (next.js: 108ms, application-code: 26ms)
+ GET /api/version 200 in 13ms (next.js: 4ms, application-code: 10ms)
+ GET /api/version 200 in 9ms (next.js: 3ms, application-code: 6ms)
+✓ Compiled in 611ms
+✓ Compiled in 327ms
+✓ Compiled in 172ms
+✓ Compiled in 191ms
+✓ Compiled in 754ms
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3005
+- Network:       http://192.168.10.7:3005
+- Environments: .env.local
+✓ Ready in 5.3s
+Creating turbopack project { dir: 'C:\\Users\\TP\\Downloads\\krishoe-website', testMode: true }
+
