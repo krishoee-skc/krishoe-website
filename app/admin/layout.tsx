@@ -1,6 +1,7 @@
 import AdminNav from "./AdminNav";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminQuickDock from "./AdminQuickDock";
+import { SidebarProvider } from "@/components/admin/SidebarProvider";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
 
@@ -9,7 +10,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const adminRole = getSessionAdminRole(session);
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr] print:block">
+    <SidebarProvider>
+      <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr] print:block">
       <AdminNav
         adminRole={adminRole}
         adminName={session?.name}
@@ -21,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {children}
         <AdminQuickDock adminRole={adminRole} />
       </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
