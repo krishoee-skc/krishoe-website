@@ -1,122 +1,247 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import FormSubmitButton from "@/components/admin/FormSubmitButton";
-import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getProductionFactoryEntrySnapshot } from "@/lib/production-accounting";
-import { productionStages } from "@/lib/production-accounting-rules";
-import {
-  createCctvReferenceAction,
-  createHandoverAction,
-  createWorkOrderAction,
-} from "@/app/admin/operations/production-accounts/actions";
+"use client";
 
-export const metadata: Metadata = { title: "Factory Entry | KRISHOE Admin" };
-export const dynamic = "force-dynamic";
+import { useEffect, useState } from "react";
 
-const input = "min-h-12 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-brand-green-ink outline-none focus:border-brand-green";
-const card = "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5";
-const button = "min-h-12 rounded-xl bg-brand-green px-5 text-sm font-black text-white";
-
-function today() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
+interface DailyStats {
+  totalPairs: number;
+  totalAmount: number;
+  workersActive: number;
+  completedEntries: number;
+  inProgressEntries: number;
+  reworkEntries: number;
 }
 
-function dateTime() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(new Date());
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((row) => row.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+interface TopWorker {
+  name: string;
+  pairs: number;
+  amount: number;
 }
 
-export default async function FactoryEntryPage() {
-  const { role } = await requireAdminPermission("production:entry");
-  const data = await getProductionFactoryEntrySnapshot();
+interface ProductCount {
+  name: string;
+  pairs: number;
+}
+
+export default function FactoryDashboard() {
+  const [stats, setStats] = useState<DailyStats>({
+    totalPairs: 0,
+    totalAmount: 0,
+    workersActive: 0,
+    completedEntries: 0,
+    inProgressEntries: 0,
+    reworkEntries: 0,
+  });
+  const [topWorkers, setTopWorkers] = useState<TopWorker[]>([]);
+  const [products, setProducts] = useState<ProductCount[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        // Get today's date
+        const today = new Date().toISOString().split("T")[0];
+
+        // Fetch today's work entries
+        const workRes = await fetch(`/api/factory/work?date=${today}`);
+        const workData = await workRes.json();
+        const works = workData.works || [];
+
+        // Calculate stats
+        const totalPairs = works.reduce((sum, w) => sum + (w.pairs_count || 0), 0);
+        const totalAmount = works.reduce((sum, w) => sum + (w.amount_earned || 0), 0);
+        const completedEntries = works.filter((w) => w.status === "completed").length;
+        const inProgressEntries = works.filter((w) => w.status === "in_progress").length;
+        const reworkEntries = works.filter((w) => w.status === "rework").length;
+
+        // Get unique workers
+        const uniqueWorkers = new Set(works.map((w) => w.worker_id)).size;
+
+        // Group by worker for top workers
+        const workerStats = {};
+        works.forEach((w) => {
+          if (!workerStats[w.worker_id]) {
+            workerStats[w.worker_id] = { name: w.worker_name, pairs: 0, amount: 0 };
+          }
+          workerStats[w.worker_id].pairs += w.pairs_count || 0;
+          workerStats[w.worker_id].amount += w.amount_earned || 0;
+        });
+
+        const topWorkersArray = Object.values(workerStats)
+          .sort((a: any, b: any) => b.pairs - a.pairs)
+          .slice(0, 5) as TopWorker[];
+
+        // Group by product
+        const productStats = {};
+        works.forEach((w) => {
+          if (!productStats[w.item_id]) {
+            productStats[w.item_id] = { name: w.item_name, pairs: 0 };
+          }
+          productStats[w.item_id].pairs += w.pairs_count || 0;
+        });
+
+        const productsArray = Object.values(productStats)
+          .sort((a: any, b: any) => b.pairs - a.pairs)
+          .slice(0, 5) as ProductCount[];
+
+        setStats({
+          totalPairs,
+          totalAmount,
+          workersActive: uniqueWorkers,
+          completedEntries,
+          inProgressEntries,
+          reworkEntries,
+        });
+        setTopWorkers(topWorkersArray);
+        setProducts(productsArray);
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 text-center">
+        <div className="animate-pulse text-slate-500">Loading dashboard...</div>
+      </div>
+    );
+  }
 
   return (
-    <section className="mx-auto max-w-6xl space-y-5 p-4 pb-28 sm:p-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Restricted factory desk</p>
-          <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Factory watcher entry</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-            Work Order, stage handover and camera reference only. Wage, cash, costing and stock approval remain Owner-only.
-          </p>
-        </div>
-        <span className="w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">{role}</span>
-      </header>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <form action={createWorkOrderAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">New Work Order / Lot</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="itemId" className={input} required defaultValue="">
-              <option value="" disabled>Select item</option>
-              {data.items.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.sizeGroup}</option>)}
-            </select>
-            <input name="colour" className={input} placeholder="Colour" required />
-            <input name="plannedPairs" type="number" min="1" className={input} placeholder="Total pairs" required />
-            <input name="sizeBreakdown" className={input} placeholder="36:10, 37:15" required />
-            <input name="dueDate" type="date" min={today()} className={input} />
-            <select name="priority" className={input} defaultValue="Normal">
-              <option>Normal</option><option>High</option><option>Urgent</option>
-            </select>
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Production note" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Creating…">Create Work Order</FormSubmitButton>
-        </form>
-
-        <form action={createHandoverAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
-              <option value="" disabled>Select Work Order</option>
-              {data.workOrders.map((order) => <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>)}
-            </select>
-            <select name="fromStage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
-            <input name="handoverDate" type="date" defaultValue={today()} className={input} required />
-            <select name="fromEmployeeId" className={input} defaultValue=""><option value="">Sender</option>{data.employees.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</select>
-            <select name="toEmployeeId" className={input} defaultValue=""><option value="">Receiver</option>{data.employees.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</select>
-            <input name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
-            <input name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
-            <input name="receivedSizeBreakdown" className={`${input} sm:col-span-2`} placeholder="Received sizes: 36:10, 37:15" />
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Difference / note" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">Save handover</FormSubmitButton>
-        </form>
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">KRISHOE Factory</h1>
+        <p className="text-slate-600 text-sm sm:text-base">
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </p>
       </div>
 
-      <form action={createCctvReferenceAction} className={`${card} border-sky-200`}>
-        <h2 className="text-lg font-black text-brand-green-ink">CCTV time reference</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <select name="workOrderId" className={input} required defaultValue="">
-            <option value="" disabled>Select Work Order</option>
-            {data.workOrders.map((order) => <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>)}
-          </select>
-          <select name="stage" className={input}>{[...productionStages, "Packing / QC"].map((stage) => <option key={stage}>{stage}</option>)}</select>
-          <input name="cameraZone" className={input} placeholder="Camera zone" required />
-          <input name="windowStart" type="datetime-local" defaultValue={dateTime()} className={input} required />
-          <input name="windowEnd" type="datetime-local" defaultValue={dateTime()} className={input} required />
-          <input name="cctvReference" className={input} placeholder="DVR / camera reference" />
-          <input name="evidenceReference" className={input} placeholder="Evidence link/reference" />
-          <input name="note" className={`${input} sm:col-span-2`} placeholder="Verification / incident note" />
-          <FormSubmitButton className={button} pendingLabel="Saving…">Save CCTV reference</FormSubmitButton>
+      {/* Today's Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
+          <div className="text-xs sm:text-sm text-slate-600 font-medium">Total Pairs</div>
+          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mt-2">{stats.totalPairs}</div>
+          <div className="text-xs text-slate-500 mt-2">Today</div>
         </div>
-      </form>
 
-      <div className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">Open Work Orders</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {data.workOrders.map((order) => (
-            <article key={order.id} className="rounded-xl bg-gray-50 p-3 text-sm">
-              <p className="font-black text-brand-green-ink">{order.workOrderNumber} · {order.itemName}</p>
-              <p className="mt-1 text-gray-500">{order.colour} · {order.plannedPairs} pairs · {order.currentStage}</p>
-              {role !== "Factory" ? <Link href={`/admin/operations/production-accounts/work-order/${order.id}`} className="mt-2 inline-block text-xs font-black text-brand-green underline">Owner detail</Link> : null}
-            </article>
-          ))}
+        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
+          <div className="text-xs sm:text-sm text-slate-600 font-medium">Total Amount</div>
+          <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
+            Rs. {stats.totalAmount.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500 mt-2">Today</div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
+          <div className="text-xs sm:text-sm text-slate-600 font-medium">Workers Active</div>
+          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
+            {stats.workersActive}
+          </div>
+          <div className="text-xs text-slate-500 mt-2">Today</div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
+          <div className="text-xs sm:text-sm text-slate-600 font-medium">Success Rate</div>
+          <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
+            {stats.completedEntries + stats.inProgressEntries + stats.reworkEntries > 0
+              ? Math.round(
+                  (stats.completedEntries /
+                    (stats.completedEntries + stats.inProgressEntries + stats.reworkEntries)) *
+                    100
+                )
+              : 0}
+            %
+          </div>
+          <div className="text-xs text-slate-500 mt-2">Completed</div>
         </div>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Top Workers */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Top Workers Today</h2>
+          <div className="space-y-3">
+            {topWorkers.length > 0 ? (
+              topWorkers.map((worker, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div>
+                    <div className="font-medium text-slate-900 text-sm sm:text-base">{worker.name}</div>
+                    <div className="text-xs sm:text-sm text-slate-600">{worker.pairs} pairs</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-slate-900 text-sm sm:text-base">Rs. {worker.amount.toLocaleString()}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-slate-500 text-sm">No work entries yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Products Today */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Products Today</h2>
+          <div className="space-y-3">
+            {products.length > 0 ? (
+              products.map((product, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="font-medium text-slate-900 text-sm sm:text-base">{product.name}</div>
+                  <div className="font-semibold text-slate-900 text-sm sm:text-base">{product.pairs} pairs</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-slate-500 text-sm">No work entries yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quality Status */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Quality Status</h2>
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats.completedEntries}</div>
+            <div className="text-xs sm:text-sm text-green-700 mt-1">Completed ✅</div>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-yellow-50 rounded-lg">
+            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+              {stats.inProgressEntries}
+            </div>
+            <div className="text-xs sm:text-sm text-yellow-700 mt-1">In Progress ⏳</div>
+          </div>
+          <div className="text-center p-3 sm:p-4 bg-red-50 rounded-lg">
+            <div className="text-2xl sm:text-3xl font-bold text-red-600">{stats.reworkEntries}</div>
+            <div className="text-xs sm:text-sm text-red-700 mt-1">Rework 🔄</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <a
+          href="/admin/factory/add-work"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-center text-sm sm:text-base"
+        >
+          ➕ Add Work Entry
+        </a>
+        <a
+          href="/admin/factory/reports"
+          className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-center text-sm sm:text-base"
+        >
+          📊 View Reports
+        </a>
+      </div>
+    </div>
   );
 }
