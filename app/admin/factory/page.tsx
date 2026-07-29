@@ -47,8 +47,8 @@ export default function FactoryDashboard() {
         const works = workData.works || [];
 
         // Calculate stats
-        const totalPairs = works.reduce((sum, w) => sum + (w.pairs_count || 0), 0);
-        const totalAmount = works.reduce((sum, w) => sum + (w.amount_earned || 0), 0);
+        const totalPairs = works.reduce((sum: number, w) => sum + (w.pairs_count || 0), 0);
+        const totalAmount = works.reduce((sum: number, w) => sum + (w.amount_earned || 0), 0);
         const completedEntries = works.filter((w) => w.status === "completed").length;
         const inProgressEntries = works.filter((w) => w.status === "in_progress").length;
         const reworkEntries = works.filter((w) => w.status === "rework").length;
