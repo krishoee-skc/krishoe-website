@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRISHOE Factory - Complete Beginner's Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #1b6b4b; padding-bottom: 20px; }
+    h1 { color: #1b6b4b; font-size: 2.5em; margin-bottom: 10px; }
+    .subtitle { color: #666; font-size: 1.1em; }
+    h2 { color: #1b6b4b; margin-top: 30px; margin-bottom: 15px; border-left: 4px solid #1b6b4b; padding-left: 15px; }
+    h3 { color: #2d8659; margin-top: 20px; margin-bottom: 10px; }
+    .section { margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 6px; }
+    .step { background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #ff9800; border-radius: 4px; }
+    .step-number { background: #ff9800; color: white; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; }
+    .example { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .example-title { color: #2e7d32; font-weight: bold; margin-bottom: 10px; }
+    .link-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .link-box a { color: #1976d2; text-decoration: none; font-weight: bold; }
+    .link-box a:hover { text-decoration: underline; }
+    .warning { background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .warning-title { color: #e65100; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #1b6b4b; color: white; }
+    tr:nth-child(even) { background: #f5f5f5; }
+    .checklist { list-style: none; }
+    .checklist li { padding: 8px 0; }
+    .checklist li:before { content: "✅ "; margin-right: 10px; color: #4caf50; }
+    .page-break { page-break-after: always; margin: 40px 0; padding-top: 40px; border-top: 2px dashed #ccc; }
+    @media print {
+      body { background: white; }
+      .container { box-shadow: none; }
+      .page-break { page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>🏭 KRISHOE Factory Management System</h1>
+      <p class="subtitle">Complete Beginner's Guide (शुरुवाती गाइड)</p>
+      <p style="margin-top: 15px; color: #888; font-size: 0.9em;">सँपूर्ण हिन्दी-नेपाली स्पष्टीकरण | Complete Hindi-Nepali Explanation</p>
+    </div>
+
+    <!-- Section 1: Introduction -->
+    <div class="section">
+      <h2>📌 Part 1: App को परिचय (Introduction)</h2>
+
+      <h3>यो App कस्तो काम गर्छ?</h3>
+      <p><strong>सरल भाषामा:</strong> यह app आपके workers के काम को track करता है और उनका payment automatically calculate करता है।</p>
+
+      <div class="example">
+        <div class="example-title">उदाहरण (Example):</div>
+        <p>राज कुमार ने आज 50 जोड़े Flatpatta बनाए।</p>
+        <p>App automatically यह calculate करता है:</p>
+        <p style="margin-top: 10px; font-weight: bold;">50 जोड़े × Rs. 12/जोड़ी = <span style="color: #4caf50;">Rs. 600</span> ✅</p>
+      </div>
+
+      <h3>App के मुख्य काम:</h3>
+      <ul class="checklist">
+        <li>Daily work entries add करना (काम रिकॉर्ड करना)</li>
+        <li>Earning automatically calculate करना</li>
+        <li>हर worker का individual ledger रखना</li>
+        <li>Monthly payment ready करना</li>
+      </ul>
+    </div>
+
+    <!-- Section 2: Daily Workflow -->
+    <div class="section">
+      <h2>📅 Part 2: दैनिक काम कैसे चलता है (Daily Workflow)</h2>
+
+      <h3>सुबह से शाम तक का प्रवाह:</h3>
+
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>सुबह (Morning):</strong> Workers factory आते हैं
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>पूरे दिन (All Day):</strong> Workers अपना काम करते हैं
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>शाम (Evening):</strong> आप app में उनका काम enter करते हो
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>रात (Night):</strong> App automatically सब कुछ calculate करता है
+      </div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>महीना के अंत:</strong> आप सब workers को payment दे सकते हो
+      </div>
+    </div>
+
+    <!-- Section 3: App का Login -->
+    <div class="section">
+      <h2>🔐 Part 3: App में Login कैसे करें (How to Login)</h2>
+
+      <div class="link-box">
+        <strong>App का Link:</strong><br>
+        <a href="https://krishoe-website.vercel.app/admin/login" target="_blank">https://krishoe-website.vercel.app/admin/login</a>
+      </div>
+
+      <h3>Login करने के steps:</h3>
+
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>Link खोलो:</strong> ऊपर दिया गया link click करो
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>Email भरो:</strong>
+        <code style="background: #f0f0f0; padding: 5px 10px; border-radius: 3px;">skschhapal@gmail.com</code>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>Password भरो:</strong> जो आपका password है
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>"Unlock admin" button click करो</strong>
+      </div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>Dashboard दिखेगा! ✅</strong>
+      </div>
+    </div>
+
+    <!-- Section 4: Factory Dashboard -->
+    <div class="section">
+      <h2>📊 Part 4: Factory Dashboard (मुख्य पृष्ठ)</h2>
+
+      <h3>Dashboard पर क्या दिखता है?</h3>
+
+      <table>
+        <tr>
+          <th>नाम</th>
+          <th>क्या दिखता है?</th>
+          <th>उदाहरण</th>
+        </tr>
+        <tr>
+          <td><strong>Total Pairs</strong></td>
+          <td>कुल कितने जोड़े बने?</td>
+          <td>150 जोड़े</td>
+        </tr>
+        <tr>
+          <td><strong>Total Amount</strong></td>
+          <td>कुल कितना पैसा बना?</td>
+          <td>Rs. 3,000</td>
+        </tr>
+        <tr>
+          <td><strong>Workers Active</strong></td>
+          <td>कितने workers काम किए?</td>
+          <td>12 workers</td>
+        </tr>
+        <tr>
+          <td><strong>Top Workers</strong></td>
+          <td>सबसे ज्यादा कौन काम करा?</td>
+          <td>राज: 60 जोड़े</td>
+        </tr>
+      </table>
+
+      <div class="link-box">
+        <strong>Dashboard का Link:</strong><br>
+        <a href="https://krishoe-website.vercel.app/admin/factory" target="_blank">https://krishoe-website.vercel.app/admin/factory</a>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Section 5: Add Work -->
+    <div class="section">
+      <h2>➕ Part 5: Work Entry कैसे add करें (Most Important!)</h2>
+
+      <h3>यह सबसे जरूरी काम है! (This is the most important work!)</h3>
+
+      <div class="link-box">
+        <strong>Add Work का Link:</strong><br>
+        <a href="https://krishoe-website.vercel.app/admin/factory/add-work" target="_blank">https://krishoe-website.vercel.app/admin/factory/add-work</a>
+        <br><br>
+        <strong>या:</strong> Dashboard पर "➕ Add Work Entry" button click करो
+      </div>
+
+      <h3>Form में कौन कौन से fields भरने हैं?</h3>
+
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>📅 Date (तारीख):</strong> कौन सी तारीख को काम किया? (Usually आज की date)
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>👤 Worker (कर्मचारी):</strong> किस worker ने काम किया?<br>
+        <em>Dropdown से नाम select करो। Example: राज कुमार</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>🛞 Product (उत्पाद/जूते):</strong> कौन सी चीज बनाई?<br>
+        <em>Dropdown से select करो। Example: Flatpatta, Sendil</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>🎨 Color (रंग):</strong> किस रंग की? (Optional)<br>
+        <em>Example: Black, Blue, Red</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>📏 Size (साइज):</strong> किस साइज की? (Optional)<br>
+        <em>Example: 7, 8, 9</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">6</span>
+        <strong>🔢 Pairs (जोड़ों की संख्या):</strong> कितने जोड़े बने?<br>
+        <em>Example: 50</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">7</span>
+        <strong>✅ Status (स्थिति):</strong> काम पूरा हुआ?<br>
+        <em>Completed ✅ = पूरा हो गया<br>
+        In Progress ⏳ = अभी चल रहा है<br>
+        Rework 🔄 = फिर से करना है</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">8</span>
+        <strong>💰 Amount (रुपये):</strong> यह automatically calculate होगा!<br>
+        <em>App खुद calculate करेगा: 50 जोड़े × Rs. 12 = Rs. 600 ✅</em>
+      </div>
+
+      <div class="step">
+        <span class="step-number">9</span>
+        <strong>"✅ Save Work Entry" button click करो</strong><br>
+        <em>बस! आपका काम save हो जाएगा!</em>
+      </div>
+
+      <div class="example">
+        <div class="example-title">Real Example - राज कुमार का काम:</div>
+        <table>
+          <tr>
+            <th>Field</th>
+            <th>आप क्या भरेंगे?</th>
+          </tr>
+          <tr>
+            <td>Date</td>
+            <td>30 July 2026</td>
+          </tr>
+          <tr>
+            <td>Worker</td>
+            <td>राज कुमार</td>
+          </tr>
+          <tr>
+            <td>Product</td>
+            <td>Flatpatta</td>
+          </tr>
+          <tr>
+            <td>Color</td>
+            <td>Black</td>
+          </tr>
+          <tr>
+            <td>Size</td>
+            <td>7</td>
+          </tr>
+          <tr>
+            <td>Pairs</td>
+            <td>50</td>
+          </tr>
+          <tr>
+            <td>Status</td>
+            <td>Completed ✅</td>
+          </tr>
+          <tr style="background: #e8f5e9;">
+            <td><strong>Amount (Auto)</strong></td>
+            <td><strong>Rs. 600 ✅</strong></td>
+          </tr>
+        </table>
+        <p style="margin-top: 15px;"><strong>क्या होगा?</strong> App automatically 50 × 12 = 600 calculate करेगा। आप manually नहीं करेंगे!</p>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Section 6: Worker Ledger -->
+    <div class="section">
+      <h2>📋 Part 6: Worker Ledger (कर्मचारी का खाता)</h2>
+
+      <h3>हर worker का individual account देखना</h3>
+
+      <div class="link-box">
+        <strong>Worker Ledger का Link:</strong><br>
+        <a href="https://krishoe-website.vercel.app/admin/factory/ledger" target="_blank">https://krishoe-website.vercel.app/admin/factory/ledger</a>
+      </div>
+
+      <h3>Ledger में क्या दिखता है?</h3>
+      <ul class="checklist">
+        <li>Worker का नाम</li>
+        <li>उसने कितने जोड़े बनाए (Total Pairs)</li>
+        <li>उसने कितना कमाया (Total Earned)</li>
+        <li>उसे कितना दिया (Total Paid)</li>
+        <li>उसके पास कितना बाकी है (Current Balance)</li>
+      </ul>
+
+      <div class="example">
+        <div class="example-title">Example - राज कुमार का Ledger:</div>
+        <table>
+          <tr>
+            <th>Date</th>
+            <th>काम</th>
+            <th>कमाई</th>
+            <th>दिया गया</th>
+            <th>बाकी</th>
+          </tr>
+          <tr>
+            <td>Jul 1</td>
+            <td>50 जोड़े</td>
+            <td>Rs. 600</td>
+            <td>Rs. 0</td>
+            <td>Rs. 600</td>
+          </tr>
+          <tr>
+            <td>Jul 2</td>
+            <td>60 जोड़े</td>
+            <td>Rs. 720</td>
+            <td>Rs. 0</td>
+            <td>Rs. 1,320</td>
+          </tr>
+          <tr>
+            <td>Jul 7</td>
+            <td>-</td>
+            <td>-</td>
+            <td>Rs. 500</td>
+            <td>Rs. 820</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Benefits:</h3>
+      <ul class="checklist">
+        <li>हर worker का complete record है</li>
+        <li>कोई confusion नहीं होगी</li>
+        <li>Worker को भी अपना balance दिख सकता है</li>
+        <li>Payment देते समय सब कुछ clear है</li>
+      </ul>
+    </div>
+
+    <!-- Section 7: Reports & Payroll -->
+    <div class="section">
+      <h2>💰 Part 7: Reports & Monthly Payroll</h2>
+
+      <div class="link-box">
+        <strong>Reports का Link:</strong><br>
+        <a href="https://krishoe-website.vercel.app/admin/factory/reports" target="_blank">https://krishoe-website.vercel.app/admin/factory/reports</a>
+      </div>
+
+      <h3>Monthly Reports में क्या मिलेगा?</h3>
+
+      <table>
+        <tr>
+          <th>Report</th>
+          <th>क्या दिखेगा?</th>
+        </tr>
+        <tr>
+          <td>📊 Monthly Summary</td>
+          <td>पूरे महीने में कितना काम हुआ, कितना पैसा बना</td>
+        </tr>
+        <tr>
+          <td>👥 Top Workers</td>
+          <td>किस worker ने सबसे ज्यादा काम किया</td>
+        </tr>
+        <tr>
+          <td>📦 Product Ranking</td>
+          <td>कौन सा product सबसे ज्यादा बना</td>
+        </tr>
+        <tr>
+          <td>💵 Payroll Ready</td>
+          <td>हर worker को कितना देना है (Payment के लिए ready!)</td>
+        </tr>
+      </table>
+
+      <div class="example">
+        <div class="example-title">Example - July 2026 का Payroll:</div>
+        <table>
+          <tr>
+            <th>Worker</th>
+            <th>Pairs</th>
+            <th>Earned</th>
+            <th>Paid</th>
+            <th>Due</th>
+          </tr>
+          <tr>
+            <td>राज कुमार</td>
+            <td>1,200</td>
+            <td>Rs. 24,000</td>
+            <td>Rs. 12,000</td>
+            <td>Rs. 12,000</td>
+          </tr>
+          <tr>
+            <td>संतोष</td>
+            <td>1,000</td>
+            <td>Rs. 20,000</td>
+            <td>Rs. 0</td>
+            <td>Rs. 20,000</td>
+          </tr>
+          <tr style="background: #fff3e0; font-weight: bold;">
+            <td>TOTAL</td>
+            <td>2,200</td>
+            <td>Rs. 44,000</td>
+            <td>Rs. 12,000</td>
+            <td>Rs. 32,000</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- Section 8: Complete Daily Checklist -->
+    <div class="section">
+      <h2>✅ Part 8: हर दिन का Checklist (Daily To-Do)</h2>
+
+      <h3>सुबह (Morning):</h3>
+      <ul class="checklist">
+        <li>App open करो</li>
+        <li>Dashboard देखो (कल कितना काम हुआ)</li>
+      </ul>
+
+      <h3>शाम (Evening) - सबसे जरूरी!</h3>
+      <ul class="checklist">
+        <li>Add Work page खोलो</li>
+        <li>हर worker का काम enter करो</li>
+        <li>Workers से confirm करो कितने जोड़े बने</li>
+        <li>Color और size note करो</li>
+        <li>Save करो</li>
+      </ul>
+
+      <h3>हर हफ्ता (Weekly):</h3>
+      <ul class="checklist">
+        <li>Reports देखो</li>
+        <li>Workers को उनका balance बताओ</li>
+        <li>यदि चाहो तो advance payment दे सकते हो</li>
+      </ul>
+
+      <h3>महीने के अंत (Month End):</h3>
+      <ul class="checklist">
+        <li>Reports page खोलो</li>
+        <li>Final Payroll देखो</li>
+        <li>हर worker को सही amount pay करो</li>
+        <li>Ledger update करो (payment entry करो)</li>
+      </ul>
+    </div>
+
+    <!-- Section 9: Common Mistakes -->
+    <div class="section">
+      <h2>⚠️ Part 9: Common Mistakes (आम गलतियां)</h2>
+
+      <div class="warning">
+        <div class="warning-title">❌ Mistake 1: भूल गए काम entry करना</div>
+        <p>अगर आप काम entry नहीं करोगे, तो App calculate नहीं कर सकेगा!</p>
+        <p><strong>✅ Fix:</strong> हर दिन शाम को सब काम entry कर दो</p>
+      </div>
+
+      <div class="warning">
+        <div class="warning-title">❌ Mistake 2: गलत quantity भर दी</div>
+        <p>अगर 50 की जगह 500 भर दोगे, तो payment गलत होगा</p>
+        <p><strong>✅ Fix:</strong> Workers से confirm करके ही entry करो</p>
+      </div>
+
+      <div class="warning">
+        <div class="warning-title">❌ Mistake 3: Product या Worker गलत select किया</div>
+        <p>अगर Flatpatta की जगह Sendil select कर दोगे, तो rate गलत होगा</p>
+        <p><strong>✅ Fix:</strong> Dropdown से carefully select करो</p>
+      </div>
+
+      <div class="warning">
+        <div class="warning-title">❌ Mistake 4: काम entry के बाद check नहीं किया</div>
+        <p>Entry करने के बाद Dashboard देखो कि सब सही है या नहीं</p>
+        <p><strong>✅ Fix:</strong> हमेशा entry के बाद Dashboard refresh करके देख लो</p>
+      </div>
+    </div>
+
+    <!-- Section 10: Help & Support -->
+    <div class="section">
+      <h2>🆘 Part 10: Help & Support</h2>
+
+      <h3>अगर समस्या आए तो क्या करें?</h3>
+
+      <table>
+        <tr>
+          <th>समस्या</th>
+          <th>समाधान</th>
+        </tr>
+        <tr>
+          <td>Login नहीं हो रहा</td>
+          <td>Email और password check करो। Email: skschhapal@gmail.com</td>
+        </tr>
+        <tr>
+          <td>Amount calculate नहीं हो रहा</td>
+          <td>Product select किया है? Pair count भरा है? Rate set है?</td>
+        </tr>
+        <tr>
+          <td>Worker का नाम dropdown में नहीं है</td>
+          <td>पहले Workers page में worker add करना होगा</td>
+        </tr>
+        <tr>
+          <td>Entry save नहीं हो रहा</td>
+          <td>सभी required fields भरे हैं? Date, Worker, Product, Pairs?</td>
+        </tr>
+      </table>
+
+      <h3>Contact:</h3>
+      <p><strong>Email:</strong> skschhapal@gmail.com</p>
+      <p><strong>Note:</strong> अगर कोई technical issue है तो message करो</p>
+    </div>
+
+    <!-- Final Summary -->
+    <div class="section" style="background: #e8f5e9; border-left: 4px solid #2e7d32;">
+      <h2 style="color: #1b5e20;">🎯 Summary (सारांश)</h2>
+
+      <h3>App चलाने के 3 मुख्य काम:</h3>
+
+      <div style="margin: 20px 0; padding: 15px; background: white; border-radius: 6px;">
+        <p><strong>1. 👤 Workers add करो</strong> (Workers page में)</p>
+        <p><strong>2. ➕ हर दिन काम entry करो</strong> (Add Work page में) - यह सबसे important है!</p>
+        <p><strong>3. 💰 Month के अंत में payment दो</strong> (Reports page में देख कर)</p>
+      </div>
+
+      <p style="margin-top: 20px; font-size: 1.1em; color: #1b5e20;">
+        <strong>बस! यह तीन काम करो, बाकी सब automatic है! 🚀</strong>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

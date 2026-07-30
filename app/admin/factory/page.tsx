@@ -47,18 +47,18 @@ export default function FactoryDashboard() {
         const works = workData.works || [];
 
         // Calculate stats
-        const totalPairs = works.reduce((sum: number, w) => sum + (w.pairs_count || 0), 0);
-        const totalAmount = works.reduce((sum: number, w) => sum + (w.amount_earned || 0), 0);
-        const completedEntries = works.filter((w) => w.status === "completed").length;
-        const inProgressEntries = works.filter((w) => w.status === "in_progress").length;
-        const reworkEntries = works.filter((w) => w.status === "rework").length;
+        const totalPairs = works.reduce((sum: number, w: any) => sum + (w.pairs_count || 0), 0);
+        const totalAmount = works.reduce((sum: number, w: any) => sum + (w.amount_earned || 0), 0);
+        const completedEntries = works.filter((w: any) => w.status === "completed").length;
+        const inProgressEntries = works.filter((w: any) => w.status === "in_progress").length;
+        const reworkEntries = works.filter((w: any) => w.status === "rework").length;
 
         // Get unique workers
-        const uniqueWorkers = new Set(works.map((w) => w.worker_id)).size;
+        const uniqueWorkers = new Set(works.map((w: any) => w.worker_id)).size;
 
         // Group by worker for top workers
-        const workerStats = {};
-        works.forEach((w) => {
+        const workerStats: any = {};
+        works.forEach((w: any) => {
           if (!workerStats[w.worker_id]) {
             workerStats[w.worker_id] = { name: w.worker_name, pairs: 0, amount: 0 };
           }
@@ -71,8 +71,8 @@ export default function FactoryDashboard() {
           .slice(0, 5) as TopWorker[];
 
         // Group by product
-        const productStats = {};
-        works.forEach((w) => {
+        const productStats: any = {};
+        works.forEach((w: any) => {
           if (!productStats[w.item_id]) {
             productStats[w.item_id] = { name: w.item_name, pairs: 0 };
           }
