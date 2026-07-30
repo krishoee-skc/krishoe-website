@@ -114,7 +114,7 @@ export default function WorkOrderSearchSelect({
               </div>
             ) : (
               <div className="p-4 text-center text-sm text-gray-500">
-                No work orders found matching "{search}"
+                No work orders found matching &quot;{search}&quot;
               </div>
             )}
           </div>

@@ -121,7 +121,7 @@ export default function WorkerSearchSelect({
               </div>
             ) : (
               <div className="p-4 text-center text-sm text-gray-500">
-                No workers found matching "{search}"
+                No workers found matching &quot;{search}&quot;
               </div>
             )}
           </div>

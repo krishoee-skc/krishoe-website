@@ -21,29 +21,7 @@ export default function ReportsPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSummaries = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/factory/monthly-summary?month=${month}`);
-        const data = await res.json();
-        setSummaries(data.summaries || []);
-
-        // Auto-generate summaries if not present
-        if (data.summaries.length === 0) {
-          await generateSummaries();
-        }
-      } catch (error) {
-        console.error("Error loading summaries:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSummaries();
-  }, [month]);
-
-  const generateSummaries = async () => {
+  const generateSummaries = async (selectedMonth: string) => {
     try {
       const workersRes = await fetch("/api/factory/workers");
       const workersData = await workersRes.json();
@@ -55,7 +33,7 @@ export default function ReportsPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            month,
+            month: selectedMonth,
             worker_id: worker.id,
           }),
         });
@@ -77,6 +55,28 @@ export default function ReportsPage() {
     }
   };
 
+  useEffect(() => {
+    const loadSummaries = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/factory/monthly-summary?month=${month}`);
+        const data = await res.json();
+        setSummaries(data.summaries || []);
+
+        // Auto-generate summaries if not present
+        if (data.summaries.length === 0) {
+          await generateSummaries(month);
+        }
+      } catch (error) {
+        console.error("Error loading summaries:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSummaries();
+  }, [month]);
+
   const totalEarned = summaries.reduce((sum, s) => sum + s.total_earned, 0);
   const totalPairs = summaries.reduce((sum, s) => sum + s.total_pairs, 0);
   const totalPaid = summaries.reduce((sum, s) => sum + s.total_paid, 0);
@@ -95,7 +95,7 @@ export default function ReportsPage() {
             className="min-h-12 px-3 py-2 border border-slate-300 rounded-lg"
           />
           <button
-            onClick={generateSummaries}
+            onClick={() => generateSummaries(month)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"
           >
             🔄 Regenerate

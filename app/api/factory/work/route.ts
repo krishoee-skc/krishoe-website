@@ -154,10 +154,11 @@ export async function GET(request: NextRequest) {
 
     let query = `SELECT w.id, w.date, w.worker_id, w.item_id, w.color, w.size,
                         w.pairs_count, w.status, w.rate_applied, w.amount_earned,
-                        fw.name as worker_name, fi.name as item_name
+                        COALESCE(fw.name, 'Unknown Worker') as worker_name,
+                        COALESCE(fi.name, 'Unknown Item') as item_name
                  FROM factory_daily_work w
-                 JOIN factory_workers fw ON w.worker_id = fw.id
-                 JOIN factory_items fi ON w.item_id = fi.id`;
+                 LEFT JOIN factory_workers fw ON w.worker_id = fw.id
+                 LEFT JOIN factory_items fi ON w.item_id = fi.id`;
 
     const params: (string | null)[] = [];
 
@@ -177,9 +178,20 @@ export async function GET(request: NextRequest) {
     query += ` ORDER BY w.created_at DESC`;
 
     const works = await queryPostgres<WorkWithNames>(STORE, query, params.length > 0 ? params : undefined);
-    return NextResponse.json({ works });
+
+    // Filter out null results as safeguard
+    const validWorks = works.filter(w => w && w.worker_name && w.item_name);
+
+    if (validWorks.length === 0 && works.length > 0) {
+      return NextResponse.json({
+        error: "No valid work entries found. Check if factory_workers and factory_items tables are populated.",
+        works: []
+      });
+    }
+
+    return NextResponse.json({ works: validWorks });
   } catch (error) {
     console.error("Error fetching work entries:", error);
-    return NextResponse.json({ error: "Failed to fetch work entries" }, { status: 500 });
+    return NextResponse.json({ error: `Failed to fetch work entries: ${error instanceof Error ? error.message : 'Unknown error'}` }, { status: 500 });
   }
 }

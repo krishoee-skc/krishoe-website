@@ -24,10 +24,6 @@ export default function WorkersPage() {
     weekly_advance: "",
   });
 
-  useEffect(() => {
-    loadWorkers();
-  }, []);
-
   const loadWorkers = async () => {
     try {
       const res = await fetch("/api/factory/workers");
@@ -39,6 +35,10 @@ export default function WorkersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadWorkers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

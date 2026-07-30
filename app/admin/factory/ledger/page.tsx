@@ -48,7 +48,8 @@ export default function LedgerPage() {
         const res = await fetch("/api/factory/workers");
         const data = await res.json();
         setWorkers(data.workers || []);
-        if (!selectedWorkerId && data.workers.length > 0) {
+        // Set default worker if none selected yet
+        if (!workerId && data.workers.length > 0) {
           setSelectedWorkerId(data.workers[0].id);
         }
       } catch (error) {
@@ -57,7 +58,7 @@ export default function LedgerPage() {
     };
 
     loadWorkers();
-  }, []);
+  }, [workerId]);
 
   useEffect(() => {
     if (!selectedWorkerId) return;

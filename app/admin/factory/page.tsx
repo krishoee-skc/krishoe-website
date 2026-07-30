@@ -22,6 +22,18 @@ interface ProductCount {
   pairs: number;
 }
 
+interface WorkEntry {
+  id: string;
+  date: string;
+  worker_id: string;
+  worker_name: string;
+  item_id: string;
+  item_name: string;
+  pairs_count: number;
+  amount_earned: number;
+  status: string;
+}
+
 export default function FactoryDashboard() {
   const [stats, setStats] = useState<DailyStats>({
     totalPairs: 0,
@@ -34,53 +46,67 @@ export default function FactoryDashboard() {
   const [topWorkers, setTopWorkers] = useState<TopWorker[]>([]);
   const [products, setProducts] = useState<ProductCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
+        setError(null);
         // Get today's date
         const today = new Date().toISOString().split("T")[0];
 
         // Fetch today's work entries
         const workRes = await fetch(`/api/factory/work?date=${today}`);
         const workData = await workRes.json();
-        const works = workData.works || [];
+
+        // Check if API returned an error message
+        if (workData.error) {
+          setError(`API Error: ${workData.error}`);
+          setLoading(false);
+          return;
+        }
+
+        const works: WorkEntry[] = workData.works || [];
 
         // Calculate stats
-        const totalPairs = works.reduce((sum: number, w: any) => sum + (w.pairs_count || 0), 0);
-        const totalAmount = works.reduce((sum: number, w: any) => sum + (w.amount_earned || 0), 0);
-        const completedEntries = works.filter((w: any) => w.status === "completed").length;
-        const inProgressEntries = works.filter((w: any) => w.status === "in_progress").length;
-        const reworkEntries = works.filter((w: any) => w.status === "rework").length;
+        const totalPairs = works.reduce((sum: number, w: WorkEntry) => sum + (w.pairs_count || 0), 0);
+        const totalAmount = works.reduce((sum: number, w: WorkEntry) => sum + (w.amount_earned || 0), 0);
+        const completedEntries = works.filter((w: WorkEntry) => w.status === "completed").length;
+        const inProgressEntries = works.filter((w: WorkEntry) => w.status === "in_progress").length;
+        const reworkEntries = works.filter((w: WorkEntry) => w.status === "rework").length;
 
         // Get unique workers
-        const uniqueWorkers = new Set(works.map((w: any) => w.worker_id)).size;
+        const uniqueWorkers = new Set(works.map((w: WorkEntry) => w.worker_id)).size;
 
         // Group by worker for top workers
-        const workerStats: any = {};
-        works.forEach((w: any) => {
-          if (!workerStats[w.worker_id]) {
-            workerStats[w.worker_id] = { name: w.worker_name, pairs: 0, amount: 0 };
+        const workerStats: Record<string, TopWorker> = {};
+        works.forEach((w: WorkEntry) => {
+          if (w && w.worker_id && w.worker_name) {
+            if (!workerStats[w.worker_id]) {
+              workerStats[w.worker_id] = { name: w.worker_name || 'Unknown', pairs: 0, amount: 0 };
+            }
+            workerStats[w.worker_id].pairs += w.pairs_count || 0;
+            workerStats[w.worker_id].amount += w.amount_earned || 0;
           }
-          workerStats[w.worker_id].pairs += w.pairs_count || 0;
-          workerStats[w.worker_id].amount += w.amount_earned || 0;
         });
 
         const topWorkersArray = Object.values(workerStats)
-          .sort((a: any, b: any) => b.pairs - a.pairs)
+          .sort((a: TopWorker, b: TopWorker) => b.pairs - a.pairs)
           .slice(0, 5) as TopWorker[];
 
         // Group by product
-        const productStats: any = {};
-        works.forEach((w: any) => {
-          if (!productStats[w.item_id]) {
-            productStats[w.item_id] = { name: w.item_name, pairs: 0 };
+        const productStats: Record<string, ProductCount> = {};
+        works.forEach((w: WorkEntry) => {
+          if (w && w.item_id && w.item_name) {
+            if (!productStats[w.item_id]) {
+              productStats[w.item_id] = { name: w.item_name || 'Unknown', pairs: 0 };
+            }
+            productStats[w.item_id].pairs += w.pairs_count || 0;
           }
-          productStats[w.item_id].pairs += w.pairs_count || 0;
         });
 
         const productsArray = Object.values(productStats)
-          .sort((a: any, b: any) => b.pairs - a.pairs)
+          .sort((a: ProductCount, b: ProductCount) => b.pairs - a.pairs)
           .slice(0, 5) as ProductCount[];
 
         setStats({
@@ -95,6 +121,7 @@ export default function FactoryDashboard() {
         setProducts(productsArray);
       } catch (error) {
         console.error("Error loading dashboard:", error);
+        setError(`Failed to load dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -124,6 +151,16 @@ export default function FactoryDashboard() {
           })}
         </p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-red-800 font-medium text-sm">⚠️ Dashboard Error</p>
+          <p className="text-red-700 text-sm mt-1">{error}</p>
+          <p className="text-red-600 text-xs mt-2">
+            Troubleshooting: Check if factory_workers and factory_items tables have data in the database.
+          </p>
+        </div>
+      )}
 
       {/* Today's Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
