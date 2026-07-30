@@ -205,8 +205,15 @@ export default async function AdminDashboardPage() {
   const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
   // Every design, out-of-stock first, so a glance answers both "what do I have"
   // and "what needs buying".
-  const stockOverview = [...products].filter((p) => p && p.name).sort(
-    (a, b) => a.stock - b.stock || (a.name && b.name ? a.name.localeCompare(b.name) : 0),
+  const safeProducts = Array.isArray(products) && products.length > 0 ? products.filter((p) => p && p.name) : [];
+  const stockOverview = [...safeProducts].sort(
+    (a, b) => {
+      if (!a || !b) return 0;
+      const stockDiff = (a.stock || 0) - (b.stock || 0);
+      if (stockDiff !== 0) return stockDiff;
+      if (a.name && b.name) return a.name.localeCompare(b.name);
+      return 0;
+    },
   );
   // The designs actually making money, most profit first — the headline of the
   // profit panel.
