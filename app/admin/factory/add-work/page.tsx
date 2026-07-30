@@ -39,6 +39,8 @@ export default function AddWorkPage() {
   const [success, setSuccess] = useState<string>("");
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProductName, setNewProductName] = useState("");
+  const [showSetRate, setShowSetRate] = useState(false);
+  const [newRate, setNewRate] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,6 +74,7 @@ export default function AddWorkPage() {
   const handleItemChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const itemId = e.target.value;
     setFormData((prev) => ({ ...prev, item_id: itemId }));
+    setError("");
 
     // Fetch rate for this worker and item
     if (formData.worker_id && itemId) {
@@ -84,9 +87,11 @@ export default function AddWorkPage() {
           const data = await res.json();
           if (data.rates && data.rates.length > 0) {
             setSelectedRate(data.rates[0].rate_per_pair);
+            setShowSetRate(false);
           } else {
             setSelectedRate(null);
-            setError(`No rate found for ${selectedWorker.category} on this product`);
+            setShowSetRate(true);
+            setSuccess("⚙️ Rate not found! Click 'Set Rate Now' to add it.");
           }
         } catch (err) {
           setError("Failed to fetch rate");
@@ -127,9 +132,48 @@ export default function AddWorkPage() {
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
       setShowAddProduct(false);
-      setSuccess("✅ Product added! Select rates next.");
+      setSuccess("✅ Product added! Now set the rate.");
+      setShowSetRate(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add product");
+    }
+  };
+
+  const handleSetRate = async () => {
+    if (!newRate || !formData.item_id) {
+      setError("Rate is required");
+      return;
+    }
+
+    const selectedWorker = workers.find((w) => w.id === formData.worker_id);
+    if (!selectedWorker) {
+      setError("Please select a worker first");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/factory/rates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_id: formData.item_id,
+          worker_category: selectedWorker.category,
+          rate_per_pair: parseFloat(newRate),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to set rate");
+
+      setSelectedRate(parseFloat(newRate));
+      setNewRate("");
+      setShowSetRate(false);
+      setSuccess("✅ Rate set! Amount will calculate now.");
+
+      if (formData.pairs_count) {
+        setCalculatedAmount(parseFloat(formData.pairs_count) * parseFloat(newRate));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set rate");
     }
   };
 
@@ -240,13 +284,24 @@ export default function AddWorkPage() {
         <div>
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-medium text-slate-900">🛞 Product</label>
-            <button
-              type="button"
-              onClick={() => setShowAddProduct(true)}
-              className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"
-            >
-              ➕ Add New
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddProduct(true)}
+                className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"
+              >
+                ➕ Add New
+              </button>
+              {showSetRate && (
+                <button
+                  type="button"
+                  onClick={() => setShowSetRate(true)}
+                  className="text-xs bg-orange-100 text-orange-700 hover:bg-orange-200 px-2 py-1 rounded font-semibold"
+                >
+                  ⚙️ Set Rate
+                </button>
+              )}
+            </div>
           </div>
           <select
             value={formData.item_id}
@@ -380,6 +435,46 @@ export default function AddWorkPage() {
                 onClick={() => {
                   setShowAddProduct(false);
                   setNewProductName("");
+                }}
+                className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Rate Modal */}
+      {showSetRate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">⚙️ Set Rate</h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Rate not found for this product. Please enter the rate per pair.
+            </p>
+            <input
+              type="number"
+              value={newRate}
+              onChange={(e) => setNewRate(e.target.value)}
+              placeholder="Rate per pair (e.g., 10, 12, 15)"
+              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              onKeyPress={(e) => e.key === "Enter" && handleSetRate()}
+            />
+            <p className="text-xs text-slate-500 mb-4">
+              Category: <strong>{workers.find((w) => w.id === formData.worker_id)?.category}</strong>
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSetRate}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                ✅ Set Rate
+              </button>
+              <button
+                onClick={() => {
+                  setShowSetRate(false);
+                  setNewRate("");
                 }}
                 className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
               >
