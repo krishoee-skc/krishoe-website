@@ -37,6 +37,8 @@ export default function AddWorkPage() {
   const [calculatedAmount, setCalculatedAmount] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -102,6 +104,32 @@ export default function AddWorkPage() {
       setCalculatedAmount(pairs * selectedRate);
     } else {
       setCalculatedAmount(0);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!newProductName.trim()) {
+      setError("Product name is required");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/factory/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newProductName }),
+      });
+
+      if (!res.ok) throw new Error("Failed to add product");
+
+      const data = await res.json();
+      setItems([...items, { id: data.id, name: data.name, code: "" }]);
+      setFormData((prev) => ({ ...prev, item_id: data.id }));
+      setNewProductName("");
+      setShowAddProduct(false);
+      setSuccess("✅ Product added! Select rates next.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add product");
     }
   };
 
@@ -210,7 +238,16 @@ export default function AddWorkPage() {
 
         {/* Item/Product */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">🛞 Product</label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-slate-900">🛞 Product</label>
+            <button
+              type="button"
+              onClick={() => setShowAddProduct(true)}
+              className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"
+            >
+              ➕ Add New
+            </button>
+          </div>
           <select
             value={formData.item_id}
             onChange={handleItemChange}
@@ -318,6 +355,40 @@ export default function AddWorkPage() {
           </button>
         </div>
       </form>
+
+      {/* Add Product Modal */}
+      {showAddProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">➕ Add New Product</h2>
+            <input
+              type="text"
+              value={newProductName}
+              onChange={(e) => setNewProductName(e.target.value)}
+              placeholder="Product name (e.g., Flatpatta, Sendil)"
+              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              onKeyPress={(e) => e.key === "Enter" && handleAddProduct()}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddProduct}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                ✅ Add Product
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddProduct(false);
+                  setNewProductName("");
+                }}
+                className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
