@@ -1,3 +1,4 @@
+import { currentDeploymentVersion } from "@/lib/deployment-version";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextResponse } from "next/server";
 
@@ -19,7 +20,7 @@ async function countRows(table: FactoryTable): Promise<number> {
 
 export async function GET() {
   const checkedAt = new Date().toISOString();
-  const version = process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
+  const version = currentDeploymentVersion() || "local";
 
   try {
     const [workers, items, workEntries] = await Promise.all([
