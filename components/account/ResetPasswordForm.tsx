@@ -37,7 +37,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             name="password"
             type="password"
             required
-            minLength={6}
+            minLength={8}
             autoComplete="new-password"
             className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
@@ -48,7 +48,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             name="confirmPassword"
             type="password"
             required
-            minLength={6}
+            minLength={8}
             autoComplete="new-password"
             className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />

@@ -8,6 +8,7 @@ const implementedPostgresStores = [
   "contact messages",
   "users",
   "password reset tokens",
+  "email verification tokens",
   "operations",
   "POS invoices",
   "purchasing",

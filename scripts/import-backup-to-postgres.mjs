@@ -8,8 +8,8 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const backupSchemaVersion = 13;
-const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, backupSchemaVersion];
+const backupSchemaVersion = 14;
+const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, backupSchemaVersion];
 const hashedResetTokenPrefix = "sha256:";
 const productionStations = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
 const hrDepartments = [...productionStations, "Administration", "Sales", "Marketing", "Dispatch"];
@@ -22,6 +22,7 @@ const appTables = [
   "costing_settings",
   "hr_payroll",
   "hr_attendance",
+  "email_verification_tokens",
   "password_reset_tokens",
   "ledger_transactions",
   "stock_movements",
@@ -49,9 +50,9 @@ const appTables = [
 function usage() {
   return [
     "Usage:",
-    "  npm run db:import -- path/to/krishoe-backup-v13.json",
-    "  npm run db:import -- path/to/krishoe-backup-v13.json --dry-run",
-    "  npm run db:import -- path/to/krishoe-backup-v13.json --replace --confirm-replace",
+    "  npm run db:import -- path/to/krishoe-backup-v14.json",
+    "  npm run db:import -- path/to/krishoe-backup-v14.json --dry-run",
+    "  npm run db:import -- path/to/krishoe-backup-v14.json --replace --confirm-replace",
     "",
     "Options:",
     "  --dry-run           Validate backup shape and print import counts without connecting to Postgres.",
@@ -148,6 +149,7 @@ function backupCountSummary(backup) {
     products: counts.products ?? 0,
     users: counts.users ?? 0,
     passwordResetTokens: counts.passwordResetTokens ?? 0,
+    emailVerificationTokens: counts.emailVerificationTokens ?? 0,
     orders: counts.orders ?? 0,
     messages: counts.messages ?? 0,
     paymentTransactions: counts.paymentTransactions ?? 0,
@@ -520,14 +522,29 @@ async function upsertProduct(client, product) {
 async function upsertUser(client, user) {
   await client.query(
     `
-      INSERT INTO users (id, name, email, password_hash, phone, address, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+      INSERT INTO users (
+        id,
+        name,
+        email,
+        password_hash,
+        phone,
+        address,
+        email_verified_at,
+        phone_verified_at,
+        password_updated_at,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         email = EXCLUDED.email,
         password_hash = EXCLUDED.password_hash,
         phone = EXCLUDED.phone,
         address = EXCLUDED.address,
+        email_verified_at = EXCLUDED.email_verified_at,
+        phone_verified_at = EXCLUDED.phone_verified_at,
+        password_updated_at = EXCLUDED.password_updated_at,
         updated_at = now()
     `,
     [
@@ -537,6 +554,9 @@ async function upsertUser(client, user) {
       requiredString(user.passwordHash),
       optionalString(user.phone),
       optionalString(user.address),
+      optionalDateValue(user.emailVerifiedAt),
+      optionalDateValue(user.phoneVerifiedAt),
+      optionalDateValue(user.passwordUpdatedAt) ?? dateValue(user.createdAt),
       dateValue(user.createdAt),
     ],
   );
@@ -553,6 +573,25 @@ async function upsertPasswordResetToken(client, token) {
     `,
     [
       storagePasswordResetToken(token.token),
+      requiredString(token.email).toLowerCase(),
+      dateValue(token.expiresAt),
+    ],
+  );
+}
+
+async function upsertEmailVerificationToken(client, token) {
+  await client.query(
+    `
+      INSERT INTO email_verification_tokens (token, user_id, email, expires_at)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (token) DO UPDATE SET
+        user_id = EXCLUDED.user_id,
+        email = EXCLUDED.email,
+        expires_at = EXCLUDED.expires_at
+    `,
+    [
+      storagePasswordResetToken(token.token),
+      requiredString(token.userId),
       requiredString(token.email).toLowerCase(),
       dateValue(token.expiresAt),
     ],
@@ -1341,7 +1380,11 @@ async function upsertNotificationEvent(client, event) {
     [
       requiredString(event.id),
       dateValue(event.createdAt),
-        allowedValue(event.type, ["order", "contact", "password-reset"], "order"),
+      allowedValue(
+        event.type,
+        ["order", "contact", "password-reset", "email-verification", "operational-alert"],
+        "order",
+      ),
       requiredString(event.title),
       jsonString(event.payload, {}),
       allowedValue(event.deliveryStatus, ["pending", "sent", "failed", "skipped"], "pending"),
@@ -1458,6 +1501,7 @@ async function importBackup(client, backup, replace) {
     products: 0,
     users: 0,
     passwordResetTokens: 0,
+    emailVerificationTokens: 0,
     orders: 0,
     messages: 0,
     rawMaterials: 0,
@@ -1561,6 +1605,11 @@ async function importBackup(client, backup, replace) {
     for (const token of data.passwordResetTokens ?? []) {
       await upsertPasswordResetToken(client, token);
       imported.passwordResetTokens += 1;
+    }
+
+    for (const token of data.emailVerificationTokens ?? []) {
+      await upsertEmailVerificationToken(client, token);
+      imported.emailVerificationTokens += 1;
     }
 
     for (const batch of operations.productionBatches ?? []) {

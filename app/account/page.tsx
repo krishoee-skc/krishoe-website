@@ -3,9 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import EmailVerificationPanel from "@/components/account/EmailVerificationPanel";
+import OrderClaimForm from "@/components/account/OrderClaimForm";
 import PasswordChangeForm from "@/components/account/PasswordChangeForm";
 import ProfileEditForm from "@/components/account/ProfileEditForm";
-import { logoutCustomerAction } from "@/app/account/actions";
+import {
+  logoutAllCustomerSessionsAction,
+  logoutCustomerAction,
+} from "@/app/account/actions";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import {
   getOrdersForCustomer,
@@ -20,6 +25,13 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+type AccountPageProps = {
+  searchParams?: Promise<{
+    session?: string;
+    verified?: string;
+  }>;
+};
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -60,7 +72,7 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
         <div>
           <h2 className="text-xl font-black text-brand-green-ink">Order history</h2>
           <p className="mt-1 text-sm leading-6 text-brand-muted">
-            Requests linked to your account email or saved phone number.
+            Requests linked by account id, verified email, or verified phone.
           </p>
         </div>
         <Link
@@ -74,8 +86,8 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
       {orders.length === 0 ? (
         <div className="mt-5 rounded-lg border border-dashed border-black/10 bg-brand-mist p-5">
           <p className="text-sm font-semibold text-brand-green-ink">No linked order request yet.</p>
-          <p className="mt-1 text-sm leading-6 text-brand-muted">
-            Use the same email or save your phone number here before checkout to see future orders in this account.
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+            Sign in before checkout or verify your email to safely link older guest order requests.
           </p>
         </div>
       ) : (
@@ -127,14 +139,15 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
   );
 }
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: AccountPageProps) {
   const user = await getCurrentCustomer();
+  const resolvedSearchParams = await searchParams;
 
   if (!user) {
     redirect("/account/login");
   }
 
-  const orders = await getOrdersForCustomer({ userId: user.id, email: user.email, phone: user.phone });
+  const orders = await getOrdersForCustomer(user);
   const openOrders = orders.filter((order) => order.status !== "Closed");
   const pendingPayments = orders.filter((order) => order.paymentStatus === "Pending" || order.paymentStatus === "Unpaid");
   const latestOrder = orders[0];
@@ -165,6 +178,17 @@ export default async function AccountPage() {
           </form>
         </div>
 
+        {resolvedSearchParams?.verified === "success" ? (
+          <p className="mb-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
+            Email verified. Your account can now safely link matching guest orders.
+          </p>
+        ) : null}
+        {resolvedSearchParams?.session === "ended" ? (
+          <p className="mb-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
+            All customer sessions have been signed out.
+          </p>
+        ) : null}
+
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <StatCard label="Linked orders" value={orders.length} detail="account history" />
           <StatCard label="Open orders" value={openOrders.length} detail="new or contacted" />
@@ -182,6 +206,8 @@ export default async function AccountPage() {
             <PasswordChangeForm />
           </div>
           <div className="grid content-start gap-6">
+            <EmailVerificationPanel user={user} />
+            <OrderClaimForm />
             <aside className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-black text-brand-green-ink">Account status</h2>
               <dl className="mt-5 grid gap-4 text-sm">
@@ -199,7 +225,21 @@ export default async function AccountPage() {
                     })}
                   </dd>
                 </div>
+                <div>
+                  <dt className="font-semibold text-brand-muted">Password updated</dt>
+                  <dd className="mt-1 font-bold text-brand-green-ink">
+                    {user.passwordUpdatedAt ? formatDate(user.passwordUpdatedAt) : "-"}
+                  </dd>
+                </div>
               </dl>
+              <form action={logoutAllCustomerSessionsAction} className="mt-5">
+                <button
+                  type="submit"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand-clay/30 bg-white px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay-mist"
+                >
+                  Sign out all devices
+                </button>
+              </form>
             </aside>
           </div>
         </div>

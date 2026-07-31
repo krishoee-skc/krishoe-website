@@ -354,18 +354,35 @@ export async function getOrderById(id: string) {
 
 export function orderMatchesCustomer(
   order: OrderSubmission,
-  customer: { userId?: string; email?: string; phone?: string },
+  customer: {
+    id?: string;
+    userId?: string;
+    email?: string;
+    phone?: string;
+    emailVerifiedAt?: string;
+    phoneVerifiedAt?: string;
+  },
 ) {
   const email = normalizeEmail(customer.email);
   const phone = normalizePhone(customer.phone);
-  const emailMatches = email && normalizeEmail(order.email) === email;
-  const phoneMatches = phone.length >= 6 && normalizePhone(order.phone) === phone;
-  const userIdMatches = customer.userId && order.customerUserId === customer.userId;
+  const customerUserId = customer.userId ?? customer.id;
+  const emailMatches =
+    Boolean(customer.emailVerifiedAt) && email && normalizeEmail(order.email) === email;
+  const phoneMatches =
+    Boolean(customer.phoneVerifiedAt) && phone.length >= 6 && normalizePhone(order.phone) === phone;
+  const userIdMatches = customerUserId && order.customerUserId === customerUserId;
 
   return Boolean(userIdMatches || emailMatches || phoneMatches);
 }
 
-export async function getOrdersForCustomer(customer: { userId?: string; email?: string; phone?: string }) {
+export async function getOrdersForCustomer(customer: {
+  id?: string;
+  userId?: string;
+  email?: string;
+  phone?: string;
+  emailVerifiedAt?: string;
+  phoneVerifiedAt?: string;
+}) {
   const orders = await getOrders();
   return orders.filter((order) => orderMatchesCustomer(order, customer));
 }
@@ -514,6 +531,84 @@ export async function saveOrder(
 
       return { ...orderFromRow(rows[0]), items: record.items };
       }),
+  });
+}
+
+export async function attachOrderToCustomer(
+  orderId: string,
+  customerUserId: string,
+): Promise<OrderSubmission> {
+  const cleanOrderId = optionalText(orderId);
+  const cleanCustomerUserId = optionalText(customerUserId);
+
+  if (!cleanOrderId || !cleanCustomerUserId) {
+    throw new Error("Order and customer are required.");
+  }
+
+  return runWithDataBackend({
+    storeName: "orders",
+    localJson: async () => {
+      const orders = await getOrdersFromLocalJson();
+      const orderIndex = orders.findIndex((order) => order.id === cleanOrderId);
+
+      if (orderIndex === -1) {
+        throw new Error("Order was not found.");
+      }
+
+      const order = orders[orderIndex];
+
+      if (order.customerUserId && order.customerUserId !== cleanCustomerUserId) {
+        throw new Error("Order is already linked to another customer.");
+      }
+
+      const nextOrder = normalizeOrder({
+        ...order,
+        customerUserId: cleanCustomerUserId,
+      });
+
+      orders[orderIndex] = nextOrder;
+      await writeJsonFile(ordersPath, orders);
+
+      return nextOrder;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<OrderRow>(
+        "orders",
+        `
+          UPDATE orders
+          SET customer_user_id = $2
+          WHERE id = $1 AND (customer_user_id IS NULL OR customer_user_id = $2)
+          RETURNING
+            id,
+            created_at,
+            customer_user_id,
+            name,
+            email,
+            phone,
+            address,
+            delivery,
+            payment,
+            order_text,
+            total,
+            status,
+            payment_status,
+            payment_provider,
+            payment_reference,
+            payment_transaction_id,
+            payment_callback_id,
+            payment_verified_at,
+            payment_ledger_id,
+            payment_ledger_transaction_id
+        `,
+        [cleanOrderId, cleanCustomerUserId],
+      );
+
+      if (!rows[0]) {
+        throw new Error("Order was not found or is already linked.");
+      }
+
+      return orderFromRow(rows[0]);
+    },
   });
 }
 

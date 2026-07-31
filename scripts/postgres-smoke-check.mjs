@@ -6,13 +6,14 @@ import path from "node:path";
 import pg from "pg";
 
 const { Pool } = pg;
-const backupSchemaVersion = 13;
-const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, backupSchemaVersion];
+const backupSchemaVersion = 14;
+const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, backupSchemaVersion];
 
 const countTables = [
   ["products", "products"],
   ["users", "users"],
   ["passwordResetTokens", "password_reset_tokens"],
+  ["emailVerificationTokens", "email_verification_tokens"],
   ["orders", "orders"],
   ["paymentTransactions", "payment_transactions"],
   ["posInvoices", "pos_invoices"],
@@ -46,7 +47,7 @@ function usage() {
   return [
     "Usage:",
     "  npm run db:smoke",
-    "  npm run db:smoke -- path/to/krishoe-backup-v13.json",
+    "  npm run db:smoke -- path/to/krishoe-backup-v14.json",
     "",
     "Options:",
     "  --database-url=<postgres-url>  Override DATABASE_URL.",
@@ -156,6 +157,7 @@ function expectedCountsFromBackup(backup) {
     products: counts.products,
     users: counts.users,
     passwordResetTokens: counts.passwordResetTokens,
+    emailVerificationTokens: counts.emailVerificationTokens,
     orders: counts.orders,
     paymentTransactions: counts.paymentTransactions,
     posInvoices: counts.posInvoices,
@@ -223,6 +225,15 @@ async function getIntegrity(client) {
         SELECT count(*) AS value
         FROM password_reset_tokens tokens
         LEFT JOIN users ON lower(users.email) = lower(tokens.email)
+        WHERE users.id IS NULL
+      `,
+    ),
+    orphanEmailVerificationTokens: await scalar(
+      client,
+      `
+        SELECT count(*) AS value
+        FROM email_verification_tokens tokens
+        LEFT JOIN users ON users.id = tokens.user_id
         WHERE users.id IS NULL
       `,
     ),

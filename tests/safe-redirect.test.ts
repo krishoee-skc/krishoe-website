@@ -39,6 +39,7 @@ describe("safeCustomerNextPath", () => {
     expect(safeCustomerNextPath("/account/login")).toBe("/account");
     expect(safeCustomerNextPath("/account/register")).toBe("/account");
     expect(safeCustomerNextPath("/account/reset-password")).toBe("/account");
+    expect(safeCustomerNextPath("/account/verify-email")).toBe("/account");
   });
 });
 

@@ -14,6 +14,9 @@ export type User = {
   createdAt: string;
   phone?: string;
   address?: string;
+  emailVerifiedAt?: string;
+  phoneVerifiedAt?: string;
+  passwordUpdatedAt?: string;
 };
 
 export type SafeUser = Omit<User, "passwordHash">;
@@ -26,6 +29,9 @@ type UserRow = {
   created_at: Date | string;
   phone: string | null;
   address: string | null;
+  email_verified_at: Date | string | null;
+  phone_verified_at: Date | string | null;
+  password_updated_at: Date | string | null;
 };
 
 const dataDir = path.join(process.cwd(), "data");
@@ -55,6 +61,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizePhone(phone: string | undefined) {
+  return (phone ?? "").replace(/[\s().-]/g, "");
+}
+
 function cleanRequiredText(value: string | undefined) {
   const trimmed = value?.trim() ?? "";
   return trimmed || undefined;
@@ -78,7 +88,19 @@ function userFromRow(row: UserRow): User {
     createdAt: isoDate(row.created_at),
     phone: row.phone ?? undefined,
     address: row.address ?? undefined,
+    emailVerifiedAt: optionalIsoDate(row.email_verified_at),
+    phoneVerifiedAt: optionalIsoDate(row.phone_verified_at),
+    passwordUpdatedAt: optionalIsoDate(row.password_updated_at),
   };
+}
+
+function optionalIsoDate(value: Date | string | null | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 async function readUsersFromLocalJson(): Promise<User[]> {
@@ -98,6 +120,7 @@ async function readUsersFromPostgres(): Promise<User[]> {
     "users",
     `
       SELECT id, name, email, password_hash, created_at, phone, address
+      , email_verified_at, phone_verified_at, password_updated_at
       FROM users
       ORDER BY created_at DESC
     `,
@@ -126,6 +149,9 @@ function toSafeUser(user: User): SafeUser {
     createdAt: user.createdAt,
     phone: user.phone,
     address: user.address,
+    emailVerifiedAt: user.emailVerifiedAt,
+    phoneVerifiedAt: user.phoneVerifiedAt,
+    passwordUpdatedAt: user.passwordUpdatedAt,
   };
 }
 
@@ -139,6 +165,7 @@ async function getUserByIdFromPostgres(id: string): Promise<User | undefined> {
     "users",
     `
       SELECT id, name, email, password_hash, created_at, phone, address
+      , email_verified_at, phone_verified_at, password_updated_at
       FROM users
       WHERE id = $1
       LIMIT 1
@@ -177,6 +204,7 @@ async function getUserByEmailFromPostgres(email: string): Promise<User | undefin
     "users",
     `
       SELECT id, name, email, password_hash, created_at, phone, address
+      , email_verified_at, phone_verified_at, password_updated_at
       FROM users
       WHERE lower(email) = lower($1)
       LIMIT 1
@@ -218,10 +246,10 @@ async function createUserInPostgres(record: User): Promise<User> {
   const rows = await queryPostgres<UserRow>(
     "users",
     `
-      INSERT INTO users (id, name, email, password_hash, created_at, phone, address, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NULL, NULL, now())
+      INSERT INTO users (id, name, email, password_hash, created_at, phone, address, password_updated_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NULL, NULL, $5, now())
       ON CONFLICT DO NOTHING
-      RETURNING id, name, email, password_hash, created_at, phone, address
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
     `,
     [record.id, record.name, record.email, record.passwordHash, new Date(record.createdAt)],
   );
@@ -234,12 +262,14 @@ async function createUserInPostgres(record: User): Promise<User> {
 }
 
 export async function createUser(name: string, email: string, password: string): Promise<User> {
+  const createdAt = new Date().toISOString();
   const record: User = {
     id: `user-${crypto.randomUUID()}`,
     name: cleanRequiredText(name) ?? name,
     email: normalizeEmail(email),
     passwordHash: await hashPassword(password),
-    createdAt: new Date().toISOString(),
+    createdAt,
+    passwordUpdatedAt: createdAt,
   };
 
   return runWithDataBackend({
@@ -293,7 +323,7 @@ async function updateUserInPostgres(
       UPDATE users
       SET name = $2, phone = $3, address = $4, updated_at = now()
       WHERE id = $1
-      RETURNING id, name, email, password_hash, created_at, phone, address
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
     `,
     [userId, nextName, nextPhone ?? null, nextAddress ?? null],
   );
@@ -316,7 +346,7 @@ export async function updateUser(
   });
 }
 
-async function updateUserPasswordInLocalJson(email: string, password: string) {
+async function updateUserPasswordInLocalJson(email: string, password: string): Promise<SafeUser> {
   const users = await readUsersFromLocalJson();
   const userIndex = users.findIndex((user) => normalizeEmail(user.email) === normalizeEmail(email));
 
@@ -324,22 +354,26 @@ async function updateUserPasswordInLocalJson(email: string, password: string) {
     throw new Error("User not found.");
   }
 
-  users[userIndex] = {
+  const nextUser = {
     ...users[userIndex],
     passwordHash: await hashPassword(password),
+    passwordUpdatedAt: new Date().toISOString(),
   };
 
+  users[userIndex] = nextUser;
   await writeUsers(users);
+
+  return toSafeUser(nextUser);
 }
 
-async function updateUserPasswordInPostgres(email: string, password: string) {
-  const rows = await queryPostgres<{ id: string }>(
+async function updateUserPasswordInPostgres(email: string, password: string): Promise<SafeUser> {
+  const rows = await queryPostgres<UserRow>(
     "users",
     `
       UPDATE users
-      SET password_hash = $2, updated_at = now()
+      SET password_hash = $2, password_updated_at = now(), updated_at = now()
       WHERE lower(email) = lower($1)
-      RETURNING id
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
     `,
     [normalizeEmail(email), await hashPassword(password)],
   );
@@ -347,12 +381,186 @@ async function updateUserPasswordInPostgres(email: string, password: string) {
   if (rows.length === 0) {
     throw new Error("User not found.");
   }
+
+  return toSafeUser(userFromRow(rows[0]));
 }
 
-export async function updateUserPassword(email: string, password: string) {
+export async function updateUserPassword(email: string, password: string): Promise<SafeUser> {
   return runWithDataBackend({
     storeName: "users",
     localJson: () => updateUserPasswordInLocalJson(email, password),
     postgres: () => updateUserPasswordInPostgres(email, password),
   });
+}
+
+async function markUserEmailVerifiedInLocalJson(
+  userId: string,
+  email: string,
+  verifiedAt: string,
+): Promise<SafeUser> {
+  const users = await readUsersFromLocalJson();
+  const normalizedEmail = normalizeEmail(email);
+  const userIndex = users.findIndex(
+    (user) => user.id === userId && normalizeEmail(user.email) === normalizedEmail,
+  );
+
+  if (userIndex === -1) {
+    throw new Error("User not found.");
+  }
+
+  const nextUser: User = {
+    ...users[userIndex],
+    emailVerifiedAt: users[userIndex].emailVerifiedAt ?? verifiedAt,
+  };
+
+  users[userIndex] = nextUser;
+  await writeUsers(users);
+  return toSafeUser(nextUser);
+}
+
+async function markUserEmailVerifiedInPostgres(
+  userId: string,
+  email: string,
+  verifiedAt: string,
+): Promise<SafeUser> {
+  const rows = await queryPostgres<UserRow>(
+    "users",
+    `
+      UPDATE users
+      SET email_verified_at = coalesce(email_verified_at, $3), updated_at = now()
+      WHERE id = $1 AND lower(email) = lower($2)
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
+    `,
+    [userId, normalizeEmail(email), new Date(verifiedAt)],
+  );
+
+  if (rows.length === 0) {
+    throw new Error("User not found.");
+  }
+
+  return toSafeUser(userFromRow(rows[0]));
+}
+
+export async function markUserEmailVerified(userId: string, email: string): Promise<SafeUser> {
+  const verifiedAt = new Date().toISOString();
+
+  return runWithDataBackend({
+    storeName: "users",
+    localJson: () => markUserEmailVerifiedInLocalJson(userId, email, verifiedAt),
+    postgres: () => markUserEmailVerifiedInPostgres(userId, email, verifiedAt),
+  });
+}
+
+async function markUserPhoneVerifiedInLocalJson(
+  userId: string,
+  phone: string,
+  verifiedAt: string,
+): Promise<SafeUser> {
+  const users = await readUsersFromLocalJson();
+  const normalizedPhone = normalizePhone(phone);
+  const userIndex = users.findIndex(
+    (user) => user.id === userId && normalizePhone(user.phone) === normalizedPhone,
+  );
+
+  if (userIndex === -1) {
+    throw new Error("User not found.");
+  }
+
+  const nextUser: User = {
+    ...users[userIndex],
+    phoneVerifiedAt: users[userIndex].phoneVerifiedAt ?? verifiedAt,
+  };
+
+  users[userIndex] = nextUser;
+  await writeUsers(users);
+  return toSafeUser(nextUser);
+}
+
+async function markUserPhoneVerifiedInPostgres(
+  userId: string,
+  phone: string,
+  verifiedAt: string,
+): Promise<SafeUser> {
+  const currentUser = await getUserByIdFromPostgres(userId);
+
+  if (!currentUser || normalizePhone(currentUser.phone) !== normalizePhone(phone)) {
+    throw new Error("User not found.");
+  }
+
+  const rows = await queryPostgres<UserRow>(
+    "users",
+    `
+      UPDATE users
+      SET phone_verified_at = coalesce(phone_verified_at, $2), updated_at = now()
+      WHERE id = $1
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
+    `,
+    [userId, new Date(verifiedAt)],
+  );
+
+  if (rows.length === 0) {
+    throw new Error("User not found.");
+  }
+
+  return toSafeUser(userFromRow(rows[0]));
+}
+
+export async function markUserPhoneVerified(userId: string, phone: string): Promise<SafeUser> {
+  const verifiedAt = new Date().toISOString();
+
+  return runWithDataBackend({
+    storeName: "users",
+    localJson: () => markUserPhoneVerifiedInLocalJson(userId, phone, verifiedAt),
+    postgres: () => markUserPhoneVerifiedInPostgres(userId, phone, verifiedAt),
+  });
+}
+
+async function invalidateUserSessionsInLocalJson(userId: string): Promise<SafeUser> {
+  const users = await readUsersFromLocalJson();
+  const userIndex = users.findIndex((user) => user.id === userId);
+
+  if (userIndex === -1) {
+    throw new Error("User not found.");
+  }
+
+  const nextUser: User = {
+    ...users[userIndex],
+    passwordUpdatedAt: new Date().toISOString(),
+  };
+
+  users[userIndex] = nextUser;
+  await writeUsers(users);
+  return toSafeUser(nextUser);
+}
+
+async function invalidateUserSessionsInPostgres(userId: string): Promise<SafeUser> {
+  const rows = await queryPostgres<UserRow>(
+    "users",
+    `
+      UPDATE users
+      SET password_updated_at = now(), updated_at = now()
+      WHERE id = $1
+      RETURNING id, name, email, password_hash, created_at, phone, address, email_verified_at, phone_verified_at, password_updated_at
+    `,
+    [userId],
+  );
+
+  if (rows.length === 0) {
+    throw new Error("User not found.");
+  }
+
+  return toSafeUser(userFromRow(rows[0]));
+}
+
+export async function invalidateUserSessions(userId: string): Promise<SafeUser> {
+  return runWithDataBackend({
+    storeName: "users",
+    localJson: () => invalidateUserSessionsInLocalJson(userId),
+    postgres: () => invalidateUserSessionsInPostgres(userId),
+  });
+}
+
+export async function getSafeUsers(): Promise<SafeUser[]> {
+  const users = await readUsers();
+  return users.map(toSafeUser);
 }

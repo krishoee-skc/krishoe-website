@@ -72,7 +72,7 @@ export default async function OrderStatusPage({ params }: OrderStatusPageProps) 
               <h2 className="text-lg font-black text-brand-green-ink">Private details protected</h2>
               <p className="mt-2 text-sm leading-7 text-brand-muted">
                 Customer phone, address, items, total, and payment references are only visible
-                from the KRISHOE account linked to this order email or phone number.
+                from the KRISHOE account that placed this order or has a verified matching email/phone.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link

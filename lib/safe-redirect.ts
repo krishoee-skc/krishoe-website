@@ -22,7 +22,8 @@ function isCustomerAuthPath(pathname: string) {
   return (
     pathname.startsWith("/account/login") ||
     pathname.startsWith("/account/register") ||
-    pathname.startsWith("/account/reset-password")
+    pathname.startsWith("/account/reset-password") ||
+    pathname.startsWith("/account/verify-email")
   );
 }
 

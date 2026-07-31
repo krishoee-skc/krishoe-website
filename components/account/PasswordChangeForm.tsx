@@ -50,7 +50,7 @@ export default function PasswordChangeForm() {
             name="newPassword"
             type="password"
             required
-            minLength={6}
+            minLength={8}
             className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>
@@ -60,7 +60,7 @@ export default function PasswordChangeForm() {
             name="confirmPassword"
             type="password"
             required
-            minLength={6}
+            minLength={8}
             className="h-12 rounded-lg border border-black/10 px-4 outline-none focus:border-brand-green"
           />
         </label>

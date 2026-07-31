@@ -13,6 +13,7 @@ import {
   getOperationalAlertCenter,
   getNotificationDeliveryConfig,
   getNotificationEvents,
+  type EmailVerificationNotificationPayload,
   type OperationalAlertSeverity,
   type PasswordResetNotificationPayload,
   type NotificationDeliveryStatus,
@@ -56,7 +57,7 @@ function customerLabel(event: NotificationEvent) {
     return (event.payload as OrderSubmission).name;
   }
 
-  if (event.type === "password-reset") {
+  if (event.type === "password-reset" || event.type === "email-verification") {
     return "Customer account";
   }
 
@@ -72,8 +73,8 @@ function targetLabel(event: NotificationEvent) {
     return (event.payload as OrderSubmission).phone;
   }
 
-  if (event.type === "password-reset") {
-    return (event.payload as PasswordResetNotificationPayload).email;
+  if (event.type === "password-reset" || event.type === "email-verification") {
+    return (event.payload as PasswordResetNotificationPayload | EmailVerificationNotificationPayload).email;
   }
 
   if (event.type === "operational-alert") {

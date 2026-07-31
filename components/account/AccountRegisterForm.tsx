@@ -39,6 +39,12 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
       <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Create account</h1>
 
       <div className="mt-7 grid gap-4">
+        <div className="hidden" aria-hidden="true">
+          <label>
+            Website
+            <input name="website" tabIndex={-1} autoComplete="off" />
+          </label>
+        </div>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Full name
           <input name="name" required autoComplete="name" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
@@ -49,7 +55,7 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Password
-          <input name="password" type="password" required minLength={6} autoComplete="new-password" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
+          <input name="password" type="password" required minLength={8} autoComplete="new-password" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
       </div>
 

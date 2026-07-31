@@ -15,6 +15,8 @@ export const metadata: Metadata = {
 type AccountLoginPageProps = {
   searchParams?: Promise<{
     reset?: string;
+    session?: string;
+    verified?: string;
     next?: string;
   }>;
 };
@@ -45,6 +47,21 @@ export default async function AccountLoginPage({ searchParams }: AccountLoginPag
           {resolvedSearchParams?.reset === "success" ? (
             <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
               Password reset complete. Please sign in with your new password.
+            </p>
+          ) : null}
+          {resolvedSearchParams?.session === "ended" ? (
+            <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
+              All customer sessions have been signed out. Please sign in again.
+            </p>
+          ) : null}
+          {resolvedSearchParams?.verified === "success" ? (
+            <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
+              Email verified. Please sign in to continue.
+            </p>
+          ) : null}
+          {resolvedSearchParams?.verified === "invalid" ? (
+            <p className="mt-6 rounded-lg bg-brand-clay-mist p-4 text-sm font-semibold text-brand-clay">
+              That email verification link is invalid or expired. Sign in and request a fresh link.
             </p>
           ) : null}
         </div>

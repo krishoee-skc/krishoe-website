@@ -26,7 +26,12 @@ import { reportingErrors } from "@/lib/report-error";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
 
 export type NotificationDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
-export type NotificationEventType = "order" | "contact" | "password-reset" | "operational-alert";
+export type NotificationEventType =
+  | "order"
+  | "contact"
+  | "password-reset"
+  | "email-verification"
+  | "operational-alert";
 export type OperationalAlertSeverity = "critical" | "warning" | "info";
 export type OperationalAlertCategory =
   | "collection"
@@ -45,6 +50,13 @@ export type PasswordResetNotificationPayload = {
   requestedAt: string;
 };
 
+export type EmailVerificationNotificationPayload = {
+  email: string;
+  verificationUrl: string;
+  expiresAt: string;
+  requestedAt: string;
+};
+
 type OperationalAlertNotificationPayload = {
   alertId: string;
   category: OperationalAlertCategory;
@@ -58,6 +70,7 @@ type NotificationPayload =
   | OrderSubmission
   | ContactSubmission
   | PasswordResetNotificationPayload
+  | EmailVerificationNotificationPayload
   | OperationalAlertNotificationPayload;
 
 export type NotificationEvent = {
@@ -162,7 +175,12 @@ function normalizeDeliveryStatus(value: unknown): NotificationDeliveryStatus {
 }
 
 function normalizeEventType(value: unknown): NotificationEventType {
-  if (value === "contact" || value === "password-reset" || value === "operational-alert") {
+  if (
+    value === "contact" ||
+    value === "password-reset" ||
+    value === "email-verification" ||
+    value === "operational-alert"
+  ) {
     return value;
   }
 
@@ -231,6 +249,17 @@ export function textSummary(event: NotificationEvent) {
     ].join("\n");
   }
 
+  if (event.type === "email-verification") {
+    const verification = event.payload as EmailVerificationNotificationPayload;
+
+    return [
+      event.title,
+      `Email: ${verification.email}`,
+      `Verify link: ${verification.verificationUrl}`,
+      `Expires: ${verification.expiresAt}`,
+    ].join("\n");
+  }
+
   if (event.type === "operational-alert") {
     const alert = event.payload as OperationalAlertNotificationPayload;
 
@@ -266,8 +295,11 @@ function deliveryTimeoutMs() {
 }
 
 function notificationTarget(channel: NotificationChannel, event: NotificationEvent) {
-  if (event.type === "password-reset" && channel.id === "email-http") {
-    return (event.payload as PasswordResetNotificationPayload).email;
+  if (
+    (event.type === "password-reset" || event.type === "email-verification") &&
+    channel.id === "email-http"
+  ) {
+    return (event.payload as PasswordResetNotificationPayload | EmailVerificationNotificationPayload).email;
   }
 
   return channel.target;
@@ -278,12 +310,12 @@ function getConfiguredChannels(event?: NotificationEvent): NotificationChannel[]
   const emailUrl = envValue("EMAIL_PROVIDER_URL");
   const smsUrl = envValue("SMS_PROVIDER_URL");
   const emailTarget =
-    event?.type === "password-reset"
-      ? (event.payload as PasswordResetNotificationPayload).email
+    event?.type === "password-reset" || event?.type === "email-verification"
+      ? (event.payload as PasswordResetNotificationPayload | EmailVerificationNotificationPayload).email
       : envValue("ADMIN_NOTIFICATION_EMAIL");
   const channels: NotificationChannel[] = [];
 
-  if (event?.type === "password-reset") {
+  if (event?.type === "password-reset" || event?.type === "email-verification") {
     return emailUrl && emailTarget
       ? [
           {
@@ -342,12 +374,12 @@ export function getNotificationDeliveryConfig() {
     {
       id: "email-http",
       label: "Email HTTP",
-      configured: Boolean(envValue("EMAIL_PROVIDER_URL") && envValue("ADMIN_NOTIFICATION_EMAIL")),
+      configured: Boolean(envValue("EMAIL_PROVIDER_URL")),
       detail: envValue("EMAIL_PROVIDER_URL") && envValue("ADMIN_NOTIFICATION_EMAIL")
-        ? "Configured for admin email alerts and customer password reset email delivery."
+        ? "Configured for admin email alerts and customer account email delivery."
         : envValue("EMAIL_PROVIDER_URL")
-          ? "Configured for customer password reset emails. Set ADMIN_NOTIFICATION_EMAIL for admin email alerts."
-          : "Set EMAIL_PROVIDER_URL for password reset emails and ADMIN_NOTIFICATION_EMAIL for admin email alerts.",
+          ? "Configured for customer account emails. Set ADMIN_NOTIFICATION_EMAIL for admin email alerts."
+          : "Set EMAIL_PROVIDER_URL for customer account emails and ADMIN_NOTIFICATION_EMAIL for admin email alerts.",
     },
     {
       id: "sms-http",
@@ -636,8 +668,8 @@ export async function deliverNotificationEvent(event: NotificationEvent): Promis
 
   if (channels.length === 0) {
     const missingChannelMessage =
-      normalizedEvent.type === "password-reset"
-        ? "No customer password reset email channel is configured."
+      normalizedEvent.type === "password-reset" || normalizedEvent.type === "email-verification"
+        ? "No customer account email channel is configured."
         : "No notification delivery channel is configured.";
 
     await updateEventDelivery(normalizedEvent.id, {
@@ -1027,6 +1059,21 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
   // A reset link that never arrives looks identical to a wrong email address.
   // The log is the only way to tell them apart.
   await reportingErrors(`deliver password reset notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
+  return event;
+}
+
+export async function notifyEmailVerificationRequested(
+  payload: EmailVerificationNotificationPayload,
+) {
+  const event = await appendEvent({
+    type: "email-verification",
+    title: "Verify your KRISHOE account email",
+    payload,
+  });
+
+  await reportingErrors(`deliver email verification notification ${event.id}`, () =>
     deliverNotificationEvent(event),
   );
   return event;

@@ -6,6 +6,7 @@ export type CustomerSessionPayload = {
   sub: "customer";
   userId: string;
   email: string;
+  iat?: number;
   exp: number;
 };
 
@@ -63,12 +64,14 @@ async function hmac(value: string) {
 }
 
 export async function createCustomerSessionToken(user: { id: string; email: string }) {
+  const issuedAt = Date.now();
   const payload = base64UrlEncode(
     JSON.stringify({
       sub: "customer",
       userId: user.id,
       email: user.email,
-      exp: Date.now() + getCustomerSessionMaxAge() * 1000,
+      iat: issuedAt,
+      exp: issuedAt + getCustomerSessionMaxAge() * 1000,
     }),
   );
   const signature = await hmac(payload);
@@ -100,6 +103,7 @@ export async function verifyCustomerSessionToken(token?: string): Promise<Custom
       session.sub === "customer" &&
       typeof session.userId === "string" &&
       typeof session.email === "string" &&
+      (session.iat === undefined || typeof session.iat === "number") &&
       typeof session.exp === "number" &&
       session.exp > Date.now()
     ) {

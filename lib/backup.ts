@@ -2,6 +2,7 @@ import { getAdminAuditEvents } from "@/lib/admin-audit";
 import { getAdminSettingsForBackup } from "@/lib/admin-settings";
 import { getCostingSettings } from "@/lib/costing-settings";
 import { getSafeDataBackendStatus } from "@/lib/data-backend";
+import { getEmailVerificationTokensForBackup } from "@/lib/email-verification-store";
 import { getHrData, type HrData } from "@/lib/hr";
 import { getNotificationEvents } from "@/lib/notifications";
 import {
@@ -17,7 +18,7 @@ import { getPurchasingData, type SupplierPaymentMethod } from "@/lib/purchasing"
 import { getContactMessages, getOrders } from "@/lib/submissions";
 import { getUsersForBackup } from "@/lib/user-store";
 
-export const backupSchemaVersion = 13;
+export const backupSchemaVersion = 14;
 
 type IdRecord = {
   id: string;
@@ -206,6 +207,7 @@ export async function buildAdminBackup() {
     messages,
     users,
     passwordResetTokens,
+    emailVerificationTokens,
     operations,
     paymentTransactions,
     posInvoices,
@@ -221,6 +223,7 @@ export async function buildAdminBackup() {
     getContactMessages(),
     getUsersForBackup(),
     getPasswordResetTokensForBackup(),
+    getEmailVerificationTokensForBackup(),
     getOperationsDataForReports(),
     getPaymentTransactions(),
     getPosInvoices(),
@@ -245,6 +248,7 @@ export async function buildAdminBackup() {
       messages: messages.length,
       users: users.length,
       passwordResetTokens: passwordResetTokens.length,
+      emailVerificationTokens: emailVerificationTokens.length,
       operations: operationsCounts(operations),
       paymentTransactions: paymentTransactions.length,
       posInvoices: posInvoices.length,
@@ -477,6 +481,7 @@ export async function buildAdminBackup() {
       messages,
       users,
       passwordResetTokens,
+      emailVerificationTokens,
       operations,
       paymentTransactions,
       posInvoices,

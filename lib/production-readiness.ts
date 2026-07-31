@@ -218,7 +218,7 @@ function paymentStatus(): ReadinessCheck {
 function notificationStatus(): ReadinessCheck {
   const emailReady =
     hasEnv("EMAIL_PROVIDER_URL") && hasEnv("ADMIN_NOTIFICATION_EMAIL");
-  const passwordResetEmailReady = hasEnv("EMAIL_PROVIDER_URL");
+  const customerAccountEmailReady = hasEnv("EMAIL_PROVIDER_URL");
   const smsReady =
     hasEnv("SMS_PROVIDER_URL") && hasEnv("ADMIN_NOTIFICATION_PHONE");
   const webhookReady = hasEnv("NOTIFICATION_WEBHOOK_URL");
@@ -231,19 +231,20 @@ function notificationStatus(): ReadinessCheck {
   return {
     id: "notifications",
     label: "Email / SMS alerts",
-    status: readyChannels.length > 0 && passwordResetEmailReady ? "ready" : "warning",
+    status: readyChannels.length > 0 && customerAccountEmailReady ? "ready" : "warning",
     detail:
-      readyChannels.length > 0 && passwordResetEmailReady
-        ? `Notification channel(s) configured: ${readyChannels.join(", ")}. Customer password reset email delivery is available.`
-        : passwordResetEmailReady
-          ? "Customer password reset email delivery is configured. Add admin email/SMS/webhook alerts for order and message operations."
-          : "Orders/messages are queued, but password reset emails need EMAIL_PROVIDER_URL before production.",
+      readyChannels.length > 0 && customerAccountEmailReady
+        ? `Notification channel(s) configured: ${readyChannels.join(", ")}. Customer account emails for password reset and email verification are available.`
+        : customerAccountEmailReady
+          ? "Customer account email delivery is configured. Add admin email/SMS/webhook alerts for order and message operations."
+          : "Orders/messages are queued, but customer account emails need EMAIL_PROVIDER_URL before production.",
     envKeys: [
       "ADMIN_NOTIFICATION_EMAIL",
       "ADMIN_NOTIFICATION_PHONE",
       "EMAIL_PROVIDER_URL",
       "EMAIL_PROVIDER_TOKEN",
       "PASSWORD_RESET_SHOW_LOCAL_LINK",
+      "EMAIL_VERIFICATION_SHOW_LOCAL_LINK",
       "SMS_PROVIDER_URL",
       "SMS_PROVIDER_TOKEN",
       "NOTIFICATION_WEBHOOK_URL",

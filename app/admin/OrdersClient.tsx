@@ -13,6 +13,7 @@ import type { OrderSubmission } from "@/lib/submissions";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import {
   createPosInvoiceFromOrderAction,
+  markCustomerPhoneVerifiedFromOrderAction,
   updateOrderPaymentAction,
   updateOrderStatusAction,
   type ActionState,
@@ -257,6 +258,38 @@ function OrderPaymentForm({
   );
 }
 
+function CustomerTrustForm({ order }: { order: OrderSubmission }) {
+  const [state, setState] = useState<ActionState>({ ok: true, message: "" });
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    startTransition(async () => {
+      setState(await markCustomerPhoneVerifiedFromOrderAction(state, formData));
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2 grid gap-1">
+      <input type="hidden" name="id" value={order.id} />
+      <button
+        type="submit"
+        disabled={isPending}
+        className="w-fit rounded-full border border-brand-green px-2.5 py-1 text-[11px] font-black text-brand-green transition hover:bg-brand-mist disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isPending ? "Verifying" : "Verify phone"}
+      </button>
+      {state.message ? (
+        <p className={`max-w-[220px] text-[11px] font-semibold ${state.ok ? "text-gray-500" : "text-red-600"}`}>
+          {state.message}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
 function OrderToPosForm({
   order,
   customerLedgers,
@@ -469,6 +502,7 @@ export default function OrdersClient({
                   <p className="font-medium text-gray-900">{order.name}</p>
                   <p className="text-xs text-gray-500">{order.phone}</p>
                   {order.email ? <p className="text-xs text-gray-500">{order.email}</p> : null}
+                  <CustomerTrustForm order={order} />
                 </td>
                 <td data-label="Items" className="px-4 py-3 text-gray-700">
                   <p className="max-h-32 min-w-[260px] max-w-[360px] overflow-y-auto whitespace-pre-line rounded-md bg-gray-50 p-3 text-xs leading-6">

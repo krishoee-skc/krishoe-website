@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -13,19 +14,35 @@ import {
   setCustomerSessionCookie,
 } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
-import { notifyPasswordResetRequested } from "@/lib/notifications";
+import {
+  notifyEmailVerificationRequested,
+  notifyPasswordResetRequested,
+} from "@/lib/notifications";
 import {
   createCustomerSessionToken,
   hasCustomerSessionSecret,
 } from "@/lib/customer-session";
 import {
+  createEmailVerificationToken,
+  deleteEmailVerificationToken,
+  getEmailVerificationToken,
+} from "@/lib/email-verification-store";
+import { reportError } from "@/lib/report-error";
+import {
   createUser,
   getUserById,
   getUserByEmail,
+  invalidateUserSessions,
+  markUserEmailVerified,
   updateUser,
   updateUserPassword,
   verifyPassword,
 } from "@/lib/user-store";
+import {
+  attachOrderToCustomer,
+  getOrderById,
+  orderMatchesCustomer,
+} from "@/lib/submissions";
 import {
   createPasswordResetToken,
   deletePasswordResetToken,
@@ -36,7 +53,9 @@ import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 export type AccountActionState = {
   ok: boolean;
   message: string;
+  href?: string;
   resetLink?: string;
+  verificationLink?: string;
 };
 
 function textValue(formData: FormData, key: string) {
@@ -52,10 +71,26 @@ function showLocalPasswordResetLink() {
   return process.env.PASSWORD_RESET_SHOW_LOCAL_LINK === "true" || process.env.NODE_ENV !== "production";
 }
 
+function showLocalEmailVerificationLink() {
+  return process.env.EMAIL_VERIFICATION_SHOW_LOCAL_LINK === "true" || process.env.NODE_ENV !== "production";
+}
+
 async function shortDelay() {
   await new Promise((resolve) => {
     setTimeout(resolve, 500);
   });
+}
+
+function passwordPolicyMessage(password: string, label = "Password") {
+  if (password.length < 8) {
+    return `${label} must be at least 8 characters.`;
+  }
+
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+    return `${label} must include at least one letter and one number.`;
+  }
+
+  return "";
 }
 
 async function loginKey(email: string) {
@@ -65,6 +100,22 @@ async function loginKey(email: string) {
   const userAgent = headerStore.get("user-agent")?.slice(0, 80) ?? "unknown";
 
   return `customer:${email.toLowerCase()}:${forwardedFor || realIp || userAgent}`;
+}
+
+async function sendEmailVerification(user: { id: string; email: string }) {
+  const token = await createEmailVerificationToken(user);
+  const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const verificationPath = `/account/verify-email?token=${encodeURIComponent(token)}`;
+  const verificationUrl = `${publicSiteUrl()}${verificationPath}`;
+
+  await notifyEmailVerificationRequested({
+    email: user.email,
+    verificationUrl,
+    expiresAt,
+    requestedAt: new Date().toISOString(),
+  });
+
+  return verificationPath;
 }
 
 export async function loginCustomerAction(
@@ -113,6 +164,12 @@ export async function registerCustomerAction(
   const name = textValue(formData, "name");
   const email = textValue(formData, "email").toLowerCase();
   const password = textValue(formData, "password");
+  const website = textValue(formData, "website");
+
+  if (website) {
+    await shortDelay();
+    return { ok: false, message: "Could not create account." };
+  }
 
   if (!hasCustomerSessionSecret()) {
     return { ok: false, message: "Customer session secret is not configured." };
@@ -122,19 +179,40 @@ export async function registerCustomerAction(
     return { ok: false, message: "Name, email, and password are required." };
   }
 
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "customer-register",
+    key: await loginKey(email),
+    maxAttempts: 5,
+    windowMs: 15 * 60 * 1000,
+  });
+
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      message: `Too many account attempts. Try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
+  }
+
   const customerProfile = validateCustomerProfileInput({ name });
 
   if (!customerProfile.ok) {
     return { ok: false, message: customerProfile.message };
   }
 
-  if (password.length < 6) {
-    return { ok: false, message: "Password must be at least 6 characters." };
+  const passwordMessage = passwordPolicyMessage(password);
+
+  if (passwordMessage) {
+    return { ok: false, message: passwordMessage };
   }
 
   try {
     const user = await createUser(customerProfile.profile.name, email, password);
     await setCustomerSessionCookie(await createCustomerSessionToken(user));
+    try {
+      await sendEmailVerification(user);
+    } catch (error) {
+      reportError(`create email verification for user ${user.id}`, error);
+    }
     return { ok: true, message: "Account created. Redirecting..." };
   } catch (error) {
     return {
@@ -142,6 +220,73 @@ export async function registerCustomerAction(
       message: error instanceof Error ? error.message : "Could not create account.",
     };
   }
+}
+
+export async function requestEmailVerificationAction(): Promise<AccountActionState> {
+  const session = await requireCustomerSession();
+  const user = await getUserById(session.userId);
+
+  if (!user) {
+    return { ok: false, message: "Please sign in again before verifying your email." };
+  }
+
+  if (user.emailVerifiedAt) {
+    return { ok: true, message: "Your email is already verified." };
+  }
+
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "email-verification",
+    key: await loginKey(user.email),
+    maxAttempts: 4,
+    windowMs: 15 * 60 * 1000,
+  });
+
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      message: `Too many verification emails. Try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
+  }
+
+  try {
+    const verificationPath = await sendEmailVerification(user);
+
+    return {
+      ok: true,
+      message: showLocalEmailVerificationLink()
+        ? "Email verification link generated for this local app."
+        : "Verification instructions have been sent to your email.",
+      verificationLink: showLocalEmailVerificationLink() ? verificationPath : undefined,
+    };
+  } catch (error) {
+    reportError(`send email verification for user ${user.id}`, error);
+    return { ok: false, message: "Could not send verification email right now." };
+  }
+}
+
+export async function confirmEmailVerificationAction(formData: FormData) {
+  const token = textValue(formData, "token");
+
+  if (!token) {
+    redirect("/account/login?verified=invalid");
+  }
+
+  const storedToken = await getEmailVerificationToken(token);
+
+  if (!storedToken || new Date(storedToken.expiresAt) < new Date()) {
+    redirect("/account/login?verified=invalid");
+  }
+
+  await markUserEmailVerified(storedToken.userId, storedToken.email);
+  await deleteEmailVerificationToken(token);
+
+  const session = await requireCustomerSession().catch(() => null);
+
+  if (session?.userId === storedToken.userId) {
+    redirect("/account?verified=success");
+  }
+
+  redirect("/account/login?verified=success");
 }
 
 export async function requestPasswordResetAction(
@@ -209,8 +354,10 @@ export async function resetPasswordAction(
     return { ok: false, message: "Invalid request." };
   }
 
-  if (password.length < 6) {
-    return { ok: false, message: "Password must be at least 6 characters long." };
+  const passwordMessage = passwordPolicyMessage(password);
+
+  if (passwordMessage) {
+    return { ok: false, message: passwordMessage };
   }
 
   if (password !== confirmPassword) {
@@ -225,8 +372,59 @@ export async function resetPasswordAction(
 
   await updateUserPassword(storedToken.email, password);
   await deletePasswordResetToken(token);
+  await clearCustomerSessionCookie();
 
   redirect("/account/login?reset=success");
+}
+
+export async function claimOrderAction(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const session = await requireCustomerSession();
+  const orderId = textValue(formData, "orderId").toUpperCase();
+
+  if (!orderId || orderId.length > 80 || !/^[A-Z0-9-]+$/.test(orderId)) {
+    return { ok: false, message: "Enter a valid KRISHOE order reference." };
+  }
+
+  const [user, order] = await Promise.all([
+    getUserById(session.userId),
+    getOrderById(orderId),
+  ]);
+
+  if (!user) {
+    return { ok: false, message: "Please sign in again before linking an order." };
+  }
+
+  if (!order) {
+    return { ok: false, message: "Order was not found." };
+  }
+
+  if (order.customerUserId && order.customerUserId !== user.id) {
+    return { ok: false, message: "This order is already linked to another customer account." };
+  }
+
+  if (!orderMatchesCustomer(order, user)) {
+    return {
+      ok: false,
+      message: "Verify your email or ask KRISHOE to verify your phone before linking this guest order.",
+    };
+  }
+
+  try {
+    const linkedOrder = await attachOrderToCustomer(order.id, user.id);
+    revalidatePath("/account");
+    revalidatePath(`/order/${linkedOrder.id}`);
+
+    return {
+      ok: true,
+      message: "Order linked to your account.",
+      href: `/order/${linkedOrder.id}`,
+    };
+  } catch {
+    return { ok: false, message: "Could not link this order right now." };
+  }
 }
 
 export async function updateProfileAction(
@@ -265,8 +463,10 @@ export async function changePasswordAction(
     return { ok: false, message: "Current password, new password, and confirmation are required." };
   }
 
-  if (newPassword.length < 6) {
-    return { ok: false, message: "New password must be at least 6 characters." };
+  const passwordMessage = passwordPolicyMessage(newPassword, "New password");
+
+  if (passwordMessage) {
+    return { ok: false, message: passwordMessage };
   }
 
   if (newPassword !== confirmPassword) {
@@ -281,7 +481,8 @@ export async function changePasswordAction(
     return { ok: false, message: "Current password is incorrect." };
   }
 
-  await updateUserPassword(user.email, newPassword);
+  const updatedUser = await updateUserPassword(user.email, newPassword);
+  await setCustomerSessionCookie(await createCustomerSessionToken(updatedUser));
 
   return { ok: true, message: "Password changed successfully." };
 }
@@ -289,4 +490,11 @@ export async function changePasswordAction(
 export async function logoutCustomerAction() {
   await clearCustomerSessionCookie();
   redirect("/account/login");
+}
+
+export async function logoutAllCustomerSessionsAction() {
+  const session = await requireCustomerSession();
+  await invalidateUserSessions(session.userId);
+  await clearCustomerSessionCookie();
+  redirect("/account/login?session=ended");
 }

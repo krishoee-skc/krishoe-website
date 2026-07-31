@@ -10,7 +10,29 @@ import { getSafeUserById } from "@/lib/user-store";
 export async function getCustomerSession(): Promise<CustomerSessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(customerSessionCookieName)?.value;
-  return verifyCustomerSessionToken(token);
+  const session = await verifyCustomerSessionToken(token);
+
+  if (!session) {
+    return null;
+  }
+
+  const user = await getSafeUserById(session.userId);
+
+  if (!user) {
+    return null;
+  }
+
+  const passwordUpdatedAt = user.passwordUpdatedAt ? Date.parse(user.passwordUpdatedAt) : 0;
+
+  if (
+    Number.isFinite(passwordUpdatedAt) &&
+    passwordUpdatedAt > 0 &&
+    (typeof session.iat !== "number" || session.iat + 5000 < passwordUpdatedAt)
+  ) {
+    return null;
+  }
+
+  return session;
 }
 
 export async function getCurrentCustomer() {

@@ -28,6 +28,7 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
 export type ActionState = {
   ok: boolean;
@@ -53,6 +54,10 @@ const orderPaymentSchema = z.object({
 });
 
 const posPaymentMethods: PosPaymentMethod[] = ["Cash", "Cheque", "Credit", "QR", "eSewa", "Khalti", "Bank"];
+
+function normalizePhone(phone: string | undefined) {
+  return (phone ?? "").replace(/[\s().-]/g, "");
+}
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -193,6 +198,50 @@ export async function updateOrderPaymentAction(
     return { ok: true, message: `Payment marked ${validatedFields.data.paymentStatus}.` };
   } catch {
     return { ok: false, message: "Failed to update payment details." };
+  }
+}
+
+export async function markCustomerPhoneVerifiedFromOrderAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+
+  const id = textValue(formData, "id");
+  const order = id ? await getOrderById(id) : null;
+
+  if (!order) {
+    return { ok: false, message: "Order was not found." };
+  }
+
+  const user = order.customerUserId
+    ? await getUserById(order.customerUserId)
+    : order.email
+      ? await getUserByEmail(order.email)
+      : null;
+  const orderPhone = normalizePhone(order.phone);
+  const userPhone = normalizePhone(user?.phone);
+
+  if (!user) {
+    return { ok: false, message: "No matching customer account found for this order." };
+  }
+
+  if (!orderPhone || orderPhone !== userPhone) {
+    return { ok: false, message: "Customer account phone does not match this order phone." };
+  }
+
+  try {
+    await markUserPhoneVerified(user.id, order.phone);
+    await auditAdminAction(
+      "customer_phone_verified",
+      `Customer ${user.id} phone verified from order ${order.id}.`,
+    );
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/customers");
+    revalidatePath("/account");
+    return { ok: true, message: "Phone verified for this customer account." };
+  } catch {
+    return { ok: false, message: "Could not verify customer phone." };
   }
 }
 

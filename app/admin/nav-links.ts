@@ -8,6 +8,7 @@ import {
   BellIcon,
   StarIcon,
   SearchIcon,
+  UserIcon,
 } from "@/components/Icons";
 
 // The admin destinations, shared by the desktop sidebar (AdminNav) and the
@@ -24,6 +25,7 @@ export const adminNavLinks = [
   { href: "/admin/hr", label: "HR", icon: ShieldCheckIcon },
   { href: "/admin/operations", label: "Operations", icon: PackageIcon },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCartIcon },
+  { href: "/admin/customers", label: "Customers", icon: UserIcon },
   { href: "/admin/payments", label: "Payments", icon: CreditCardIcon },
   { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
   { href: "/admin/reviews", label: "Reviews", icon: StarIcon },

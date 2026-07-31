@@ -48,9 +48,17 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   phone TEXT,
   address TEXT,
+  email_verified_at TIMESTAMPTZ,
+  phone_verified_at TIMESTAMPTZ,
+  password_updated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS phone_verified_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS password_updated_at TIMESTAMPTZ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx ON users(lower(email));
 
@@ -62,6 +70,17 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE INDEX IF NOT EXISTS password_reset_tokens_email_idx ON password_reset_tokens(email);
 CREATE INDEX IF NOT EXISTS password_reset_tokens_expires_at_idx ON password_reset_tokens(expires_at);
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS email_verification_tokens_user_id_idx ON email_verification_tokens(user_id);
+CREATE INDEX IF NOT EXISTS email_verification_tokens_email_idx ON email_verification_tokens(email);
+CREATE INDEX IF NOT EXISTS email_verification_tokens_expires_at_idx ON email_verification_tokens(expires_at);
 
 -- Customer order requests and contact messages
 CREATE TABLE IF NOT EXISTS orders (
@@ -226,7 +245,7 @@ CREATE INDEX IF NOT EXISTS admin_staff_accounts_status_idx ON admin_staff_accoun
 CREATE TABLE IF NOT EXISTS notification_events (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset', 'operational-alert')),
+  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'operational-alert')),
   title TEXT NOT NULL,
   payload JSONB NOT NULL,
   delivery_status TEXT NOT NULL DEFAULT 'pending' CHECK (delivery_status IN ('pending', 'sent', 'failed', 'skipped')),
@@ -248,7 +267,7 @@ ALTER TABLE notification_events
 
 ALTER TABLE notification_events
   ADD CONSTRAINT notification_events_type_check
-  CHECK (type IN ('order', 'contact', 'password-reset', 'operational-alert'));
+  CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'operational-alert'));
 
 ALTER TABLE notification_events
   DROP CONSTRAINT IF EXISTS notification_events_delivery_status_check;
