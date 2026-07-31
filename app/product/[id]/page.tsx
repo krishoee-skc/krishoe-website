@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductById, getRelatedProducts } from "@/lib/product-store";
+import { getProductById, getProducts } from "@/lib/product-store";
+import { getProductByIdFromList, getRelatedProductsFromList } from "@/lib/products";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDetailActions from "@/components/ProductDetailActions";
-import SafeImage from "@/components/SafeImage";
+import ProductGallery from "@/components/ProductGallery";
 import ProductCard from "@/components/ProductCard";
 import { StarIcon } from "@/components/Icons";
 import ProductReviews from "@/components/ProductReviews";
@@ -38,13 +39,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const product = await getProductById(id);
+  const products = await getProducts();
+  const product = getProductByIdFromList(products, id);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = await getRelatedProducts(product);
+  const relatedProducts = getRelatedProductsFromList(products, product);
 
   return (
     <>
@@ -58,36 +60,11 @@ export default async function ProductPage({ params }: Props) {
         ])}
       />
       <Navbar />
+      <div className="pb-24 md:pb-0">
       <main className="bg-white">
         <section className="mx-auto max-w-7xl px-5 py-16 md:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-            <div className="flex flex-col gap-4">
-              <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-brand-mist">
-                <SafeImage
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                />
-              </div>
-              {product.gallery.length > 1 ? (
-                <div className="grid grid-cols-4 gap-4">
-                  {product.gallery.slice(0, 4).map((imgUrl, index) => (
-                    <div key={index} className="relative aspect-square w-full overflow-hidden rounded-xl bg-brand-mist">
-                      <SafeImage
-                        src={imgUrl}
-                        alt={`${product.name} gallery image ${index + 1}`}
-                        fill
-                        sizes="25vw"
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            <ProductGallery name={product.name} image={product.image} gallery={product.gallery} />
 
             <div className="flex flex-col">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
@@ -112,9 +89,11 @@ export default async function ProductPage({ params }: Props) {
                 <ProductDetailActions product={product} />
               </div>
 
-              <div className="mt-10 space-y-4 border-t border-black/10 pt-6 text-sm text-brand-muted">
+              <div className="mt-10 grid gap-3 border-t border-black/10 pt-6 text-sm text-brand-muted sm:grid-cols-2">
                 <p><span className="font-semibold text-brand-green-ink">Material:</span> {product.material}</p>
                 <p><span className="font-semibold text-brand-green-ink">Fit:</span> {product.fit}</p>
+                <p><span className="font-semibold text-brand-green-ink">Delivery:</span> Kathmandu Valley and Nepal courier coordination</p>
+                <p><span className="font-semibold text-brand-green-ink">Payment:</span> Cash on delivery or digital link after stock confirmation</p>
               </div>
             </div>
           </div>
@@ -147,6 +126,7 @@ export default async function ProductPage({ params }: Props) {
       <ProductReviews product={product} />
 
       <Footer />
+      </div>
     </>
   );
 }
