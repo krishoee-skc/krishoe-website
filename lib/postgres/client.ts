@@ -64,8 +64,8 @@ function getPool(storeName: string) {
       // retiring ours a little sooner we hand out fresh ones instead of dead
       // ones. A small pool is right for per-request functions.
       max: 5,
-      idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 30_000,
       allowExitOnIdle: true,
     });
 
@@ -83,7 +83,7 @@ function getPool(storeName: string) {
   return globalThis.krishoePgPool;
 }
 
-async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 4): Promise<T> {
+async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 5): Promise<T> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -96,12 +96,10 @@ async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 4): Prom
         throw error;
       }
 
-      // Backoff sized for a Neon compute waking from idle: the first request
-      // after a quiet spell can need a few seconds, and the earlier 150/300ms
-      // steps gave up long before it was ready — the owner met the error page
-      // on the first tap of the day. Up to ~3s of patience turns that into a
-      // slightly slower page instead. No Date/random needed; fixed steps.
-      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      // Backoff for Neon compute waking from idle: serverless cold start + network
+      // latency can need 5-8 seconds. Up to ~20s patience for full recovery.
+      const delayMs = attempt <= 2 ? 1000 : attempt <= 3 ? 2000 : 4000;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 

@@ -200,13 +200,13 @@ export default async function AdminDashboardPage() {
   const backendStatus = getSafeDataBackendStatus();
   const databaseCheck = readiness.find((check) => check.id === "database");
   const paymentCheck = readiness.find((check) => check.id === "payment");
-  const activeProducts = products.filter((product) => product.status === "Active");
-  const draftProducts = products.length - activeProducts.length;
-  const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
+  const validProducts = Array.isArray(products) ? products.filter((p) => p && p.name) : [];
+  const activeProducts = validProducts.filter((product) => product.status === "Active");
+  const draftProducts = validProducts.length - activeProducts.length;
+  const lowStockProducts = validProducts.filter((product) => isLowOrOut(product.stock));
   // Every design, out-of-stock first, so a glance answers both "what do I have"
   // and "what needs buying".
-  const safeProducts = Array.isArray(products) && products.length > 0 ? products.filter((p) => p && p.name) : [];
-  const stockOverview = [...safeProducts].sort(
+  const stockOverview = [...validProducts].sort(
     (a, b) => {
       if (!a || !b) return 0;
       const stockDiff = (a.stock || 0) - (b.stock || 0);
@@ -221,13 +221,15 @@ export default async function AdminDashboardPage() {
     .filter((row) => row.soldPairs > 0 && row.grossProfit > 0)
     .sort((a, b) => b.grossProfit - a.grossProfit)
     .slice(0, 5);
-  const pendingReviews = products.flatMap((product) => product.reviews).filter((review) => review.status === "pending");
-  const catalogStockValue = products.reduce((total, product) => total + product.priceValue * product.stock, 0);
-  const orderTotal = orders.reduce((total, order) => total + amountFromOrderTotal(order.total), 0);
-  const newOrders = orders.filter((order) => order.status === "New");
-  const pendingPayments = orders.filter((order) => order.paymentStatus === "Pending");
-  const unpaidOrders = orders.filter((order) => order.paymentStatus === "Unpaid");
-  const openMessages = messages.filter((message) => message.status === "New");
+  const pendingReviews = validProducts.flatMap((product) => product.reviews || []).filter((review) => review.status === "pending");
+  const catalogStockValue = validProducts.reduce((total, product) => total + product.priceValue * product.stock, 0);
+  const validOrders = Array.isArray(orders) ? orders.filter((o) => o && o.id) : [];
+  const orderTotal = validOrders.reduce((total, order) => total + amountFromOrderTotal(order.total), 0);
+  const newOrders = validOrders.filter((order) => order.status === "New");
+  const pendingPayments = validOrders.filter((order) => order.paymentStatus === "Pending");
+  const unpaidOrders = validOrders.filter((order) => order.paymentStatus === "Unpaid");
+  const validMessages = Array.isArray(messages) ? messages.filter((m) => m && m.id) : [];
+  const openMessages = validMessages.filter((message) => message.status === "New");
   const productionCompletion = percentage(operations.summary.finishedPairs, operations.summary.plannedPairs);
   const paymentIssueTone = paymentReconciliation.summary.highRiskIssueCount > 0
     ? "danger"
@@ -374,7 +376,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Sales pipeline" value={money(orderTotal)} detail={`${orders.length} orders`} />
+        <StatCard label="Sales pipeline" value={money(orderTotal)} detail={`${validOrders.length} orders`} />
         <StatCard label="POS today" value={money(pos.summary.todayNetSales)} detail={`${pos.summary.needsReview} needs review`} tone={pos.summary.needsReview > 0 ? "warn" : "good"} />
         <StatCard
           label="Payment review"
@@ -478,7 +480,7 @@ export default async function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {orders.slice(0, 5).map((order) => (
+                {validOrders.slice(0, 5).map((order) => (
                   <tr key={order.id}>
                     <td className="reflow-primary py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
                     <td data-label="Customer" className="py-3 pr-3">

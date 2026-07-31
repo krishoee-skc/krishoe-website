@@ -40,12 +40,17 @@ export default function LedgerPage() {
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>(workerId || "");
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
     const loadWorkers = async () => {
       try {
-        const res = await fetch("/api/factory/workers");
+        setError(null);
+        const res = await fetch("/api/factory/workers", {
+          signal: AbortSignal.timeout(60000)
+        });
+        if (!res.ok) throw new Error(`Failed to fetch workers: ${res.status}`);
         const data = await res.json();
         setWorkers(data.workers || []);
         // Set default worker if none selected yet
@@ -53,6 +58,8 @@ export default function LedgerPage() {
           setSelectedWorkerId(data.workers[0].id);
         }
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setError(`Failed to load workers: ${msg}`);
         console.error("Error loading workers:", error);
       }
     };
@@ -65,13 +72,19 @@ export default function LedgerPage() {
 
     const loadLedger = async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch(
-          `/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`
+          `/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`,
+          { signal: AbortSignal.timeout(60000) }
         );
+        if (!res.ok) throw new Error(`Failed to fetch ledger: ${res.status}`);
         const data = await res.json();
         setLedgerData(data);
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setError(`Failed to load ledger: ${msg}`);
+        setLedgerData(null);
         console.error("Error loading ledger:", error);
       } finally {
         setLoading(false);
@@ -116,6 +129,15 @@ export default function LedgerPage() {
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">📋 Worker Ledger</h1>
+
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 font-medium">{error}</p>
+          <p className="text-red-700 text-sm mt-1">
+            Database may be temporarily unavailable. Try refreshing the page.
+          </p>
+        </div>
+      )}
 
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
