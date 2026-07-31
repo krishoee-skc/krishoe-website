@@ -139,56 +139,53 @@ export default function FactoryDashboard() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">KRISHOE Factory</h1>
-        <p className="text-slate-600 text-sm sm:text-base">
+    <div className="p-2 sm:p-3 space-y-2 sm:space-y-3 min-h-screen flex flex-col">
+      <div className="mb-1">
+        <h1 className="text-lg sm:text-xl font-bold text-slate-900">KRISHOE Factory</h1>
+        <p className="text-slate-600 text-xs sm:text-sm">
           {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
+            weekday: "short",
             year: "numeric",
-            month: "long",
+            month: "short",
             day: "numeric",
           })}
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-800 font-medium text-sm">⚠️ Dashboard Error</p>
-          <p className="text-red-700 text-sm mt-1">{error}</p>
-          <p className="text-red-600 text-xs mt-2">
-            Troubleshooting: Check if factory_workers and factory_items tables have data in the database.
-          </p>
+        <div className="bg-red-50 border border-red-200 rounded p-2 text-xs">
+          <p className="text-red-800 font-medium">⚠️ Dashboard Error</p>
+          <p className="text-red-700 text-xs mt-0.5">{error}</p>
         </div>
       )}
 
       {/* Today's Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-          <div className="text-xs sm:text-sm text-slate-600 font-medium">Total Pairs</div>
-          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mt-2">{stats.totalPairs}</div>
-          <div className="text-xs text-slate-500 mt-2">Today</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
+        <div className="bg-white rounded p-2 sm:p-3 border border-slate-200">
+          <div className="text-xs text-slate-600 font-medium">Total Pairs</div>
+          <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{stats.totalPairs}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Today</div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-          <div className="text-xs sm:text-sm text-slate-600 font-medium">Total Amount</div>
-          <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
+        <div className="bg-white rounded p-2 sm:p-3 border border-slate-200">
+          <div className="text-xs text-slate-600 font-medium">Total Amount</div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
             Rs. {stats.totalAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-slate-500 mt-2">Today</div>
+          <div className="text-xs text-slate-500 mt-0.5">Today</div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-          <div className="text-xs sm:text-sm text-slate-600 font-medium">Workers Active</div>
-          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
+        <div className="bg-white rounded p-2 sm:p-3 border border-slate-200">
+          <div className="text-xs text-slate-600 font-medium">Workers Active</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
             {stats.workersActive}
           </div>
-          <div className="text-xs text-slate-500 mt-2">Today</div>
+          <div className="text-xs text-slate-500 mt-0.5">Today</div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-          <div className="text-xs sm:text-sm text-slate-600 font-medium">Success Rate</div>
-          <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
+        <div className="bg-white rounded p-2 sm:p-3 border border-slate-200">
+          <div className="text-xs text-slate-600 font-medium">Success Rate</div>
+          <div className="text-xl sm:text-2xl font-bold text-amber-600 mt-1">
             {stats.completedEntries + stats.inProgressEntries + stats.reworkEntries > 0
               ? Math.round(
                   (stats.completedEntries /
@@ -198,83 +195,83 @@ export default function FactoryDashboard() {
               : 0}
             %
           </div>
-          <div className="text-xs text-slate-500 mt-2">Completed</div>
+          <div className="text-xs text-slate-500 mt-0.5">Completed</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 flex-1">
         {/* Top Workers */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Top Workers Today</h2>
-          <div className="space-y-3">
+        <div className="bg-white rounded border border-slate-200 p-2 sm:p-3 flex flex-col">
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 mb-2">Top Workers</h2>
+          <div className="space-y-1 overflow-y-auto">
             {topWorkers.length > 0 ? (
               topWorkers.map((worker, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs sm:text-sm">
                   <div>
-                    <div className="font-medium text-slate-900 text-sm sm:text-base">{worker.name}</div>
-                    <div className="text-xs sm:text-sm text-slate-600">{worker.pairs} pairs</div>
+                    <div className="font-medium text-slate-900">{worker.name}</div>
+                    <div className="text-xs text-slate-600">{worker.pairs} pairs</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-slate-900 text-sm sm:text-base">Rs. {worker.amount.toLocaleString()}</div>
+                    <div className="font-semibold text-slate-900">Rs. {worker.amount.toLocaleString()}</div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-4 text-slate-500 text-sm">No work entries yet</div>
+              <div className="text-center py-2 text-slate-500 text-xs">No entries yet</div>
             )}
           </div>
         </div>
 
         {/* Products Today */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Products Today</h2>
-          <div className="space-y-3">
+        <div className="bg-white rounded border border-slate-200 p-2 sm:p-3 flex flex-col">
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 mb-2">Products Today</h2>
+          <div className="space-y-1 overflow-y-auto">
             {products.length > 0 ? (
               products.map((product, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="font-medium text-slate-900 text-sm sm:text-base">{product.name}</div>
-                  <div className="font-semibold text-slate-900 text-sm sm:text-base">{product.pairs} pairs</div>
+                <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs sm:text-sm">
+                  <div className="font-medium text-slate-900">{product.name}</div>
+                  <div className="font-semibold text-slate-900">{product.pairs} pairs</div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-4 text-slate-500 text-sm">No work entries yet</div>
+              <div className="text-center py-2 text-slate-500 text-xs">No entries yet</div>
             )}
           </div>
         </div>
       </div>
 
       {/* Quality Status */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">Quality Status</h2>
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats.completedEntries}</div>
-            <div className="text-xs sm:text-sm text-green-700 mt-1">Completed ✅</div>
+      <div className="bg-white rounded border border-slate-200 p-2 sm:p-3">
+        <h2 className="text-sm sm:text-base font-bold text-slate-900 mb-2">Quality Status</h2>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          <div className="text-center p-2 sm:p-2.5 bg-green-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-green-600">{stats.completedEntries}</div>
+            <div className="text-xs text-green-700 mt-0.5">Completed ✅</div>
           </div>
-          <div className="text-center p-3 sm:p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+          <div className="text-center p-2 sm:p-2.5 bg-yellow-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-yellow-600">
               {stats.inProgressEntries}
             </div>
-            <div className="text-xs sm:text-sm text-yellow-700 mt-1">In Progress ⏳</div>
+            <div className="text-xs text-yellow-700 mt-0.5">In Progress ⏳</div>
           </div>
-          <div className="text-center p-3 sm:p-4 bg-red-50 rounded-lg">
-            <div className="text-2xl sm:text-3xl font-bold text-red-600">{stats.reworkEntries}</div>
-            <div className="text-xs sm:text-sm text-red-700 mt-1">Rework 🔄</div>
+          <div className="text-center p-2 sm:p-2.5 bg-red-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-red-600">{stats.reworkEntries}</div>
+            <div className="text-xs text-red-700 mt-0.5">Rework 🔄</div>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+      <div className="flex flex-col sm:flex-row gap-1.5 mt-1">
         <a
           href="/admin/factory/add-work"
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-center text-sm sm:text-base"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded transition-colors text-center text-xs sm:text-sm"
         >
           ➕ Add Work Entry
         </a>
         <a
           href="/admin/factory/reports"
-          className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-center text-sm sm:text-base"
+          className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-3 rounded transition-colors text-center text-xs sm:text-sm"
         >
           📊 View Reports
         </a>
