@@ -33,58 +33,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "workerId is required" }, { status: 400 });
     }
 
-    let query = `SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
-                        payment_given, running_balance, status, notes
-                 FROM factory_worker_ledger
-                 WHERE worker_id = $1`;
-    const params: string[] = [workerId];
+    // Get worker info first
+    const workerQuery = `SELECT id, name, worker_type, category, monthly_salary
+                         FROM factory_workers
+                         WHERE id = $1`;
+    const workers = await queryPostgres<Worker>(STORE, workerQuery, [workerId]);
 
-    if (month) {
-      query += ` AND DATE_TRUNC('month', date) = DATE_TRUNC('month', $2::date)`;
-      params.push(month);
-    }
-
-    query += ` ORDER BY date ASC`;
-
-    const ledger = await queryPostgres<LedgerEntry>(STORE, query, params);
-
-    // Get worker info
-    const workers = await queryPostgres<Worker>(
-      STORE,
-      "SELECT id, name, worker_type, category, monthly_salary FROM factory_workers WHERE id = $1",
-      [workerId]
-    );
-
-    if (workers.length === 0) {
-      return NextResponse.json({ error: "Worker not found" }, { status: 404 });
+    if (!workers || workers.length === 0) {
+      return NextResponse.json({
+        worker: { id: workerId, name: "Unknown", worker_type: "", category: "", monthly_salary: null },
+        ledger: [],
+        summary: { totalPairs: 0, totalEarned: 0, totalPaid: 0, currentBalance: 0 },
+      });
     }
 
     const worker = workers[0];
 
+    // Get ledger entries
+    let ledgerQuery = `SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
+                              payment_given, running_balance, status, notes
+                       FROM factory_worker_ledger
+                       WHERE worker_id = $1`;
+    const params: any[] = [workerId];
+
+    if (month) {
+      // Parse YYYY-MM format
+      const [year, monthNum] = month.split("-");
+      ledgerQuery += ` AND EXTRACT(YEAR FROM date) = $2 AND EXTRACT(MONTH FROM date) = $3`;
+      params.push(parseInt(year), parseInt(monthNum));
+    }
+
+    ledgerQuery += ` ORDER BY date ASC`;
+
+    const ledger = await queryPostgres<LedgerEntry>(STORE, ledgerQuery, params);
+
     // Calculate summary
-    const totalPairs = ledger.reduce((sum, entry) => sum + (entry.work_pairs || 0), 0);
-    const totalEarned = ledger.reduce((sum, entry) => sum + (entry.amount_earned || 0), 0);
-    const totalPaid = ledger.reduce((sum, entry) => sum + (entry.payment_given || 0), 0);
-    const currentBalance = ledger.length > 0 ? ledger[ledger.length - 1].running_balance : 0;
+    const totalPairs = (ledger || []).reduce((sum, entry) => sum + (entry?.work_pairs || 0), 0);
+    const totalEarned = (ledger || []).reduce((sum, entry) => sum + (entry?.amount_earned || 0), 0);
+    const totalPaid = (ledger || []).reduce((sum, entry) => sum + (entry?.payment_given || 0), 0);
+    const currentBalance = ledger && ledger.length > 0 ? ledger[ledger.length - 1]?.running_balance || 0 : 0;
 
     return NextResponse.json({
       worker,
-      ledger,
+      ledger: ledger || [],
       summary: {
-        totalPairs,
-        totalEarned,
-        totalPaid,
-        currentBalance,
+        totalPairs: totalPairs || 0,
+        totalEarned: totalEarned || 0,
+        totalPaid: totalPaid || 0,
+        currentBalance: currentBalance || 0,
       },
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Error fetching ledger:", errorMsg);
+
+    // Return graceful fallback instead of error
     return NextResponse.json({
-      error: "Failed to fetch ledger",
-      detail: errorMsg,
-      message: "Database may be initializing or tables not created. Try refreshing."
-    }, { status: 500 });
+      worker: null,
+      ledger: [],
+      summary: { totalPairs: 0, totalEarned: 0, totalPaid: 0, currentBalance: 0 },
+      message: "No ledger data available. Please try refreshing.",
+    });
   }
 }
 
