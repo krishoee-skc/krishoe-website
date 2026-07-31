@@ -34,10 +34,7 @@ function money(value: number) {
 }
 
 function percentage(value: number, total: number) {
-  if (total <= 0) {
-    return 0;
-  }
-
+  if (total <= 0) return 0;
   return Math.min(999, Math.round((value / total) * 100));
 }
 
@@ -45,15 +42,12 @@ function toneClass(tone: Tone) {
   if (tone === "good") {
     return "border-brand-green-line bg-brand-green-wash text-brand-green";
   }
-
   if (tone === "warn") {
     return "border-[#F4DEAE] bg-[#FFF9EA] text-brand-gold-ink";
   }
-
   if (tone === "danger") {
     return "border-[#F1C4BE] bg-[#FFF4F2] text-brand-clay";
   }
-
   return "border-gray-200 bg-white text-brand-green-ink";
 }
 
@@ -103,11 +97,9 @@ function statusTone(status: ReadinessStatus) {
   if (status === "ready") {
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
   }
-
   if (status === "blocked") {
     return "border-red-200 bg-red-50 text-red-800";
   }
-
   return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
@@ -127,11 +119,9 @@ function collectionPriorityTone(priority: string): Tone {
   if (priority === "Urgent" || priority === "High") {
     return "danger";
   }
-
   if (priority === "Medium" || priority === "Monitor") {
     return "warn";
   }
-
   return "good";
 }
 
@@ -179,9 +169,12 @@ function MiniMetric({ label, value }: { label: string; value: string | number })
   );
 }
 
-export default async function AdminDashboardPage() {
+// Safe data fetching with fallbacks
+async function safeGetData() {
   const session = await getAdminSession();
-  const [products, orders, messages, operations, paymentReconciliation, pos, purchasing, costing, hr] = await Promise.all([
+
+  // Fetch all data with error handling
+  const results = await Promise.allSettled([
     getProducts({ includeDrafts: true }),
     getOrders(),
     getContactMessages(),
@@ -192,54 +185,149 @@ export default async function AdminDashboardPage() {
     getCostingSnapshot(),
     getHrSnapshot(),
   ]);
-  const alertCenter = await getOperationalAlertCenter();
-  const readiness = await getProductionReadinessWithData();
+
+  const [products, orders, messages, operations, paymentReconciliation, pos, purchasing, costing, hr] =
+    results.map((r) => (r.status === "fulfilled" ? r.value : null));
+
+  const alertCenter = (await getOperationalAlertCenter().catch(() => null)) ?? null;
+  const readiness = (await getProductionReadinessWithData().catch(() => [])) ?? [];
+
+  return {
+    session,
+    products: (Array.isArray(products) ? products.filter((p) => p && "priceValue" in p) : []) as any[],
+    orders: (Array.isArray(orders) ? orders.filter((o) => o && "id" in o && "total" in o) : []) as any[],
+    messages: (Array.isArray(messages) ? messages.filter((m) => m && "id" in m) : []) as any[],
+    operations: (operations ?? {}) as any,
+    paymentReconciliation: (paymentReconciliation ?? {}) as any,
+    pos: (pos ?? {}) as any,
+    purchasing: (purchasing ?? {}) as any,
+    costing: (costing ?? {}) as any,
+    hr: (hr ?? {}) as any,
+    alertCenter: (alertCenter ?? { summary: {}, alerts: [] }) as any,
+    readiness,
+  };
+}
+
+export default async function AdminDashboardPage() {
+  const {
+    session,
+    products,
+    orders,
+    messages,
+    operations,
+    paymentReconciliation,
+    pos,
+    purchasing,
+    costing,
+    hr,
+    alertCenter,
+    readiness,
+  } = await safeGetData();
+
+  // Safe access to data with defaults
+  const getOp = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = operations;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  const getPos = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = pos;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  const getPur = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = purchasing;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  const getCost = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = costing;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  const getHr = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = hr;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  const getAlert = (path: string, defaultVal: any = 0) => {
+    const keys = path.split(".");
+    let val: any = alertCenter;
+    for (const key of keys) {
+      val = val?.[key];
+    }
+    return val ?? defaultVal;
+  };
+
+  // Derived data
   const readinessSummary = summarizeProductionReadiness(readiness);
   const adminAccess = getAdminPermissionSummary(getSessionAdminRole(session));
   const allowedPermissionCount = adminAccess.permissions.filter((permission) => permission.allowed).length;
   const backendStatus = getSafeDataBackendStatus();
   const databaseCheck = readiness.find((check) => check.id === "database");
   const paymentCheck = readiness.find((check) => check.id === "payment");
-  const validProducts = Array.isArray(products) ? products.filter((p) => p && p.name) : [];
-  const activeProducts = validProducts.filter((product) => product.status === "Active");
-  const draftProducts = validProducts.length - activeProducts.length;
-  const lowStockProducts = validProducts.filter((product) => isLowOrOut(product.stock));
-  // Every design, out-of-stock first, so a glance answers both "what do I have"
-  // and "what needs buying".
-  const stockOverview = [...validProducts].sort(
-    (a, b) => {
-      if (!a || !b) return 0;
-      const stockDiff = (a.stock || 0) - (b.stock || 0);
-      if (stockDiff !== 0) return stockDiff;
-      if (a.name && b.name) return a.name.localeCompare(b.name);
-      return 0;
-    },
-  );
-  // The designs actually making money, most profit first — the headline of the
-  // profit panel.
-  const topEarners = [...costing.designCosting]
-    .filter((row) => row.soldPairs > 0 && row.grossProfit > 0)
-    .sort((a, b) => b.grossProfit - a.grossProfit)
+
+  const activeProducts = products.filter((product) => product.status === "Active");
+  const draftProducts = products.length - activeProducts.length;
+  const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
+
+  const stockOverview = [...products].sort((a, b) => {
+    if (!a || !b) return 0;
+    const stockDiff = (a.stock || 0) - (b.stock || 0);
+    if (stockDiff !== 0) return stockDiff;
+    if (a.name && b.name) return a.name.localeCompare(b.name);
+    return 0;
+  });
+
+  const topEarners = (Array.isArray(getCost("designCosting")) ? getCost("designCosting") : [])
+    .filter((row: any) => row && row.soldPairs > 0 && row.grossProfit > 0)
+    .sort((a: any, b: any) => (b?.grossProfit || 0) - (a?.grossProfit || 0))
     .slice(0, 5);
-  const pendingReviews = validProducts.flatMap((product) => product.reviews || []).filter((review) => review.status === "pending");
-  const catalogStockValue = validProducts.reduce((total, product) => total + product.priceValue * product.stock, 0);
-  const validOrders = Array.isArray(orders) ? orders.filter((o) => o && o.id) : [];
-  const orderTotal = validOrders.reduce((total, order) => total + amountFromOrderTotal(order.total), 0);
-  const newOrders = validOrders.filter((order) => order.status === "New");
-  const pendingPayments = validOrders.filter((order) => order.paymentStatus === "Pending");
-  const unpaidOrders = validOrders.filter((order) => order.paymentStatus === "Unpaid");
-  const validMessages = Array.isArray(messages) ? messages.filter((m) => m && m.id) : [];
-  const openMessages = validMessages.filter((message) => message.status === "New");
-  const productionCompletion = percentage(operations.summary.finishedPairs, operations.summary.plannedPairs);
-  const paymentIssueTone = paymentReconciliation.summary.highRiskIssueCount > 0
-    ? "danger"
-    : paymentReconciliation.summary.issueCount > 0
-      ? "warn"
-      : "good";
+
+  const pendingReviews = products.flatMap((product) => product.reviews || []).filter((review) => review?.status === "pending");
+  const catalogStockValue = products.reduce((total, product) => total + (product?.priceValue || 0) * (product?.stock || 0), 0);
+
+  const orderTotal = orders.reduce((total, order) => total + amountFromOrderTotal(order?.total || "0"), 0);
+  const newOrders = orders.filter((order) => order?.status === "New");
+  const pendingPayments = orders.filter((order) => order?.paymentStatus === "Pending");
+  const unpaidOrders = orders.filter((order) => order?.paymentStatus === "Unpaid");
+
+  const openMessages = messages.filter((message) => message?.status === "New");
+
+  const productionCompletion = percentage(getOp("summary.finishedPairs", 0), getOp("summary.plannedPairs", 1));
+
+  const paymentIssueTone =
+    paymentReconciliation?.summary?.highRiskIssueCount > 0
+      ? "danger"
+      : paymentReconciliation?.summary?.issueCount > 0
+        ? "warn"
+        : "good";
+
   const launchStatus =
     readinessSummary.launchReady ? "ready" : readinessSummary.blocked > 0 ? "blocked" : "warning";
-  const collectionQueue = operations.reports.ledgerCollectionFollowups.filter(
-    (ledger) => ledger.priority !== "Clear",
+
+  const collectionQueue = (Array.isArray(getOp("reports.ledgerCollectionFollowups")) ? getOp("reports.ledgerCollectionFollowups") : []).filter(
+    (ledger: any) => ledger?.priority !== "Clear",
   );
 
   return (
@@ -273,25 +361,23 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* The first thing on opening the admin: today's money and what is owed,
-          in a glance, so the day starts with the numbers that matter. */}
       <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
         <h2 className="text-lg font-black text-brand-green-ink">Today at a glance</h2>
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
           {[
-            { label: "Today sales", value: money(pos.summary.todayNetSales), tone: "good" as const, href: undefined as string | undefined },
-            { label: "Today purchase", value: money(purchasing.summary.todayPurchase), tone: "plain" as const, href: undefined as string | undefined },
-            { label: "Cash in hand", value: money(pos.todayDayClose.cashAmount), tone: "plain" as const, href: undefined as string | undefined },
+            { label: "Today sales", value: money(getPos("summary.todayNetSales", 0)), tone: "good" as const, href: undefined as string | undefined },
+            { label: "Today purchase", value: money(getPur("summary.todayPurchase", 0)), tone: "plain" as const, href: undefined as string | undefined },
+            { label: "Cash in hand", value: money(getPos("todayDayClose.cashAmount", 0)), tone: "plain" as const, href: undefined as string | undefined },
             {
               label: "To collect",
-              value: money(operations.summary.receivable),
-              tone: operations.summary.receivable > 0 ? ("warn" as const) : ("good" as const),
+              value: money(getOp("summary.receivable", 0)),
+              tone: getOp("summary.receivable", 0) > 0 ? ("warn" as const) : ("good" as const),
               href: "/admin/dues",
             },
             {
               label: "To pay",
-              value: money(purchasing.summary.supplierDue),
-              tone: purchasing.summary.supplierDue > 0 ? ("warn" as const) : ("good" as const),
+              value: money(getPur("summary.supplierDue", 0)),
+              tone: getPur("summary.supplierDue", 0) > 0 ? ("warn" as const) : ("good" as const),
               href: "/admin/dues",
             },
           ].map((cell) => {
@@ -312,8 +398,6 @@ export default async function AdminDashboardPage() {
               </>
             );
 
-            // The two dues cells open the full Dues list — the main way a phone
-            // user (no sidebar) reaches it.
             return cell.href ? (
               <Link
                 key={cell.label}
@@ -331,8 +415,6 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Profit, up front and plain: what the shop actually kept today, this
-          month, and this year, and which designs earned it. */}
       <section className="mt-6 rounded-2xl border border-brand-gold-bright/40 bg-brand-cream-soft/50 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-black text-brand-green-ink">Profit at a glance</h2>
@@ -341,18 +423,18 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {costing.periodReports.map((period) => (
-            <div key={period.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{period.label}</p>
+          {(Array.isArray(getCost("periodReports")) ? getCost("periodReports") : []).map((period: any) => (
+            <div key={period?.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{period?.label}</p>
               <p
                 className={`mt-1 text-xl font-black ${
-                  period.grossProfit >= 0 ? "text-brand-green" : "text-brand-clay"
+                  (period?.grossProfit || 0) >= 0 ? "text-brand-green" : "text-brand-clay"
                 }`}
               >
-                {money(period.grossProfit)}
+                {money(period?.grossProfit || 0)}
               </p>
               <p className="mt-1 text-xs text-brand-muted">
-                {period.grossMarginRate}% margin · {period.soldPairs} pairs
+                {period?.grossMarginRate || 0}% margin · {period?.soldPairs || 0} pairs
               </p>
             </div>
           ))}
@@ -361,13 +443,13 @@ export default async function AdminDashboardPage() {
           <div className="mt-4">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">Top earning designs</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {topEarners.map((row) => (
+              {topEarners.map((row: any) => (
                 <span
-                  key={row.design}
+                  key={row?.design}
                   className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-white px-3 py-1 text-xs font-bold text-brand-green-ink"
                 >
-                  {row.design}
-                  <span className="text-brand-green">{money(row.grossProfit)}</span>
+                  {row?.design}
+                  <span className="text-brand-green">{money(row?.grossProfit || 0)}</span>
                 </span>
               ))}
             </div>
@@ -376,26 +458,26 @@ export default async function AdminDashboardPage() {
       </section>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Sales pipeline" value={money(orderTotal)} detail={`${validOrders.length} orders`} />
-        <StatCard label="POS today" value={money(pos.summary.todayNetSales)} detail={`${pos.summary.needsReview} needs review`} tone={pos.summary.needsReview > 0 ? "warn" : "good"} />
+        <StatCard label="Sales pipeline" value={money(orderTotal)} detail={`${orders.length} orders`} />
+        <StatCard label="POS today" value={money(getPos("summary.todayNetSales", 0))} detail={`${getPos("summary.needsReview", 0)} needs review`} tone={getPos("summary.needsReview", 0) > 0 ? "warn" : "good"} />
         <StatCard
           label="Payment review"
-          value={paymentReconciliation.summary.issueCount}
-          detail={`${paymentReconciliation.summary.highRiskIssueCount} high risk`}
+          value={paymentReconciliation?.summary?.issueCount || 0}
+          detail={`${paymentReconciliation?.summary?.highRiskIssueCount || 0} high risk`}
           tone={paymentIssueTone}
         />
-        <StatCard label="Alert center" value={alertCenter.summary.total} detail={`${alertCenter.summary.critical} critical alerts`} tone={alertCenter.summary.critical > 0 ? "danger" : alertCenter.summary.warning > 0 ? "warn" : "good"} />
-        <StatCard label="Factory completion" value={`${productionCompletion}%`} detail={`${operations.summary.finishedPairs}/${operations.summary.plannedPairs} pairs`} tone="good" />
-        <StatCard label="Receivable" value={money(operations.summary.receivable + pos.summary.totalCredit)} detail={`${operations.reports.ledgerCollectionSummary.urgentCount} urgent follow-up`} tone={operations.summary.receivable + pos.summary.totalCredit > 0 ? "warn" : "good"} />
+        <StatCard label="Alert center" value={getAlert("summary.total", 0)} detail={`${getAlert("summary.critical", 0)} critical alerts`} tone={getAlert("summary.critical", 0) > 0 ? "danger" : getAlert("summary.warning", 0) > 0 ? "warn" : "good"} />
+        <StatCard label="Factory completion" value={`${productionCompletion}%`} detail={`${getOp("summary.finishedPairs", 0)}/${getOp("summary.plannedPairs", 0)} pairs`} tone="good" />
+        <StatCard label="Receivable" value={money(getOp("summary.receivable", 0) + getPos("summary.totalCredit", 0))} detail={`${getOp("reports.ledgerCollectionSummary.urgentCount", 0)} urgent follow-up`} tone={getOp("summary.receivable", 0) + getPos("summary.totalCredit", 0) > 0 ? "warn" : "good"} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatCard label="Catalog stock value" value={formatPrice(catalogStockValue)} detail={`${activeProducts.length} active, ${draftProducts} draft`} />
-        <StatCard label="Purchase month" value={money(purchasing.summary.monthPurchase)} detail={`${money(purchasing.summary.supplierDue)} due, ${purchasing.summary.supplierImmediatePaymentCount} immediate`} tone={purchasing.summary.supplierDue > 0 ? "warn" : "good"} />
-        <StatCard label="Finished stock" value={operations.summary.stockPairs} detail={`${operations.summary.soldPairs} sold pairs`} />
-        <StatCard label="Profit signal" value={money(purchasing.summary.monthProfitEstimate)} detail="POS minus purchases" tone={purchasing.summary.monthProfitEstimate >= 0 ? "good" : "danger"} />
-        <StatCard label="Design gross profit" value={money(costing.summary.grossProfit)} detail={`${costing.summary.grossMarginRate}% full COGS margin`} tone={costing.summary.grossProfit >= 0 ? "good" : "danger"} />
-        <StatCard label="HR payroll" value={money(hr.summary.monthPayroll)} detail={`${hr.summary.activeEmployees} active staff`} tone={hr.summary.draftPayroll > 0 ? "warn" : "good"} />
+        <StatCard label="Purchase month" value={money(getPur("summary.monthPurchase", 0))} detail={`${money(getPur("summary.supplierDue", 0))} due, ${getPur("summary.supplierImmediatePaymentCount", 0)} immediate`} tone={getPur("summary.supplierDue", 0) > 0 ? "warn" : "good"} />
+        <StatCard label="Finished stock" value={getOp("summary.stockPairs", 0)} detail={`${getOp("summary.soldPairs", 0)} sold pairs`} />
+        <StatCard label="Profit signal" value={money(getPur("summary.monthProfitEstimate", 0))} detail="POS minus purchases" tone={getPur("summary.monthProfitEstimate", 0) >= 0 ? "good" : "danger"} />
+        <StatCard label="Design gross profit" value={money(getCost("summary.grossProfit", 0))} detail={`${getCost("summary.grossMarginRate", 0)}% full COGS margin`} tone={getCost("summary.grossProfit", 0) >= 0 ? "good" : "danger"} />
+        <StatCard label="HR payroll" value={money(getHr("summary.monthPayroll", 0))} detail={`${getHr("summary.activeEmployees", 0)} active staff`} tone={getHr("summary.draftPayroll", 0) > 0 ? "warn" : "good"} />
         <StatCard label="Open queue" value={newOrders.length + openMessages.length} detail={`${newOrders.length} orders, ${openMessages.length} messages`} tone={newOrders.length + openMessages.length > 0 ? "warn" : "good"} />
         <StatCard label="Admin role" value={adminAccess.role} detail={`${allowedPermissionCount}/${adminAccess.permissions.length} permissions`} tone={adminAccess.role === "Owner" ? "good" : "warn"} />
         <StatCard label="Launch readiness" value={`${readinessSummary.ready}/${readinessSummary.total}`} detail={`${readinessSummary.blocked} blocked, ${readinessSummary.warnings} warning`} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
@@ -480,7 +562,7 @@ export default async function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {validOrders.slice(0, 5).map((order) => (
+                {orders.slice(0, 5).map((order) => (
                   <tr key={order.id}>
                     <td className="reflow-primary py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
                     <td data-label="Customer" className="py-3 pr-3">
@@ -513,21 +595,21 @@ export default async function AdminDashboardPage() {
             }
           />
           <div className="grid gap-3 md:grid-cols-3">
-            <MiniMetric label="Critical" value={alertCenter.summary.critical} />
-            <MiniMetric label="Warning" value={alertCenter.summary.warning} />
-            <MiniMetric label="Total" value={alertCenter.summary.total} />
+            <MiniMetric label="Critical" value={getAlert("summary.critical", 0)} />
+            <MiniMetric label="Warning" value={getAlert("summary.warning", 0)} />
+            <MiniMetric label="Total" value={getAlert("summary.total", 0)} />
           </div>
           <div className="mt-4 divide-y divide-gray-100">
-            {alertCenter.alerts.slice(0, 5).map((alert) => (
-              <Link key={alert.id} href={alert.href} className="block py-3 transition hover:text-brand-green">
+            {(Array.isArray(getAlert("alerts")) ? getAlert("alerts") : []).slice(0, 5).map((alert: any) => (
+              <Link key={alert?.id} href={alert?.href || "#"} className="block py-3 transition hover:text-brand-green">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-brand-green-ink">{alert.title}</p>
-                  <StatusBadge label={alert.severity} tone={alertTone(alert.severity)} />
+                  <p className="font-bold text-brand-green-ink">{alert?.title || "Alert"}</p>
+                  <StatusBadge label={alert?.severity || "info"} tone={alertTone(alert?.severity || "info")} />
                 </div>
-                <p className="mt-1 text-xs leading-5 text-gray-500">{alert.detail}</p>
+                <p className="mt-1 text-xs leading-5 text-gray-500">{alert?.detail || ""}</p>
               </Link>
             ))}
-            {alertCenter.alerts.length === 0 ? (
+            {(Array.isArray(getAlert("alerts")) ? getAlert("alerts").length : 0) === 0 ? (
               <p className="py-3 text-sm font-semibold text-brand-green">No operational alert is active.</p>
             ) : null}
           </div>
@@ -546,19 +628,19 @@ export default async function AdminDashboardPage() {
               <ProgressBar value={productionCompletion} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <MiniMetric label="Work in progress" value={operations.summary.inProgressPairs} />
-              <MiniMetric label="Rejected pairs" value={operations.summary.rejectedPairs} />
-              <MiniMetric label="Dispatch loaded" value={operations.reports.dispatchItemTotals.loadedPairs} />
-              <MiniMetric label="Dispatch sold" value={operations.reports.dispatchItemTotals.soldPairs} />
+              <MiniMetric label="Work in progress" value={getOp("summary.inProgressPairs", 0)} />
+              <MiniMetric label="Rejected pairs" value={getOp("summary.rejectedPairs", 0)} />
+              <MiniMetric label="Dispatch loaded" value={getOp("reports.dispatchItemTotals.loadedPairs", 0)} />
+              <MiniMetric label="Dispatch sold" value={getOp("reports.dispatchItemTotals.soldPairs", 0)} />
             </div>
-            {operations.reports.productionInsights.slice(0, 3).map((batch) => (
-              <div key={batch.id} className="rounded-lg border border-gray-100 p-3">
+            {(Array.isArray(getOp("reports.productionInsights")) ? getOp("reports.productionInsights") : []).slice(0, 3).map((batch: any) => (
+              <div key={batch?.id} className="rounded-lg border border-gray-100 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-brand-green-ink">{batch.design}</p>
-                  <span className="text-xs font-bold text-gray-500">{batch.status}</span>
+                  <p className="font-bold text-brand-green-ink">{batch?.design}</p>
+                  <span className="text-xs font-bold text-gray-500">{batch?.status}</span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Production {batch.productionCompletionRate}% | Worker {batch.workerProgressRate}% | Reject {batch.rejectRate}%
+                  Production {batch?.productionCompletionRate}% | Worker {batch?.workerProgressRate}% | Reject {batch?.rejectRate}%
                 </p>
               </div>
             ))}
@@ -570,9 +652,9 @@ export default async function AdminDashboardPage() {
           <div className="grid gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
-              {operations.fastMovingStock.slice(0, 3).map((stock) => (
-                <p key={stock.id} className="mt-2 text-sm text-gray-700">
-                  {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
+              {(Array.isArray(getOp("fastMovingStock")) ? getOp("fastMovingStock") : []).slice(0, 3).map((stock: any) => (
+                <p key={stock?.id} className="mt-2 text-sm text-gray-700">
+                  {stock?.design}: <span className="font-bold">{stock?.soldPairs}</span> sold
                 </p>
               ))}
             </div>
@@ -593,24 +675,24 @@ export default async function AdminDashboardPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <SectionTitle title="Ledger and collection" detail="Receivable aging and market collection quality." />
           <div className="grid gap-3">
-            <MiniMetric label="Cash collected" value={money(operations.summary.cash)} />
-            <MiniMetric label="Cheque collected" value={money(operations.summary.cheque)} />
-            <MiniMetric label="Credit in market" value={money(operations.summary.credit)} />
-            <MiniMetric label="This week due" value={money(operations.reports.ledgerCollectionSummary.dueThisWeek)} />
+            <MiniMetric label="Cash collected" value={money(getOp("summary.cash", 0))} />
+            <MiniMetric label="Cheque collected" value={money(getOp("summary.cheque", 0))} />
+            <MiniMetric label="Credit in market" value={money(getOp("summary.credit", 0))} />
+            <MiniMetric label="This week due" value={money(getOp("reports.ledgerCollectionSummary.dueThisWeek", 0))} />
           </div>
           <div className="mt-4 divide-y divide-gray-100">
-            {collectionQueue.slice(0, 4).map((ledger) => (
+            {collectionQueue.slice(0, 4).map((ledger: any) => (
               <Link
-                key={ledger.id}
-                href={`/admin/operations/ledger/${ledger.id}`}
+                key={ledger?.id}
+                href={`/admin/operations/ledger/${ledger?.id}`}
                 className="grid gap-2 py-2 text-sm transition hover:text-brand-green"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-bold text-brand-green-ink">{ledger.customerName}</span>
-                  <StatusBadge label={ledger.priority} tone={collectionPriorityTone(ledger.priority)} />
+                  <span className="font-bold text-brand-green-ink">{ledger?.customerName}</span>
+                  <StatusBadge label={ledger?.priority} tone={collectionPriorityTone(ledger?.priority)} />
                 </div>
                 <span className="text-xs font-semibold text-gray-500">
-                  {money(ledger.balanceDue)} | {ledger.daysOutstanding} days | due {ledger.followUpDueDate || "-"}
+                  {money(ledger?.balanceDue || 0)} | {ledger?.daysOutstanding} days | due {ledger?.followUpDueDate || "-"}
                 </span>
               </Link>
             ))}
