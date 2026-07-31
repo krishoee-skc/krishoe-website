@@ -27,9 +27,9 @@ export default function ProductCard({
   return (
     <article
       id={product.id}
-      className="group overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
+      className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
-      <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-brand-mist">
+      <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-brand-mist">
         <SafeImage
           src={product.image}
           alt={product.name}
@@ -52,15 +52,15 @@ export default function ProductCard({
         ) : null}
       </Link>
 
-      <div className={compact ? "space-y-2 p-3 md:space-y-4 md:p-5" : "space-y-4 p-5"}>
-        <div className="flex items-start justify-between gap-2 md:gap-4">
+      <div className={compact ? "flex flex-1 flex-col p-3 md:p-5" : "flex flex-1 flex-col p-5"}>
+        <div className="flex min-h-[5.75rem] items-start justify-between gap-2 md:gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold-deep">
+            <p className="line-clamp-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold-deep">
               {product.category}
             </p>
             <Link href={href}>
               <h3
-                className={`mt-1 font-semibold text-brand-green-ink transition hover:text-brand-green md:mt-2 ${
+                className={`mt-1 line-clamp-2 min-h-12 font-semibold leading-6 text-brand-green-ink transition hover:text-brand-green md:mt-2 md:min-h-14 md:leading-7 ${
                   compact ? "text-base md:text-xl" : "text-xl"
                 }`}
               >
@@ -74,12 +74,12 @@ export default function ProductCard({
           </div>
         </div>
 
-        <p className={`min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : ""}`}>
+        <p className={`line-clamp-2 min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : "mt-4"}`}>
           {product.description}
         </p>
 
         <div
-          className={`flex items-center justify-between border-t border-black/10 ${
+          className={`mt-auto flex items-center justify-between border-t border-black/10 ${
             compact ? "pt-2 md:pt-4" : "pt-4"
           }`}
         >
@@ -96,7 +96,9 @@ export default function ProductCard({
             <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </div>
-        <ProductCardActions product={product} />
+        <div className={compact ? "mt-3 md:mt-4" : "mt-4"}>
+          <ProductCardActions product={product} />
+        </div>
       </div>
     </article>
   );
