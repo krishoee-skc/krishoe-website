@@ -78,8 +78,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching ledger:", error);
-    return NextResponse.json({ error: "Failed to fetch ledger" }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching ledger:", errorMsg);
+    return NextResponse.json({
+      error: "Failed to fetch ledger",
+      detail: errorMsg,
+      message: "Database may be initializing or tables not created. Try refreshing."
+    }, { status: 500 });
   }
 }
 
