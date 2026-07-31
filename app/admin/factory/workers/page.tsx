@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface Worker {
   id: string;
@@ -24,7 +24,7 @@ export default function WorkersPage() {
     weekly_advance: "",
   });
 
-  const loadWorkers = async () => {
+  const loadWorkers = useCallback(async () => {
     try {
       const res = await fetch("/api/factory/workers");
       const data = await res.json();
@@ -34,10 +34,28 @@ export default function WorkersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadWorkers();
+    const controller = new AbortController();
+
+    fetch("/api/factory/workers", { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => {
+        setWorkers(data.workers || []);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error("Error loading workers:", error);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

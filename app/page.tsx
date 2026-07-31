@@ -9,8 +9,22 @@ import About from "@/components/About";
 import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
+import { getProducts } from "@/lib/product-store";
+import { reportError } from "@/lib/report-error";
+import type { Product } from "@/lib/products";
 
-export default function Home() {
+async function loadHomeProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load product sections for the homepage", error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const products = await loadHomeProducts();
+
   return (
     <main className="bg-white">
 
@@ -136,13 +150,13 @@ export default function Home() {
         </Link>
       </section>
 
-      <FeaturedProducts />
+      <FeaturedProducts products={products} />
 
-      <BestSeller />
+      <BestSeller products={products} />
 
       <Categories />
 
-      <NewArrivals />
+      <NewArrivals products={products} />
       <About />
 
       <WhyChoose />

@@ -1,9 +1,14 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/product-store";
+import type { Product } from "@/lib/products";
 
-export default async function FeaturedProducts() {
-  const featuredProducts = (await getProducts()).filter((product) => product.featured);
+type FeaturedProductsProps = {
+  products?: Product[];
+};
+
+export default async function FeaturedProducts({ products }: FeaturedProductsProps = {}) {
+  const featuredProducts = (products ?? await getProducts()).filter((product) => product.featured);
 
   return (
     <section className="bg-white py-20">

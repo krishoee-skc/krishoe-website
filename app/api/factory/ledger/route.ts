@@ -1,7 +1,9 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { numeric, positiveAmount, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
+type LedgerParam = string | number;
 
 interface LedgerEntry {
   id: string;
@@ -9,9 +11,9 @@ interface LedgerEntry {
   date: string;
   entry_type: string;
   work_pairs: number | null;
-  amount_earned: number | null;
-  payment_given: number | null;
-  running_balance: number;
+  amount_earned: DbNumeric;
+  payment_given: DbNumeric;
+  running_balance: DbNumeric;
   status: string;
   notes: string | null;
 }
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
                               payment_given, running_balance, status, notes
                        FROM factory_worker_ledger
                        WHERE worker_id = $1`;
-    const params: any[] = [workerId];
+    const params: LedgerParam[] = [workerId];
 
     if (month) {
       // Parse YYYY-MM format
@@ -69,9 +71,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate summary
     const totalPairs = (ledger || []).reduce((sum, entry) => sum + (entry?.work_pairs || 0), 0);
-    const totalEarned = (ledger || []).reduce((sum, entry) => sum + (entry?.amount_earned || 0), 0);
-    const totalPaid = (ledger || []).reduce((sum, entry) => sum + (entry?.payment_given || 0), 0);
-    const currentBalance = ledger && ledger.length > 0 ? ledger[ledger.length - 1]?.running_balance || 0 : 0;
+    const totalEarned = (ledger || []).reduce((sum, entry) => sum + numeric(entry?.amount_earned), 0);
+    const totalPaid = (ledger || []).reduce((sum, entry) => sum + numeric(entry?.payment_given), 0);
+    const currentBalance = numeric(ledger?.[ledger.length - 1]?.running_balance);
 
     return NextResponse.json({
       worker,
@@ -100,7 +102,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { worker_id, date, entry_type, work_pairs, amount_earned, payment_given, notes } = body;
+    const { worker_id, entry_type, notes } = body;
+    const date = ymdDate(body.date);
+    const workPairs = positiveInteger(body.work_pairs);
+    const amountEarned = positiveAmount(body.amount_earned);
+    const paymentGiven = positiveAmount(body.payment_given);
 
     if (!worker_id || !date || !entry_type) {
       return NextResponse.json(
@@ -110,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current balance
-    const ledgerEntries = await queryPostgres<{ running_balance: number }>(
+    const ledgerEntries = await queryPostgres<{ running_balance: DbNumeric }>(
       STORE,
       `SELECT running_balance FROM factory_worker_ledger
        WHERE worker_id = $1
@@ -119,11 +125,11 @@ export async function POST(request: NextRequest) {
       [worker_id]
     );
 
-    const currentBalance = ledgerEntries.length > 0 ? ledgerEntries[0].running_balance : 0;
+    const currentBalance = numeric(ledgerEntries[0]?.running_balance);
 
     let newBalance = currentBalance;
-    if (amount_earned) newBalance += amount_earned;
-    if (payment_given) newBalance -= payment_given;
+    if (amountEarned) newBalance += amountEarned;
+    if (paymentGiven) newBalance -= paymentGiven;
 
     const ledgerId = crypto.randomUUID();
     await queryPostgres(
@@ -136,9 +142,9 @@ export async function POST(request: NextRequest) {
         worker_id,
         date,
         entry_type,
-        work_pairs || null,
-        amount_earned || null,
-        payment_given || null,
+        workPairs,
+        amountEarned,
+        paymentGiven,
         newBalance,
         notes || null,
       ]
@@ -150,9 +156,9 @@ export async function POST(request: NextRequest) {
         worker_id,
         date,
         entry_type,
-        work_pairs,
-        amount_earned,
-        payment_given,
+        work_pairs: workPairs,
+        amount_earned: amountEarned,
+        payment_given: paymentGiven,
         running_balance: newBalance,
       },
       { status: 201 }

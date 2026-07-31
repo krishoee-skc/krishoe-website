@@ -1,8 +1,13 @@
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/product-store";
+import type { Product } from "@/lib/products";
 
-export default async function BestSeller() {
-  const bestSellerProducts = (await getProducts()).filter((product) => product.bestSeller);
+type BestSellerProps = {
+  products?: Product[];
+};
+
+export default async function BestSeller({ products }: BestSellerProps = {}) {
+  const bestSellerProducts = (products ?? await getProducts()).filter((product) => product.bestSeller);
 
   return (
     <section className="bg-brand-mist py-20">

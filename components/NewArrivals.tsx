@@ -1,9 +1,14 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/product-store";
+import type { Product } from "@/lib/products";
 
-export default async function NewArrivals() {
-  const products = (await getProducts()).filter((product) => product.newArrival).slice(0, 4);
+type NewArrivalsProps = {
+  products?: Product[];
+};
+
+export default async function NewArrivals({ products }: NewArrivalsProps = {}) {
+  const newArrivalProducts = (products ?? await getProducts()).filter((product) => product.newArrival).slice(0, 4);
 
   return (
     <section className="bg-white py-20">
@@ -17,7 +22,7 @@ export default async function NewArrivals() {
         </p>
 
         <div className="mobile-product-rail md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-4">
-          {products.map((product) => (
+          {newArrivalProducts.map((product) => (
             <div key={product.id} className="mobile-product-slide">
               <ProductCard product={product} intent="shop" />
             </div>

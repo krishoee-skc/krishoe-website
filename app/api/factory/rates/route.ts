@@ -1,4 +1,5 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { positiveAmount } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -47,11 +48,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { item_id, worker_category, rate_per_pair } = body;
+    const { item_id, worker_category } = body;
+    const ratePerPair = positiveAmount(body.rate_per_pair);
 
-    if (!item_id || !worker_category || !rate_per_pair) {
+    if (!item_id || !worker_category || !ratePerPair) {
       return NextResponse.json(
-        { error: "item_id, worker_category, and rate_per_pair are required" },
+        { error: "item_id, worker_category, and a positive rate_per_pair are required" },
         { status: 400 }
       );
     }
@@ -61,11 +63,11 @@ export async function POST(request: NextRequest) {
       STORE,
       `INSERT INTO factory_rates (id, item_id, worker_category, rate_per_pair, effective_date)
        VALUES ($1, $2, $3, $4, CURRENT_DATE)`,
-      [id, item_id, worker_category, rate_per_pair]
+      [id, item_id, worker_category, ratePerPair]
     );
 
     return NextResponse.json(
-      { id, item_id, worker_category, rate_per_pair },
+      { id, item_id, worker_category, rate_per_pair: ratePerPair },
       { status: 201 }
     );
   } catch (error) {

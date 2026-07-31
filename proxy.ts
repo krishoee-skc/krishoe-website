@@ -11,6 +11,7 @@ import { safeAdminNextPath, safeCustomerNextPath } from "@/lib/safe-redirect";
 function isProtectedApi(pathname: string) {
   return (
     pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/factory") ||
     pathname.startsWith("/api/orders") ||
     pathname.startsWith("/api/messages") ||
     pathname.startsWith("/api/products")
@@ -26,6 +27,7 @@ function adminApiPermission(pathname: string): AdminPermission | null {
   if (routePath === "/api/products/export") return "exports:read";
   if (routePath === "/api/orders/export") return "exports:read";
   if (routePath === "/api/messages/export") return "exports:read";
+  if (routePath.startsWith("/api/factory")) return "production:entry";
   if (routePath === "/api/products") return "products:write";
   if (routePath === "/api/orders") return "orders:write";
   if (routePath === "/api/messages") return "messages:write";
@@ -107,6 +109,7 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
+    "/api/factory/:path*",
     "/api/orders/:path*",
     "/api/messages/:path*",
     "/api/products/:path*",

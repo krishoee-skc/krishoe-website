@@ -11,7 +11,7 @@ import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import { getPaymentReconciliation } from "@/lib/payment-reconciliation";
 import { getPosSnapshot } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
-import { formatPrice } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { getPurchasingSnapshot } from "@/lib/purchasing";
 import {
@@ -19,11 +19,42 @@ import {
   summarizeProductionReadiness,
   type ReadinessStatus,
 } from "@/lib/production-readiness";
-import { getContactMessages, getOrders } from "@/lib/submissions";
+import { getContactMessages, getOrders, type ContactSubmission, type OrderSubmission } from "@/lib/submissions";
 
 export const dynamic = "force-dynamic";
 
 type Tone = "default" | "good" | "warn" | "danger";
+type OperationsSnapshot = Awaited<ReturnType<typeof getOperationsSnapshot>>;
+type PaymentReconciliationSnapshot = Awaited<ReturnType<typeof getPaymentReconciliation>>;
+type PosSnapshot = Awaited<ReturnType<typeof getPosSnapshot>>;
+type PurchasingSnapshot = Awaited<ReturnType<typeof getPurchasingSnapshot>>;
+type CostingSnapshot = Awaited<ReturnType<typeof getCostingSnapshot>>;
+type HrSnapshot = Awaited<ReturnType<typeof getHrSnapshot>>;
+type OperationalAlertCenter = Awaited<ReturnType<typeof getOperationalAlertCenter>>;
+type DesignCostingRow = CostingSnapshot["designCosting"][number];
+type CostingPeriodRow = CostingSnapshot["periodReports"][number];
+type OperationalAlert = OperationalAlertCenter["alerts"][number];
+type ProductionInsight = {
+  id: string;
+  design: string;
+  status: string;
+  productionCompletionRate: number;
+  workerProgressRate: number;
+  rejectRate: number;
+};
+type FastMovingStock = {
+  id: string;
+  design: string;
+  soldPairs: number;
+};
+type CollectionFollowup = {
+  id: string;
+  customerName: string;
+  priority: string;
+  balanceDue: number;
+  daysOutstanding: number;
+  followUpDueDate?: string;
+};
 
 function amountFromOrderTotal(total: string) {
   return parseOrderTotalRupees(total);
@@ -169,12 +200,40 @@ function MiniMetric({ label, value }: { label: string; value: string | number })
   );
 }
 
+function settledValue<T>(result: PromiseSettledResult<T>, fallback: T) {
+  return result.status === "fulfilled" ? result.value : fallback;
+}
+
+function readPath<T>(source: unknown, path: string, defaultVal: T): T {
+  let value: unknown = source;
+
+  for (const key of path.split(".")) {
+    if (!value || typeof value !== "object" || !(key in value)) {
+      return defaultVal;
+    }
+
+    value = (value as Record<string, unknown>)[key];
+  }
+
+  return (value ?? defaultVal) as T;
+}
+
 // Safe data fetching with fallbacks
 async function safeGetData() {
   const session = await getAdminSession();
 
   // Fetch all data with error handling
-  const results = await Promise.allSettled([
+  const [
+    productsResult,
+    ordersResult,
+    messagesResult,
+    operationsResult,
+    paymentReconciliationResult,
+    posResult,
+    purchasingResult,
+    costingResult,
+    hrResult,
+  ] = await Promise.allSettled([
     getProducts({ includeDrafts: true }),
     getOrders(),
     getContactMessages(),
@@ -186,24 +245,21 @@ async function safeGetData() {
     getHrSnapshot(),
   ]);
 
-  const [products, orders, messages, operations, paymentReconciliation, pos, purchasing, costing, hr] =
-    results.map((r) => (r.status === "fulfilled" ? r.value : null));
-
   const alertCenter = (await getOperationalAlertCenter().catch(() => null)) ?? null;
   const readiness = (await getProductionReadinessWithData().catch(() => [])) ?? [];
 
   return {
     session,
-    products: (Array.isArray(products) ? products.filter((p) => p && "priceValue" in p) : []) as any[],
-    orders: (Array.isArray(orders) ? orders.filter((o) => o && "id" in o && "total" in o) : []) as any[],
-    messages: (Array.isArray(messages) ? messages.filter((m) => m && "id" in m) : []) as any[],
-    operations: (operations ?? {}) as any,
-    paymentReconciliation: (paymentReconciliation ?? {}) as any,
-    pos: (pos ?? {}) as any,
-    purchasing: (purchasing ?? {}) as any,
-    costing: (costing ?? {}) as any,
-    hr: (hr ?? {}) as any,
-    alertCenter: (alertCenter ?? { summary: {}, alerts: [] }) as any,
+    products: settledValue(productsResult, [] as Product[]).filter((product) => product && "priceValue" in product),
+    orders: settledValue(ordersResult, [] as OrderSubmission[]).filter((order) => order && "id" in order && "total" in order),
+    messages: settledValue(messagesResult, [] as ContactSubmission[]).filter((message) => message && "id" in message),
+    operations: settledValue(operationsResult, {} as OperationsSnapshot),
+    paymentReconciliation: settledValue(paymentReconciliationResult, {} as PaymentReconciliationSnapshot),
+    pos: settledValue(posResult, {} as PosSnapshot),
+    purchasing: settledValue(purchasingResult, {} as PurchasingSnapshot),
+    costing: settledValue(costingResult, {} as CostingSnapshot),
+    hr: settledValue(hrResult, {} as HrSnapshot),
+    alertCenter: (alertCenter ?? { summary: {}, alerts: [] }) as OperationalAlertCenter,
     readiness,
   };
 }
@@ -225,59 +281,12 @@ export default async function AdminDashboardPage() {
   } = await safeGetData();
 
   // Safe access to data with defaults
-  const getOp = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = operations;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
-
-  const getPos = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = pos;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
-
-  const getPur = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = purchasing;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
-
-  const getCost = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = costing;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
-
-  const getHr = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = hr;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
-
-  const getAlert = (path: string, defaultVal: any = 0) => {
-    const keys = path.split(".");
-    let val: any = alertCenter;
-    for (const key of keys) {
-      val = val?.[key];
-    }
-    return val ?? defaultVal;
-  };
+  const getOp = <T,>(path: string, defaultVal: T) => readPath(operations, path, defaultVal);
+  const getPos = <T,>(path: string, defaultVal: T) => readPath(pos, path, defaultVal);
+  const getPur = <T,>(path: string, defaultVal: T) => readPath(purchasing, path, defaultVal);
+  const getCost = <T,>(path: string, defaultVal: T) => readPath(costing, path, defaultVal);
+  const getHr = <T,>(path: string, defaultVal: T) => readPath(hr, path, defaultVal);
+  const getAlert = <T,>(path: string, defaultVal: T) => readPath(alertCenter, path, defaultVal);
 
   // Derived data
   const readinessSummary = summarizeProductionReadiness(readiness);
@@ -299,9 +308,9 @@ export default async function AdminDashboardPage() {
     return 0;
   });
 
-  const topEarners = (Array.isArray(getCost("designCosting")) ? getCost("designCosting") : [])
-    .filter((row: any) => row && row.soldPairs > 0 && row.grossProfit > 0)
-    .sort((a: any, b: any) => (b?.grossProfit || 0) - (a?.grossProfit || 0))
+  const topEarners = getCost("designCosting", [] as DesignCostingRow[])
+    .filter((row) => row.soldPairs > 0 && row.grossProfit > 0)
+    .sort((a, b) => b.grossProfit - a.grossProfit)
     .slice(0, 5);
 
   const pendingReviews = products.flatMap((product) => product.reviews || []).filter((review) => review?.status === "pending");
@@ -326,8 +335,8 @@ export default async function AdminDashboardPage() {
   const launchStatus =
     readinessSummary.launchReady ? "ready" : readinessSummary.blocked > 0 ? "blocked" : "warning";
 
-  const collectionQueue = (Array.isArray(getOp("reports.ledgerCollectionFollowups")) ? getOp("reports.ledgerCollectionFollowups") : []).filter(
-    (ledger: any) => ledger?.priority !== "Clear",
+  const collectionQueue = getOp("reports.ledgerCollectionFollowups", [] as CollectionFollowup[]).filter(
+    (ledger) => ledger.priority !== "Clear",
   );
 
   return (
@@ -423,7 +432,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {(Array.isArray(getCost("periodReports")) ? getCost("periodReports") : []).map((period: any) => (
+          {getCost("periodReports", [] as CostingPeriodRow[]).map((period) => (
             <div key={period?.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{period?.label}</p>
               <p
@@ -443,7 +452,7 @@ export default async function AdminDashboardPage() {
           <div className="mt-4">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">Top earning designs</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {topEarners.map((row: any) => (
+              {topEarners.map((row) => (
                 <span
                   key={row?.design}
                   className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-white px-3 py-1 text-xs font-bold text-brand-green-ink"
@@ -600,7 +609,7 @@ export default async function AdminDashboardPage() {
             <MiniMetric label="Total" value={getAlert("summary.total", 0)} />
           </div>
           <div className="mt-4 divide-y divide-gray-100">
-            {(Array.isArray(getAlert("alerts")) ? getAlert("alerts") : []).slice(0, 5).map((alert: any) => (
+            {getAlert("alerts", [] as OperationalAlert[]).slice(0, 5).map((alert) => (
               <Link key={alert?.id} href={alert?.href || "#"} className="block py-3 transition hover:text-brand-green">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-bold text-brand-green-ink">{alert?.title || "Alert"}</p>
@@ -609,7 +618,7 @@ export default async function AdminDashboardPage() {
                 <p className="mt-1 text-xs leading-5 text-gray-500">{alert?.detail || ""}</p>
               </Link>
             ))}
-            {(Array.isArray(getAlert("alerts")) ? getAlert("alerts").length : 0) === 0 ? (
+            {getAlert("alerts", [] as OperationalAlert[]).length === 0 ? (
               <p className="py-3 text-sm font-semibold text-brand-green">No operational alert is active.</p>
             ) : null}
           </div>
@@ -633,7 +642,7 @@ export default async function AdminDashboardPage() {
               <MiniMetric label="Dispatch loaded" value={getOp("reports.dispatchItemTotals.loadedPairs", 0)} />
               <MiniMetric label="Dispatch sold" value={getOp("reports.dispatchItemTotals.soldPairs", 0)} />
             </div>
-            {(Array.isArray(getOp("reports.productionInsights")) ? getOp("reports.productionInsights") : []).slice(0, 3).map((batch: any) => (
+            {getOp("reports.productionInsights", [] as ProductionInsight[]).slice(0, 3).map((batch) => (
               <div key={batch?.id} className="rounded-lg border border-gray-100 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-bold text-brand-green-ink">{batch?.design}</p>
@@ -652,7 +661,7 @@ export default async function AdminDashboardPage() {
           <div className="grid gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
-              {(Array.isArray(getOp("fastMovingStock")) ? getOp("fastMovingStock") : []).slice(0, 3).map((stock: any) => (
+              {getOp("fastMovingStock", [] as FastMovingStock[]).slice(0, 3).map((stock) => (
                 <p key={stock?.id} className="mt-2 text-sm text-gray-700">
                   {stock?.design}: <span className="font-bold">{stock?.soldPairs}</span> sold
                 </p>
@@ -681,7 +690,7 @@ export default async function AdminDashboardPage() {
             <MiniMetric label="This week due" value={money(getOp("reports.ledgerCollectionSummary.dueThisWeek", 0))} />
           </div>
           <div className="mt-4 divide-y divide-gray-100">
-            {collectionQueue.slice(0, 4).map((ledger: any) => (
+            {collectionQueue.slice(0, 4).map((ledger) => (
               <Link
                 key={ledger?.id}
                 href={`/admin/operations/ledger/${ledger?.id}`}

@@ -1,10 +1,11 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { numeric, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
 
 interface Rate {
-  rate_per_pair: number;
+  rate_per_pair: DbNumeric;
 }
 
 interface Worker {
@@ -39,17 +40,19 @@ async function getRateForWork(itemId: string, workerCategory: string): Promise<n
     throw new Error(`No rate found for item ${itemId} and category ${workerCategory}`);
   }
 
-  return rates[0].rate_per_pair;
+  return numeric(rates[0].rate_per_pair);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, worker_id, item_id, color, size, pairs_count, status } = body;
+    const { worker_id, item_id, color, size, status } = body;
+    const date = ymdDate(body.date);
+    const pairsCount = positiveInteger(body.pairs_count);
 
-    if (!date || !worker_id || !item_id || !pairs_count) {
+    if (!date || !worker_id || !item_id || !pairsCount) {
       return NextResponse.json(
-        { error: "date, worker_id, item_id, and pairs_count are required" },
+        { error: "date, worker_id, item_id, and a positive pairs_count are required" },
         { status: 400 }
       );
     }
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
     const rate = await getRateForWork(item_id, workerCategory);
 
     // Calculate amount
-    const amountEarned = pairs_count * rate;
+    const amountEarned = pairsCount * rate;
 
     // Save work entry
     const workId = crypto.randomUUID();
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
         item_id,
         color || null,
         size || null,
-        pairs_count,
+        pairsCount,
         status || "completed",
         rate,
         amountEarned,
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Add ledger entry for piece-rate workers
     if (workers[0].worker_type === "piece_rate") {
       // Get current balance
-      const ledgerEntries = await queryPostgres<{ running_balance: number }>(
+      const ledgerEntries = await queryPostgres<{ running_balance: DbNumeric }>(
         STORE,
         `SELECT running_balance FROM factory_worker_ledger
          WHERE worker_id = $1
@@ -106,7 +109,7 @@ export async function POST(request: NextRequest) {
         [worker_id]
       );
 
-      const currentBalance = ledgerEntries.length > 0 ? ledgerEntries[0].running_balance : 0;
+      const currentBalance = numeric(ledgerEntries[0]?.running_balance);
       const newBalance = currentBalance + amountEarned;
 
       // Add ledger entry
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO factory_worker_ledger
          (id, worker_id, date, entry_type, work_pairs, amount_earned, running_balance, status)
          VALUES ($1, $2, $3, 'work', $4, $5, $6, 'pending')`,
-        [ledgerId, worker_id, date, pairs_count, amountEarned, newBalance]
+        [ledgerId, worker_id, date, pairsCount, amountEarned, newBalance]
       );
     }
 
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
         date,
         worker_id,
         item_id,
-        pairs_count,
+        pairs_count: pairsCount,
         rate,
         amount_earned: amountEarned,
         status: status || "completed",

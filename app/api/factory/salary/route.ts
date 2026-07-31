@@ -1,7 +1,14 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { monthKey, numeric, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
+
+interface SalaryWorker {
+  id: string;
+  name: string;
+  monthly_salary: DbNumeric;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get worker info
-    const workers = await queryPostgres<any>(
+    const workers = await queryPostgres<SalaryWorker>(
       STORE,
       "SELECT id, name, monthly_salary FROM factory_workers WHERE id = $1",
       [workerId]
@@ -24,12 +31,13 @@ export async function GET(request: NextRequest) {
     }
 
     const worker = workers[0];
-    const [year, monthNum] = month ? month.split("-") : [new Date().getFullYear().toString(), String(new Date().getMonth() + 1).padStart(2, "0")];
+    const selectedMonth = monthKey(month) ?? new Date().toISOString().slice(0, 7);
+    const [year, monthNum] = selectedMonth.split("-");
 
     // Get salary payments this month
-    const payments = await queryPostgres<{ total_paid: number }>(
+    const payments = await queryPostgres<{ total_paid: DbNumeric }>(
       STORE,
-      `SELECT COALESCE(SUM(amount_earned), 0) as total_paid
+      `SELECT COALESCE(SUM(payment_given), 0) as total_paid
        FROM factory_worker_ledger
        WHERE worker_id = $1
        AND entry_type = 'payment'
@@ -39,7 +47,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Get advances this month
-    const advances = await queryPostgres<{ total_advance: number }>(
+    const advances = await queryPostgres<{ total_advance: DbNumeric }>(
       STORE,
       `SELECT COALESCE(SUM(advance_amount), 0) as total_advance
        FROM factory_weekly_advance
@@ -49,14 +57,14 @@ export async function GET(request: NextRequest) {
       [workerId, parseInt(year), parseInt(monthNum)]
     );
 
-    const totalSalary = worker.monthly_salary || 0;
-    const totalPaid = payments?.[0]?.total_paid || 0;
-    const totalAdvance = advances?.[0]?.total_advance || 0;
+    const totalSalary = numeric(worker.monthly_salary);
+    const totalPaid = numeric(payments?.[0]?.total_paid);
+    const totalAdvance = numeric(advances?.[0]?.total_advance);
     const remainingBalance = totalSalary - totalPaid - totalAdvance;
 
     return NextResponse.json({
       worker_id: workerId,
-      month: `${year}-${monthNum}`,
+      month: selectedMonth,
       total_salary: totalSalary,
       total_paid: totalPaid,
       total_advance: totalAdvance,

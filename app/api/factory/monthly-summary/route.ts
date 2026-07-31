@@ -1,4 +1,5 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { monthKey, numeric, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -49,12 +50,12 @@ export async function GET(request: NextRequest) {
 }
 
 interface WorkData {
-  total_pairs: number | null;
-  total_earned: number | null;
+  total_pairs: DbNumeric;
+  total_earned: DbNumeric;
 }
 
 interface PaymentData {
-  total_paid: number | null;
+  total_paid: DbNumeric;
 }
 
 interface ExistingSummary {
@@ -64,7 +65,8 @@ interface ExistingSummary {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { month, worker_id } = body;
+    const { worker_id } = body;
+    const month = monthKey(body.month);
 
     if (!month || !worker_id) {
       return NextResponse.json(
@@ -97,9 +99,9 @@ export async function POST(request: NextRequest) {
     );
 
     const payment = paymentData[0] || { total_paid: 0 };
-    const totalPairs = work.total_pairs || 0;
-    const totalEarned = work.total_earned || 0;
-    const totalPaid = payment.total_paid || 0;
+    const totalPairs = numeric(work.total_pairs);
+    const totalEarned = numeric(work.total_earned);
+    const totalPaid = numeric(payment.total_paid);
     const finalBalance = totalEarned - totalPaid;
 
     const summaryId = crypto.randomUUID();
