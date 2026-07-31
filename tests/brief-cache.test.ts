@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cacheBriefly } from "@/lib/brief-cache";
+import { cacheBriefly, MAX_BRIEF_CACHE_TTL_MS } from "@/lib/brief-cache";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -98,5 +98,33 @@ describe("a read reused for a moment", () => {
 
     expect(await cacheBriefly(stock)()).toBe("stock");
     expect(await cacheBriefly(orders)()).toBe("orders");
+  });
+
+  it("does not cache when the ttl is zero or invalid", async () => {
+    const zeroTtlLoad = vi.fn().mockResolvedValue("stock");
+    const invalidTtlLoad = vi.fn().mockResolvedValue("orders");
+
+    const zeroTtlRead = cacheBriefly(zeroTtlLoad, 0);
+    const invalidTtlRead = cacheBriefly(invalidTtlLoad, Number.NaN);
+
+    await Promise.all([zeroTtlRead(), zeroTtlRead()]);
+    await Promise.all([invalidTtlRead(), invalidTtlRead()]);
+
+    expect(zeroTtlLoad).toHaveBeenCalledTimes(2);
+    expect(invalidTtlLoad).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps long cache windows so report data cannot stay stale for long", async () => {
+    const load = vi.fn().mockResolvedValue("stock");
+    const read = cacheBriefly(load, 60_000);
+
+    await read();
+    vi.advanceTimersByTime(MAX_BRIEF_CACHE_TTL_MS - 1);
+    await read();
+    expect(load).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(2);
+    await read();
+    expect(load).toHaveBeenCalledTimes(2);
   });
 });
