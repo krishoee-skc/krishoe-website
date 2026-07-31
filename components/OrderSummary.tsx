@@ -8,9 +8,9 @@ export default function OrderSummary() {
   const { cartItems, subtotalLabel } = useCommerce();
 
   return (
-    <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
+    <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)] lg:sticky lg:top-24">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
-        Checkout summary
+        Order review
       </p>
       <div className="mt-6 space-y-4">
         {cartItems.map((item) => (
@@ -35,6 +35,11 @@ export default function OrderSummary() {
       <p className="mt-4 text-xs leading-6 text-white/55">
         Delivery charge and final availability are confirmed by KRISHOE before payment.
       </p>
+      <div className="mt-5 grid gap-2 border-t border-white/10 pt-5 text-xs font-semibold text-white/70">
+        <p>Stock check before dispatch</p>
+        <p>Payment matched with order reference</p>
+        <p>Private order page after request</p>
+      </div>
     </aside>
   );
 }

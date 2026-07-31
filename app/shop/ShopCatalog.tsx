@@ -1,8 +1,7 @@
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ProductCard from "@/components/ProductCard";
-import { categories, type Category, type Product } from "@/lib/products";
+import ShopCatalogControls from "@/app/shop/ShopCatalogControls";
+import { type Category, type Product } from "@/lib/products";
 
 type ShopCatalogProps = {
   products: Product[];
@@ -23,55 +22,31 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-7xl px-5 py-16 md:px-8">
+      <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             KRISHOE shop
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-6xl">
             {heading}
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-brand-muted">
             {description}
           </p>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.14em]">
+            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+              Stock checked
+            </span>
+            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+              COD available
+            </span>
+            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+              Nepal delivery
+            </span>
+          </div>
         </div>
 
-        <div className="mb-8 -mx-5 flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
-          <Link
-            href="/shop"
-            className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
-              !activeCategory ? "border-brand-green bg-brand-green text-white" : "border-black/10 bg-white text-brand-green-ink"
-            }`}
-          >
-            All
-          </Link>
-          {categories.map((item) => (
-            <Link
-              key={item.slug}
-              href={`/shop/${item.slug}`}
-              className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
-                activeCategory?.slug === item.slug
-                  ? "border-brand-green bg-brand-green text-white"
-                  : "border-black/10 bg-white text-brand-green-ink"
-              }`}
-            >
-              {item.title}
-            </Link>
-          ))}
-        </div>
-
-        {products.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
-            {products.map((product, index) => (
-              <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-black/15 bg-white p-10 text-center">
-            <h2 className="text-2xl font-black text-brand-green-ink">No products found.</h2>
-            <p className="mt-3 text-sm text-brand-muted">Try another category or search term.</p>
-          </div>
-        )}
+        <ShopCatalogControls products={products} activeCategory={activeCategory} initialQuery={query} />
       </section>
       <Footer />
     </main>

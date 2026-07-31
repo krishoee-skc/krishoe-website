@@ -47,6 +47,8 @@ function CheckoutForm({
   itemsJson,
   stockShortfalls,
 }: CheckoutFormProps) {
+  const steps = ["Details", "Delivery", "Confirm"];
+
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       <div className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
@@ -55,9 +57,33 @@ function CheckoutForm({
         {/* Structured items let the server recompute the total from catalog
             prices — the submitted total above is never trusted. */}
         <input type="hidden" name="items" value={itemsJson} />
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Customer details</p>
-          <h2 className="mt-3 text-3xl font-black text-brand-green-ink">Delivery request</h2>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Customer details</p>
+            <h2 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">Delivery request</h2>
+          </div>
+          <div className="flex gap-1.5">
+            {steps.map((step, index) => (
+              <span
+                key={step}
+                className="inline-flex min-h-8 items-center rounded-full border border-brand-green/20 bg-brand-mist px-3 text-xs font-black text-brand-green-ink"
+              >
+                {index + 1}. {step}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div
+          className={`mt-5 rounded-lg border p-4 text-sm font-semibold ${
+            user
+              ? "border-brand-green/20 bg-brand-green-mist text-brand-green"
+              : "border-brand-gold-bright/40 bg-brand-cream-soft text-brand-gold-ink"
+          }`}
+        >
+          {user
+            ? "Signed in. Saved details are filled where available."
+            : "Sign in or create an account after ordering to save details for next time."}
         </div>
 
         <div className="mt-7 grid gap-4 md:grid-cols-2">
@@ -119,8 +145,11 @@ function CheckoutForm({
             <p className="text-sm font-bold text-brand-green-ink">Delivery option</p>
             <div className="mt-3 grid gap-2">
               {shippingOptions.map((option, index) => (
-                <label key={option} className="flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm text-brand-muted">
-                  <input type="radio" name="delivery" value={option} defaultChecked={index === 0} />
+                <label
+                  key={option}
+                  className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                >
+                  <input className="accent-brand-green" type="radio" name="delivery" value={option} defaultChecked={index === 0} />
                   {option}
                 </label>
               ))}
@@ -133,12 +162,18 @@ function CheckoutForm({
             <p className="text-sm font-bold text-brand-green-ink">Payment option</p>
             <div className="mt-3 grid gap-2">
               {paymentOptions.map((option, index) => (
-                <label key={option} className="flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm text-brand-muted">
-                  <input type="radio" name="payment" value={option} defaultChecked={index === 0} />
+                <label
+                  key={option}
+                  className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                >
+                  <input className="accent-brand-green" type="radio" name="payment" value={option} defaultChecked={index === 0} />
                   {option}
                 </label>
               ))}
             </div>
+            <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
+              Digital payment is requested only after KRISHOE confirms stock and delivery.
+            </p>
           </div>
         </div>
 
@@ -166,7 +201,7 @@ function CheckoutForm({
             rel="noreferrer"
             className="inline-flex h-12 w-full items-center justify-center rounded-full border border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
           >
-            Confirm on WhatsApp
+            Send details on WhatsApp
           </a>
           {state.message ? (
             <p
@@ -341,11 +376,19 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
 
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-10 text-center">
-        <h1 className="text-4xl font-black text-brand-green-ink">Checkout needs a cart.</h1>
+      <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-sm md:p-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Empty checkout</p>
+        <h1 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">Checkout needs a cart.</h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
           Add a KRISHOE pair first, then continue into checkout.
         </p>
+        <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
+          {["Choose a pair", "Add size and color", "Confirm request"].map((item, index) => (
+            <div key={item} className="rounded-lg border border-brand-green/10 bg-brand-mist px-4 py-3 text-sm font-bold text-brand-green-ink">
+              {index + 1}. {item}
+            </div>
+          ))}
+        </div>
         <Link
           href="/shop"
           className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"

@@ -15,25 +15,34 @@ export default function RouteError({
   message?: string;
 }) {
   return (
-    <section className="mx-auto max-w-2xl px-5 py-20 text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">KRISHOE</p>
-      <h1 className="mt-4 text-2xl font-black text-brand-green-ink">{title}</h1>
-      <p className="mt-3 text-sm leading-7 text-brand-muted">{message}</p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          onClick={reset}
-          className="h-11 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-        >
-          Try again
-        </button>
-        <Link
-          href="/shop"
-          className="inline-flex h-11 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
-        >
-          Shop collection
-        </Link>
+    <main className="min-h-screen bg-brand-mist px-5 py-16">
+      <div className="mx-auto max-w-2xl rounded-lg border border-black/10 bg-white p-8 text-center shadow-[0_24px_70px_rgba(16,35,29,0.10)] md:p-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">KRISHOE</p>
+        <h1 className="mt-4 text-2xl font-black text-brand-green-ink md:text-3xl">{title}</h1>
+        <p className="mt-3 text-sm leading-7 text-brand-muted">{message}</p>
+        <div className="mt-5 grid gap-2 text-left sm:grid-cols-3">
+          {["Cart safe", "No duplicate charge", "Quick retry"].map((item) => (
+            <div key={item} className="rounded-lg bg-brand-mist px-3 py-2 text-xs font-black text-brand-green-ink">
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={reset}
+            className="h-11 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+          >
+            Try again
+          </button>
+          <Link
+            href="/shop"
+            className="inline-flex h-11 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
+          >
+            Shop collection
+          </Link>
+        </div>
       </div>
-    </section>
+    </main>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import ShopCatalog from "@/app/shop/ShopCatalog";
-import { getProducts, searchProducts } from "@/lib/product-store";
+import { getProducts } from "@/lib/product-store";
 import {
   collectionPageJsonLd,
   createPageMetadata,
@@ -26,7 +26,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const resolvedSearchParams = await searchParams;
   const query = resolvedSearchParams?.query ?? "";
   const category = resolvedSearchParams?.category ?? "";
-  const sourceProducts = query ? await searchProducts(query) : await getProducts();
+  const sourceProducts = await getProducts();
   const activeCategory = category ? getCategoryBySlug(category) : undefined;
   const products = activeCategory ? getProductsByCategory(sourceProducts, activeCategory) : sourceProducts;
 

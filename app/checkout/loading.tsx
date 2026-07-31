@@ -1,9 +1,14 @@
 export default function CheckoutLoading() {
   return (
     <main className="min-h-screen bg-brand-mist">
-      <div className="mx-auto max-w-7xl px-5 py-16 md:px-8">
+      <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
         <div className="h-4 w-36 animate-pulse rounded-full bg-black/10" />
         <div className="mt-3 h-12 w-80 max-w-full animate-pulse rounded bg-black/10" />
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-12 animate-pulse rounded-full bg-black/10" />
+          ))}
+        </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_0.9fr]">
           <div className="rounded-lg border border-black/10 bg-white p-6">

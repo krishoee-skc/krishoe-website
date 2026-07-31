@@ -1,12 +1,13 @@
 export default function PaymentInstructions() {
   return (
-    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-      <h3 className="font-bold text-gray-800">Bank Transfer / QR Payment</h3>
-      <p className="mt-2 text-sm text-gray-600">
-        Please transfer the total amount to the following bank account and mention your Order ID in
-        the remarks.
+    <div className="rounded-lg border border-brand-green/20 bg-white p-6 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Payment note</p>
+      <h3 className="mt-3 text-xl font-black text-brand-green-ink">Bank transfer / QR payment</h3>
+      <p className="mt-2 text-sm leading-7 text-gray-600">
+        Use digital payment after KRISHOE confirms stock and delivery timing. Mention your order
+        reference in the remarks.
       </p>
-      <div className="mt-4 space-y-2 rounded-lg bg-white p-4 text-sm">
+      <div className="mt-4 space-y-2 rounded-lg bg-brand-mist p-4 text-sm">
         <p>
           <span className="font-semibold">Bank:</span> Nabil Bank Ltd.
         </p>
@@ -21,7 +22,7 @@ export default function PaymentInstructions() {
         </p>
       </div>
       <p className="mt-4 text-xs text-gray-500">
-        After payment, please send a screenshot to our WhatsApp number for faster confirmation.
+        After payment, send a screenshot on WhatsApp for faster confirmation.
       </p>
     </div>
   );

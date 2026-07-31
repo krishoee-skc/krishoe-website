@@ -325,7 +325,7 @@ export default async function AdminDashboardPage() {
 
   const productionCompletion = percentage(getOp("summary.finishedPairs", 0), getOp("summary.plannedPairs", 1));
 
-  const paymentIssueTone =
+  const paymentIssueTone: Tone =
     paymentReconciliation?.summary?.highRiskIssueCount > 0
       ? "danger"
       : paymentReconciliation?.summary?.issueCount > 0
@@ -338,6 +338,50 @@ export default async function AdminDashboardPage() {
   const collectionQueue = getOp("reports.ledgerCollectionFollowups", [] as CollectionFollowup[]).filter(
     (ledger) => ledger.priority !== "Clear",
   );
+  const dailyActions = [
+    {
+      href: "/admin/orders",
+      label: "Orders",
+      value: newOrders.length,
+      detail: `${pendingPayments.length + unpaidOrders.length} payment follow-up`,
+      tone: newOrders.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/pos",
+      label: "POS billing",
+      value: money(getPos("summary.todayNetSales", 0)),
+      detail: `${getPos("summary.todayBillCount", 0)} bills today`,
+      tone: getPos("summary.needsReview", 0) > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/factory",
+      label: "Factory entry",
+      value: getOp("summary.finishedPairs", 0),
+      detail: `${getOp("summary.inProgressPairs", 0)} in progress`,
+      tone: getOp("summary.rejectedPairs", 0) > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/payments",
+      label: "Payments",
+      value: paymentReconciliation?.summary?.issueCount || 0,
+      detail: `${paymentReconciliation?.summary?.highRiskIssueCount || 0} high risk`,
+      tone: paymentIssueTone,
+    },
+    {
+      href: "/admin/dues",
+      label: "Dues",
+      value: collectionQueue.length,
+      detail: money(getOp("summary.receivable", 0) + getPos("summary.totalCredit", 0)),
+      tone: collectionQueue.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/customers",
+      label: "Customers",
+      value: openMessages.length,
+      detail: "messages and account trust",
+      tone: openMessages.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+  ];
 
   return (
     <section className="p-6">
@@ -369,6 +413,31 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
       </div>
+
+      <section className="mt-6 rounded-2xl border border-brand-green/20 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-brand-green-ink">Daily work dock</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Open the work areas that move today sales, stock, collection, and customer trust.
+            </p>
+          </div>
+          <StatusBadge label={launchStatus === "ready" ? "Ready" : launchStatus} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          {dailyActions.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={`rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(action.tone)}`}
+            >
+              <p className="text-sm font-black">{action.label}</p>
+              <p className="mt-2 text-2xl font-black">{action.value}</p>
+              <p className="mt-2 text-xs font-semibold leading-5 opacity-70">{action.detail}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
         <h2 className="text-lg font-black text-brand-green-ink">Today at a glance</h2>
