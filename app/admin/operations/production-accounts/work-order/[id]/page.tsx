@@ -266,6 +266,11 @@ export default async function WorkOrderDetailPage({
                 <form action={createMaterialConsumptionAction} className="mt-3 grid gap-3 rounded-xl bg-emerald-50 p-3 sm:grid-cols-2">
                   <input type="hidden" name="workOrderId" value={order.id} />
                   <input type="hidden" name="materialId" value={row.materialId} />
+                  <input
+                    type="hidden"
+                    name="sourceSubmissionKey"
+                    value={`matuse:${order.id}:${row.materialId}:${crypto.randomUUID()}`}
+                  />
                   <label className="text-xs font-bold text-brand-green-ink">
                     Used quantity ({row.unit})
                     <input name="quantity" type="number" min="0" step="0.001" className="mt-1 min-h-11 w-full rounded-xl border border-emerald-200 bg-white px-3" required />

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getHrData, type Employee } from "@/lib/hr";
 import { getProducts } from "@/lib/product-store";
 import { insertStockMovement } from "@/lib/operations-postgres";
@@ -671,6 +672,11 @@ export async function getWeeklyWorkerSettlements(period: { start: string; end: s
 
 function id(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function idFromSubmissionKey(prefix: string, sourceSubmissionKey: string) {
+  const digest = createHash("sha256").update(sourceSubmissionKey).digest("hex").slice(0, 24).toUpperCase();
+  return `${prefix}-SUB-${digest}`;
 }
 
 export async function getProductionAccountingSnapshot() {
@@ -1486,61 +1492,110 @@ export async function addWorkOrderMaterialConsumption(input: {
   wastage: number;
   approvedBy: string;
   note: string;
+  sourceSubmissionKey?: string;
 }) {
   const total = numeric(input.quantity + input.wastage);
   if (total <= 0) throw new Error("Material quantity or wastage must be greater than zero.");
+  const sourceSubmissionKey = input.sourceSubmissionKey?.trim().slice(0, 180) ?? "";
+  const consumptionId = sourceSubmissionKey ? idFromSubmissionKey("matuse", sourceSubmissionKey) : id("matuse");
 
-  return transactionPostgres("approve Work Order material consumption", async (db) => {
-    const rows = await db.query<{
-      work_order_number: string;
-      material_name: string;
-      unit: string;
-      opening_stock: number | string;
-      received: number | string;
-      used: number | string;
-    }>(
-      `SELECT orders.work_order_number, materials.name AS material_name, materials.unit,
-         materials.opening_stock, materials.received, materials.used
-       FROM production_work_orders orders
-       JOIN production_item_materials bom
-         ON bom.item_id = orders.item_id AND bom.material_id = $2
-       JOIN raw_materials materials ON materials.id = bom.material_id
-       WHERE orders.id = $1 AND orders.status <> 'Cancelled'
-       FOR UPDATE OF orders, materials`,
-      [input.workOrderId, input.materialId],
-    );
-    const row = rows[0];
-    if (!row) throw new Error("Open Work Order material recipe was not found.");
-    const available = numeric(Number(row.opening_stock) + Number(row.received) - Number(row.used));
-    if (total > available) {
-      throw new Error(`${row.material_name} has only ${available} ${row.unit} available.`);
+  const existingReceipt = (row: ProductionMaterialConsumptionRow) => ({
+    id: row.id,
+    workOrderNumber: row.work_order_number_snapshot,
+    materialName: row.material_name_snapshot,
+    unit: row.unit_snapshot,
+    total: numeric(Number(row.quantity) + Number(row.wastage)),
+  });
+
+  try {
+    return await transactionPostgres("approve Work Order material consumption", async (db) => {
+      if (sourceSubmissionKey) {
+        const existing = await db.query<ProductionMaterialConsumptionRow>(
+          `SELECT id, consumption_date, work_order_id, work_order_number_snapshot,
+             material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+             approved_by, note
+           FROM production_material_consumptions
+           WHERE id = $1 AND reversed_at IS NULL
+           LIMIT 1`,
+          [consumptionId],
+        );
+        if (existing[0]) {
+          return existingReceipt(existing[0]);
+        }
+      }
+
+      const rows = await db.query<{
+        work_order_number: string;
+        material_name: string;
+        unit: string;
+        opening_stock: number | string;
+        received: number | string;
+        used: number | string;
+      }>(
+        `SELECT orders.work_order_number, materials.name AS material_name, materials.unit,
+           materials.opening_stock, materials.received, materials.used
+         FROM production_work_orders orders
+         JOIN production_item_materials bom
+           ON bom.item_id = orders.item_id AND bom.material_id = $2
+         JOIN raw_materials materials ON materials.id = bom.material_id
+         WHERE orders.id = $1 AND orders.status <> 'Cancelled'
+         FOR UPDATE OF orders, materials`,
+        [input.workOrderId, input.materialId],
+      );
+      const row = rows[0];
+      if (!row) throw new Error("Open Work Order material recipe was not found.");
+      const available = numeric(Number(row.opening_stock) + Number(row.received) - Number(row.used));
+      if (total > available) {
+        throw new Error(`${row.material_name} has only ${available} ${row.unit} available.`);
+      }
+
+      await db.query(
+        `INSERT INTO production_material_consumptions (
+           id, consumption_date, work_order_id, work_order_number_snapshot,
+           material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+           approved_by, note
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          consumptionId, input.consumptionDate, input.workOrderId, row.work_order_number,
+          input.materialId, row.material_name, row.unit, input.quantity, input.wastage,
+          input.approvedBy, input.note,
+        ],
+      );
+      await db.query(
+        `UPDATE raw_materials SET used = used + $2 WHERE id = $1`,
+        [input.materialId, total],
+      );
+      return {
+        id: consumptionId,
+        workOrderNumber: row.work_order_number,
+        materialName: row.material_name,
+        unit: row.unit,
+        total,
+      };
+    });
+  } catch (error) {
+    const duplicateSubmission =
+      sourceSubmissionKey &&
+      (error as { code?: string } | null)?.code === "23505";
+
+    if (duplicateSubmission) {
+      const existing = await queryPostgres<ProductionMaterialConsumptionRow>(
+        "production material consumption by id",
+        `SELECT id, consumption_date, work_order_id, work_order_number_snapshot,
+           material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
+           approved_by, note
+         FROM production_material_consumptions
+         WHERE id = $1 AND reversed_at IS NULL
+         LIMIT 1`,
+        [consumptionId],
+      );
+      if (existing[0]) {
+        return existingReceipt(existing[0]);
+      }
     }
 
-    const consumptionId = id("matuse");
-    await db.query(
-      `INSERT INTO production_material_consumptions (
-         id, consumption_date, work_order_id, work_order_number_snapshot,
-         material_id, material_name_snapshot, unit_snapshot, quantity, wastage,
-         approved_by, note
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [
-        consumptionId, input.consumptionDate, input.workOrderId, row.work_order_number,
-        input.materialId, row.material_name, row.unit, input.quantity, input.wastage,
-        input.approvedBy, input.note,
-      ],
-    );
-    await db.query(
-      `UPDATE raw_materials SET used = used + $2 WHERE id = $1`,
-      [input.materialId, total],
-    );
-    return {
-      id: consumptionId,
-      workOrderNumber: row.work_order_number,
-      materialName: row.material_name,
-      unit: row.unit,
-      total,
-    };
-  });
+    throw error;
+  }
 }
 
 export async function reverseWorkOrderMaterialConsumption(input: {

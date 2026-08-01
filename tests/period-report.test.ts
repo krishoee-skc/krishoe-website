@@ -54,6 +54,7 @@ function pos(overrides: {
     barcodeValue: "",
     qrPayload: "",
     note: "",
+    sourceSubmissionKey: "",
   } as PosInvoice;
 }
 

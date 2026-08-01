@@ -376,6 +376,7 @@ export async function createMaterialConsumptionAction(formData: FormData) {
     wastage: amount(formData, "wastage"),
     approvedBy,
     note: text(formData, "note"),
+    sourceSubmissionKey: text(formData, "sourceSubmissionKey"),
   });
   await recordAdminAuditEvent(
     "production_material_consume",

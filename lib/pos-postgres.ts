@@ -66,6 +66,7 @@ function posInvoiceFromRow(row: PosInvoiceRow): PosInvoice {
     barcodeValue: row.barcode_value,
     qrPayload: row.qr_payload,
     note: row.note,
+    sourceSubmissionKey: "",
   };
 }
 

@@ -27,6 +27,7 @@ function saleForm(overrides: Record<string, string> = {}) {
   formData.set("item0Design", "Ladies Heel");
   formData.set("item0Quantity", "2");
   formData.set("item0Rate", "1799");
+  formData.set("sourceSubmissionKey", "pos-submit-test-1");
 
   for (const [key, value] of Object.entries(overrides)) {
     formData.set(key, value);
@@ -55,6 +56,9 @@ describe("saving a POS bill reports what happened", () => {
     expect(state.ok).toBe(true);
     expect(state.message).toContain("KR-POS-20260720-0001");
     expect(state.href).toBe("/admin/pos/POS-1");
+    expect(createPosInvoice).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceSubmissionKey: "pos-submit-test-1" }),
+    );
   });
 
   it("refuses a return with no ledger, in plain words, without throwing", async () => {

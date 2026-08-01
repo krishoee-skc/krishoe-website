@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPosInvoiceAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
@@ -81,6 +81,9 @@ function fieldClass(hasError: boolean) {
 }
 
 export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormProps) {
+  const [submissionKey] = useState(
+    () => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+  );
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
   const [nextKey, setNextKey] = useState(4);
   const [channel, setChannel] = useState("Retail");
@@ -95,7 +98,9 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   const [scanNote, setScanNote] = useState("");
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [state, setState] = useState<ActionState | null>(null);
+  const [saveLocked, setSaveLocked] = useState(false);
   const [isSaving, startSaving] = useTransition();
+  const submitStartedRef = useRef(false);
   const router = useRouter();
 
   // Look a design up by name, case-insensitively, so a picked or typed item
@@ -256,6 +261,10 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitStartedRef.current) {
+      return;
+    }
+
     const formData = new FormData(event.currentTarget);
 
     const started = rows.filter(rowIsTouched);
@@ -272,13 +281,19 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
       return;
     }
 
+    submitStartedRef.current = true;
+    setSaveLocked(true);
     startSaving(async () => {
       const result = await createPosInvoiceAction(state, formData);
       setState(result);
 
       if (result.ok && result.href) {
         router.push(result.href);
+        return;
       }
+
+      submitStartedRef.current = false;
+      setSaveLocked(false);
     });
   }
 
@@ -306,6 +321,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <input type="hidden" name="itemCount" value={rows.length} />
+      <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -642,10 +658,10 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
             this is the action the shop runs dozens of times a day. */}
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={isSaving || saveLocked}
           className="h-14 w-full rounded-full bg-brand-green-ink px-6 text-base font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          {isSaving ? "Saving..." : "Save bill and open receipt"}
+          {isSaving || saveLocked ? "Saving..." : "Save bill and open receipt"}
         </button>
       </div>
     </form>

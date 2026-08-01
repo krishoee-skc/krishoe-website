@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 // The same rules the local-json backend runs, and the ones the tests cover.
 import {
@@ -147,6 +148,11 @@ type LedgerTransactionRow = {
 function createId(prefix: string) {
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
   return `${prefix}-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function idFromSubmissionKey(prefix: string, sourceSubmissionKey: string) {
+  const digest = createHash("sha256").update(sourceSubmissionKey).digest("hex").slice(0, 24).toUpperCase();
+  return `${prefix}-SUB-${digest}`;
 }
 
 function cleanNumber(value: number) {
@@ -460,94 +466,135 @@ export async function addMaterialConsumptionToPostgres(input: {
   quantity: number;
   wastage: number;
   note: string;
+  sourceSubmissionKey?: string;
 }) {
-  return transactionPostgres("operations", async (db) => {
-    const batchRows = await db.query<ProductionBatchRow>(
-      `
-        SELECT id, design, planned_pairs, finished_pairs, in_progress_pairs, rejected_pairs, raw_material_used, status
-        FROM production_batches
-        WHERE id = $1
-        LIMIT 1
-        FOR UPDATE
-      `,
-      [input.batchId],
+  const sourceSubmissionKey = cleanText(input.sourceSubmissionKey ?? "").slice(0, 180);
+  const recordId = sourceSubmissionKey ? idFromSubmissionKey("USE", sourceSubmissionKey) : "";
+  const selectMaterialConsumptionById = async () => {
+    const existing = await queryPostgres<MaterialConsumptionRow>(
+      "operations material consumption by id",
+      `SELECT id, created_at, batch_id, batch_design, material_id, material_name,
+         unit, quantity, wastage, note
+       FROM material_consumptions
+       WHERE id = $1
+       LIMIT 1`,
+      [recordId],
     );
+    return existing[0] ? materialConsumptionFromRow(existing[0]) : null;
+  };
 
-    if (!batchRows[0]) {
-      throw new Error("Production batch was not found.");
+  try {
+    return await transactionPostgres("operations", async (db) => {
+      if (recordId) {
+        const existing = await db.query<MaterialConsumptionRow>(
+          `SELECT id, created_at, batch_id, batch_design, material_id, material_name,
+             unit, quantity, wastage, note
+           FROM material_consumptions
+           WHERE id = $1
+           LIMIT 1`,
+          [recordId],
+        );
+        if (existing[0]) {
+          return materialConsumptionFromRow(existing[0]);
+        }
+      }
+
+      const batchRows = await db.query<ProductionBatchRow>(
+        `
+          SELECT id, design, planned_pairs, finished_pairs, in_progress_pairs, rejected_pairs, raw_material_used, status
+          FROM production_batches
+          WHERE id = $1
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [input.batchId],
+      );
+
+      if (!batchRows[0]) {
+        throw new Error("Production batch was not found.");
+      }
+
+      const materialRows = await db.query<RawMaterialRow>(
+        `
+          SELECT id, name, unit, opening_stock, used, received, reorder_level
+          FROM raw_materials
+          WHERE id = $1
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [input.materialId],
+      );
+
+      if (!materialRows[0]) {
+        throw new Error("Raw material was not found.");
+      }
+
+      const batch = productionBatchFromRow(batchRows[0]);
+      const material = rawMaterialFromRow(materialRows[0]);
+      const quantity = cleanNumber(input.quantity);
+      const wastage = cleanNumber(input.wastage);
+
+      if (quantity + wastage <= 0) {
+        throw new Error("Material consumption quantity or wastage is required.");
+      }
+
+      const nextRawMaterialUsed = batch.rawMaterialUsed.some((name) => cleanText(name).toLowerCase() === material.name.toLowerCase())
+        ? batch.rawMaterialUsed
+        : [...batch.rawMaterialUsed, material.name];
+
+      await db.query<RawMaterialRow>(
+        `
+          UPDATE raw_materials
+          SET used = used + $2
+          WHERE id = $1
+          RETURNING id
+        `,
+        [material.id, quantity + wastage],
+      );
+
+      await db.query<ProductionBatchRow>(
+        `
+          UPDATE production_batches
+          SET raw_material_used = $2, updated_at = now()
+          WHERE id = $1
+          RETURNING id
+        `,
+        [batch.id, nextRawMaterialUsed],
+      );
+
+      const rows = await db.query<MaterialConsumptionRow>(
+        `
+          INSERT INTO material_consumptions (
+            id, created_at, batch_id, batch_design, material_id, material_name, unit, quantity, wastage, note
+          )
+          VALUES ($1, now(), $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING id, created_at, batch_id, batch_design, material_id, material_name, unit, quantity, wastage, note
+        `,
+        [
+          recordId || createId("USE"),
+          batch.id,
+          batch.design,
+          material.id,
+          material.name,
+          material.unit,
+          quantity,
+          wastage,
+          cleanText(input.note),
+        ],
+      );
+
+      return materialConsumptionFromRow(rows[0]);
+    });
+  } catch (error) {
+    const duplicateSubmission =
+      recordId && (error as { code?: string } | null)?.code === "23505";
+    if (duplicateSubmission) {
+      const existing = await selectMaterialConsumptionById();
+      if (existing) return existing;
     }
 
-    const materialRows = await db.query<RawMaterialRow>(
-      `
-        SELECT id, name, unit, opening_stock, used, received, reorder_level
-        FROM raw_materials
-        WHERE id = $1
-        LIMIT 1
-        FOR UPDATE
-      `,
-      [input.materialId],
-    );
-
-    if (!materialRows[0]) {
-      throw new Error("Raw material was not found.");
-    }
-
-    const batch = productionBatchFromRow(batchRows[0]);
-    const material = rawMaterialFromRow(materialRows[0]);
-    const quantity = cleanNumber(input.quantity);
-    const wastage = cleanNumber(input.wastage);
-
-    if (quantity + wastage <= 0) {
-      throw new Error("Material consumption quantity or wastage is required.");
-    }
-
-    const nextRawMaterialUsed = batch.rawMaterialUsed.some((name) => cleanText(name).toLowerCase() === material.name.toLowerCase())
-      ? batch.rawMaterialUsed
-      : [...batch.rawMaterialUsed, material.name];
-
-    await db.query<RawMaterialRow>(
-      `
-        UPDATE raw_materials
-        SET used = used + $2
-        WHERE id = $1
-        RETURNING id
-      `,
-      [material.id, quantity + wastage],
-    );
-
-    await db.query<ProductionBatchRow>(
-      `
-        UPDATE production_batches
-        SET raw_material_used = $2, updated_at = now()
-        WHERE id = $1
-        RETURNING id
-      `,
-      [batch.id, nextRawMaterialUsed],
-    );
-
-    const rows = await db.query<MaterialConsumptionRow>(
-      `
-        INSERT INTO material_consumptions (
-          id, created_at, batch_id, batch_design, material_id, material_name, unit, quantity, wastage, note
-        )
-        VALUES ($1, now(), $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id, created_at, batch_id, batch_design, material_id, material_name, unit, quantity, wastage, note
-      `,
-      [
-        createId("USE"),
-        batch.id,
-        batch.design,
-        material.id,
-        material.name,
-        material.unit,
-        quantity,
-        wastage,
-        cleanText(input.note),
-      ],
-    );
-
-    return materialConsumptionFromRow(rows[0]);
-  });
+    throw error;
+  }
 }
 
 export async function addWorkerTaskToPostgres(task: Omit<WorkerTask, "id">) {

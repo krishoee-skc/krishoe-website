@@ -321,6 +321,13 @@ export async function recordPaymentTransaction(
     storeName: "payment transactions",
     localJson: async () => {
       const transactions = await getPaymentTransactionsFromLocalJson();
+      if (record.paymentCallbackId) {
+        const existing = transactions.find(
+          (transaction) => transaction.paymentCallbackId === record.paymentCallbackId,
+        );
+        if (existing) return existing;
+      }
+
       await writeJsonFile(paymentTransactionsPath, [record, ...transactions]);
       return record;
     },

@@ -201,6 +201,7 @@ export async function createMaterialConsumptionAction(formData: FormData) {
     quantity,
     wastage,
     note: textValue(formData, "note"),
+    sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
   });
   await auditOperationsAction(
     "operations_create_material_consumption",

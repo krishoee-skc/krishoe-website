@@ -279,15 +279,17 @@ export async function createPosInvoiceFromOrderAction(
   const paymentReference = textValue(formData, "paymentReference") || order.paymentReference || "";
 
   try {
-    const invoice = await createPosInvoice(
-      await buildPosInvoiceInputFromOnlineOrder(order, {
-        paymentMethod,
-        paidAmount,
-        ledgerId,
-        paymentReference,
-        cashier: textValue(formData, "cashier"),
-      }),
-    );
+    const invoiceInput = await buildPosInvoiceInputFromOnlineOrder(order, {
+      paymentMethod,
+      paidAmount,
+      ledgerId,
+      paymentReference,
+      cashier: textValue(formData, "cashier"),
+    });
+    const invoice = await createPosInvoice({
+      ...invoiceInput,
+      sourceSubmissionKey: `online-order-pos:${order.id}`,
+    });
     const paymentStatus: PaymentStatus =
       paidAmount >= invoice.total ? "Paid" : paidAmount > 0 ? "Pending" : "Unpaid";
     const paymentProvider = orderProviderFromPosPayment(paymentMethod);
@@ -311,6 +313,7 @@ export async function createPosInvoiceFromOrderAction(
         paymentReference,
         ledgerId,
         ledgerTransactionId: invoice.ledgerTransactionId,
+        paymentCallbackId: `online-order-pos-payment:${order.id}`,
         source: "admin",
         note: `Converted to POS invoice ${invoice.invoiceNumber}.`,
       });

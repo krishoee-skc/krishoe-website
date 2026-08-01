@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { getDataBackend, runWithDataBackend } from "@/lib/data-backend";
@@ -63,6 +64,7 @@ export type PosInvoice = {
   barcodeValue: string;
   qrPayload: string;
   note: string;
+  sourceSubmissionKey: string;
 };
 
 export type PosDayClosePaymentRow = {
@@ -137,6 +139,7 @@ export type CreatePosInvoiceInput = {
   tax: number;
   paidAmount: number;
   note: string;
+  sourceSubmissionKey?: string;
   items: Array<{
     sku: string;
     design: string;
@@ -159,6 +162,15 @@ function createId(prefix: string) {
 
 function cleanText(value: string) {
   return value.trim();
+}
+
+function cleanSubmissionKey(value: string | undefined) {
+  return cleanText(value ?? "").slice(0, 180);
+}
+
+function idFromSubmissionKey(prefix: string, sourceSubmissionKey: string) {
+  const digest = createHash("sha256").update(sourceSubmissionKey).digest("hex").slice(0, 24).toUpperCase();
+  return `${prefix}-SUB-${digest}`;
 }
 
 function cleanNumber(value: number) {
@@ -411,6 +423,7 @@ function normalizeInvoice(invoice: Partial<PosInvoice>): PosInvoice {
     barcodeValue: cleanText(invoice.barcodeValue ?? ""),
     qrPayload: cleanText(invoice.qrPayload ?? ""),
     note: cleanText(invoice.note ?? ""),
+    sourceSubmissionKey: cleanSubmissionKey(invoice.sourceSubmissionKey),
   };
 }
 
@@ -435,6 +448,14 @@ async function getPosInvoicesFromLocalJson() {
 
 async function savePosInvoiceToLocalJson(invoice: PosInvoice) {
   const invoices = await getPosInvoicesFromLocalJson();
+  const existingById = invoices.find((item) => item.id === invoice.id);
+  if (existingById) return existingById;
+
+  if (invoice.sourceSubmissionKey) {
+    const existing = invoices.find((item) => item.sourceSubmissionKey === invoice.sourceSubmissionKey);
+    if (existing) return existing;
+  }
+
   invoices.unshift(invoice);
   await writePosInvoices(invoices);
   return invoice;
@@ -490,7 +511,7 @@ async function nextInvoiceNumber(kind: PosInvoiceKind) {
   const invoices = await getPosInvoices();
   const count = invoices.filter((invoice) => invoice.invoiceNumber.startsWith(prefix)).length + 1;
 
-  return `${prefix}-${String(count).padStart(4, "0")}`;
+  return `${prefix}-${String(count).padStart(4, "0")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
 function invoiceStatus(kind: PosInvoiceKind, total: number, paidAmount: number, creditAmount: number): PosInvoiceStatus {
@@ -519,6 +540,15 @@ async function syncCatalogStockAfterPosting() {
 }
 
 export async function createPosInvoice(input: CreatePosInvoiceInput) {
+  const sourceSubmissionKey = cleanSubmissionKey(input.sourceSubmissionKey);
+  const invoiceId = sourceSubmissionKey
+    ? idFromSubmissionKey(input.kind === "Return" ? "RETURN" : "POS", sourceSubmissionKey)
+    : "";
+  const existingInvoice = invoiceId ? await getPosInvoiceById(invoiceId) : null;
+  if (existingInvoice) {
+    return existingInvoice;
+  }
+
   const items = input.items
     .map((item) => normalizeItem({ ...item, id: createId("ITEM") }))
     .filter((item) => item.design && item.quantity > 0 && item.rate > 0);
@@ -575,7 +605,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     }
   }
 
-  const id = createId(input.kind === "Return" ? "RETURN" : "POS");
+  const id = invoiceId || createId(input.kind === "Return" ? "RETURN" : "POS");
   const invoiceNumber = await nextInvoiceNumber(input.kind);
   const createdAt = new Date().toISOString();
   const invoice: PosInvoice = {
@@ -604,6 +634,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     barcodeValue: invoiceNumber,
     qrPayload: "",
     note: cleanText(input.note),
+    sourceSubmissionKey,
   };
 
   invoice.qrPayload = qrPayloadForInvoice(invoice);
@@ -640,17 +671,34 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   // sale is all-or-nothing and each stock row is locked (FOR UPDATE) against
   // concurrent oversell. No half-posted invoices.
   if (getDataBackend() === "postgres") {
-    const postedInvoice = await createPosInvoicePostgres({
-      invoice,
-      stockMovements,
-      ledgerTransaction,
-    });
+    let postedInvoice;
+    try {
+      postedInvoice = await createPosInvoicePostgres({
+        invoice,
+        stockMovements,
+        ledgerTransaction,
+      });
+    } catch (error) {
+      const duplicateSubmission =
+        sourceSubmissionKey &&
+        ((error as { code?: string } | null)?.code === "23505" ||
+          (error instanceof Error && error.message.includes("pos_invoices_submission_key_idx")));
+      if (duplicateSubmission) {
+        const existing = invoiceId ? await getPosInvoiceById(invoiceId) : null;
+        if (existing) return existing;
+      }
+
+      throw error;
+    }
     await syncCatalogStockAfterPosting();
     return postedInvoice;
   }
 
   // local-json fallback: sequential writes, guarded by the posting-repair path.
-  await savePosInvoice(invoice);
+  const savedInvoice = await savePosInvoice(invoice);
+  if (savedInvoice.id !== invoice.id) {
+    return savedInvoice;
+  }
 
   const stockMovementIds: string[] = [];
   for (const movement of stockMovements) {

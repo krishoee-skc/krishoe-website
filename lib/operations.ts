@@ -95,6 +95,7 @@ export type MaterialConsumption = {
   quantity: number;
   wastage: number;
   note: string;
+  sourceSubmissionKey?: string;
 };
 
 export type FinishedStock = {
@@ -872,11 +873,21 @@ export async function addMaterialConsumption(input: {
   quantity: number;
   wastage: number;
   note: string;
+  sourceSubmissionKey?: string;
 }) {
+  const sourceSubmissionKey = input.sourceSubmissionKey?.trim().slice(0, 180) ?? "";
+
   return runWithDataBackend({
     storeName: "operations",
     localJson: async () => {
       const data = await getOperationsDataFromLocalJson();
+      if (sourceSubmissionKey) {
+        const existing = data.materialConsumptions.find(
+          (item) => item.sourceSubmissionKey === sourceSubmissionKey,
+        );
+        if (existing) return existing;
+      }
+
       const batch = data.productionBatches.find((item) => item.id === input.batchId);
       const material = data.rawMaterials.find((item) => item.id === input.materialId);
 
@@ -906,6 +917,7 @@ export async function addMaterialConsumption(input: {
         quantity,
         wastage,
         note: input.note.trim(),
+        sourceSubmissionKey,
       };
 
       material.used += quantity + wastage;

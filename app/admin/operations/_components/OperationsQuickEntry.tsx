@@ -81,6 +81,7 @@ export default function OperationsQuickEntry({
 
         <form action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
           <h3 className="font-black text-brand-green-ink">Material consumption</h3>
+          <input type="hidden" name="sourceSubmissionKey" value={`ops-use:${crypto.randomUUID()}`} />
           <select name="batchId" required className={inputClass} defaultValue="">
             <option value="" disabled>
               Select production batch

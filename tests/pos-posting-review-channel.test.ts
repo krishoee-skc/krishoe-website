@@ -37,6 +37,7 @@ function invoice(overrides: Partial<PosInvoice> = {}): PosInvoice {
     barcodeValue: "",
     qrPayload: "",
     note: "",
+    sourceSubmissionKey: "",
     ...overrides,
   };
 }

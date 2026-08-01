@@ -120,6 +120,7 @@ export async function createPosInvoiceAction(
       tax: numberValue(formData, "tax"),
       paidAmount,
       note: textValue(formData, "note"),
+      sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
       items: invoiceItems(formData),
     });
   } catch (error) {
