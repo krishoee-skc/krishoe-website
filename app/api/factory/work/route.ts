@@ -5,7 +5,12 @@ import {
   submissionKeyForFactoryRequest,
 } from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { positiveInteger, ymdDate } from "@/lib/factory-money";
+import {
+  numeric,
+  positiveInteger,
+  ymdDate,
+  type DbNumeric,
+} from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -19,8 +24,8 @@ interface WorkEntry {
   size: string | null;
   pairs_count: number;
   status: string;
-  rate_applied: number;
-  amount_earned: number;
+  rate_applied: DbNumeric;
+  amount_earned: DbNumeric;
 }
 
 export async function POST(request: NextRequest) {
@@ -109,8 +114,16 @@ export async function GET(request: NextRequest) {
 
     const works = await queryPostgres<WorkWithNames>(STORE, query, params.length > 0 ? params : undefined);
 
-    // Filter out null results as safeguard
-    const validWorks = works.filter(w => w && w.worker_name && w.item_name);
+    // PostgreSQL NUMERIC values arrive as strings. Normalize them at the API
+    // boundary so dashboard arithmetic never becomes string concatenation.
+    const validWorks = works
+      .filter((work) => work && work.worker_name && work.item_name)
+      .map((work) => ({
+        ...work,
+        pairs_count: Number(work.pairs_count) || 0,
+        rate_applied: numeric(work.rate_applied),
+        amount_earned: numeric(work.amount_earned),
+      }));
 
     if (validWorks.length === 0 && works.length > 0) {
       return NextResponse.json({
