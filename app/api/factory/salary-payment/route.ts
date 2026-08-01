@@ -1,9 +1,11 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
-import { queryPostgres } from "@/lib/postgres/client";
-import { numeric, positiveAmount, ymdDate, type DbNumeric } from "@/lib/factory-money";
+import {
+  createFactoryLedgerEntry,
+  FactoryMutationError,
+  submissionKeyForFactoryRequest,
+} from "@/lib/factory-mutations";
+import { monthKey, positiveAmount, ymdDate } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
-
-const STORE = "krishoe";
 
 export async function POST(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/salary-payment", "POST");
@@ -11,54 +13,55 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { worker_id } = body;
+    const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
     const amount = positiveAmount(body.amount);
     const date = ymdDate(body.date);
+    const periodMonth = monthKey(body.period_month);
+    const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
-    if (!worker_id || !amount || !date) {
+    if (!workerId || !amount || !date || !periodMonth) {
       return NextResponse.json(
-        { error: "worker_id, a positive amount, and a YYYY-MM-DD date are required" },
+        {
+          error:
+            "worker_id, a positive amount, a YYYY-MM-DD date, and period_month (YYYY-MM) are required",
+        },
         { status: 400 }
       );
     }
 
-    const ledgerId = crypto.randomUUID();
-
-    // Get current running balance
-    const ledgerEntries = await queryPostgres<{ running_balance: DbNumeric }>(
-      STORE,
-      `SELECT running_balance FROM factory_worker_ledger
-       WHERE worker_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [worker_id]
-    );
-
-    const currentBalance = numeric(ledgerEntries?.[0]?.running_balance);
-    const newBalance = currentBalance - amount;
-
-    // Record payment in ledger
-    await queryPostgres(
-      STORE,
-      `INSERT INTO factory_worker_ledger
-       (id, worker_id, date, entry_type, payment_given, running_balance, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [ledgerId, worker_id, date, "payment", amount, newBalance, "settled"]
-    );
-
-    return NextResponse.json({
-      id: ledgerId,
-      worker_id,
-      amount,
+    const result = await createFactoryLedgerEntry({
+      submissionKey,
+      workerId,
       date,
-      new_balance: newBalance,
-    }, { status: 201 });
+      entryType: "payment",
+      workPairs: null,
+      amountEarned: 0,
+      paymentGiven: amount,
+      status: "settled",
+      notes: "Factory salary payment",
+      salaryPeriodMonth: periodMonth,
+      allowedWorkerTypes: ["monthly_staff"],
+    });
+
+    return NextResponse.json(
+      {
+        ...result,
+        amount: result.payment_given,
+        new_balance: result.running_balance,
+      },
+      { status: result.replayed ? 200 : 201 },
+    );
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Error recording payment:", errorMsg);
     return NextResponse.json(
-      { error: "Failed to record payment", detail: errorMsg },
-      { status: 500 }
+      {
+        error:
+          error instanceof FactoryMutationError
+            ? error.message
+            : "Failed to record payment",
+      },
+      { status: error instanceof FactoryMutationError ? error.status : 500 }
     );
   }
 }

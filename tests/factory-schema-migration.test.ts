@@ -43,6 +43,20 @@ describe("canonical Factory database migration", () => {
     expect(migration).not.toContain("seed-item-");
   });
 
+  it("adds staff salary-period attribution without deleting or seeding rows", () => {
+    const migration = read(
+      "scripts",
+      "migrations",
+      "20260801_factory_schema_v2_salary_period.sql",
+    );
+
+    expect(migration).toContain("salary_period_month");
+    expect(migration).toContain("worker_type IN ('monthly_staff', 'daily_staff')");
+    expect(migration).not.toMatch(/\bDELETE\s+FROM\b/i);
+    expect(migration).not.toMatch(/^\s*(BEGIN|COMMIT|ROLLBACK)\s*;/im);
+    expect(migration).not.toContain("seed-worker-");
+  });
+
   it("tracks ordered migration checksums and rejects edited applied files", () => {
     const runner = read("scripts", "apply-postgres-schema.mjs");
 

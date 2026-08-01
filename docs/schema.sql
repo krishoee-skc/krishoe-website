@@ -1201,12 +1201,17 @@ CREATE TABLE IF NOT EXISTS factory_worker_ledger (
   running_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending',
   notes TEXT,
+  -- Staff salary payments can be made later but still belong to the selected
+  -- salary month. Piece-rate ledger rows leave this NULL.
+  salary_period_month DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT factory_worker_ledger_type_check
     CHECK (entry_type IN ('work', 'payment', 'adjustment')),
   CONSTRAINT factory_worker_ledger_status_check
-    CHECK (status IN ('pending', 'settled', 'reversed'))
+    CHECK (status IN ('pending', 'settled', 'reversed')),
+  CONSTRAINT factory_worker_ledger_salary_period_check
+    CHECK (salary_period_month IS NULL OR salary_period_month = date_trunc('month', salary_period_month)::date)
 );
 
 CREATE TABLE IF NOT EXISTS factory_weekly_advance (
@@ -1217,8 +1222,11 @@ CREATE TABLE IF NOT EXISTS factory_weekly_advance (
   advance_amount NUMERIC(12, 2) NOT NULL CHECK (advance_amount > 0),
   date_given DATE NOT NULL DEFAULT CURRENT_DATE,
   notes TEXT,
+  salary_period_month DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_weekly_advance_salary_period_check
+    CHECK (salary_period_month = date_trunc('month', salary_period_month)::date)
 );
 
 CREATE TABLE IF NOT EXISTS factory_monthly_summary (
@@ -1253,10 +1261,12 @@ ALTER TABLE factory_daily_work
 ALTER TABLE factory_worker_ledger
   ADD COLUMN IF NOT EXISTS submission_key TEXT,
   ADD COLUMN IF NOT EXISTS source_work_id TEXT REFERENCES factory_daily_work(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS salary_period_month DATE,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE factory_weekly_advance
   ADD COLUMN IF NOT EXISTS submission_key TEXT,
   ADD COLUMN IF NOT EXISTS notes TEXT,
+  ADD COLUMN IF NOT EXISTS salary_period_month DATE,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE factory_monthly_summary
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
@@ -1275,6 +1285,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS factory_daily_work_submission_key_idx
 CREATE INDEX IF NOT EXISTS factory_worker_ledger_worker_date_idx
   ON factory_worker_ledger(worker_id, date DESC, created_at DESC);
 CREATE INDEX IF NOT EXISTS factory_worker_ledger_status_idx ON factory_worker_ledger(status);
+CREATE INDEX IF NOT EXISTS factory_worker_ledger_salary_period_idx
+  ON factory_worker_ledger(worker_id, salary_period_month DESC)
+  WHERE salary_period_month IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS factory_worker_ledger_submission_key_idx
   ON factory_worker_ledger(submission_key)
   WHERE submission_key IS NOT NULL AND submission_key <> '';
@@ -1283,6 +1296,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS factory_worker_ledger_source_work_idx
   WHERE source_work_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS factory_weekly_advance_worker_week_idx
   ON factory_weekly_advance(worker_id, week_of_date DESC);
+CREATE INDEX IF NOT EXISTS factory_weekly_advance_salary_period_idx
+  ON factory_weekly_advance(worker_id, salary_period_month DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS factory_weekly_advance_submission_key_idx
   ON factory_weekly_advance(submission_key)
   WHERE submission_key IS NOT NULL AND submission_key <> '';

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
+import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 
 interface Worker {
   id: string;
@@ -24,7 +26,7 @@ export default function AddWorkPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: nepalDateKey(),
     worker_id: "",
     item_id: "",
     color: "",
@@ -41,6 +43,7 @@ export default function AddWorkPage() {
   const [newProductName, setNewProductName] = useState("");
   const [showSetRate, setShowSetRate] = useState(false);
   const [newRate, setNewRate] = useState("");
+  const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,7 +56,11 @@ export default function AddWorkPage() {
         const workersData = await workersRes.json();
         const itemsData = await itemsRes.json();
 
-        setWorkers(workersData.workers || []);
+        setWorkers(
+          (workersData.workers || []).filter(
+            (worker: Worker) => worker.worker_type === "piece_rate",
+          ),
+        );
         setItems(itemsData.items || []);
       } catch (err) {
         setError("Failed to load workers and items");
@@ -190,9 +197,13 @@ export default function AddWorkPage() {
     }
 
     try {
+      const keyScope = `work:${JSON.stringify(formData)}`;
       const res = await fetch("/api/factory/work", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeys.get(keyScope),
+        },
         body: JSON.stringify(formData),
       });
 
@@ -201,9 +212,10 @@ export default function AddWorkPage() {
         throw new Error(errorData.error || "Failed to save work entry");
       }
 
+      idempotencyKeys.rotate(keyScope);
       setSuccess("✅ Work entry saved successfully!");
       setFormData({
-        date: new Date().toISOString().split("T")[0],
+        date: nepalDateKey(),
         worker_id: "",
         item_id: "",
         color: "",
@@ -356,28 +368,9 @@ export default function AddWorkPage() {
           />
         </div>
 
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">✅ Status</label>
-          <div className="space-y-2">
-            {[
-              { value: "completed", label: "✅ Completed" },
-              { value: "in_progress", label: "⏳ In Progress" },
-              { value: "rework", label: "🔄 Rework" },
-            ].map((option) => (
-              <label key={option.value} className="flex items-center">
-                <input
-                  type="radio"
-                  name="status"
-                  value={option.value}
-                  checked={formData.status === option.value}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="ml-2 text-sm text-slate-700">{option.label}</span>
-              </label>
-            ))}
-          </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          ✅ Save here only after the worker has completed and handed over the work.
+          Rejected work should be corrected first.
         </div>
 
         {/* Rate Display */}

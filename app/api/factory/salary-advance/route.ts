@@ -1,9 +1,11 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
-import { queryPostgres } from "@/lib/postgres/client";
-import { positiveAmount, ymdDate } from "@/lib/factory-money";
+import {
+  createFactoryAdvance,
+  FactoryMutationError,
+  submissionKeyForFactoryRequest,
+} from "@/lib/factory-mutations";
+import { monthKey, positiveAmount, ymdDate } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
-
-const STORE = "krishoe";
 
 export async function POST(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/salary-advance", "POST");
@@ -11,41 +13,43 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { worker_id } = body;
+    const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
     const amount = positiveAmount(body.amount);
     const date = ymdDate(body.date);
+    const periodMonth = monthKey(body.period_month);
+    const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
-    if (!worker_id || !amount || !date) {
+    if (!workerId || !amount || !date || !periodMonth) {
       return NextResponse.json(
-        { error: "worker_id, a positive amount, and a YYYY-MM-DD date are required" },
+        {
+          error:
+            "worker_id, a positive amount, a YYYY-MM-DD date, and period_month (YYYY-MM) are required",
+        },
         { status: 400 }
       );
     }
 
-    const advanceId = crypto.randomUUID();
-    const [year, month, day] = date.split("-");
-    const weekOfDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
-    weekOfDate.setDate(weekOfDate.getDate() - weekOfDate.getDay());
-
-    await queryPostgres(
-      STORE,
-      `INSERT INTO factory_weekly_advance (id, worker_id, week_of_date, advance_amount, date_given)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [advanceId, worker_id, weekOfDate.toISOString().split("T")[0], amount, date]
-    );
-
-    return NextResponse.json({
-      id: advanceId,
-      worker_id,
+    const result = await createFactoryAdvance({
+      submissionKey,
+      workerId,
       amount,
       date,
-    }, { status: 201 });
+      notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
+      periodMonth,
+    });
+
+    return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Error recording advance:", errorMsg);
     return NextResponse.json(
-      { error: "Failed to record advance", detail: errorMsg },
-      { status: 500 }
+      {
+        error:
+          error instanceof FactoryMutationError
+            ? error.message
+            : "Failed to record advance",
+      },
+      { status: error instanceof FactoryMutationError ? error.status : 500 }
     );
   }
 }

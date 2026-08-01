@@ -226,10 +226,14 @@ export default function WorkersPage() {
                     </td>
                     <td className="py-3 px-2 sm:px-4 text-center">
                       <a
-                        href={`/admin/factory/ledger?workerId=${worker.id}`}
+                        href={
+                          worker.worker_type === "monthly_staff"
+                            ? `/admin/factory/salary?workerId=${worker.id}`
+                            : `/admin/factory/ledger?workerId=${worker.id}`
+                        }
                         className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm"
                       >
-                        View Ledger
+                        {worker.worker_type === "monthly_staff" ? "View Salary" : "View Ledger"}
                       </a>
                     </td>
                   </tr>

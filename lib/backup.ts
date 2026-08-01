@@ -1,7 +1,11 @@
 import { getAdminAuditEvents } from "@/lib/admin-audit";
 import { getAdminSettingsForBackup } from "@/lib/admin-settings";
+import {
+  backupExtensionTableSpecs,
+  emptyBackupExtensionGroups,
+} from "@/lib/backup-table-manifest.mjs";
 import { getCostingSettings } from "@/lib/costing-settings";
-import { getSafeDataBackendStatus } from "@/lib/data-backend";
+import { getDataBackendConfig, getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getEmailVerificationTokensForBackup } from "@/lib/email-verification-store";
 import { getHrData, type HrData } from "@/lib/hr";
 import { getNotificationEvents } from "@/lib/notifications";
@@ -13,12 +17,83 @@ import { getPaymentTransactions } from "@/lib/payment-transactions";
 import { getPasswordResetTokensForBackup } from "@/lib/password-reset-store";
 import { getPosInvoices, type PosPaymentMethod } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
+import { transactionPostgres } from "@/lib/postgres/client";
 import { getProductionReadinessSummary } from "@/lib/production-readiness";
 import { getPurchasingData, type SupplierPaymentMethod } from "@/lib/purchasing";
 import { getContactMessages, getOrders } from "@/lib/submissions";
 import { getUsersForBackup } from "@/lib/user-store";
 
-export const backupSchemaVersion = 14;
+export const backupSchemaVersion = 15;
+
+type RawBackupRow = Record<string, unknown>;
+type RawBackupGroups = {
+  productionAccounting: Record<string, RawBackupRow[]>;
+  factory: Record<string, RawBackupRow[]>;
+  assets: Record<string, RawBackupRow[]>;
+};
+
+async function getBackupExtensionRows(): Promise<RawBackupGroups> {
+  const emptyGroups = emptyBackupExtensionGroups() as RawBackupGroups;
+
+  // Factory and production-accounting records only exist in Postgres. Keep a
+  // local-json development backup usable when DATABASE_URL is intentionally
+  // absent, while exporting every extension row whenever Postgres is present.
+  if (!getDataBackendConfig().hasDatabaseUrl) {
+    return emptyGroups;
+  }
+
+  const entries = await transactionPostgres("admin backup", async (db) => {
+    // Parent and child rows must come from one database snapshot. Without this,
+    // a production write between two table reads could leave a valid live DB
+    // but an unrestorable backup (for example a work row without its new item).
+    await db.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+
+    const snapshotRows: Array<readonly [string, string, RawBackupRow[]]> = [];
+    for (const { group, table, columns } of backupExtensionTableSpecs) {
+      const selectedColumns = columns.map((column) =>
+        table === "uploaded_images" && column === "bytes"
+          ? `replace(replace(encode("bytes", 'base64'), E'\\n', ''), E'\\r', '') AS "bytes"`
+          : `"${column}"`,
+      );
+      const rows = await db.query<RawBackupRow>(
+        `SELECT ${selectedColumns.join(", ")}
+         FROM "${table}"
+         ORDER BY "id"`,
+      );
+      snapshotRows.push([group, table, rows] as const);
+    }
+    return snapshotRows;
+  });
+
+  for (const [group, table, rows] of entries) {
+    emptyGroups[group as keyof RawBackupGroups][table] = rows;
+  }
+
+  return emptyGroups;
+}
+
+function backupExtensionCounts(groups: RawBackupGroups) {
+  return Object.fromEntries(
+    Object.entries(groups).map(([group, tables]) => [
+      group,
+      Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.length])),
+    ]),
+  ) as Record<keyof RawBackupGroups, Record<string, number>>;
+}
+
+function backupExtensionIntegrity(groups: RawBackupGroups) {
+  return Object.fromEntries(
+    Object.entries(groups).map(([group, tables]) => [
+      group,
+      Object.fromEntries(
+        Object.entries(tables).map(([table, rows]) => [
+          table,
+          { duplicateIds: findDuplicateIds(rows as IdRecord[]) },
+        ]),
+      ),
+    ]),
+  );
+}
 
 type IdRecord = {
   id: string;
@@ -90,6 +165,10 @@ function purchasingCounts(purchasing: Awaited<ReturnType<typeof getPurchasingDat
     supplierLedgers: purchasing.supplierLedgers.length,
     purchaseInvoices: purchasing.purchaseInvoices.length,
     supplierTransactions: purchasing.supplierTransactions.length,
+    purchaseInvoiceItems: purchasing.purchaseInvoices.reduce(
+      (sum, invoice) => sum + invoice.items.length,
+      0,
+    ),
   };
 }
 
@@ -217,6 +296,7 @@ export async function buildAdminBackup() {
     adminSettings,
     audit,
     notifications,
+    backupExtensions,
   ] = await Promise.all([
     getProducts({ includeDrafts: true }),
     getOrders(),
@@ -233,7 +313,10 @@ export async function buildAdminBackup() {
     getAdminSettingsForBackup(),
     getAdminAuditEvents(500),
     getNotificationEvents(300),
+    getBackupExtensionRows(),
   ]);
+
+  const extensionCounts = backupExtensionCounts(backupExtensions);
 
   return {
     schemaVersion: backupSchemaVersion,
@@ -245,6 +328,7 @@ export async function buildAdminBackup() {
     counts: {
       products: products.length,
       orders: orders.length,
+      orderItems: orders.reduce((sum, order) => sum + order.items.length, 0),
       messages: messages.length,
       users: users.length,
       passwordResetTokens: passwordResetTokens.length,
@@ -262,6 +346,9 @@ export async function buildAdminBackup() {
       },
       audit: audit.length,
       notifications: notifications.length,
+      productionAccounting: extensionCounts.productionAccounting,
+      factory: extensionCounts.factory,
+      assets: extensionCounts.assets,
     },
     integrity: {
       products: {
@@ -399,6 +486,7 @@ export async function buildAdminBackup() {
           orphanRawMaterials: purchasing.purchaseInvoices
             .filter(
               (invoice) =>
+                Boolean(invoice.materialId) &&
                 !operations.rawMaterials.some((material) => material.id === invoice.materialId),
             )
             .map((invoice) => invoice.id),
@@ -458,6 +546,7 @@ export async function buildAdminBackup() {
       },
       hr: hrIntegrity(hr),
       adminSettings: adminSettingsIntegrity(adminSettings),
+      ...backupExtensionIntegrity(backupExtensions),
     },
     migrationReadiness: {
       recommendedOrder: [
@@ -469,6 +558,8 @@ export async function buildAdminBackup() {
         "Import supplier ledgers, supplier transactions, and purchase invoices with their raw material links.",
         "Import costing settings so labor and overhead COGS stay consistent.",
         "Import HR employees before attendance and payroll records.",
+        "Import production-accounting master rows before work orders, work entries, QC postings, and worker payments.",
+        "Import Factory workers/items before rates, daily work, ledger, advances, and monthly summaries.",
         "Import company branches and admin staff before switching staff login to production.",
         "Run integrity checks and compare counts with this backup.",
         "Switch DATA_BACKEND to postgres only after read/write smoke tests pass.",
@@ -491,6 +582,9 @@ export async function buildAdminBackup() {
       adminSettings,
       audit,
       notifications,
+      productionAccounting: backupExtensions.productionAccounting,
+      factory: backupExtensions.factory,
+      assets: backupExtensions.assets,
     },
   };
 }

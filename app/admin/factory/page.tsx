@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 
 interface DailyStats {
   totalPairs: number;
@@ -53,7 +54,7 @@ export default function FactoryDashboard() {
       try {
         setError(null);
         // Get today's date
-        const today = new Date().toISOString().split("T")[0];
+        const today = nepalDateKey();
 
         // Fetch today's work entries
         const workRes = await fetch(`/api/factory/work?date=${today}`);
@@ -168,7 +169,7 @@ export default function FactoryDashboard() {
         </div>
 
         <div className="bg-white rounded p-2 sm:p-3 border border-slate-200">
-          <div className="text-xs text-slate-600 font-medium">Total Amount</div>
+          <div className="text-xs text-slate-600 font-medium">Piece Wage Earned</div>
           <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
             Rs. {stats.totalAmount.toLocaleString()}
           </div>

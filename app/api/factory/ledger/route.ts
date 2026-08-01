@@ -1,6 +1,18 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
+import {
+  createFactoryLedgerEntry,
+  FactoryMutationError,
+  submissionKeyForFactoryRequest,
+} from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { numeric, positiveAmount, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
+import {
+  monthKey,
+  numeric,
+  positiveAmount,
+  positiveInteger,
+  ymdDate,
+  type DbNumeric,
+} from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -17,6 +29,7 @@ interface LedgerEntry {
   running_balance: DbNumeric;
   status: string;
   notes: string | null;
+  created_at: string;
 }
 
 interface Worker {
@@ -33,10 +46,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const workerId = request.nextUrl.searchParams.get("workerId");
-    const month = request.nextUrl.searchParams.get("month");
+    const requestedMonth = request.nextUrl.searchParams.get("month");
+    const month = requestedMonth ? monthKey(requestedMonth) : null;
 
     if (!workerId) {
       return NextResponse.json({ error: "workerId is required" }, { status: 400 });
+    }
+    if (requestedMonth && !month) {
+      return NextResponse.json({ error: "month must use YYYY-MM format" }, { status: 400 });
     }
 
     // Get worker info first
@@ -56,28 +73,54 @@ export async function GET(request: NextRequest) {
     const worker = workers[0];
 
     // Get ledger entries
-    let ledgerQuery = `SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
-                              payment_given, running_balance, status, notes
-                       FROM factory_worker_ledger
-                       WHERE worker_id = $1`;
+    let ledgerQuery = `WITH balanced AS (
+                         SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
+                                payment_given, status, notes, created_at,
+                                SUM(
+                                  CASE WHEN status = 'reversed' THEN 0
+                                  ELSE COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)
+                                  END
+                                ) OVER (
+                                  PARTITION BY worker_id
+                                  ORDER BY created_at ASC, id ASC
+                                  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                                ) AS running_balance
+                         FROM factory_worker_ledger
+                         WHERE worker_id = $1
+                       )
+                       SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
+                              payment_given, running_balance, status, notes, created_at
+                       FROM balanced
+                       WHERE true`;
     const params: LedgerParam[] = [workerId];
 
     if (month) {
-      // Parse YYYY-MM format
-      const [year, monthNum] = month.split("-");
-      ledgerQuery += ` AND EXTRACT(YEAR FROM date) = $2 AND EXTRACT(MONTH FROM date) = $3`;
-      params.push(parseInt(year), parseInt(monthNum));
+      ledgerQuery += ` AND date >= $2::date AND date < ($2::date + INTERVAL '1 month')`;
+      params.push(`${month}-01`);
     }
 
-    ledgerQuery += ` ORDER BY date ASC`;
+    ledgerQuery += ` ORDER BY created_at ASC, id ASC`;
 
     const ledger = await queryPostgres<LedgerEntry>(STORE, ledgerQuery, params);
+    const balanceRows = await queryPostgres<{ current_balance: DbNumeric }>(
+      STORE,
+      `SELECT COALESCE(
+                SUM(CASE WHEN status = 'reversed' THEN 0
+                    ELSE COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)
+                    END),
+                0
+              ) AS current_balance
+       FROM factory_worker_ledger
+       WHERE worker_id = $1`,
+      [workerId],
+    );
 
     // Calculate summary
-    const totalPairs = (ledger || []).reduce((sum, entry) => sum + (entry?.work_pairs || 0), 0);
-    const totalEarned = (ledger || []).reduce((sum, entry) => sum + numeric(entry?.amount_earned), 0);
-    const totalPaid = (ledger || []).reduce((sum, entry) => sum + numeric(entry?.payment_given), 0);
-    const currentBalance = numeric(ledger?.[ledger.length - 1]?.running_balance);
+    const activeLedger = (ledger || []).filter((entry) => entry.status !== "reversed");
+    const totalPairs = activeLedger.reduce((sum, entry) => sum + (entry?.work_pairs || 0), 0);
+    const totalEarned = activeLedger.reduce((sum, entry) => sum + numeric(entry?.amount_earned), 0);
+    const totalPaid = activeLedger.reduce((sum, entry) => sum + numeric(entry?.payment_given), 0);
+    const currentBalance = numeric(balanceRows[0]?.current_balance);
 
     return NextResponse.json({
       worker,
@@ -93,13 +136,10 @@ export async function GET(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Error fetching ledger:", errorMsg);
 
-    // Return graceful fallback instead of error
-    return NextResponse.json({
-      worker: null,
-      ledger: [],
-      summary: { totalPairs: 0, totalEarned: 0, totalPaid: 0, currentBalance: 0 },
-      message: "No ledger data available. Please try refreshing.",
-    });
+    return NextResponse.json(
+      { error: "Worker ledger is temporarily unavailable. Please try again." },
+      { status: 503 },
+    );
   }
 }
 
@@ -109,69 +149,47 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { worker_id, entry_type, notes } = body;
+    const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
+    const entryType = typeof body.entry_type === "string" ? body.entry_type.trim() : "";
+    const notes = body.notes;
     const date = ymdDate(body.date);
     const workPairs = positiveInteger(body.work_pairs);
-    const amountEarned = positiveAmount(body.amount_earned);
-    const paymentGiven = positiveAmount(body.payment_given);
+    const amountEarned = positiveAmount(body.amount_earned) ?? 0;
+    const paymentGiven = positiveAmount(body.payment_given) ?? 0;
+    const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
-    if (!worker_id || !date || !entry_type) {
+    if (!workerId || !date || !entryType) {
       return NextResponse.json(
         { error: "worker_id, date, and entry_type are required" },
         { status: 400 }
       );
     }
 
-    // Get current balance
-    const ledgerEntries = await queryPostgres<{ running_balance: DbNumeric }>(
-      STORE,
-      `SELECT running_balance FROM factory_worker_ledger
-       WHERE worker_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [worker_id]
-    );
+    const result = await createFactoryLedgerEntry({
+      submissionKey,
+      workerId,
+      date,
+      entryType,
+      workPairs,
+      amountEarned,
+      paymentGiven,
+      status: entryType === "payment" ? "settled" : "pending",
+      notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
+      salaryPeriodMonth: null,
+      allowedWorkerTypes: ["piece_rate"],
+    });
 
-    const currentBalance = numeric(ledgerEntries[0]?.running_balance);
-
-    let newBalance = currentBalance;
-    if (amountEarned) newBalance += amountEarned;
-    if (paymentGiven) newBalance -= paymentGiven;
-
-    const ledgerId = crypto.randomUUID();
-    await queryPostgres(
-      STORE,
-      `INSERT INTO factory_worker_ledger
-       (id, worker_id, date, entry_type, work_pairs, amount_earned, payment_given, running_balance, status, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9)`,
-      [
-        ledgerId,
-        worker_id,
-        date,
-        entry_type,
-        workPairs,
-        amountEarned,
-        paymentGiven,
-        newBalance,
-        notes || null,
-      ]
-    );
-
-    return NextResponse.json(
-      {
-        id: ledgerId,
-        worker_id,
-        date,
-        entry_type,
-        work_pairs: workPairs,
-        amount_earned: amountEarned,
-        payment_given: paymentGiven,
-        running_balance: newBalance,
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     console.error("Error creating ledger entry:", error);
-    return NextResponse.json({ error: "Failed to create ledger entry" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof FactoryMutationError
+            ? error.message
+            : "Failed to create ledger entry",
+      },
+      { status: error instanceof FactoryMutationError ? error.status : 500 },
+    );
   }
 }

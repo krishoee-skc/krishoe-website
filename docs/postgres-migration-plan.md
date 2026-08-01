@@ -12,7 +12,7 @@ factory, shop, customer, ledger, or audit data.
 - Orders now include payment status, provider, references, transaction IDs,
   callback IDs, and verified timestamps for the upcoming eSewa/Khalti phase.
 - Protected admin backup is available at `/api/admin/backup`.
-- Backup schema version is `13`.
+- Backup schema version is `15` (the importer and smoke checker remain compatible with v14).
 - Backup includes sensitive data: users, password hashes, hashed password reset tokens,
   products, orders, messages, operations, audit events, and notification events.
   Payment transaction history is included for order payment audit and ledger
@@ -23,6 +23,10 @@ factory, shop, customer, ledger, or audit data.
   purchase-basis profit reporting data are included.
 - Factory costing settings for labor rates and overhead allocation are included.
 - HR employees, attendance, payroll records, and worker-performance reporting data are included.
+- The 12 production-accounting tables and all 7 `factory_*` compatibility tables are included as raw, dependency-ordered Postgres rows.
+- Postgres `uploaded_images` bytes are included. Product URLs that point to
+  Vercel Blob or development `public/uploads` remain in the product records,
+  but those external/filesystem objects are not copied into this JSON backup.
 - Backup export and Postgres import hash legacy plaintext reset tokens before
   writing them into migration artifacts or the target database.
 - Notification delivery status, attempts, delivered time, channel, and last
@@ -42,17 +46,22 @@ factory, shop, customer, ledger, or audit data.
    - products
    - users
    - raw materials
+   - HR employees
    - production batches
    - finished stock
+   - stock movements (QC postings link to these rows)
    - customer ledgers
    - supplier ledgers
-6. Import activity data second:
+6. Restore the v15 extension rows in their fixed dependency order:
+   - production items, stage rates, worker rates, material plans, and cost cards
+   - work orders, CCTV references, material consumption, handovers, work entries, worker payments, and QC postings
+   - Factory workers, items, rates, daily work, worker ledger, weekly advances, and monthly summaries
+7. Import the remaining activity data:
    - orders
    - contact messages
    - worker tasks
    - vehicle dispatches
    - vehicle dispatch items
-   - stock movements
    - ledger transactions
    - payment transactions
    - POS invoices
@@ -60,18 +69,20 @@ factory, shop, customer, ledger, or audit data.
    - purchase invoices
    - hashed password reset tokens, if still needed
    - audit and notification events
-7. Compare row counts with `backup.counts`.
-8. Check `backup.integrity` before and after import.
-9. Run app smoke tests using Postgres in preview.
-10. Run read/write smoke tests for catalog, checkout, account, operations, backup, audit, notifications, and rate limiting.
-11. Switch production env only after preview passes:
+8. Compare row counts with `backup.counts`.
+9. Check `backup.integrity` before and after import.
+10. Run app smoke tests using Postgres in preview.
+11. Run read/write smoke tests for catalog, checkout, account, operations, backup, audit, notifications, and rate limiting.
+12. Switch production env only after preview passes:
     - `DATA_BACKEND=postgres`
     - `DATABASE_URL=<postgres connection string>`
 
 ## Import Command
 
-After exporting a fresh backup from `/api/admin/backup`, apply schema and
-import it into a preview Postgres database:
+After briefly pausing business writes and exporting a fresh backup from
+`/api/admin/backup`, apply schema and import it into a preview Postgres
+database. The pause keeps catalog/HR/stock masters consistent with linked
+Factory and Production snapshot rows:
 
 ```bash
 npm run backup:export -- --url=http://localhost:3002
@@ -82,18 +93,20 @@ DATABASE_URL="postgres://..." npm run db:schema
 ```
 
 ```bash
-DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v13.json
+DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v15.json
 ```
 
 For a clean preview database where replacing all app rows is intended:
 
 ```bash
-DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v13.json --replace --confirm-replace
+DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v15.json --replace --confirm-replace --confirm-database=VERIFY_DATABASE_NAME
 ```
 
 The default import mode is idempotent upsert. The `--replace` flag truncates
 the app tables first, so use it only against a preview database or a confirmed
-restore target.
+restore target. It accepts v15 backups only and also requires the exact target
+database name through `--confirm-database`. Replace `VERIFY_DATABASE_NAME`
+with the exact database name shown by the target connection before running it.
 
 ## Smoke Check Command
 
@@ -101,7 +114,7 @@ After schema setup and import, compare preview Postgres row counts with the
 backup and run integrity checks:
 
 ```bash
-DATABASE_URL="postgres://..." npm run db:smoke -- ./krishoe-backup-v13.json
+DATABASE_URL="postgres://..." npm run db:smoke -- ./krishoe-backup-v15.json
 ```
 
 Without a backup file, the command still checks table availability, relation

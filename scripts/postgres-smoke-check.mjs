@@ -4,11 +4,15 @@ import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import pg from "pg";
+import {
+  backupExtensionTableSpecs,
+  validateBackupExtensionData,
+} from "../lib/backup-table-manifest.mjs";
 import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
-const backupSchemaVersion = 14;
-const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, backupSchemaVersion];
+const backupSchemaVersion = 15;
+const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, backupSchemaVersion];
 
 const countTables = [
   ["products", "products"],
@@ -16,10 +20,12 @@ const countTables = [
   ["passwordResetTokens", "password_reset_tokens"],
   ["emailVerificationTokens", "email_verification_tokens"],
   ["orders", "orders"],
+  ["orderItems", "order_items"],
   ["paymentTransactions", "payment_transactions"],
   ["posInvoices", "pos_invoices"],
   ["supplierLedgers", "supplier_ledgers"],
   ["purchaseInvoices", "purchase_invoices"],
+  ["purchaseInvoiceItems", "purchase_invoice_items"],
   ["supplierTransactions", "supplier_transactions"],
   ["costingSettings", "costing_settings"],
   ["hrEmployees", "hr_employees"],
@@ -42,13 +48,14 @@ const countTables = [
   ["audit", "admin_audit_events"],
   ["notifications", "notification_events"],
   ["rateLimitAttempts", "rate_limit_attempts"],
+  ...backupExtensionTableSpecs.map(({ table }) => [table, table]),
 ];
 
 function usage() {
   return [
     "Usage:",
     "  npm run db:smoke",
-    "  npm run db:smoke -- path/to/krishoe-backup-v14.json",
+    "  npm run db:smoke -- path/to/krishoe-backup-v15.json",
     "",
     "Options:",
     "  --database-url=<postgres-url>  Override DATABASE_URL.",
@@ -137,6 +144,8 @@ function ensureBackupShape(backup) {
       `Expected backup schemaVersion ${supportedBackupSchemaVersions.join(" or ")}, got ${backup.schemaVersion}.`,
     );
   }
+
+  validateBackupExtensionData(backup);
 }
 
 function expectedCountsFromBackup(backup) {
@@ -145,6 +154,9 @@ function expectedCountsFromBackup(backup) {
   const purchasing = counts.purchasing ?? {};
   const hr = counts.hr ?? {};
   const adminSettings = counts.adminSettings ?? {};
+  const extensionCounts = Object.fromEntries(
+    backupExtensionTableSpecs.map(({ group, table }) => [table, counts[group]?.[table]]),
+  );
 
   return {
     products: counts.products,
@@ -152,10 +164,12 @@ function expectedCountsFromBackup(backup) {
     passwordResetTokens: counts.passwordResetTokens,
     emailVerificationTokens: counts.emailVerificationTokens,
     orders: counts.orders,
+    orderItems: counts.orderItems,
     paymentTransactions: counts.paymentTransactions,
     posInvoices: counts.posInvoices,
     supplierLedgers: purchasing.supplierLedgers,
     purchaseInvoices: purchasing.purchaseInvoices,
+    purchaseInvoiceItems: purchasing.purchaseInvoiceItems,
     supplierTransactions: purchasing.supplierTransactions,
     costingSettings: counts.costingSettings,
     hrEmployees: hr.employees,
@@ -177,6 +191,7 @@ function expectedCountsFromBackup(backup) {
     ledgerTransactions: operations.ledgerTransactions,
     audit: counts.audit,
     notifications: counts.notifications,
+    ...extensionCounts,
   };
 }
 
@@ -238,6 +253,15 @@ async function getIntegrity(client) {
         LEFT JOIN users ON users.id = orders.customer_user_id
         WHERE orders.customer_user_id IS NOT NULL
           AND users.id IS NULL
+      `,
+    ),
+    orphanOrderItems: await scalar(
+      client,
+      `
+        SELECT count(*) AS value
+        FROM order_items items
+        LEFT JOIN orders ON orders.id = items.order_id
+        WHERE orders.id IS NULL
       `,
     ),
     duplicateLowercaseAdminEmails: await scalar(
@@ -432,6 +456,23 @@ async function getIntegrity(client) {
         FROM purchase_invoices invoices
         LEFT JOIN supplier_ledgers suppliers ON suppliers.id = invoices.supplier_ledger_id
         WHERE suppliers.id IS NULL
+      `,
+    ),
+    orphanPurchaseInvoiceItems: await scalar(
+      client,
+      `
+        SELECT count(*) AS value
+        FROM purchase_invoice_items items
+        LEFT JOIN purchase_invoices invoices ON invoices.id = items.purchase_invoice_id
+        WHERE invoices.id IS NULL
+      `,
+    ),
+    uploadedImageByteSizeMismatches: await scalar(
+      client,
+      `
+        SELECT count(*) AS value
+        FROM uploaded_images
+        WHERE byte_size <> octet_length(bytes)
       `,
     ),
     orphanPurchaseInvoiceRawMaterials: await scalar(

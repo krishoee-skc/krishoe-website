@@ -11,7 +11,10 @@ export function numeric(value: DbNumeric): number {
 
 export function positiveAmount(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  const rounded = Math.round((parsed + Number.EPSILON) * 100) / 100;
+  return rounded > 0 ? rounded : null;
 }
 
 export function positiveInteger(value: unknown): number | null {

@@ -1091,8 +1091,8 @@ export default async function AdminDashboardPage() {
 
           <div className="mt-5 space-y-2">
             <CommandLine value='DATABASE_URL="postgres://..." npm run db:schema' />
-            <CommandLine value='DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v13.json --replace --confirm-replace' />
-            <CommandLine value='DATABASE_URL="postgres://..." npm run db:smoke -- ./krishoe-backup-v13.json' />
+            <CommandLine value='DATABASE_URL="postgres://..." npm run db:import -- ./krishoe-backup-v15.json --replace --confirm-replace --confirm-database=VERIFY_DATABASE_NAME' />
+            <CommandLine value='DATABASE_URL="postgres://..." npm run db:smoke -- ./krishoe-backup-v15.json' />
           </div>
 
           {databaseCheck ? (

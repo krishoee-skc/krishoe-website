@@ -1,18 +1,14 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
+import {
+  createFactoryWork,
+  FactoryMutationError,
+  submissionKeyForFactoryRequest,
+} from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { numeric, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
+import { positiveInteger, ymdDate } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
-
-interface Rate {
-  rate_per_pair: DbNumeric;
-}
-
-interface Worker {
-  category: string;
-  worker_type: string;
-}
 
 interface WorkEntry {
   id: string;
@@ -27,124 +23,50 @@ interface WorkEntry {
   amount_earned: number;
 }
 
-async function getRateForWork(itemId: string, workerCategory: string): Promise<number> {
-  const rates = await queryPostgres<Rate>(
-    STORE,
-    `SELECT rate_per_pair FROM factory_rates
-     WHERE item_id = $1 AND worker_category = $2
-     ORDER BY effective_date DESC, created_at DESC
-     LIMIT 1`,
-    [itemId, workerCategory]
-  );
-
-  if (rates.length === 0) {
-    throw new Error(`No rate found for item ${itemId} and category ${workerCategory}`);
-  }
-
-  return numeric(rates[0].rate_per_pair);
-}
-
 export async function POST(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/work", "POST");
   if (denied) return denied;
 
   try {
     const body = await request.json();
-    const { worker_id, item_id, color, size, status } = body;
+    const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
+    const itemId = typeof body.item_id === "string" ? body.item_id.trim() : "";
+    const color = body.color;
+    const size = body.size;
+    const status = typeof body.status === "string" && body.status ? body.status : "completed";
     const date = ymdDate(body.date);
     const pairsCount = positiveInteger(body.pairs_count);
+    const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
-    if (!date || !worker_id || !item_id || !pairsCount) {
+    if (!date || !workerId || !itemId || !pairsCount) {
       return NextResponse.json(
         { error: "date, worker_id, item_id, and a positive pairs_count are required" },
         { status: 400 }
       );
     }
 
-    // Get worker category and type
-    const workers = await queryPostgres<Worker>(
-      STORE,
-      "SELECT category, worker_type FROM factory_workers WHERE id = $1",
-      [worker_id]
-    );
+    const result = await createFactoryWork({
+      submissionKey,
+      date,
+      workerId,
+      itemId,
+      color: typeof color === "string" && color.trim() ? color.trim() : null,
+      size: typeof size === "string" && size.trim() ? size.trim() : null,
+      pairsCount,
+      status,
+    });
 
-    if (workers.length === 0) {
-      return NextResponse.json({ error: "Worker not found" }, { status: 404 });
-    }
-
-    const workerCategory = workers[0].category;
-
-    // Get rate for this worker category and item
-    const rate = await getRateForWork(item_id, workerCategory);
-
-    // Calculate amount
-    const amountEarned = pairsCount * rate;
-
-    // Save work entry
-    const workId = crypto.randomUUID();
-    await queryPostgres(
-      STORE,
-      `INSERT INTO factory_daily_work
-       (id, date, worker_id, item_id, color, size, pairs_count, status, rate_applied, amount_earned)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [
-        workId,
-        date,
-        worker_id,
-        item_id,
-        color || null,
-        size || null,
-        pairsCount,
-        status || "completed",
-        rate,
-        amountEarned,
-      ]
-    );
-
-    // Add ledger entry for piece-rate workers
-    if (workers[0].worker_type === "piece_rate") {
-      // Get current balance
-      const ledgerEntries = await queryPostgres<{ running_balance: DbNumeric }>(
-        STORE,
-        `SELECT running_balance FROM factory_worker_ledger
-         WHERE worker_id = $1
-         ORDER BY created_at DESC
-         LIMIT 1`,
-        [worker_id]
-      );
-
-      const currentBalance = numeric(ledgerEntries[0]?.running_balance);
-      const newBalance = currentBalance + amountEarned;
-
-      // Add ledger entry
-      const ledgerId = crypto.randomUUID();
-      await queryPostgres(
-        STORE,
-        `INSERT INTO factory_worker_ledger
-         (id, worker_id, date, entry_type, work_pairs, amount_earned, running_balance, status)
-         VALUES ($1, $2, $3, 'work', $4, $5, $6, 'pending')`,
-        [ledgerId, worker_id, date, pairsCount, amountEarned, newBalance]
-      );
-    }
-
-    return NextResponse.json(
-      {
-        id: workId,
-        date,
-        worker_id,
-        item_id,
-        pairs_count: pairsCount,
-        rate,
-        amount_earned: amountEarned,
-        status: status || "completed",
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     console.error("Error creating work entry:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create work entry" },
-      { status: 500 }
+      {
+        error:
+          error instanceof FactoryMutationError
+            ? error.message
+            : "Failed to create work entry",
+      },
+      { status: error instanceof FactoryMutationError ? error.status : 500 }
     );
   }
 }
@@ -170,21 +92,19 @@ export async function GET(request: NextRequest) {
                  LEFT JOIN factory_workers fw ON w.worker_id = fw.id
                  LEFT JOIN factory_items fi ON w.item_id = fi.id`;
 
-    const params: (string | null)[] = [];
+    const params: string[] = [];
+    const conditions = ["fw.worker_type = 'piece_rate'"];
 
     if (date) {
-      query += ` WHERE w.date = $1`;
       params.push(date);
-
-      if (workerId) {
-        query += ` AND w.worker_id = $2`;
-        params.push(workerId);
-      }
-    } else if (workerId) {
-      query += ` WHERE w.worker_id = $1`;
+      conditions.push(`w.date = $${params.length}`);
+    }
+    if (workerId) {
       params.push(workerId);
+      conditions.push(`w.worker_id = $${params.length}`);
     }
 
+    query += ` WHERE ${conditions.join(" AND ")}`;
     query += ` ORDER BY w.created_at DESC`;
 
     const works = await queryPostgres<WorkWithNames>(STORE, query, params.length > 0 ? params : undefined);
@@ -202,6 +122,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ works: validWorks });
   } catch (error) {
     console.error("Error fetching work entries:", error);
-    return NextResponse.json({ error: `Failed to fetch work entries: ${error instanceof Error ? error.message : 'Unknown error'}` }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch work entries." },
+      { status: 500 },
+    );
   }
 }

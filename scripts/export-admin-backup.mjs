@@ -4,9 +4,10 @@ import { createHmac } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { validateBackupExtensionData } from "../lib/backup-table-manifest.mjs";
 
 const defaultBaseUrl = "http://localhost:3002";
-const expectedBackupSchemaVersion = 13;
+const expectedBackupSchemaVersion = 15;
 const adminSessionCookieName = "krishoe_admin_session";
 
 function usage() {
@@ -14,12 +15,12 @@ function usage() {
     "Usage:",
     "  npm run backup:export",
     "  npm run backup:export -- --url=http://localhost:3002",
-    "  npm run backup:export -- --out=backups/krishoe-backup-v13-preview.json",
+    "  npm run backup:export -- --out=backups/krishoe-backup-v15-preview.json",
     "",
     "Options:",
     "  --url=<base-url>         Running app URL. Defaults to http://localhost:3002.",
-    "  --out=<path>             Output backup JSON path. Defaults to backups/krishoe-backup-v13-<timestamp>.json.",
-    "  --timeout-ms=<number>    Request timeout. Defaults to 20000.",
+    "  --out=<path>             Output backup JSON path. Defaults to backups/krishoe-backup-v15-<timestamp>.json.",
+    "  --timeout-ms=<number>    Request timeout. Defaults to 120000.",
     "  --check-only             Validate the backup response without writing a file.",
     "",
     "Environment:",
@@ -67,7 +68,7 @@ function parseArgs(argv) {
   const args = {
     url: process.env.NEXT_PUBLIC_SITE_URL || defaultBaseUrl,
     out: "",
-    timeoutMs: 20_000,
+    timeoutMs: 120_000,
     checkOnly: false,
   };
 
@@ -151,10 +152,14 @@ function summarizeCounts(backup) {
   const purchasing = counts.purchasing ?? {};
   const hr = counts.hr ?? {};
   const adminSettings = counts.adminSettings ?? {};
+  const productionAccounting = counts.productionAccounting ?? {};
+  const factory = counts.factory ?? {};
+  const assets = counts.assets ?? {};
 
   return {
     products: counts.products ?? 0,
     orders: counts.orders ?? 0,
+    orderItems: counts.orderItems ?? 0,
     messages: counts.messages ?? 0,
     users: counts.users ?? 0,
     audit: counts.audit ?? 0,
@@ -164,6 +169,12 @@ function summarizeCounts(backup) {
     hrRows: Object.values(hr).reduce((sum, value) => sum + (Number(value) || 0), 0),
     branches: adminSettings.branches ?? 0,
     staff: adminSettings.staff ?? 0,
+    productionAccountingRows: Object.values(productionAccounting).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0,
+    ),
+    factoryRows: Object.values(factory).reduce((sum, value) => sum + (Number(value) || 0), 0),
+    assetRows: Object.values(assets).reduce((sum, value) => sum + (Number(value) || 0), 0),
   };
 }
 
@@ -196,6 +207,12 @@ function validateBackup(backup) {
 
   if (!backup.data || typeof backup.data !== "object") {
     errors.push("Backup data section is missing.");
+  }
+
+  try {
+    validateBackupExtensionData(backup);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
 
   const activeOwnerCount = getActiveOwnerCount(backup);
@@ -269,7 +286,7 @@ async function main() {
     integrityIssues: validation.integrityIssues,
     nextCommands: [
       "DATABASE_URL=\"postgres://...\" npm run db:schema",
-      `DATABASE_URL="postgres://..." npm run db:import -- ${savedPath || outputPath} --replace --confirm-replace`,
+      `DATABASE_URL="postgres://..." npm run db:import -- ${savedPath || outputPath} --replace --confirm-replace --confirm-database=VERIFY_DATABASE_NAME`,
       `DATABASE_URL="postgres://..." npm run db:smoke -- ${savedPath || outputPath}`,
     ],
   };

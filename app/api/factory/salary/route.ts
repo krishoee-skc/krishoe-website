@@ -9,6 +9,7 @@ interface SalaryWorker {
   id: string;
   name: string;
   monthly_salary: DbNumeric;
+  worker_type: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -17,16 +18,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const workerId = request.nextUrl.searchParams.get("workerId");
-    const month = request.nextUrl.searchParams.get("month");
+    const requestedMonth = request.nextUrl.searchParams.get("month");
+    const selectedMonth = monthKey(requestedMonth);
 
-    if (!workerId) {
-      return NextResponse.json({ error: "workerId is required" }, { status: 400 });
+    if (!workerId || !requestedMonth || !selectedMonth) {
+      return NextResponse.json(
+        { error: "workerId and month (YYYY-MM) are required" },
+        { status: 400 },
+      );
     }
 
     // Get worker info
     const workers = await queryPostgres<SalaryWorker>(
       STORE,
-      "SELECT id, name, monthly_salary FROM factory_workers WHERE id = $1",
+      "SELECT id, name, monthly_salary, worker_type FROM factory_workers WHERE id = $1",
       [workerId]
     );
 
@@ -35,8 +40,12 @@ export async function GET(request: NextRequest) {
     }
 
     const worker = workers[0];
-    const selectedMonth = monthKey(month) ?? new Date().toISOString().slice(0, 7);
-    const [year, monthNum] = selectedMonth.split("-");
+    if (worker.worker_type !== "monthly_staff") {
+      return NextResponse.json(
+        { error: "Factory salary is for monthly staff; use HR payroll for daily staff" },
+        { status: 409 },
+      );
+    }
 
     // Get salary payments this month
     const payments = await queryPostgres<{ total_paid: DbNumeric }>(
@@ -45,9 +54,9 @@ export async function GET(request: NextRequest) {
        FROM factory_worker_ledger
        WHERE worker_id = $1
        AND entry_type = 'payment'
-       AND EXTRACT(YEAR FROM date) = $2
-       AND EXTRACT(MONTH FROM date) = $3`,
-      [workerId, parseInt(year), parseInt(monthNum)]
+       AND status <> 'reversed'
+       AND COALESCE(salary_period_month, date_trunc('month', date)::date) = $2::date`,
+      [workerId, `${selectedMonth}-01`]
     );
 
     // Get advances this month
@@ -56,9 +65,8 @@ export async function GET(request: NextRequest) {
       `SELECT COALESCE(SUM(advance_amount), 0) as total_advance
        FROM factory_weekly_advance
        WHERE worker_id = $1
-       AND EXTRACT(YEAR FROM week_of_date) = $2
-       AND EXTRACT(MONTH FROM week_of_date) = $3`,
-      [workerId, parseInt(year), parseInt(monthNum)]
+       AND COALESCE(salary_period_month, date_trunc('month', date_given)::date) = $2::date`,
+      [workerId, `${selectedMonth}-01`]
     );
 
     const totalSalary = numeric(worker.monthly_salary);
@@ -77,9 +85,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Error fetching salary:", errorMsg);
-    return NextResponse.json({
-      error: "Failed to fetch salary",
-      detail: errorMsg,
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch salary" },
+      { status: 500 },
+    );
   }
 }

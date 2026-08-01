@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
+import {
+  nepalDateKey,
+  nepalMonthKey,
+} from "@/app/admin/factory/_components/nepal-date";
 
 interface WorkerLedger {
   id: string;
@@ -41,7 +46,8 @@ export default function LedgerPage() {
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => nepalMonthKey());
+  const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
   useEffect(() => {
     const loadWorkers = async () => {
@@ -52,10 +58,13 @@ export default function LedgerPage() {
         });
         if (!res.ok) throw new Error(`Failed to fetch workers: ${res.status}`);
         const data = await res.json();
-        setWorkers(data.workers || []);
-        // Set default worker if none selected yet
-        if (!workerId && data.workers.length > 0) {
-          setSelectedWorkerId(data.workers[0].id);
+        const pieceWorkers = (data.workers || []).filter(
+          (worker: Worker) => worker.worker_type === "piece_rate",
+        );
+        setWorkers(pieceWorkers);
+        // A staff link belongs on the Salary screen, not this piece-wage ledger.
+        if (!workerId || !pieceWorkers.some((worker: Worker) => worker.id === workerId)) {
+          setSelectedWorkerId(pieceWorkers[0]?.id || "");
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -99,21 +108,32 @@ export default function LedgerPage() {
 
     const amountToGive = prompt("Enter payment amount:", ledgerData.summary.currentBalance.toString());
     if (!amountToGive) return;
+    const amount = Number(amountToGive);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Enter a valid positive payment amount.");
+      return;
+    }
+    const paymentDate = nepalDateKey();
+    const keyScope = `payment:${selectedWorkerId}:${paymentDate}:${amount.toFixed(2)}`;
 
     try {
       const res = await fetch("/api/factory/ledger", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeys.get(keyScope),
+        },
         body: JSON.stringify({
           worker_id: selectedWorkerId,
-          date: new Date().toISOString().split("T")[0],
+          date: paymentDate,
           entry_type: "payment",
-          payment_given: parseInt(amountToGive),
+          payment_given: amount,
           notes: "Payment recorded",
         }),
       });
 
       if (res.ok) {
+        idempotencyKeys.rotate(keyScope);
         // Reload ledger
         const reloadRes = await fetch(
           `/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`

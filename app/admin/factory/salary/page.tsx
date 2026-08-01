@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
+import {
+  nepalDateKey,
+  nepalMonthKey,
+} from "@/app/admin/factory/_components/nepal-date";
 
 interface StaffWorker {
   id: string;
@@ -8,6 +14,7 @@ interface StaffWorker {
   category: string;
   monthly_salary: number;
   status: string;
+  worker_type: string;
 }
 
 interface SalarySummary {
@@ -20,12 +27,15 @@ interface SalarySummary {
 }
 
 export default function StaffSalaryPage() {
+  const searchParams = useSearchParams();
+  const requestedWorkerId = searchParams.get("workerId");
   const [workers, setWorkers] = useState<StaffWorker[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => nepalMonthKey());
   const [summary, setSummary] = useState<SalarySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
   // Load staff workers
   useEffect(() => {
@@ -36,11 +46,15 @@ export default function StaffSalaryPage() {
         if (!res.ok) throw new Error("Failed to fetch workers");
         const data = await res.json();
         const staffWorkers = (data.workers || []).filter(
-          (w: StaffWorker) => w.category === "Staff"
+          (w: StaffWorker) => w.worker_type === "monthly_staff",
         );
         setWorkers(staffWorkers);
         if (staffWorkers.length > 0) {
-          setSelectedWorkerId(staffWorkers[0].id);
+          setSelectedWorkerId(
+            staffWorkers.some((worker: StaffWorker) => worker.id === requestedWorkerId)
+              ? requestedWorkerId || staffWorkers[0].id
+              : staffWorkers[0].id,
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading workers");
@@ -50,7 +64,7 @@ export default function StaffSalaryPage() {
     };
 
     loadWorkers();
-  }, []);
+  }, [requestedWorkerId]);
 
   // Load salary summary
   useEffect(() => {
@@ -78,21 +92,29 @@ export default function StaffSalaryPage() {
     if (!selectedWorkerId) return;
 
     const amount = prompt("Enter advance amount:");
-    if (!amount || isNaN(Number(amount))) return;
+    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
+    const numericAmount = Number(amount);
+    const paymentDate = nepalDateKey();
+    const keyScope = `salary-advance:${selectedWorkerId}:${month}:${paymentDate}:${numericAmount.toFixed(2)}`;
 
     try {
       const res = await fetch("/api/factory/salary-advance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeys.get(keyScope),
+        },
         body: JSON.stringify({
           worker_id: selectedWorkerId,
-          amount: parseInt(amount),
-          date: new Date().toISOString().split("T")[0],
+          amount: numericAmount,
+          date: paymentDate,
+          period_month: month,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to record advance");
 
+      idempotencyKeys.rotate(keyScope);
       // Reload summary
       window.location.reload();
     } catch (err) {
@@ -106,21 +128,29 @@ export default function StaffSalaryPage() {
     const amount = prompt(
       `Enter payment amount (remaining balance: Rs. ${summary.remaining_balance}):`
     );
-    if (!amount || isNaN(Number(amount))) return;
+    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
+    const numericAmount = Number(amount);
+    const paymentDate = nepalDateKey();
+    const keyScope = `salary-payment:${selectedWorkerId}:${month}:${paymentDate}:${numericAmount.toFixed(2)}`;
 
     try {
       const res = await fetch("/api/factory/salary-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeys.get(keyScope),
+        },
         body: JSON.stringify({
           worker_id: selectedWorkerId,
-          amount: parseInt(amount),
-          date: new Date().toISOString().split("T")[0],
+          amount: numericAmount,
+          date: paymentDate,
+          period_month: month,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to record payment");
 
+      idempotencyKeys.rotate(keyScope);
       // Reload summary
       window.location.reload();
     } catch (err) {
@@ -137,6 +167,11 @@ export default function StaffSalaryPage() {
       <h1 className="text-3xl font-black text-brand-green-ink mb-6">
         💼 Staff Salary Management
       </h1>
+
+      <p className="mb-6 text-sm text-slate-600">
+        Monthly factory staff are managed here. Daily staff attendance, wages,
+        deductions, and payroll remain in the HR section.
+      </p>
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">

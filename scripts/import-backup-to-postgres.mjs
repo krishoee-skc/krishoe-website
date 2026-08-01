@@ -3,21 +3,31 @@
 import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { Buffer } from "node:buffer";
 import path from "node:path";
 import pg from "pg";
+import {
+  assetBackupTables,
+  backupExtensionTableSpecs,
+  factoryBackupTables,
+  productionAccountingBackupTables,
+  validateBackupExtensionData,
+} from "../lib/backup-table-manifest.mjs";
 import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
 
-const backupSchemaVersion = 14;
-const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, backupSchemaVersion];
+const backupSchemaVersion = 15;
+const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, backupSchemaVersion];
 const hashedResetTokenPrefix = "sha256:";
 const productionStations = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
 const hrDepartments = [...productionStations, "Administration", "Sales", "Marketing", "Dispatch"];
 const appTables = [
+  ...[...backupExtensionTableSpecs].reverse().map(({ table }) => table),
   "rate_limit_attempts",
   "payment_transactions",
   "pos_invoices",
+  "purchase_invoice_items",
   "purchase_invoices",
   "supplier_transactions",
   "costing_settings",
@@ -34,6 +44,7 @@ const appTables = [
   "company_settings",
   "company_branches",
   "contact_messages",
+  "order_items",
   "orders",
   "worker_tasks",
   "vehicle_dispatch_items",
@@ -51,14 +62,15 @@ const appTables = [
 function usage() {
   return [
     "Usage:",
-    "  npm run db:import -- path/to/krishoe-backup-v14.json",
-    "  npm run db:import -- path/to/krishoe-backup-v14.json --dry-run",
-    "  npm run db:import -- path/to/krishoe-backup-v14.json --replace --confirm-replace",
+    "  npm run db:import -- path/to/krishoe-backup-v15.json",
+    "  npm run db:import -- path/to/krishoe-backup-v15.json --dry-run",
+    "  npm run db:import -- path/to/krishoe-backup-v15.json --replace --confirm-replace --confirm-database=<name>",
     "",
     "Options:",
     "  --dry-run           Validate backup shape and print import counts without connecting to Postgres.",
     "  --replace           Truncate app tables before import. Requires --confirm-replace.",
     "  --confirm-replace   Explicit confirmation for destructive preview/restore imports.",
+    "  --confirm-database  Exact target database name required for a destructive restore.",
     "  --database-url=...  Override DATABASE_URL.",
     "",
     "Environment:",
@@ -108,6 +120,7 @@ function parseArgs(argv) {
     backupPath: "",
     replace: false,
     confirmReplace: false,
+    confirmDatabase: "",
     dryRun: false,
     databaseUrl: "",
   };
@@ -117,6 +130,8 @@ function parseArgs(argv) {
       args.replace = true;
     } else if (value === "--confirm-replace") {
       args.confirmReplace = true;
+    } else if (value.startsWith("--confirm-database=")) {
+      args.confirmDatabase = value.slice("--confirm-database=".length);
     } else if (value === "--dry-run") {
       args.dryRun = true;
     } else if (value.startsWith("--database-url=")) {
@@ -131,12 +146,24 @@ function parseArgs(argv) {
   return args;
 }
 
+function databaseNameFromUrl(databaseUrl) {
+  try {
+    const url = new URL(databaseUrl);
+    return decodeURIComponent(url.pathname.replace(/^\//, ""));
+  } catch {
+    return "";
+  }
+}
+
 function backupCountSummary(backup) {
   const counts = backup.counts ?? {};
   const operations = counts.operations ?? {};
   const purchasing = counts.purchasing ?? {};
   const hr = counts.hr ?? {};
   const adminSettings = counts.adminSettings ?? {};
+  const productionAccounting = counts.productionAccounting ?? {};
+  const factory = counts.factory ?? {};
+  const assets = counts.assets ?? {};
 
   return {
     products: counts.products ?? 0,
@@ -144,6 +171,7 @@ function backupCountSummary(backup) {
     passwordResetTokens: counts.passwordResetTokens ?? 0,
     emailVerificationTokens: counts.emailVerificationTokens ?? 0,
     orders: counts.orders ?? 0,
+    orderItems: counts.orderItems ?? 0,
     messages: counts.messages ?? 0,
     paymentTransactions: counts.paymentTransactions ?? 0,
     posInvoices: counts.posInvoices ?? 0,
@@ -154,6 +182,12 @@ function backupCountSummary(backup) {
     hrRows: Object.values(hr).reduce((sum, value) => sum + (Number(value) || 0), 0),
     companyBranches: adminSettings.branches ?? 0,
     adminStaffAccounts: adminSettings.staff ?? 0,
+    productionAccountingRows: Object.values(productionAccounting).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0,
+    ),
+    factoryRows: Object.values(factory).reduce((sum, value) => sum + (Number(value) || 0), 0),
+    assetRows: Object.values(assets).reduce((sum, value) => sum + (Number(value) || 0), 0),
   };
 }
 
@@ -188,6 +222,11 @@ function cleanNumber(value) {
 function cleanDecimal(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric * 100) / 100) : 0;
+}
+
+function cleanPreciseNonNegative(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
 
 function cleanWholeNumber(value, fallback = 1) {
@@ -435,6 +474,46 @@ function ensureBackupShape(backup) {
   if (!backup.data || typeof backup.data !== "object") {
     throw new Error("Backup file is missing data.");
   }
+
+  validateBackupExtensionData(backup);
+}
+
+async function upsertRawBackupTable(client, spec, rows) {
+  if (!rows.length) {
+    return 0;
+  }
+
+  const quotedColumns = spec.columns.map((column) => `"${column}"`);
+  const placeholders = spec.columns.map((_, index) => `$${index + 1}`);
+  const updateAssignments = spec.columns
+    .filter((column) => column !== "id")
+    .map((column) => `"${column}" = EXCLUDED."${column}"`);
+  const sql = `
+    INSERT INTO "${spec.table}" (${quotedColumns.join(", ")})
+    VALUES (${placeholders.join(", ")})
+    ON CONFLICT (id) DO UPDATE SET
+      ${updateAssignments.join(",\n      ")}
+  `;
+
+  for (const row of rows) {
+    await client.query(
+      sql,
+      spec.columns.map((column) =>
+        spec.table === "uploaded_images" && column === "bytes"
+          ? Buffer.from(requiredString(row[column]).replace(/\s/g, ""), "base64")
+          : row[column],
+      ),
+    );
+  }
+
+  return rows.length;
+}
+
+async function importRawBackupTables(client, data, specs, importedGroup) {
+  for (const spec of specs) {
+    const rows = data?.[spec.group]?.[spec.table] ?? [];
+    importedGroup[spec.table] = await upsertRawBackupTable(client, spec, rows);
+  }
 }
 
 async function upsertProduct(client, product) {
@@ -655,7 +734,7 @@ async function upsertOrder(client, order) {
       payment,
       requiredString(order.order),
       requiredString(order.total),
-      ["New", "Contacted", "Closed"].includes(order.status) ? order.status : "New",
+      ["New", "Contacted", "Closed", "Cancelled"].includes(order.status) ? order.status : "New",
       allowedValue(order.paymentStatus, ["Unpaid", "Pending", "Paid", "Failed", "Refunded"], "Unpaid"),
       allowedValue(
         order.paymentProvider,
@@ -670,6 +749,28 @@ async function upsertOrder(client, order) {
       optionalString(order.paymentLedgerTransactionId),
     ],
   );
+
+  if (!Array.isArray(order.items)) return 0;
+
+  await client.query("DELETE FROM order_items WHERE order_id = $1", [requiredString(order.id)]);
+  for (const [index, item] of order.items.entries()) {
+    await client.query(
+      `INSERT INTO order_items
+       (id, order_id, product_id, product_name, size, color, quantity)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        `${requiredString(order.id)}-BACKUP-L${index + 1}`,
+        requiredString(order.id),
+        requiredString(item.productId),
+        requiredString(item.productName),
+        requiredString(item.size),
+        requiredString(item.color),
+        cleanWholeNumber(item.quantity),
+      ],
+    );
+  }
+
+  return order.items.length;
 }
 
 async function upsertContactMessage(client, message) {
@@ -1090,8 +1191,12 @@ async function upsertPurchaseInvoice(client, invoice) {
         created_at,
         supplier_ledger_id,
         supplier_name,
+        kind,
         material_id,
         material_name,
+        design,
+        channel,
+        size_run,
         unit,
         quantity,
         rate,
@@ -1109,16 +1214,20 @@ async function upsertPurchaseInvoice(client, invoice) {
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19,
-        $20, $21
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+        $21, $22, $23, $24, $25
       )
       ON CONFLICT (id) DO UPDATE SET
         purchase_number = EXCLUDED.purchase_number,
         created_at = EXCLUDED.created_at,
         supplier_ledger_id = EXCLUDED.supplier_ledger_id,
         supplier_name = EXCLUDED.supplier_name,
+        kind = EXCLUDED.kind,
         material_id = EXCLUDED.material_id,
         material_name = EXCLUDED.material_name,
+        design = EXCLUDED.design,
+        channel = EXCLUDED.channel,
+        size_run = EXCLUDED.size_run,
         unit = EXCLUDED.unit,
         quantity = EXCLUDED.quantity,
         rate = EXCLUDED.rate,
@@ -1140,16 +1249,20 @@ async function upsertPurchaseInvoice(client, invoice) {
       dateValue(invoice.createdAt),
       requiredString(invoice.supplierLedgerId),
       requiredString(invoice.supplierName),
-      requiredString(invoice.materialId),
+      allowedValue(invoice.kind, ["Raw Material", "Trading Goods", "Mixed"], "Raw Material"),
+      optionalString(invoice.materialId),
       requiredString(invoice.materialName),
+      requiredString(invoice.design),
+      allowedValue(invoice.channel, ["Factory", "Wholesale", "Retail", "Online"], null),
+      requiredString(invoice.sizeRun, "Mixed"),
       allowedValue(invoice.unit, ["kg", "meter", "pair", "piece", "liter"], "piece"),
-      cleanNumber(invoice.quantity),
-      cleanNumber(invoice.rate),
-      cleanNumber(invoice.discount),
-      cleanNumber(invoice.tax),
-      cleanNumber(invoice.total),
-      cleanNumber(invoice.paidAmount),
-      cleanNumber(invoice.creditAmount),
+      cleanPreciseNonNegative(invoice.quantity),
+      cleanPreciseNonNegative(invoice.rate),
+      cleanPreciseNonNegative(invoice.discount),
+      cleanPreciseNonNegative(invoice.tax),
+      cleanPreciseNonNegative(invoice.total),
+      cleanPreciseNonNegative(invoice.paidAmount),
+      cleanPreciseNonNegative(invoice.creditAmount),
       allowedValue(invoice.paymentMethod, ["Cash", "Cheque", "Bank", "Credit"], "Cash"),
       requiredString(invoice.paymentReference),
       allowedValue(invoice.status, ["Paid", "Partial", "Credit"], "Paid"),
@@ -1158,6 +1271,46 @@ async function upsertPurchaseInvoice(client, invoice) {
       requiredString(invoice.note),
     ],
   );
+
+  // Legacy backups did not always include invoice line items. In that case,
+  // preserve any existing child rows instead of treating "missing" as empty.
+  if (!Array.isArray(invoice.items)) return 0;
+
+  await client.query(
+    "DELETE FROM purchase_invoice_items WHERE purchase_invoice_id = $1",
+    [requiredString(invoice.id)],
+  );
+  for (const [index, item] of invoice.items.entries()) {
+    const kind = allowedValue(item.kind, ["Raw Material", "Trading Goods"], "Raw Material");
+    await client.query(
+      `INSERT INTO purchase_invoice_items (
+         id, purchase_invoice_id, line_no, kind, material_id, item_name,
+         design, channel, size_run, unit, quantity, rate,
+         line_subtotal, line_total, note
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      [
+        requiredString(item.id, `${requiredString(invoice.id)}-L${index + 1}`),
+        requiredString(invoice.id),
+        cleanWholeNumber(item.lineNo, index + 1),
+        kind,
+        kind === "Raw Material" ? optionalString(item.materialId) : null,
+        requiredString(item.itemName),
+        kind === "Trading Goods" ? requiredString(item.design) : "",
+        kind === "Trading Goods"
+          ? allowedValue(item.channel, ["Factory", "Wholesale", "Retail", "Online"], "Retail")
+          : null,
+        requiredString(item.sizeRun, "Mixed"),
+        allowedValue(item.unit, ["kg", "meter", "pair", "piece", "liter"], "piece"),
+        cleanPreciseNonNegative(item.quantity),
+        cleanPreciseNonNegative(item.rate),
+        cleanPreciseNonNegative(item.lineSubtotal),
+        cleanPreciseNonNegative(item.lineTotal),
+        requiredString(item.note),
+      ],
+    );
+  }
+
+  return invoice.items.length;
 }
 
 async function upsertPosInvoice(client, invoice) {
@@ -1496,6 +1649,7 @@ async function importBackup(client, backup, replace) {
     passwordResetTokens: 0,
     emailVerificationTokens: 0,
     orders: 0,
+    orderItems: 0,
     messages: 0,
     rawMaterials: 0,
     materialConsumptions: 0,
@@ -1509,6 +1663,7 @@ async function importBackup(client, backup, replace) {
     ledgerTransactions: 0,
     supplierLedgers: 0,
     purchaseInvoices: 0,
+    purchaseInvoiceItems: 0,
     supplierTransactions: 0,
     costingSettings: 0,
     hrEmployees: 0,
@@ -1521,6 +1676,11 @@ async function importBackup(client, backup, replace) {
     posInvoices: 0,
     audit: 0,
     notifications: 0,
+    productionAccounting: Object.fromEntries(
+      productionAccountingBackupTables.map(({ table }) => [table, 0]),
+    ),
+    factory: Object.fromEntries(factoryBackupTables.map(({ table }) => [table, 0])),
+    assets: Object.fromEntries(assetBackupTables.map(({ table }) => [table, 0])),
   };
 
   await client.query("BEGIN");
@@ -1586,7 +1746,7 @@ async function importBackup(client, backup, replace) {
     }
 
     for (const order of data.orders ?? []) {
-      await upsertOrder(client, order);
+      imported.orderItems += await upsertOrder(client, order);
       imported.orders += 1;
     }
 
@@ -1635,6 +1795,18 @@ async function importBackup(client, backup, replace) {
       imported.stockMovements += 1;
     }
 
+    // The manifest is an explicit whitelist and dependency order. All base
+    // masters (products, raw materials, HR employees) and stock movements are
+    // already present before these raw extension rows are restored.
+    await importRawBackupTables(
+      client,
+      data,
+      productionAccountingBackupTables,
+      imported.productionAccounting,
+    );
+    await importRawBackupTables(client, data, factoryBackupTables, imported.factory);
+    await importRawBackupTables(client, data, assetBackupTables, imported.assets);
+
     for (const transaction of operations.ledgerTransactions ?? []) {
       await upsertLedgerTransaction(client, transaction);
       imported.ledgerTransactions += 1;
@@ -1646,7 +1818,7 @@ async function importBackup(client, backup, replace) {
     }
 
     for (const invoice of purchasing.purchaseInvoices ?? []) {
-      await upsertPurchaseInvoice(client, invoice);
+      imported.purchaseInvoiceItems += await upsertPurchaseInvoice(client, invoice);
       imported.purchaseInvoices += 1;
     }
 
@@ -1710,6 +1882,21 @@ async function main() {
   const backupPath = path.resolve(process.cwd(), args.backupPath);
   const backup = JSON.parse(await readFile(backupPath, "utf8"));
   ensureBackupShape(backup);
+
+  if (args.replace && backup.schemaVersion < backupSchemaVersion) {
+    throw new Error(
+      `A schema v${backup.schemaVersion} backup cannot use --replace because it has no v15 Factory, Production, or image tables. Import it without --replace first.`,
+    );
+  }
+
+  if (args.replace && !args.dryRun) {
+    const actualDatabase = databaseNameFromUrl(databaseUrl);
+    if (!actualDatabase || args.confirmDatabase !== actualDatabase) {
+      throw new Error(
+        `Destructive restore target is '${actualDatabase || "unknown"}'. Add --confirm-database=${actualDatabase || "<exact-name>"} only after verifying DATABASE_URL.`,
+      );
+    }
+  }
 
   if (args.dryRun) {
     console.log(

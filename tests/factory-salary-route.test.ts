@@ -22,7 +22,12 @@ describe("factory staff salary summary", () => {
   it("counts salary payments from payment_given and returns numeric totals", async () => {
     queryPostgres.mockImplementation((_store: string, sql: string) => {
       if (sql.includes("FROM factory_workers")) {
-        return Promise.resolve([{ id: "staff-1", name: "Factory Staff", monthly_salary: "15000.00" }]);
+        return Promise.resolve([{
+          id: "staff-1",
+          name: "Factory Staff",
+          monthly_salary: "15000.00",
+          worker_type: "monthly_staff",
+        }]);
       }
 
       if (sql.includes("FROM factory_worker_ledger")) {
@@ -44,6 +49,7 @@ describe("factory staff salary summary", () => {
     expect(response.status).toBe(200);
     expect(authorizeFactoryApi).toHaveBeenCalledWith("/api/factory/salary", "GET");
     expect(queryPostgres.mock.calls[1][1]).toContain("SUM(payment_given)");
+    expect(queryPostgres.mock.calls[1][1]).toContain("salary_period_month");
     expect(body).toMatchObject({
       worker_id: "staff-1",
       month: "2026-07",
@@ -52,5 +58,33 @@ describe("factory staff salary summary", () => {
       total_advance: 1000.25,
       remaining_balance: 10499.25,
     });
+  });
+
+  it("rejects an invalid month instead of silently using the current month", async () => {
+    const response = await GET(
+      new NextRequest("http://localhost/api/factory/salary?workerId=staff-1&month=2026-99"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(queryPostgres).not.toHaveBeenCalled();
+  });
+
+  it("routes daily staff to HR instead of calculating a false monthly balance", async () => {
+    queryPostgres.mockResolvedValueOnce([{
+      id: "daily-1",
+      name: "Daily Staff",
+      monthly_salary: "0",
+      worker_type: "daily_staff",
+    }]);
+
+    const response = await GET(
+      new NextRequest("http://localhost/api/factory/salary?workerId=daily-1&month=2026-08"),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "Factory salary is for monthly staff; use HR payroll for daily staff",
+    });
+    expect(queryPostgres).toHaveBeenCalledTimes(1);
   });
 });

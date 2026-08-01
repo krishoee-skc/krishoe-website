@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function FactoryLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flexlex-col lg:flex-row min-h-screen bg-slate-50">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50">
       <nav className="bg-white border-b lg:border-r border-slate-200 lg:w-56 shrink-0">
         <div className="p-4">
           <h2 className="text-lg font-bold text-slate-900">KRISHOE Factory</h2>
@@ -51,6 +51,14 @@ export default function FactoryLayout({ children }: { children: ReactNode }) {
               className="block px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
             >
               📈 Reports
+            </a>
+          </li>
+          <li>
+            <a
+              href="/admin/factory/salary"
+              className="block px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              Monthly Staff Salary
             </a>
           </li>
         </ul>

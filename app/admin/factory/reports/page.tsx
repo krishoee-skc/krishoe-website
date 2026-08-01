@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
+import { nepalMonthKey } from "@/app/admin/factory/_components/nepal-date";
 
 interface Summary {
   id: string;
@@ -18,64 +20,79 @@ interface Summary {
 
 export default function ReportsPage() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => nepalMonthKey());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
-  const generateSummaries = async (selectedMonth: string) => {
+  const generateSummaries = useCallback(async (selectedMonth: string) => {
+    setError(null);
     try {
       const workersRes = await fetch("/api/factory/workers");
+      if (!workersRes.ok) throw new Error("Could not load piece-rate workers.");
       const workersData = await workersRes.json();
-      const workers = workersData.workers || [];
+      const workers = (workersData.workers || []).filter(
+        (worker: { worker_type?: string }) => worker.worker_type === "piece_rate",
+      );
 
-      const newSummaries = [];
+      const newSummaries: Summary[] = [];
       for (const worker of workers) {
+        const keyScope = `monthly-summary:${selectedMonth}:${worker.id}`;
         const res = await fetch("/api/factory/monthly-summary", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKeys.get(keyScope),
+          },
           body: JSON.stringify({
             month: selectedMonth,
             worker_id: worker.id,
           }),
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          newSummaries.push({
-            ...data,
-            worker_name: worker.name,
-            worker_type: worker.worker_type,
-            category: worker.category,
-          });
+        if (!res.ok) {
+          throw new Error(`Could not calculate the report for ${worker.name}.`);
         }
+        const data = await res.json();
+        idempotencyKeys.rotate(keyScope);
+        newSummaries.push({
+          ...data,
+          worker_name: worker.name,
+          worker_type: worker.worker_type,
+          category: worker.category,
+        });
       }
 
+      // Publish only a complete worker set. A failed worker must never leave a
+      // deceptively low partial payroll total on screen.
       setSummaries(newSummaries);
+      return true;
     } catch (error) {
       console.error("Error generating summaries:", error);
+      setError(error instanceof Error ? error.message : "Could not generate reports.");
+      return false;
     }
-  };
+  }, [idempotencyKeys]);
 
   useEffect(() => {
     const loadSummaries = async () => {
       setLoading(true);
+      setSummaries([]);
       try {
-        const res = await fetch(`/api/factory/monthly-summary?month=${month}`);
-        const data = await res.json();
-        setSummaries(data.summaries || []);
-
-        // Auto-generate summaries if not present
-        if (data.summaries.length === 0) {
-          await generateSummaries(month);
-        }
+        // Draft summaries are derived snapshots. Recalculate every active
+        // piece worker on load so new work, payments, or workers cannot leave
+        // a plausible-looking partial/stale payroll total.
+        await generateSummaries(month);
       } catch (error) {
         console.error("Error loading summaries:", error);
+        setError(error instanceof Error ? error.message : "Could not load reports.");
       } finally {
         setLoading(false);
       }
     };
 
     loadSummaries();
-  }, [month]);
+  }, [generateSummaries, month]);
 
   const totalEarned = summaries.reduce((sum, s) => sum + s.total_earned, 0);
   const totalPairs = summaries.reduce((sum, s) => sum + s.total_pairs, 0);
@@ -102,6 +119,12 @@ export default function ReportsPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          {error} No partial report was shown.
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center text-slate-500">Loading reports...</div>

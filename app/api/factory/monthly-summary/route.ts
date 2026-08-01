@@ -1,6 +1,11 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
+import {
+  FactoryMutationError,
+  refreshFactoryMonthlySummary,
+  submissionKeyForFactoryRequest,
+} from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { monthKey, numeric, type DbNumeric } from "@/lib/factory-money";
+import { monthKey, numeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -22,10 +27,11 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   try {
-    const month = request.nextUrl.searchParams.get("month"); // Format: 2026-07
+    const requestedMonth = request.nextUrl.searchParams.get("month");
+    const month = monthKey(requestedMonth);
     const workerId = request.nextUrl.searchParams.get("workerId");
 
-    if (!month) {
+    if (!requestedMonth || !month) {
       return NextResponse.json({ error: "month parameter is required (YYYY-MM)" }, { status: 400 });
     }
 
@@ -34,7 +40,8 @@ export async function GET(request: NextRequest) {
                         fw.name as worker_name, fw.worker_type, fw.category
                  FROM factory_monthly_summary ms
                  JOIN factory_workers fw ON ms.worker_id = fw.id
-                 WHERE DATE_TRUNC('month', ms.month) = DATE_TRUNC('month', $1::date)`;
+                 WHERE DATE_TRUNC('month', ms.month) = DATE_TRUNC('month', $1::date)
+                   AND fw.worker_type = 'piece_rate'`;
 
     const params: (string | null)[] = [month + "-01"];
 
@@ -46,24 +53,19 @@ export async function GET(request: NextRequest) {
     query += ` ORDER BY fw.name ASC`;
 
     const summaries = await queryPostgres<Summary>(STORE, query, params);
-    return NextResponse.json({ summaries });
+    return NextResponse.json({
+      summaries: summaries.map((summary) => ({
+        ...summary,
+        total_pairs: numeric(summary.total_pairs),
+        total_earned: numeric(summary.total_earned),
+        total_paid: numeric(summary.total_paid),
+        final_balance: numeric(summary.final_balance),
+      })),
+    });
   } catch (error) {
     console.error("Error fetching monthly summary:", error);
     return NextResponse.json({ error: "Failed to fetch monthly summary" }, { status: 500 });
   }
-}
-
-interface WorkData {
-  total_pairs: DbNumeric;
-  total_earned: DbNumeric;
-}
-
-interface PaymentData {
-  total_paid: DbNumeric;
-}
-
-interface ExistingSummary {
-  id: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -72,101 +74,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { worker_id } = body;
+    const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
     const month = monthKey(body.month);
+    const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
-    if (!month || !worker_id) {
+    if (!month || !workerId) {
       return NextResponse.json(
         { error: "month and worker_id are required" },
         { status: 400 }
       );
     }
 
-    // Get all work entries for this worker in this month
-    const workData = await queryPostgres<WorkData>(
-      STORE,
-      `SELECT SUM(pairs_count) as total_pairs, SUM(amount_earned) as total_earned
-       FROM factory_daily_work
-       WHERE worker_id = $1
-       AND DATE_TRUNC('month', date) = DATE_TRUNC('month', $2::date)`,
-      [worker_id, month + "-01"]
-    );
-
-    const work = workData[0] || { total_pairs: 0, total_earned: 0 };
-
-    // Get all payments for this worker in this month
-    const paymentData = await queryPostgres<PaymentData>(
-      STORE,
-      `SELECT SUM(payment_given) as total_paid
-       FROM factory_worker_ledger
-       WHERE worker_id = $1
-       AND entry_type = 'payment'
-       AND DATE_TRUNC('month', date) = DATE_TRUNC('month', $2::date)`,
-      [worker_id, month + "-01"]
-    );
-
-    const payment = paymentData[0] || { total_paid: 0 };
-    const totalPairs = numeric(work.total_pairs);
-    const totalEarned = numeric(work.total_earned);
-    const totalPaid = numeric(payment.total_paid);
-    const finalBalance = totalEarned - totalPaid;
-
-    const summaryId = crypto.randomUUID();
-    const monthDate = new Date(`${month}-01`);
-
-    // Check if summary already exists
-    const existing = await queryPostgres<ExistingSummary>(
-      STORE,
-      `SELECT id FROM factory_monthly_summary
-       WHERE worker_id = $1 AND DATE_TRUNC('month', month) = DATE_TRUNC('month', $2::date)`,
-      [worker_id, monthDate.toISOString()]
-    );
-
-    if (existing.length > 0) {
-      // Update existing
-      const id = existing[0].id;
-      await queryPostgres(
-        STORE,
-        `UPDATE factory_monthly_summary
-         SET total_pairs = $1, total_earned = $2, total_paid = $3, final_balance = $4, updated_at = now()
-         WHERE id = $5`,
-        [totalPairs, totalEarned, totalPaid, finalBalance, id]
-      );
-
-      return NextResponse.json({
-        id,
-        month,
-        worker_id,
-        total_pairs: totalPairs,
-        total_earned: totalEarned,
-        total_paid: totalPaid,
-        final_balance: finalBalance,
-      });
-    }
-
-    // Create new summary
-    await queryPostgres(
-      STORE,
-      `INSERT INTO factory_monthly_summary
-       (id, month, worker_id, total_pairs, total_earned, total_paid, final_balance, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft')`,
-      [summaryId, monthDate.toISOString(), worker_id, totalPairs, totalEarned, totalPaid, finalBalance]
-    );
-
-    return NextResponse.json(
-      {
-        id: summaryId,
-        month,
-        worker_id,
-        total_pairs: totalPairs,
-        total_earned: totalEarned,
-        total_paid: totalPaid,
-        final_balance: finalBalance,
-      },
-      { status: 201 }
-    );
+    const result = await refreshFactoryMonthlySummary({
+      submissionKey,
+      month,
+      workerId,
+    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error creating monthly summary:", error);
-    return NextResponse.json({ error: "Failed to create monthly summary" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof FactoryMutationError
+            ? error.message
+            : "Failed to create monthly summary",
+      },
+      { status: error instanceof FactoryMutationError ? error.status : 500 },
+    );
   }
 }
