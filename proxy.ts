@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin-role-permissions";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/admin-session";
 import { customerSessionCookieName, verifyCustomerSessionToken } from "@/lib/customer-session";
+import { canAccessFactoryApi, getFactoryApiPolicy } from "@/lib/factory-api-policy";
 import { safeAdminNextPath, safeCustomerNextPath } from "@/lib/safe-redirect";
 
 function isProtectedApi(pathname: string) {
@@ -27,7 +28,6 @@ function adminApiPermission(pathname: string): AdminPermission | null {
   if (routePath === "/api/products/export") return "exports:read";
   if (routePath === "/api/orders/export") return "exports:read";
   if (routePath === "/api/messages/export") return "exports:read";
-  if (routePath.startsWith("/api/factory")) return "production:entry";
   if (routePath === "/api/products") return "products:write";
   if (routePath === "/api/orders") return "orders:write";
   if (routePath === "/api/messages") return "messages:write";
@@ -69,6 +69,15 @@ export async function proxy(request: NextRequest) {
 
   if (isProtectedApi(pathname) && !hasValidSession) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (pathname.startsWith("/api/factory") && adminSession) {
+    const factoryPolicy = getFactoryApiPolicy(pathname, request.method);
+    const role = getSessionAdminRole(adminSession);
+
+    if (!factoryPolicy || !canAccessFactoryApi(role, factoryPolicy)) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const apiPermission = adminApiPermission(pathname);

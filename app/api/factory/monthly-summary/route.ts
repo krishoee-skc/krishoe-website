@@ -1,3 +1,4 @@
+import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
 import { monthKey, numeric, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
@@ -17,6 +18,9 @@ interface Summary {
 }
 
 export async function GET(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/monthly-summary", "GET");
+  if (denied) return denied;
+
   try {
     const month = request.nextUrl.searchParams.get("month"); // Format: 2026-07
     const workerId = request.nextUrl.searchParams.get("workerId");
@@ -63,6 +67,9 @@ interface ExistingSummary {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/monthly-summary", "POST");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { worker_id } = body;

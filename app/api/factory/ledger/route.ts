@@ -1,3 +1,4 @@
+import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
 import { numeric, positiveAmount, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
@@ -27,6 +28,9 @@ interface Worker {
 }
 
 export async function GET(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/ledger", "GET");
+  if (denied) return denied;
+
   try {
     const workerId = request.nextUrl.searchParams.get("workerId");
     const month = request.nextUrl.searchParams.get("month");
@@ -100,6 +104,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/ledger", "POST");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { worker_id, entry_type, notes } = body;

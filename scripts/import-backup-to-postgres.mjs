@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
 
@@ -128,14 +129,6 @@ function parseArgs(argv) {
   }
 
   return args;
-}
-
-function shouldUseSsl(connectionString) {
-  if (/localhost|127\.0\.0\.1/i.test(connectionString)) {
-    return false;
-  }
-
-  return process.env.PGSSLMODE !== "disable";
 }
 
 function backupCountSummary(backup) {
@@ -1739,10 +1732,7 @@ async function main() {
     return;
   }
 
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false,
-  });
+  const pool = new Pool(postgresConnectionOptions(databaseUrl));
   const client = await pool.connect();
 
   try {

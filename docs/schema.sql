@@ -1122,3 +1122,169 @@ CREATE TABLE IF NOT EXISTS uploaded_images (
   byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Simplified Factory mobile-entry compatibility module. These tables keep
+-- their own records until the Factory UI is fully consolidated with the
+-- production-accounting chain above. Money uses NUMERIC so fractional rupee
+-- rates are never rounded, and historical work/ledger links are restricted
+-- from cascading deletes.
+CREATE TABLE IF NOT EXISTS factory_workers (
+  id TEXT PRIMARY KEY,
+  hr_employee_id TEXT UNIQUE REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  worker_type TEXT NOT NULL,
+  category TEXT NOT NULL,
+  monthly_salary NUMERIC(12, 2) CHECK (monthly_salary IS NULL OR monthly_salary >= 0),
+  weekly_advance NUMERIC(12, 2) CHECK (weekly_advance IS NULL OR weekly_advance >= 0),
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_workers_type_check
+    CHECK (worker_type IN ('piece_rate', 'monthly_staff', 'daily_staff')),
+  CONSTRAINT factory_workers_category_check
+    CHECK (category IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
+  CONSTRAINT factory_workers_status_check
+    CHECK (status IN ('active', 'inactive'))
+);
+
+CREATE TABLE IF NOT EXISTS factory_items (
+  id TEXT PRIMARY KEY,
+  production_item_id TEXT UNIQUE REFERENCES production_items(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_items_status_check
+    CHECK (status IN ('active', 'inactive'))
+);
+
+CREATE TABLE IF NOT EXISTS factory_rates (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES factory_items(id) ON DELETE RESTRICT,
+  worker_category TEXT NOT NULL,
+  rate_per_pair NUMERIC(12, 2) NOT NULL CHECK (rate_per_pair > 0),
+  effective_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_rates_item_category_date_key
+    UNIQUE (item_id, worker_category, effective_date)
+);
+
+CREATE TABLE IF NOT EXISTS factory_daily_work (
+  id TEXT PRIMARY KEY,
+  submission_key TEXT,
+  date DATE NOT NULL,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  item_id TEXT NOT NULL REFERENCES factory_items(id) ON DELETE RESTRICT,
+  color TEXT,
+  size TEXT,
+  pairs_count INTEGER NOT NULL CHECK (pairs_count > 0),
+  status TEXT NOT NULL DEFAULT 'completed',
+  rate_applied NUMERIC(12, 2) NOT NULL CHECK (rate_applied > 0),
+  amount_earned NUMERIC(12, 2) NOT NULL CHECK (amount_earned > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_daily_work_status_check
+    CHECK (status IN ('in_progress', 'completed', 'rework'))
+);
+
+CREATE TABLE IF NOT EXISTS factory_worker_ledger (
+  id TEXT PRIMARY KEY,
+  submission_key TEXT,
+  source_work_id TEXT UNIQUE REFERENCES factory_daily_work(id) ON DELETE RESTRICT,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  date DATE NOT NULL,
+  entry_type TEXT NOT NULL,
+  work_pairs INTEGER CHECK (work_pairs IS NULL OR work_pairs >= 0),
+  amount_earned NUMERIC(12, 2) CHECK (amount_earned IS NULL OR amount_earned >= 0),
+  payment_given NUMERIC(12, 2) CHECK (payment_given IS NULL OR payment_given >= 0),
+  running_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_worker_ledger_type_check
+    CHECK (entry_type IN ('work', 'payment', 'adjustment')),
+  CONSTRAINT factory_worker_ledger_status_check
+    CHECK (status IN ('pending', 'settled', 'reversed'))
+);
+
+CREATE TABLE IF NOT EXISTS factory_weekly_advance (
+  id TEXT PRIMARY KEY,
+  submission_key TEXT,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  week_of_date DATE NOT NULL,
+  advance_amount NUMERIC(12, 2) NOT NULL CHECK (advance_amount > 0),
+  date_given DATE NOT NULL DEFAULT CURRENT_DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS factory_monthly_summary (
+  id TEXT PRIMARY KEY,
+  month DATE NOT NULL,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  total_pairs INTEGER NOT NULL DEFAULT 0 CHECK (total_pairs >= 0),
+  total_earned NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_earned >= 0),
+  total_paid NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_paid >= 0),
+  final_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_monthly_summary_month_worker_key UNIQUE (month, worker_id),
+  CONSTRAINT factory_monthly_summary_month_check
+    CHECK (month = date_trunc('month', month)::date),
+  CONSTRAINT factory_monthly_summary_status_check
+    CHECK (status IN ('draft', 'locked'))
+);
+
+-- Columns below also make applying the canonical schema safe when an older
+-- standalone Factory schema already created these tables.
+ALTER TABLE factory_workers
+  ADD COLUMN IF NOT EXISTS hr_employee_id TEXT REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE factory_items
+  ADD COLUMN IF NOT EXISTS production_item_id TEXT REFERENCES production_items(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE factory_daily_work
+  ADD COLUMN IF NOT EXISTS submission_key TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE factory_worker_ledger
+  ADD COLUMN IF NOT EXISTS submission_key TEXT,
+  ADD COLUMN IF NOT EXISTS source_work_id TEXT REFERENCES factory_daily_work(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE factory_weekly_advance
+  ADD COLUMN IF NOT EXISTS submission_key TEXT,
+  ADD COLUMN IF NOT EXISTS notes TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE factory_monthly_summary
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+CREATE INDEX IF NOT EXISTS factory_workers_status_idx ON factory_workers(status);
+CREATE INDEX IF NOT EXISTS factory_workers_type_idx ON factory_workers(worker_type);
+CREATE INDEX IF NOT EXISTS factory_items_status_idx ON factory_items(status);
+CREATE INDEX IF NOT EXISTS factory_rates_lookup_idx
+  ON factory_rates(item_id, worker_category, effective_date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_daily_work_worker_date_idx
+  ON factory_daily_work(worker_id, date DESC);
+CREATE INDEX IF NOT EXISTS factory_daily_work_item_idx ON factory_daily_work(item_id);
+CREATE UNIQUE INDEX IF NOT EXISTS factory_daily_work_submission_key_idx
+  ON factory_daily_work(submission_key)
+  WHERE submission_key IS NOT NULL AND submission_key <> '';
+CREATE INDEX IF NOT EXISTS factory_worker_ledger_worker_date_idx
+  ON factory_worker_ledger(worker_id, date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_worker_ledger_status_idx ON factory_worker_ledger(status);
+CREATE UNIQUE INDEX IF NOT EXISTS factory_worker_ledger_submission_key_idx
+  ON factory_worker_ledger(submission_key)
+  WHERE submission_key IS NOT NULL AND submission_key <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS factory_worker_ledger_source_work_idx
+  ON factory_worker_ledger(source_work_id)
+  WHERE source_work_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS factory_weekly_advance_worker_week_idx
+  ON factory_weekly_advance(worker_id, week_of_date DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS factory_weekly_advance_submission_key_idx
+  ON factory_weekly_advance(submission_key)
+  WHERE submission_key IS NOT NULL AND submission_key <> '';
+CREATE INDEX IF NOT EXISTS factory_monthly_summary_worker_month_idx
+  ON factory_monthly_summary(worker_id, month DESC);

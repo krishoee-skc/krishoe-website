@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
 const backupSchemaVersion = 14;
@@ -111,14 +112,6 @@ function parseArgs(argv) {
   }
 
   return args;
-}
-
-function shouldUseSsl(connectionString) {
-  if (/localhost|127\.0\.0\.1/i.test(connectionString)) {
-    return false;
-  }
-
-  return process.env.PGSSLMODE !== "disable";
 }
 
 function safeDatabaseLabel(connectionString) {
@@ -658,10 +651,7 @@ async function main() {
     ensureBackupShape(backup);
   }
 
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false,
-  });
+  const pool = new Pool(postgresConnectionOptions(databaseUrl));
 
   try {
     // Query the pool directly (not a single checked-out client): getCounts

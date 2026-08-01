@@ -1,14 +1,12 @@
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error("POSTGRES_URL or DATABASE_URL is required.");
 }
 
-const client = new pg.Client({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
-});
+const client = new pg.Client(postgresConnectionOptions(connectionString));
 
 try {
   await client.connect();

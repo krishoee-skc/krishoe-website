@@ -1,3 +1,4 @@
+import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
 import { positiveAmount } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
@@ -13,6 +14,9 @@ interface Rate {
 }
 
 export async function GET(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/rates", "GET");
+  if (denied) return denied;
+
   try {
     const itemId = request.nextUrl.searchParams.get("itemId");
     const workerCategory = request.nextUrl.searchParams.get("workerCategory");
@@ -25,7 +29,7 @@ export async function GET(request: NextRequest) {
         `SELECT id, item_id, worker_category, rate_per_pair, effective_date
          FROM factory_rates
          WHERE item_id = $1 AND worker_category = $2
-         ORDER BY effective_date DESC
+         ORDER BY effective_date DESC, created_at DESC
          LIMIT 1`,
         [itemId, workerCategory]
       );
@@ -34,7 +38,7 @@ export async function GET(request: NextRequest) {
         STORE,
         `SELECT id, item_id, worker_category, rate_per_pair, effective_date
          FROM factory_rates
-         ORDER BY effective_date DESC`
+         ORDER BY effective_date DESC, created_at DESC`
       );
     }
 
@@ -46,6 +50,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/rates", "POST");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { item_id, worker_category } = body;
@@ -59,15 +66,20 @@ export async function POST(request: NextRequest) {
     }
 
     const id = crypto.randomUUID();
-    await queryPostgres(
+    const savedRates = await queryPostgres<Rate>(
       STORE,
       `INSERT INTO factory_rates (id, item_id, worker_category, rate_per_pair, effective_date)
-       VALUES ($1, $2, $3, $4, CURRENT_DATE)`,
+       VALUES ($1, $2, $3, $4, CURRENT_DATE)
+       ON CONFLICT (item_id, worker_category, effective_date)
+       DO UPDATE SET rate_per_pair = EXCLUDED.rate_per_pair
+       RETURNING id, item_id, worker_category, rate_per_pair, effective_date`,
       [id, item_id, worker_category, ratePerPair]
     );
 
+    const savedRate = savedRates[0];
+
     return NextResponse.json(
-      { id, item_id, worker_category, rate_per_pair: ratePerPair },
+      savedRate ?? { id, item_id, worker_category, rate_per_pair: ratePerPair },
       { status: 201 }
     );
   } catch (error) {

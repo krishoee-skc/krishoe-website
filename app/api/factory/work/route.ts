@@ -1,3 +1,4 @@
+import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
 import { numeric, positiveInteger, ymdDate, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
@@ -31,7 +32,7 @@ async function getRateForWork(itemId: string, workerCategory: string): Promise<n
     STORE,
     `SELECT rate_per_pair FROM factory_rates
      WHERE item_id = $1 AND worker_category = $2
-     ORDER BY effective_date DESC
+     ORDER BY effective_date DESC, created_at DESC
      LIMIT 1`,
     [itemId, workerCategory]
   );
@@ -44,6 +45,9 @@ async function getRateForWork(itemId: string, workerCategory: string): Promise<n
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/work", "POST");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { worker_id, item_id, color, size, status } = body;
@@ -151,6 +155,9 @@ interface WorkWithNames extends WorkEntry {
 }
 
 export async function GET(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/work", "GET");
+  if (denied) return denied;
+
   try {
     const date = request.nextUrl.searchParams.get("date");
     const workerId = request.nextUrl.searchParams.get("workerId");

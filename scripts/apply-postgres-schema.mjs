@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
 
@@ -12,6 +14,7 @@ function usage() {
     "Usage:",
     "  npm run db:schema",
     "  npm run db:schema -- --database-url=postgres://...",
+    "  npm run db:migrate:factory -- --dry-run",
     "",
     "Environment:",
     "  DATABASE_URL must point to the preview Postgres database.",
@@ -59,10 +62,16 @@ function parseArgs(argv) {
   const args = {
     databaseUrl: "",
     schemaPath: "docs/schema.sql",
+    dryRun: false,
+    migrationsOnly: false,
   };
 
   for (const value of argv) {
-    if (value.startsWith("--database-url=")) {
+    if (value === "--dry-run") {
+      args.dryRun = true;
+    } else if (value === "--migrations-only") {
+      args.migrationsOnly = true;
+    } else if (value.startsWith("--database-url=")) {
       args.databaseUrl = value.slice("--database-url=".length);
     } else if (value.startsWith("--schema=")) {
       args.schemaPath = value.slice("--schema=".length);
@@ -74,14 +83,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function shouldUseSsl(connectionString) {
-  if (/localhost|127\.0\.0\.1/i.test(connectionString)) {
-    return false;
-  }
-
-  return process.env.PGSSLMODE !== "disable";
-}
-
 function safeDatabaseLabel(connectionString) {
   try {
     const url = new URL(connectionString);
@@ -89,6 +90,26 @@ function safeDatabaseLabel(connectionString) {
   } catch {
     return "configured";
   }
+}
+
+async function migrationFiles(schemaPath, migrationsOnly) {
+  const canonicalSchema = path.resolve(process.cwd(), "docs/schema.sql");
+
+  if (!migrationsOnly && schemaPath !== canonicalSchema) {
+    return [];
+  }
+
+  const directory = path.resolve(process.cwd(), "scripts/migrations");
+  const entries = await readdir(directory, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
+    .map((entry) => path.join(directory, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function migrationChecksum(sql) {
+  return createHash("sha256").update(sql).digest("hex");
 }
 
 async function main() {
@@ -104,25 +125,70 @@ async function main() {
   }
 
   const schemaPath = path.resolve(process.cwd(), args.schemaPath);
-  const schemaSql = await readFile(schemaPath, "utf8");
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false,
-  });
+  const schemaSql = args.migrationsOnly ? "" : await readFile(schemaPath, "utf8");
+  const migrations = await migrationFiles(schemaPath, args.migrationsOnly);
+  const pool = new Pool(postgresConnectionOptions(databaseUrl));
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
-    await client.query(schemaSql);
-    await client.query("COMMIT");
+    if (schemaSql) {
+      await client.query(schemaSql);
+    }
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        name TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+
+    const applied = [];
+    const skipped = [];
+
+    for (const migrationPath of migrations) {
+      const name = path.basename(migrationPath);
+      const sql = await readFile(migrationPath, "utf8");
+      const checksum = migrationChecksum(sql);
+      const existing = await client.query(
+        "SELECT checksum FROM schema_migrations WHERE name = $1",
+        [name],
+      );
+
+      if (existing.rows.length > 0) {
+        if (existing.rows[0].checksum !== checksum) {
+          throw new Error(`Migration checksum mismatch for ${name}. Never edit an applied migration.`);
+        }
+
+        skipped.push(name);
+        continue;
+      }
+
+      if (/^\s*(BEGIN|COMMIT|ROLLBACK)\s*;/im.test(sql)) {
+        throw new Error(`Migration ${name} must not manage its own transaction.`);
+      }
+
+      await client.query(sql);
+      await client.query(
+        "INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)",
+        [name, checksum],
+      );
+      applied.push(name);
+    }
+
+    await client.query(args.dryRun ? "ROLLBACK" : "COMMIT");
 
     console.log(
       JSON.stringify(
         {
           ok: true,
+          dryRun: args.dryRun,
+          mode: args.migrationsOnly ? "migrations-only" : "schema-and-migrations",
           appliedAt: new Date().toISOString(),
           database: safeDatabaseLabel(databaseUrl),
           schema: path.relative(process.cwd(), schemaPath),
+          migrations: { applied, skipped },
         },
         null,
         2,

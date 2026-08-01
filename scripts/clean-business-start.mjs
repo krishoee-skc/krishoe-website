@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const confirmationFlag = "--confirm-clean-business-start";
 const confirmed = process.argv.includes(confirmationFlag);
@@ -75,10 +76,7 @@ function stamp() {
 loadEnvLocal();
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is missing.");
 
-const client = new pg.Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const client = new pg.Client(postgresConnectionOptions(process.env.DATABASE_URL));
 
 await client.connect();
 try {

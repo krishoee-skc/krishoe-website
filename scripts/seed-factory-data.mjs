@@ -1,5 +1,6 @@
 import fs from "fs";
 import pg from "pg";
+import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
 
@@ -35,12 +36,7 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: /localhost|127\.0\.0\.1/i.test(databaseUrl)
-    ? false
-    : { rejectUnauthorized: process.env.PGSSL_INSECURE !== "true" },
-});
+const pool = new Pool(postgresConnectionOptions(databaseUrl));
 
 async function count(client, table) {
   const result = await client.query(`SELECT COUNT(*)::int AS count FROM ${table}`);

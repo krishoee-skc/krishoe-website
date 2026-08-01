@@ -8,6 +8,7 @@ Use this list before the final public launch. Keep real secrets only in
 - Premium storefront, shop, product detail, cart, wishlist, checkout, contact, about, order status.
 - Admin login, signed session cookie, login rate limit, staff role permissions, proxy-level 401/403 protection for mapped admin APIs, activity log filters/search, and CSV audit export for login/logout, backup export, sensitive CSV exports, products, orders, and operations changes.
 - Admin/customer login and public submissions use shared rate-limit storage in Postgres production mode.
+- Factory APIs enforce session and method-specific role checks both in the proxy and inside every route handler. Daily work entry is available to the Factory role; worker/item/rate setup and cash mutations remain Owner-only, while approved HR reads use the HR permission.
 - Customer register/login/logout, signed session cookie, profile editing, checkout prefill, password reset flow.
 - Password reset request flow queues delivery, stores new reset tokens as hashes, and does not expose reset tokens in production UI.
 - Admin backup/export and Postgres import hash legacy plaintext reset tokens before they leave or enter storage.
@@ -31,6 +32,7 @@ Use this list before the final public launch. Keep real secrets only in
 - Public health endpoint: `/api/health`.
 - Protected readiness endpoint: `/api/admin/readiness`.
 - Branded 404 and error fallback UI.
+- Canonical seed-free Factory tables live in `docs/schema.sql`; tracked checksummed migrations, a read-only preflight, and a sensitive pre-migration snapshot command protect upgrades from the former competing Factory schemas.
 
 ## Required Before Real Production
 
@@ -40,6 +42,8 @@ Use this list before the final public launch. Keep real secrets only in
    - Export `/api/admin/backup` before migration. This backup contains sensitive user password hashes and account data, so store it securely.
    - Local helper: run `npm run backup:export -- --url=http://localhost:3002`; generated files stay under ignored `backups/`.
    - Run `docs/schema.sql` against a clean Postgres database.
+   - For an existing Factory database, run `npm run db:factory-preflight`, then `npm run db:factory-backup`, then `npm run db:migrate:factory -- --dry-run`. Apply with `npm run db:migrate:factory` only after the dry-run succeeds, and rerun the preflight afterward.
+   - Files created by `db:factory-backup` contain worker and wage data, remain under ignored `backups/`, and must be stored securely.
    - Follow `docs/postgres-migration-plan.md`.
    - Confirm the completed repository adapters listed in `docs/postgres-adapter-scaffold.md` still match the live schema before switching traffic.
    - Migrate current `data/products.json`, `data/orders.json`, `data/messages.json`, `data/users.json`, `data/operations.json`, `data/pos-invoices.json`, `data/purchases.json`, `data/costing-settings.json`, `data/hr.json`, hashed password reset tokens if still needed, and admin audit data.

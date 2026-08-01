@@ -1,3 +1,4 @@
+import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,6 +15,9 @@ interface Worker {
 }
 
 export async function GET() {
+  const denied = await authorizeFactoryApi("/api/factory/workers", "GET");
+  if (denied) return denied;
+
   try {
     const workers = await queryPostgres<Worker>(
       STORE,
@@ -31,6 +35,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await authorizeFactoryApi("/api/factory/workers", "POST");
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { name, worker_type, category, monthly_salary, weekly_advance } = body;

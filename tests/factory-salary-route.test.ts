@@ -2,15 +2,20 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const queryPostgres = vi.fn();
+const authorizeFactoryApi = vi.fn();
 
 vi.mock("@/lib/postgres/client", () => ({
   queryPostgres: (...args: unknown[]) => queryPostgres(...args),
+}));
+vi.mock("@/lib/factory-api-access", () => ({
+  authorizeFactoryApi: (...args: unknown[]) => authorizeFactoryApi(...args),
 }));
 
 const { GET } = await import("@/app/api/factory/salary/route");
 
 beforeEach(() => {
   queryPostgres.mockReset();
+  authorizeFactoryApi.mockReset().mockResolvedValue(null);
 });
 
 describe("factory staff salary summary", () => {
@@ -37,6 +42,7 @@ describe("factory staff salary summary", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
+    expect(authorizeFactoryApi).toHaveBeenCalledWith("/api/factory/salary", "GET");
     expect(queryPostgres.mock.calls[1][1]).toContain("SUM(payment_given)");
     expect(body).toMatchObject({
       worker_id: "staff-1",
