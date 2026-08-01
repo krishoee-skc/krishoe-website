@@ -1,5 +1,15 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  ArrowRightIcon,
+  CreditCardIcon,
+  MessageSquareIcon,
+  PackageIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  ShoppingCartIcon,
+  UserIcon,
+} from "@/components/Icons";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getAdminPermissionSummary, getSessionAdminRole } from "@/lib/admin-permissions";
 import { getCostingSnapshot } from "@/lib/costing";
@@ -19,6 +29,7 @@ import {
   summarizeProductionReadiness,
   type ReadinessStatus,
 } from "@/lib/production-readiness";
+import { getProductionControlSummary } from "@/lib/production-accounting";
 import { getContactMessages, getOrders, type ContactSubmission, type OrderSubmission } from "@/lib/submissions";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +42,17 @@ type PurchasingSnapshot = Awaited<ReturnType<typeof getPurchasingSnapshot>>;
 type CostingSnapshot = Awaited<ReturnType<typeof getCostingSnapshot>>;
 type HrSnapshot = Awaited<ReturnType<typeof getHrSnapshot>>;
 type OperationalAlertCenter = Awaited<ReturnType<typeof getOperationalAlertCenter>>;
+type ProductionControlSummary = Awaited<ReturnType<typeof getProductionControlSummary>>;
 type DesignCostingRow = CostingSnapshot["designCosting"][number];
 type CostingPeriodRow = CostingSnapshot["periodReports"][number];
 type OperationalAlert = OperationalAlertCenter["alerts"][number];
+type IconComponent = ComponentType<{ className?: string }>;
+type RawMaterialRow = OperationsSnapshot["rawMaterials"][number];
+type WorkerTaskRow = OperationsSnapshot["workerTasks"][number];
+type ProductionBatchRow = OperationsSnapshot["productionBatches"][number];
+type MaterialConsumptionRow = OperationsSnapshot["materialConsumptions"][number];
+type SupplierPaymentFollowup = PurchasingSnapshot["reports"]["supplierPaymentFollowups"][number];
+type PayrollSuggestionRow = HrSnapshot["reports"]["payrollSuggestions"][number];
 type ProductionInsight = {
   id: string;
   design: string;
@@ -55,6 +74,21 @@ type CollectionFollowup = {
   daysOutstanding: number;
   followUpDueDate?: string;
 };
+
+function emptyProductionControlSummary(): ProductionControlSummary {
+  return {
+    activeWorkOrders: 0,
+    overdueWorkOrders: 0,
+    readyForQc: 0,
+    todayGoodPairs: 0,
+    todayRejectedPairs: 0,
+    todayEarnedWage: 0,
+    todayStockPairs: 0,
+    handoverMismatches: 0,
+    workerBalanceDue: 0,
+    stagePending: {},
+  };
+}
 
 function amountFromOrderTotal(total: string) {
   return parseOrderTotalRupees(total);
@@ -96,8 +130,8 @@ function StatCard({
   return (
     <div className={`rounded-lg border p-5 shadow-sm ${toneClass(tone)}`}>
       <p className="text-sm font-medium opacity-75">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] opacity-65">
+      <p className="admin-wide-value mt-2 text-3xl font-black">{value}</p>
+      <p className="admin-wide-label mt-2 text-xs font-semibold uppercase opacity-65">
         {detail}
       </p>
     </div>
@@ -200,6 +234,86 @@ function MiniMetric({ label, value }: { label: string; value: string | number })
   );
 }
 
+function ControlTile({
+  href,
+  label,
+  value,
+  detail,
+  tone = "default",
+  Icon,
+}: {
+  href: string;
+  label: string;
+  value: string | number;
+  detail: string;
+  tone?: Tone;
+  Icon: IconComponent;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group grid min-h-[150px] grid-rows-[auto_1fr_auto] rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(tone)}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white/75 text-current shadow-sm ring-1 ring-black/5 dark:bg-white/10">
+          <Icon className="h-5 w-5" />
+        </span>
+        <ArrowRightIcon className="h-4 w-4 opacity-45 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
+      </div>
+      <div className="mt-4">
+        <p className="admin-wide-label text-xs font-black uppercase opacity-65">{label}</p>
+        <p className="admin-wide-value mt-2 text-2xl font-black leading-none">{value}</p>
+      </div>
+      <p className="mt-3 text-xs font-semibold leading-5 opacity-75">{detail}</p>
+    </Link>
+  );
+}
+
+function QuickCommand({
+  href,
+  label,
+  Icon,
+}: {
+  href: string;
+  label: string;
+  Icon: IconComponent;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/20 bg-white px-3 text-sm font-black text-brand-green-ink shadow-sm transition hover:border-brand-green hover:text-brand-green"
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
+}
+
+function FlowStep({
+  href,
+  label,
+  value,
+  detail,
+  tone = "default",
+}: {
+  href: string;
+  label: string;
+  value: string | number;
+  detail: string;
+  tone?: Tone;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`grid min-h-[120px] rounded-lg border p-4 shadow-sm transition hover:border-brand-green hover:shadow-md ${toneClass(tone)}`}
+    >
+      <p className="admin-wide-label text-xs font-black uppercase opacity-65">{label}</p>
+      <p className="admin-wide-value mt-2 text-xl font-black">{value}</p>
+      <p className="mt-2 text-xs font-semibold leading-5 opacity-75">{detail}</p>
+    </Link>
+  );
+}
+
 function settledValue<T>(result: PromiseSettledResult<T>, fallback: T) {
   return result.status === "fulfilled" ? result.value : fallback;
 }
@@ -233,6 +347,7 @@ async function safeGetData() {
     purchasingResult,
     costingResult,
     hrResult,
+    productionControlResult,
   ] = await Promise.allSettled([
     getProducts({ includeDrafts: true }),
     getOrders(),
@@ -243,6 +358,7 @@ async function safeGetData() {
     getPurchasingSnapshot(),
     getCostingSnapshot(),
     getHrSnapshot(),
+    getProductionControlSummary(),
   ]);
 
   const alertCenter = (await getOperationalAlertCenter().catch(() => null)) ?? null;
@@ -259,6 +375,7 @@ async function safeGetData() {
     purchasing: settledValue(purchasingResult, {} as PurchasingSnapshot),
     costing: settledValue(costingResult, {} as CostingSnapshot),
     hr: settledValue(hrResult, {} as HrSnapshot),
+    productionControl: settledValue(productionControlResult, emptyProductionControlSummary()),
     alertCenter: (alertCenter ?? { summary: {}, alerts: [] }) as OperationalAlertCenter,
     readiness,
   };
@@ -276,6 +393,7 @@ export default async function AdminDashboardPage() {
     purchasing,
     costing,
     hr,
+    productionControl,
     alertCenter,
     readiness,
   } = await safeGetData();
@@ -338,174 +456,314 @@ export default async function AdminDashboardPage() {
   const collectionQueue = getOp("reports.ledgerCollectionFollowups", [] as CollectionFollowup[]).filter(
     (ledger) => ledger.priority !== "Clear",
   );
+  const rawMaterials = getOp("rawMaterials", [] as RawMaterialRow[]);
+  const lowRawMaterials = rawMaterials.filter(
+    (material) => material.lowStock || material.balance <= material.reorderLevel,
+  );
+  const materialConsumptions = getOp("materialConsumptions", [] as MaterialConsumptionRow[]);
+  const todayIsoKey = new Date().toISOString().slice(0, 10);
+  const todayMaterialIssues = materialConsumptions.filter(
+    (consumption) => consumption.createdAt.slice(0, 10) === todayIsoKey,
+  );
+  const todayMaterialIssueQuantity = todayMaterialIssues.reduce(
+    (total, consumption) => total + consumption.quantity + consumption.wastage,
+    0,
+  );
+  const workerTasks = getOp("workerTasks", [] as WorkerTaskRow[]);
+  const activeWorkerTasks = workerTasks.filter((task) => task.status !== "Done");
+  const doneWorkerTaskPairs = workerTasks.reduce((total, task) => total + task.completedPairs, 0);
+  const productionBatches = getOp("productionBatches", [] as ProductionBatchRow[]);
+  const activeProductionBatches = productionBatches.filter((batch) => batch.status !== "Packed");
+  const supplierPaymentQueue = getPur("reports.supplierPaymentFollowups", [] as SupplierPaymentFollowup[]).filter(
+    (supplier) => supplier.priority !== "Clear",
+  );
+  const payrollSuggestions = getHr("reports.payrollSuggestions", [] as PayrollSuggestionRow[]);
+  const payrollActionCount = payrollSuggestions.filter((suggestion) => suggestion.statusSignal !== "Recorded").length;
+  const todayCollected =
+    getPos("todayDayClose.cashAmount", 0) +
+    getPos("todayDayClose.chequeAmount", 0) +
+    getPos("todayDayClose.qrAmount", 0) +
+    getPos("todayDayClose.eSewaAmount", 0) +
+    getPos("todayDayClose.khaltiAmount", 0) +
+    getPos("todayDayClose.bankAmount", 0);
+  const todayBillCount = getPos("todayDayClose.invoiceCount", 0);
+  const accountingReviewCount =
+    getPur("summary.postingNeedsReview", 0) +
+    getPos("summary.needsReview", 0) +
+    (paymentReconciliation?.summary?.issueCount || 0);
   const dailyActions = [
     {
       href: "/admin/orders",
-      label: "Orders",
+      label: "Online Orders",
       value: newOrders.length,
       detail: `${pendingPayments.length + unpaidOrders.length} payment follow-up`,
+      Icon: ShoppingCartIcon,
       tone: newOrders.length > 0 ? ("warn" as const) : ("good" as const),
     },
     {
       href: "/admin/pos",
-      label: "POS billing",
+      label: "Sales Billing",
       value: money(getPos("summary.todayNetSales", 0)),
-      detail: `${getPos("summary.todayBillCount", 0)} bills today`,
+      detail: `${todayBillCount} bills today`,
+      Icon: CreditCardIcon,
       tone: getPos("summary.needsReview", 0) > 0 ? ("warn" as const) : ("good" as const),
     },
     {
-      href: "/admin/factory",
-      label: "Factory entry",
-      value: getOp("summary.finishedPairs", 0),
-      detail: `${getOp("summary.inProgressPairs", 0)} in progress`,
-      tone: getOp("summary.rejectedPairs", 0) > 0 ? ("warn" as const) : ("good" as const),
+      href: "/admin/purchasing",
+      label: "Purchase Receive",
+      value: money(getPur("summary.todayPurchase", 0)),
+      detail: `${getPur("summary.postingNeedsReview", 0)} bills need review`,
+      Icon: PackageIcon,
+      tone: getPur("summary.postingNeedsReview", 0) > 0 ? ("warn" as const) : ("good" as const),
     },
     {
-      href: "/admin/payments",
-      label: "Payments",
-      value: paymentReconciliation?.summary?.issueCount || 0,
-      detail: `${paymentReconciliation?.summary?.highRiskIssueCount || 0} high risk`,
-      tone: paymentIssueTone,
+      href: "/admin/operations",
+      label: "Material Issue",
+      value: todayMaterialIssues.length,
+      detail: `${lowRawMaterials.length} low material, ${todayMaterialIssueQuantity} used today`,
+      Icon: PackageIcon,
+      tone: lowRawMaterials.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/operations/production-accounts",
+      label: "Worker Work",
+      value: `${productionControl.todayGoodPairs} pairs`,
+      detail: `${activeWorkerTasks.length} active tasks, ${money(productionControl.workerBalanceDue)} due`,
+      Icon: UserIcon,
+      tone: productionControl.workerBalanceDue > 0 || productionControl.handoverMismatches > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/operations/production-accounts",
+      label: "QC Stock In",
+      value: productionControl.readyForQc,
+      detail: `${productionControl.todayStockPairs} pairs stocked today`,
+      Icon: ShieldCheckIcon,
+      tone: productionControl.readyForQc > 0 ? ("warn" as const) : ("good" as const),
     },
     {
       href: "/admin/dues",
-      label: "Dues",
-      value: collectionQueue.length,
-      detail: money(getOp("summary.receivable", 0) + getPos("summary.totalCredit", 0)),
+      label: "Receive Payment",
+      value: collectionQueue.length + supplierPaymentQueue.length,
+      detail: `${money(todayCollected)} collected today`,
+      Icon: CreditCardIcon,
       tone: collectionQueue.length > 0 ? ("warn" as const) : ("good" as const),
     },
     {
       href: "/admin/customers",
-      label: "Customers",
+      label: "Customer Care",
       value: openMessages.length,
       detail: "messages and account trust",
+      Icon: MessageSquareIcon,
       tone: openMessages.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+  ];
+  const quickCommands = [
+    { href: "/admin/purchasing", label: "Receive material", Icon: PackageIcon },
+    { href: "/admin/operations", label: "Issue material", Icon: PackageIcon },
+    { href: "/admin/operations/production-accounts", label: "Worker work", Icon: UserIcon },
+    { href: "/admin/operations/production-accounts", label: "QC stock in", Icon: ShieldCheckIcon },
+    { href: "/admin/pos", label: "Sales bill", Icon: CreditCardIcon },
+    { href: "/admin/dues", label: "Receive payment", Icon: CreditCardIcon },
+    { href: "/admin/search", label: "Search", Icon: SearchIcon },
+  ];
+  const operatingFlow = [
+    {
+      href: "/admin/purchasing",
+      label: "1. Purchase Receive",
+      value: money(getPur("summary.todayPurchase", 0)),
+      detail: `${supplierPaymentQueue.length} supplier follow-up`,
+      tone: supplierPaymentQueue.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/operations",
+      label: "2. Material Issue",
+      value: todayMaterialIssues.length,
+      detail: `${lowRawMaterials.length} materials near reorder`,
+      tone: lowRawMaterials.length > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/operations/production-accounts",
+      label: "3. Worker Output",
+      value: `${productionControl.todayGoodPairs} good`,
+      detail: `${doneWorkerTaskPairs} total completed, ${productionControl.todayRejectedPairs} rejected today`,
+      tone: productionControl.todayRejectedPairs > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/operations/production-accounts",
+      label: "4. QC And Stock",
+      value: productionControl.readyForQc,
+      detail: `${productionControl.activeWorkOrders} active work orders`,
+      tone: productionControl.readyForQc > 0 || productionControl.overdueWorkOrders > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/pos",
+      label: "5. Sales And POS",
+      value: money(getPos("summary.todayNetSales", 0)),
+      detail: `${todayBillCount} bills, ${getPos("summary.needsReview", 0)} review`,
+      tone: getPos("summary.needsReview", 0) > 0 ? ("warn" as const) : ("good" as const),
+    },
+    {
+      href: "/admin/payments",
+      label: "6. Payment Close",
+      value: money(todayCollected),
+      detail: `${accountingReviewCount} accounting review`,
+      tone: accountingReviewCount > 0 ? ("warn" as const) : ("good" as const),
     },
   ];
 
   return (
     <section className="p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">KRISHOE operating dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Factory, wholesale, retail, online, payments, and launch safety overview.
-          </p>
+      <section className="rounded-lg border border-brand-green/15 bg-white p-5 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto]">
+          <div>
+            <p className="admin-wide-label text-xs font-black uppercase text-brand-gold-ink">
+              Owner control room
+            </p>
+            <h1 className="admin-wide-title mt-2 text-3xl font-black leading-tight text-brand-green-ink md:text-4xl">
+              KRISHOE Daily Control
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+              Today operating numbers from factory, purchasing, sales, ledger, payment, and customer queues.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-start gap-2 xl:justify-end">
+            <StatusBadge
+              label={launchStatus === "ready" ? "Ready" : launchStatus}
+              tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"}
+            />
+            <StatusBadge label={backendStatus.backend} tone={backendStatus.databaseUrlConfigured ? "good" : "warn"} />
+            <StatusBadge label={adminAccess.role} tone={adminAccess.role === "Owner" ? "good" : "warn"} />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/api/admin/readiness"
-            className="rounded-full border border-brand-green px-4 py-2 text-sm font-bold text-brand-green"
-          >
-            Readiness JSON
-          </Link>
-          <Link
-            href="/admin/activity"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
-          >
-            Activity log
-          </Link>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {quickCommands.map((command) => (
+            <QuickCommand key={command.label} {...command} />
+          ))}
           <Link
             href="/api/admin/backup"
-            className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-green px-3 text-sm font-black text-white shadow-sm transition hover:bg-brand-green-ink"
           >
+            <ShieldCheckIcon className="h-4 w-4" />
             Export backup
           </Link>
         </div>
-      </div>
-
-      <section className="mt-6 rounded-2xl border border-brand-green/20 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Daily work dock</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Open the work areas that move today sales, stock, collection, and customer trust.
-            </p>
-          </div>
-          <StatusBadge label={launchStatus === "ready" ? "Ready" : launchStatus} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          {dailyActions.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className={`rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(action.tone)}`}
-            >
-              <p className="text-sm font-black">{action.label}</p>
-              <p className="mt-2 text-2xl font-black">{action.value}</p>
-              <p className="mt-2 text-xs font-semibold leading-5 opacity-70">{action.detail}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">Today at a glance</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           {[
-            { label: "Today sales", value: money(getPos("summary.todayNetSales", 0)), tone: "good" as const, href: undefined as string | undefined },
-            { label: "Today purchase", value: money(getPur("summary.todayPurchase", 0)), tone: "plain" as const, href: undefined as string | undefined },
-            { label: "Cash in hand", value: money(getPos("todayDayClose.cashAmount", 0)), tone: "plain" as const, href: undefined as string | undefined },
             {
-              label: "To collect",
-              value: money(getOp("summary.receivable", 0)),
-              tone: getOp("summary.receivable", 0) > 0 ? ("warn" as const) : ("good" as const),
-              href: "/admin/dues",
+              label: "Today sales",
+              value: money(getPos("summary.todayNetSales", 0)),
+              detail: `${todayBillCount} bills`,
+              href: "/admin/pos",
+              tone: "good" as Tone,
             },
             {
-              label: "To pay",
+              label: "Today purchase",
+              value: money(getPur("summary.todayPurchase", 0)),
+              detail: `${getPur("summary.purchaseInvoiceCount", 0)} purchase bills`,
+              href: "/admin/purchasing",
+              tone: "default" as Tone,
+            },
+            {
+              label: "Collected",
+              value: money(todayCollected),
+              detail: "cash, cheque, QR, wallet, bank",
+              href: "/admin/payments",
+              tone: todayCollected > 0 ? ("good" as Tone) : ("default" as Tone),
+            },
+            {
+              label: "Production live",
+              value: activeProductionBatches.length,
+              detail: `${productionControl.activeWorkOrders} work orders`,
+              href: "/admin/operations/production-accounts",
+              tone: productionControl.overdueWorkOrders > 0 ? ("warn" as Tone) : ("good" as Tone),
+            },
+            {
+              label: "Worker pay action",
+              value: payrollActionCount,
+              detail: `${money(productionControl.workerBalanceDue)} balance`,
+              href: "/admin/hr",
+              tone: payrollActionCount > 0 || productionControl.workerBalanceDue > 0 ? ("warn" as Tone) : ("good" as Tone),
+            },
+            {
+              label: "Supplier due",
               value: money(getPur("summary.supplierDue", 0)),
-              tone: getPur("summary.supplierDue", 0) > 0 ? ("warn" as const) : ("good" as const),
               href: "/admin/dues",
+              detail: `${supplierPaymentQueue.length} follow-up`,
+              tone: getPur("summary.supplierDue", 0) > 0 ? ("warn" as Tone) : ("good" as Tone),
             },
           ].map((cell) => {
             const body = (
               <>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{cell.label}</p>
-                <p
-                  className={`mt-1 text-lg font-black ${
-                    cell.tone === "good"
-                      ? "text-brand-green"
-                      : cell.tone === "warn"
-                        ? "text-brand-clay"
-                        : "text-brand-green-ink"
-                  }`}
-                >
-                  {cell.value}
-                </p>
+                <p className="admin-wide-label text-xs font-black uppercase text-brand-muted">{cell.label}</p>
+                <p className="admin-wide-value mt-2 text-xl font-black text-brand-green-ink">{cell.value}</p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-gray-500">{cell.detail}</p>
               </>
             );
 
-            return cell.href ? (
+            return (
               <Link
                 key={cell.label}
                 href={cell.href}
-                className="rounded-xl border border-brand-green/10 bg-white p-4 transition hover:border-brand-green/40 hover:shadow-sm"
+                className={`rounded-lg border p-4 transition hover:border-brand-green/40 hover:shadow-sm ${toneClass(cell.tone)}`}
               >
                 {body}
               </Link>
-            ) : (
-              <div key={cell.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
-                {body}
-              </div>
             );
           })}
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-brand-gold-bright/40 bg-brand-cream-soft/50 p-5 shadow-sm">
+      <section className="mt-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="admin-wide-title text-xl font-black text-brand-green-ink">Today action board</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Live work areas from orders, material, production, collection, and customer care.
+            </p>
+          </div>
+          <Link href="/admin/activity" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            Activity log
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {dailyActions.map((action) => (
+            <ControlTile key={`${action.href}-${action.label}`} {...action} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="admin-wide-title text-xl font-black text-brand-green-ink">Business operating flow</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Purchase, material, worker output, QC stock, sales, and payment close status.
+            </p>
+          </div>
+          <Link href="/api/admin/readiness" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            Readiness JSON
+          </Link>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {operatingFlow.map((step) => (
+            <FlowStep key={step.label} {...step} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-brand-gold-bright/40 bg-brand-cream-soft/50 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-brand-green-ink">Profit at a glance</h2>
+          <h2 className="admin-wide-title text-lg font-black text-brand-green-ink">Profit at a glance</h2>
           <Link href="/admin/costing" className="text-sm font-bold text-brand-green underline underline-offset-4">
             Costing detail
           </Link>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {getCost("periodReports", [] as CostingPeriodRow[]).map((period) => (
-            <div key={period?.label} className="rounded-xl border border-brand-green/10 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">{period?.label}</p>
+            <div key={period?.label} className="rounded-lg border border-brand-green/10 bg-white p-4">
+              <p className="admin-wide-label text-xs font-semibold uppercase text-brand-muted">{period?.label}</p>
               <p
-                className={`mt-1 text-xl font-black ${
+                className={`admin-wide-value mt-1 text-xl font-black ${
                   (period?.grossProfit || 0) >= 0 ? "text-brand-green" : "text-brand-clay"
                 }`}
               >
@@ -519,7 +777,7 @@ export default async function AdminDashboardPage() {
         </div>
         {topEarners.length > 0 ? (
           <div className="mt-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">Top earning designs</p>
+            <p className="admin-wide-label text-xs font-black uppercase text-brand-muted">Top earning designs</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {topEarners.map((row) => (
                 <span
@@ -729,7 +987,7 @@ export default async function AdminDashboardPage() {
           <SectionTitle title="Stock and demand" detail="Fast movers, slow movers, low product stock." />
           <div className="grid gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
+              <p className="admin-wide-label text-xs font-black uppercase text-brand-green">Fast moving</p>
               {getOp("fastMovingStock", [] as FastMovingStock[]).slice(0, 3).map((stock) => (
                 <p key={stock?.id} className="mt-2 text-sm text-gray-700">
                   {stock?.design}: <span className="font-bold">{stock?.soldPairs}</span> sold
@@ -737,7 +995,7 @@ export default async function AdminDashboardPage() {
               ))}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Low catalog stock</p>
+              <p className="admin-wide-label text-xs font-black uppercase text-brand-clay">Low catalog stock</p>
               {lowStockProducts.slice(0, 4).map((product) => (
                 <p key={product.id} className="mt-2 text-sm text-gray-700">
                   {product.name}: <span className="font-bold">{product.stock}</span> pairs

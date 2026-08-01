@@ -87,6 +87,25 @@ table th,
 }
 
 @layer components {
+  .admin-wide-title {
+    font-family: "Arial Black", var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-stretch: 112%;
+    letter-spacing: 0;
+  }
+
+  .admin-wide-value {
+    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-stretch: 108%;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  .admin-wide-label {
+    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-stretch: 106%;
+    letter-spacing: 0;
+  }
+
   /* The admin product form styles every field with .form-input, but the class
      was never defined anywhere — no rule, and no @tailwindcss/forms plugin. So
      Tailwind's preflight (which strips input border and padding) was the only
