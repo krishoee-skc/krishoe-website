@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
     const workPairs = positiveInteger(body.work_pairs);
     const amountEarned = positiveAmount(body.amount_earned) ?? 0;
     const paymentGiven = positiveAmount(body.payment_given) ?? 0;
+    const paymentKind = typeof body.payment_kind === "string" ? body.payment_kind.trim() : "";
     const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
     if (!workerId || !date || !entryType) {
@@ -177,6 +178,12 @@ export async function POST(request: NextRequest) {
       notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
       salaryPeriodMonth: null,
       allowedWorkerTypes: ["piece_rate"],
+      productionPaymentType:
+        paymentKind === "Saturday kharcha / advance"
+          ? "Saturday Kharcha"
+          : paymentKind === "Final wage settlement"
+            ? "Final Settlement"
+            : "Midweek Advance",
     });
 
     return NextResponse.json(result, { status: result.replayed ? 200 : 201 });

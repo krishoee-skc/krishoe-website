@@ -952,6 +952,12 @@ CREATE INDEX IF NOT EXISTS worker_payments_employee_idx
 CREATE INDEX IF NOT EXISTS worker_payments_date_idx
   ON worker_payments(payment_date DESC);
 
+ALTER TABLE worker_payments
+  ADD COLUMN IF NOT EXISTS source_submission_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS worker_payments_submission_key_idx
+  ON worker_payments(source_submission_key)
+  WHERE source_submission_key IS NOT NULL;
+
 -- Finished goods stock and stock movement audit trail
 CREATE TABLE IF NOT EXISTS finished_stock (
   id TEXT PRIMARY KEY,

@@ -118,6 +118,13 @@ describe("Factory mutation route contracts", () => {
     expect(createFactoryLedgerEntry).toHaveBeenCalledWith(
       expect.objectContaining({
         submissionKey: "client-key-1",
+        allowedWorkerTypes: ["piece_rate"],
+        productionPaymentType: "Midweek Advance",
+      }),
+    );
+    expect(createFactoryLedgerEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submissionKey: "client-key-1",
         salaryPeriodMonth: "2026-07",
         allowedWorkerTypes: ["monthly_staff"],
       }),

@@ -9,6 +9,14 @@ const SUBMISSION_KEY_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const FACTORY_WORK_STATUSES = new Set(["completed"]);
 const FACTORY_LEDGER_TYPES = new Set(["payment", "adjustment"]);
 
+type FactoryProductionPaymentType =
+  | "Saturday Kharcha"
+  | "Midweek Advance"
+  | "Final Settlement"
+  | "Bonus"
+  | "Deduction"
+  | "Correction";
+
 export class FactoryMutationError extends Error {
   readonly status: number;
 
@@ -392,6 +400,7 @@ export interface FactoryLedgerInput {
   notes: string | null;
   salaryPeriodMonth?: string | null;
   allowedWorkerTypes?: readonly string[];
+  productionPaymentType?: FactoryProductionPaymentType;
 }
 
 function ledgerResponse(row: LedgerRow, submissionKey: string, replayed: boolean) {
@@ -476,7 +485,13 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
     );
     if (existing[0]) {
       assertSameLedger(existing[0], input);
-      return ledgerResponse(existing[0], input.submissionKey, true);
+      return {
+        ...ledgerResponse(existing[0], input.submissionKey, true),
+        production_payment_synced:
+          input.entryType === "payment" &&
+          worker.worker_type === "piece_rate" &&
+          Boolean(worker.hr_employee_id),
+      };
     }
 
     const latest = await db.query<{ running_balance: DbNumeric }>(
@@ -516,7 +531,41 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
       ],
     );
 
-    return ledgerResponse(inserted[0], input.submissionKey, false);
+    let productionPaymentSynced = false;
+    if (
+      input.entryType === "payment" &&
+      worker.worker_type === "piece_rate" &&
+      worker.hr_employee_id
+    ) {
+      const paymentType = input.productionPaymentType ?? "Midweek Advance";
+      await db.query(
+        `INSERT INTO worker_payments (
+           id, payment_date, employee_id, employee_name_snapshot, payment_type,
+           direction, amount, payment_method, receipt_number, approved_by, note,
+           source_submission_key
+         ) VALUES ($1, $2, $3, $4, $5, 'Paid', $6, 'Cash', $7, 'Owner', $8, $9)`,
+        [
+          crypto.randomUUID(),
+          input.date,
+          worker.hr_employee_id,
+          worker.name,
+          paymentType,
+          input.paymentGiven,
+          `KR-FAC-${ledgerId.toUpperCase()}`,
+          input.notes ?? "Factory cash payment",
+          input.submissionKey,
+        ],
+      );
+      productionPaymentSynced = true;
+    }
+
+    return {
+      ...ledgerResponse(inserted[0], input.submissionKey, false),
+      production_payment_synced: productionPaymentSynced,
+      production_payment_sync_reason: productionPaymentSynced
+        ? "Linked HR worker payment saved in Production Accounts."
+        : "Link this piece-rate Factory worker to HR to synchronize Production Accounts.",
+    };
   });
 }
 

@@ -290,6 +290,75 @@ describe("Factory mutation idempotency", () => {
     expect(String(dbQuery.mock.calls[3][0])).toContain("SUM(COALESCE(amount_earned, 0)");
   });
 
+  it("synchronizes a linked piece-rate cash payment into Production Accounts", async () => {
+    dbQuery
+      .mockResolvedValueOnce([]) // advisory idempotency lock
+      .mockResolvedValueOnce([
+        {
+          id: "worker-1",
+          name: "Ram Worker",
+          category: "Upper",
+          worker_type: "piece_rate",
+          hr_employee_id: "employee-1",
+        },
+      ])
+      .mockResolvedValueOnce([]) // no existing ledger submission
+      .mockResolvedValueOnce([{ running_balance: "500.00" }])
+      .mockResolvedValueOnce([
+        {
+          id: "ledger-1",
+          worker_id: "worker-1",
+          date: "2026-08-01",
+          entry_type: "payment",
+          work_pairs: null,
+          amount_earned: "0.00",
+          payment_given: "100.00",
+          running_balance: "400.00",
+          status: "settled",
+          notes: "Saturday kharcha / advance",
+          salary_period_month: null,
+        },
+      ])
+      .mockResolvedValueOnce([]); // Production Accounts payment insert
+
+    const result = await createFactoryLedgerEntry({
+      submissionKey: "piece-payment-key",
+      workerId: "worker-1",
+      date: "2026-08-01",
+      entryType: "payment",
+      workPairs: null,
+      amountEarned: 0,
+      paymentGiven: 100,
+      status: "settled",
+      notes: "Saturday kharcha / advance",
+      salaryPeriodMonth: null,
+      allowedWorkerTypes: ["piece_rate"],
+      productionPaymentType: "Saturday Kharcha",
+    });
+
+    expect(result).toMatchObject({
+      payment_given: 100,
+      running_balance: 400,
+      production_payment_synced: true,
+    });
+    const productionPayment = dbQuery.mock.calls.find(([statement]) =>
+      String(statement).includes("INSERT INTO worker_payments"),
+    );
+    expect(productionPayment?.[1]).toEqual(
+      expect.arrayContaining([
+        "2026-08-01",
+        "employee-1",
+        "Ram Worker",
+        "Saturday Kharcha",
+        100,
+        "Saturday kharcha / advance",
+        "piece-payment-key",
+      ]),
+    );
+    expect(String(productionPayment?.[0])).toContain("'Paid'");
+    expect(String(productionPayment?.[0])).toContain("source_submission_key");
+  });
+
   it("replays the exact payment once and rejects a different amount with the same key", async () => {
     const storedPayment = {
       id: "payment-1",

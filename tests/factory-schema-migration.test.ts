@@ -57,6 +57,19 @@ describe("canonical Factory database migration", () => {
     expect(migration).not.toContain("seed-worker-");
   });
 
+  it("adds duplicate-safe Factory payment synchronization without changing business rows", () => {
+    const migration = read(
+      "scripts",
+      "migrations",
+      "20260803_worker_payment_sync_v1.sql",
+    );
+
+    expect(migration).toContain("source_submission_key");
+    expect(migration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS");
+    expect(migration).not.toMatch(/\b(DELETE|UPDATE|INSERT)\s+/i);
+    expect(migration).not.toMatch(/^\s*(BEGIN|COMMIT|ROLLBACK)\s*;/im);
+  });
+
   it("tracks ordered migration checksums and rejects edited applied files", () => {
     const runner = read("scripts", "apply-postgres-schema.mjs");
 

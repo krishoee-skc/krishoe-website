@@ -137,6 +137,7 @@ export default function LedgerPage() {
           date: paymentDate,
           entry_type: "payment",
           payment_given: amount,
+          payment_kind: paymentKind,
           notes: `${paymentKind}${paymentNote.trim() ? ` · ${paymentNote.trim()}` : ""}`,
         }),
       });
@@ -149,8 +150,15 @@ export default function LedgerPage() {
       if (!reloadRes.ok) throw new Error("Payment saved, but the refreshed ledger could not load.");
       setLedgerData(await reloadRes.json());
       setPaymentAmount("");
+      setSuccess(
+        response.production_payment_synced
+          ? "Cash payment saved. Production Accounts synchronized."
+          : `Cash payment saved. ${
+              response.production_payment_sync_reason ||
+              "Link this Factory worker to HR to synchronize Production Accounts."
+            }`,
+      );
       setPaymentNote("");
-      setSuccess(`Rs. ${amount.toLocaleString()} payment recorded successfully.`);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Payment could not be recorded.");
     } finally {
