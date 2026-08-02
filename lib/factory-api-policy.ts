@@ -17,6 +17,7 @@ const factoryApiPolicies: Record<string, Partial<Record<string, FactoryApiPolicy
   "/api/factory/items": {
     GET: { permissions: productionEntry },
     POST: { permissions: ["operations:write"], ownerOnly: true },
+    PATCH: { permissions: ["operations:write"], ownerOnly: true },
   },
   "/api/factory/ledger": {
     GET: { permissions: hrRead },

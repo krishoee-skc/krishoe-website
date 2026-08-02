@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 
@@ -297,6 +298,12 @@ export default function AddWorkPage() {
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-medium text-slate-900">🛞 Product</label>
             <div className="flex gap-2">
+              <Link
+                href="/admin/factory/items"
+                className="rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-200"
+              >
+                Item Master
+              </Link>
               <button
                 type="button"
                 onClick={() => setShowAddProduct(true)}

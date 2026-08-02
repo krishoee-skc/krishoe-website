@@ -51,6 +51,14 @@ describe("Factory API access policy", () => {
     expect(linkPolicy && canAccessFactoryApi("Owner", linkPolicy)).toBe(true);
   });
 
+  it("keeps Factory-to-Production Item linkage Owner-only", () => {
+    const linkPolicy = getFactoryApiPolicy("/api/factory/items", "PATCH");
+
+    expect(linkPolicy && canAccessFactoryApi("Factory", linkPolicy)).toBe(false);
+    expect(linkPolicy && canAccessFactoryApi("Inventory", linkPolicy)).toBe(false);
+    expect(linkPolicy && canAccessFactoryApi("Owner", linkPolicy)).toBe(true);
+  });
+
   it("fails closed for an unregistered Factory route or method", async () => {
     getAdminSession.mockResolvedValue({ role: "Owner" });
 

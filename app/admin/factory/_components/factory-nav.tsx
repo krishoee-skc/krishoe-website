@@ -15,6 +15,7 @@ const factoryLinks = [
   { href: "/admin/factory", label: "Overview", Icon: HomeIcon },
   { href: "/admin/factory/add-work", label: "Add work", Icon: PlusIcon },
   { href: "/admin/factory/workers", label: "Workers", Icon: UserIcon },
+  { href: "/admin/factory/items", label: "Items", Icon: PackageIcon },
   { href: "/admin/factory/ledger", label: "Piece ledger", Icon: CreditCardIcon },
   { href: "/admin/factory/reports", label: "Reports", Icon: InfoIcon },
   { href: "/admin/factory/salary", label: "Staff salary", Icon: PackageIcon },
