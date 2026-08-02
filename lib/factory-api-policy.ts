@@ -46,6 +46,7 @@ const factoryApiPolicies: Record<string, Partial<Record<string, FactoryApiPolicy
   "/api/factory/workers": {
     GET: { permissions: productionOrHr },
     POST: { permissions: ["hr:write"], ownerOnly: true },
+    PATCH: { permissions: ["hr:write"], ownerOnly: true },
   },
 };
 
