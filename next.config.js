@@ -19,7 +19,9 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+    // POS invoice scanning needs the device camera. `self` keeps third-party
+    // frames blocked while allowing our own HTTPS admin page to request it.
+    value: "camera=(self), microphone=(), geolocation=(), browsing-topics=()",
   },
   {
     key: "Cross-Origin-Opener-Policy",

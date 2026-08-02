@@ -252,8 +252,8 @@ export default async function AdminPurchasingPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Supplier due</h2>
+        <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-black text-brand-green-ink">Supplier ledgers</h2>
           <div className="mt-4 divide-y divide-gray-100">
             {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
               const aging = supplierAgingById.get(supplier.id);

@@ -823,7 +823,7 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
 
 function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+    <section id="customer-ledgers" className="scroll-mt-24 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <SectionTitle title="Customer ledger" detail="Customer details, cash, cheque, credit, balance due." />
       <div className="overflow-x-auto">
         <table className="reflow-table min-w-full text-sm">

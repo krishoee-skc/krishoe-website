@@ -35,6 +35,12 @@ export default function StaffSalaryPage() {
   const [summary, setSummary] = useState<SalarySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [transactionType, setTransactionType] = useState<"advance" | "payment">("advance");
+  const [transactionAmount, setTransactionAmount] = useState("");
+  const [transactionDate, setTransactionDate] = useState(() => nepalDateKey());
+  const [transactionNote, setTransactionNote] = useState("");
+  const [transactionSaving, setTransactionSaving] = useState(false);
   const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
   // Load staff workers
@@ -88,53 +94,24 @@ export default function StaffSalaryPage() {
     loadSummary();
   }, [selectedWorkerId, month]);
 
-  const handleAddAdvance = async () => {
-    if (!selectedWorkerId) return;
-
-    const amount = prompt("Enter advance amount:");
-    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
-    const numericAmount = Number(amount);
-    const paymentDate = nepalDateKey();
-    const keyScope = `salary-advance:${selectedWorkerId}:${month}:${paymentDate}:${numericAmount.toFixed(2)}`;
-
-    try {
-      const res = await fetch("/api/factory/salary-advance", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKeys.get(keyScope),
-        },
-        body: JSON.stringify({
-          worker_id: selectedWorkerId,
-          amount: numericAmount,
-          date: paymentDate,
-          period_month: month,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to record advance");
-
-      idempotencyKeys.rotate(keyScope);
-      // Reload summary
-      window.location.reload();
-    } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
-    }
-  };
-
-  const handleAddPayment = async () => {
+  const handleTransaction = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!selectedWorkerId || !summary) return;
 
-    const amount = prompt(
-      `Enter payment amount (remaining balance: Rs. ${summary.remaining_balance}):`
-    );
-    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
-    const numericAmount = Number(amount);
-    const paymentDate = nepalDateKey();
-    const keyScope = `salary-payment:${selectedWorkerId}:${month}:${paymentDate}:${numericAmount.toFixed(2)}`;
+    const numericAmount = Number(transactionAmount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setError("Enter a valid positive amount.");
+      return;
+    }
+    const keyScope = `salary-${transactionType}:${selectedWorkerId}:${month}:${transactionDate}:${numericAmount.toFixed(2)}`;
 
     try {
-      const res = await fetch("/api/factory/salary-payment", {
+      setTransactionSaving(true);
+      setError(null);
+      setSuccess(null);
+      const res = await fetch(
+        transactionType === "advance" ? "/api/factory/salary-advance" : "/api/factory/salary-payment",
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,18 +120,26 @@ export default function StaffSalaryPage() {
         body: JSON.stringify({
           worker_id: selectedWorkerId,
           amount: numericAmount,
-          date: paymentDate,
+          date: transactionDate,
           period_month: month,
+          notes: transactionNote.trim() || (transactionType === "advance" ? "Owner-approved staff advance" : "Owner-approved salary payment"),
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to record payment");
+      const response = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(response.error || "Transaction could not be recorded.");
 
       idempotencyKeys.rotate(keyScope);
-      // Reload summary
-      window.location.reload();
+      const summaryRes = await fetch(`/api/factory/salary?workerId=${selectedWorkerId}&month=${month}`);
+      if (!summaryRes.ok) throw new Error("Transaction saved, but the refreshed salary summary could not load.");
+      setSummary(await summaryRes.json());
+      setTransactionAmount("");
+      setTransactionNote("");
+      setSuccess(`${transactionType === "advance" ? "Advance" : "Salary payment"} of Rs. ${numericAmount.toLocaleString()} recorded.`);
     } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setError(err instanceof Error ? err.message : "Transaction could not be recorded.");
+    } finally {
+      setTransactionSaving(false);
     }
   };
 
@@ -164,9 +149,8 @@ export default function StaffSalaryPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-black text-brand-green-ink mb-6">
-        💼 Staff Salary Management
-      </h1>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Monthly staff payroll</p>
+      <h1 className="mt-2 text-3xl font-black text-brand-green-ink mb-2">Staff salary, advance and payment</h1>
 
       <p className="mb-6 text-sm text-slate-600">
         Monthly factory staff are managed here. Daily staff attendance, wages,
@@ -178,6 +162,7 @@ export default function StaffSalaryPage() {
           <p className="text-red-800">{error}</p>
         </div>
       )}
+      {success ? <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 font-semibold text-emerald-800">{success}</div> : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -259,21 +244,32 @@ export default function StaffSalaryPage() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleAddAdvance}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-4 rounded-lg transition"
-            >
-              ➕ Add Advance
+          <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
+            <div>
+              <h2 className="text-lg font-black text-brand-green-ink">Record cash transaction</h2>
+              <p className="mt-1 text-sm leading-6 text-gray-600">Advance and salary payment are stored separately and both reduce the remaining salary balance for the selected month.</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm font-bold text-gray-800">Transaction type
+                <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-gray-300 bg-white px-3">
+                  <option value="advance">Saturday kharcha / advance</option>
+                  <option value="payment">Salary payment</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-gray-800">Date
+                <input type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-gray-800">Amount (Rs.)
+                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" placeholder="Cash amount" />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-gray-800">Owner note
+                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" placeholder="Optional reason or reference" />
+              </label>
+            </div>
+            <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
+              {transactionSaving ? "Saving..." : transactionType === "advance" ? "Record advance" : "Record salary payment"}
             </button>
-
-            <button
-              onClick={handleAddPayment}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition"
-            >
-              💳 Record Payment
-            </button>
-          </div>
+          </form>
 
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-4">

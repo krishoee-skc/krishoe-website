@@ -5,115 +5,151 @@ export const metadata: Metadata = {
   title: "Security / CCTV | KRISHOE Admin",
 };
 
-// A shortcut hub, not a live view: a web page cannot embed these phone cameras'
-// feeds, so each card opens the camera's own app (Option 1 the owner chose).
-// Static content — no data, loads instantly. The store link shows "Open" for an
-// already-installed app, so it is one tap to the live view on a phone.
+type PlatformLink = {
+  label: string;
+  href: string;
+  note: string;
+};
+
 type CameraApp = {
-  emoji: string;
+  icon: string;
   name: string;
   vendor: string;
-  where: string;
-  // Play Store search — always valid, and avoids guessing a package id or a
-  // deep-link scheme that may not exist on every build of the app.
-  href: string;
+  links: PlatformLink[];
 };
 
 const cameras: CameraApp[] = [
   {
-    emoji: "🎥",
+    icon: "HC",
     name: "Hik-Connect",
     vendor: "Hikvision",
-    where: "पसल / कारखाना",
-    href: "https://play.google.com/store/search?q=Hik-Connect&c=apps",
+    links: [
+      {
+        label: "iPhone / iPad",
+        href: "https://apps.apple.com/in/app/hik-connect/id1087803190",
+        note: "Open in the Apple App Store",
+      },
+      {
+        label: "Android",
+        href: "https://play.google.com/store/apps/details?id=com.connect.enduser",
+        note: "Open in Google Play",
+      },
+      {
+        label: "Windows / Mac",
+        href: "https://www.hikvision.com/en/support/download/software/ivms4200-series/",
+        note: "Official iVMS-4200 download page",
+      },
+    ],
   },
   {
-    emoji: "📹",
+    icon: "V3",
     name: "V380 Pro",
-    vendor: "V380",
-    where: "पसल / कारखाना",
-    href: "https://play.google.com/store/search?q=V380%20Pro&c=apps",
-  },
-  {
-    emoji: "📷",
-    name: "EOQDZI",
-    vendor: "EOQDZI",
-    where: "पसल / कारखाना",
-    href: "https://play.google.com/store/search?q=EOQDZI&c=apps",
+    vendor: "Guangzhou Hongshi",
+    links: [
+      {
+        label: "iPhone / iPad",
+        href: "https://apps.apple.com/in/app/v380-pro/id1388988209",
+        note: "Open in the Apple App Store",
+      },
+      {
+        label: "Android",
+        href: "https://play.google.com/store/apps/details?id=com.macrovideo.v380pro",
+        note: "Open in Google Play",
+      },
+      {
+        label: "Windows PC",
+        href: "https://v380.org/v380-for-pc/",
+        note: "V380 desktop client page",
+      },
+    ],
   },
 ];
 
 export default function SecurityPage() {
   return (
-    <section className="p-6">
-      <div className="max-w-3xl">
+    <section className="p-4 pb-28 sm:p-6 sm:pb-10">
+      <div className="max-w-4xl">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-          सुरक्षा
+          Security centre
         </p>
-        <h1 className="mt-2 text-2xl font-black text-brand-green-ink">CCTV / क्यामेरा</h1>
-        <p className="mt-1 text-sm leading-6 text-gray-500">
-          तपाईंका क्यामेरा एकै ठाउँबाट खोल्नुहोस्। तल थिच्दा त्यो क्यामेराको app खुल्छ
-          (फोनमा app install भएको हुनुपर्छ)।
+        <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+          CCTV camera apps
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+          Choose the button for the device you are using. This page opens the camera vendor&apos;s
+          app or download page; camera passwords and recordings are not stored in KRISHOE.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid max-w-5xl gap-5 lg:grid-cols-2">
         {cameras.map((camera) => (
-          <a
-            key={camera.name}
-            href={camera.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-green hover:shadow-md"
-          >
+          <article key={camera.name} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-mist text-2xl">
-                {camera.emoji}
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-green font-black text-white">
+                {camera.icon}
               </span>
-              <div className="min-w-0">
-                <p className="truncate text-lg font-black text-brand-green-ink">{camera.name}</p>
-                <p className="text-xs font-semibold text-gray-500">{camera.vendor}</p>
+              <div>
+                <h2 className="text-xl font-black text-brand-green-ink">{camera.name}</h2>
+                <p className="text-xs font-semibold text-gray-500">{camera.vendor} · Shop / Factory</p>
               </div>
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted-soft">
-              📍 {camera.where}
-            </p>
-            <span className="mt-4 inline-flex items-center justify-center rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white transition group-hover:bg-[#08392C]">
-              खोल्नुहोस् ↗
-            </span>
-          </a>
+
+            <div className="mt-5 grid gap-3">
+              {camera.links.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-14 items-center justify-between gap-4 rounded-2xl border border-gray-200 px-4 py-3 transition hover:border-brand-green hover:bg-brand-mist"
+                >
+                  <span>
+                    <span className="block text-sm font-black text-brand-green-ink">{link.label}</span>
+                    <span className="block text-xs text-gray-500">{link.note}</span>
+                  </span>
+                  <span aria-hidden="true" className="font-black text-brand-green">↗</span>
+                </a>
+              ))}
+            </div>
+          </article>
         ))}
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-base font-black text-amber-900">📲 अझ सजिलो बनाउने</h2>
-          <ul className="mt-3 grid gap-2 text-sm leading-6 text-amber-900">
-            <li>• फोनमा हरेक क्यामेरा app लाई <b>“Add to Home screen”</b> गर्नुहोस् — एक tap मा खुल्छ।</li>
-            <li>• यो page क्यामेरा <b>भित्रै</b> देखाउँदैन — app खोल्ने शर्टकट मात्र हो।</li>
-            <li>• क्यामेरा हाम्रो app <b>भित्रै live</b> हेर्न चाहेमा भन्नुहोस् — त्यो अलग (ठूलो) काम हो।</li>
-          </ul>
+      <div className="mt-5 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-5">
+        <h2 className="text-base font-black text-amber-950">EOQDZI camera</h2>
+        <p className="mt-2 text-sm leading-6 text-amber-900">
+          EOQDZI appears to be the camera/product name, but its required app could not be verified
+          safely. Scan the QR code on the camera label or its manual and confirm the exact app name.
+          Do not install an app only because it has a similar name.
+        </p>
+      </div>
+
+      <div className="mt-5 grid max-w-5xl gap-5 lg:grid-cols-2">
+        <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
+          <h2 className="text-base font-black text-blue-950">iPhone मा नखुलेमा</h2>
+          <ol className="mt-3 grid list-decimal gap-2 pl-5 text-sm leading-6 text-blue-900">
+            <li>माथिको iPhone / iPad बटन Safari मा खोल्नुहोस्।</li>
+            <li>App Store मा Get/Open थिच्नुहोस् र Apple ID पुष्टि गर्नुहोस्।</li>
+            <li>पहिले Google Play खुलेको थियो भने त्यो Android link भएकाले iPhone मा चल्दैन।</li>
+          </ol>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <h2 className="text-base font-black text-emerald-950">🔒 app-भित्रको सुरक्षा</h2>
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+          <h2 className="text-base font-black text-emerald-950">KRISHOE account safety</h2>
           <ul className="mt-3 grid gap-2 text-sm leading-6 text-emerald-900">
-            <li>• हरेक कर्मचारीलाई <b>आफ्नै login</b> दिनुहोस् — password नबाँड्नुहोस्।</li>
-            <li>• नचाहिनेलाई <b>“Viewer”</b> role राख्नुहोस् (हेर्ने मात्र, बदल्न नमिल्ने)।</li>
+            <li>हरेक staff लाई आफ्नै login दिनुहोस्; password नबाँड्नुहोस्।</li>
+            <li>Camera password KRISHOE staff password भन्दा फरक राख्नुहोस्।</li>
             <li>
-              • बेलाबेला{" "}
-              <Link href="/admin/activity" className="font-black text-emerald-950 underline">
-                Activity log
-              </Link>{" "}
-              हेर्नुहोस् — कसले के गर्‍यो थाहा हुन्छ।
+              बेलाबेला <Link href="/admin/activity" className="font-black underline">Activity log</Link> र{" "}
+              <Link href="/admin/login-devices" className="font-black underline">Login devices</Link> जाँच्नुहोस्।
             </li>
           </ul>
         </div>
       </div>
 
-      <p className="mt-6 max-w-3xl text-xs leading-6 text-gray-400">
-        सुरक्षाका दुई तह: CCTV ले पसल आँखाले हेर्छ, KRISHOE app ले हरेक बिक्री·स्टक·बाँकी
-        रेकर्डमा राख्छ। दुवै सँगै भए सुरक्षा बलियो हुन्छ।
+      <p className="mt-6 max-w-4xl text-xs leading-6 text-gray-500">
+        CCTV ले स्थानको दृश्य सुरक्षा दिन्छ; KRISHOE ले बिक्री, stock, credit र activity records सुरक्षित राख्छ।
+        Live camera feed लाई KRISHOE भित्र embed गरिएको छैन।
       </p>
     </section>
   );

@@ -16,6 +16,8 @@ interface WorkerLedger {
   amount_earned: number;
   payment_given: number;
   running_balance: number;
+  status: string;
+  notes: string | null;
 }
 
 interface Worker {
@@ -47,6 +49,12 @@ export default function LedgerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [month, setMonth] = useState(() => nepalMonthKey());
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => nepalDateKey());
+  const [paymentKind, setPaymentKind] = useState("Saturday kharcha / advance");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
 
   useEffect(() => {
@@ -103,20 +111,21 @@ export default function LedgerPage() {
     loadLedger();
   }, [selectedWorkerId, month]);
 
-  const handleRecordPayment = async () => {
+  const handleRecordPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!selectedWorkerId || !ledgerData) return;
 
-    const amountToGive = prompt("Enter payment amount:", ledgerData.summary.currentBalance.toString());
-    if (!amountToGive) return;
-    const amount = Number(amountToGive);
+    const amount = Number(paymentAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      alert("Enter a valid positive payment amount.");
+      setError("Enter a valid positive payment amount.");
       return;
     }
-    const paymentDate = nepalDateKey();
-    const keyScope = `payment:${selectedWorkerId}:${paymentDate}:${amount.toFixed(2)}`;
+    const keyScope = `payment:${selectedWorkerId}:${paymentDate}:${amount.toFixed(2)}:${paymentKind}`;
 
     try {
+      setPaymentSaving(true);
+      setError(null);
+      setSuccess(null);
       const res = await fetch("/api/factory/ledger", {
         method: "POST",
         headers: {
@@ -128,27 +137,32 @@ export default function LedgerPage() {
           date: paymentDate,
           entry_type: "payment",
           payment_given: amount,
-          notes: "Payment recorded",
+          notes: `${paymentKind}${paymentNote.trim() ? ` · ${paymentNote.trim()}` : ""}`,
         }),
       });
 
-      if (res.ok) {
-        idempotencyKeys.rotate(keyScope);
-        // Reload ledger
-        const reloadRes = await fetch(
-          `/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`
-        );
-        const data = await reloadRes.json();
-        setLedgerData(data);
-      }
+      const response = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(response.error || "Payment could not be recorded.");
+
+      idempotencyKeys.rotate(keyScope);
+      const reloadRes = await fetch(`/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`);
+      if (!reloadRes.ok) throw new Error("Payment saved, but the refreshed ledger could not load.");
+      setLedgerData(await reloadRes.json());
+      setPaymentAmount("");
+      setPaymentNote("");
+      setSuccess(`Rs. ${amount.toLocaleString()} payment recorded successfully.`);
     } catch (error) {
-      alert("Error recording payment: " + error);
+      setError(error instanceof Error ? error.message : "Payment could not be recorded.");
+    } finally {
+      setPaymentSaving(false);
     }
   };
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">📋 Worker Ledger</h1>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Piece-rate wage control</p>
+      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 mb-2">Worker work and payment ledger</h1>
+      <p className="mb-6 text-sm leading-6 text-slate-600">Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.</p>
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -158,6 +172,7 @@ export default function LedgerPage() {
           </p>
         </div>
       )}
+      {success ? <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 font-semibold text-emerald-800">{success}</div> : null}
 
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -263,6 +278,7 @@ export default function LedgerPage() {
                     <th className="text-right py-2 px-2 sm:px-4">Earned</th>
                     <th className="text-right py-2 px-2 sm:px-4">Paid</th>
                     <th className="text-right py-2 px-2 sm:px-4">Balance</th>
+                    <th className="text-left py-2 px-2 sm:px-4">Note</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -270,7 +286,7 @@ export default function LedgerPage() {
                     ledgerData.ledger.map((entry, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-2 sm:px-4 text-slate-900">
-                          {new Date(entry.date).toLocaleDateString()}
+                          {entry.date}
                         </td>
                         <td className="py-3 px-2 sm:px-4">
                           <span className="text-xs sm:text-sm capitalize bg-slate-100 px-2 py-1 rounded">
@@ -289,11 +305,12 @@ export default function LedgerPage() {
                         <td className="py-3 px-2 sm:px-4 text-right font-semibold text-slate-900">
                           Rs. {entry.running_balance.toLocaleString()}
                         </td>
+                        <td className="min-w-48 py-3 px-2 sm:px-4 text-xs text-slate-600">{entry.notes || "-"}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                      <td colSpan={7} className="py-8 text-center text-slate-500">
                         No ledger entries for this month
                       </td>
                     </tr>
@@ -303,15 +320,37 @@ export default function LedgerPage() {
             </div>
           </div>
 
-          {/* Action Button */}
-          {ledgerData.summary.currentBalance > 0 && (
-            <button
-              onClick={handleRecordPayment}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              💳 Record Payment
+          <form onSubmit={handleRecordPayment} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-black text-emerald-950">Record worker payment</h3>
+                <p className="mt-1 text-sm leading-6 text-emerald-800">Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.</p>
+              </div>
+              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">Use current balance</button>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm font-bold text-slate-800">Payment type
+                <select value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3">
+                  <option>Saturday kharcha / advance</option>
+                  <option>Weekly wage payment</option>
+                  <option>Final wage settlement</option>
+                  <option>Other Owner-approved payment</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-slate-800">Payment date
+                <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-slate-800">Amount (Rs.)
+                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" placeholder="Payment amount" />
+              </label>
+              <label className="grid gap-1 text-sm font-bold text-slate-800">Owner note
+                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" placeholder="Optional reason or reference" />
+              </label>
+            </div>
+            <button type="submit" disabled={paymentSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-emerald-700 px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-60">
+              {paymentSaving ? "Saving payment..." : "Record cash payment"}
             </button>
-          )}
+          </form>
         </div>
       ) : (
         <div className="text-center text-slate-500">Select a worker to view ledger</div>

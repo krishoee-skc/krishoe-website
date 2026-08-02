@@ -96,6 +96,7 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   const [paidTouched, setPaidTouched] = useState(false);
   const [scanCode, setScanCode] = useState("");
   const [scanNote, setScanNote] = useState("");
+  const [isReadingProductPhoto, setIsReadingProductPhoto] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [state, setState] = useState<ActionState | null>(null);
   const [saveLocked, setSaveLocked] = useState(false);
@@ -225,6 +226,26 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
 
     setScanNote(`${item.design} थपियो।`);
     setScanCode("");
+  }
+
+  async function addProductFromPhoto(file: File | undefined) {
+    if (!file) return;
+    setIsReadingProductPhoto(true);
+    setScanNote("Reading product barcode from photo...");
+    const imageUrl = URL.createObjectURL(file);
+
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const result = await new BrowserMultiFormatReader().decodeFromImageUrl(imageUrl);
+      const code = result.getText().trim();
+      setScanCode(code);
+      addByCode(code);
+    } catch {
+      setScanNote("No product barcode found. Try a clearer photo or search the item name.");
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+      setIsReadingProductPhoto(false);
+    }
   }
 
   // Drop the last sale's lines back into the form — a repeat customer buying
@@ -434,6 +455,20 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
             >
               Add
             </button>
+            <label className="inline-flex h-12 cursor-pointer items-center justify-center rounded-full border border-brand-green bg-white px-4 text-sm font-black text-brand-green">
+              {isReadingProductPhoto ? "Reading..." : "Camera / photo"}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={isReadingProductPhoto}
+                className="sr-only"
+                onChange={(event) => {
+                  void addProductFromPhoto(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
           </div>
           {isPickerOpen ? (
             <div

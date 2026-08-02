@@ -406,12 +406,16 @@ export default async function AdminCostingPage() {
         </div>
       ) : null}
 
-      <form action={updateCostingSettingsAction} className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <details className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4 font-black text-brand-green-ink marker:hidden">
+          Advanced legacy batch rates — open only for old Cutting/Stitching/Sole Press records
+        </summary>
+      <form action={updateCostingSettingsAction} className="border-t border-gray-100 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Legacy batch cost model</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Kept for existing Cutting/Stitching/Sole Press batch history. New factory items use item-stage rates in Production Accounts.
+              Kept only for old history. For current KRISHOE work, use item BOM + Upper, Fiber Preparation, Fiber Silai and Bottom Final wage rates. Rent, electricity and salary can remain zero as per the current factory rule.
             </p>
           </div>
           <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
@@ -527,6 +531,7 @@ export default async function AdminCostingPage() {
           </div>
         </div>
       </form>
+      </details>
 
       <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div>

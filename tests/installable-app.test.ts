@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
@@ -98,5 +98,20 @@ describe("every icon the manifest promises exists", () => {
 
     expect(existsSync(file)).toBe(true);
     expect(statSync(file).size).toBeGreaterThan(1000);
+  });
+});
+
+describe("mobile hardware and install guidance", () => {
+  it("allows only the same-origin POS page to request camera access", () => {
+    const config = readFileSync(path.join(process.cwd(), "next.config.js"), "utf8");
+    expect(config).toContain("camera=(self)");
+    expect(config).toContain("microphone=()");
+  });
+
+  it("ships platform-specific iPhone and Android install help", () => {
+    const help = readFileSync(path.join(process.cwd(), "components", "PwaInstallHelp.tsx"), "utf8");
+    expect(help).toContain("Add to Home Screen");
+    expect(help).toContain("Install app");
+    expect(help).toContain("display-mode: standalone");
   });
 });

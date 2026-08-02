@@ -7,6 +7,7 @@ import BottomTabBar from "@/components/BottomTabBar";
 import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import PwaInstallHelp from "@/components/PwaInstallHelp";
 import LanguageProvider from "@/components/LanguageProvider";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
@@ -114,6 +115,7 @@ export default async function RootLayout({
         <LanguageProvider>
           <CommerceProvider catalogProducts={products}>
             {children}
+            <PwaInstallHelp />
             <BottomTabBar />
           </CommerceProvider>
         </LanguageProvider>

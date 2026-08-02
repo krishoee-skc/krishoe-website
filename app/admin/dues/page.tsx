@@ -101,37 +101,43 @@ export default async function AdminDuesPage() {
   const payable = purchasing.summary.supplierDue;
 
   return (
-    <section className="p-6">
-      <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">Dues</h1>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
-          कसले कति तिर्न बाँकी, कसलाई कति तिर्नु बाँकी — एकै ठाउँमा। Who owes the shop, and who the
-          shop owes — biggest first.
-        </p>
+    <section className="p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Credit control</p>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">Customer and supplier ledgers</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+            Customer receivable means money KRISHOE must collect. Supplier payable means money KRISHOE must pay.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/operations#customer-ledgers" className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-black text-brand-green">All customer ledgers</Link>
+          <Link href="/admin/purchasing#supplier-ledgers" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white">All supplier ledgers</Link>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <DueCard
           label="To collect"
-          nepali="ग्राहकबाट पाउनु पर्ने"
+          nepali="ग्राहकबाट उठाउनुपर्ने रकम"
           value={money(receivable)}
           count={customerRows.length}
           tone="collect"
         />
         <DueCard
           label="To pay"
-          nepali="आपूर्तिकर्तालाई तिर्नु पर्ने"
+          nepali="सप्लायरलाई तिर्नुपर्ने रकम"
           value={money(payable)}
           count={supplierRows.length}
           tone="pay"
         />
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section id="customer-receivables" className="mt-8 scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4">
           <h2 className="text-lg font-black text-brand-green-ink">To collect from customers</h2>
           <p className="mt-1 text-sm text-gray-500">
-            ग्राहकबाट पाउनु पर्ने — पुरानो बाँकी माथि। Tap a name to open the customer ledger.
+            Tap a customer name to record cash/cheque collection and view the complete running statement.
           </p>
         </div>
 
@@ -189,11 +195,11 @@ export default async function AdminDuesPage() {
         )}
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section id="supplier-payables" className="mt-8 scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4">
           <h2 className="text-lg font-black text-brand-green-ink">To pay suppliers</h2>
           <p className="mt-1 text-sm text-gray-500">
-            आपूर्तिकर्तालाई तिर्नु पर्ने — पुरानो बाँकी माथि। Tap a name to open the supplier account.
+            Tap a supplier name to record payment and view purchase bills with the running payable balance.
           </p>
         </div>
 

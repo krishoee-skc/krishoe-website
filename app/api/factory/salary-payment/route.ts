@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
       amountEarned: 0,
       paymentGiven: amount,
       status: "settled",
-      notes: "Factory salary payment",
+      notes:
+        typeof body.notes === "string" && body.notes.trim()
+          ? body.notes.trim()
+          : "Factory salary payment",
       salaryPeriodMonth: periodMonth,
       allowedWorkerTypes: ["monthly_staff"],
     });
