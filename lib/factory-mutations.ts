@@ -83,11 +83,12 @@ async function lockWorker(
 ) {
   const rows = await db.query<{
     id: string;
+    name: string;
     category: string;
     worker_type: string;
     hr_employee_id: string | null;
   }>(
-    `SELECT id, category, worker_type, hr_employee_id
+    `SELECT id, name, category, worker_type, hr_employee_id
      FROM factory_workers
      WHERE id = $1${options.activeOnly === false ? "" : " AND status = 'active'"}
      FOR UPDATE`,
@@ -200,11 +201,18 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         409,
       );
     }
-    const items = await db.query<{ id: string; production_item_id: string | null }>(
-      `SELECT id, production_item_id
-       FROM factory_items
-       WHERE id = $1 AND status = 'active'
-       FOR SHARE`,
+    const items = await db.query<{
+      id: string;
+      production_item_id: string | null;
+      production_item_name: string | null;
+    }>(
+      `SELECT items.id, items.production_item_id,
+              production.name AS production_item_name
+       FROM factory_items items
+       LEFT JOIN production_items production
+         ON production.id = items.production_item_id AND production.status = 'Active'
+       WHERE items.id = $1 AND items.status = 'active'
+       FOR SHARE OF items`,
       [input.itemId],
     );
     if (!items[0]) throw new FactoryMutationError("Active factory item not found.", 404);
@@ -276,6 +284,34 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);
+    let productionSynced = false;
+
+    if (
+      worker.hr_employee_id &&
+      items[0].production_item_id &&
+      items[0].production_item_name &&
+      stage
+    ) {
+      const sizeLabel = input.size?.trim() || "Mixed";
+      await db.query(
+        `INSERT INTO production_work_entries (
+           id, work_date, employee_id, employee_name_snapshot, work_order_id,
+           item_id, item_name_snapshot, stage, total_pairs, size_breakdown,
+           rejected_pairs, rework_pairs, rate_per_pair_snapshot, earned_wage,
+           status, approved_by, approved_at, note, source_submission_key
+         ) VALUES (
+           $1, $2, $3, $4, NULL, $5, $6, $7, $8, $9::jsonb,
+           0, 0, $10, $11, 'Approved', 'Factory quick entry', now(), $12, $13
+         )`,
+        [
+          crypto.randomUUID(), input.date, worker.hr_employee_id, worker.name,
+          items[0].production_item_id, items[0].production_item_name, stage,
+          input.pairsCount, JSON.stringify({ [sizeLabel]: input.pairsCount }),
+          rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
+        ],
+      );
+      productionSynced = true;
+    }
 
     if (worker.worker_type === "piece_rate") {
       const keyCollision = await db.query<{ id: string }>(
@@ -320,7 +356,13 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       );
     }
 
-    return workResponse(inserted[0], input.submissionKey, false);
+    return {
+      ...workResponse(inserted[0], input.submissionKey, false),
+      production_synced: productionSynced,
+      production_sync_reason: productionSynced
+        ? "Linked HR worker, Production Item, stage and wage snapshot saved."
+        : "Link this Factory worker and item to HR and Production Item Master for production-history sync.",
+    };
   });
 }
 

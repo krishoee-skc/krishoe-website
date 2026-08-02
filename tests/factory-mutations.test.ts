@@ -91,6 +91,7 @@ describe("Factory mutation idempotency", () => {
       amount_earned: 125,
       submission_key: "work-key-1",
       replayed: false,
+      production_synced: false,
     });
 
     const sql = dbQuery.mock.calls.map(([statement]) => String(statement)).join("\n");
@@ -104,6 +105,83 @@ describe("Factory mutation idempotency", () => {
     expect(ledgerInsert?.[1]).toEqual(
       expect.arrayContaining(["work-key-1", expect.any(String), "worker-1", 10, 125, 175]),
     );
+  });
+
+  it("synchronizes linked factory work into approved production history", async () => {
+    dbQuery
+      .mockResolvedValueOnce([]) // advisory idempotency lock
+      .mockResolvedValueOnce([]) // no previous work with this key
+      .mockResolvedValueOnce([
+        {
+          id: "worker-1",
+          name: "Ram Worker",
+          category: "Upper",
+          worker_type: "piece_rate",
+          hr_employee_id: "employee-1",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "item-1",
+          production_item_id: "production-item-1",
+          production_item_name: "Ladies Heel",
+        },
+      ])
+      .mockResolvedValueOnce([{ rate_per_pair: "18.00" }])
+      .mockResolvedValueOnce([
+        {
+          id: "work-1",
+          date: "2026-08-02",
+          worker_id: "worker-1",
+          item_id: "item-1",
+          color: "Black",
+          size: "36",
+          pairs_count: 20,
+          status: "completed",
+          rate_applied: "18.00",
+          amount_earned: "360.00",
+        },
+      ])
+      .mockResolvedValueOnce([]) // production history insert
+      .mockResolvedValueOnce([]) // no ledger-key collision
+      .mockResolvedValueOnce([{ running_balance: "0.00" }])
+      .mockResolvedValueOnce([]); // factory ledger insert
+
+    const result = await createFactoryWork({
+      submissionKey: "linked-work-key",
+      date: "2026-08-02",
+      workerId: "worker-1",
+      itemId: "item-1",
+      color: "Black",
+      size: "36",
+      pairsCount: 20,
+      status: "completed",
+    });
+
+    expect(result).toMatchObject({
+      id: "work-1",
+      amount_earned: 360,
+      production_synced: true,
+    });
+    const productionInsert = dbQuery.mock.calls.find(([statement]) =>
+      String(statement).includes("INSERT INTO production_work_entries"),
+    );
+    expect(productionInsert?.[1]).toEqual(
+      expect.arrayContaining([
+        "2026-08-02",
+        "employee-1",
+        "Ram Worker",
+        "production-item-1",
+        "Ladies Heel",
+        "Upper",
+        20,
+        JSON.stringify({ "36": 20 }),
+        18,
+        360,
+        "linked-work-key",
+      ]),
+    );
+    expect(String(productionInsert?.[0])).toContain("'Approved'");
   });
 
   it("returns the stored work on an exact retry without posting another wage", async () => {

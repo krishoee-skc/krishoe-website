@@ -217,8 +217,16 @@ export default function AddWorkPage() {
         throw new Error(errorData.error || "Failed to save work entry");
       }
 
+      const result = await res.json();
       idempotencyKeys.rotate(keyScope);
-      setSuccess("✅ Work entry saved successfully!");
+      setSuccess(
+        result.production_synced
+          ? "Work and wage saved. Production history synchronized."
+          : `Work and wage saved. ${
+              result.production_sync_reason ||
+              "Link the Worker and Item Master to synchronize production history."
+            }`,
+      );
       setFormData({
         date: nepalDateKey(),
         worker_id: "",
@@ -229,6 +237,7 @@ export default function AddWorkPage() {
         status: "completed",
       });
       setSelectedRate(null);
+      setSelectedRateSource("");
       setCalculatedAmount(0);
 
       // Redirect back to dashboard after 1.5 seconds
