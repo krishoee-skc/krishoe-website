@@ -1,6 +1,7 @@
 import { requireAdminSession } from "@/lib/admin-auth";
 import {
   canAdmin,
+  getAdminPagePermission,
   getSessionAdminRole,
   type AdminPermission,
 } from "@/lib/admin-role-permissions";
@@ -8,7 +9,9 @@ import {
 export {
   adminPermissions,
   adminRoles,
+  canAccessAdminPath,
   canAdmin,
+  getAdminPagePermission,
   getAdminPermissionSummary,
   getConfiguredAdminRole,
   getSessionAdminRole,
@@ -18,6 +21,10 @@ export {
 
 export async function requireAdminPermission(permission: AdminPermission) {
   const session = await requireAdminSession();
+
+  if (session.mustChangePassword) {
+    throw new Error("Change the temporary staff password before using admin tools.");
+  }
   const role = getSessionAdminRole(session);
 
   if (!canAdmin(role, permission)) {
@@ -25,4 +32,14 @@ export async function requireAdminPermission(permission: AdminPermission) {
   }
 
   return { session, role };
+}
+
+export async function requireAdminPageAccess(pathname: string) {
+  const permission = getAdminPagePermission(pathname);
+
+  if (!permission) {
+    return requireAdminSession();
+  }
+
+  return requireAdminPermission(permission);
 }

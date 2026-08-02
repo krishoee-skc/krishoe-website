@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/Icons";
 import { useSidebar } from "@/components/admin/SidebarProvider";
 import { adminNavLinks } from "@/app/admin/nav-links";
+import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 
 export default function AdminNav({
   adminRole,
@@ -14,16 +15,14 @@ export default function AdminNav({
   adminEmail,
   branchId,
 }: {
-  adminRole: string;
+  adminRole: AdminRole;
   adminName?: string;
   adminEmail?: string;
   branchId?: string;
 }) {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const links = adminRole === "Factory"
-    ? adminNavLinks.filter((link) => link.href === "/admin/factory")
-    : adminNavLinks;
+  const links = adminNavLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
 
   return (
     <div className={`hidden border-r bg-white transition-all duration-300 lg:block print:hidden ${isCollapsed ? "lg:w-20" : "lg:w-[280px]"}`}>

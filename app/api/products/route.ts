@@ -3,7 +3,7 @@ import { getProducts } from "@/lib/product-store";
 import { categories } from "@/lib/products";
 
 export async function GET() {
-  await requireAdminPermission("products:write");
+  await requireAdminPermission("products:read");
   const products = await getProducts({ includeDrafts: true });
 
   return Response.json({

@@ -32,6 +32,7 @@ export const adminNavLinks = [
   { href: "/admin/insights", label: "Customer Voice", icon: StarIcon },
   { href: "/admin/activity", label: "Activity", icon: ShieldCheckIcon },
   { href: "/admin/security", label: "Security / CCTV", icon: ShieldCheckIcon },
+  { href: "/admin/devices", label: "Login devices", icon: ShieldCheckIcon },
   { href: "/admin/settings", label: "Settings", icon: ShieldCheckIcon },
   { href: "/admin/products", label: "Products", icon: PackageIcon },
   { href: "/admin/messages", label: "Messages", icon: MessageSquareIcon },

@@ -42,7 +42,13 @@ export function safeAdminNextPath(value: string | null | undefined) {
   const nextPath = safeRelativePath(value, "/admin");
   const pathname = new URL(nextPath, localBaseUrl).pathname;
 
-  if (!pathname.startsWith("/admin") || pathname.startsWith("/admin/login")) {
+  if (
+    !pathname.startsWith("/admin") ||
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/admin/forgot-password") ||
+    pathname.startsWith("/admin/reset-password") ||
+    pathname.startsWith("/admin/accept-invite")
+  ) {
     return "/admin";
   }
 

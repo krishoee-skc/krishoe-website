@@ -31,6 +31,7 @@ export type NotificationEventType =
   | "contact"
   | "password-reset"
   | "email-verification"
+  | "staff-security"
   | "operational-alert";
 export type OperationalAlertSeverity = "critical" | "warning" | "info";
 export type OperationalAlertCategory =
@@ -57,6 +58,14 @@ export type EmailVerificationNotificationPayload = {
   requestedAt: string;
 };
 
+export type StaffSecurityNotificationPayload = {
+  email: string;
+  kind: "invitation" | "password-reset" | "mfa" | "security-alert";
+  message: string;
+  actionUrl?: string;
+  expiresAt?: string;
+};
+
 type OperationalAlertNotificationPayload = {
   alertId: string;
   category: OperationalAlertCategory;
@@ -71,6 +80,7 @@ type NotificationPayload =
   | ContactSubmission
   | PasswordResetNotificationPayload
   | EmailVerificationNotificationPayload
+  | StaffSecurityNotificationPayload
   | OperationalAlertNotificationPayload;
 
 export type NotificationEvent = {
@@ -179,6 +189,7 @@ function normalizeEventType(value: unknown): NotificationEventType {
     value === "contact" ||
     value === "password-reset" ||
     value === "email-verification" ||
+    value === "staff-security" ||
     value === "operational-alert"
   ) {
     return value;
@@ -260,6 +271,17 @@ export function textSummary(event: NotificationEvent) {
     ].join("\n");
   }
 
+  if (event.type === "staff-security") {
+    const security = event.payload as StaffSecurityNotificationPayload;
+
+    return [
+      event.title,
+      security.message,
+      security.actionUrl ? `Open: ${security.actionUrl}` : "",
+      security.expiresAt ? `Expires: ${security.expiresAt}` : "",
+    ].filter(Boolean).join("\n");
+  }
+
   if (event.type === "operational-alert") {
     const alert = event.payload as OperationalAlertNotificationPayload;
 
@@ -296,10 +318,17 @@ function deliveryTimeoutMs() {
 
 function notificationTarget(channel: NotificationChannel, event: NotificationEvent) {
   if (
-    (event.type === "password-reset" || event.type === "email-verification") &&
+    (event.type === "password-reset" ||
+      event.type === "email-verification" ||
+      event.type === "staff-security") &&
     channel.id === "email-http"
   ) {
-    return (event.payload as PasswordResetNotificationPayload | EmailVerificationNotificationPayload).email;
+    return (
+      event.payload as
+        | PasswordResetNotificationPayload
+        | EmailVerificationNotificationPayload
+        | StaffSecurityNotificationPayload
+    ).email;
   }
 
   return channel.target;
@@ -310,12 +339,23 @@ function getConfiguredChannels(event?: NotificationEvent): NotificationChannel[]
   const emailUrl = envValue("EMAIL_PROVIDER_URL");
   const smsUrl = envValue("SMS_PROVIDER_URL");
   const emailTarget =
-    event?.type === "password-reset" || event?.type === "email-verification"
-      ? (event.payload as PasswordResetNotificationPayload | EmailVerificationNotificationPayload).email
+    event?.type === "password-reset" ||
+    event?.type === "email-verification" ||
+    event?.type === "staff-security"
+      ? (
+          event.payload as
+            | PasswordResetNotificationPayload
+            | EmailVerificationNotificationPayload
+            | StaffSecurityNotificationPayload
+        ).email
       : envValue("ADMIN_NOTIFICATION_EMAIL");
   const channels: NotificationChannel[] = [];
 
-  if (event?.type === "password-reset" || event?.type === "email-verification") {
+  if (
+    event?.type === "password-reset" ||
+    event?.type === "email-verification" ||
+    event?.type === "staff-security"
+  ) {
     return emailUrl && emailTarget
       ? [
           {
@@ -953,6 +993,68 @@ export async function notifyPeriodSalesSummary(kind: PeriodKind) {
     deliveredAt: result.ok ? new Date().toISOString() : event.deliveredAt,
     lastDeliveryError: result.error,
     lastDeliveryChannel: result.successfulChannels.join(", "),
+  };
+}
+
+// Staff invitation links, reset links, and MFA codes are deliberately sent
+// without appending the raw secret to notification_events. The security audit
+// records that delivery was requested, while the one-time secret exists only
+// in this outbound request and its hashed token table.
+export async function sendStaffSecurityEmail(input: {
+  email: string;
+  subject: string;
+  payload: StaffSecurityNotificationPayload;
+}): Promise<NotificationDeliveryResult> {
+  const event: NotificationEvent = {
+    id: createId(),
+    createdAt: new Date().toISOString(),
+    type: "staff-security",
+    title: input.subject,
+    payload: { ...input.payload, email: input.email.trim().toLowerCase() },
+    deliveryStatus: "pending",
+    deliveryAttempts: 0,
+    lastDeliveryError: "",
+    lastDeliveryChannel: "",
+  };
+  const channels = getConfiguredChannels(event);
+
+  if (channels.length === 0) {
+    return {
+      id: event.id,
+      ok: false,
+      status: "skipped",
+      attemptedChannels: [],
+      successfulChannels: [],
+      error: "No staff email channel is configured.",
+    };
+  }
+
+  const results = await Promise.all(
+    channels.map(async (channel) => {
+      try {
+        await postJson(channel, event);
+        return { channel: channel.id, ok: true, error: "" };
+      } catch (error) {
+        return {
+          channel: channel.id,
+          ok: false,
+          error: error instanceof Error ? error.message : "Staff security email failed.",
+        };
+      }
+    }),
+  );
+  const successfulChannels = results.filter((result) => result.ok).map((result) => result.channel);
+  const errors = results
+    .filter((result) => !result.ok)
+    .map((result) => `${result.channel}: ${result.error}`);
+
+  return {
+    id: event.id,
+    ok: successfulChannels.length > 0,
+    status: successfulChannels.length > 0 ? "sent" : "failed",
+    attemptedChannels: results.map((result) => result.channel),
+    successfulChannels,
+    error: errors.join(" | "),
   };
 }
 

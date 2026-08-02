@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   canAdmin,
+  getAdminPagePermission,
   getSessionAdminRole,
   type AdminPermission,
 } from "@/lib/admin-role-permissions";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/admin-session";
 import { customerSessionCookieName, verifyCustomerSessionToken } from "@/lib/customer-session";
 import { canAccessFactoryApi, getFactoryApiPolicy } from "@/lib/factory-api-policy";
-import { safeAdminNextPath, safeCustomerNextPath } from "@/lib/safe-redirect";
+import { safeCustomerNextPath } from "@/lib/safe-redirect";
 
 function isProtectedApi(pathname: string) {
   return (
@@ -19,8 +20,9 @@ function isProtectedApi(pathname: string) {
   );
 }
 
-function adminApiPermission(pathname: string): AdminPermission | null {
+function adminApiPermission(pathname: string, method: string): AdminPermission | null {
   const routePath = pathname.replace(/\/+$/, "") || "/";
+  const writeRequest = !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 
   if (routePath === "/api/admin/backup") return "backup:export";
   if (routePath === "/api/admin/readiness") return "readiness:read";
@@ -28,9 +30,9 @@ function adminApiPermission(pathname: string): AdminPermission | null {
   if (routePath === "/api/products/export") return "exports:read";
   if (routePath === "/api/orders/export") return "exports:read";
   if (routePath === "/api/messages/export") return "exports:read";
-  if (routePath === "/api/products") return "products:write";
-  if (routePath === "/api/orders") return "orders:write";
-  if (routePath === "/api/messages") return "messages:write";
+  if (routePath === "/api/products") return writeRequest ? "products:write" : "products:read";
+  if (routePath === "/api/orders") return writeRequest ? "orders:write" : "orders:read";
+  if (routePath === "/api/messages") return writeRequest ? "messages:write" : "messages:read";
   if (routePath.startsWith("/api/admin/pos/") && (routePath.endsWith("/barcode") || routePath.endsWith("/qr"))) {
     return "pos:write";
   }
@@ -39,8 +41,17 @@ function adminApiPermission(pathname: string): AdminPermission | null {
   return null;
 }
 
+function isAdminAuthPage(pathname: string) {
+  return (
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/admin/forgot-password") ||
+    pathname.startsWith("/admin/reset-password") ||
+    pathname.startsWith("/admin/accept-invite")
+  );
+}
+
 function isProtectedAdmin(pathname: string) {
-  return pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
+  return pathname.startsWith("/admin") && !isAdminAuthPage(pathname);
 }
 
 function isCustomerAuthPage(pathname: string) {
@@ -63,12 +74,12 @@ export async function proxy(request: NextRequest) {
   const customerToken = request.cookies.get(customerSessionCookieName)?.value;
   const hasCustomerSession = Boolean(await verifyCustomerSessionToken(customerToken));
 
-  if (pathname.startsWith("/admin/login") && hasValidSession) {
-    return NextResponse.redirect(new URL(safeAdminNextPath(request.nextUrl.searchParams.get("next")), request.url));
-  }
-
   if (isProtectedApi(pathname) && !hasValidSession) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (isProtectedApi(pathname) && adminSession?.mustChangePassword) {
+    return Response.json({ error: "Password change required" }, { status: 403 });
   }
 
   if (pathname.startsWith("/api/factory") && adminSession) {
@@ -80,7 +91,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const apiPermission = adminApiPermission(pathname);
+  const apiPermission = adminApiPermission(pathname, request.method);
 
   if (apiPermission && adminSession && !canAdmin(getSessionAdminRole(adminSession), apiPermission)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -90,6 +101,24 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    isProtectedAdmin(pathname) &&
+    adminSession?.mustChangePassword &&
+    !pathname.startsWith("/admin/change-password")
+  ) {
+    return NextResponse.redirect(new URL("/admin/change-password", request.url));
+  }
+
+  const pagePermission = getAdminPagePermission(pathname);
+  if (
+    isProtectedAdmin(pathname) &&
+    adminSession &&
+    pagePermission &&
+    !canAdmin(getSessionAdminRole(adminSession), pagePermission)
+  ) {
+    return NextResponse.redirect(new URL("/admin/forbidden", request.url));
   }
 
   if (

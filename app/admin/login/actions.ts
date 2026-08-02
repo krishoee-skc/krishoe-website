@@ -10,13 +10,33 @@ import {
   recordFailedLogin,
 } from "@/lib/login-rate-limit";
 import { clearAdminSessionCookie, getAdminSession, setAdminSessionCookie } from "@/lib/admin-auth";
-import { authenticateAdminStaff } from "@/lib/admin-settings";
-import { createAdminSessionToken } from "@/lib/admin-session";
+import {
+  getAdminStaffAccountById,
+  markAdminStaffLogin,
+  recordAdminStaffFailedLogin,
+  verifyAdminStaffCredentials,
+  type SafeAdminStaffAccount,
+} from "@/lib/admin-settings";
+import {
+  createAdminSessionToken,
+  getAdminSessionMaxAge,
+} from "@/lib/admin-session";
+import {
+  createAdminStaffSession,
+  createAdminStaffToken,
+  revokeAdminStaffSession,
+  verifyAdminStaffMfaCode,
+} from "@/lib/admin-staff-security";
+import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { constantTimeEqual } from "@/lib/session-security";
 
 export type LoginState = {
   ok: boolean;
   message: string;
+  requiresMfa?: boolean;
+  challengeToken?: string;
+  emailHint?: string;
+  nextPath?: string;
 };
 
 const invalidState: LoginState = {
@@ -44,6 +64,70 @@ async function loginKey() {
   return forwardedFor || realIp || `local:${userAgent}`;
 }
 
+async function loginRequestContext() {
+  const headerStore = await headers();
+  const forwardedFor = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = headerStore.get("x-real-ip")?.trim();
+
+  return {
+    ipAddress: forwardedFor || realIp || "",
+    userAgent: headerStore.get("user-agent")?.slice(0, 500) ?? "",
+  };
+}
+
+function emailHint(email: string) {
+  const [name, domain] = email.split("@");
+  if (!domain) return email;
+  return `${name.slice(0, 2)}${"*".repeat(Math.max(2, name.length - 2))}@${domain}`;
+}
+
+async function completeStaffLogin(
+  staff: SafeAdminStaffAccount,
+  mfaVerified: boolean,
+  context: Awaited<ReturnType<typeof loginRequestContext>>,
+) {
+  const markedStaff = await markAdminStaffLogin(staff.id, context);
+  if (!markedStaff) return invalidState;
+
+  const sessionRecord = await createAdminStaffSession({
+    staffId: markedStaff.id,
+    expiresInSeconds: getAdminSessionMaxAge(),
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent,
+    mfaVerified,
+  });
+  await setAdminSessionCookie(
+    await createAdminSessionToken({
+      staffId: markedStaff.id,
+      name: markedStaff.name,
+      email: markedStaff.email,
+      role: markedStaff.role,
+      branchId: markedStaff.branchId,
+      sessionId: sessionRecord.id,
+      mustChangePassword: markedStaff.mustChangePassword,
+      mfaVerified,
+    }),
+  );
+  await recordAdminAuditEvent(
+    "login_success",
+    `Staff ${markedStaff.name} signed in with ${markedStaff.role} role${mfaVerified ? " and MFA" : ""}.`,
+    "success",
+    {
+      actorId: markedStaff.id,
+      actorName: markedStaff.name,
+      actorEmail: markedStaff.email,
+      actorRole: markedStaff.role,
+      actorBranchId: markedStaff.branchId,
+    },
+  );
+
+  return {
+    ok: true,
+    message: "Login successful. Redirecting...",
+    nextPath: markedStaff.mustChangePassword ? "/admin/change-password" : undefined,
+  } satisfies LoginState;
+}
+
 export async function loginAdminAction(_previousState: LoginState, formData: FormData) {
   const email = textValue(formData, "email");
   const password = textValue(formData, "password");
@@ -51,6 +135,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
   const sessionSecret = process.env.ADMIN_SESSION_SECRET;
   const key = await loginKey();
   const rateLimit = await checkLoginRateLimit(key);
+  const requestContext = await loginRequestContext();
 
   if (!sessionSecret) {
     return {
@@ -73,9 +158,10 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
   }
 
   if (email) {
-    const staff = await authenticateAdminStaff(email, password);
+    const staff = await verifyAdminStaffCredentials(email, password);
 
     if (!staff) {
+      await recordAdminStaffFailedLogin(email);
       await recordFailedLogin(key);
       await recordAdminAuditEvent(
         "login_failed",
@@ -87,30 +173,49 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
       return invalidState;
     }
 
-    await clearLoginRateLimit(key);
-    await setAdminSessionCookie(
-      await createAdminSessionToken({
-        staffId: staff.id,
-        name: staff.name,
+    if (staff.mfaEnabled) {
+      const challenge = await createAdminStaffToken(staff.id, "mfa_login", {
+        expiresInMinutes: 10,
+        withCode: true,
+      });
+      const delivery = await sendStaffSecurityEmail({
         email: staff.email,
-        role: staff.role,
-        branchId: staff.branchId,
-      }),
-    );
-    await recordAdminAuditEvent(
-      "login_success",
-      `Staff ${staff.name} signed in with ${staff.role} role.`,
-      "success",
-      {
-        actorId: staff.id,
-        actorName: staff.name,
-        actorEmail: staff.email,
-        actorRole: staff.role,
-        actorBranchId: staff.branchId,
-      },
-    );
+        subject: "Your KRISHOE admin security code",
+        payload: {
+          email: staff.email,
+          kind: "mfa",
+          message: `Your one-time KRISHOE admin security code is ${challenge.code}. Do not share this code.`,
+          expiresAt: challenge.expiresAt,
+        },
+      });
 
-    return { ok: true, message: "Login successful. Redirecting..." };
+      if (!delivery.ok) {
+        await recordAdminAuditEvent(
+          "login_mfa_delivery_failed",
+          `Could not deliver MFA code for ${staff.email}: ${delivery.error}`,
+          "warning",
+          { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+        );
+        return { ok: false, message: "Security code could not be sent. Ask the Owner to check email delivery." };
+      }
+
+      await recordAdminAuditEvent(
+        "login_mfa_challenge",
+        `MFA challenge sent for ${staff.email}.`,
+        "success",
+        { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+      );
+      return {
+        ok: false,
+        message: "Enter the 6-digit code sent to your email.",
+        requiresMfa: true,
+        challengeToken: challenge.token,
+        emailHint: emailHint(staff.email),
+      };
+    }
+
+    await clearLoginRateLimit(key);
+    return completeStaffLogin(staff, false, requestContext);
   }
 
   if (!expectedPassword) {
@@ -144,11 +249,36 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
   return { ok: true, message: "Login successful. Redirecting..." };
 }
 
+export async function verifyAdminMfaAction(
+  _previousState: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const challengeToken = textValue(formData, "challengeToken");
+  const code = textValue(formData, "code");
+  const verification = await verifyAdminStaffMfaCode(challengeToken, code);
+
+  if (!verification.ok) {
+    return { ok: false, message: verification.reason, requiresMfa: true, challengeToken };
+  }
+
+  const staff = await getAdminStaffAccountById(verification.staffId);
+  if (!staff || staff.status !== "Active" || !staff.mfaEnabled) {
+    return { ok: false, message: "This staff account cannot complete sign in." };
+  }
+
+  const key = await loginKey();
+  await clearLoginRateLimit(key);
+  return completeStaffLogin(staff, true, await loginRequestContext());
+}
+
 export async function logoutAdminAction() {
   const session = await getAdminSession();
 
   if (session) {
     await recordAdminAuditEvent("logout", "Admin session cleared.");
+    if (session.sessionId) {
+      await revokeAdminStaffSession(session.sessionId, session.staffId ?? "self");
+    }
   }
 
   await clearAdminSessionCookie();

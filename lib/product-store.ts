@@ -4,6 +4,7 @@ import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsData, type FinishedStock } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
+import { getAdminBranchContext } from "@/lib/admin-branch-context";
 import {
   categories,
   formatPrice,
@@ -328,7 +329,10 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         fit,
         colors,
         sizes,
-        stock,
+        CASE
+          WHEN krishoe_admin_branch_context_enabled() THEN COALESCE(branch_stock.stock, 0)
+          ELSE COALESCE(branch_stock.stock, products.stock)
+        END AS stock,
         highlights,
         care,
         reviews,
@@ -339,6 +343,9 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         wholesale_price_value,
         min_wholesale_qty
       FROM products
+      LEFT JOIN branch_product_stock AS branch_stock
+        ON branch_stock.product_id = products.id
+       AND branch_stock.branch_id = krishoe_effective_branch_id()
       ${options.includeDrafts ? "" : "WHERE status = 'Active'"}
       ORDER BY featured DESC, best_seller DESC, new_arrival DESC, name ASC
     `,
@@ -365,17 +372,43 @@ async function syncProductCatalogStockWithFinishedStockLocalJson(finishedStock: 
 async function syncProductCatalogStockWithFinishedStockPostgres(finishedStock: FinishedStock[]) {
   const products = await getProductsFromPostgres({ includeDrafts: true });
   const result = buildProductStockSync(products, finishedStock);
+  const branchContext = getAdminBranchContext();
 
   for (const row of result.rows) {
     if (row.signal !== "Synced") {
       continue;
     }
 
-    await queryPostgres<{ id: string }>(
-      "products",
-      "UPDATE products SET stock = $2, updated_at = now() WHERE id = $1 RETURNING id",
-      [row.productId, row.nextStock],
-    );
+    if (branchContext?.branchId) {
+      await queryPostgres<{ product_id: string }>(
+        "products",
+        `INSERT INTO branch_product_stock (branch_id, product_id, stock, updated_at)
+         VALUES ($1, $2, $3, now())
+         ON CONFLICT (branch_id, product_id) DO UPDATE SET
+           stock = EXCLUDED.stock,
+           updated_at = now()
+         RETURNING product_id`,
+        [branchContext.branchId, row.productId, row.nextStock],
+      );
+      await queryPostgres<{ id: string }>(
+        "products",
+        `UPDATE products
+         SET stock = COALESCE((
+           SELECT SUM(branch_product_stock.stock)
+           FROM branch_product_stock
+           WHERE branch_product_stock.product_id = products.id
+         ), 0), updated_at = now()
+         WHERE id = $1
+         RETURNING id`,
+        [row.productId],
+      );
+    } else {
+      await queryPostgres<{ id: string }>(
+        "products",
+        "UPDATE products SET stock = $2, updated_at = now() WHERE id = $1 RETURNING id",
+        [row.productId, row.nextStock],
+      );
+    }
   }
 
   return publicProductStockSyncResult(result);
@@ -625,7 +658,35 @@ async function upsertProductPostgres(product: Product) {
     ],
   );
 
-  return productFromRow(rows[0]);
+  const saved = productFromRow(rows[0]);
+  const branchContext = getAdminBranchContext();
+
+  if (branchContext?.branchId) {
+    await queryPostgres<{ product_id: string }>(
+      "products",
+      `INSERT INTO branch_product_stock (branch_id, product_id, stock, updated_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (branch_id, product_id) DO UPDATE SET
+         stock = EXCLUDED.stock,
+         updated_at = now()
+       RETURNING product_id`,
+      [branchContext.branchId, saved.id, saved.stock],
+    );
+    await queryPostgres<{ id: string }>(
+      "products",
+      `UPDATE products
+       SET stock = COALESCE((
+         SELECT SUM(branch_product_stock.stock)
+         FROM branch_product_stock
+         WHERE branch_product_stock.product_id = products.id
+       ), 0), updated_at = now()
+       WHERE id = $1
+       RETURNING id`,
+      [saved.id],
+    );
+  }
+
+  return saved;
 }
 
 export async function upsertProduct(product: Product) {

@@ -9,7 +9,7 @@ import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
 export const companyBranchTypes = ["Factory", "Wholesale", "Retail", "Online", "Office"] as const;
 export const companyBranchStatuses = ["Active", "Inactive"] as const;
-export const adminStaffStatuses = ["Active", "Disabled"] as const;
+export const adminStaffStatuses = ["Invited", "Active", "Locked", "Disabled"] as const;
 
 export type CompanyBranchType = (typeof companyBranchTypes)[number];
 export type CompanyBranchStatus = (typeof companyBranchStatuses)[number];
@@ -49,6 +49,16 @@ export type AdminStaffAccount = {
   branchId: string;
   status: AdminStaffStatus;
   passwordHash: string;
+  employeeId?: string;
+  mustChangePassword: boolean;
+  mfaEnabled: boolean;
+  passwordChangedAt?: string;
+  invitedAt?: string;
+  invitationAcceptedAt?: string;
+  failedLoginCount: number;
+  lastFailedLoginAt?: string;
+  lastLoginIp: string;
+  lastLoginUserAgent: string;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -66,6 +76,20 @@ type AdminSettingsStore = {
   company: CompanySettings;
   branches: CompanyBranch[];
   staff: AdminStaffAccount[];
+};
+
+export type AdminStaffAccountInput = {
+  id?: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+  branchId?: string;
+  status?: string;
+  employeeId?: string;
+  mustChangePassword?: boolean;
+  mfaEnabled?: boolean;
+  invitationAcceptedAt?: string;
 };
 
 type CompanySettingsRow = {
@@ -102,6 +126,16 @@ type AdminStaffAccountRow = {
   branch_id: string;
   status: AdminStaffStatus;
   password_hash: string;
+  employee_id: string | null;
+  must_change_password: boolean;
+  mfa_enabled: boolean;
+  password_changed_at: Date | string | null;
+  invited_at: Date | string | null;
+  invitation_accepted_at: Date | string | null;
+  failed_login_count: number;
+  last_failed_login_at: Date | string | null;
+  last_login_ip: string;
+  last_login_user_agent: string;
   created_at: Date | string;
   updated_at: Date | string;
   last_login_at: Date | string | null;
@@ -239,6 +273,16 @@ function staffFromRow(row: AdminStaffAccountRow): AdminStaffAccount {
     branchId: row.branch_id,
     status: allowedValue(row.status, adminStaffStatuses, "Active"),
     passwordHash: row.password_hash,
+    employeeId: row.employee_id ?? undefined,
+    mustChangePassword: Boolean(row.must_change_password),
+    mfaEnabled: Boolean(row.mfa_enabled),
+    passwordChangedAt: isoDate(row.password_changed_at),
+    invitedAt: isoDate(row.invited_at),
+    invitationAcceptedAt: isoDate(row.invitation_accepted_at),
+    failedLoginCount: Math.max(0, Number(row.failed_login_count) || 0),
+    lastFailedLoginAt: isoDate(row.last_failed_login_at),
+    lastLoginIp: row.last_login_ip ?? "",
+    lastLoginUserAgent: row.last_login_user_agent ?? "",
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
     lastLoginAt: isoDate(row.last_login_at),
@@ -322,6 +366,16 @@ function normalizeStore(value: unknown): AdminSettingsStore {
             : defaultBranchId,
           status: allowedValue(item.status, adminStaffStatuses, "Active"),
           passwordHash: item.passwordHash,
+          employeeId: item.employeeId?.trim() || undefined,
+          mustChangePassword: Boolean(item.mustChangePassword),
+          mfaEnabled: Boolean(item.mfaEnabled),
+          passwordChangedAt: isoDate(item.passwordChangedAt),
+          invitedAt: isoDate(item.invitedAt),
+          invitationAcceptedAt: isoDate(item.invitationAcceptedAt),
+          failedLoginCount: Math.max(0, Number(item.failedLoginCount) || 0),
+          lastFailedLoginAt: isoDate(item.lastFailedLoginAt),
+          lastLoginIp: item.lastLoginIp?.trim() ?? "",
+          lastLoginUserAgent: item.lastLoginUserAgent?.trim() ?? "",
           createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : stamp,
           updatedAt: item.updatedAt ? new Date(item.updatedAt).toISOString() : stamp,
           ...(lastLoginAt ? { lastLoginAt } : {}),
@@ -365,7 +419,11 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     queryPostgres<AdminStaffAccountRow>(
       "admin settings",
       `
-        SELECT id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+        SELECT id, name, email, role, branch_id, status, password_hash,
+          employee_id, must_change_password, mfa_enabled, password_changed_at,
+          invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+          last_login_ip, last_login_user_agent,
+          created_at, updated_at, last_login_at
         FROM admin_staff_accounts
         ORDER BY created_at DESC
       `,
@@ -400,6 +458,16 @@ function toSafeStaff(staff: AdminStaffAccount): SafeAdminStaffAccount {
     role: staff.role,
     branchId: staff.branchId,
     status: staff.status,
+    employeeId: staff.employeeId,
+    mustChangePassword: staff.mustChangePassword,
+    mfaEnabled: staff.mfaEnabled,
+    passwordChangedAt: staff.passwordChangedAt,
+    invitedAt: staff.invitedAt,
+    invitationAcceptedAt: staff.invitationAcceptedAt,
+    failedLoginCount: staff.failedLoginCount,
+    lastFailedLoginAt: staff.lastFailedLoginAt,
+    lastLoginIp: staff.lastLoginIp,
+    lastLoginUserAgent: staff.lastLoginUserAgent,
     createdAt: staff.createdAt,
     updatedAt: staff.updatedAt,
     lastLoginAt: staff.lastLoginAt,
@@ -629,26 +697,19 @@ function assertAtLeastOneActiveOwner(staff: AdminStaffAccount[]) {
 }
 
 async function staffRecordFromInput(
-  input: {
-    id?: string;
-    name?: string;
-    email?: string;
-    password?: string;
-    role?: string;
-    branchId?: string;
-    status?: string;
-  },
+  input: AdminStaffAccountInput,
   existing?: AdminStaffAccount,
   defaultBranchId = "",
 ) {
   const email = normalizeEmail(input.email ?? existing?.email ?? "");
   const password = input.password?.trim() ?? "";
+  const status = allowedValue(input.status, adminStaffStatuses, existing?.status ?? "Active");
 
   if (!email) {
     throw new Error("Staff email is required.");
   }
 
-  if (!existing && password.length < 12) {
+  if (!existing && status !== "Invited" && password.length < 12) {
     throw new Error("New staff password must be at least 12 characters.");
   }
 
@@ -657,6 +718,12 @@ async function staffRecordFromInput(
   }
 
   const stamp = nowIso();
+  const generatedInviteSecret = !existing && status === "Invited" && !password
+    ? randomBytes(32).toString("hex")
+    : "";
+  const nextPasswordHash = password
+    ? await hashPassword(password)
+    : existing?.passwordHash ?? await hashPassword(generatedInviteSecret);
 
   return {
     id: existing?.id ?? input.id ?? `staff-${crypto.randomUUID()}`,
@@ -664,8 +731,22 @@ async function staffRecordFromInput(
     email,
     role: allowedValue(input.role, adminRoles, existing?.role ?? "Viewer"),
     branchId: requiredText(input.branchId, existing?.branchId ?? defaultBranchId),
-    status: allowedValue(input.status, adminStaffStatuses, existing?.status ?? "Active"),
-    passwordHash: password ? await hashPassword(password) : existing?.passwordHash ?? "",
+    status,
+    passwordHash: nextPasswordHash,
+    employeeId: input.employeeId !== undefined
+      ? input.employeeId.trim() || undefined
+      : existing?.employeeId || undefined,
+    mustChangePassword:
+      input.mustChangePassword ?? existing?.mustChangePassword ?? (status === "Active"),
+    mfaEnabled: input.mfaEnabled ?? existing?.mfaEnabled ?? false,
+    passwordChangedAt: password ? stamp : existing?.passwordChangedAt,
+    invitedAt: existing?.invitedAt ?? (status === "Invited" ? stamp : undefined),
+    invitationAcceptedAt:
+      input.invitationAcceptedAt ?? existing?.invitationAcceptedAt,
+    failedLoginCount: existing?.failedLoginCount ?? 0,
+    lastFailedLoginAt: existing?.lastFailedLoginAt,
+    lastLoginIp: existing?.lastLoginIp ?? "",
+    lastLoginUserAgent: existing?.lastLoginUserAgent ?? "",
     createdAt: existing?.createdAt ?? stamp,
     updatedAt: stamp,
     lastLoginAt: existing?.lastLoginAt,
@@ -687,6 +768,15 @@ async function saveAdminStaffAccountToLocalJson(input: Parameters<typeof staffRe
 
   if (settings.staff.some((member) => member.id !== nextStaff.id && normalizeEmail(member.email) === nextStaff.email)) {
     throw new Error("Staff email already exists.");
+  }
+
+  if (
+    nextStaff.employeeId &&
+    settings.staff.some(
+      (member) => member.id !== nextStaff.id && member.employeeId === nextStaff.employeeId,
+    )
+  ) {
+    throw new Error("This HR employee is already linked to another staff account.");
   }
 
   if (existingIndex >= 0) {
@@ -727,9 +817,16 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
     "admin settings",
     `
       INSERT INTO admin_staff_accounts (
-        id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+        id, name, email, role, branch_id, status, password_hash,
+        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+        last_login_ip, last_login_user_agent, created_at, updated_at, last_login_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $20
+      )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         email = EXCLUDED.email,
@@ -737,9 +834,23 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
         branch_id = EXCLUDED.branch_id,
         status = EXCLUDED.status,
         password_hash = EXCLUDED.password_hash,
+        employee_id = EXCLUDED.employee_id,
+        must_change_password = EXCLUDED.must_change_password,
+        mfa_enabled = EXCLUDED.mfa_enabled,
+        password_changed_at = EXCLUDED.password_changed_at,
+        invited_at = EXCLUDED.invited_at,
+        invitation_accepted_at = EXCLUDED.invitation_accepted_at,
+        failed_login_count = EXCLUDED.failed_login_count,
+        last_failed_login_at = EXCLUDED.last_failed_login_at,
+        last_login_ip = EXCLUDED.last_login_ip,
+        last_login_user_agent = EXCLUDED.last_login_user_agent,
         updated_at = EXCLUDED.updated_at,
         last_login_at = EXCLUDED.last_login_at
-      RETURNING id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+      RETURNING id, name, email, role, branch_id, status, password_hash,
+        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+        last_login_ip, last_login_user_agent,
+        created_at, updated_at, last_login_at
     `,
     [
       nextStaff.id,
@@ -749,6 +860,16 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
       nextStaff.branchId,
       nextStaff.status,
       nextStaff.passwordHash,
+      nextStaff.employeeId ?? null,
+      nextStaff.mustChangePassword,
+      nextStaff.mfaEnabled,
+      nextStaff.passwordChangedAt ? new Date(nextStaff.passwordChangedAt) : null,
+      nextStaff.invitedAt ? new Date(nextStaff.invitedAt) : null,
+      nextStaff.invitationAcceptedAt ? new Date(nextStaff.invitationAcceptedAt) : null,
+      nextStaff.failedLoginCount,
+      nextStaff.lastFailedLoginAt ? new Date(nextStaff.lastFailedLoginAt) : null,
+      nextStaff.lastLoginIp,
+      nextStaff.lastLoginUserAgent,
       new Date(nextStaff.createdAt),
       new Date(nextStaff.updatedAt),
       nextStaff.lastLoginAt ? new Date(nextStaff.lastLoginAt) : null,
@@ -758,7 +879,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
   return toSafeStaff(staffFromRow(rows[0]));
 }
 
-export async function saveAdminStaffAccount(input: Parameters<typeof staffRecordFromInput>[0]) {
+export async function saveAdminStaffAccount(input: AdminStaffAccountInput) {
   return runWithDataBackend({
     storeName: "admin settings",
     localJson: () => saveAdminStaffAccountToLocalJson(input),
@@ -775,7 +896,11 @@ async function getStaffByEmailFromPostgres(email: string) {
   const rows = await queryPostgres<AdminStaffAccountRow>(
     "admin settings",
     `
-      SELECT id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+      SELECT id, name, email, role, branch_id, status, password_hash,
+        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+        last_login_ip, last_login_user_agent,
+        created_at, updated_at, last_login_at
       FROM admin_staff_accounts
       WHERE lower(email) = lower($1)
       LIMIT 1
@@ -786,7 +911,62 @@ async function getStaffByEmailFromPostgres(email: string) {
   return rows[0] ? staffFromRow(rows[0]) : undefined;
 }
 
-async function markStaffLoginInLocalJson(staffId: string, lastLoginAt: string) {
+async function getStaffByIdFromLocalJson(staffId: string) {
+  const settings = await readSettingsFromLocalJson();
+  return settings.staff.find((member) => member.id === staffId);
+}
+
+async function getStaffByIdFromPostgres(staffId: string) {
+  const rows = await queryPostgres<AdminStaffAccountRow>(
+    "admin settings",
+    `
+      SELECT id, name, email, role, branch_id, status, password_hash,
+        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+        last_login_ip, last_login_user_agent,
+        created_at, updated_at, last_login_at
+      FROM admin_staff_accounts
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [staffId],
+  );
+
+  return rows[0] ? staffFromRow(rows[0]) : undefined;
+}
+
+async function getStaffById(staffId: string) {
+  return runWithDataBackend({
+    storeName: "admin settings",
+    localJson: () => getStaffByIdFromLocalJson(staffId),
+    postgres: () => getStaffByIdFromPostgres(staffId),
+  });
+}
+
+export async function getAdminStaffAccountById(staffId: string) {
+  const staff = await getStaffById(staffId);
+  return staff ? toSafeStaff(staff) : null;
+}
+
+export async function getAdminStaffAccountByEmail(email: string) {
+  const staff = await runWithDataBackend({
+    storeName: "admin settings",
+    localJson: () => getStaffByEmailFromLocalJson(email),
+    postgres: () => getStaffByEmailFromPostgres(email),
+  });
+  return staff ? toSafeStaff(staff) : null;
+}
+
+type AdminLoginContext = {
+  ipAddress?: string;
+  userAgent?: string;
+};
+
+async function markStaffLoginInLocalJson(
+  staffId: string,
+  lastLoginAt: string,
+  context: AdminLoginContext,
+) {
   const settings = await readSettingsFromLocalJson();
   const index = settings.staff.findIndex((member) => member.id === staffId);
 
@@ -794,26 +974,81 @@ async function markStaffLoginInLocalJson(staffId: string, lastLoginAt: string) {
     settings.staff[index] = {
       ...settings.staff[index],
       lastLoginAt,
+      failedLoginCount: 0,
+      lastFailedLoginAt: undefined,
+      lastLoginIp: context.ipAddress?.trim() ?? "",
+      lastLoginUserAgent: context.userAgent?.trim() ?? "",
       updatedAt: settings.staff[index].updatedAt,
     };
     await writeSettingsToLocalJson(settings);
   }
 }
 
-async function markStaffLoginInPostgres(staffId: string, lastLoginAt: string) {
+async function markStaffLoginInPostgres(
+  staffId: string,
+  lastLoginAt: string,
+  context: AdminLoginContext,
+) {
   await queryPostgres<{ id: string }>(
     "admin settings",
     `
       UPDATE admin_staff_accounts
-      SET last_login_at = $2
+      SET last_login_at = $2,
+          failed_login_count = 0,
+          last_failed_login_at = NULL,
+          last_login_ip = $3,
+          last_login_user_agent = $4
       WHERE id = $1
       RETURNING id
     `,
-    [staffId, new Date(lastLoginAt)],
+    [
+      staffId,
+      new Date(lastLoginAt),
+      context.ipAddress?.trim() ?? "",
+      context.userAgent?.trim() ?? "",
+    ],
   );
 }
 
-export async function authenticateAdminStaff(email: string, password: string) {
+async function recordStaffFailedLoginInLocalJson(email: string) {
+  const settings = await readSettingsFromLocalJson();
+  const index = settings.staff.findIndex(
+    (member) => normalizeEmail(member.email) === normalizeEmail(email),
+  );
+
+  if (index < 0) return;
+
+  settings.staff[index] = {
+    ...settings.staff[index],
+    failedLoginCount: settings.staff[index].failedLoginCount + 1,
+    lastFailedLoginAt: nowIso(),
+  };
+  await writeSettingsToLocalJson(settings);
+}
+
+async function recordStaffFailedLoginInPostgres(email: string) {
+  await queryPostgres<{ id: string }>(
+    "admin settings",
+    `
+      UPDATE admin_staff_accounts
+      SET failed_login_count = failed_login_count + 1,
+          last_failed_login_at = now()
+      WHERE lower(email) = lower($1)
+      RETURNING id
+    `,
+    [normalizeEmail(email)],
+  );
+}
+
+export async function recordAdminStaffFailedLogin(email: string) {
+  await runWithDataBackend({
+    storeName: "admin settings",
+    localJson: () => recordStaffFailedLoginInLocalJson(email),
+    postgres: () => recordStaffFailedLoginInPostgres(email),
+  });
+}
+
+export async function verifyAdminStaffCredentials(email: string, password: string) {
   const staff = await runWithDataBackend({
     storeName: "admin settings",
     localJson: () => getStaffByEmailFromLocalJson(email),
@@ -830,14 +1065,86 @@ export async function authenticateAdminStaff(email: string, password: string) {
     return null;
   }
 
+  return toSafeStaff(staff);
+}
+
+export async function markAdminStaffLogin(
+  staffId: string,
+  context: AdminLoginContext = {},
+) {
+  const staff = await getStaffById(staffId);
+  if (!staff || staff.status !== "Active") return null;
+
   const lastLoginAt = nowIso();
   await runWithDataBackend({
     storeName: "admin settings",
-    localJson: () => markStaffLoginInLocalJson(staff.id, lastLoginAt),
-    postgres: () => markStaffLoginInPostgres(staff.id, lastLoginAt),
+    localJson: () => markStaffLoginInLocalJson(staff.id, lastLoginAt, context),
+    postgres: () => markStaffLoginInPostgres(staff.id, lastLoginAt, context),
   });
 
-  return toSafeStaff({ ...staff, lastLoginAt });
+  return toSafeStaff({
+    ...staff,
+    lastLoginAt,
+    failedLoginCount: 0,
+    lastFailedLoginAt: undefined,
+    lastLoginIp: context.ipAddress?.trim() ?? "",
+    lastLoginUserAgent: context.userAgent?.trim() ?? "",
+  });
+}
+
+export async function authenticateAdminStaff(
+  email: string,
+  password: string,
+  context: AdminLoginContext = {},
+) {
+  const verified = await verifyAdminStaffCredentials(email, password);
+  return verified ? markAdminStaffLogin(verified.id, context) : null;
+}
+
+export async function updateAdminStaffPassword(
+  staffId: string,
+  password: string,
+  options: { mustChangePassword: boolean; activateInvitation?: boolean },
+) {
+  const staff = await getStaffById(staffId);
+
+  if (!staff) throw new Error("Staff account not found.");
+  if (password.trim().length < 12) {
+    throw new Error("New password must be at least 12 characters.");
+  }
+
+  return saveAdminStaffAccount({
+    id: staff.id,
+    name: staff.name,
+    email: staff.email,
+    password,
+    role: staff.role,
+    branchId: staff.branchId,
+    status: options.activateInvitation ? "Active" : staff.status,
+    employeeId: staff.employeeId,
+    mustChangePassword: options.mustChangePassword,
+    mfaEnabled: staff.mfaEnabled,
+    invitationAcceptedAt: options.activateInvitation ? nowIso() : staff.invitationAcceptedAt,
+  });
+}
+
+export async function setAdminStaffMfa(staffId: string, enabled: boolean) {
+  const staff = await getStaffById(staffId);
+
+  if (!staff) throw new Error("Staff account not found.");
+
+  return saveAdminStaffAccount({
+    id: staff.id,
+    name: staff.name,
+    email: staff.email,
+    role: staff.role,
+    branchId: staff.branchId,
+    status: staff.status,
+    employeeId: staff.employeeId,
+    mustChangePassword: staff.mustChangePassword,
+    mfaEnabled: enabled,
+    invitationAcceptedAt: staff.invitationAcceptedAt,
+  });
 }
 
 export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) {
@@ -907,9 +1214,16 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
       await db.query(
         `
           INSERT INTO admin_staff_accounts (
-            id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+            id, name, email, role, branch_id, status, password_hash,
+            employee_id, must_change_password, mfa_enabled, password_changed_at,
+            invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+            last_login_ip, last_login_user_agent, created_at, updated_at, last_login_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          VALUES (
+            $1, $2, $3, $4, $5, $6, $7,
+            $8, $9, $10, $11, $12, $13, $14, $15,
+            $16, $17, $18, $19, $20
+          )
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             email = EXCLUDED.email,
@@ -917,6 +1231,16 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
             branch_id = EXCLUDED.branch_id,
             status = EXCLUDED.status,
             password_hash = EXCLUDED.password_hash,
+            employee_id = EXCLUDED.employee_id,
+            must_change_password = EXCLUDED.must_change_password,
+            mfa_enabled = EXCLUDED.mfa_enabled,
+            password_changed_at = EXCLUDED.password_changed_at,
+            invited_at = EXCLUDED.invited_at,
+            invitation_accepted_at = EXCLUDED.invitation_accepted_at,
+            failed_login_count = EXCLUDED.failed_login_count,
+            last_failed_login_at = EXCLUDED.last_failed_login_at,
+            last_login_ip = EXCLUDED.last_login_ip,
+            last_login_user_agent = EXCLUDED.last_login_user_agent,
             updated_at = EXCLUDED.updated_at,
             last_login_at = EXCLUDED.last_login_at
         `,
@@ -928,6 +1252,16 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
           staff.branchId,
           staff.status,
           staff.passwordHash,
+          staff.employeeId ?? null,
+          staff.mustChangePassword,
+          staff.mfaEnabled,
+          staff.passwordChangedAt ? new Date(staff.passwordChangedAt) : null,
+          staff.invitedAt ? new Date(staff.invitedAt) : null,
+          staff.invitationAcceptedAt ? new Date(staff.invitationAcceptedAt) : null,
+          staff.failedLoginCount,
+          staff.lastFailedLoginAt ? new Date(staff.lastFailedLoginAt) : null,
+          staff.lastLoginIp,
+          staff.lastLoginUserAgent,
           new Date(staff.createdAt),
           new Date(staff.updatedAt),
           staff.lastLoginAt ? new Date(staff.lastLoginAt) : null,

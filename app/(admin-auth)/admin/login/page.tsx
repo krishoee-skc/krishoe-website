@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import AdminLoginForm from "@/components/AdminLoginForm";
+import { getAdminSession } from "@/lib/admin-auth";
 import { safeAdminNextPath } from "@/lib/safe-redirect";
 
 export const metadata: Metadata = {
@@ -17,6 +19,11 @@ type AdminLoginPageProps = {
 export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
   const resolvedSearchParams = await searchParams;
   const nextPath = safeAdminNextPath(resolvedSearchParams?.next);
+  const session = await getAdminSession();
+
+  if (session) {
+    redirect(session.mustChangePassword ? "/admin/change-password" : nextPath);
+  }
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-brand-green-ink px-5 py-16">

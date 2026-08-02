@@ -55,6 +55,9 @@ describe("safeAdminNextPath", () => {
 
   it("does not loop back to the admin login page", () => {
     expect(safeAdminNextPath("/admin/login")).toBe("/admin");
+    expect(safeAdminNextPath("/admin/forgot-password")).toBe("/admin");
+    expect(safeAdminNextPath("/admin/reset-password?token=secret")).toBe("/admin");
+    expect(safeAdminNextPath("/admin/accept-invite?token=secret")).toBe("/admin");
   });
 
   it("rejects cross-origin and protocol-relative URLs", () => {

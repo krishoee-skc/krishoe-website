@@ -2,7 +2,7 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getOrders } from "@/lib/submissions";
 
 export async function GET() {
-  await requireAdminPermission("orders:write");
+  await requireAdminPermission("orders:read");
 
   const orders = await getOrders();
 

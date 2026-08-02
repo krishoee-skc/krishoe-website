@@ -1,6 +1,7 @@
 import { createPostgresAdapterPendingError, getDataBackendConfig } from "@/lib/data-backend";
 import { isRetryableConnectionError } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { getAdminBranchContext } from "@/lib/admin-branch-context";
 import { Pool, type QueryResultRow } from "pg";
 
 export { isRetryableConnectionError };
@@ -106,14 +107,49 @@ async function withConnectionRetry<T>(run: () => Promise<T>, attempts = 5): Prom
   throw lastError;
 }
 
+async function configureAdminBranchContext(
+  query: (sql: string, params?: SqlValue[]) => Promise<unknown>,
+) {
+  const context = getAdminBranchContext();
+  if (!context) return;
+
+  await query(
+    `SELECT
+       set_config('app.krishoe_branch_context', 'true', true),
+       set_config('app.krishoe_branch_id', $1, true),
+       set_config('app.krishoe_branch_bypass', $2, true),
+       set_config('app.krishoe_staff_id', $3, true)`,
+    [context.branchId, context.bypass ? "true" : "false", context.staffId],
+  );
+}
+
 export async function queryPostgres<TRecord extends QueryResultRow>(
   storeName: string,
   sql: string,
   params: SqlValue[] = [],
 ): Promise<TRecord[]> {
   return withConnectionRetry(async () => {
-    const result = await getPool(storeName).query<TRecord>(sql, params);
-    return result.rows;
+    const context = getAdminBranchContext();
+    if (!context) {
+      const result = await getPool(storeName).query<TRecord>(sql, params);
+      return result.rows;
+    }
+
+    const client = await getPool(storeName).connect();
+    try {
+      await client.query("BEGIN");
+      await configureAdminBranchContext((statement, values = []) => client.query(statement, values));
+      const result = await client.query<TRecord>(sql, params);
+      await client.query("COMMIT");
+      return result.rows;
+    } catch (error) {
+      await client.query("ROLLBACK").catch((rollbackError) => {
+        reportError("roll back a failed branch-scoped query", rollbackError);
+      });
+      throw error;
+    } finally {
+      client.release();
+    }
   });
 }
 
@@ -129,6 +165,7 @@ export async function transactionPostgres<T>(
 
     try {
       await client.query("BEGIN");
+      await configureAdminBranchContext((statement, values = []) => client.query(statement, values));
       const result = await callback({
         query: async <TRecord extends QueryResultRow>(
           sql: string,

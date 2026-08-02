@@ -11,6 +11,9 @@ export type AdminSessionPayload = {
   email?: string;
   role?: AdminRole;
   branchId?: string;
+  sessionId?: string;
+  mustChangePassword?: boolean;
+  mfaVerified?: boolean;
 };
 
 const encoder = new TextEncoder();
@@ -83,6 +86,10 @@ function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
 }
 
+function isOptionalBoolean(value: unknown): value is boolean | undefined {
+  return value === undefined || typeof value === "boolean";
+}
+
 function isAdminRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (adminRoles as readonly string[]).includes(value);
 }
@@ -106,7 +113,10 @@ function parseAdminSessionPayload(value: unknown): AdminSessionPayload | null {
     !isOptionalString(candidate.staffId) ||
     !isOptionalString(candidate.name) ||
     !isOptionalString(candidate.email) ||
-    !isOptionalString(candidate.branchId)
+    !isOptionalString(candidate.branchId) ||
+    !isOptionalString(candidate.sessionId) ||
+    !isOptionalBoolean(candidate.mustChangePassword) ||
+    !isOptionalBoolean(candidate.mfaVerified)
   ) {
     return null;
   }
@@ -123,6 +133,9 @@ function parseAdminSessionPayload(value: unknown): AdminSessionPayload | null {
     email: candidate.email,
     role: candidate.role,
     branchId: candidate.branchId,
+    sessionId: candidate.sessionId,
+    mustChangePassword: candidate.mustChangePassword,
+    mfaVerified: candidate.mfaVerified,
   };
 }
 

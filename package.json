@@ -15,7 +15,9 @@
     "db:migrate:factory": "node scripts/apply-postgres-schema.mjs --migrations-only",
     "db:factory-preflight": "node scripts/factory-migration-preflight.mjs",
     "db:factory-backup": "node scripts/export-factory-migration-backup.mjs",
+    "db:access-backup": "node scripts/export-access-branch-migration-backup.mjs",
     "audit:production": "node --env-file=.env.local scripts/audit-production-integrity.mjs",
+    "audit:access": "node scripts/audit-admin-access-branch.mjs",
     "db:import": "node scripts/import-backup-to-postgres.mjs",
     "db:smoke": "node scripts/postgres-smoke-check.mjs",
     "business:clean-start": "node scripts/clean-business-start.mjs"

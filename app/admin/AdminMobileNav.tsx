@@ -7,19 +7,18 @@ import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
 import { adminNavLinks } from "@/app/admin/nav-links";
+import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 
 // Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
 // below 1024px there was no way to move between pages or get home — a real
 // problem because the owner runs the shop from a phone. This sticky top bar
 // gives a permanent home link and a full menu one tap away, and hides on
 // desktop (lg:) where the sidebar takes over, and on paper (print:).
-export default function AdminMobileNav({ adminRole }: { adminRole: string }) {
+export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
-  const links = adminRole === "Factory"
-    ? adminNavLinks.filter((link) => link.href === "/admin/factory")
-    : adminNavLinks;
+  const links = adminNavLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
 
   // Close the menu whenever the route changes, so tapping a link doesn't leave
   // the sheet hanging open over the new page. Done as a render-time state

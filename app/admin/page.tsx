@@ -11,7 +11,7 @@ import {
   UserIcon,
 } from "@/components/Icons";
 import { getAdminSession } from "@/lib/admin-auth";
-import { getAdminPermissionSummary, getSessionAdminRole } from "@/lib/admin-permissions";
+import { getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getHrSnapshot } from "@/lib/hr";
@@ -382,6 +382,7 @@ async function safeGetData() {
 }
 
 export default async function AdminDashboardPage() {
+  await requireAdminPermission("dashboard:read");
   const {
     session,
     products,

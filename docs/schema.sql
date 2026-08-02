@@ -227,10 +227,20 @@ CREATE TABLE IF NOT EXISTS admin_staff_accounts (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('Owner', 'Manager', 'Accountant', 'HR', 'Inventory', 'Sales', 'Viewer')),
+  role TEXT NOT NULL CHECK (role IN ('Owner', 'Manager', 'Accountant', 'HR', 'Inventory', 'Sales', 'Factory', 'Viewer')),
   branch_id TEXT NOT NULL REFERENCES company_branches(id) ON DELETE RESTRICT,
-  status TEXT NOT NULL CHECK (status IN ('Active', 'Disabled')),
+  status TEXT NOT NULL CHECK (status IN ('Invited', 'Active', 'Locked', 'Disabled')),
   password_hash TEXT NOT NULL,
+  employee_id TEXT,
+  must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+  mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  password_changed_at TIMESTAMPTZ,
+  invited_at TIMESTAMPTZ,
+  invitation_accepted_at TIMESTAMPTZ,
+  failed_login_count INTEGER NOT NULL DEFAULT 0 CHECK (failed_login_count >= 0),
+  last_failed_login_at TIMESTAMPTZ,
+  last_login_ip TEXT NOT NULL DEFAULT '',
+  last_login_user_agent TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at TIMESTAMPTZ
@@ -241,6 +251,47 @@ CREATE UNIQUE INDEX IF NOT EXISTS admin_staff_accounts_email_lower_unique_idx
 CREATE INDEX IF NOT EXISTS admin_staff_accounts_role_idx ON admin_staff_accounts(role);
 CREATE INDEX IF NOT EXISTS admin_staff_accounts_branch_id_idx ON admin_staff_accounts(branch_id);
 CREATE INDEX IF NOT EXISTS admin_staff_accounts_status_idx ON admin_staff_accounts(status);
+
+CREATE TABLE IF NOT EXISTS admin_staff_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  staff_id TEXT NOT NULL REFERENCES admin_staff_accounts(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL CHECK (purpose IN ('invitation', 'password_reset', 'mfa_login')),
+  token_hash TEXT NOT NULL UNIQUE,
+  secret_hash TEXT NOT NULL DEFAULT '',
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  created_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS admin_staff_sessions (
+  id UUID PRIMARY KEY,
+  staff_id TEXT NOT NULL REFERENCES admin_staff_accounts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  revoked_by TEXT NOT NULL DEFAULT '',
+  ip_address TEXT NOT NULL DEFAULT '',
+  user_agent TEXT NOT NULL DEFAULT '',
+  device_label TEXT NOT NULL DEFAULT '',
+  mfa_verified BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS admin_staff_access_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  staff_id TEXT NOT NULL REFERENCES admin_staff_accounts(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  before_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  after_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  actor_id TEXT NOT NULL DEFAULT '',
+  actor_email TEXT NOT NULL DEFAULT '',
+  actor_role TEXT NOT NULL DEFAULT '',
+  ip_address TEXT NOT NULL DEFAULT '',
+  user_agent TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS notification_events (
   id TEXT PRIMARY KEY,
@@ -518,6 +569,16 @@ ALTER TABLE hr_employees
 CREATE INDEX IF NOT EXISTS hr_employees_department_idx ON hr_employees(department);
 CREATE INDEX IF NOT EXISTS hr_employees_status_idx ON hr_employees(status);
 CREATE INDEX IF NOT EXISTS hr_employees_fingerprint_id_idx ON hr_employees(fingerprint_id);
+
+ALTER TABLE admin_staff_accounts
+  DROP CONSTRAINT IF EXISTS admin_staff_accounts_employee_id_fkey;
+ALTER TABLE admin_staff_accounts
+  ADD CONSTRAINT admin_staff_accounts_employee_id_fkey
+  FOREIGN KEY (employee_id) REFERENCES hr_employees(id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS admin_staff_accounts_employee_unique_idx
+  ON admin_staff_accounts(employee_id)
+  WHERE employee_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS hr_attendance (
   id TEXT PRIMARY KEY,

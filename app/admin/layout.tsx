@@ -4,9 +4,13 @@ import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
+import { redirect } from "next/navigation";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
+  if (!session) {
+    redirect("/admin/login");
+  }
   const adminRole = getSessionAdminRole(session);
 
   return (

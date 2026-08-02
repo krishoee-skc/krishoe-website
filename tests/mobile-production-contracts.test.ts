@@ -18,9 +18,12 @@ describe("mobile production contracts", () => {
     }
   });
 
-  it("reflows POS and staff tables into phone cards", () => {
+  it("reflows POS and renders staff access as phone-first cards", () => {
     expect(source("app/admin/pos/_components/PosBillForm.tsx")).toContain("reflow-table");
-    expect(source("app/admin/settings/page.tsx")).toContain("reflow-table");
+    const staffCards = source("components/admin/StaffAccessManager.tsx");
+    expect(staffCards).toContain("xl:grid-cols-2");
+    expect(staffCards).toContain("Staff accounts");
+    expect(staffCards).not.toContain("<table");
   });
 
   it("offers a fast stock-aware POS product picker", () => {

@@ -1,22 +1,19 @@
 import type { Metadata } from "next";
 import { formatAdminDate } from "@/lib/format-date";
-import { adminRoles, requireAdminPermission } from "@/lib/admin-permissions";
+import { adminRoles, getAdminPermissionSummary, requireAdminPermission } from "@/lib/admin-permissions";
 import {
-  adminStaffStatuses,
   companyBranchStatuses,
   companyBranchTypes,
   getAdminSettings,
 } from "@/lib/admin-settings";
 import {
   createBranchAction,
-  resetStaffPasswordAction,
   saveCompanySettingsAction,
-  saveStaffAccountAction,
-  updateStaffAccessAction,
-  updateStaffStatusAction,
 } from "./actions";
-import ConfirmSubmitButton from "./ConfirmSubmitButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import StaffAccessManager from "@/components/admin/StaffAccessManager";
+import { getHrData } from "@/lib/hr";
+import { getAdminStaffAccessHistory } from "@/lib/admin-staff-security";
 
 export const dynamic = "force-dynamic";
 
@@ -104,28 +101,32 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
-const compactInputClass =
-  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-normal outline-none focus:border-brand-green";
-const compactSelectClass =
-  "h-9 rounded-lg border border-gray-200 px-2 text-xs font-semibold outline-none focus:border-brand-green";
-const compactSaveButtonClass =
-  "h-9 rounded-lg bg-brand-green px-3 text-xs font-black text-white transition hover:bg-[#08392C]";
-const compactNeutralButtonClass =
-  "h-9 rounded-lg border border-gray-200 px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green";
-const compactDangerButtonClass =
-  "h-9 rounded-lg border border-red-200 px-3 text-xs font-black text-red-700 transition hover:bg-red-50";
-const compactWarnButtonClass =
-  "h-9 rounded-lg border border-amber-200 px-3 text-xs font-black text-amber-700 transition hover:bg-amber-50";
-
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ success?: string; error?: string }>;
+}) {
   const { role } = await requireAdminPermission("settings:write");
-  const settings = await getAdminSettings();
+  const [settings, hrData, accessHistory] = await Promise.all([
+    getAdminSettings(),
+    getHrData(),
+    getAdminStaffAccessHistory(undefined, 40),
+  ]);
+  const notice = await searchParams;
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
   const activeStaff = settings.staff.filter((staff) => staff.status === "Active");
   const branchOptions = settings.branches.map((branch) => ({
     value: branch.id,
     label: `${branch.name} (${branch.code})`,
   }));
+  const permissionMap = Object.fromEntries(
+    adminRoles.map((adminRole) => [
+      adminRole,
+      getAdminPermissionSummary(adminRole).permissions
+        .filter((entry) => entry.allowed)
+        .map((entry) => entry.permission),
+    ]),
+  ) as Record<(typeof adminRoles)[number], string[]>;
 
   return (
     <section className="p-6">
@@ -145,6 +146,17 @@ export default async function AdminSettingsPage() {
           <p className="text-xs font-semibold text-emerald-700">current permission role</p>
         </div>
       </div>
+
+      {notice?.success ? (
+        <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+          {notice.success}
+        </div>
+      ) : null}
+      {notice?.error ? (
+        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+          {notice.error}
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -231,148 +243,45 @@ export default async function AdminSettingsPage() {
         </form>
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <form action={saveStaffAccountAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-black text-brand-green-ink">Create or update staff</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Use an existing email to update role, branch, status, or password.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            <Field label="Name" name="name" placeholder="Owner Name" required />
-            <Field label="Email" name="email" type="email" placeholder="owner@krishoe.com" required />
-            <Field label="Password (12+ characters)" name="password" type="password" placeholder="Required for new staff" />
-            <SelectField label="Role" name="role" value="Viewer" options={adminRoles} />
-            <SelectField
-              label="Branch"
-              name="branchId"
-              value={settings.company.defaultBranchId}
-              options={branchOptions}
-            />
-            <SelectField label="Status" name="status" value="Active" options={adminStaffStatuses} />
-          </div>
-          <div className="mt-5">
-            <SubmitButton label="Save staff account" />
-          </div>
-        </form>
+      <StaffAccessManager
+        staff={settings.staff}
+        branches={settings.branches.map(({ id, name, code }) => ({ id, name, code }))}
+        employees={hrData.employees.map(({ id, name, department, status }) => ({ id, name, department, status }))}
+        permissionMap={permissionMap}
+        defaultBranchId={settings.company.defaultBranchId}
+      />
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-black text-brand-green-ink">Staff accounts</h2>
-            <p className="mt-1 text-sm text-gray-500">Password hashes are stored server-side and never shown here.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
-                <tr>
-                  <th className="py-2 pr-3">Staff</th>
-                  <th className="py-2 pr-3">Access</th>
-                  <th className="py-2 pr-3">Password</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Last login</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {settings.staff.map((staff) => {
-                  const branch = settings.branches.find((item) => item.id === staff.branchId);
-
-                  return (
-                    <tr key={staff.id}>
-                      <td className="reflow-primary py-3 pr-3">
-                        <p className="font-black text-brand-green-ink">{staff.name}</p>
-                        <p className="text-xs text-gray-500">{staff.email}</p>
-                        <p className="mt-1 font-mono text-[11px] text-gray-400">{staff.id}</p>
-                      </td>
-                      <td data-label="Access" className="min-w-[380px] py-3 pr-3">
-                        <form action={updateStaffAccessAction} className="grid gap-2 md:grid-cols-[130px_170px_auto]">
-                          <input type="hidden" name="id" value={staff.id} />
-                          <select name="role" defaultValue={staff.role} className={compactSelectClass}>
-                            {adminRoles.map((adminRole) => (
-                              <option key={adminRole} value={adminRole}>
-                                {adminRole}
-                              </option>
-                            ))}
-                          </select>
-                          <select name="branchId" defaultValue={staff.branchId} className={compactSelectClass}>
-                            {branchOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <FormSubmitButton className={compactSaveButtonClass}>
-                            Save access
-                          </FormSubmitButton>
-                        </form>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Current branch: {branch?.name ?? staff.branchId}
-                        </p>
-                      </td>
-                      <td data-label="Password" className="min-w-[300px] py-3 pr-3">
-                        <form action={resetStaffPasswordAction} className="flex flex-wrap items-center gap-2">
-                          <input type="hidden" name="id" value={staff.id} />
-                          <input
-                            name="password"
-                            type="password"
-                            minLength={12}
-                            required
-                            placeholder="New password"
-                            className={compactInputClass}
-                          />
-                          <ConfirmSubmitButton
-                            label="Reset"
-                            message={`Reset password for ${staff.email}?`}
-                            className={compactWarnButtonClass}
-                          />
-                        </form>
-                      </td>
-                      <td data-label="Status" className="py-3 pr-3">
-                        <span className={`rounded-full border px-2 py-1 text-xs font-black ${
-                          staff.status === "Active"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                            : "border-gray-200 bg-gray-50 text-gray-600"
-                        }`}>
-                          {staff.status}
-                        </span>
-                        <form action={updateStaffStatusAction} className="mt-2">
-                          <input type="hidden" name="id" value={staff.id} />
-                          <input
-                            type="hidden"
-                            name="status"
-                            value={staff.status === "Active" ? "Disabled" : "Active"}
-                          />
-                          {staff.status === "Active" ? (
-                            <ConfirmSubmitButton
-                              label="Disable"
-                              message={`Disable login for ${staff.email}?`}
-                              className={compactDangerButtonClass}
-                            />
-                          ) : (
-                            <FormSubmitButton className={compactNeutralButtonClass}>
-                              Enable
-                            </FormSubmitButton>
-                          )}
-                        </form>
-                      </td>
-                      <td data-label="Last login" className="py-3 pr-3 text-xs text-gray-500">
-                        {formatDate(staff.lastLoginAt)}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {settings.staff.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-sm font-semibold text-gray-500">
-                      No staff login accounts yet. Create the first Owner account before production.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+      <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Immutable security trail</p>
+          <h2 className="mt-2 text-xl font-black text-brand-green-ink">Recent staff access changes</h2>
+          <p className="mt-1 text-sm text-gray-600">Every sensitive change records the actor, time, device and safe before/after values.</p>
+        </div>
+        <div className="mt-5 grid gap-3">
+          {accessHistory.map((entry) => {
+            const member = settings.staff.find((staff) => staff.id === entry.staffId);
+            return (
+              <details key={entry.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-black text-brand-green-ink">{entry.action.replaceAll("_", " ")}</p>
+                      <p className="mt-1 text-xs text-gray-500">{member?.name ?? entry.staffId} · by {entry.actorEmail || entry.actorRole || "System"}</p>
+                    </div>
+                    <time className="text-xs font-semibold text-gray-500">{formatDate(entry.createdAt)}</time>
+                  </div>
+                </summary>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-gray-200 bg-white p-3"><p className="text-xs font-black uppercase text-gray-500">Before</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-gray-700">{JSON.stringify(entry.beforeState, null, 2)}</pre></div>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3"><p className="text-xs font-black uppercase text-emerald-700">After</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-emerald-900">{JSON.stringify(entry.afterState, null, 2)}</pre></div>
+                </div>
+                <p className="mt-3 text-[11px] text-gray-500">IP {entry.ipAddress || "not available"} · {entry.userAgent ? entry.userAgent.slice(0, 100) : "device not available"}</p>
+              </details>
+            );
+          })}
+          {accessHistory.length === 0 ? <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm font-semibold text-gray-500">No staff access changes recorded yet.</p> : null}
+        </div>
+      </section>
     </section>
   );
 }
