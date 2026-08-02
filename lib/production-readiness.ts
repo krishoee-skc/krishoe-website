@@ -1,4 +1,5 @@
 import { adminRoles, getConfiguredAdminRole } from "@/lib/admin-role-permissions";
+import { getAdminAuditEvents, type AdminAuditEvent } from "@/lib/admin-audit";
 import { getAdminSettings, type AdminSettingsSnapshot } from "@/lib/admin-settings";
 import { getDataBackendConfig } from "@/lib/data-backend";
 
@@ -291,6 +292,39 @@ function vercelStatus(): ReadinessCheck {
   };
 }
 
+export function backupFreshnessStatus(
+  events: AdminAuditEvent[],
+  now = new Date(),
+): ReadinessCheck {
+  const latest = events.find(
+    (event) => event.action === "backup_export" && event.status === "success",
+  );
+
+  if (!latest) {
+    return {
+      id: "backup-freshness",
+      label: "Restorable business backup",
+      status: "warning",
+      detail: "No successful full backup export appears in recent audit history. Export and securely store a backup from Activity.",
+      envKeys: [],
+    };
+  }
+
+  const ageMs = now.getTime() - new Date(latest.createdAt).getTime();
+  const ageDays = Math.max(0, Math.floor(ageMs / 86_400_000));
+  const fresh = Number.isFinite(ageMs) && ageMs <= 7 * 86_400_000;
+
+  return {
+    id: "backup-freshness",
+    label: "Restorable business backup",
+    status: fresh ? "ready" : "warning",
+    detail: fresh
+      ? `Latest full backup was exported ${ageDays === 0 ? "today" : `${ageDays} day(s) ago`}. Keep a copy outside the app.`
+      : `Latest recorded full backup is ${ageDays} day(s) old. Export a new backup and keep a copy outside the app.`,
+    envKeys: [],
+  };
+}
+
 export function getProductionReadiness(): ReadinessCheck[] {
   return [
     authStatus(),
@@ -351,7 +385,10 @@ export function getProductionReadinessSummary() {
 }
 
 export async function getProductionReadinessWithData() {
-  const settings = await getAdminSettings();
+  const [settings, auditEvents] = await Promise.all([
+    getAdminSettings(),
+    getAdminAuditEvents(500),
+  ]);
   const checks = getProductionReadiness();
   const adminRoleIndex = checks.findIndex((check) => check.id === "admin-role");
   const staffCheck = staffAccountStatus(settings);
@@ -361,6 +398,8 @@ export async function getProductionReadinessWithData() {
   } else {
     checks.push(staffCheck);
   }
+
+  checks.push(backupFreshnessStatus(auditEvents));
 
   return checks;
 }
