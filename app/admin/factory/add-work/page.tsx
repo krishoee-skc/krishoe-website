@@ -37,6 +37,7 @@ export default function AddWorkPage() {
   });
 
   const [selectedRate, setSelectedRate] = useState<number | null>(null);
+  const [selectedRateSource, setSelectedRateSource] = useState("");
   const [calculatedAmount, setCalculatedAmount] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -90,14 +91,16 @@ export default function AddWorkPage() {
       if (selectedWorker) {
         try {
           const res = await fetch(
-            `/api/factory/rates?itemId=${itemId}&workerCategory=${selectedWorker.category}`
+            `/api/factory/rates?itemId=${itemId}&workerCategory=${selectedWorker.category}&workerId=${selectedWorker.id}`
           );
           const data = await res.json();
           if (data.rates && data.rates.length > 0) {
             setSelectedRate(data.rates[0].rate_per_pair);
+            setSelectedRateSource(data.rates[0].rate_source || "Factory rate");
             setShowSetRate(false);
           } else {
             setSelectedRate(null);
+            setSelectedRateSource("");
             setShowSetRate(true);
             setSuccess("⚙️ Rate not found! Click 'Set Rate Now' to add it.");
           }
@@ -173,6 +176,7 @@ export default function AddWorkPage() {
       if (!res.ok) throw new Error("Failed to set rate");
 
       setSelectedRate(parseFloat(newRate));
+      setSelectedRateSource("Production stage synchronized");
       setNewRate("");
       setShowSetRate(false);
       setSuccess("✅ Rate set! Amount will calculate now.");
@@ -386,6 +390,9 @@ export default function AddWorkPage() {
             <div className="text-sm text-blue-900">
               <strong>💰 Rate:</strong> Rs. {selectedRate} per pair
             </div>
+            {selectedRateSource ? (
+              <div className="mt-1 text-xs font-semibold text-blue-700">Source: {selectedRateSource}</div>
+            ) : null}
             <div className="text-sm text-blue-900 mt-2">
               <strong>💵 Total Amount:</strong> {formData.pairs_count} pairs × Rs. {selectedRate} = <span className="text-lg font-bold">Rs. {calculatedAmount.toLocaleString()}</span>
             </div>

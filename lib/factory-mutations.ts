@@ -85,8 +85,9 @@ async function lockWorker(
     id: string;
     category: string;
     worker_type: string;
+    hr_employee_id: string | null;
   }>(
-    `SELECT id, category, worker_type
+    `SELECT id, category, worker_type, hr_employee_id
      FROM factory_workers
      WHERE id = $1${options.activeOnly === false ? "" : " AND status = 'active'"}
      FOR UPDATE`,
@@ -100,6 +101,14 @@ async function lockWorker(
     );
   }
   return rows[0];
+}
+
+export function productionStageForFactoryCategory(category: string) {
+  if (category === "Upper") return "Upper";
+  if (category === "Fibermen" || category === "Fiber Preparation") return "Fiber Preparation";
+  if (category === "Fiber Silai") return "Fiber Silai";
+  if (category === "Bottom Final") return "Bottom Final";
+  return null;
 }
 
 interface WorkRow {
@@ -191,8 +200,8 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         409,
       );
     }
-    const items = await db.query<{ id: string }>(
-      `SELECT id
+    const items = await db.query<{ id: string; production_item_id: string | null }>(
+      `SELECT id, production_item_id
        FROM factory_items
        WHERE id = $1 AND status = 'active'
        FOR SHARE`,
@@ -200,15 +209,38 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     );
     if (!items[0]) throw new FactoryMutationError("Active factory item not found.", 404);
 
-    const rates = await db.query<{ rate_per_pair: DbNumeric }>(
-      `SELECT rate_per_pair
-       FROM factory_rates
-       WHERE item_id = $1
-         AND worker_category = $2
-         AND effective_date <= $3::date
-       ORDER BY effective_date DESC, created_at DESC
+    const stage = productionStageForFactoryCategory(worker.category);
+    const rates = await db.query<{ rate_per_pair: DbNumeric; rate_source: string }>(
+      `SELECT rate_per_pair, rate_source
+       FROM (
+         SELECT rate_per_pair, effective_from AS effective_date, created_at,
+                0 AS priority, 'Worker override'::text AS rate_source
+         FROM production_worker_stage_rates
+         WHERE employee_id = $4 AND item_id = $5 AND stage = $6
+           AND status = 'Active' AND effective_from <= $3::date
+         UNION ALL
+         SELECT rate_per_pair, effective_from AS effective_date, created_at,
+                1 AS priority, 'Production stage'::text AS rate_source
+         FROM production_stage_rates
+         WHERE item_id = $5 AND stage = $6
+           AND status = 'Active' AND effective_from <= $3::date
+         UNION ALL
+         SELECT rate_per_pair, effective_date, created_at,
+                2 AS priority, 'Legacy Factory'::text AS rate_source
+         FROM factory_rates
+         WHERE item_id = $1 AND worker_category = $2
+           AND effective_date <= $3::date
+       ) available_rates
+       ORDER BY priority, effective_date DESC, created_at DESC
        LIMIT 1`,
-      [input.itemId, worker.category, input.date],
+      [
+        input.itemId,
+        worker.category,
+        input.date,
+        worker.hr_employee_id,
+        items[0].production_item_id,
+        stage,
+      ],
     );
     if (!rates[0]) {
       throw new FactoryMutationError(
