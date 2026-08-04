@@ -11,6 +11,7 @@ import {
   ymdDate,
   type DbNumeric,
 } from "@/lib/factory-money";
+import { notifyWorkEntry } from "@/lib/whatsapp-gateway";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -65,6 +66,39 @@ export async function POST(request: NextRequest) {
       pairsCount,
       status,
     });
+
+    // Send WhatsApp notification if work entry was created successfully
+    if (!result.replayed && result.id) {
+      try {
+        // Fetch worker and item names for notification
+        const worker = await queryPostgres(
+          STORE,
+          "SELECT name FROM factory_workers WHERE id = $1",
+          [workerId]
+        );
+        const item = await queryPostgres(
+          STORE,
+          "SELECT name FROM factory_items WHERE id = $1",
+          [itemId]
+        );
+
+        if (worker.length > 0 && item.length > 0) {
+          const workerName = (worker[0] as any).name;
+          const itemName = (item[0] as any).name;
+          const amount = Number(result.amount_earned) || 0;
+
+          await notifyWorkEntry({
+            workerName,
+            productName: itemName,
+            pairsCount: Number(pairsCount),
+            amount,
+          });
+        }
+      } catch (notificationError) {
+        // Log but don't fail the request if notification fails
+        console.error("Failed to send WhatsApp notification:", notificationError);
+      }
+    }
 
     return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
