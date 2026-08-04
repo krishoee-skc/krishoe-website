@@ -36,6 +36,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
     const itemId = typeof body.item_id === "string" ? body.item_id.trim() : "";
+    const workOrderId =
+      typeof body.work_order_id === "string" && body.work_order_id.trim()
+        ? body.work_order_id.trim()
+        : null;
     const color = body.color;
     const size = body.size;
     const status = typeof body.status === "string" && body.status ? body.status : "completed";
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
       date,
       workerId,
       itemId,
+      workOrderId,
       color: typeof color === "string" && color.trim() ? color.trim() : null,
       size: typeof size === "string" && size.trim() ? size.trim() : null,
       pairsCount,

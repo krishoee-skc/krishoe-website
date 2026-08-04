@@ -62,6 +62,7 @@ describe("Factory mutation route contracts", () => {
       date: "2026-08-01",
       worker_id: "worker-1",
       item_id: "item-1",
+      work_order_id: "order-1",
       pairs_count: 10,
       status: "completed",
     };
@@ -69,7 +70,11 @@ describe("Factory mutation route contracts", () => {
     expect((await postWork(request("/api/factory/work", body))).status).toBe(201);
     expect((await postWork(request("/api/factory/work", body))).status).toBe(200);
     expect(createFactoryWork).toHaveBeenLastCalledWith(
-      expect.objectContaining({ submissionKey: "client-key-1", pairsCount: 10 }),
+      expect.objectContaining({
+        submissionKey: "client-key-1",
+        pairsCount: 10,
+        workOrderId: "order-1",
+      }),
     );
   });
 

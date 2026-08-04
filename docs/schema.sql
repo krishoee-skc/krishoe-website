@@ -1249,6 +1249,7 @@ CREATE TABLE IF NOT EXISTS factory_daily_work (
   status TEXT NOT NULL DEFAULT 'completed',
   rate_applied NUMERIC(12, 2) NOT NULL CHECK (rate_applied > 0),
   amount_earned NUMERIC(12, 2) NOT NULL CHECK (amount_earned > 0),
+  work_order_id TEXT REFERENCES production_work_orders(id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT factory_daily_work_status_check
@@ -1346,6 +1347,7 @@ CREATE INDEX IF NOT EXISTS factory_rates_lookup_idx
 CREATE INDEX IF NOT EXISTS factory_daily_work_worker_date_idx
   ON factory_daily_work(worker_id, date DESC);
 CREATE INDEX IF NOT EXISTS factory_daily_work_item_idx ON factory_daily_work(item_id);
+CREATE INDEX IF NOT EXISTS factory_daily_work_order_idx ON factory_daily_work(work_order_id);
 CREATE UNIQUE INDEX IF NOT EXISTS factory_daily_work_submission_key_idx
   ON factory_daily_work(submission_key)
   WHERE submission_key IS NOT NULL AND submission_key <> '';

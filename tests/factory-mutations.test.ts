@@ -184,6 +184,87 @@ describe("Factory mutation idempotency", () => {
     expect(String(productionInsert?.[0])).toContain("'Approved'");
   });
 
+  it("links quick work to the matching Work Order stage and advances a completed stage", async () => {
+    dbQuery
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "worker-1",
+          name: "Ram Worker",
+          category: "Upper",
+          worker_type: "piece_rate",
+          hr_employee_id: "employee-1",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "item-1",
+          production_item_id: "production-item-1",
+          production_item_name: "Ladies Heel",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "order-1",
+          item_id: "production-item-1",
+          colour: "Black",
+          size_breakdown: { "36": 10 },
+          planned_pairs: "10",
+          current_stage: "Upper",
+        },
+      ])
+      .mockResolvedValueOnce([{ completed_pairs: "0", completed_size_pairs: "0" }])
+      .mockResolvedValueOnce([{ rate_per_pair: "18.00" }])
+      .mockResolvedValueOnce([
+        {
+          id: "work-1",
+          date: "2026-08-03",
+          worker_id: "worker-1",
+          item_id: "item-1",
+          color: "Black",
+          size: "36",
+          pairs_count: 10,
+          status: "completed",
+          rate_applied: "18.00",
+          amount_earned: "180.00",
+          work_order_id: "order-1",
+        },
+      ])
+      .mockResolvedValueOnce([]) // Production work entry
+      .mockResolvedValueOnce([]) // Work Order stage update
+      .mockResolvedValueOnce([]) // ledger collision
+      .mockResolvedValueOnce([{ running_balance: "0.00" }])
+      .mockResolvedValueOnce([]); // ledger insert
+
+    const result = await createFactoryWork({
+      submissionKey: "order-work-key",
+      date: "2026-08-03",
+      workerId: "worker-1",
+      itemId: "item-1",
+      workOrderId: "order-1",
+      color: "Black",
+      size: "36",
+      pairsCount: 10,
+      status: "completed",
+    });
+
+    expect(result).toMatchObject({
+      id: "work-1",
+      work_order_id: "order-1",
+      production_synced: true,
+    });
+    const productionInsert = dbQuery.mock.calls.find(([statement]) =>
+      String(statement).includes("INSERT INTO production_work_entries"),
+    );
+    expect(productionInsert?.[1]).toEqual(expect.arrayContaining(["order-1"]));
+    const orderUpdate = dbQuery.mock.calls.find(([statement]) =>
+      String(statement).includes("UPDATE production_work_orders SET"),
+    );
+    expect(orderUpdate?.[1]).toEqual(["order-1", "Upper", true]);
+    expect(String(orderUpdate?.[0])).toContain("Fiber Preparation");
+  });
+
   it("returns the stored work on an exact retry without posting another wage", async () => {
     dbQuery
       .mockResolvedValueOnce([])

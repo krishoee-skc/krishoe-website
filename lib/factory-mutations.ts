@@ -131,6 +131,7 @@ interface WorkRow {
   status: string;
   rate_applied: DbNumeric;
   amount_earned: DbNumeric;
+  work_order_id: string | null;
 }
 
 export interface FactoryWorkInput {
@@ -138,6 +139,7 @@ export interface FactoryWorkInput {
   date: string;
   workerId: string;
   itemId: string;
+  workOrderId?: string | null;
   color: string | null;
   size: string | null;
   pairsCount: number;
@@ -150,6 +152,7 @@ function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
     date: dbDate(row.date),
     worker_id: row.worker_id,
     item_id: row.item_id,
+    work_order_id: row.work_order_id ?? null,
     color: row.color,
     size: row.size,
     pairs_count: Number(row.pairs_count),
@@ -166,6 +169,7 @@ function assertSameWork(row: WorkRow, input: FactoryWorkInput) {
     dbDate(row.date) === input.date &&
     row.worker_id === input.workerId &&
     row.item_id === input.itemId &&
+    (row.work_order_id ?? null) === (input.workOrderId ?? null) &&
     sameText(row.color, input.color) &&
     sameText(row.size, input.size) &&
     Number(row.pairs_count) === input.pairsCount &&
@@ -191,7 +195,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
 
     const existing = await db.query<WorkRow>(
       `SELECT id, date, worker_id, item_id, color, size, pairs_count, status,
-              rate_applied, amount_earned
+              rate_applied, amount_earned, work_order_id
        FROM factory_daily_work
        WHERE submission_key = $1
        LIMIT 1`,
@@ -226,6 +230,86 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     if (!items[0]) throw new FactoryMutationError("Active factory item not found.", 404);
 
     const stage = productionStageForFactoryCategory(worker.category);
+    let linkedWorkOrder: {
+      id: string;
+      plannedPairs: number;
+      completedBefore: number;
+    } | null = null;
+
+    if (input.workOrderId) {
+      if (!worker.hr_employee_id || !items[0].production_item_id || !stage) {
+        throw new FactoryMutationError(
+          "Link this Factory worker to HR and this item to Production Item Master before selecting a Work Order.",
+          409,
+        );
+      }
+      const orders = await db.query<{
+        id: string;
+        item_id: string;
+        colour: string;
+        size_breakdown: Record<string, number> | string;
+        planned_pairs: number | string;
+        current_stage: string;
+      }>(
+        `SELECT id, item_id, colour, size_breakdown, planned_pairs, current_stage
+         FROM production_work_orders
+         WHERE id = $1 AND status NOT IN ('Completed', 'Cancelled')
+         FOR UPDATE`,
+        [input.workOrderId],
+      );
+      const order = orders[0];
+      if (!order) throw new FactoryMutationError("Open Work Order not found.", 404);
+      if (order.item_id !== items[0].production_item_id) {
+        throw new FactoryMutationError("The selected Work Order belongs to a different item.", 409);
+      }
+      if (order.current_stage !== stage) {
+        throw new FactoryMutationError(
+          `This Work Order is currently at ${order.current_stage}; select a ${order.current_stage} worker.`,
+          409,
+        );
+      }
+      if (input.color && order.colour && input.color.toLowerCase() !== order.colour.toLowerCase()) {
+        throw new FactoryMutationError(`This Work Order colour is ${order.colour}.`, 409);
+      }
+
+      const sizePlan =
+        typeof order.size_breakdown === "string"
+          ? (JSON.parse(order.size_breakdown) as Record<string, number>)
+          : order.size_breakdown;
+      const sizeLabel = input.size?.trim();
+      if (!sizeLabel || !(Number(sizePlan[sizeLabel]) > 0)) {
+        throw new FactoryMutationError("Select one planned size from this Work Order.", 409);
+      }
+      const completed = await db.query<{
+        completed_pairs: number | string;
+        completed_size_pairs: number | string;
+      }>(
+        `SELECT
+           COALESCE(SUM(total_pairs - rejected_pairs), 0) AS completed_pairs,
+           COALESCE(SUM(COALESCE((size_breakdown ->> $3)::integer, 0)), 0)
+             AS completed_size_pairs
+         FROM production_work_entries
+         WHERE work_order_id = $1 AND stage = $2 AND status = 'Approved'`,
+        [input.workOrderId, stage, sizeLabel],
+      );
+      const completedPairs = Number(completed[0]?.completed_pairs ?? 0);
+      const completedSizePairs = Number(completed[0]?.completed_size_pairs ?? 0);
+      if (completedSizePairs + input.pairsCount > Number(sizePlan[sizeLabel])) {
+        throw new FactoryMutationError(
+          `${sizeLabel} exceeds its planned ${Number(sizePlan[sizeLabel])} pairs for this stage.`,
+          409,
+        );
+      }
+      if (completedPairs + input.pairsCount > Number(order.planned_pairs)) {
+        throw new FactoryMutationError("This entry exceeds the Work Order planned pairs.", 409);
+      }
+      linkedWorkOrder = {
+        id: order.id,
+        plannedPairs: Number(order.planned_pairs),
+        completedBefore: completedPairs,
+      };
+    }
+
     const rates = await db.query<{ rate_per_pair: DbNumeric; rate_source: string }>(
       `SELECT rate_per_pair, rate_source
        FROM (
@@ -273,11 +357,11 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     const inserted = await db.query<WorkRow>(
       `INSERT INTO factory_daily_work
        (id, submission_key, date, worker_id, item_id, color, size, pairs_count,
-        status, rate_applied, amount_earned)
+        status, rate_applied, amount_earned, work_order_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               ROUND($10::numeric * $8::integer, 2))
+               ROUND($10::numeric * $8::integer, 2), $11)
        RETURNING id, date, worker_id, item_id, color, size, pairs_count, status,
-                 rate_applied, amount_earned`,
+                 rate_applied, amount_earned, work_order_id`,
       [
         workId,
         input.submissionKey,
@@ -289,6 +373,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         input.pairsCount,
         input.status,
         rate,
+        input.workOrderId ?? null,
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);
@@ -308,7 +393,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
            rejected_pairs, rework_pairs, rate_per_pair_snapshot, earned_wage,
            status, approved_by, approved_at, note, source_submission_key
          ) VALUES (
-           $1, $2, $3, $4, NULL, $5, $6, $7, $8, $9::jsonb,
+           $1, $2, $3, $4, nullif($14, ''), $5, $6, $7, $8, $9::jsonb,
            0, 0, $10, $11, 'Approved', 'Factory quick entry', now(), $12, $13
          )`,
         [
@@ -316,9 +401,32 @@ export async function createFactoryWork(input: FactoryWorkInput) {
           items[0].production_item_id, items[0].production_item_name, stage,
           input.pairsCount, JSON.stringify({ [sizeLabel]: input.pairsCount }),
           rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
+          input.workOrderId ?? "",
         ],
       );
       productionSynced = true;
+
+      if (linkedWorkOrder) {
+        const stageComplete =
+          linkedWorkOrder.completedBefore + input.pairsCount >= linkedWorkOrder.plannedPairs;
+        await db.query(
+          `UPDATE production_work_orders SET
+             status = CASE WHEN $3 THEN
+               CASE WHEN $2 = 'Bottom Final' THEN 'Ready for QC' ELSE 'In Progress' END
+               ELSE 'In Progress' END,
+             current_stage = CASE WHEN $3 THEN
+               CASE $2
+                 WHEN 'Upper' THEN 'Fiber Preparation'
+                 WHEN 'Fiber Preparation' THEN 'Fiber Silai'
+                 WHEN 'Fiber Silai' THEN 'Bottom Final'
+                 ELSE 'Packing / QC'
+               END
+               ELSE current_stage END,
+             updated_at = now()
+           WHERE id = $1`,
+          [linkedWorkOrder.id, stage, stageComplete],
+        );
+      }
     }
 
     if (worker.worker_type === "piece_rate") {

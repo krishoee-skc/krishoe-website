@@ -17,12 +17,27 @@ interface Item {
   id: string;
   name: string;
   code: string;
+  production_item_id: string | null;
+}
+
+interface WorkOrder {
+  id: string;
+  work_order_number: string;
+  item_id: string;
+  item_name_snapshot: string;
+  colour: string;
+  size_breakdown: Record<string, number>;
+  planned_pairs: number;
+  current_stage: string;
+  status: string;
+  due_date: string | null;
 }
 
 export default function AddWorkPage() {
   const router = useRouter();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,6 +45,7 @@ export default function AddWorkPage() {
     date: nepalDateKey(),
     worker_id: "",
     item_id: "",
+    work_order_id: "",
     color: "",
     size: "",
     pairs_count: "",
@@ -64,6 +80,7 @@ export default function AddWorkPage() {
           ),
         );
         setItems(itemsData.items || []);
+        setWorkOrders(itemsData.workOrders || []);
       } catch (err) {
         setError("Failed to load workers and items");
         console.error(err);
@@ -82,7 +99,13 @@ export default function AddWorkPage() {
 
   const handleItemChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const itemId = e.target.value;
-    setFormData((prev) => ({ ...prev, item_id: itemId }));
+    setFormData((prev) => ({
+      ...prev,
+      item_id: itemId,
+      work_order_id: "",
+      color: "",
+      size: "",
+    }));
     setError("");
 
     // Fetch rate for this worker and item
@@ -112,6 +135,17 @@ export default function AddWorkPage() {
     }
   };
 
+  const handleWorkOrderChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const workOrderId = event.target.value;
+    const order = workOrders.find((row) => row.id === workOrderId);
+    setFormData((current) => ({
+      ...current,
+      work_order_id: workOrderId,
+      color: order?.colour || "",
+      size: "",
+    }));
+  };
+
   const handlePairsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const pairs = parseInt(e.target.value) || 0;
     setFormData((prev) => ({ ...prev, pairs_count: e.target.value }));
@@ -139,7 +173,10 @@ export default function AddWorkPage() {
       if (!res.ok) throw new Error("Failed to add product");
 
       const data = await res.json();
-      setItems([...items, { id: data.id, name: data.name, code: "" }]);
+      setItems([
+        ...items,
+        { id: data.id, name: data.name, code: "", production_item_id: null },
+      ]);
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
       setShowAddProduct(false);
@@ -231,6 +268,7 @@ export default function AddWorkPage() {
         date: nepalDateKey(),
         worker_id: "",
         item_id: "",
+        work_order_id: "",
         color: "",
         size: "",
         pairs_count: "",
@@ -250,6 +288,17 @@ export default function AddWorkPage() {
       setSubmitting(false);
     }
   };
+
+  const selectedItem = items.find((item) => item.id === formData.item_id);
+  const availableWorkOrders = workOrders.filter(
+    (order) => order.item_id === selectedItem?.production_item_id,
+  );
+  const selectedWorkOrder = workOrders.find(
+    (order) => order.id === formData.work_order_id,
+  );
+  const plannedSizes = selectedWorkOrder
+    ? Object.entries(selectedWorkOrder.size_breakdown).filter(([, pairs]) => Number(pairs) > 0)
+    : [];
 
   if (loading) {
     return (
@@ -350,6 +399,37 @@ export default function AddWorkPage() {
           </select>
         </div>
 
+        {/* Work Order / Lot */}
+        {selectedItem?.production_item_id && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
+            <label className="block text-sm font-bold text-emerald-950 mb-2">
+              Work Order / Lot
+            </label>
+            <select
+              value={formData.work_order_id}
+              onChange={handleWorkOrderChange}
+              className="w-full min-h-12 rounded-lg border border-emerald-300 bg-white px-3 py-2"
+            >
+              <option value="">No Work Order — wage history only</option>
+              {availableWorkOrders.map((order) => (
+                <option key={order.id} value={order.id}>
+                  {order.work_order_number} · {order.current_stage} · {order.planned_pairs} pairs
+                </option>
+              ))}
+            </select>
+            {selectedWorkOrder ? (
+              <p className="mt-2 text-xs leading-5 text-emerald-800">
+                {selectedWorkOrder.item_name_snapshot} · {selectedWorkOrder.colour} · Current stage {selectedWorkOrder.current_stage}
+                {selectedWorkOrder.due_date ? ` · Due ${selectedWorkOrder.due_date}` : ""}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs leading-5 text-emerald-800">
+                Select a lot to preserve its stage, size and progress history. You can continue without one for legacy wage-only work.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Color */}
         <div>
           <label className="block text-sm font-medium text-slate-900 mb-2">🎨 Color (Optional)</label>
@@ -357,6 +437,7 @@ export default function AddWorkPage() {
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+            readOnly={Boolean(selectedWorkOrder)}
             placeholder="e.g., Black, Blue, Red"
             className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -365,13 +446,27 @@ export default function AddWorkPage() {
         {/* Size */}
         <div>
           <label className="block text-sm font-medium text-slate-900 mb-2">📏 Size (Optional)</label>
-          <input
-            type="text"
-            value={formData.size}
-            onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-            placeholder="e.g., 7, 8, 9"
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          {selectedWorkOrder ? (
+            <select
+              value={formData.size}
+              onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
+              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select a planned size...</option>
+              {plannedSizes.map(([size, pairs]) => (
+                <option key={size} value={size}>{size} · planned {pairs} pairs</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={formData.size}
+              onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
+              placeholder="e.g., 7, 8, 9"
+              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          )}
         </div>
 
         {/* Pairs */}

@@ -66,7 +66,20 @@ describe("canonical Factory database migration", () => {
 
     expect(migration).toContain("source_submission_key");
     expect(migration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS");
-    expect(migration).not.toMatch(/\b(DELETE|UPDATE|INSERT)\s+/i);
+    expect(migration).not.toMatch(/\bDELETE\s+FROM\b|\bUPDATE\s+\w+\s+SET\b|\bINSERT\s+INTO\b/i);
+    expect(migration).not.toMatch(/^\s*(BEGIN|COMMIT|ROLLBACK)\s*;/im);
+  });
+
+  it("adds an optional non-destructive Factory Work Order link", () => {
+    const migration = read(
+      "scripts",
+      "migrations",
+      "20260803_factory_work_order_link_v1.sql",
+    );
+
+    expect(migration).toContain("work_order_id");
+    expect(migration).toContain("REFERENCES production_work_orders(id) ON DELETE RESTRICT");
+    expect(migration).not.toMatch(/\bDELETE\s+FROM\b|\bUPDATE\s+\w+\s+SET\b|\bINSERT\s+INTO\b/i);
     expect(migration).not.toMatch(/^\s*(BEGIN|COMMIT|ROLLBACK)\s*;/im);
   });
 
