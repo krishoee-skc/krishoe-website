@@ -66,3 +66,61 @@ export async function deleteReviewAction(formData: FormData) {
   );
   revalidateReviewPaths(productId);
 }
+
+export async function rejectReviewAction(formData: FormData) {
+  await requireAdminPermission("reviews:write");
+
+  const productId = textValue(formData, "productId");
+  const reviewId = textValue(formData, "reviewId");
+  const rejectionReason = textValue(formData, "rejectionReason");
+
+  if (!productId || !reviewId) {
+    throw new Error("Product id and review id are required.");
+  }
+
+  const { product, review } = await updateProductReviewStatus(productId, reviewId, "rejected");
+
+  // Save rejection reason if provided
+  if (rejectionReason && product.reviews) {
+    const reviewToUpdate = product.reviews.find((r) => r.id === reviewId);
+    if (reviewToUpdate) {
+      (reviewToUpdate as any).rejectionReason = rejectionReason;
+    }
+  }
+
+  await recordAdminAuditEvent(
+    "review_rejected",
+    `Review ${review.id} for ${product.name} rejected${rejectionReason ? ` (Reason: ${rejectionReason})` : ""}.`,
+  );
+  revalidateReviewPaths(productId);
+}
+
+export async function flagReviewAsSpamAction(formData: FormData) {
+  await requireAdminPermission("reviews:write");
+
+  const productId = textValue(formData, "productId");
+  const reviewId = textValue(formData, "reviewId");
+
+  if (!productId || !reviewId) {
+    throw new Error("Product id and review id are required.");
+  }
+
+  const { product, review } = await updateProductReviewStatus(productId, reviewId, "rejected");
+
+  // Mark as spam
+  if (product.reviews) {
+    const reviewToUpdate = product.reviews.find((r) => r.id === reviewId);
+    if (reviewToUpdate) {
+      (reviewToUpdate as any).flaggedAsSpam = true;
+      (reviewToUpdate as any).flaggedAt = new Date().toISOString();
+      (reviewToUpdate as any).rejectionReason = "Flagged as spam/abuse";
+    }
+  }
+
+  await recordAdminAuditEvent(
+    "review_flagged_spam",
+    `Review ${review.id} for ${product.name} flagged as spam.`,
+    "warning",
+  );
+  revalidateReviewPaths(productId);
+}

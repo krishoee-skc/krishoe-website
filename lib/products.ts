@@ -5,6 +5,9 @@ export type Review = {
   comment: string;
   createdAt: string;
   status: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  flaggedAsSpam?: boolean;
+  flaggedAt?: string;
 };
 
 export type Product = {

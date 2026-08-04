@@ -14,8 +14,9 @@ import {
 // The admin destinations, shared by the desktop sidebar (AdminNav) and the
 // phone nav (AdminMobileNav) so the two never drift apart.
 export const adminNavLinks = [
-  { href: "/admin/factory", label: "Factory Entry", icon: PackageIcon },
+  { href: "/admin/getting-started", label: "Getting Started", icon: HomeIcon },
   { href: "/admin", label: "Dashboard", icon: HomeIcon },
+  { href: "/admin/factory", label: "Factory Entry", icon: PackageIcon },
   { href: "/admin/search", label: "Search", icon: SearchIcon },
   { href: "/admin/stock", label: "Stock", icon: PackageIcon },
   { href: "/admin/pos", label: "POS Billing", icon: CreditCardIcon },

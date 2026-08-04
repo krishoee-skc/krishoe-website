@@ -2,43 +2,76 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Photo Guide | KRISHOE Admin",
+  title: "Product Photography Guide | KRISHOE Admin",
 };
 
-// A hands-on guide the owner can follow with just a phone. Static content —
-// no data, loads instantly.
 export default function PhotoGuidePage() {
   const rules: Array<[string, string, string]> = [
     [
       "☀️",
       "झ्यालको उज्यालोमा खिच्नुहोस्",
-      "दिउँसो, झ्यालनजिक। सिधा घाम होइन — छाया बन्छ। बत्तीको पहेंलो उज्यालो र राति नखिच्ने।",
+      "दिउँसो, झ्यालनजिक। सिधा घाम होइन — छाया बन्छ। बत्तीको पहेंलो उज्यालो र राति नखिच्ने। सबैभन्दा राम्रो: दिउँसोको २-४ बजे।",
     ],
     [
       "⬜",
       "सफा, एकनास background",
-      "सेतो पर्खाल, सेतो कागज, वा खैरो कपडा पछाडि राख्नुहोस्। भुइँको भद्रगोल देखिनु हुँदैन — ग्राहकले जुत्ता मात्र देखोस्।",
+      "सेतो पर्खाल, सेतो कागज, वा खैरो कपडा पछाडि राख्नुहोस्। भुइँको भद्रगोल देखिनु हुँदैन — ग्राहकले जुत्ता मात्र देखोस्। एकनास background कार्यले पेशेवर देखिन्छ।",
     ],
     [
       "✨",
       "जुत्ता चम्काएर मात्र",
-      "धुलो पुछ्ने, फित्ता मिलाउने, ट्याग हटाउने। फोनको क्यामेराको lens पनि पुछ्नुहोस् — आधा धमिलो फोटो lens को धुलोले हुन्छ।",
+      "धुलो पुछ्ने, फित्ता मिलाउने, ट्याग हटाउने। फोनको क्यामेराको lens पनि पुछ्नुहोस् — आधा धमिलो फोटो lens को धुलोले हुन्छ। नयाँ जुत्ताको जस्तो चमक राख्नुहोस्।",
     ],
     [
       "📐",
       "जुत्ताको उचाइबाट, सिधा",
-      "उभिएर माथिबाट नखिच्ने। निहुरिएर जुत्ताकै उचाइमा फोन ल्याउनुहोस् — जुत्ता ठूलो र आकर्षक देखिन्छ।",
+      "उभिएर माथिबाट नखिच्ने। निहुरिएर जुत्ताकै उचाइमा फोन ल्याउनुहोस् — जुत्ता ठूलो र आकर्षक देखिन्छ। ४५ डिग्री angle सबैभन्दा राम्रो हुन्छ।",
     ],
     [
       "🔄",
       "एउटै जोडीका ४-५ कोण",
-      "छेउबाट (मुख्य फोटो), अगाडिबाट, माथिबाट, पछाडिबाट, र जोडी मिलाएर — ग्राहकले पसलमा जस्तै घुमाई-घुमाई हेर्न पाउँछ।",
+      "छेउबाट (मुख्य फोटो), अगाडिबाट, माथिबाट, पछाडिबाट, र जोडी मिलाएर — ग्राहकले पसलमा जस्तै घुमाई-घुमाई हेर्न पाउँछ। हरेक कोणमा ध्यान दिनुहोस्।",
     ],
     [
       "🚫",
       "Zoom नगर्ने — नजिक जाने",
-      "Zoom ले फोटो धमिलो बनाउँछ। फोन नै जुत्तानजिक लैजानुहोस्। हात नकाँपोस् — कतै अड्याएर खिच्नुहोस्।",
+      "Zoom ले फोटो धमिलो बनाउँछ। फोन नै जुत्तानजिक लैजानुहोस्। हात नकाँपोस् — table मा राखेर वा tripod प्रयोग गर खिच्नुहोस्।",
     ],
+  ];
+
+  const bestPractices = [
+    {
+      title: "Background सबैभन्दा महत्त्वपूर्ण",
+      tips: [
+        "एकनास सेतो, ग्रे वा खैरो background प्रयोग गर",
+        "Expensive camera चाहिँदैन — phone को camera पर्याप्त छ",
+        "Backdrop बनाउनको लागि सेतो चादर वा दिवार प्रयोग गर",
+      ]
+    },
+    {
+      title: "उज्यालो (Lighting) को राज",
+      tips: [
+        "Natural light (दिन को प्रकाश) सबैभन्दा राम्रो",
+        "Artificial light के भेला लागेमा एकै colour को light प्रयोग गर",
+        "Shadow हटाउनको लागि diffuser (सेतो कागज/cloth) राख",
+      ]
+    },
+    {
+      title: "फोटोको Quality",
+      tips: [
+        "कम्तिमा 1MB साइजको फोटो upload गर (phone को Default resolution ठीक छ)",
+        "Zoom use नगरी जुत्तानजिक जाएर खिच्नुहोस्",
+        "Phone को HDR mode on गरे राम्रो परिणाम हुन्छ",
+      ]
+    },
+    {
+      title: "Consistency (एकनास रखेको अनुभव)",
+      tips: [
+        "सबै जुत्ताको फोटो एकै जागा, एकै समय, एकै background मा खिच्नुहोस्",
+        "यो online shop को professional look बनाउँछ",
+        "ग्राहकको मनमा विश्वास आउँछ जब पूरो catalog एकै स्तरको हुन्छ",
+      ]
+    },
   ];
 
   return (
@@ -48,72 +81,150 @@ export default function PhotoGuidePage() {
           <Link href="/admin/products" className="text-sm font-bold text-brand-green underline underline-offset-4">
             ← Products
           </Link>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">📸 Photo Guide — फोटोले जुत्ता बेच्छ</h1>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">📸 Product Photography Guide — फोटोले जुत्ता बेच्छ</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
-            Online मा फोटो नै तपाईंको सेल्सम्यान हो। राम्रो फोटो = ग्राहकको भरोसा = बिक्री। फोनले मात्रै
-            पुग्छ — तलका ६ नियम पालना गर्नुहोस्।
+            Online मा फोटो नै तपाईंको सेल्सम्यान हो। राम्रो फोटो = ग्राहकको भरोसा = अधिक बिक्री। <span className="font-semibold">Phone मात्र काफी छ —</span> तपाईंलाई महँगो camera चाहिँदैन। सिर्फ सही techniques पालना गर्नु पर्छ।
           </p>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {rules.map(([emoji, title, text], index) => (
-          <article key={title} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-green-wash text-xl">
-                {emoji}
-              </span>
-              <p className="font-black text-brand-green-ink">
-                {index + 1}. {title}
-              </p>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-gray-600">{text}</p>
-          </article>
-        ))}
+      {/* Core 6 Rules */}
+      <div className="mt-8">
+        <h2 className="text-lg font-black text-brand-green-ink mb-4">🎯 छ मुख्य नियम (6 Core Rules)</h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {rules.map(([emoji, title, text], index) => (
+            <article key={title} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-brand-green-wash text-xl">
+                  {emoji}
+                </span>
+                <div>
+                  <p className="font-black text-brand-green-ink text-sm">
+                    {index + 1}. {title}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-gray-600">{text}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
 
-      <section className="mt-8 rounded-2xl border border-brand-green/30 bg-brand-green-wash/40 p-5">
-        <h2 className="text-lg font-black text-brand-green-ink">⬆️ खिचेपछि — Upload गर्ने तरिका (१ मिनेट)</h2>
-        <ol className="mt-4 grid gap-3 text-sm leading-6 text-brand-green-ink">
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3">
-            <span className="font-black">१.</span> <Link href="/admin/products" className="font-bold text-brand-green underline underline-offset-4">Products</Link> मा
-            गएर design को <span className="font-bold">Edit</span> थिच्नुहोस्
+      {/* Upload Instructions */}
+      <section className="mt-8 rounded-2xl border border-brand-green/30 bg-brand-green-wash/40 p-6">
+        <h2 className="text-lg font-black text-brand-green-ink">⬆️ Step-by-Step Upload (१-२ मिनेट)</h2>
+        <ol className="mt-4 grid gap-3 text-sm leading-6">
+          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+            <span className="font-black text-brand-green-ink flex-shrink-0">१.</span>
+            <div>
+              <Link href="/admin/products" className="font-bold text-brand-green underline underline-offset-4">Products पेजमा जाऊ</Link>
+              <p className="text-xs text-gray-600 mt-1">तपाईंको सबै designs को list देख्नुहुन्छ।</p>
+            </div>
           </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3">
-            <span className="font-black">२.</span> <span className="font-bold">Main Image</span> मुनिको{" "}
-            <span className="font-bold">&ldquo;Upload photo&rdquo;</span> थिचेर फोनबाट सबैभन्दा राम्रो (छेउबाट खिचेको) फोटो
-            रोज्नुहोस्
+          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+            <span className="font-black text-brand-green-ink flex-shrink-0">२.</span>
+            <div>
+              <p className="font-bold">Edit बटन खोज्नुहोस्</p>
+              <p className="text-xs text-gray-600 mt-1">जुन design को फोटो लगाउन चाहनुहुन्छ, त्यसको Edit बटन थिच्नुहोस्।</p>
+            </div>
           </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3">
-            <span className="font-black">३.</span> <span className="font-bold">Gallery Images</span> मा बाँकी कोणका ३-४ फोटो
-            एकैचोटि upload गर्नुहोस्
+          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+            <span className="font-black text-brand-green-ink flex-shrink-0">३.</span>
+            <div>
+              <p className="font-bold">Main Image राख्नुहोस् (छेउबाट खिचेको फोटो)</p>
+              <p className="text-xs text-gray-600 mt-1">"Upload photo" बटन थिच्नुहोस् र फोनबाट सबैभन्दा राम्रो फोटो रोज्नुहोस्।</p>
+            </div>
           </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3">
-            <span className="font-black">४.</span> <span className="font-bold">Save Changes</span> — फोटो तुरुन्तै shop मा
-            देखिन्छ! 🎉
+          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+            <span className="font-black text-brand-green-ink flex-shrink-0">४.</span>
+            <div>
+              <p className="font-bold">Gallery Images राख्नुहोस् (अन्य कोण)</p>
+              <p className="text-xs text-gray-600 mt-1">अगाडि, माथि, पछाडि, र जोडी मिलाएर भएका फोटो एकैचोटि upload गर्नुहोस्।</p>
+            </div>
+          </li>
+          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+            <span className="font-black text-brand-green-ink flex-shrink-0">५.</span>
+            <div>
+              <p className="font-bold">Save Changes क्लिक गर्नुहोस्</p>
+              <p className="text-xs text-gray-600 mt-1">बस! फोटो तुरुन्तै shop मा लाइभ हुन्छ। ग्राहकले तुरुन्तै देख्न सक्छन्।</p>
+            </div>
           </li>
         </ol>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">✅ खिच्नु अघिको checklist</h2>
-        <div className="mt-3 grid gap-2 text-sm text-gray-600 md:grid-cols-2">
-          {[
-            "दिउँसोको उज्यालो, झ्यालनजिक",
-            "सेतो/सफा background",
-            "जुत्ता पुछेको, फित्ता मिलेको",
-            "फोनको lens पुछेको",
-            "जुत्ताको उचाइबाट, सिधा कोण",
-            "छेउ + अगाडि + माथि + जोडी — ४ फोटो",
-          ].map((item) => (
-            <p key={item} className="rounded-md bg-gray-50 px-3 py-2">
-              ☑️ {item}
-            </p>
+      {/* Best Practices */}
+      <div className="mt-8">
+        <h2 className="text-lg font-black text-brand-green-ink mb-4">💡 Best Practices</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {bestPractices.map(({ title, tips }) => (
+            <div key={title} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="font-bold text-brand-green-ink">{title}</h3>
+              <ul className="mt-3 space-y-2">
+                {tips.map((tip) => (
+                  <li key={tip} className="text-xs text-gray-600 flex gap-2">
+                    <span className="text-brand-green flex-shrink-0">✓</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
-          टिप: हरेक design को फोटो एउटै ठाउँ, एउटै background मा खिच्दा पूरै पसल professional देखिन्छ।
-        </p>
+      </div>
+
+      {/* Pre-shoot Checklist */}
+      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-black text-brand-green-ink">✅ Shooting को अघि यो चेक गर्नुहोस्</h2>
+        <div className="mt-4 grid gap-2 text-sm md:grid-cols-2">
+          {[
+            "☀️ दिउँसोको २-४ बजे को समय तय गरेको",
+            "📱 फोन को battery full छ र memory space छ",
+            "🧹 जुत्ता साफ र polish गरेको",
+            "⬜ Background तयार गरेको (सेतो कागज/चादर)",
+            "📸 Phone को lens पुछेको",
+            "🚫 Background मा कुनै objects छैन (bags, खेलणा, आदि)",
+          ].map((item) => (
+            <div key={item} className="rounded-md bg-green-50 px-3 py-2 border border-green-200">
+              <p className="text-sm font-medium text-green-700">{item}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pro Tips */}
+      <section className="mt-8 rounded-lg border border-brand-gold/30 bg-brand-gold-wash/20 p-6">
+        <h2 className="text-lg font-black text-brand-gold-ink">🌟 Pro Tips (अनुभवी फोटोग्राफरको तरिका)</h2>
+        <ul className="mt-4 space-y-3">
+          <li className="text-sm text-gray-700 flex gap-3">
+            <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
+            <span><span className="font-bold">Tripod आवश्यक छैन।</span> Table मा फोन राखेर खिच्न सक्नुहुन्छ। हात नकाँपोस्, अन्यथा blur हुन्छ।</span>
+          </li>
+          <li className="text-sm text-gray-700 flex gap-3">
+            <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
+            <span><span className="font-bold">एउटै जोडीका ५-६ फोटो खिच।</span> फेरिल्टर गरी सबैभन्दा राम्रो (Clear, Sharp, Well-lit) मात्र राख।</span>
+          </li>
+          <li className="text-sm text-gray-700 flex gap-3">
+            <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
+            <span><span className="font-bold">सबै designs को फोटो एकै दिनमा खिच।</span> यसले consistency सुनिश्चित गर्छ।</span>
+          </li>
+          <li className="text-sm text-gray-700 flex gap-3">
+            <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
+            <span><span className="font-bold">Phone settings check गर।</span> HDR on, Portrait mode off, Maximum quality selected भएको आवश्यक छ।</span>
+          </li>
+        </ul>
+      </section>
+
+      {/* Common Mistakes */}
+      <section className="mt-8 rounded-lg border border-red-200 bg-red-50 p-6">
+        <h2 className="text-lg font-black text-red-700">❌ यो गल्तीहरु नगर्नुहोस्</h2>
+        <ul className="mt-4 space-y-2 text-sm text-red-600">
+          <li>• भुइँमा वा गलीमा जुत्ता फोटो खिच्ने (dirty, unprofessional लाग्छ)</li>
+          <li>• Cluttered background (घर को सामान, खेलणा, आदि भूमिका मा)</li>
+          <li>• भयानक lighting — बहुत गाढा वा बहुत उज्यालो फोटो</li>
+          <li>• Zoom use गर खिच्ने (फोटो blur र pixelated हुन्छ)</li>
+          <li>• Duplicate फोटो upload गरी gallery को size नबढाउने</li>
+          <li>• Person/foot हराएको जुत्ता को फोटो (size perspective खराब हुन्छ)</li>
+        </ul>
       </section>
     </section>
   );
