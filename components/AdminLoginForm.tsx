@@ -15,7 +15,13 @@ const initialState: LoginState = {
   message: "",
 };
 
-export default function AdminLoginForm({ nextPath = "/admin" }: { nextPath?: string }) {
+export default function AdminLoginForm({
+  nextPath = "/admin",
+  bootstrapLoginAllowed = false,
+}: {
+  nextPath?: string;
+  bootstrapLoginAllowed?: boolean;
+}) {
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
@@ -119,7 +125,9 @@ export default function AdminLoginForm({ nextPath = "/admin" }: { nextPath?: str
         KRISHOE control room
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
-        Sign in with a staff account. During setup, the local admin password still works when email is left blank.
+        {bootstrapLoginAllowed
+          ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
+          : "Sign in with your staff email and password. This login will register the current phone or computer in Login devices."}
       </p>
 
       <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
@@ -127,6 +135,7 @@ export default function AdminLoginForm({ nextPath = "/admin" }: { nextPath?: str
         <input
           name="email"
           type="email"
+          required={!bootstrapLoginAllowed}
           autoComplete="username"
           className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
           placeholder="owner@krishoe.com"

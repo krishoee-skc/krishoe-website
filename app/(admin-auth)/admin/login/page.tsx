@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { safeAdminNextPath } from "@/lib/safe-redirect";
+import { isAdminBootstrapLoginAllowed } from "@/lib/admin-bootstrap-login";
 
 export const metadata: Metadata = {
   title: "Admin Login | KRISHOE",
@@ -25,6 +26,8 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
     redirect(session.mustChangePassword ? "/admin/change-password" : nextPath);
   }
 
+  const bootstrapLoginAllowed = await isAdminBootstrapLoginAllowed();
+
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-brand-green-ink px-5 py-16">
       <Image
@@ -37,7 +40,10 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
       />
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,35,29,0.96),rgba(16,35,29,0.68))]" />
       <div className="relative z-10 flex w-full justify-center">
-        <AdminLoginForm nextPath={nextPath} />
+        <AdminLoginForm
+          nextPath={nextPath}
+          bootstrapLoginAllowed={bootstrapLoginAllowed}
+        />
       </div>
     </main>
   );

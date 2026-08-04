@@ -29,6 +29,7 @@ import {
 } from "@/lib/admin-staff-security";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { constantTimeEqual } from "@/lib/session-security";
+import { isAdminBootstrapLoginAllowed } from "@/lib/admin-bootstrap-login";
 
 export type LoginState = {
   ok: boolean;
@@ -216,6 +217,19 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
 
     await clearLoginRateLimit(key);
     return completeStaffLogin(staff, false, requestContext);
+  }
+
+  if (!(await isAdminBootstrapLoginAllowed())) {
+    await recordAdminAuditEvent(
+      "bootstrap_login_blocked",
+      "Blank-email bootstrap login was blocked because active Owner staff accounts exist.",
+      "warning",
+      { actorName: "Bootstrap admin", actorRole: getConfiguredAdminRole() },
+    );
+    return {
+      ok: false,
+      message: "Staff email is required. Sign in with your KRISHOE staff account.",
+    };
   }
 
   if (!expectedPassword) {
