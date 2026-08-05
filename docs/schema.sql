@@ -1401,3 +1401,27 @@ CREATE INDEX IF NOT EXISTS sms_messages_message_type_idx ON sms_messages(message
 CREATE INDEX IF NOT EXISTS sms_messages_event_type_idx ON sms_messages(event_type);
 CREATE INDEX IF NOT EXISTS sms_messages_order_id_idx ON sms_messages(order_id);
 CREATE INDEX IF NOT EXISTS sms_messages_worker_id_idx ON sms_messages(worker_id);
+
+-- Admin Alert Center
+CREATE TABLE IF NOT EXISTS admin_alerts (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  alert_type TEXT NOT NULL CHECK (alert_type IN ('manual_payment', 'low_stock', 'quality_issue', 'attendance_alert', 'payroll_ready', 'system_alert')),
+  severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT '🔔',
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  read_at TIMESTAMPTZ,
+  action_url TEXT,
+  action_label TEXT,
+  expires_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS admin_alerts_created_at_idx ON admin_alerts(created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_alerts_is_read_idx ON admin_alerts(is_read);
+CREATE INDEX IF NOT EXISTS admin_alerts_alert_type_idx ON admin_alerts(alert_type);
+CREATE INDEX IF NOT EXISTS admin_alerts_severity_idx ON admin_alerts(severity);
+CREATE INDEX IF NOT EXISTS admin_alerts_expires_at_idx ON admin_alerts(expires_at)
+  WHERE expires_at IS NOT NULL;
