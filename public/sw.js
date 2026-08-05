@@ -1,56 +1,117 @@
-const CACHE_NAME = "krishoe-shell-v2";
-const OFFLINE_URL = "/offline";
-const SHELL = [
-  OFFLINE_URL,
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/images/logo.png",
+const CACHE_NAME = 'krishoe-v1';
+const RUNTIME_CACHE = 'krishoe-runtime-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/offline',
+  '/manifest.json',
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL)));
+// Install event
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch(() => {});
+    })
+  );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+// Activate event
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
-    ),
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
+          .map((name) => caches.delete(name))
+      );
+    })
   );
   self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+// Fetch event - network first with fallback
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/admin") || url.pathname.startsWith("/api")) {
+  if (request.method !== 'GET' || url.origin !== location.origin) {
     return;
   }
 
-  if (event.request.mode === "navigate") {
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(OFFLINE_URL)),
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, response.clone());
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            return cached || new Response('Offline', { status: 503 });
+          });
+        })
     );
     return;
   }
 
-  if (["image", "style", "script", "font"].includes(event.request.destination)) {
-    const network = fetch(event.request).then(async (response) => {
-      if (response.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(event.request, response.clone());
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      return (
+        cached ||
+        fetch(request).then((response) => {
+          if (response.ok) {
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, response.clone());
+            });
+          }
+          return response;
+        })
+      );
+    })
+  );
+});
+
+// Push notifications
+self.addEventListener('push', (event) => {
+  const options = {
+    badge: '/badge.png',
+    vibrate: [200, 100, 200],
+  };
+
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      options.title = data.title || 'KRISHOE';
+      options.body = data.body || 'New notification';
+    } catch (e) {
+      options.title = 'KRISHOE';
+      options.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(options.title || 'KRISHOE', options)
+  );
+});
+
+// Notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (let client of clientList) {
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
       }
-      return response;
-    });
-
-    // Refresh cached assets in the background without leaving a rejected
-    // promise behind when a phone briefly loses its connection.
-    event.waitUntil(network.then(() => undefined).catch(() => undefined));
-    event.respondWith(
-      caches.match(event.request).then((cached) => cached || network),
-    );
-  }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
 });

@@ -1,28 +1,58 @@
-import Link from "next/link";
-
 export default function OfflinePage() {
   return (
-    <main className="grid min-h-screen place-items-center bg-brand-mist px-5 py-16 text-center">
-      <section className="w-full max-w-md rounded-[2rem] border border-black/10 bg-white p-8 shadow-[0_24px_80px_rgba(16,35,29,0.12)]">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-brand-green text-2xl text-white">
-          K
-        </div>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-brand-gold-deep">
-          KRISHOE Offline
-        </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-brand-green-ink">
-          फेरि जोडिँदैछ…
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="text-center max-w-md">
+        <div className="text-6xl mb-6">📡</div>
+
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          You're Offline
         </h1>
-        <p className="mt-4 text-sm font-medium leading-7 text-brand-muted">
-          इन्टरनेट अहिले उपलब्ध छैन। जडान फर्किएपछि फेरि प्रयास गर्नुहोस्।
+
+        <p className="text-gray-600 mb-6">
+          Check your internet connection. Cached pages are still available.
         </p>
-        <Link
-          href="/"
-          className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-brand-green px-6 text-sm font-black text-white"
-        >
-          Try again
-        </Link>
-      </section>
-    </main>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 text-left">
+          <h2 className="font-semibold text-gray-900 mb-3">💡 Available Offline:</h2>
+          <ul className="space-y-2 text-sm text-gray-600">
+            <li>✅ Dashboard & Profile</li>
+            <li>✅ Payslips & Earnings</li>
+            <li>✅ Attendance Records</li>
+            <li>✅ Production Details</li>
+            <li>✅ Shop (browsing only)</li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
+          >
+            Go Home
+          </button>
+          <button
+            onClick={() => window.history.back()}
+            className="w-full bg-gray-200 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-300"
+          >
+            Go Back
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-6">
+          Auto-refresh when connection restored
+        </p>
+      </div>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.addEventListener('online', () => {
+              document.querySelector('h1').textContent = 'Back Online!';
+              setTimeout(() => window.location.reload(), 1000);
+            });
+          `,
+        }}
+      />
+    </div>
   );
 }
