@@ -15,6 +15,7 @@ import { reportError, reportingErrors } from "@/lib/report-error";
 import { saveContactMessage, saveOrder } from "@/lib/submissions";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 import { updateUser } from "@/lib/user-store";
+import { autoNotifyOrderCreatedBySMS } from "@/lib/sms-order-integration";
 
 export type FormState = {
   ok: boolean;
@@ -200,6 +201,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // customer must still be told it worked — an error here would send them back
   // to place the same order again, and the shop would hold two.
   await reportingErrors(`notify admin of order ${record.id}`, () => notifyOrderReceived(record));
+
+  // Send SMS notification to customer (non-blocking)
+  await autoNotifyOrderCreatedBySMS(record);
 
   return successState(
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,

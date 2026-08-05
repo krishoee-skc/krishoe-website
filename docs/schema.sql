@@ -1372,3 +1372,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS factory_weekly_advance_submission_key_idx
   WHERE submission_key IS NOT NULL AND submission_key <> '';
 CREATE INDEX IF NOT EXISTS factory_monthly_summary_worker_month_idx
   ON factory_monthly_summary(worker_id, month DESC);
+
+-- SMS Notifications log and audit trail
+CREATE TABLE IF NOT EXISTS sms_messages (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  phone_number TEXT NOT NULL,
+  message_text TEXT NOT NULL,
+  message_type TEXT NOT NULL CHECK (message_type IN ('customer', 'worker', 'admin')),
+  event_type TEXT NOT NULL DEFAULT 'generic',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'skipped')),
+  order_id TEXT REFERENCES orders(id) ON DELETE SET NULL,
+  worker_id TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
+  last_retry_at TIMESTAMPTZ,
+  error_message TEXT NOT NULL DEFAULT ''
+);
+
+ALTER TABLE sms_messages
+  ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_retry_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS error_message TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS sms_messages_created_at_idx ON sms_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS sms_messages_phone_idx ON sms_messages(phone_number);
+CREATE INDEX IF NOT EXISTS sms_messages_status_idx ON sms_messages(status);
+CREATE INDEX IF NOT EXISTS sms_messages_message_type_idx ON sms_messages(message_type);
+CREATE INDEX IF NOT EXISTS sms_messages_event_type_idx ON sms_messages(event_type);
+CREATE INDEX IF NOT EXISTS sms_messages_order_id_idx ON sms_messages(order_id);
+CREATE INDEX IF NOT EXISTS sms_messages_worker_id_idx ON sms_messages(worker_id);
