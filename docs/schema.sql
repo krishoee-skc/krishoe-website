@@ -1425,3 +1425,54 @@ CREATE INDEX IF NOT EXISTS admin_alerts_alert_type_idx ON admin_alerts(alert_typ
 CREATE INDEX IF NOT EXISTS admin_alerts_severity_idx ON admin_alerts(severity);
 CREATE INDEX IF NOT EXISTS admin_alerts_expires_at_idx ON admin_alerts(expires_at)
   WHERE expires_at IS NOT NULL;
+
+-- Production Monitoring Tables
+CREATE TABLE IF NOT EXISTS monitoring_errors (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  level TEXT NOT NULL CHECK (level IN ('error', 'warning', 'info')),
+  message TEXT NOT NULL,
+  stack TEXT,
+  context TEXT,
+  user_id TEXT,
+  path TEXT,
+  method TEXT,
+  status_code INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS monitoring_performance (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  path TEXT NOT NULL,
+  method TEXT NOT NULL,
+  duration INTEGER NOT NULL,
+  status_code INTEGER NOT NULL,
+  db_time INTEGER,
+  render_time INTEGER,
+  user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS monitoring_uptime (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status TEXT NOT NULL CHECK (status IN ('up', 'down')),
+  response_time INTEGER NOT NULL,
+  status_code INTEGER NOT NULL,
+  region TEXT NOT NULL DEFAULT 'default'
+);
+
+CREATE INDEX IF NOT EXISTS monitoring_errors_created_at_idx ON monitoring_errors(created_at DESC);
+CREATE INDEX IF NOT EXISTS monitoring_errors_level_idx ON monitoring_errors(level);
+CREATE INDEX IF NOT EXISTS monitoring_performance_created_at_idx ON monitoring_performance(created_at DESC);
+CREATE INDEX IF NOT EXISTS monitoring_performance_path_idx ON monitoring_performance(path);
+CREATE INDEX IF NOT EXISTS monitoring_uptime_checked_at_idx ON monitoring_uptime(checked_at DESC);
+
+-- Auto-cleanup old monitoring data (keep 90 days)
+CREATE OR REPLACE FUNCTION cleanup_old_monitoring_data()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM monitoring_errors WHERE created_at < NOW() - INTERVAL '90 days';
+  DELETE FROM monitoring_performance WHERE created_at < NOW() - INTERVAL '90 days';
+  DELETE FROM monitoring_uptime WHERE checked_at < NOW() - INTERVAL '90 days';
+END;
+$$ LANGUAGE plpgsql;
