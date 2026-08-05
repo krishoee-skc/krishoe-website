@@ -10,6 +10,7 @@ import {
   ShoppingCartIcon,
   UserIcon,
 } from "@/components/Icons";
+import QuickAdminHome from "@/components/admin/QuickAdminHome";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
 import { getCostingSnapshot } from "@/lib/costing";
@@ -612,8 +613,48 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  // Prepare data for quick home
+  const topWorkers = getOp("workerTasks", [] as WorkerTaskRow[])
+    .filter((task) => task.status !== "Done")
+    .sort((a, b) => (b.completedPairs || 0) - (a.completedPairs || 0))
+    .slice(0, 1);
+
+  const topWorkerData = topWorkers[0]
+    ? {
+        name: topWorkers[0].workerName || "Top Worker",
+        pairs: topWorkers[0].completedPairs || 0,
+        amount: (topWorkers[0].completedPairs || 0) * 12, // approximate rate
+      }
+    : {
+        name: "No work yet",
+        pairs: 0,
+        amount: 0,
+      };
+
   return (
-    <section className="p-6">
+    <section className="p-6 space-y-6">
+      {/* Quick Admin Home Dashboard */}
+      <QuickAdminHome
+        todayProduction={{
+          pairs: productionControl.todayGoodPairs,
+          amount: productionControl.todayEarnedWage || 0,
+          activeWorkers: 12, // Placeholder - can be calculated
+        }}
+        pendingPayments={{
+          count: 3, // Placeholder - should count pending payments
+          totalAmount: productionControl.workerBalanceDue || 0,
+        }}
+        newOrders={{
+          count: newOrders.length,
+          totalAmount: newOrders.reduce((total, order) => total + amountFromOrderTotal(order?.total || "0"), 0),
+        }}
+        lowStockProducts={{
+          count: lowStockProducts.length,
+          names: lowStockProducts.slice(0, 3).map((p) => p.name),
+        }}
+        topWorker={topWorkerData}
+      />
+
       <section className="rounded-lg border border-brand-green/15 bg-white p-5 shadow-sm">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto]">
           <div>

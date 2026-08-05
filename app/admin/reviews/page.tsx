@@ -131,11 +131,3 @@ export default async function AdminReviewsPage() {
     </section>
   );
 }
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </section>
-  );
-}
