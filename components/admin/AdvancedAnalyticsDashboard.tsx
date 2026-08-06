@@ -142,13 +142,13 @@ export default function AdvancedAnalyticsDashboard() {
 
       {/* Tab Navigation */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        {[
-          { key: "overview", label: "📈 Overview", icon: "📊" },
-          { key: "trends", label: "📉 30-Day Trends", icon: "📊" },
-          { key: "forecast", label: "🔮 Forecast", icon: "🔮" },
-          { key: "goals", label: "🎯 Goals", icon: "🎯" },
-          { key: "workers", label: "👥 Workers", icon: "👥" },
-        ] as const).map((tab) => (
+        {([
+          { key: "overview" as const, label: "📈 Overview", icon: "📊" },
+          { key: "trends" as const, label: "📉 30-Day Trends", icon: "📊" },
+          { key: "forecast" as const, label: "🔮 Forecast", icon: "🔮" },
+          { key: "goals" as const, label: "🎯 Goals", icon: "🎯" },
+          { key: "workers" as const, label: "👥 Workers", icon: "👥" },
+        ]).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}

@@ -134,12 +134,12 @@ export default function WorkerDashboard({ workerId }: { workerId: string }) {
 
       {/* Tab Navigation */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        {[
-          { key: "overview", label: "📊 Overview" },
-          { key: "earnings", label: "💰 Earnings" },
-          { key: "attendance", label: "📅 Attendance" },
-          { key: "production", label: "📦 Production" },
-        ] as const).map((tab) => (
+        {([
+          { key: "overview" as const, label: "📊 Overview" },
+          { key: "earnings" as const, label: "💰 Earnings" },
+          { key: "attendance" as const, label: "📅 Attendance" },
+          { key: "production" as const, label: "📦 Production" },
+        ]).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
