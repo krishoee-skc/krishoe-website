@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -11,7 +12,7 @@ interface ProductionRecord {
   amountEarned: number;
 }
 
-export default function ProductionPage() {
+function ProductionContent() {
   const searchParams = useSearchParams();
   const workerId = searchParams.get("id");
 
@@ -188,5 +189,13 @@ export default function ProductionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <ProductionContent />
+    </Suspense>
   );
 }
