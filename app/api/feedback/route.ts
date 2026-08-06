@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const adminUser = await requireAdminPermission();
-    if (!adminUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await requireAdminPermission("dashboard:read");
 
     const searchParams = request.nextUrl.searchParams;
     const action = searchParams.get("action");

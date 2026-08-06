@@ -7,10 +7,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminUser = await requireAdminPermission();
-    if (!adminUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await requireAdminPermission("dashboard:write");
 
     const { id } = await params;
     const { status } = await request.json();
