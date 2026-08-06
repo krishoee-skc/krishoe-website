@@ -4,7 +4,7 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const adminUser = await requireAdminPermission();
@@ -12,6 +12,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const { status } = await request.json();
 
     if (!status || !["new", "acknowledged", "in_progress", "resolved"].includes(status)) {
@@ -21,7 +22,7 @@ export async function PATCH(
       );
     }
 
-    await updateFeedbackStatus(params.id, status);
+    await updateFeedbackStatus(id, status);
 
     return NextResponse.json({
       success: true,
