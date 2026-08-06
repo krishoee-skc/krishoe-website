@@ -7,7 +7,9 @@ export async function POST(request: NextRequest) {
     // Verify webhook token for security
     const url = request.url;
     const body = await request.formData();
-    const params = Object.fromEntries(body);
+    const params = Object.fromEntries(
+      Array.from(body.entries()).filter(([_, v]) => typeof v === 'string') as Array<[string, string]>
+    ) as Record<string, string>;
 
     const token = process.env.TWILIO_AUTH_TOKEN || "";
 
