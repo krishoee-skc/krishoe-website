@@ -441,7 +441,7 @@ export async function sendManualPaymentAlertSMS(data: {
   return sendAdminAlertSMS({
     adminPhone: data.adminPhone,
     title: "Manual Payment Needed",
-    message: `Order #${data.orderId} (${data.customerName}): Rs. ${amount} - ${method.toUpperCase()}`,
+    message: `Order #${data.orderId} (${data.customerName}): Rs. ${data.amount} - ${data.method.toUpperCase()}`,
     severity: "high",
   });
 }
