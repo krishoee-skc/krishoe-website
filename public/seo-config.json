@@ -1,0 +1,53 @@
+{
+  "site": {
+    "name": "KRISHOE - Premium Footwear Nepal",
+    "description": "Premium quality shoes and sandals crafted for Nepal. Comfortable, durable, and stylish footwear for every occasion.",
+    "url": "https://krishoe-website.vercel.app",
+    "image": "https://krishoe-website.vercel.app/og-image.jpg",
+    "keywords": "KRISHOE shoes, shoes Nepal, sandals Nepal, formal shoes, casual shoes, premium footwear, women shoes, comfortable shoes online",
+    "author": "KRISHOE",
+    "contact": {
+      "phone": "+977 9855019351",
+      "whatsapp": "+977 9766630193",
+      "email": "skschhapal@gmail.com",
+      "address": "Pulchowk, Narayangadh, Bharatpur, Chitwan"
+    }
+  },
+  "pages": {
+    "home": {
+      "title": "KRISHOE - Premium Footwear | Walk with Authority | Nepal",
+      "description": "Discover KRISHOE premium shoes and sandals. Comfortable, durable, and stylish footwear for every step. Free shipping on orders in Nepal.",
+      "keywords": "KRISHOE shoes, premium footwear Nepal, comfortable shoes, buy shoes online"
+    },
+    "shop": {
+      "title": "Shop KRISHOE Shoes | Ladies Sandals, Formal & Casual Shoes",
+      "description": "Browse our collection of premium shoes and sandals. Ladies sandals, formal shoes, casual shoes, and more. High quality, affordable prices.",
+      "keywords": "buy shoes online Nepal, ladies sandals, formal shoes, casual shoes, shoe collection"
+    },
+    "ladies-sandals": {
+      "title": "Ladies Sandals | KRISHOE Premium Collection | Nepal",
+      "description": "Comfortable and stylish ladies sandals. Lightweight, durable, and perfect for every occasion. Shop premium quality sandals online.",
+      "keywords": "ladies sandals Nepal, women sandals, comfortable sandals, buy sandals online"
+    },
+    "formal-shoes": {
+      "title": "Formal Shoes | Professional Footwear | KRISHOE Nepal",
+      "description": "Professional formal shoes for work and special occasions. Comfortable, elegant, and durable. Perfect for any formal event.",
+      "keywords": "formal shoes Nepal, professional shoes, office shoes, dress shoes"
+    },
+    "casual-shoes": {
+      "title": "Casual Shoes | Comfortable Everyday Footwear | KRISHOE",
+      "description": "Casual and comfortable shoes for everyday wear. Lightweight, stylish, and durable. Perfect for casual outings.",
+      "keywords": "casual shoes Nepal, everyday shoes, comfortable shoes, casual footwear"
+    },
+    "contact": {
+      "title": "Contact KRISHOE | Customer Support | Nepal",
+      "description": "Get in touch with KRISHOE. Contact us for product inquiries, support, and feedback. We're here to help!",
+      "keywords": "contact KRISHOE, customer support, shoe inquiry"
+    },
+    "feedback": {
+      "title": "Share Your Feedback | Help KRISHOE Improve",
+      "description": "We value your feedback! Share your experience with KRISHOE shoes. Report bugs, suggest features, or rate your experience.",
+      "keywords": "customer feedback, product review, quality feedback"
+    }
+  }
+}
