@@ -9,7 +9,7 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 
 export async function GET(request: NextRequest) {
   try {
-    const adminUser = await requireAdminPermission();
+    const adminUser = await requireAdminPermission("dashboard:read");
     if (!adminUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
