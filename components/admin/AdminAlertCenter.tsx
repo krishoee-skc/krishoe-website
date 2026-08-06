@@ -10,6 +10,7 @@ interface AdminAlert {
   title: string;
   message: string;
   icon: string;
+  data?: Record<string, any>;
   read: boolean;
   read_at?: string;
   action_url?: string;
