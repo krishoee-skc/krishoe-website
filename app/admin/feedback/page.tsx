@@ -7,15 +7,7 @@ export const metadata = {
 };
 
 export default async function FeedbackPage() {
-  const adminUser = await requireAdminPermission();
-
-  if (!adminUser) {
-    return (
-      <div className="p-8 text-center">
-        <div className="text-red-600 font-semibold">Unauthorized Access</div>
-      </div>
-    );
-  }
+  const { session } = await requireAdminPermission("alerts:read");
 
   return (
     <div className="space-y-8">

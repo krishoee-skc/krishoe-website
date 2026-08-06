@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TrendingUpIcon, UserIcon, PackageIcon, CheckIcon } from "@/components/Icons";
+import { UserIcon, PackageIcon, CheckIcon } from "@/components/Icons";
 
 interface WorkerMetrics {
   workerId: string;
@@ -189,8 +189,7 @@ export default function WorkerAnalyticsDashboard({
         {/* Top 5 Earners */}
         <div className="rounded-lg border border-brand-green/20 bg-white p-6">
           <div className="mb-4 flex items-center gap-2">
-            <TrendingUpIcon className="h-5 w-5 text-brand-green" />
-            <h2 className="font-bold text-brand-green-ink">🥇 Top Earners</h2>
+            <h2 className="font-bold text-brand-green-ink">📈 🥇 Top Earners</h2>
           </div>
           <div className="space-y-3">
             {topPerformers.map((worker, idx) => (
