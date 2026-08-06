@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
 interface AttendanceRecord {
   date: string;
@@ -10,7 +11,7 @@ interface AttendanceRecord {
   checkOut?: string;
 }
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const searchParams = useSearchParams();
   const workerId = searchParams.get("id");
 
@@ -159,5 +160,13 @@ export default function AttendancePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <AttendanceContent />
+    </Suspense>
   );
 }
