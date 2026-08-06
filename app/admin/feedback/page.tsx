@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function FeedbackPage() {
-  const { session } = await requireAdminPermission("alerts:read");
+  const { session } = await requireAdminPermission("dashboard:read");
 
   return (
     <div className="space-y-8">
