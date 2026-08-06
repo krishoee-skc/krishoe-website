@@ -363,7 +363,7 @@ export async function getUptimePercentage(days: number = 30): Promise<number> {
       []
     );
 
-    return parseFloat(result[0]?.uptime || "0");
+    return result[0]?.uptime ? parseFloat(String(result[0].uptime)) : 0;
   } catch (err) {
     console.error("Failed to get uptime percentage:", err);
     return 0;
