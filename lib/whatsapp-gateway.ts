@@ -56,7 +56,7 @@ export async function sendWhatsAppMessage(params: WhatsAppMessage): Promise<stri
       message = await twilioClient.messages.create({
         from: `whatsapp:${twilioWhatsAppNumber}`,
         to: `whatsapp:${params.to}`,
-        mediaUrl: params.mediaUrl,
+        mediaUrl: params.mediaUrl ? [params.mediaUrl] : undefined,
         body: messageBody || "Attachment",
       });
     } else {
