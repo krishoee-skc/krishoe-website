@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -14,7 +14,7 @@ interface PayslipData {
   status: string;
 }
 
-export default function PayslipPage() {
+function PayslipContent() {
   const searchParams = useSearchParams();
   const workerId = searchParams.get("id");
   const [payslips, setPayslips] = useState<PayslipData[]>([]);
@@ -186,5 +186,13 @@ export default function PayslipPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PayslipPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <PayslipContent />
+    </Suspense>
   );
 }

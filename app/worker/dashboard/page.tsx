@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import WorkerDashboard from "@/components/worker/WorkerDashboard";
 
-export default function WorkerDashboardPage() {
+function WorkerDashboardContent() {
   const searchParams = useSearchParams();
   const workerId = searchParams.get("id");
   const [authenticated, setAuthenticated] = useState(false);
@@ -59,5 +59,13 @@ export default function WorkerDashboardPage() {
         <WorkerDashboard workerId={workerId} />
       </div>
     </div>
+  );
+}
+
+export default function WorkerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <WorkerDashboardContent />
+    </Suspense>
   );
 }
