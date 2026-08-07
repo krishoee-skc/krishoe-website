@@ -3,8 +3,6 @@
  * Handles checkout steps, promo codes, and order progression
  */
 
-"use server";
-
 import { sql } from "@vercel/postgres";
 
 export type CheckoutStep = "cart" | "shipping" | "payment" | "confirmation";

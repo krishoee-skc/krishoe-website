@@ -3,8 +3,6 @@
  * Handles review submission, moderation, and statistics
  */
 
-"use server";
-
 import { sql } from "@vercel/postgres";
 
 export interface ProductReview {
