@@ -165,13 +165,19 @@ export async function rejectReview(reviewId: string) {
  */
 export async function markReviewHelpful(reviewId: string, helpful: boolean) {
   try {
-    const column = helpful ? "helpful_count" : "unhelpful_count";
-    const result = await sql`
-      UPDATE product_reviews
-      SET ${sql(`${column}`)} = ${column}::INT + 1
-      WHERE id = ${reviewId}
-      RETURNING *;
-    `;
+    const result = helpful
+      ? await sql`
+          UPDATE product_reviews
+          SET helpful_count = helpful_count + 1
+          WHERE id = ${reviewId}
+          RETURNING *;
+        `
+      : await sql`
+          UPDATE product_reviews
+          SET unhelpful_count = unhelpful_count + 1
+          WHERE id = ${reviewId}
+          RETURNING *;
+        `;
     return result.rows[0] as ProductReview;
   } catch (error) {
     console.error("Error marking helpful:", error);
