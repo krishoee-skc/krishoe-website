@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -25,10 +25,6 @@ const textareaClass =
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: false });
 }
 
 function StatBox({
@@ -247,7 +243,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               <tbody className="divide-y">
                 {detail.attendanceRecords.slice(0, 16).map((record) => (
                   <tr key={record.id}>
-                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink">{formatDate(record.workDate)}</td>
+                    <td className="reflow-primary py-3 pr-3 font-bold text-brand-green-ink"><DateDisplayAdmin date={record.workDate} time={false} /></td>
                     <td data-label="Status" className="py-3 pr-3">{record.status}</td>
                     <td data-label="Time" className="py-3 pr-3">{record.checkIn || "no in"} - {record.checkOut || "no out"}</td>
                     <td data-label="OT" className="py-3 pr-3">{record.overtimeHours}</td>

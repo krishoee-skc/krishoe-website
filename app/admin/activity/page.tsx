@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import {
   adminAuditCategories,
   adminAuditFiltersToSearchParams,
@@ -49,10 +49,6 @@ function prettyAction(action: string) {
 function isToday(date: Date) {
   const now = new Date();
   return date.toDateString() === now.toDateString();
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 function actorLabel(event: AdminAuditEvent) {
@@ -128,7 +124,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         <StatCard label="Today" value={todayEvents.length} detail="activity this day" />
         <StatCard label="Warnings" value={warningEvents.length} detail="failed/blocked signals" />
         <StatCard label="Actors" value={actorCount} detail="staff/session identities" />
-        <StatCard label="Latest event" value={latestEvent ? formatDate(latestEvent.createdAt) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
+        <StatCard label="Latest event" value={latestEvent ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(latestEvent.createdAt)) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -163,7 +159,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                 <p className="mt-1 text-xs font-semibold text-gray-500">
                   Actor: {actorLabel(event)}{actorDetail(event) ? ` | ${actorDetail(event)}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-gray-400">{formatDate(event.createdAt)}</p>
+                <p className="mt-1 text-xs text-gray-400"><DateDisplayAdmin date={event.createdAt} time={true} /></p>
               </div>
             ))}
             {warningEvents.length === 0 ? (
@@ -297,7 +293,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                   return (
                     <tr key={event.id}>
                       <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
-                        {formatDate(event.createdAt)}
+                        <DateDisplayAdmin date={event.createdAt} time={true} />
                       </td>
                       <td data-label="Category" className="py-3 pr-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${categoryClass(category)}`}>

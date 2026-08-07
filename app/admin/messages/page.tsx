@@ -1,5 +1,5 @@
 import { getContactMessages } from "@/lib/submissions";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { updateMessageStatusAction } from "@/app/admin/messages/actions";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
@@ -8,10 +8,6 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
-}
 
 function statusClass(status: string) {
   return status === "Replied"
@@ -58,7 +54,7 @@ export default async function AdminMessagesPage() {
         <StatCard label="Replied" value={repliedMessages.length} detail="closed follow-up" />
         <StatCard
           label="Latest"
-          value={latestMessage ? formatDate(latestMessage.createdAt) : "-"}
+          value={latestMessage ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(latestMessage.createdAt)) : "-"}
           detail={latestMessage ? latestMessage.name : "no messages"}
         />
       </div>
@@ -80,7 +76,7 @@ export default async function AdminMessagesPage() {
             {messages.map((message) => (
               <tr key={message.id}>
                 <td className="reflow-primary whitespace-nowrap px-4 py-3 text-xs text-gray-500">
-                  {formatDate(message.createdAt)}
+                  <DateDisplayAdmin date={message.createdAt} time={true} />
                 </td>
                 <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
                   <p className="font-medium text-gray-900">{message.name}</p>

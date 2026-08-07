@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PrintButton from "@/components/admin/PrintButton";
 import { getPurchaseInvoiceById } from "@/lib/purchasing";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 type PurchaseBillPageProps = {
   params: Promise<{ id: string }>;
@@ -52,7 +52,7 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
               KRISHOE factory and footwear
             </p>
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Purchase bill</h1>
-            <p className="mt-2 text-sm text-gray-500">{formatAdminDate(invoice.createdAt, { time: true })}</p>
+            <p className="mt-2 text-sm text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
           </div>
           <div className="text-right">
             <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.purchaseNumber}</p>

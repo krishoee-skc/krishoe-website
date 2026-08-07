@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PrintSalarySlipButton from "@/app/admin/hr/payroll/[id]/PrintSalarySlipButton";
@@ -13,14 +13,6 @@ export const dynamic = "force-dynamic";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  if (!value) {
-    return "Not paid";
-  }
-
-  return formatAdminDate(value, { time: false });
 }
 
 export async function generateMetadata({ params }: SalarySlipPageProps): Promise<Metadata> {
@@ -86,7 +78,7 @@ export default async function SalarySlipPage({ params }: SalarySlipPageProps) {
           </div>
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Paid date</p>
-            <p className="mt-2 font-black text-brand-green-ink">{formatDate(payroll.paidAt)}</p>
+            <p className="mt-2 font-black text-brand-green-ink">{payroll.paidAt ? <DateDisplayAdmin date={payroll.paidAt} time={false} /> : "Not paid"}</p>
             <p className="mt-1 text-sm text-gray-500">{employee?.salaryType || "Salary"}</p>
           </div>
         </div>

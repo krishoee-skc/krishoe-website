@@ -5,7 +5,7 @@ import { getProducts } from "@/lib/product-store";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 export const metadata: Metadata = {
   title: "Customer Voice | KRISHOE Admin",
@@ -281,7 +281,7 @@ export default async function CustomerVoicePage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <Stars value={review.rating} />
-                    <span className="text-xs text-gray-400">{formatAdminDate(review.createdAt)}</span>
+                    <DateDisplayAdmin date={review.createdAt} className="text-xs text-gray-400" />
                   </div>
                 </div>
                 <p className="mt-1 text-sm leading-6 text-gray-600">{review.comment}</p>

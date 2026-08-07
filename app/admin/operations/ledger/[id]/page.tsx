@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -24,10 +24,6 @@ const textareaClass =
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 function transactionEffect(type: LedgerTransaction["type"]) {
@@ -204,7 +200,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {transactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
+                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
                       <td data-label="Type" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.type}</td>
                       <td data-label="Effect" className="py-3 pr-3">
                         <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
@@ -258,7 +254,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {paymentTransactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(transaction.createdAt)}</td>
+                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
                       <td data-label="Order" className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{transaction.orderId}</td>
                       <td data-label="Status" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.paymentStatus}</td>
                       <td data-label="Provider" className="py-3 pr-3">{transaction.paymentProvider.toUpperCase()}</td>

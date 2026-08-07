@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions";
@@ -24,10 +24,6 @@ const textareaClass =
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 function transactionTone(type: SupplierTransactionType) {
@@ -89,7 +85,7 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 function StatementRow({ row }: { row: SupplierLedgerStatementRow }) {
   return (
     <tr>
-      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">{formatDate(row.createdAt)}</td>
+      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={row.createdAt} time={true} /></td>
       <td data-label="Type" className="py-3 pr-3">
         <Badge className={transactionTone(row.type)}>{row.type}</Badge>
       </td>
@@ -279,7 +275,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                     <tr key={invoice.id}>
                       <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
-                        <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
+                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Material" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.materialName}</p>
