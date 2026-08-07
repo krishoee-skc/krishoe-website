@@ -336,7 +336,8 @@ export function LogOutIcon({ className }: IconProps) {
 export function SettingsIcon({ className }: IconProps) {
   return (
     <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v16.5A2.25 2.25 0 003.75 22.5h16.5a2.25 2.25 0 002.25-2.25V13.5m-18-10.5h15m-15 6h15M7.5 16.5h9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 4.5H4.75A2.25 2.25 0 002.5 6.75v10.5A2.25 2.25 0 004.75 19.5h14.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H14.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14a2 2 0 100-4 2 2 0 000 4z" />
     </svg>
   );
 }
