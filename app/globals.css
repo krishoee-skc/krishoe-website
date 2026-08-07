@@ -41,11 +41,57 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
-  /* Crisper text everywhere — the default rendering looked slightly heavy on
-     the shop's screens. */
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1.25rem;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+h4 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+p {
+  margin-bottom: 1rem;
+  line-height: 1.8;
+  color: var(--ink-body);
+}
+
+/* Luxury text for premium sections */
+.luxury-text {
+  font-family: var(--font-luxury), var(--font-heading), sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
 html {
@@ -353,6 +399,80 @@ table th,
   select,
   textarea {
     font-size: 16px;
+  }
+}
+
+/* Premium mobile optimizations */
+@media screen and (max-width: 767px) {
+  /* Ensure all buttons are at least 44px for touch accessibility */
+  button:not([aria-label]),
+  a:not(.text-xs):not(.text-[10px]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile forms */
+  input, select, textarea {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+  }
+
+  /* Mobile-first text sizing */
+  body {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  /* Better spacing on mobile cards */
+  .card, [class*="card"], [class*="Card"] {
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+  }
+
+  /* Mobile-optimized lists and grids */
+  ul, ol {
+    margin-left: 0;
+    padding-left: 20px;
+  }
+
+  /* Touch-friendly link spacing */
+  a {
+    padding: 8px;
+    display: inline-flex;
+  }
+
+  /* Improved mobile navigation link sizing */
+  nav a, nav button {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+}
+
+/* Smooth transitions for premium feel */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Disable animations for reduce-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0 !important;
+    animation-duration: 0 !important;
   }
 }
 

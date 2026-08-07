@@ -70,7 +70,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       <Link
         href="/wishlist"
         aria-label="Open wishlist"
-        className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid"
+        className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md lg:grid"
       >
         <HeartIcon className="h-5 w-5" />
         <CountBadge count={wishlistCount} />
@@ -79,7 +79,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       <Link
         href="/cart"
         aria-label="Open cart"
-        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist"
+        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md"
       >
         <ShoppingBagIcon className="h-5 w-5" />
         <CountBadge count={cartCount} />
@@ -88,14 +88,14 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {isLoggedIn ? (
         <Link
           href={isAdmin ? "/admin" : "/account"}
-          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-semibold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink sm:inline-flex"
+          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition duration-200 hover:bg-brand-gold-bright hover:text-brand-green-ink hover:shadow-md sm:inline-flex"
         >
           My Account
         </Link>
       ) : (
         <Link
           href="/account/login"
-          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-semibold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink sm:inline-flex"
+          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition duration-200 hover:bg-brand-gold-bright hover:text-brand-green-ink hover:shadow-md sm:inline-flex"
         >
           Account
         </Link>
@@ -105,7 +105,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
         type="button"
         aria-label="Open menu"
         onClick={() => setIsOpen(true)}
-        className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:hidden"
+        className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md lg:hidden"
       >
         <MenuIcon className="h-5 w-5" />
       </button>
@@ -118,7 +118,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl">
+          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl dark:bg-[#13221d]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>
@@ -149,10 +149,10 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-semibold transition ${
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-semibold transition duration-200 ${
                       active
-                        ? "bg-brand-mist text-brand-green"
-                        : "text-brand-green-ink hover:bg-brand-mist hover:text-brand-green"
+                        ? "bg-brand-mist text-brand-green shadow-md"
+                        : "text-brand-green-ink hover:bg-brand-mist hover:text-brand-green hover:shadow-md"
                     }`}
                   >
                     <Icon className="h-5 w-5" />

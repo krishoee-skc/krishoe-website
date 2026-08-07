@@ -39,13 +39,9 @@ const securityHeaders = [
 const nextConfig = {
   poweredByHeader: false,
   images: {
-    // Allow the app's own branded placeholder SVGs to be served through
-    // next/image. Sandboxed + no-script CSP keeps SVG rendering safe.
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Product photos uploaded via the admin are stored on Vercel Blob and
-    // served from a *.public.blob.vercel-storage.com host.
     remotePatterns: [
       {
         protocol: "https",
@@ -53,7 +49,18 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    // Optimize images for better performance
+    formats: ["image/avif", "image/webp"],
+    // Cache optimized images for 31 days
+    minimumCacheTTL: 60 * 60 * 24 * 31,
   },
+  // Compress assets for faster delivery
+  compress: true,
+  // Optimize production bundle
+  swcMinify: true,
+  productionBrowserSourceMaps: false,
+  // Font optimization
+  optimizeFonts: true,
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
