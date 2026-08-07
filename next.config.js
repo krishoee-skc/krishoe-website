@@ -73,3 +73,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+// Vercel rebuild trigger - 2026-08-07
