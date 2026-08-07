@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
@@ -42,14 +42,6 @@ function alertClass(severity: OperationalAlertSeverity) {
   if (severity === "critical") return "bg-brand-clay-tint text-brand-clay";
   if (severity === "warning") return "bg-brand-cream-soft text-brand-gold-ink";
   return "bg-brand-green-tint text-brand-green";
-}
-
-function formatDate(value?: string) {
-  if (!value) {
-    return "-";
-  }
-
-  return formatAdminDate(value, { time: true });
 }
 
 function customerLabel(event: NotificationEvent) {
@@ -286,7 +278,7 @@ export default async function AdminNotificationsPage() {
                 {events.map((event) => (
                   <tr key={event.id}>
                     <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
-                      {formatDate(event.createdAt)}
+                      <DateDisplayAdmin date={event.createdAt} time={true} />
                     </td>
                     <td data-label="Type" className="py-3 pr-3 font-bold capitalize text-brand-green-ink">{event.type}</td>
                     <td data-label="Customer" className="py-3 pr-3 font-semibold text-brand-green-ink">{customerLabel(event)}</td>
@@ -299,7 +291,7 @@ export default async function AdminNotificationsPage() {
                     <td data-label="Attempts" className="py-3 pr-3 font-bold">{event.deliveryAttempts}</td>
                     <td data-label="Channel" className="py-3 pr-3 text-gray-600">{event.lastDeliveryChannel || "-"}</td>
                     <td data-label="Last error" className="max-w-72 py-3 pr-3 text-xs text-gray-500">
-                      {event.lastDeliveryError || (event.deliveredAt ? `Delivered ${formatDate(event.deliveredAt)}` : "-")}
+                      {event.lastDeliveryError || (event.deliveredAt ? <>Delivered <DateDisplayAdmin date={event.deliveredAt} time={true} /></> : "-")}
                     </td>
                     <td data-label="Action" className="py-3 pr-3">
                       {event.deliveryStatus !== "sent" ? (

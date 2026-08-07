@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import {
@@ -19,10 +19,6 @@ type ReviewRow = {
   productSku: string;
   review: Review;
 };
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
-}
 
 function statusClass(status: Review["status"]) {
   if (status === "approved") return "bg-brand-green-tint text-brand-green";
@@ -50,7 +46,7 @@ export default function ReviewCard({ row }: { row: ReviewRow }) {
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-brand-green-ink">{row.review.name}</span>
             <span className="text-sm font-black text-brand-gold-ink">{row.review.rating}★</span>
-            <span className="text-xs text-gray-500">{formatDate(row.review.createdAt)}</span>
+            <DateDisplayAdmin date={row.review.createdAt} time={true} className="text-xs text-gray-500" />
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(row.review.status)}`}>
               {row.review.status}
             </span>

@@ -6,7 +6,7 @@ import {
   sendCustomerEmailVerificationAction,
   sendCustomerPasswordResetAction,
 } from "@/app/admin/customers/actions";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { getNotificationDeliveryConfig } from "@/lib/notifications";
 import {
   getOrders,
@@ -30,10 +30,6 @@ type CustomerRow = {
   pendingPayments: OrderSubmission[];
   latestOrder?: OrderSubmission;
 };
-
-function formatDate(value?: string) {
-  return value ? formatAdminDate(value, { time: true }) : "-";
-}
 
 function trustClass(verified: boolean) {
   return verified
@@ -218,7 +214,7 @@ export default async function AdminCustomersPage() {
                       ) : (
                         "-"
                       )}
-                      <p className="mt-1">{formatDate(row.latestOrder?.createdAt)}</p>
+                      <p className="mt-1">{row.latestOrder?.createdAt ? <DateDisplayAdmin date={row.latestOrder.createdAt} time={true} /> : "-"}</p>
                     </td>
                     <td data-label="Actions" className="py-3 pr-3">
                       <div className="flex min-w-56 flex-wrap gap-2">

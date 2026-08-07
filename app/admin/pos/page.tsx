@@ -1,6 +1,6 @@
 import Link from "next/link";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -23,10 +23,6 @@ export const dynamic = "force-dynamic";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 function statusTone(invoice: PosInvoice) {
@@ -561,7 +557,7 @@ export default async function AdminPosPage() {
                     <tr key={invoice.id}>
                       <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.invoiceNumber}</p>
-                        <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
+                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Customer" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.customerName}</p>

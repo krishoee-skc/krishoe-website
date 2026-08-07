@@ -6,7 +6,7 @@ import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getPosInvoiceById } from "@/lib/pos";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { whatsappToUrl } from "@/lib/commerce";
 
 type PosInvoicePageProps = {
@@ -17,10 +17,6 @@ export const dynamic = "force-dynamic";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 export async function generateMetadata({ params }: PosInvoicePageProps): Promise<Metadata> {
@@ -94,10 +90,10 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">
               {invoice.kind === "Return" ? "Return bill" : "Sales bill"}
             </h1>
-            {/* formatDate carries the Bikram Sambat date after the English one,
+            {/* DateDisplayAdmin shows the Bikram Sambat date after the English one,
                 so the bill reads naturally to a Nepali reader. */}
             <p className="mt-2 text-sm text-gray-500">
-              {invoice.channel} - {formatDate(invoice.createdAt)}
+              {invoice.channel} - <DateDisplayAdmin date={invoice.createdAt} time={true} />
             </p>
           </div>
           <div className="text-right">

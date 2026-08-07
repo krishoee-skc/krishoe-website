@@ -2,15 +2,11 @@ import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { listAdminStaffSessions } from "@/lib/admin-staff-security";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { revokeAllDeviceSessionsAction, revokeDeviceSessionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Login Devices | KRISHOE Admin" };
-
-function dateTime(value: string) {
-  return formatAdminDate(value, { time: true });
-}
 
 export default async function AdminDevicesPage({
   searchParams,
@@ -83,8 +79,8 @@ export default async function AdminDevicesPage({
                 </span>
               </div>
               <dl className="mt-4 grid gap-2 text-xs text-gray-600">
-                <div className="flex justify-between gap-3"><dt className="font-bold">Last active</dt><dd>{dateTime(entry.lastSeenAt)}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="font-bold">Signed in</dt><dd>{dateTime(entry.createdAt)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="font-bold">Last active</dt><dd><DateDisplayAdmin date={entry.lastSeenAt} time={true} /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="font-bold">Signed in</dt><dd><DateDisplayAdmin date={entry.createdAt} time={true} /></dd></div>
                 <div className="flex justify-between gap-3"><dt className="font-bold">IP</dt><dd className="font-mono">{entry.ipAddress || "Not available"}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="font-bold">2-step</dt><dd>{entry.mfaVerified ? "Verified" : "Not enabled"}</dd></div>
               </dl>

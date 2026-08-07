@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { adminRoles, getAdminPermissionSummary, requireAdminPermission } from "@/lib/admin-permissions";
 import {
   companyBranchStatuses,
@@ -21,12 +21,6 @@ export const metadata: Metadata = {
   title: "Admin Settings | KRISHOE",
   description: "Company, branch, staff, and admin role settings.",
 };
-
-function formatDate(value?: string) {
-  if (!value) return "Never";
-
-  return formatAdminDate(value, { time: true });
-}
 
 function Field({
   label,
@@ -163,7 +157,7 @@ export default async function AdminSettingsPage({
           <p className="text-sm font-semibold text-gray-500">Company</p>
           <p className="mt-2 text-2xl font-black text-brand-green-ink">{settings.company.companyName}</p>
           <p className="mt-1 text-xs font-semibold text-gray-500">
-            Updated {formatDate(settings.company.updatedAt)}
+            Updated {settings.company.updatedAt ? <DateDisplayAdmin date={settings.company.updatedAt} time={true} /> : "Never"}
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -268,7 +262,7 @@ export default async function AdminSettingsPage({
                       <p className="font-black text-brand-green-ink">{entry.action.replaceAll("_", " ")}</p>
                       <p className="mt-1 text-xs text-gray-500">{member?.name ?? entry.staffId} · by {entry.actorEmail || entry.actorRole || "System"}</p>
                     </div>
-                    <time className="text-xs font-semibold text-gray-500">{formatDate(entry.createdAt)}</time>
+                    <time className="text-xs font-semibold text-gray-500">{entry.createdAt ? <DateDisplayAdmin date={entry.createdAt} time={true} /> : "Never"}</time>
                   </div>
                 </summary>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">

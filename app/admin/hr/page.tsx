@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import ExportButton from "@/components/admin/ExportButton";
@@ -50,10 +50,6 @@ function todayKey() {
 
 function monthKey() {
   return new Date().toISOString().slice(0, 7);
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: false });
 }
 
 function numberParam(value?: string) {

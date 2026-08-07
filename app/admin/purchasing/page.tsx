@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAdminDate } from "@/lib/format-date";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
@@ -26,10 +26,6 @@ const inputClass =
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
-}
-
-function formatDate(value: string) {
-  return formatAdminDate(value, { time: true });
 }
 
 function invoiceTone(invoice: PurchaseInvoice) {
@@ -514,7 +510,7 @@ export default async function AdminPurchasingPage() {
                         >
                           {invoice.purchaseNumber}
                         </Link>
-                        <p className="mt-1 text-xs text-gray-500">{formatDate(invoice.createdAt)}</p>
+                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Supplier" className="py-3 pr-3">
                         <Link
