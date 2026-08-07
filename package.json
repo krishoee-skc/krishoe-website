@@ -32,6 +32,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@vercel/blob": "^2.6.1",
+    "@vercel/postgres": "^0.10.0",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "bwip-js": "^4.11.2",
