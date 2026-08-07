@@ -56,11 +56,7 @@ const nextConfig = {
   },
   // Compress assets for faster delivery
   compress: true,
-  // Optimize production bundle
-  swcMinify: true,
   productionBrowserSourceMaps: false,
-  // Font optimization
-  optimizeFonts: true,
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
