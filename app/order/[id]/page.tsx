@@ -7,7 +7,9 @@ import OnlinePaymentButtons from "@/components/payments/OnlinePaymentButtons";
 import PendingPaymentStatus from "@/components/payments/PendingPaymentStatus";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { getGatewayConfig, type GatewayProvider } from "@/lib/payment-gateways";
-import { getOrderById, orderMatchesCustomer, type OrderStatus } from "@/lib/submissions";
+import { getProducts } from "@/lib/product-store";
+import { reportError } from "@/lib/report-error";
+import { getOrderById, orderMatchesCustomer, type OrderItem, type OrderStatus } from "@/lib/submissions";
 
 type OrderStatusPageProps = {
   params: Promise<{ id: string }>;
@@ -24,6 +26,31 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+/**
+ * The pairs from this order that this customer can still review.
+ *
+ * Mirrors the rules submitReview enforces, so the invitation never promises
+ * something the server would refuse: the order must be Closed, the product must
+ * still exist, and a customer gets one review per product. Deduplicated by
+ * product because the same style in two sizes is two order lines but one thing
+ * to write about.
+ *
+ * A failure here must not take down the order page — a shopper checking their
+ * order cares about the order, not the review prompt — so the caller reports
+ * the error and renders nothing.
+ */
+async function reviewablePairs(items: OrderItem[], customerId: string) {
+  const wanted = new Set(items.filter((item) => item.quantity > 0).map((item) => item.productId));
+  if (wanted.size === 0) return [];
+
+  const products = await getProducts();
+
+  return products
+    .filter((product) => wanted.has(product.id))
+    .filter((product) => !product.reviews.some((review) => review.customerUserId === customerId))
+    .map((product) => ({ id: product.id, name: product.name }));
 }
 
 const statusCopy: Record<OrderStatus, string> = {
@@ -52,6 +79,13 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
     canViewPrivateDetails &&
     order.status === "Contacted" &&
     (order.paymentStatus === "Unpaid" || order.paymentStatus === "Failed");
+  const canInviteReview = canViewPrivateDetails && user && order.status === "Closed";
+  const pairsToReview = canInviteReview
+    ? await reviewablePairs(order.items, user.id).catch((error) => {
+        reportError("load the review invitation for this order", error);
+        return [];
+      })
+    : [];
   const pendingOnlineProvider =
     canViewPrivateDetails &&
     order.paymentStatus === "Pending" &&
@@ -186,6 +220,31 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                 <h2 className="text-lg font-black text-brand-green-ink">Items</h2>
                 <p className="mt-4 whitespace-pre-line text-sm leading-7 text-brand-muted">{order.order}</p>
               </div>
+
+              {pairsToReview.length > 0 ? (
+                <div className="mt-5 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                    तपाईंको जोडी कस्तो लाग्यो?
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-brand-muted">
+                    तपाईंको अनुभव लेखिदिनुभयो भने अरू ग्राहकलाई छान्न सजिलो हुन्छ।
+                    <span className="mt-1 block text-xs text-gray-500">
+                      Tell other shoppers how these pairs worked out for you.
+                    </span>
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {pairsToReview.map((pair) => (
+                      <Link
+                        key={pair.id}
+                        href={`/product/${pair.id}#reviews`}
+                        className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+                      >
+                        ⭐ {pair.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : null}
 
