@@ -31,9 +31,18 @@ export const businessContact = {
   addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION ?? "Chitwan",
   postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL ?? "44200",
   openingHours: "Mo-Sa 10:00-19:00",
-  facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "",
-  instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "",
-  tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "",
+  // Canonical profile URLs, deliberately without the tracking parameters that
+  // come attached to a shared or QR-scanned link (?mibextid, ?igsi, ?_t and
+  // friends). Those are per-share tokens: noise in the footer, and the wrong
+  // thing to hand Google in `sameAs`, which wants the stable profile address.
+  //
+  // The Facebook one currently resolves to a personal profile rather than a
+  // business Page. It works as a link, but ads and a Meta Pixel need a Page —
+  // swap this for the Page URL once one exists.
+  facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "https://www.facebook.com/krishna.abiral.1",
+  instagram:
+    process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/shree_krishna_chhapal",
+  tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",
 };
 
 /**

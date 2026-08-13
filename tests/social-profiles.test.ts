@@ -8,12 +8,23 @@ const KEYS = [
 
 const ORIGINAL = Object.fromEntries(KEYS.map((key) => [key, process.env[key]]));
 
+/**
+ * Overrides the named platforms and explicitly blanks the rest, so a test says
+ * exactly which profiles exist. lib/seo.ts ships real URLs as defaults, so
+ * merely leaving a key unset would fall back to one rather than removing it.
+ */
 async function profilesWith(values: Partial<Record<(typeof KEYS)[number], string>>) {
   for (const key of KEYS) {
-    const value = values[key];
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    process.env[key] = values[key] ?? "";
   }
+
+  vi.resetModules();
+  return import("@/lib/seo");
+}
+
+/** Clears every override so the shipped defaults apply. */
+async function profilesFromDefaults() {
+  for (const key of KEYS) delete process.env[key];
 
   vi.resetModules();
   return import("@/lib/seo");
@@ -86,8 +97,34 @@ describe("business social profiles", () => {
     expect(organizationJsonLd().sameAs).toEqual(["https://facebook.com/krishoe"]);
   });
 
-  it("omits sameAs entirely when nothing is configured", async () => {
-    const { organizationJsonLd } = await profilesWith({});
+  it("omits sameAs entirely when every value is blanked", async () => {
+    const { organizationJsonLd } = await profilesWith({
+      NEXT_PUBLIC_FACEBOOK_URL: "",
+      NEXT_PUBLIC_INSTAGRAM_URL: "",
+      NEXT_PUBLIC_TIKTOK_URL: "",
+    });
     expect(organizationJsonLd().sameAs).toBeUndefined();
+  });
+
+  // The shipped defaults came from links the owner shared from the apps, which
+  // arrive carrying per-share tracking tokens. Those belong nowhere near the
+  // footer or the SEO sameAs fields, so the defaults stay canonical.
+  it("ships canonical default profiles with no share tracking on them", async () => {
+    const { businessSocialProfiles } = await profilesFromDefaults();
+    const profiles = businessSocialProfiles();
+
+    expect(profiles).toHaveLength(3);
+    for (const profile of profiles) {
+      expect(profile.url).not.toMatch(/[?&]/);
+      expect(profile.url).not.toMatch(/mibextid|igsi|utm_|_t=|_r=|share_url|rdid/i);
+      expect(profile.url.startsWith("https://")).toBe(true);
+      expect(profile.url).not.toMatch(/\s/);
+    }
+  });
+
+  it("does not point the Facebook link at a share redirect", async () => {
+    const { businessContact } = await profilesFromDefaults();
+    // /share/<token>/ links can expire and are not the profile's real address.
+    expect(businessContact.facebook).not.toContain("/share/");
   });
 });
