@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { paymentOptions, shippingOptions, whatsappOrderUrl } from "@/lib/commerce";
+import { paymentOptionLabel, shippingOptionLabel } from "@/lib/commerce-labels";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatPrice } from "@/lib/products";
 import { describeStockShortfalls, type StockShortfall } from "@/lib/order-stock";
 import { submitCheckout, type FormState } from "@/app/actions";
@@ -47,7 +49,13 @@ function CheckoutForm({
   itemsJson,
   stockShortfalls,
 }: CheckoutFormProps) {
-  const steps = ["Details", "Delivery", "Confirm"];
+  const { text, language } = useLanguage();
+  const nepali = language === "ne";
+  const steps = [
+    text("Details", "विवरण"),
+    text("Delivery", "डेलिभरी"),
+    text("Confirm", "पुष्टि"),
+  ];
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
@@ -59,8 +67,12 @@ function CheckoutForm({
         <input type="hidden" name="items" value={itemsJson} />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Customer details</p>
-            <h2 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">Delivery request</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
+              {text("Customer details", "ग्राहक विवरण")}
+            </p>
+            <h2 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">
+              {text("Delivery request", "डेलिभरी अनुरोध")}
+            </h2>
           </div>
           <div className="flex gap-1.5">
             {steps.map((step, index) => (
@@ -82,13 +94,19 @@ function CheckoutForm({
           }`}
         >
           {user
-            ? "Signed in. Saved details are filled where available."
-            : "Sign in or create an account after ordering to save details for next time."}
+            ? text(
+                "Signed in. Saved details are filled where available.",
+                "साइन इन हुनुभएको छ। सुरक्षित विवरण आफै भरिएको छ।",
+              )
+            : text(
+                "Sign in or create an account after ordering to save details for next time.",
+                "अर्डरपछि खाता बनाउनुहोस् — अर्को पटक विवरण आफै भरिन्छ।",
+              )}
         </div>
 
         <div className="mt-7 grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-            Full name
+            {text("Full name", "पूरा नाम")}
             <input
               name="name"
               defaultValue={user?.name}
@@ -96,11 +114,11 @@ function CheckoutForm({
               maxLength={80}
               autoComplete="name"
               className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
-              placeholder="Your name"
+              placeholder={text("Your name", "तपाईंको नाम")}
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-            Phone
+            {text("Phone", "फोन नम्बर")}
             <input
               name="phone"
               type="tel"
@@ -114,7 +132,7 @@ function CheckoutForm({
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
-            Email for confirmation
+            {text("Email for confirmation", "पुष्टिका लागि इमेल")}
             <input
               name="email"
               defaultValue={user?.email}
@@ -126,7 +144,7 @@ function CheckoutForm({
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
-            Delivery address
+            {text("Delivery address", "डेलिभरी ठेगाना")}
             <textarea
               name="address"
               defaultValue={user?.address}
@@ -135,44 +153,56 @@ function CheckoutForm({
               maxLength={600}
               autoComplete="street-address"
               className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
-              placeholder="City, area, landmark"
+              placeholder={text("City, area, landmark", "सहर, टोल, नजिकको चिनारी")}
             />
           </label>
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2">
           <div>
-            <p className="text-sm font-bold text-brand-green-ink">Delivery option</p>
+            <p className="text-sm font-bold text-brand-green-ink">
+              {text("Delivery option", "डेलिभरी विकल्प")}
+            </p>
             <div className="mt-3 grid gap-2">
               {shippingOptions.map((option, index) => (
                 <label
                   key={option}
                   className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
                 >
+                  {/* value stays English — the server validates against it */}
                   <input className="accent-brand-green" type="radio" name="delivery" value={option} defaultChecked={index === 0} />
-                  {option}
+                  {shippingOptionLabel(option, nepali)}
                 </label>
               ))}
             </div>
             <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
-              Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.
+              {text(
+                "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
+                "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलबाटै लिँदा डेलिभरी शुल्क लाग्दैन।",
+              )}
             </p>
           </div>
           <div>
-            <p className="text-sm font-bold text-brand-green-ink">Payment option</p>
+            <p className="text-sm font-bold text-brand-green-ink">
+              {text("Payment option", "भुक्तानी विकल्प")}
+            </p>
             <div className="mt-3 grid gap-2">
               {paymentOptions.map((option, index) => (
                 <label
                   key={option}
                   className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
                 >
+                  {/* value stays English — it is stored on the order record */}
                   <input className="accent-brand-green" type="radio" name="payment" value={option} defaultChecked={index === 0} />
-                  {option}
+                  {paymentOptionLabel(option, nepali)}
                 </label>
               ))}
             </div>
             <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
-              Digital payment is requested only after KRISHOE confirms stock and delivery.
+              {text(
+                "Digital payment is requested only after KRISHOE confirms stock and delivery.",
+                "स्टक र डेलिभरी पक्का भएपछि मात्र अनलाइन भुक्तानी मागिन्छ।",
+              )}
             </p>
           </div>
         </div>
@@ -185,14 +215,18 @@ function CheckoutForm({
             >
               {describeStockShortfalls(stockShortfalls)}.{" "}
               <Link href="/cart" className="underline">
-                Update your cart
+                {text("Update your cart", "कार्ट मिलाउनुहोस्")}
               </Link>{" "}
-              to continue.
+              {text("to continue.", "अनि अगाडि बढ्नुहोस्।")}
             </p>
           ) : null}
           <SubmitButton
-            idleLabel={isPending ? "Sending request" : "Submit order request"}
-            pendingLabel="Sending request"
+            idleLabel={
+              isPending
+                ? text("Sending request", "अनुरोध पठाइँदै")
+                : text("Submit order request", "अर्डर अनुरोध पठाउनुहोस्")
+            }
+            pendingLabel={text("Sending request", "अनुरोध पठाइँदै")}
             disabled={isPending || stockShortfalls.length > 0}
           />
           <a
@@ -201,7 +235,7 @@ function CheckoutForm({
             rel="noreferrer"
             className="inline-flex h-12 w-full items-center justify-center rounded-full border border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
           >
-            Send details on WhatsApp
+            {text("Send details on WhatsApp", "WhatsApp मा विवरण पठाउनुहोस्")}
           </a>
           {state.message ? (
             <p
@@ -228,6 +262,7 @@ function CheckoutSuccess({
   submittedOrder: SubmittedOrder;
   message: string;
 }) {
+  const { text } = useLanguage();
   const orderPath = `/order/${submittedOrder.reference}`;
   const accountPath = user
     ? "/account"
@@ -240,10 +275,10 @@ function CheckoutSuccess({
           <CheckIcon className="h-7 w-7" />
         </div>
         <p className="mt-6 text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-          Order saved
+          {text("Order saved", "अर्डर सुरक्षित भयो")}
         </p>
         <h2 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-          Request received.
+          {text("Request received.", "अनुरोध प्राप्त भयो।")}
         </h2>
         <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-brand-muted">
           {message}
@@ -251,13 +286,13 @@ function CheckoutSuccess({
 
         <div className="mt-7 grid gap-3 rounded-lg border border-black/10 bg-brand-mist p-5 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="font-semibold text-brand-muted">Reference</span>
+            <span className="font-semibold text-brand-muted">{text("Reference", "अर्डर नम्बर")}</span>
             <span className="font-mono text-sm font-black text-brand-green-ink">
               {submittedOrder.reference}
             </span>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="font-semibold text-brand-muted">Estimated total</span>
+            <span className="font-semibold text-brand-muted">{text("Estimated total", "अनुमानित कुल")}</span>
             <span className="text-lg font-black text-brand-green">{submittedOrder.total}</span>
           </div>
         </div>
@@ -267,14 +302,14 @@ function CheckoutSuccess({
             href={orderPath}
             className="inline-flex h-12 items-center gap-2 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
-            View order status
+            {text("View order status", "अर्डरको अवस्था हेर्नुहोस्")}
             <ArrowRightIcon className="h-4 w-4" />
           </Link>
           <Link
             href={accountPath}
             className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
-            {user ? "My account" : "Create account"}
+            {user ? text("My account", "मेरो खाता") : text("Create account", "खाता बनाउनुहोस्")}
           </Link>
           <a
             href={whatsappOrderUrl(submittedOrder.whatsappMessage)}
@@ -282,23 +317,26 @@ function CheckoutSuccess({
             rel="noreferrer"
             className="inline-flex h-12 items-center rounded-full border border-black/10 px-6 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
-            WhatsApp confirm
+            {text("WhatsApp confirm", "WhatsApp मा पुष्टि")}
           </a>
         </div>
       </section>
 
       <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
-          Next step
+          {text("Next step", "अबको चरण")}
         </p>
         <p className="mt-4 text-sm leading-7 text-white/70">
-          KRISHOE will confirm stock, delivery timing, and final payment before dispatch.
+          {text(
+            "KRISHOE will confirm stock, delivery timing, and final payment before dispatch.",
+            "पठाउनुअघि KRISHOE ले स्टक, डेलिभरीको समय र अन्तिम भुक्तानी पक्का गर्नेछ।",
+          )}
         </p>
         <Link
           href="/shop"
           className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
         >
-          Continue shopping
+          {text("Continue shopping", "किनमेल जारी राख्नुहोस्")}
         </Link>
       </aside>
     </div>
@@ -310,6 +348,7 @@ type CheckoutClientProps = {
 };
 
 export default function CheckoutClient({ user = null }: CheckoutClientProps) {
+  const { text } = useLanguage();
   const { cartItems, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
@@ -377,13 +416,24 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
   if (cartItems.length === 0) {
     return (
       <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-sm md:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Empty checkout</p>
-        <h1 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">Checkout needs a cart.</h1>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
+          {text("Empty checkout", "कार्ट खाली छ")}
+        </p>
+        <h1 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">
+          {text("Checkout needs a cart.", "अर्डर गर्न कार्टमा सामान चाहिन्छ।")}
+        </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
-          Add a KRISHOE pair first, then continue into checkout.
+          {text(
+            "Add a KRISHOE pair first, then continue into checkout.",
+            "पहिले KRISHOE को एक जोडी थप्नुहोस्, अनि अर्डर अगाडि बढाउनुहोस्।",
+          )}
         </p>
         <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
-          {["Choose a pair", "Add size and color", "Confirm request"].map((item, index) => (
+          {[
+            text("Choose a pair", "जोडी छान्नुहोस्"),
+            text("Add size and color", "साइज र रङ छान्नुहोस्"),
+            text("Confirm request", "अनुरोध पुष्टि गर्नुहोस्"),
+          ].map((item, index) => (
             <div key={item} className="rounded-lg border border-brand-green/10 bg-brand-mist px-4 py-3 text-sm font-bold text-brand-green-ink">
               {index + 1}. {item}
             </div>
@@ -393,7 +443,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
           href="/shop"
           className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
         >
-          Shop collection
+          {text("Shop collection", "सङ्ग्रह हेर्नुहोस्")}
         </Link>
       </div>
     );
