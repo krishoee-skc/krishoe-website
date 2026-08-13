@@ -33,6 +33,15 @@ export interface CustomerFeedback {
   status: string;
 }
 
+export interface CustomerDashboardData {
+  customer: Customer | null;
+  orders: CustomerOrder[];
+  feedback: CustomerFeedback[];
+  loyalty: { points_balance: number; tier: string };
+  totalOrders: number;
+  totalFeedback: number;
+}
+
 // Create or update customer
 export async function createCustomer(data: {
   name: string;
@@ -358,7 +367,7 @@ export async function saveCustomerNotification(data: {
   channel: string;
   recipient: string;
   message_text: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }): Promise<void> {
   try {
     const notificationId = crypto.randomUUID();
@@ -447,11 +456,24 @@ export async function updateNotificationPreferences(
   preferences: Record<string, boolean>
 ): Promise<void> {
   try {
-    const updates = Object.entries(preferences)
+    const allowedPreferenceColumns = new Set([
+      "email_enabled",
+      "sms_enabled",
+      "whatsapp_enabled",
+      "order_updates",
+      "promotions",
+    ]);
+    const safePreferences = Object.entries(preferences).filter(([key]) =>
+      allowedPreferenceColumns.has(key),
+    );
+
+    if (safePreferences.length === 0) return;
+
+    const updates = safePreferences
       .map(([key], idx) => `${key} = $${idx + 1}`)
       .join(", ");
 
-    const values = Object.values(preferences);
+    const values = safePreferences.map(([, value]) => value);
 
     await queryPostgres(
       STORE,
@@ -479,13 +501,13 @@ export async function addLoyaltyPoints(customerId: string, points: number): Prom
 }
 
 // Get customer dashboard data
-export async function getCustomerDashboard(customerId: string): Promise<any> {
+export async function getCustomerDashboard(customerId: string): Promise<CustomerDashboardData | null> {
   try {
     const customer = await getCustomer(customerId);
     const orders = await getCustomerOrders(customerId);
     const feedback = await getCustomerFeedback(customerId);
 
-    const loyalty = await queryPostgres(
+    const loyalty = await queryPostgres<{ points_balance: number; tier: string }>(
       STORE,
       `SELECT points_balance, tier FROM customer_loyalty WHERE customer_id = $1`,
       [customerId]

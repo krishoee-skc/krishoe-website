@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { UserIcon, PackageIcon, CheckIcon } from "@/components/Icons";
+import { UserIcon, CheckIcon } from "@/components/Icons";
 
 interface WorkerMetrics {
   workerId: string;
@@ -38,24 +38,6 @@ interface WorkerAnalyticsDashboardProps {
   month?: string;
   year?: string;
 }
-
-interface Trend {
-  value: number;
-  direction: "up" | "down" | "stable";
-  percent: number;
-}
-
-const calculateTrend = (current: number, previous: number): Trend => {
-  if (previous === 0) {
-    return { value: current, direction: current >= 0 ? "up" : "down", percent: 0 };
-  }
-  const change = ((current - previous) / previous) * 100;
-  return {
-    value: current,
-    direction: change > 5 ? "up" : change < -5 ? "down" : "stable",
-    percent: Math.abs(Math.round(change)),
-  };
-};
 
 const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString("en-IN")}`;
 const formatNumber = (num: number) => num.toLocaleString("en-IN");

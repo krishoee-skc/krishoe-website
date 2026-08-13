@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface TrendDataPoint {
   date: string;
@@ -61,11 +61,7 @@ export default function AdvancedAnalyticsDashboard() {
     "overview"
   );
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const [analyticsRes, workersRes] = await Promise.all([
@@ -87,7 +83,12 @@ export default function AdvancedAnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadAnalytics(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadAnalytics]);
 
   const getTrendEmoji = (trend: string) => {
     switch (trend) {

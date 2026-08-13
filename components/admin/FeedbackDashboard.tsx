@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Feedback, FeedbackStatus } from "@/lib/feedback";
 
 export default function FeedbackDashboard() {
@@ -17,12 +17,7 @@ export default function FeedbackDashboard() {
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    loadStats();
-    loadFeedback();
-  }, [filter]);
-
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     try {
       const res = await fetch("/api/feedback?action=stats");
       const data = await res.json();
@@ -30,9 +25,9 @@ export default function FeedbackDashboard() {
     } catch (error) {
       console.error("Failed to load stats:", error);
     }
-  }
+  }, []);
 
-  async function loadFeedback() {
+  const loadFeedback = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -47,7 +42,15 @@ export default function FeedbackDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filter]);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => {
+      void loadStats();
+      void loadFeedback();
+    }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadFeedback, loadStats]);
 
   async function updateStatus(id: string, status: FeedbackStatus) {
     setUpdating(true);

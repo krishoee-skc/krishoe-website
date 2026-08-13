@@ -1,8 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
-import { getCustomerSession } from "@/lib/customer-auth";
+import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
 import {
@@ -10,9 +11,9 @@ import {
   describeStockShortfalls,
   parseCheckoutItems,
 } from "@/lib/order-pricing";
-import { addProductReview } from "@/lib/product-store";
+import { addProductReview, getProductById } from "@/lib/product-store";
 import { reportError, reportingErrors } from "@/lib/report-error";
-import { saveContactMessage, saveOrder } from "@/lib/submissions";
+import { getOrdersForCustomer, saveContactMessage, saveOrder } from "@/lib/submissions";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 import { updateUser } from "@/lib/user-store";
 import { autoNotifyOrderCreatedBySMS } from "@/lib/sms-order-integration";
@@ -217,19 +218,59 @@ export async function submitReview(
   _previousState: FormState,
   formData: FormData,
 ) {
-  const name = textValue(formData, "name");
   const comment = textValue(formData, "comment");
   const rating = Number(formData.get("rating"));
 
-  if (!productId || !name || !comment || !Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return errorState("Please add your name, review, and rating.");
+  if (!productId || !comment || !Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return errorState("Please add your review and rating.");
   }
 
-  if (tooLong(name, 80) || tooLong(comment, 1200)) {
+  if (comment.length < 10 || tooLong(comment, 1200)) {
     return errorState("Please keep your review short and try again.");
   }
 
-  await addProductReview(productId, { name, comment, rating });
+  const customer = await getCurrentCustomer();
+  if (!customer) {
+    return errorState("Sign in to review a product you purchased.");
+  }
 
-  return successState("Thank you. Your review is waiting for approval.");
+  const rateLimitError = await enforceSubmissionLimit("product-review", 4);
+  if (rateLimitError) return rateLimitError;
+
+  const [product, orders] = await Promise.all([
+    getProductById(productId),
+    getOrdersForCustomer(customer),
+  ]);
+
+  if (!product) {
+    return errorState("This product is no longer available for review.");
+  }
+
+  if (product.reviews.some((review) => review.customerUserId === customer.id)) {
+    return errorState("You have already reviewed this product.");
+  }
+
+  const purchase = orders.find(
+    (order) =>
+      order.status === "Closed" &&
+      order.items.some((item) => item.productId === productId && item.quantity > 0),
+  );
+
+  if (!purchase) {
+    return errorState("Reviews open after a completed purchase of this product.");
+  }
+
+  await addProductReview(productId, {
+    customerUserId: customer.id,
+    orderId: purchase.id,
+    name: customer.name,
+    comment,
+    rating,
+    verifiedPurchase: true,
+  });
+
+  revalidatePath(`/product/${productId}`);
+  revalidatePath("/admin/reviews");
+
+  return successState("Thank you. Your verified-purchase review is waiting for approval.");
 }

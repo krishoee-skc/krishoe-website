@@ -1,198 +1,68 @@
-"use client";
+import { redirect } from "next/navigation";
+import PrintButton from "@/components/admin/PrintButton";
+import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
+import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
+import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+type Props = { searchParams?: Promise<{ month?: string }> };
 
-interface PayslipData {
-  month: string;
-  baseSalary: number;
-  piecesRate: number;
-  attendanceBonus: number;
-  deductions: number;
-  netPay: number;
-  status: string;
+function money(value: number) {
+  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
 }
 
-function PayslipContent() {
-  const searchParams = useSearchParams();
-  const workerId = searchParams.get("id");
-  const [payslips, setPayslips] = useState<PayslipData[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export default async function PayslipPage({ searchParams }: Props) {
+  const access = await getCurrentWorkerAccess();
+  if (!access.authenticated) redirect("/worker/login");
+  if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} />;
 
-  useEffect(() => {
-    if (workerId) {
-      loadPayslips();
-    }
-  }, [workerId]);
-
-  const loadPayslips = async () => {
-    setLoading(false);
-    // Mock data for now
-    const mockPayslips: PayslipData[] = [
-      {
-        month: "2026-08",
-        baseSalary: 0,
-        piecesRate: 25000,
-        attendanceBonus: 500,
-        deductions: 0,
-        netPay: 25500,
-        status: "Approved",
-      },
-      {
-        month: "2026-07",
-        baseSalary: 0,
-        piecesRate: 23500,
-        attendanceBonus: 500,
-        deductions: 0,
-        netPay: 24000,
-        status: "Paid",
-      },
-      {
-        month: "2026-06",
-        baseSalary: 0,
-        piecesRate: 24000,
-        attendanceBonus: 500,
-        deductions: 0,
-        netPay: 24500,
-        status: "Paid",
-      },
-    ];
-    setPayslips(mockPayslips);
-    if (mockPayslips.length > 0) {
-      setSelectedMonth(mockPayslips[0].month);
-    }
-  };
-
-  const selected = payslips.find((p) => p.month === selectedMonth);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading payslips...</div>
-      </div>
-    );
-  }
+  const payroll = access.detail.payrollRecords.filter((record) => record.status !== "Draft");
+  const requestedMonth = (await searchParams)?.month || "";
+  const selected = payroll.find((record) => record.periodLabel === requestedMonth) ?? payroll[0];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 p-4 mb-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">📄 Payslips</h1>
-          <Link
-            href={`/worker/dashboard?id=${workerId}`}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </nav>
+    <WorkerPortalShell workerName={access.detail.employee.name}>
+      <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
+        <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">My payroll</p><h1 className="mt-2 text-3xl font-black text-brand-green-ink">Payslips</h1></div>
+        {selected ? <PrintButton className="h-11 rounded-full bg-brand-green px-5 text-sm font-bold text-white">Print / Save PDF</PrintButton> : null}
+      </div>
 
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Month Selector */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 lg:col-span-1">
-            <h2 className="font-semibold text-gray-900 mb-4">📅 Select Month</h2>
-            <div className="space-y-2">
-              {payslips.map((p) => (
-                <button
-                  key={p.month}
-                  onClick={() => setSelectedMonth(p.month)}
-                  className={`w-full px-4 py-2 rounded-lg text-left font-medium transition-colors ${
-                    selectedMonth === p.month
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-50 text-gray-900 hover:bg-gray-100"
-                  }`}
-                >
-                  {new Date(p.month + "-01").toLocaleString("default", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </button>
+      {payroll.length === 0 ? (
+        <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+          No approved or paid payslip has been published yet. Draft payroll is never shown in the worker portal.
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
+          <aside className="rounded-lg border border-gray-200 bg-white p-4 print:hidden">
+            <h2 className="font-black text-brand-green-ink">Pay periods</h2>
+            <div className="mt-3 grid gap-2">
+              {payroll.map((record) => (
+                <a key={record.id} href={`/worker/payslip?month=${encodeURIComponent(record.periodLabel)}`} className={`rounded-lg px-3 py-3 text-sm font-bold ${selected?.id === record.id ? "bg-brand-green text-white" : "bg-brand-mist text-brand-green-ink"}`}>
+                  {record.periodLabel} · {record.status}
+                </a>
               ))}
             </div>
-          </div>
+          </aside>
 
-          {/* Payslip Details */}
-          {selected && (
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Payslip - {new Date(selected.month + "-01").toLocaleString("default", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </h2>
-                  <p className={`text-sm font-medium mt-2 inline-block px-3 py-1 rounded ${
-                    selected.status === "Paid"
-                      ? "bg-green-100 text-green-700"
-                      : selected.status === "Approved"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {selected.status}
-                  </p>
-                </div>
-
-                <div className="space-y-3 border-b border-gray-200 pb-6">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Base Salary</span>
-                    <span className="font-medium text-gray-900">
-                      Rs. {selected.baseSalary.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Piece Rate Earnings</span>
-                    <span className="font-medium text-gray-900">
-                      Rs. {selected.piecesRate.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Attendance Bonus</span>
-                    <span className="font-medium text-gray-900">
-                      Rs. {selected.attendanceBonus.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 my-6 py-6 border-b border-gray-200">
-                  <div className="flex justify-between text-red-600">
-                    <span>Deductions</span>
-                    <span className="font-medium">
-                      - Rs. {selected.deductions.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-green-50 p-4 rounded-lg mb-6">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-gray-900">
-                      NET PAY
-                    </span>
-                    <span className="text-2xl font-bold text-green-700">
-                      Rs. {selected.netPay.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
-                  📥 Download PDF
-                </button>
+          {selected ? (
+            <article className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 pb-5">
+                <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">KRISHOE payslip</p><h2 className="mt-2 text-2xl font-black text-brand-green-ink">{selected.periodLabel}</h2></div>
+                <span className="rounded-full bg-brand-green-mist px-4 py-2 text-sm font-black text-brand-green">{selected.status}</span>
               </div>
-            </div>
-          )}
+              <dl className="mt-6 grid gap-3 text-sm">
+                <div className="flex justify-between gap-3"><dt>Employee</dt><dd className="font-black">{access.detail.employee.name}</dd></div>
+                <div className="flex justify-between gap-3"><dt>Base / daily pay</dt><dd className="font-black">{money(selected.baseAmount)}</dd></div>
+                <div className="flex justify-between gap-3"><dt>Piece-rate pay</dt><dd className="font-black">{money(selected.pieceAmount)}</dd></div>
+                <div className="flex justify-between gap-3"><dt>Attendance bonus</dt><dd className="font-black">{money(selected.attendanceBonus)}</dd></div>
+                <div className="flex justify-between gap-3"><dt>Overtime</dt><dd className="font-black">{money(selected.overtimeAmount)}</dd></div>
+                <div className="flex justify-between gap-3 text-brand-clay"><dt>Deductions</dt><dd className="font-black">− {money(selected.deduction)}</dd></div>
+                <div className="mt-2 flex justify-between gap-3 border-t border-gray-200 pt-4 text-xl text-brand-green"><dt className="font-black">Net pay</dt><dd className="font-black">{money(selected.netPay)}</dd></div>
+              </dl>
+              {selected.paidAt ? <p className="mt-5 text-xs text-gray-500">Paid/locked at {new Date(selected.paidAt).toLocaleString("en-IN")}</p> : null}
+            </article>
+          ) : null}
         </div>
-      </div>
-    </div>
-  );
-}
-
-export default function PayslipPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
-      <PayslipContent />
-    </Suspense>
+      )}
+    </WorkerPortalShell>
   );
 }

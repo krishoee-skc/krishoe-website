@@ -1,10 +1,5 @@
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
-import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
-import {
-  deleteReviewAction,
-  updateReviewStatusAction,
-} from "@/app/admin/reviews/actions";
 import { getProducts } from "@/lib/product-store";
 import type { Review } from "@/lib/products";
 import ReviewCard from "./ReviewCard";
@@ -76,7 +71,7 @@ export default async function AdminReviewsPage() {
   const pending = rows.filter((row) => row.review.status === "pending");
   const approved = rows.filter((row) => row.review.status === "approved");
   const rejected = rows.filter((row) => row.review.status === "rejected");
-  const spamFlags = rows.filter((row) => (row.review as any).flaggedAsSpam);
+  const spamFlags = rows.filter((row) => row.review.flaggedAsSpam);
   const averageRating =
     rows.length > 0
       ? rows.reduce((total, row) => total + row.review.rating, 0) / rows.length

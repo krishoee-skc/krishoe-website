@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById, getProducts } from "@/lib/product-store";
+import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getOrdersForCustomer } from "@/lib/submissions";
 import { getProductByIdFromList, getRelatedProductsFromList } from "@/lib/products";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
@@ -41,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const products = await getProducts();
+  const [products, viewer] = await Promise.all([getProducts(), getCurrentCustomer()]);
   const product = getProductByIdFromList(products, id);
 
   if (!product) {
@@ -49,6 +51,26 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const relatedProducts = getRelatedProductsFromList(products, product);
+  const viewerOrders = viewer ? await getOrdersForCustomer(viewer) : [];
+  const existingReview = viewer
+    ? product.reviews.some((review) => review.customerUserId === viewer.id)
+    : false;
+  const verifiedPurchase = viewerOrders.some(
+    (order) =>
+      order.status === "Closed" &&
+      order.items.some((item) => item.productId === product.id && item.quantity > 0),
+  );
+  const reviewAccess = {
+    canReview: Boolean(viewer && verifiedPurchase && !existingReview),
+    isLoggedIn: Boolean(viewer),
+    reason: !viewer
+      ? "Sign in to review a product you purchased."
+      : existingReview
+        ? "You have already submitted a review for this product."
+        : verifiedPurchase
+          ? "Your completed purchase is verified."
+          : "Reviews open after a completed purchase of this product.",
+  };
   const level = stockLevel(product.stock);
   const stockLabel =
     level === "out" ? "Sold out" : level === "low" ? `Only ${product.stock} left` : "Ready stock";
@@ -69,7 +91,7 @@ export default async function ProductPage({ params }: Props) {
           { name: product.name, path: `/product/${product.id}` },
         ])}
       />
-      <Navbar />
+      <Navbar isLoggedIn={Boolean(viewer)} />
       <div className="pb-24 md:pb-0">
       <main className="bg-white">
         <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
@@ -195,7 +217,7 @@ export default async function ProductPage({ params }: Props) {
         )}
       </main>
 
-      <ProductReviews product={product} />
+      <ProductReviews product={product} reviewAccess={reviewAccess} />
 
       <Footer />
       </div>

@@ -23,6 +23,23 @@ export interface Feedback {
   updatedAt: string;
 }
 
+interface FeedbackRecord {
+  id: string;
+  type: FeedbackType;
+  user_type: UserType;
+  user_name: string;
+  user_email?: string;
+  user_phone?: string;
+  title: string;
+  message: string;
+  rating?: number;
+  status: FeedbackStatus;
+  screenshot?: string;
+  url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Submit feedback
 export async function submitFeedback(feedback: Omit<Feedback, "id" | "createdAt" | "updatedAt" | "status">) {
   try {
@@ -123,7 +140,7 @@ export async function getAllFeedback(
 ): Promise<Feedback[]> {
   try {
     let query = "SELECT * FROM user_feedback WHERE 1=1";
-    const params: any[] = [];
+    const params: Array<string | number> = [];
 
     if (status) {
       params.push(status);
@@ -138,7 +155,7 @@ export async function getAllFeedback(
     params.push(limit);
     query += ` ORDER BY created_at DESC LIMIT $${params.length}`;
 
-    const feedback = await queryPostgres<any>(STORE, query, params);
+    const feedback = await queryPostgres<FeedbackRecord>(STORE, query, params);
 
     return feedback.map(formatFeedback);
   } catch (error) {
@@ -151,7 +168,6 @@ export async function getAllFeedback(
 export async function updateFeedbackStatus(
   id: string,
   status: FeedbackStatus,
-  note?: string
 ) {
   try {
     await queryPostgres(
@@ -172,7 +188,7 @@ export async function getFeedbackByUser(
   limit: number = 20
 ): Promise<Feedback[]> {
   try {
-    const feedback = await queryPostgres<any>(
+    const feedback = await queryPostgres<FeedbackRecord>(
       STORE,
       `SELECT * FROM user_feedback
        WHERE user_email = $1
@@ -189,7 +205,7 @@ export async function getFeedbackByUser(
 }
 
 // Format feedback record
-function formatFeedback(record: any): Feedback {
+function formatFeedback(record: FeedbackRecord): Feedback {
   return {
     id: record.id,
     type: record.type,
@@ -211,7 +227,6 @@ function formatFeedback(record: any): Feedback {
 // Notify admin of feedback
 async function notifyAdminFeedback(type: FeedbackType, title: string) {
   try {
-    const adminEmail = "design.cad.tsa@gmail.com";
     const icons: Record<FeedbackType, string> = {
       bug: "🐛",
       feature: "✨",

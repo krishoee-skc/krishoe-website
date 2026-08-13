@@ -16,7 +16,7 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 export async function GET(request: NextRequest) {
   try {
     // Check admin permission
-    const adminUser = await requireAdminPermission("dashboard:read");
+    const adminUser = await requireAdminPermission("insights:read");
     if (!adminUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

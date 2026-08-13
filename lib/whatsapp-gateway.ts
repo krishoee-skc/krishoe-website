@@ -170,18 +170,13 @@ export async function handleWhatsAppWebhook(data: Record<string, string>) {
 
 // Verify webhook token (Twilio security)
 export function verifyWhatsAppWebhook(
-  token: string,
+  signature: string,
   url: string,
   params: Record<string, string>
 ): boolean {
-  if (!twilioClient) return false;
+  if (!authToken || !signature) return false;
 
-  const twilio_lib = require("twilio");
-  return twilio_lib.validateRequest(
-    token,
-    url,
-    params
-  );
+  return twilio.validateRequest(authToken, signature, url, params);
 }
 
 // Send admin notification

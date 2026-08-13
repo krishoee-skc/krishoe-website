@@ -1,6 +1,5 @@
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
-import { canAccessAdminPath } from "@/lib/admin-role-permissions";
 import { sql } from "@vercel/postgres";
 import { NextRequest, NextResponse } from "next/server";
 

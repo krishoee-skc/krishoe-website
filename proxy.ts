@@ -16,7 +16,8 @@ function isProtectedApi(pathname: string) {
     pathname.startsWith("/api/factory") ||
     pathname.startsWith("/api/orders") ||
     pathname.startsWith("/api/messages") ||
-    pathname.startsWith("/api/products")
+    pathname.startsWith("/api/products") ||
+    pathname.startsWith("/api/worker")
   );
 }
 
@@ -52,6 +53,10 @@ function isAdminAuthPage(pathname: string) {
 
 function isProtectedAdmin(pathname: string) {
   return pathname.startsWith("/admin") && !isAdminAuthPage(pathname);
+}
+
+function isProtectedWorker(pathname: string) {
+  return pathname.startsWith("/worker") && !pathname.startsWith("/worker/login");
 }
 
 function isCustomerAuthPage(pathname: string) {
@@ -101,6 +106,18 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (isProtectedWorker(pathname) && !hasValidSession) {
+    return NextResponse.redirect(new URL("/worker/login", request.url));
+  }
+
+  if (pathname.startsWith("/worker/login") && hasValidSession) {
+    return NextResponse.redirect(new URL("/worker/dashboard", request.url));
+  }
+
+  if (isProtectedWorker(pathname) && adminSession?.mustChangePassword) {
+    return NextResponse.redirect(new URL("/admin/change-password", request.url));
   }
 
   if (
@@ -153,5 +170,7 @@ export const config = {
     "/api/products/:path*",
     "/account",
     "/account/:path*",
+    "/worker/:path*",
+    "/api/worker/:path*",
   ],
 };

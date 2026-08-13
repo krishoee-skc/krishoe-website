@@ -19,7 +19,7 @@ function estimateDeliveryDate(delivery: string): string {
 }
 
 // Get language preference from payment method or default to English
-function detectLanguage(order: OrderSubmission): "en" | "np" {
+function detectLanguage(): "en" | "np" {
   // If customer set a preference, use it (can be extended later)
   // For now, default to English for international customers
   return "en";
@@ -32,7 +32,7 @@ export async function notifyOrderConfirmedBySMS(order: OrderSubmission) {
     return;
   }
 
-  const language = detectLanguage(order);
+  const language = detectLanguage();
   const estimatedDelivery = estimateDeliveryDate(order.delivery);
 
   try {
@@ -61,7 +61,7 @@ export async function notifyPaymentLinkBySMS(data: {
     return;
   }
 
-  const language = data.language || detectLanguage(data.order);
+  const language = data.language || detectLanguage();
 
   try {
     await sendPaymentLinkSMS({
@@ -93,7 +93,7 @@ export async function notifyShippedBySMS(data: {
     return;
   }
 
-  const language = data.language || detectLanguage(data.order);
+  const language = data.language || detectLanguage();
   const estimatedDelivery = estimateDeliveryDate(data.order.delivery);
 
   try {
@@ -123,7 +123,7 @@ export async function notifyOutForDeliveryBySMS(data: {
     return;
   }
 
-  const language = data.language || detectLanguage(data.order);
+  const language = data.language || detectLanguage();
 
   try {
     const { sendOutForDeliverySMS } = await import("@/lib/sms-gateway");
@@ -150,7 +150,7 @@ export async function notifyDeliveredBySMS(data: {
     return;
   }
 
-  const language = data.language || detectLanguage(data.order);
+  const language = data.language || detectLanguage();
 
   try {
     await sendDeliveredSMS({

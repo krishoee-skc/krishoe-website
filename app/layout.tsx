@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { unstable_cache } from "next/cache";
 import { Inter, Fraunces, Poppins, Playfair_Display } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
@@ -95,7 +96,7 @@ export const metadata: Metadata = {
 // storefront down to its retry page. The queries already retry a dropped
 // connection; if one still fails, render the shell with an empty catalog rather
 // than crash — the header, nav and cart stay, and the next navigation recovers.
-async function loadBuyableProducts(): Promise<Product[]> {
+const loadBuyableProducts = unstable_cache(async (): Promise<Product[]> => {
   try {
     const [catalog, orders] = await Promise.all([getProducts(), getOrders()]);
     return withAvailableStock(catalog, reservedByProduct(orders));
@@ -103,7 +104,7 @@ async function loadBuyableProducts(): Promise<Product[]> {
     reportError("load catalog for the storefront layout", error);
     return [];
   }
-}
+}, ["storefront-buyable-products"], { revalidate: 10 });
 
 export default async function RootLayout({
   children,

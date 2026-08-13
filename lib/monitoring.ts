@@ -143,21 +143,27 @@ export async function getErrorStats(hours: number = 24): Promise<{
   recentErrors: ErrorLog[];
 }> {
   try {
-    const results = await queryPostgres<any>(
+    const normalizedHours = Number.isFinite(hours) ? Math.trunc(hours) : 24;
+    const safeHours = Math.min(Math.max(normalizedHours, 1), 24 * 30);
+    const results = await queryPostgres<{
+      total: number | string;
+      level: string;
+      message: string;
+    }>(
       STORE,
       `SELECT
         COUNT(*) as total,
         level,
         message
       FROM monitoring_errors
-      WHERE created_at > NOW() - INTERVAL '${hours} hours'
+      WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
       GROUP BY level, message
       ORDER BY COUNT(*) DESC
       LIMIT 50`,
-      []
+      [safeHours]
     );
 
-    const totalErrors = results.reduce((sum, r) => sum + r.total, 0);
+    const totalErrors = results.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
     const errorsByLevel: Record<string, number> = {};
     const topErrors: Array<{ message: string; count: number }> = [];
 
@@ -165,17 +171,18 @@ export async function getErrorStats(hours: number = 24): Promise<{
       if (!errorsByLevel[r.level]) {
         errorsByLevel[r.level] = 0;
       }
-      errorsByLevel[r.level] += r.total;
-      topErrors.push({ message: r.message, count: r.total });
+      const count = Number(r.total) || 0;
+      errorsByLevel[r.level] += count;
+      topErrors.push({ message: r.message, count });
     });
 
     const recent = await queryPostgres<ErrorLog>(
       STORE,
       `SELECT * FROM monitoring_errors
-       WHERE created_at > NOW() - INTERVAL '${hours} hours'
+       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
        ORDER BY created_at DESC
        LIMIT 20`,
-      []
+      [safeHours]
     );
 
     return {
@@ -209,6 +216,8 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
   errorRate: number;
 }> {
   try {
+    const normalizedHours = Number.isFinite(hours) ? Math.trunc(hours) : 24;
+    const safeHours = Math.min(Math.max(normalizedHours, 1), 24 * 30);
     const stats = await queryPostgres<{
       avg_time: number;
       p95_time: number;
@@ -224,8 +233,8 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         COUNT(CASE WHEN status_code >= 400 THEN 1 END)::integer as error_count,
         COUNT(*)::integer as total_count
       FROM monitoring_performance
-      WHERE created_at > NOW() - INTERVAL '${hours} hours'`,
-      []
+      WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')`,
+      [safeHours]
     );
 
     const data = stats[0] || {
@@ -249,11 +258,11 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         ROUND(AVG(duration))::integer as avg_time,
         COUNT(*)::integer as count
       FROM monitoring_performance
-      WHERE created_at > NOW() - INTERVAL '${hours} hours'
+      WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
       GROUP BY path, method
       ORDER BY avg_time DESC
       LIMIT 10`,
-      []
+      [safeHours]
     );
 
     return {
@@ -329,7 +338,6 @@ export async function checkSystemHealth(): Promise<HealthCheck> {
 // Send critical alert
 async function sendCriticalAlert(error: Omit<ErrorLog, "id" | "timestamp">) {
   try {
-    const adminEmail = "design.cad.tsa@gmail.com";
     const message = `
 🚨 CRITICAL ERROR IN PRODUCTION
 
@@ -354,13 +362,15 @@ Please check immediately!
 // Get uptime percentage
 export async function getUptimePercentage(days: number = 30): Promise<number> {
   try {
+    const normalizedDays = Number.isFinite(days) ? Math.trunc(days) : 30;
+    const safeDays = Math.min(Math.max(normalizedDays, 1), 366);
     const result = await queryPostgres<{ uptime: number }>(
       STORE,
       `SELECT
         (COUNT(CASE WHEN status = 'up' THEN 1 END)::float / COUNT(*) * 100)::numeric(5,2) as uptime
       FROM monitoring_uptime
-      WHERE checked_at > NOW() - INTERVAL '${days} days'`,
-      []
+      WHERE checked_at > NOW() - ($1 * INTERVAL '1 day')`,
+      [safeDays]
     );
 
     return result[0]?.uptime ? parseFloat(String(result[0].uptime)) : 0;

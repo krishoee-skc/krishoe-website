@@ -1,60 +1,57 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
 export default function OfflinePage() {
+  const router = useRouter();
+  const [backOnline, setBackOnline] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setBackOnline(true);
+      window.setTimeout(() => window.location.reload(), 800);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">📡</div>
-
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          You're Offline
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
+      <div className="max-w-md text-center">
+        <div aria-hidden="true" className="mb-6 text-6xl">📡</div>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">
+          {backOnline ? "Back online" : "You are offline"}
         </h1>
-
-        <p className="text-gray-600 mb-6">
-          Check your internet connection. Cached pages are still available.
+        <p className="mb-6 text-gray-600">
+          {backOnline
+            ? "Reconnecting to KRISHOE…"
+            : "Check your connection, then try again. Private account, worker, admin, order, and payment data are never stored in the offline cache."}
         </p>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 text-left">
-          <h2 className="font-semibold text-gray-900 mb-3">💡 Available Offline:</h2>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li>✅ Dashboard & Profile</li>
-            <li>✅ Payslips & Earnings</li>
-            <li>✅ Attendance Records</li>
-            <li>✅ Production Details</li>
-            <li>✅ Shop (browsing only)</li>
-          </ul>
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 text-left text-sm leading-6 text-gray-600">
+          Your cart and wishlist remain on this device. Reconnect before checking stock,
+          placing an order, signing in, or verifying a payment.
         </div>
 
         <div className="space-y-3">
           <button
-            onClick={() => window.location.href = '/'}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
+            type="button"
+            onClick={() => router.push("/")}
+            className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700"
           >
-            Go Home
+            Try home
           </button>
           <button
-            onClick={() => window.history.back()}
-            className="w-full bg-gray-200 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-300"
+            type="button"
+            onClick={() => router.back()}
+            className="w-full rounded-lg bg-gray-200 py-3 font-medium text-gray-900 hover:bg-gray-300"
           >
-            Go Back
+            Go back
           </button>
         </div>
-
-        <p className="text-xs text-gray-500 mt-6">
-          Auto-refresh when connection restored
-        </p>
       </div>
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.addEventListener('online', () => {
-              document.querySelector('h1').textContent = 'Back Online!';
-              setTimeout(() => window.location.reload(), 1000);
-            });
-          `,
-        }}
-      />
-    </div>
+    </main>
   );
 }

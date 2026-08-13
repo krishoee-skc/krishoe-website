@@ -1,10 +1,13 @@
 export type Review = {
   id: string;
+  customerUserId?: string;
+  orderId?: string;
   name: string;
   rating: number;
   comment: string;
   createdAt: string;
   status: "pending" | "approved" | "rejected";
+  verifiedPurchase?: boolean;
   rejectionReason?: string;
   flaggedAsSpam?: boolean;
   flaggedAt?: string;

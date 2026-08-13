@@ -8,13 +8,14 @@ import {
   markAlertAsRead,
   markAllAlertsAsRead,
   deleteAlert,
+  type AlertType,
 } from "@/lib/admin-alerts";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 
 export async function GET(request: NextRequest) {
   try {
     // Check admin permission
-    const adminUser = await requireAdminPermission("dashboard:read");
+    const adminUser = await requireAdminPermission("notifications:read");
     if (!adminUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -22,8 +23,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const action = searchParams.get("action");
     const type = searchParams.get("type");
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "50", 10);
+    const parsedOffset = parseInt(searchParams.get("offset") || "0", 10);
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50;
+    const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
 
     if (action === "count") {
       const count = await getUnreadAlertCount();
@@ -44,8 +47,17 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (type) {
-      const alerts = await getAlertsByType(type as any, limit);
+    const alertTypes = new Set<AlertType>([
+      "manual_payment",
+      "low_stock",
+      "quality_issue",
+      "attendance_alert",
+      "payroll_ready",
+      "system_alert",
+    ]);
+
+    if (type && alertTypes.has(type as AlertType)) {
+      const alerts = await getAlertsByType(type as AlertType, limit);
       return NextResponse.json({
         success: true,
         count: alerts.length,
@@ -74,7 +86,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminUser = await requireAdminPermission("dashboard:read");
+    const adminUser = await requireAdminPermission("notifications:write");
     if (!adminUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -1,24 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
 export default function KeyboardShortcutsPage() {
-  const [showShortcuts, setShowShortcuts] = useState(false);
-
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-        setShowShortcuts(true);
-      }
-      if (e.key === "Escape") {
-        setShowShortcuts(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
-
   const shortcuts = [
     {
       category: "Navigation",

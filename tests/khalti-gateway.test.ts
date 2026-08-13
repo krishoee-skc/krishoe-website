@@ -1,75 +1,96 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const submissions = vi.hoisted(() => ({
-  getOrderById: vi.fn(),
   getOrderByPaymentReference: vi.fn(),
 }));
 
 vi.mock("@/lib/submissions", () => ({
-  getOrderById: submissions.getOrderById,
   getOrderByPaymentReference: submissions.getOrderByPaymentReference,
 }));
 
-import { verifyKhaltiCallback } from "@/lib/khalti-gateway";
+import { createKhaltiPayment, verifyKhaltiCallback } from "@/lib/khalti-gateway";
 
-function fakeOrder(total: string) {
-  return {
-    id: "KRS-1001",
-    total,
-    name: "Test Customer",
-    phone: "9800000000",
-    paymentReference: "",
-  };
-}
+const order = {
+  id: "KRS-1001",
+  total: "Rs. 1,999",
+  name: "Test Customer",
+  phone: "9800000000",
+  email: "customer@example.com",
+  paymentReference: "pidx-owner",
+};
 
-// Khalti amounts are verified from a server-side lookup (in paisa), not trusted
-// from the client callback.
-function mockLookup(body: Record<string, unknown>) {
-  (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => body,
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
   });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.KHALTI_SECRET_KEY = "test-khalti-key";
-  global.fetch = vi.fn();
+  process.env.PAYMENT_MODE = "sandbox";
+  process.env.KHALTI_SECRET_KEY = "test-secret";
 });
 
-describe("verifyKhaltiCallback", () => {
-  it("rejects a callback with no pidx", async () => {
-    const result = await verifyKhaltiCallback({});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("Khalti gateway security", () => {
+  it("rejects an incomplete initiation response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ pidx: "pidx-owner" })));
+
+    const result = await createKhaltiPayment({
+      requestUrl: "https://shop.example",
+      order: order as never,
+      amount: 1999,
+    });
+
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.status).toBe(400);
-    }
+    expect(result.status).toBe(502);
   });
 
-  it("accepts a completed payment whose looked-up amount matches the order", async () => {
-    submissions.getOrderById.mockResolvedValue(fakeOrder("Rs. 1,999"));
-    mockLookup({ pidx: "PX1", total_amount: 199900, status: "Completed", transaction_id: "TX1" });
+  it("binds the callback to its stored pidx instead of a supplied order ID", async () => {
+    submissions.getOrderByPaymentReference.mockResolvedValue(order);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          pidx: "pidx-owner",
+          total_amount: 199900,
+          status: "Completed",
+          transaction_id: "TX-1",
+        }),
+      ),
+    );
 
-    const result = await verifyKhaltiCallback({ pidx: "PX1", orderId: "KRS-1001" });
+    const result = await verifyKhaltiCallback({
+      pidx: "pidx-owner",
+      orderId: "VICTIM-ORDER-ID",
+    });
 
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.amount).toBe(1999);
-      expect(result.paymentStatus).toBe("Paid");
-    }
+    if (result.ok) expect(result.order.id).toBe("KRS-1001");
+    expect(submissions.getOrderByPaymentReference).toHaveBeenCalledWith("pidx-owner");
   });
 
-  it("rejects an underpayment even when Khalti reports Completed", async () => {
-    // Order is Rs. 9,999 but only Rs. 1 (100 paisa) was actually paid.
-    submissions.getOrderById.mockResolvedValue(fakeOrder("Rs. 9,999"));
-    mockLookup({ pidx: "PX1", total_amount: 100, status: "Completed", transaction_id: "TX1" });
+  it("rejects a lookup response for a different pidx", async () => {
+    submissions.getOrderByPaymentReference.mockResolvedValue(order);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          pidx: "different-pidx",
+          total_amount: 199900,
+          status: "Completed",
+          transaction_id: "TX-1",
+        }),
+      ),
+    );
 
-    const result = await verifyKhaltiCallback({ pidx: "PX1", orderId: "KRS-1001" });
+    const result = await verifyKhaltiCallback({ pidx: "pidx-owner" });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(String(result.body.message)).toMatch(/amount mismatch/i);
-    }
+    if (!result.ok) expect(String(result.body.message)).toMatch(/reference mismatch/i);
   });
 });

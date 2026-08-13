@@ -1,7 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import {
-  getOrderById,
   getOrderByPaymentReference,
   type OrderSubmission,
   type PaymentStatus,
@@ -75,20 +74,27 @@ function secretKey() {
 }
 
 function shouldCheckStatusApi() {
-  return envValue("ESEWA_VERIFY_WITH_STATUS_CHECK").toLowerCase() === "true";
+  return (
+    envValue("PAYMENT_MODE").toLowerCase() === "live" ||
+    envValue("ESEWA_VERIFY_WITH_STATUS_CHECK").toLowerCase() === "true"
+  );
 }
 
 function statusCheckUrl() {
   return (
     envValue("ESEWA_STATUS_CHECK_URL") ||
-    "https://rc.esewa.com.np/api/epay/transaction/status/"
+    (envValue("PAYMENT_MODE").toLowerCase() === "live"
+      ? "https://epay.esewa.com.np/api/epay/transaction/status/"
+      : "https://rc.esewa.com.np/api/epay/transaction/status/")
   );
 }
 
 function formUrl() {
   return (
     envValue("ESEWA_CHECKOUT_URL") ||
-    "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+    (envValue("PAYMENT_MODE").toLowerCase() === "live"
+      ? "https://epay.esewa.com.np/api/epay/main/v2/form"
+      : "https://rc-epay.esewa.com.np/api/epay/main/v2/form")
   );
 }
 
@@ -175,27 +181,26 @@ function callbackId(values: EsewaPayload) {
 }
 
 async function orderFromCallback(values: EsewaPayload) {
-  const orderId = textValue(values, ["orderId", "order_id"]);
   const transactionUuid = textValue(values, ["transaction_uuid", "reference", "paymentReference"]);
-
-  if (orderId) {
-    const order = await getOrderById(orderId);
-
-    if (order) {
-      return order;
-    }
-  }
-
   return transactionUuid ? getOrderByPaymentReference(transactionUuid) : null;
 }
 
 async function statusCheck(values: EsewaPayload) {
   const url = new URL(statusCheckUrl());
+  const expectedAmount = textValue(values, ["total_amount", "amount"]);
+  const expectedTransactionUuid = textValue(values, [
+    "transaction_uuid",
+    "reference",
+    "paymentReference",
+  ]);
   url.searchParams.set("product_code", productCode());
-  url.searchParams.set("total_amount", textValue(values, ["total_amount", "amount"]));
-  url.searchParams.set("transaction_uuid", textValue(values, ["transaction_uuid"]));
+  url.searchParams.set("total_amount", expectedAmount);
+  url.searchParams.set("transaction_uuid", expectedTransactionUuid);
 
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
 
   if (!response.ok) {
     return {
@@ -206,15 +211,73 @@ async function statusCheck(values: EsewaPayload) {
 
   const body = (await response.json()) as Record<string, unknown>;
   const status = cleanText(body.status);
+  const responseProductCode = cleanText(body.product_code);
+  const responseTransactionUuid = cleanText(body.transaction_uuid);
+  const responseAmount = cleanNumber(body.total_amount);
+  const amountMatches = responseAmount === cleanNumber(expectedAmount);
+  const productMatches = !responseProductCode || responseProductCode === productCode();
+  const transactionMatches =
+    !responseTransactionUuid || responseTransactionUuid === expectedTransactionUuid;
+  const callbackStatus = textValue(values, ["status"]);
+  const statusMatches =
+    !callbackStatus || normalizeStatus(status) === normalizeStatus(callbackStatus);
 
   return {
-    ok: normalizeStatus(status) === normalizeStatus(textValue(values, ["status"])),
+    ok: amountMatches && productMatches && transactionMatches && statusMatches,
     message: `eSewa status check returned ${status || "unknown"}.`,
     body,
+    paymentStatus: normalizeStatus(status),
   };
 }
 
-export function createEsewaSandboxPayment({
+export async function verifyEsewaReference(order: OrderSubmission): Promise<EsewaVerificationResult> {
+  const paymentReference = order.paymentReference ?? "";
+  const amount = amountFromOrderTotal(order.total);
+
+  if (!paymentReference || amount <= 0) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, provider, message: "Order has no valid pending eSewa reference." },
+    };
+  }
+
+  const values: EsewaPayload = {
+    total_amount: String(amount),
+    transaction_uuid: paymentReference,
+    product_code: productCode(),
+  };
+  const result = await statusCheck(values);
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: 502,
+      body: { ok: false, provider, message: result.message },
+    };
+  }
+
+  const transactionId = textValue(
+    Object.fromEntries(
+      Object.entries(result.body ?? {}).map(([key, value]) => [key, String(value ?? "")]),
+    ),
+    ["ref_id", "transaction_code"],
+  );
+
+  return {
+    ok: true,
+    order,
+    amount,
+    callbackId: `${provider}:${paymentReference}:${transactionId || result.paymentStatus || "Failed"}`,
+    paymentStatus: result.paymentStatus ?? "Failed",
+    paymentReference,
+    paymentTransactionId: transactionId || undefined,
+    note: result.message,
+    values,
+  };
+}
+
+export function createEsewaPayment({
   requestUrl,
   order,
   amount,
@@ -243,21 +306,28 @@ export function createEsewaSandboxPayment({
 
   fields.signature = signFields(fields, requestSignedFields);
 
-  const successData: EsewaPayload = {
-    transaction_code: `SANDBOX-${randomUUID().slice(0, 8).toUpperCase()}`,
-    status: "COMPLETE",
+  if (envValue("PAYMENT_MODE").toLowerCase() !== "live") {
+    const successData: EsewaPayload = {
+      transaction_code: `SANDBOX-${randomUUID().slice(0, 8).toUpperCase()}`,
+      status: "COMPLETE",
+      total_amount: String(amount),
+      transaction_uuid: paymentReference,
+      product_code: productCode(),
+      signed_field_names: responseSignedFieldsFallback.join(","),
+    };
+    successData.signature = signFields(successData, responseSignedFieldsFallback);
+    successUrl.searchParams.set("data", encodeBase64Json(successData));
+  }
+  const failureData: EsewaPayload = {
+    transaction_code: "",
+    status: "FAILED",
     total_amount: String(amount),
     transaction_uuid: paymentReference,
     product_code: productCode(),
     signed_field_names: responseSignedFieldsFallback.join(","),
   };
-  successData.signature = signFields(successData, responseSignedFieldsFallback);
-
-  successUrl.searchParams.set("data", encodeBase64Json(successData));
-  failureUrl.searchParams.set("orderId", order.id);
-  failureUrl.searchParams.set("status", "failed");
-  failureUrl.searchParams.set("reference", paymentReference);
-  failureUrl.searchParams.set("amount", String(amount));
+  failureData.signature = signFields(failureData, responseSignedFieldsFallback);
+  Object.entries(failureData).forEach(([key, value]) => failureUrl.searchParams.set(key, value));
 
   return {
     formUrl: formUrl(),
@@ -281,27 +351,36 @@ export async function verifyEsewaCallback(rawValues: EsewaPayload): Promise<Esew
   const values = merged.values;
   const status = normalizeStatus(textValue(values, ["status"]));
 
-  if (status === "Paid" || merged.hasEncodedData) {
-    const signedFieldNames = textValue(values, ["signed_field_names"]);
-    const receivedSignature = textValue(values, ["signature"]);
+  const signedFieldNames = textValue(values, ["signed_field_names"]);
+  const receivedSignature = textValue(values, ["signature"]);
 
-    if (!signedFieldNames || !receivedSignature) {
-      return {
-        ok: false,
-        status: 400,
-        body: { ok: false, provider, message: "Missing eSewa signature fields." },
-      };
-    }
+  if (!signedFieldNames || !receivedSignature) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, provider, message: "Missing eSewa signature fields." },
+    };
+  }
 
-    const expectedSignature = hmacBase64(signatureMessage(values, signedFieldNames));
+  const receivedSignedFields = new Set(
+    signedFieldNames.split(",").map((field) => field.trim()).filter(Boolean),
+  );
+  if (responseSignedFieldsFallback.some((field) => !receivedSignedFields.has(field))) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, provider, message: "Incomplete eSewa signed fields." },
+    };
+  }
 
-    if (!safeEqual(receivedSignature, expectedSignature)) {
-      return {
-        ok: false,
-        status: 400,
-        body: { ok: false, provider, message: "Invalid eSewa callback signature." },
-      };
-    }
+  const expectedSignature = hmacBase64(signatureMessage(values, signedFieldNames));
+
+  if (!safeEqual(receivedSignature, expectedSignature)) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, provider, message: "Invalid eSewa callback signature." },
+    };
   }
 
   if (textValue(values, ["product_code"]) && textValue(values, ["product_code"]) !== productCode()) {
@@ -341,7 +420,7 @@ export async function verifyEsewaCallback(rawValues: EsewaPayload): Promise<Esew
 
   let note = "eSewa callback signature verified.";
 
-  if (status === "Paid" && shouldCheckStatusApi()) {
+  if (shouldCheckStatusApi()) {
     const statusResult = await statusCheck(values);
 
     if (!statusResult.ok) {

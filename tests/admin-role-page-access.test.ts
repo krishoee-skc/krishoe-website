@@ -10,6 +10,11 @@ describe("admin page and action access", () => {
     const paths = [
       "/admin",
       "/admin/factory",
+      "/admin/alerts",
+      "/admin/analytics",
+      "/admin/feedback",
+      "/admin/monitoring",
+      "/admin/sms",
       "/admin/stock",
       "/admin/pos",
       "/admin/dues",
@@ -56,5 +61,15 @@ describe("admin page and action access", () => {
     expect(canAdmin("Viewer", "stock:read")).toBe(true);
     expect(canAdmin("Viewer", "products:write")).toBe(false);
     expect(canAdmin("Viewer", "payments:write")).toBe(false);
+    expect(canAdmin("Viewer", "feedback:read")).toBe(true);
+    expect(canAdmin("Viewer", "feedback:write")).toBe(false);
+  });
+
+  it("keeps Worker accounts out of every admin page and action", () => {
+    expect(canAccessAdminPath("Worker", "/admin")).toBe(false);
+    expect(canAccessAdminPath("Worker", "/admin/hr")).toBe(false);
+    expect(canAccessAdminPath("Worker", "/admin/factory")).toBe(false);
+    expect(canAdmin("Worker", "dashboard:read")).toBe(false);
+    expect(canAdmin("Worker", "production:entry")).toBe(false);
   });
 });

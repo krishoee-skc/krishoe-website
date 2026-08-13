@@ -24,6 +24,7 @@ interface Worker {
   status: string;
   hr_employee_id: string | null;
   hr_employee_name: string | null;
+  today_pairs: number;
 }
 
 interface HrEmployeeOption {
@@ -45,9 +46,15 @@ export async function GET() {
         `SELECT workers.id, workers.name, workers.worker_type, workers.category,
                 workers.monthly_salary, workers.weekly_advance, workers.status,
                 workers.created_at, workers.hr_employee_id,
+                COALESCE(today_work.today_pairs, 0)::integer AS today_pairs,
                 employees.name AS hr_employee_name
          FROM factory_workers workers
          LEFT JOIN hr_employees employees ON employees.id = workers.hr_employee_id
+         LEFT JOIN LATERAL (
+           SELECT SUM(work.pairs_count)::integer AS today_pairs
+           FROM factory_daily_work work
+           WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
+         ) today_work ON true
          WHERE workers.status = 'active'
          ORDER BY workers.name ASC`,
       ),

@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface MonitoringData {
   errors: {
     totalErrors: number;
     errorsByLevel: Record<string, number>;
     topErrors: Array<{ message: string; count: number }>;
-    recentErrors: any[];
+    recentErrors: Array<{
+      id: string;
+      message: string;
+      level: string;
+      timestamp?: string;
+      created_at?: string;
+    }>;
   };
   performance: {
     avgResponseTime: number;
@@ -37,15 +43,7 @@ export default function MonitoringDashboard() {
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => {
-    loadMonitoring();
-    if (autoRefresh) {
-      const interval = setInterval(loadMonitoring, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
-
-  const loadMonitoring = async () => {
+  const loadMonitoring = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/monitoring");
       if (res.ok) {
@@ -57,7 +55,19 @@ export default function MonitoringDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadMonitoring(), 0);
+    if (autoRefresh) {
+      const interval = setInterval(() => void loadMonitoring(), 30000);
+      return () => {
+        window.clearTimeout(initialLoad);
+        clearInterval(interval);
+      };
+    }
+    return () => window.clearTimeout(initialLoad);
+  }, [autoRefresh, loadMonitoring]);
 
   if (loading) {
     return (

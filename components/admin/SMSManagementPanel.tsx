@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface SMSRecord {
   id: string;
@@ -31,11 +31,7 @@ export default function SMSManagementPanel() {
   );
   const [selectedMessage, setSelectedMessage] = useState<SMSRecord | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [filter]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [messagesRes, statsRes] = await Promise.all([
@@ -61,7 +57,12 @@ export default function SMSManagementPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadData(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

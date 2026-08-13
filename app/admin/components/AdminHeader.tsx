@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BellIcon, MenuIcon, XIcon, ChevronDownIcon, LogOutIcon, SettingsIcon } from "@/components/Icons";
+import { BellIcon, MenuIcon, ChevronDownIcon, LogOutIcon, SettingsIcon } from "@/components/Icons";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 

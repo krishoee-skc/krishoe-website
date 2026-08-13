@@ -1,7 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
-
 type Step = "cart" | "shipping" | "payment" | "confirmation";
 
 interface CheckoutStepperProps {

@@ -1,127 +1,90 @@
-# KRISHOE Payment Gateway Plan
+# KRISHOE eSewa and Khalti Operations Guide
 
-This phase adds sandbox-safe eSewa and Khalti payment routes without enabling
-live money movement.
+KRISHOE supports `manual`, `sandbox`, and `live` payment modes. The same
+server-side verification path is used in sandbox and live; only credentials and
+provider base URLs change.
 
-## Current Scope
+## Security model
 
-- `POST /api/payments/esewa/initiate`
-- `POST /api/payments/khalti/initiate`
-- `GET|POST /api/payments/esewa/callback`
-- `GET|POST /api/payments/khalti/callback`
+- Only a signed-in customer who owns the order can initiate payment.
+- The payable amount always comes from the saved order, never from the browser.
+- Payments open only after staff changes the order to `Contacted` (stock and
+  delivery confirmed).
+- A pending attempt blocks a second attempt until its result is resolved. The
+  authenticated order page can query the provider directly to reconcile an
+  abandoned browser return without asking the customer to pay twice.
+- Every eSewa success/failure callback requires all critical signed fields;
+  merchant code, gateway-issued payment reference, order amount, and status API
+  result are verified before settlement. Status checking is mandatory in live mode.
+- Khalti callbacks are bound to the stored `pidx` and always confirmed through
+  the server-side lookup API; only `Completed` becomes `Paid`.
+- Callback IDs are unique and idempotent. A late failed/pending callback cannot
+  downgrade an already paid or refunded order.
+- Gateway/API responses use `Cache-Control: no-store` and secrets never reach
+  the browser.
 
-The routes only mutate payment state when `PAYMENT_MODE=sandbox`. In `manual`
-mode they stay disabled. In `live` mode callbacks are blocked until merchant
-live credentials, production URLs, and provider-side verification are tested.
-
-## Required Sandbox Env
+## Sandbox configuration
 
 ```bash
 PAYMENT_MODE=sandbox
-ESEWA_MERCHANT_ID=...
-ESEWA_SECRET_KEY=...
-ESEWA_VERIFY_WITH_STATUS_CHECK=false
-KHALTI_SECRET_KEY=...
+PAYMENT_PUBLIC_BASE_URL=https://your-preview-domain.example
+ESEWA_MERCHANT_ID=EPAYTEST
+ESEWA_SECRET_KEY=your-sandbox-secret
+ESEWA_VERIFY_WITH_STATUS_CHECK=true
+KHALTI_SECRET_KEY=your-sandbox-live-secret-key
 ```
 
-Optional checkout URL overrides:
+Optional sandbox overrides:
 
 ```bash
-ESEWA_CHECKOUT_URL=...
-ESEWA_STATUS_CHECK_URL=...
+ESEWA_CHECKOUT_URL=https://rc-epay.esewa.com.np/api/epay/main/v2/form
+ESEWA_STATUS_CHECK_URL=https://rc.esewa.com.np/api/epay/transaction/status/
 KHALTI_API_BASE_URL=https://dev.khalti.com/api/v2
 ```
 
-## Sandbox Initiation
+Test duplicate callbacks, underpayment, cancellation, expiry, pending status,
+missing orders, and provider timeout before enabling live mode.
+
+## Live configuration
+
+Obtain production credentials from the eSewa and Khalti merchant dashboards,
+then configure:
 
 ```bash
-curl -X POST http://localhost:3002/api/payments/esewa/initiate \
-  -H "Content-Type: application/json" \
-  -d "{\"orderId\":\"KRS-ORD-...\",\"amount\":1500}"
+PAYMENT_MODE=live
+PAYMENT_PUBLIC_BASE_URL=https://your-final-domain.example
+ESEWA_MERCHANT_ID=your-live-product-code
+ESEWA_SECRET_KEY=your-live-secret
+KHALTI_SECRET_KEY=your-live-secret-key
 ```
 
-The response includes sandbox success and failure callback URLs. Those URLs are
-for local testing only; they are not final provider checkout URLs.
+Unless overridden, live mode uses:
 
-For eSewa, the response also includes a `gatewayPayload` object containing:
+- eSewa form: `https://epay.esewa.com.np/api/epay/main/v2/form`
+- eSewa status: `https://epay.esewa.com.np/api/epay/transaction/status/`
+- Khalti API: `https://khalti.com/api/v2/`
 
-- `formUrl`
-- `method: POST`
-- ePay v2 form fields
-- HMAC-SHA256 base64 `signature`
+Customer return endpoints:
 
-The eSewa signature is generated from:
+- `GET|POST /api/payments/esewa/callback`
+- `GET|POST /api/payments/khalti/callback`
 
-```text
-total_amount=<amount>,transaction_uuid=<reference>,product_code=<merchant-code>
-```
+Authenticated reconciliation endpoints used by the order page:
 
-For Khalti, the route calls the official KPG initiate endpoint:
+- `POST /api/payments/esewa/status`
+- `POST /api/payments/khalti/status`
 
-```text
-POST https://dev.khalti.com/api/v2/epayment/initiate/
-```
+After provider verification the customer is redirected to their protected order
+page, while the payment transaction appears in Admin → Payments for
+reconciliation.
 
-Khalti expects `amount` in paisa. The app stores KRISHOE payment history in
-rupees, but sends `amount * 100` to Khalti and stores the returned `pidx` as the
-payment reference while the payment is pending.
+## Go-live checklist
 
-```bash
-curl -X POST http://localhost:3002/api/payments/khalti/initiate \
-  -H "Content-Type: application/json" \
-  -d "{\"orderId\":\"KRS-ORD-...\",\"amount\":1500}"
-```
-
-## eSewa Callback Verification
-
-The eSewa callback adapter accepts the official Base64 encoded `data` response.
-It decodes the JSON payload, verifies the response signature using
-`signed_field_names`, checks `product_code`, checks the order amount, and only
-then updates the order/payment history.
-
-When `ESEWA_VERIFY_WITH_STATUS_CHECK=true`, the adapter also calls the eSewa
-status-check API before accepting a successful payment. The default status check
-URL is the eSewa RC endpoint:
-
-```text
-https://rc.esewa.com.np/api/epay/transaction/status/
-```
-
-## Khalti Callback Verification
-
-The Khalti callback adapter requires `pidx`, then calls the official KPG lookup
-endpoint before updating an order:
-
-```text
-POST https://dev.khalti.com/api/v2/epayment/lookup/
-```
-
-Only `Completed` is mapped to `Paid`. `Expired`, `User canceled`, `Canceled`,
-and `Failed` are mapped to `Failed`; `Refunded` and `Partially refunded` are
-mapped to `Refunded`; all other states remain `Pending`. The lookup
-`total_amount` is compared against the KRISHOE order total in paisa before a
-transaction is recorded.
-
-## Callback Idempotency
-
-Callbacks generate a provider-scoped callback id from gateway fields such as
-`pidx`, `refId`, `transaction_uuid`, or a payload hash. If the same callback id
-is received again, the route returns the existing payment transaction and does
-not update the order twice.
-
-Postgres also protects this with:
-
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_callback_id_unique_idx
-  ON payment_transactions(payment_callback_id)
-  WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> '';
-```
-
-## Before Live
-
-- Verify server-side before marking any live payment `Paid`.
-- Keep callback idempotency enabled.
-- Test duplicate callbacks, failed payments, cancelled payments, amount mismatch,
-  and missing orders in preview before production.
-- Replace sandbox URLs/keys with production merchant credentials only after
-  successful provider dashboard testing.
+1. Finish merchant KYC and enable production payments with both providers.
+2. Store live secrets only in the production environment; never commit them.
+3. Confirm the final domain and HTTPS callback URLs in both merchant dashboards.
+4. Run one low-value real transaction per provider and reconcile provider,
+   order, amount, transaction ID, and status in Admin → Payments.
+5. Test cancellation and repeated callback delivery without dispatching goods.
+6. Keep `PAYMENT_MODE=manual` until both real smoke tests pass, then change it
+   to `live` and redeploy.

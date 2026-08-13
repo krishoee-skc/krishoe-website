@@ -18,9 +18,11 @@ const initialState: LoginState = {
 export default function AdminLoginForm({
   nextPath = "/admin",
   bootstrapLoginAllowed = false,
+  portal = "admin",
 }: {
   nextPath?: string;
   bootstrapLoginAllowed?: boolean;
+  portal?: "admin" | "worker";
 }) {
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
@@ -119,13 +121,15 @@ export default function AdminLoginForm({
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-        Secure admin
+        {portal === "worker" ? "Secure worker portal" : "Secure admin"}
       </p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-        KRISHOE control room
+        {portal === "worker" ? "KRISHOE worker portal" : "KRISHOE control room"}
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
-        {bootstrapLoginAllowed
+        {portal === "worker"
+          ? "Sign in with the staff email and password provided by HR. Your account must be linked to your employee record."
+          : bootstrapLoginAllowed
           ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
           : "Sign in with your staff email and password. This login will register the current phone or computer in Login devices."}
       </p>
@@ -156,7 +160,7 @@ export default function AdminLoginForm({
 
       <div className="mt-6 grid gap-3">
         <SubmitButton
-          idleLabel={isPending ? "Checking password" : "Unlock admin"}
+          idleLabel={isPending ? "Checking password" : portal === "worker" ? "Open worker portal" : "Unlock admin"}
           pendingLabel="Checking password"
           disabled={isPending}
         />

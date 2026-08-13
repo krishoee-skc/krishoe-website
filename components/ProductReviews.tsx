@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { StarIcon } from "@/components/Icons";
 import { submitReview, type FormState } from "@/app/actions";
@@ -69,15 +70,9 @@ function ReviewForm({ productId }: { productId: string }) {
           <label className="text-sm font-semibold text-brand-green-ink">Your Rating</label>
           <StarRatingInput rating={rating} setRating={setRating} />
         </div>
-        <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Your Name
-          <input
-            name="name"
-            required
-            className="h-11 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-            placeholder="e.g., Ram P."
-          />
-        </label>
+        <p className="rounded-lg bg-brand-green-mist p-3 text-sm font-semibold text-brand-green">
+          Verified purchase — your account name will be shown with this review.
+        </p>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Your Review
           <textarea
@@ -110,7 +105,19 @@ function ReviewForm({ productId }: { productId: string }) {
   );
 }
 
-export default function ProductReviews({ product }: { product: Product }) {
+type ReviewAccess = {
+  canReview: boolean;
+  isLoggedIn: boolean;
+  reason: string;
+};
+
+export default function ProductReviews({
+  product,
+  reviewAccess,
+}: {
+  product: Product;
+  reviewAccess: ReviewAccess;
+}) {
   const approvedReviews = product.reviews.filter((r) => r.status === "approved");
   const totalReviews = approvedReviews.length;
 
@@ -154,6 +161,11 @@ export default function ProductReviews({ product }: { product: Product }) {
                     ))}
                   </div>
                   <h5 className="font-bold text-brand-green-ink">{review.name}</h5>
+                  {review.verifiedPurchase ? (
+                    <span className="rounded-full bg-brand-green-mist px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand-green">
+                      Verified purchase
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-2 text-base leading-7 text-brand-muted">{review.comment}</p>
                 <p className="mt-2 text-xs text-gray-400">
@@ -167,7 +179,22 @@ export default function ProductReviews({ product }: { product: Product }) {
         </div>
 
         <div className="mt-12 border-t border-black/10 pt-12">
-          <ReviewForm productId={product.id} />
+          {reviewAccess.canReview ? (
+            <ReviewForm productId={product.id} />
+          ) : (
+            <div className="rounded-lg bg-brand-mist p-5">
+              <h4 className="text-lg font-black text-brand-green-ink">Write a review</h4>
+              <p className="mt-2 text-sm leading-6 text-brand-muted">{reviewAccess.reason}</p>
+              {!reviewAccess.isLoggedIn ? (
+                <Link
+                  href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
+                  className="mt-4 inline-flex h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white"
+                >
+                  Sign in
+                </Link>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </section>

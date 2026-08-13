@@ -1,5 +1,4 @@
 import {
-  getOrderById,
   getOrderByPaymentReference,
   type OrderSubmission,
   type PaymentStatus,
@@ -73,7 +72,11 @@ function secretKey() {
 }
 
 function apiBaseUrl() {
-  return (envValue("KHALTI_API_BASE_URL") || "https://dev.khalti.com/api/v2").replace(/\/+$/, "");
+  const defaultUrl =
+    envValue("PAYMENT_MODE").toLowerCase() === "live"
+      ? "https://khalti.com/api/v2"
+      : "https://dev.khalti.com/api/v2";
+  return (envValue("KHALTI_API_BASE_URL") || defaultUrl).replace(/\/+$/, "");
 }
 
 function endpoint(pathname: string) {
@@ -107,6 +110,7 @@ async function khaltiPost<TBody extends Record<string, unknown>>(pathname: strin
     },
     body: JSON.stringify(body),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
   const responseBody = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
@@ -128,7 +132,7 @@ function websiteUrl(requestUrl: string) {
   return url.origin;
 }
 
-export async function createKhaltiSandboxPayment({
+export async function createKhaltiPayment({
   requestUrl,
   order,
   amount,
@@ -160,27 +164,27 @@ export async function createKhaltiSandboxPayment({
     };
   }
 
+  const pidx = cleanText(result.body.pidx);
+  const paymentUrl = cleanText(result.body.payment_url);
+  if (!pidx || !paymentUrl) {
+    return {
+      ok: false as const,
+      status: 502,
+      body: { detail: "Khalti returned an incomplete initiation response." },
+    };
+  }
+
   return {
     ok: true as const,
-    pidx: cleanText(result.body.pidx),
-    paymentUrl: cleanText(result.body.payment_url),
+    pidx,
+    paymentUrl,
     expiresAt: cleanText(result.body.expires_at),
     expiresIn: cleanNumber(result.body.expires_in),
     body: result.body,
   };
 }
 
-async function orderFromCallback(values: KhaltiPayload, pidx: string) {
-  const orderId = textValue(values, ["orderId", "order_id", "purchase_order_id", "merchant_order_id"]);
-
-  if (orderId) {
-    const order = await getOrderById(orderId);
-
-    if (order) {
-      return order;
-    }
-  }
-
+async function orderFromCallback(pidx: string) {
   return getOrderByPaymentReference(pidx);
 }
 
@@ -214,7 +218,7 @@ export async function verifyKhaltiCallback(rawValues: KhaltiPayload): Promise<Kh
     };
   }
 
-  const order = await orderFromCallback(rawValues, pidx);
+  const order = await orderFromCallback(pidx);
 
   if (!order) {
     return {
@@ -240,6 +244,13 @@ export async function verifyKhaltiCallback(rawValues: KhaltiPayload): Promise<Kh
   }
 
   const lookup = lookupResult.body;
+  if (lookup.pidx && lookup.pidx !== pidx) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, provider, message: "Khalti payment reference mismatch." },
+    };
+  }
   const amountInPaisa = cleanNumber(lookup.total_amount);
   const expectedAmountInPaisa = amountFromOrderTotal(order.total) * 100;
 

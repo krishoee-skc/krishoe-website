@@ -3,6 +3,7 @@ import {
   handleGatewayCallback,
   isGatewayProvider,
 } from "@/lib/payment-gateways";
+import { reportError } from "@/lib/report-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,12 +49,34 @@ async function processCallback(request: Request, { params }: PaymentRouteContext
     );
   }
 
-  const result = await handleGatewayCallback({
-    provider,
-    values: await requestValues(request),
-  });
+  try {
+    const result = await handleGatewayCallback({
+      provider,
+      values: await requestValues(request),
+      requestUrl: request.url,
+    });
 
-  return NextResponse.json(result.body, { status: result.status });
+    const orderId = typeof result.body.orderId === "string" ? result.body.orderId : "";
+    const paymentStatus =
+      typeof result.body.paymentStatus === "string" ? result.body.paymentStatus : "";
+
+    if (request.method === "GET" && orderId) {
+      const destination = new URL(`/order/${encodeURIComponent(orderId)}`, request.url);
+      destination.searchParams.set("payment", paymentStatus.toLowerCase() || "pending");
+      return NextResponse.redirect(destination, 303);
+    }
+
+    return NextResponse.json(result.body, {
+      status: result.status,
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    reportError(`process ${provider} payment callback`, error);
+    return NextResponse.json(
+      { ok: false, provider, message: "Payment verification is temporarily unavailable." },
+      { status: 502, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }
 
 export async function GET(request: Request, context: PaymentRouteContext) {

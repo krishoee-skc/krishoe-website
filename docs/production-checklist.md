@@ -10,6 +10,7 @@ Use this list before the final public launch. Keep real secrets only in
 - Admin/customer login and public submissions use shared rate-limit storage in Postgres production mode.
 - Factory APIs enforce session and method-specific role checks both in the proxy and inside every route handler. Daily work entry is available to the Factory role; worker/item/rate setup and cash mutations remain Owner-only, while approved HR reads use the HR permission.
 - Customer register/login/logout, signed session cookie, profile editing, checkout prefill, password reset flow.
+- Worker portal uses the same signed staff sessions, device revocation, password-change enforcement, and active HR employee link as admin access; worker identity is never accepted from a query string.
 - Password reset request flow queues delivery, stores new reset tokens as hashes, and does not expose reset tokens in production UI.
 - Admin backup/export and Postgres import hash legacy plaintext reset tokens before they leave or enter storage.
 - Logged-in customer password change with current-password verification.
@@ -42,7 +43,7 @@ Use this list before the final public launch. Keep real secrets only in
    - Export `/api/admin/backup` before migration. This backup contains sensitive user password hashes and account data, so store it securely.
    - Local helper: run `npm run backup:export -- --url=http://localhost:3002`; generated files stay under ignored `backups/`.
    - Run `docs/schema.sql` against a clean Postgres database.
-   - For an existing Factory database, run `npm run db:factory-preflight`, then `npm run db:factory-backup`, then `npm run db:migrate:factory -- --dry-run`. Apply with `npm run db:migrate:factory` only after the dry-run succeeds, and rerun the preflight afterward.
+   - For an existing database, run `npm run db:factory-preflight`, then `npm run db:factory-backup`, then `npm run db:migrate:factory -- --dry-run`. Apply with `npm run db:migrate:factory` only after the dry-run succeeds; this also applies the Worker portal role migration. Rerun the preflight afterward.
    - Files created by `db:factory-backup` contain worker and wage data, remain under ignored `backups/`, and must be stored securely.
    - Follow `docs/postgres-migration-plan.md`.
    - Confirm the completed repository adapters listed in `docs/postgres-adapter-scaffold.md` still match the live schema before switching traffic.
@@ -51,13 +52,13 @@ Use this list before the final public launch. Keep real secrets only in
    - Switch `DATA_BACKEND=postgres` only after preview read/write smoke tests pass.
 
 2. Payment gateway
-   - Create merchant account for eSewa and/or Khalti.
+   - Complete merchant KYC and obtain production credentials for both eSewa and Khalti.
    - Keep `PAYMENT_MODE=manual` until sandbox testing starts.
    - Add sandbox keys first: `PAYMENT_MODE=sandbox`, `ESEWA_MERCHANT_ID`, `ESEWA_SECRET_KEY`, `KHALTI_SECRET_KEY`.
-   - Use `docs/payment-gateway-plan.md` to test the sandbox-safe initiate and callback routes.
-   - eSewa sandbox callback signature verification is present; enable `ESEWA_VERIFY_WITH_STATUS_CHECK=true` in preview when status-check testing is ready.
-   - Implement remaining official provider verification adapters before `PAYMENT_MODE=live`.
-   - Test failed payment, cancelled payment, duplicate callback, amount mismatch, missing order, and successful payment.
+   - Use `docs/payment-gateway-plan.md` to test authenticated initiation, signed/lookup callbacks, and customer status reconciliation.
+   - Keep `ESEWA_VERIFY_WITH_STATUS_CHECK=true` in preview; status checking is mandatory automatically in live mode.
+   - Test failed payment, cancelled payment, abandoned pending payment, duplicate callback, reference/order mismatch, amount mismatch, missing order, provider timeout, and successful payment.
+   - Run one low-value real transaction per provider and reconcile the provider dashboard, KRISHOE order, and Admin → Payments before changing `PAYMENT_MODE=live`.
 
 3. Email/SMS notifications
    - Pick a webhook automation provider, generic HTTP email provider, or Nepal-compatible SMS HTTP provider.

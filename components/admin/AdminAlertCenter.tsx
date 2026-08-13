@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 interface AdminAlert {
@@ -10,7 +10,7 @@ interface AdminAlert {
   title: string;
   message: string;
   icon: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   read: boolean;
   read_at?: string;
   action_url?: string;
@@ -32,12 +32,7 @@ export default function AdminAlertCenter() {
   const [filter, setFilter] = useState<"all" | "unread" | string>("unread");
   const [selectedAlert, setSelectedAlert] = useState<AdminAlert | null>(null);
 
-  useEffect(() => {
-    loadAlerts();
-    loadStats();
-  }, [filter]);
-
-  const loadAlerts = async () => {
+  const loadAlerts = useCallback(async () => {
     setLoading(true);
     try {
       let url = "/api/admin/alerts?limit=100";
@@ -58,9 +53,9 @@ export default function AdminAlertCenter() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/alerts?action=stats");
       if (res.ok) {
@@ -70,7 +65,15 @@ export default function AdminAlertCenter() {
     } catch (error) {
       console.error("Failed to load stats:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => {
+      void loadAlerts();
+      void loadStats();
+    }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadAlerts, loadStats]);
 
   const handleMarkAsRead = async (alertId: string) => {
     try {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {

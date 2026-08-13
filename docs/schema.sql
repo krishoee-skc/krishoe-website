@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS admin_staff_accounts (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('Owner', 'Manager', 'Accountant', 'HR', 'Inventory', 'Sales', 'Factory', 'Viewer')),
+  role TEXT NOT NULL CHECK (role IN ('Owner', 'Manager', 'Accountant', 'HR', 'Inventory', 'Sales', 'Factory', 'Viewer', 'Worker')),
   branch_id TEXT NOT NULL REFERENCES company_branches(id) ON DELETE RESTRICT,
   status TEXT NOT NULL CHECK (status IN ('Invited', 'Active', 'Locked', 'Disabled')),
   password_hash TEXT NOT NULL,

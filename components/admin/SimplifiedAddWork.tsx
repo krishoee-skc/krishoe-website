@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRightIcon, UserIcon, PackageIcon, CheckIcon } from "@/components/Icons";
+import { UserIcon, PackageIcon } from "@/components/Icons";
 
 interface Worker {
   id: string;
@@ -22,7 +22,7 @@ interface WorkEntry {
   workerId: string;
   productId: string;
   pairs: number;
-  status: "in-progress" | "completed" | "rework";
+  status: "completed";
 }
 
 interface SimplifiedAddWorkProps {
@@ -44,11 +44,8 @@ export default function SimplifiedAddWork({
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [pairs, setPairs] = useState("");
-  const [status, setStatus] = useState<"completed" | "in-progress" | "rework">("completed");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [bulkMode, setBulkMode] = useState(false);
-  const [bulkEntries, setBulkEntries] = useState<WorkEntry[]>([]);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -83,50 +80,6 @@ export default function SimplifiedAddWork({
     setStep(3);
   };
 
-  const handleAddToBulk = () => {
-    if (!selectedWorker || !selectedProduct || !pairs) {
-      setError("Please select worker, product, and enter pairs");
-      return;
-    }
-
-    const entry: WorkEntry = {
-      date: today,
-      workerId: selectedWorker.id,
-      productId: selectedProduct.id,
-      pairs: parseInt(pairs),
-      status,
-    };
-
-    setBulkEntries([...bulkEntries, entry]);
-    setSelectedProduct(null);
-    setPairs("");
-    setStatus("completed");
-    setError("");
-  };
-
-  const handleSubmitBulk = async () => {
-    if (bulkEntries.length === 0) {
-      setError("Add at least one work entry");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      for (const entry of bulkEntries) {
-        await onSubmit(entry);
-      }
-      setBulkEntries([]);
-      setSelectedWorker(null);
-      setSelectedProduct(null);
-      setPairs("");
-      setStep(1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleSubmitSingle = async () => {
     if (!selectedWorker || !selectedProduct || !pairs) {
       setError("Please complete all fields");
@@ -140,7 +93,7 @@ export default function SimplifiedAddWork({
         workerId: selectedWorker.id,
         productId: selectedProduct.id,
         pairs: parseInt(pairs),
-        status,
+        status: "completed",
       });
       setSelectedWorker(null);
       setSelectedProduct(null);
@@ -384,37 +337,8 @@ export default function SimplifiedAddWork({
             />
           </div>
 
-          {/* Status Selection */}
-          <div className="rounded-lg border border-brand-green/20 bg-white p-4">
-            <p className="text-sm font-bold text-brand-green-ink mb-3">
-              ✅ Status
-            </p>
-            <div className="space-y-2">
-              {[
-                { value: "completed" as const, label: "पूरा भयो (Completed)" },
-                { value: "in-progress" as const, label: "आधा काम (In Progress)" },
-                { value: "rework" as const, label: "फिर गर्न सक्छ (Rework)" },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 cursor-pointer hover:bg-gray-50"
-                >
-                  <input
-                    type="radio"
-                    name="status"
-                    value={option.value}
-                    checked={status === option.value}
-                    onChange={(e) =>
-                      setStatus(e.target.value as typeof status)
-                    }
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm font-semibold text-gray-700">
-                    {option.label}
-                  </span>
-                </label>
-              ))}
-            </div>
+          <div className="rounded-lg border border-brand-green/20 bg-white p-4 text-sm text-gray-700">
+            ज्यालामा पोस्ट गर्न कामदारले बुझाएको पूरा काम मात्र यहाँ राख्नुहोस्।
           </div>
 
           {/* Amount Display */}

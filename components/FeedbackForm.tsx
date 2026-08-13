@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FeedbackType, UserType } from "@/lib/feedback";
+import { FeedbackType } from "@/lib/feedback";
 
 export default function FeedbackForm() {
   const [type, setType] = useState<FeedbackType>("improvement");
-  const [userType, setUserType] = useState<UserType>("customer");
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userPhone, setUserPhone] = useState("");
@@ -21,12 +20,6 @@ export default function FeedbackForm() {
     { value: "feature" as FeedbackType, label: "✨ Feature Request", desc: "Suggest a new feature" },
     { value: "improvement" as FeedbackType, label: "💡 Improvement", desc: "Suggest better UX/design" },
     { value: "rating" as FeedbackType, label: "⭐ Rating", desc: "Rate your experience" },
-  ];
-
-  const userTypeOptions = [
-    { value: "customer" as UserType, label: "Customer" },
-    { value: "worker" as UserType, label: "Worker" },
-    { value: "admin" as UserType, label: "Admin" },
   ];
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,7 +44,6 @@ export default function FeedbackForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
-          userType,
           userName,
           userEmail: userEmail || undefined,
           userPhone: userPhone || undefined,
@@ -125,24 +117,6 @@ export default function FeedbackForm() {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* User Type */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            You are a:
-          </label>
-          <select
-            value={userType}
-            onChange={(e) => setUserType(e.target.value as UserType)}
-            className="w-full px-3 py-2 border rounded-lg"
-          >
-            {userTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Name */}

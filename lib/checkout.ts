@@ -119,7 +119,7 @@ export async function applyPromoCode(orderId: string, code: string, subtotal: nu
       WHERE id = ${promoCode.id};
     `;
 
-    const result = await sql`
+    await sql`
       UPDATE orders
       SET promo_code = ${code},
           discount_amount = ${discount}

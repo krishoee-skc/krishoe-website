@@ -71,20 +71,20 @@ export async function POST(request: NextRequest) {
     if (!result.replayed && result.id) {
       try {
         // Fetch worker and item names for notification
-        const worker = await queryPostgres(
+        const worker = await queryPostgres<{ name: string }>(
           STORE,
           "SELECT name FROM factory_workers WHERE id = $1",
           [workerId]
         );
-        const item = await queryPostgres(
+        const item = await queryPostgres<{ name: string }>(
           STORE,
           "SELECT name FROM factory_items WHERE id = $1",
           [itemId]
         );
 
         if (worker.length > 0 && item.length > 0) {
-          const workerName = (worker[0] as any).name;
-          const itemName = (item[0] as any).name;
+          const workerName = worker[0].name;
+          const itemName = item[0].name;
           const amount = Number(result.amount_earned) || 0;
 
           await notifyWorkEntry({

@@ -243,14 +243,14 @@ export async function getPosInvoiceForOnlineOrder(orderId: string) {
   return invoices.find((invoice) => posInvoiceMatchesOnlineOrder(invoice, orderId)) ?? null;
 }
 
-function stockByOnlineDesign(finishedStock: FinishedStock[]) {
+// Ready stock is one physical pool per design, even when its source row says
+// Factory, Wholesale, Retail, or Online. POS already draws from that shared
+// pool; the online-order report must use the same rule or it incorrectly says
+// "Needs stock" while pairs are available in another channel.
+function stockByDesign(finishedStock: FinishedStock[]) {
   const stockByDesign = new Map<string, { design: string; pairs: number }>();
 
   for (const stock of finishedStock) {
-    if (stock.channel !== "Online") {
-      continue;
-    }
-
     const key = productKey(stock.design);
     const existing = stockByDesign.get(key) ?? { design: stock.design, pairs: 0 };
     existing.pairs += cleanNumber(stock.stockPairs);
@@ -261,7 +261,7 @@ function stockByOnlineDesign(finishedStock: FinishedStock[]) {
 }
 
 function missingOnlineStockItems(items: ParsedOnlineOrderItem[], finishedStock: FinishedStock[]) {
-  const stockGroups = stockByOnlineDesign(finishedStock);
+  const stockGroups = stockByDesign(finishedStock);
   const requiredGroups = new Map<string, { design: string; pairs: number }>();
 
   for (const item of items) {

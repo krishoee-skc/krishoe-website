@@ -29,7 +29,7 @@ npm run build
 - Public health check: `/api/health`
 - Protected readiness report: `/api/admin/readiness`
 - Backup export: `/api/admin/backup`
-- Payment gateway sandbox plan: [docs/payment-gateway-plan.md](docs/payment-gateway-plan.md)
+- eSewa/Khalti sandbox and live operations: [docs/payment-gateway-plan.md](docs/payment-gateway-plan.md)
 - Full launch checklist: [docs/production-checklist.md](docs/production-checklist.md)
 
 Local JSON persistence is useful for development. Before high traffic production,

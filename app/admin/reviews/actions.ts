@@ -40,7 +40,14 @@ export async function updateReviewStatusAction(formData: FormData) {
     throw new Error("Product id and review id are required.");
   }
 
-  const { product, review } = await updateProductReviewStatus(productId, reviewId, status);
+  const { product, review } = await updateProductReviewStatus(
+    productId,
+    reviewId,
+    status,
+    status === "approved" || status === "pending"
+      ? { rejectionReason: "", flaggedAsSpam: false, flaggedAt: "" }
+      : {},
+  );
   await recordAdminAuditEvent(
     "review_status_update",
     `Review ${review.id} for ${product.name} marked ${status}.`,
@@ -78,15 +85,12 @@ export async function rejectReviewAction(formData: FormData) {
     throw new Error("Product id and review id are required.");
   }
 
-  const { product, review } = await updateProductReviewStatus(productId, reviewId, "rejected");
-
-  // Save rejection reason if provided
-  if (rejectionReason && product.reviews) {
-    const reviewToUpdate = product.reviews.find((r) => r.id === reviewId);
-    if (reviewToUpdate) {
-      (reviewToUpdate as any).rejectionReason = rejectionReason;
-    }
-  }
+  const { product, review } = await updateProductReviewStatus(
+    productId,
+    reviewId,
+    "rejected",
+    { rejectionReason, flaggedAsSpam: false, flaggedAt: "" },
+  );
 
   await recordAdminAuditEvent(
     "review_rejected",
@@ -105,17 +109,16 @@ export async function flagReviewAsSpamAction(formData: FormData) {
     throw new Error("Product id and review id are required.");
   }
 
-  const { product, review } = await updateProductReviewStatus(productId, reviewId, "rejected");
-
-  // Mark as spam
-  if (product.reviews) {
-    const reviewToUpdate = product.reviews.find((r) => r.id === reviewId);
-    if (reviewToUpdate) {
-      (reviewToUpdate as any).flaggedAsSpam = true;
-      (reviewToUpdate as any).flaggedAt = new Date().toISOString();
-      (reviewToUpdate as any).rejectionReason = "Flagged as spam/abuse";
-    }
-  }
+  const { product, review } = await updateProductReviewStatus(
+    productId,
+    reviewId,
+    "rejected",
+    {
+      flaggedAsSpam: true,
+      flaggedAt: new Date().toISOString(),
+      rejectionReason: "Flagged as spam/abuse",
+    },
+  );
 
   await recordAdminAuditEvent(
     "review_flagged_spam",

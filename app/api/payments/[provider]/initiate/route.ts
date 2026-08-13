@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  initiateSandboxPayment,
+  initiatePayment,
   isGatewayProvider,
 } from "@/lib/payment-gateways";
+import { getCurrentCustomer } from "@/lib/customer-auth";
+import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
+import { reportError } from "@/lib/report-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,11 +51,51 @@ export async function POST(request: Request, { params }: PaymentRouteContext) {
     );
   }
 
-  const result = await initiateSandboxPayment({
-    provider,
-    values: await requestValues(request),
-    requestUrl: request.url,
+  const customer = await getCurrentCustomer();
+  if (!customer) {
+    return NextResponse.json(
+      { ok: false, message: "Sign in to pay for this order." },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "payment-initiation",
+    key: `${customer.id}:${provider}`,
+    maxAttempts: 6,
+    windowMs: 10 * 60 * 1000,
   });
 
-  return NextResponse.json(result.body, { status: result.status });
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { ok: false, message: "Too many payment attempts. Please wait and try again." },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      },
+    );
+  }
+
+  try {
+    const result = await initiatePayment({
+      provider,
+      values: await requestValues(request),
+      requestUrl: request.url,
+      customer,
+    });
+
+    return NextResponse.json(result.body, {
+      status: result.status,
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    reportError(`initiate ${provider} payment`, error);
+    return NextResponse.json(
+      { ok: false, provider, message: "Payment could not be started right now." },
+      { status: 502, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }

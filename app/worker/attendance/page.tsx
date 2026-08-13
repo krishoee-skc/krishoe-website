@@ -1,172 +1,86 @@
-"use client";
+import { redirect } from "next/navigation";
+import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
+import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
+import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Suspense } from "react";
+type Props = { searchParams?: Promise<{ month?: string }> };
 
-interface AttendanceRecord {
-  date: string;
-  status: string;
-  checkIn?: string;
-  checkOut?: string;
+function currentMonth() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kathmandu",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date()).slice(0, 7);
 }
 
-function AttendanceContent() {
-  const searchParams = useSearchParams();
-  const workerId = searchParams.get("id");
+export default async function AttendancePage({ searchParams }: Props) {
+  const access = await getCurrentWorkerAccess();
+  if (!access.authenticated) redirect("/worker/login");
+  if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} />;
 
-  // Mock data
-  const monthlyAttendance = {
-    presentDays: 18,
-    halfDays: 2,
-    leaveDays: 1,
-    absentDays: 1,
-    attendanceRate: 92,
-    records: [
-      { date: "2026-08-06", status: "Present", checkIn: "09:15", checkOut: "17:45" },
-      { date: "2026-08-05", status: "Present", checkIn: "09:00", checkOut: "18:00" },
-      { date: "2026-08-04", status: "Half Day" },
-      { date: "2026-08-03", status: "Absent" },
-      { date: "2026-08-02", status: "Leave" },
-      { date: "2026-08-01", status: "Present", checkIn: "09:20", checkOut: "17:50" },
-    ],
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Present":
-        return "bg-green-100 text-green-700";
-      case "Half Day":
-        return "bg-blue-100 text-blue-700";
-      case "Leave":
-        return "bg-yellow-100 text-yellow-700";
-      case "Absent":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  const requestedMonth = (await searchParams)?.month || "";
+  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : currentMonth();
+  const records = access.detail.attendanceRecords.filter((record) => record.workDate.startsWith(month));
+  const count = (status: string) => records.filter((record) => record.status === status).length;
+  const attendanceUnits = records.reduce(
+    (total, record) => total + (record.status === "Present" ? 1 : record.status === "Half Day" ? 0.5 : 0),
+    0,
+  );
+  const attendanceRate = records.length > 0 ? Math.round((attendanceUnits / records.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 p-4 mb-6">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">📅 Attendance Records</h1>
-          <Link
-            href={`/worker/dashboard?id=${workerId}`}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            ← Back to Dashboard
-          </Link>
+    <WorkerPortalShell workerName={access.detail.employee.name}>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">My attendance</p>
+          <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Attendance records</h1>
         </div>
-      </nav>
+        <form className="flex items-end gap-2 print:hidden">
+          <label className="grid gap-1 text-sm font-bold text-brand-green-ink">
+            Month
+            <input name="month" type="month" defaultValue={month} className="h-11 rounded-lg border border-gray-200 bg-white px-3" />
+          </label>
+          <button type="submit" className="h-11 rounded-full bg-brand-green px-5 text-sm font-bold text-white">View</button>
+        </form>
+      </div>
 
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-green-50 rounded-lg border border-green-200 p-4">
-            <div className="text-sm text-green-600 font-medium">Present Days</div>
-            <div className="text-2xl font-bold text-green-900 mt-2">
-              {monthlyAttendance.presentDays}
-            </div>
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[
+          ["Present", count("Present")],
+          ["Half day", count("Half Day")],
+          ["Leave", count("Leave")],
+          ["Absent", count("Absent")],
+          ["Attendance rate", `${attendanceRate}%`],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</p>
+            <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
           </div>
-          <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-            <div className="text-sm text-blue-600 font-medium">Half Days</div>
-            <div className="text-2xl font-bold text-blue-900 mt-2">
-              {monthlyAttendance.halfDays}
-            </div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
-            <div className="text-sm text-yellow-600 font-medium">Leave Days</div>
-            <div className="text-2xl font-bold text-yellow-900 mt-2">
-              {monthlyAttendance.leaveDays}
-            </div>
-          </div>
-          <div className="bg-red-50 rounded-lg border border-red-200 p-4">
-            <div className="text-sm text-red-600 font-medium">Absent Days</div>
-            <div className="text-2xl font-bold text-red-900 mt-2">
-              {monthlyAttendance.absentDays}
-            </div>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Attendance Rate */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="font-medium text-gray-900">Attendance Rate</span>
-            <span className="font-bold text-lg text-gray-900">
-              {monthlyAttendance.attendanceRate}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="h-3 bg-green-500 rounded-full transition-all"
-              style={{ width: `${Math.min(monthlyAttendance.attendanceRate, 100)}%` }}
-            ></div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Keep above 90% for attendance bonus eligibility
-          </p>
-        </div>
-
-        {/* Records Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Check In
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Check Out
-                </th>
-              </tr>
+      <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        {records.length === 0 ? (
+          <p className="p-6 text-sm text-gray-500">No attendance records were published for this month.</p>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 text-left text-gray-500">
+              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Check in</th><th className="px-4 py-3">Check out</th><th className="px-4 py-3">Overtime</th></tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {monthlyAttendance.records.map((record) => (
-                <tr key={record.date} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-sm text-gray-900">
-                    {new Date(record.date).toLocaleDateString("default", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </td>
-                  <td className="px-6 py-3 text-sm">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        record.status
-                      )}`}
-                    >
-                      {record.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-sm text-gray-600">
-                    {record.checkIn || "—"}
-                  </td>
-                  <td className="px-6 py-3 text-sm text-gray-600">
-                    {record.checkOut || "—"}
-                  </td>
+            <tbody className="divide-y divide-gray-100">
+              {records.map((record) => (
+                <tr key={record.id}>
+                  <td className="px-4 py-3 font-bold">{record.workDate}</td>
+                  <td className="px-4 py-3">{record.status}</td>
+                  <td className="px-4 py-3">{record.checkIn || "—"}</td>
+                  <td className="px-4 py-3">{record.checkOut || "—"}</td>
+                  <td className="px-4 py-3">{record.overtimeHours ? `${record.overtimeHours} hr` : "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
-    </div>
-  );
-}
-
-export default function AttendancePage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
-      <AttendanceContent />
-    </Suspense>
+    </WorkerPortalShell>
   );
 }

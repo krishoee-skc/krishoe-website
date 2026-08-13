@@ -3,11 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import OnlinePaymentButtons from "@/components/payments/OnlinePaymentButtons";
+import PendingPaymentStatus from "@/components/payments/PendingPaymentStatus";
 import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getGatewayConfig, type GatewayProvider } from "@/lib/payment-gateways";
 import { getOrderById, orderMatchesCustomer, type OrderStatus } from "@/lib/submissions";
 
 type OrderStatusPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ payment?: string }>;
 };
 
 export const metadata: Metadata = {
@@ -29,8 +33,9 @@ const statusCopy: Record<OrderStatus, string> = {
   Cancelled: "This request was cancelled and will not be dispatched.",
 };
 
-export default async function OrderStatusPage({ params }: OrderStatusPageProps) {
+export default async function OrderStatusPage({ params, searchParams }: OrderStatusPageProps) {
   const { id } = await params;
+  const { payment } = (await searchParams) ?? {};
   const [order, user] = await Promise.all([getOrderById(id), getCurrentCustomer()]);
 
   if (!order) {
@@ -40,6 +45,20 @@ export default async function OrderStatusPage({ params }: OrderStatusPageProps) 
   const canViewPrivateDetails = user ? orderMatchesCustomer(order, user) : false;
   const loginPath = `/account/login?next=${encodeURIComponent(`/order/${order.id}`)}`;
   const registerPath = `/account/register?next=${encodeURIComponent(`/order/${order.id}`)}`;
+  const onlinePaymentProviders = (["esewa", "khalti"] as GatewayProvider[]).filter(
+    (provider) => getGatewayConfig(provider).enabled,
+  );
+  const canStartOnlinePayment =
+    canViewPrivateDetails &&
+    order.status === "Contacted" &&
+    (order.paymentStatus === "Unpaid" || order.paymentStatus === "Failed");
+  const pendingOnlineProvider =
+    canViewPrivateDetails &&
+    order.paymentStatus === "Pending" &&
+    (order.paymentProvider === "esewa" || order.paymentProvider === "khalti") &&
+    getGatewayConfig(order.paymentProvider).enabled
+      ? order.paymentProvider
+      : null;
 
   return (
     <main className="bg-brand-mist">
@@ -66,6 +85,25 @@ export default async function OrderStatusPage({ params }: OrderStatusPageProps) 
           <p className="mt-6 rounded-lg bg-brand-mist p-4 text-sm font-bold leading-7 text-brand-green-ink">
             {statusCopy[order.status]}
           </p>
+
+          {payment && canViewPrivateDetails ? (
+            <p
+              role="status"
+              className={`mt-4 rounded-lg p-4 text-sm font-bold ${
+                order.paymentStatus === "Paid"
+                  ? "bg-brand-green-mist text-brand-green"
+                  : order.paymentStatus === "Pending"
+                    ? "bg-[#FFF9EA] text-brand-gold-ink"
+                    : "bg-brand-clay-mist text-brand-clay"
+              }`}
+            >
+              {order.paymentStatus === "Paid"
+                ? "Payment verified successfully. Thank you."
+                : order.paymentStatus === "Pending"
+                  ? "Payment is still pending provider verification. Please do not pay again."
+                  : "Payment was not completed. No verified charge was recorded."}
+            </p>
+          ) : null}
 
           {!canViewPrivateDetails ? (
             <div className="mt-6 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
@@ -126,6 +164,23 @@ export default async function OrderStatusPage({ params }: OrderStatusPageProps) 
                   ) : null}
                 </div>
               </div>
+
+              {canStartOnlinePayment ? (
+                <OnlinePaymentButtons
+                  orderId={order.id}
+                  providers={onlinePaymentProviders}
+                />
+              ) : pendingOnlineProvider ? (
+                <PendingPaymentStatus orderId={order.id} provider={pendingOnlineProvider} />
+              ) : order.status === "New" && order.paymentStatus !== "Paid" ? (
+                <div className="mt-5 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
+                  <h2 className="text-lg font-black text-brand-green-ink">Payment opens after confirmation</h2>
+                  <p className="mt-2 text-sm leading-6 text-brand-muted">
+                    KRISHOE will confirm stock and delivery first. When this order becomes Contacted,
+                    secure eSewa/Khalti buttons will appear here.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="mt-5 rounded-lg border border-black/10 p-5">
                 <h2 className="text-lg font-black text-brand-green-ink">Items</h2>

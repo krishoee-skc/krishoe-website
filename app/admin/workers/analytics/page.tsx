@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { requireAdminPermission } from "@/lib/admin-permissions";
 import WorkerAnalyticsDashboard from "@/components/admin/WorkerAnalyticsDashboard";
 
 interface WorkerMetrics {

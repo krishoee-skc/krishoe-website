@@ -19,7 +19,7 @@ export interface AdminAlert {
   title: string;
   message: string;
   icon: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   read: boolean;
   read_at?: string;
   action_url?: string;
@@ -35,7 +35,7 @@ export interface AlertRecord {
   title: string;
   message: string;
   icon: string;
-  data: any;
+  data: unknown;
   is_read: boolean;
   read_at?: string;
   action_url?: string;
@@ -107,7 +107,7 @@ export async function getUnreadAlertCount(): Promise<number> {
       []
     );
 
-    return result[0]?.count || 0;
+    return Number(result[0]?.count) || 0;
   } catch (error) {
     console.error("Failed to get alert count:", error);
     return 0;
@@ -209,23 +209,41 @@ export async function getAlertStats(): Promise<{
   by_severity: Array<{ severity: string; count: number }>;
 }> {
   try {
-    const stats = await queryPostgres<any>(
-      STORE,
-      `SELECT
-        COUNT(CASE WHEN is_read = false THEN 1 END) as unread_count,
-        COUNT(CASE WHEN created_at::date = CURRENT_DATE THEN 1 END) as total_today,
-        json_agg(DISTINCT json_build_object('type', alert_type, 'count', COUNT(*))) FILTER (WHERE alert_type IS NOT NULL) as by_type,
-        json_agg(DISTINCT json_build_object('severity', severity, 'count', COUNT(*))) FILTER (WHERE severity IS NOT NULL) as by_severity
-       FROM admin_alerts
-       WHERE expires_at IS NULL OR expires_at > NOW()`,
-      []
-    );
+    const [summary, typeStats, severityStats] = await Promise.all([
+      queryPostgres<{ unread_count: number | string; total_today: number | string }>(
+        STORE,
+        `SELECT
+          COUNT(*) FILTER (WHERE is_read = false) AS unread_count,
+          COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE) AS total_today
+         FROM admin_alerts
+         WHERE expires_at IS NULL OR expires_at > NOW()`,
+      ),
+      queryPostgres<{ type: string; count: number | string }>(
+        STORE,
+        `SELECT alert_type AS type, COUNT(*) AS count
+         FROM admin_alerts
+         WHERE (expires_at IS NULL OR expires_at > NOW()) AND alert_type IS NOT NULL
+         GROUP BY alert_type
+         ORDER BY count DESC`,
+      ),
+      queryPostgres<{ severity: string; count: number | string }>(
+        STORE,
+        `SELECT severity, COUNT(*) AS count
+         FROM admin_alerts
+         WHERE (expires_at IS NULL OR expires_at > NOW()) AND severity IS NOT NULL
+         GROUP BY severity
+         ORDER BY count DESC`,
+      ),
+    ]);
 
     return {
-      unread_count: stats[0]?.unread_count || 0,
-      total_today: stats[0]?.total_today || 0,
-      by_type: stats[0]?.by_type || [],
-      by_severity: stats[0]?.by_severity || [],
+      unread_count: Number(summary[0]?.unread_count) || 0,
+      total_today: Number(summary[0]?.total_today) || 0,
+      by_type: typeStats.map((item) => ({ type: item.type, count: Number(item.count) || 0 })),
+      by_severity: severityStats.map((item) => ({
+        severity: item.severity,
+        count: Number(item.count) || 0,
+      })),
     };
   } catch (error) {
     console.error("Failed to get alert stats:", error);
@@ -240,6 +258,16 @@ export async function getAlertStats(): Promise<{
 
 // Format alert record
 function formatAlert(record: AlertRecord): AdminAlert {
+  let data: Record<string, unknown> = {};
+  try {
+    const parsed = typeof record.data === "string" ? JSON.parse(record.data) : record.data;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      data = parsed as Record<string, unknown>;
+    }
+  } catch {
+    data = {};
+  }
+
   return {
     id: record.id,
     type: record.alert_type as AlertType,
@@ -247,7 +275,7 @@ function formatAlert(record: AlertRecord): AdminAlert {
     title: record.title,
     message: record.message,
     icon: record.icon,
-    data: typeof record.data === "string" ? JSON.parse(record.data) : record.data,
+    data,
     read: record.is_read,
     read_at: record.read_at,
     action_url: record.action_url,

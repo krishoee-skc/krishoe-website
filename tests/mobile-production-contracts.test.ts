@@ -39,9 +39,20 @@ describe("mobile production contracts", () => {
     expect(source("components/ServiceWorkerRegistration.tsx")).toContain(
       'navigator.serviceWorker.register("/sw.js"',
     );
-    expect(source("public/sw.js")).toContain('const OFFLINE_URL = "/offline"');
-    expect(source("public/sw.js")).toContain('const CACHE_NAME = "krishoe-shell-v2"');
-    expect(source("public/sw.js")).toContain("event.waitUntil(network");
+    const worker = source("public/sw.js");
+    expect(worker).toContain('const OFFLINE_URL = "/offline"');
+    expect(worker).toContain('const CACHE_NAME = "krishoe-shell-v2"');
+    expect(worker).toContain('fetch(request, { cache: "no-store" })');
+    expect(worker).toContain('pathname.startsWith("/_next/static/")');
+    expect(worker).not.toContain("caches.open(RUNTIME_CACHE).then((cache)");
+  });
+
+  it("never caches API, admin, account, checkout or worker responses", () => {
+    const worker = source("public/sw.js");
+    for (const prefix of ["/api", "/admin", "/account", "/checkout", "/worker"]) {
+      expect(worker).toContain(`\"${prefix}\"`);
+    }
+    expect(worker).toContain("if (isPrivatePath(url.pathname))");
   });
 
   it("supports installed apps in both portrait and landscape", () => {

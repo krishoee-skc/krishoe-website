@@ -28,7 +28,7 @@ function statusClass(status: Review["status"]) {
 
 export default function ReviewCard({ row }: { row: ReviewRow }) {
   const [showRejectionForm, setShowRejectionForm] = useState(false);
-  const review = row.review as any;
+  const review = row.review;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -45,6 +45,11 @@ export default function ReviewCard({ row }: { row: ReviewRow }) {
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-brand-green-ink">{row.review.name}</span>
+            {row.review.verifiedPurchase ? (
+              <span className="rounded-full bg-brand-green-mist px-3 py-1 text-xs font-bold text-brand-green">
+                Verified purchase
+              </span>
+            ) : null}
             <span className="text-sm font-black text-brand-gold-ink">{row.review.rating}★</span>
             <DateDisplayAdmin date={row.review.createdAt} time={true} className="text-xs text-gray-500" />
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(row.review.status)}`}>

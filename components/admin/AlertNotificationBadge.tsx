@@ -1,20 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function AlertNotificationBadge() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadUnreadCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/alerts?action=count");
       if (res.ok) {
@@ -26,7 +19,16 @@ export default function AlertNotificationBadge() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadUnreadCount(), 0);
+    const interval = setInterval(() => void loadUnreadCount(), 30000);
+    return () => {
+      window.clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
+  }, [loadUnreadCount]);
 
   if (loading) {
     return null;

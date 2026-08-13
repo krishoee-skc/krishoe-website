@@ -202,7 +202,7 @@ export async function getKeyMetrics(): Promise<AnalyticsMetric[]> {
         current: m.current_value,
         previous: m.previous_value,
         change,
-        changePercent: parseFloat(changePercent as any),
+        changePercent: Number(changePercent),
         trend:
           change > 0 ? "up" : change < 0 ? "down" : "flat",
       };
@@ -388,18 +388,18 @@ export async function getWorkerPerformanceMetrics(): Promise<WorkerPerformanceMe
     );
 
     return workers.map((w) => {
-      const qualityRate = parseFloat(w.quality_rate as any) || 0;
-      const attendanceRate = parseFloat(w.attendance_rate as any) || 0;
+      const qualityRate = Number(w.quality_rate) || 0;
+      const attendanceRate = Number(w.attendance_rate) || 0;
 
       // Bonus calculation: 5% if quality > 95% AND attendance > 90%
       const bonusEligible = qualityRate > 95 && attendanceRate > 90;
-      const bonusAmount = bonusEligible ? Math.round(parseFloat(w.earnings as any) * 0.05) : 0;
+      const bonusAmount = bonusEligible ? Math.round(Number(w.earnings) * 0.05) : 0;
 
       return {
         workerId: w.worker_id,
         workerName: w.worker_name,
         pairsThisMonth: w.pairs_count,
-        earningsThisMonth: Math.round(parseFloat(w.earnings as any)),
+        earningsThisMonth: Math.round(Number(w.earnings)),
         qualityRate: Math.round(qualityRate * 100) / 100,
         attendanceRate: Math.round(attendanceRate * 100) / 100,
         bonusEligible,

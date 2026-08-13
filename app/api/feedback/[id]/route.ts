@@ -7,8 +7,15 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdminPermission("dashboard:read");
+    await requireAdminPermission("feedback:write");
+  } catch {
+    return NextResponse.json(
+      { error: "Feedback write access is required." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
+  try {
     const { id } = await params;
     const { status } = await request.json();
 
@@ -24,11 +31,12 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       message: "Feedback status updated",
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    console.error("Feedback status update failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update feedback" },
-      { status: 500 }
+      { error: "Failed to update feedback" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

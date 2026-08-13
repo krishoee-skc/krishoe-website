@@ -115,8 +115,10 @@ export async function getSMSHistory(
   limit: number = 100
 ): Promise<SMSRecord[]> {
   try {
+    const normalizedLimit = Number.isFinite(limit) ? Math.trunc(limit) : 100;
+    const safeLimit = Math.min(Math.max(normalizedLimit, 1), 500);
     let query = "SELECT * FROM sms_messages WHERE 1=1";
-    const params: any[] = [];
+    const params: Array<string | number> = [];
 
     if (phoneNumber) {
       params.push(phoneNumber);
@@ -133,7 +135,7 @@ export async function getSMSHistory(
       query += ` AND worker_id = $${params.length}`;
     }
 
-    params.push(limit);
+    params.push(safeLimit);
     query += ` ORDER BY created_at DESC LIMIT $${params.length}`;
 
     const messages = await queryPostgres<SMSRecord>(STORE, query, params);
@@ -147,26 +149,50 @@ export async function getSMSHistory(
 // Get SMS statistics
 export async function getSMSStats(days: number = 7) {
   try {
-    const stats = await queryPostgres<{
-      total_sent: number;
-      total_failed: number;
-      success_rate: number;
-      by_type: any[];
-      by_event: any[];
-    }>(
-      STORE,
-      `SELECT
-        COUNT(*) as total_sent,
-        COUNT(CASE WHEN status = 'failed' THEN 1 END) as total_failed,
-        ROUND(100 * COUNT(CASE WHEN status = 'sent' THEN 1 END)::float / COUNT(*), 2) as success_rate,
-        json_agg(json_build_object('type', message_type, 'count', COUNT(*))) as by_type,
-        json_agg(json_build_object('event', event_type, 'count', COUNT(*))) as by_event
-       FROM sms_messages
-       WHERE created_at > NOW() - INTERVAL '${days} days'
-       GROUP BY message_type, event_type`,
-      []
-    );
-    return stats[0] || { total_sent: 0, total_failed: 0, success_rate: 0, by_type: [], by_event: [] };
+    const normalizedDays = Number.isFinite(days) ? Math.trunc(days) : 7;
+    const safeDays = Math.min(Math.max(normalizedDays, 1), 366);
+    const [summary, byType, byEvent] = await Promise.all([
+      queryPostgres<{
+        total_sent: number | string;
+        total_failed: number | string;
+        success_rate: number | string;
+      }>(
+        STORE,
+        `SELECT
+          COUNT(*) FILTER (WHERE status = 'sent') AS total_sent,
+          COUNT(*) FILTER (WHERE status = 'failed') AS total_failed,
+          COALESCE(
+            ROUND(100 * COUNT(*) FILTER (WHERE status = 'sent')::numeric / NULLIF(COUNT(*), 0), 2),
+            0
+          ) AS success_rate
+         FROM sms_messages
+         WHERE created_at > NOW() - ($1 * INTERVAL '1 day')`,
+        [safeDays],
+      ),
+      queryPostgres<{ type: string; count: number | string }>(
+        STORE,
+        `SELECT message_type AS type, COUNT(*) AS count
+         FROM sms_messages
+         WHERE created_at > NOW() - ($1 * INTERVAL '1 day')
+         GROUP BY message_type ORDER BY count DESC`,
+        [safeDays],
+      ),
+      queryPostgres<{ event: string; count: number | string }>(
+        STORE,
+        `SELECT event_type AS event, COUNT(*) AS count
+         FROM sms_messages
+         WHERE created_at > NOW() - ($1 * INTERVAL '1 day')
+         GROUP BY event_type ORDER BY count DESC`,
+        [safeDays],
+      ),
+    ]);
+    return {
+      total_sent: Number(summary[0]?.total_sent) || 0,
+      total_failed: Number(summary[0]?.total_failed) || 0,
+      success_rate: Number(summary[0]?.success_rate) || 0,
+      by_type: byType.map((item) => ({ type: item.type, count: Number(item.count) || 0 })),
+      by_event: byEvent.map((item) => ({ event: item.event, count: Number(item.count) || 0 })),
+    };
   } catch (error) {
     console.error("Failed to fetch SMS stats:", error);
     return { total_sent: 0, total_failed: 0, success_rate: 0, by_type: [], by_event: [] };

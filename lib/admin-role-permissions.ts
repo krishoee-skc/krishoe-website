@@ -6,6 +6,7 @@ export const adminRoles = [
   "Inventory",
   "Sales",
   "Factory",
+  "Worker",
   "Viewer",
 ] as const;
 
@@ -21,6 +22,8 @@ export const adminPermissions = [
   "devices:read",
   "dues:read",
   "exports:read",
+  "feedback:read",
+  "feedback:write",
   "hr:read",
   "hr:write",
   "insights:read",
@@ -117,6 +120,8 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "devices:read",
     "dues:read",
     "exports:read",
+    "feedback:read",
+    "feedback:write",
     "insights:read",
     "messages:read",
     "messages:write",
@@ -142,6 +147,7 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "readiness:read",
     "security:read",
   ]),
+  Worker: new Set(),
   Viewer: new Set(
     adminPermissions.filter(
       (permission) => permission.endsWith(":read") && permission !== "settings:write",
@@ -151,6 +157,11 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
 
 const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermission]> = [
   ["/admin/factory", "production:entry"],
+  ["/admin/alerts", "notifications:read"],
+  ["/admin/analytics", "insights:read"],
+  ["/admin/feedback", "feedback:read"],
+  ["/admin/monitoring", "security:read"],
+  ["/admin/sms", "notifications:read"],
   ["/admin/search", "search:read"],
   ["/admin/stock", "stock:read"],
   ["/admin/pos", "pos:read"],

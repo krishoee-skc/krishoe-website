@@ -83,7 +83,7 @@ function adminRoleStatus(): ReadinessCheck {
     status: explicitRole ? "ready" : "warning",
     detail: explicitRole
       ? `ADMIN_ROLE=${role} is configured as the setup fallback. Staff account sessions now enforce their own role permissions.`
-      : `ADMIN_ROLE is not set or invalid, so fallback admin sessions default to ${role}. Create real staff accounts and assign Owner, Manager, Accountant, HR, Inventory, Sales, or Viewer before production.`,
+      : `ADMIN_ROLE is not set or invalid, so fallback admin sessions default to ${role}. Create real staff accounts and assign Owner, Manager, Accountant, HR, Inventory, Sales, Factory, Worker, or Viewer before production.`,
     envKeys: ["ADMIN_ROLE"],
   };
 }
@@ -171,24 +171,29 @@ function paymentStatus(): ReadinessCheck {
   const mode = envValue("PAYMENT_MODE").toLowerCase() || "manual";
   const esewaReady = hasEnv("ESEWA_MERCHANT_ID") && hasEnv("ESEWA_SECRET_KEY");
   const khaltiReady = hasEnv("KHALTI_SECRET_KEY");
+  const paymentBaseUrl = envValue("PAYMENT_PUBLIC_BASE_URL") || envValue("NEXT_PUBLIC_SITE_URL");
+  const liveUrlReady = /^https:\/\/[^/]+/i.test(paymentBaseUrl) && !paymentBaseUrl.includes("localhost");
   const readyProviders = [
     esewaReady ? "eSewa" : "",
     khaltiReady ? "Khalti" : "",
   ].filter(Boolean);
 
   if (mode === "live") {
+    const liveReady = esewaReady && khaltiReady && liveUrlReady;
     return {
       id: "payment",
       label: "Payment gateways",
-      status: "blocked",
-      detail: "PAYMENT_MODE=live is blocked until merchant live credentials, production callback URLs, and provider-side verification are fully tested.",
+      status: liveReady ? "ready" : "blocked",
+      detail: liveReady
+        ? "Live eSewa and Khalti are configured with an HTTPS callback origin, signed eSewa responses/status checks, Khalti lookup verification, amount checks, and idempotent settlement."
+        : "Live payment needs both merchant credential sets and PAYMENT_PUBLIC_BASE_URL set to the final HTTPS origin.",
       envKeys: [
         "PAYMENT_MODE",
+        "PAYMENT_PUBLIC_BASE_URL",
         "ESEWA_MERCHANT_ID",
         "ESEWA_SECRET_KEY",
         "ESEWA_STATUS_CHECK_URL",
         "ESEWA_VERIFY_WITH_STATUS_CHECK",
-        "KHALTI_PUBLIC_KEY",
         "KHALTI_SECRET_KEY",
         "KHALTI_API_BASE_URL",
       ],
@@ -205,11 +210,11 @@ function paymentStatus(): ReadinessCheck {
         : "Payment is inquiry/manual mode. Set PAYMENT_MODE=sandbox and add eSewa or Khalti keys for sandbox route tests.",
     envKeys: [
       "PAYMENT_MODE",
+      "PAYMENT_PUBLIC_BASE_URL",
       "ESEWA_MERCHANT_ID",
       "ESEWA_SECRET_KEY",
       "ESEWA_STATUS_CHECK_URL",
       "ESEWA_VERIFY_WITH_STATUS_CHECK",
-      "KHALTI_PUBLIC_KEY",
       "KHALTI_SECRET_KEY",
       "KHALTI_API_BASE_URL",
     ],

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon, PackageIcon, UserIcon, InfoIcon, BellIcon } from "@/components/Icons";
+import { ArrowRightIcon, PackageIcon, UserIcon, BellIcon } from "@/components/Icons";
 import type { ReactNode } from "react";
 
 interface QuickCardProps {

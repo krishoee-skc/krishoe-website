@@ -79,11 +79,17 @@ const reviewStatuses: Review["status"][] = ["pending", "approved", "rejected"];
 function cleanReview(review: Review): Review {
   return {
     id: review.id.trim(),
+    customerUserId: review.customerUserId?.trim() || undefined,
+    orderId: review.orderId?.trim() || undefined,
     name: review.name.trim() || "Customer",
     rating: Math.min(5, Math.max(1, Math.round(Number(review.rating) || 5))),
     comment: review.comment.trim(),
     createdAt: review.createdAt || new Date().toISOString(),
     status: reviewStatuses.includes(review.status) ? review.status : "pending",
+    verifiedPurchase: Boolean(review.verifiedPurchase),
+    rejectionReason: review.rejectionReason?.trim() || undefined,
+    flaggedAsSpam: Boolean(review.flaggedAsSpam),
+    flaggedAt: review.flaggedAt?.trim() || undefined,
   };
 }
 
@@ -788,6 +794,9 @@ async function updateProductReviewStatusLocalJson(
   productId: string,
   reviewId: string,
   status: Review["status"],
+  moderation: Partial<
+    Pick<Review, "rejectionReason" | "flaggedAsSpam" | "flaggedAt">
+  > = {},
 ) {
   const products = await getProductsFromLocalJson({ includeDrafts: true });
   const productIndex = products.findIndex((product) => product.id === productId);
@@ -802,7 +811,11 @@ async function updateProductReviewStatusLocalJson(
     throw new Error("Review not found.");
   }
 
-  const review = cleanReview({ ...products[productIndex].reviews[reviewIndex], status });
+  const review = cleanReview({
+    ...products[productIndex].reviews[reviewIndex],
+    ...moderation,
+    status,
+  });
   products[productIndex] = {
     ...products[productIndex],
     reviews: products[productIndex].reviews.map((item) => (item.id === reviewId ? review : item)),
@@ -816,6 +829,9 @@ async function updateProductReviewStatusPostgres(
   productId: string,
   reviewId: string,
   status: Review["status"],
+  moderation: Partial<
+    Pick<Review, "rejectionReason" | "flaggedAsSpam" | "flaggedAt">
+  > = {},
 ) {
   const product = await getProductById(productId, { includeDrafts: true });
 
@@ -829,7 +845,7 @@ async function updateProductReviewStatusPostgres(
     throw new Error("Review not found.");
   }
 
-  const nextReview = cleanReview({ ...review, status });
+  const nextReview = cleanReview({ ...review, ...moderation, status });
   const nextReviews = product.reviews.map((item) => (item.id === reviewId ? nextReview : item));
 
   await queryPostgres<{ id: string }>(
@@ -845,11 +861,14 @@ export async function updateProductReviewStatus(
   productId: string,
   reviewId: string,
   status: Review["status"],
+  moderation: Partial<
+    Pick<Review, "rejectionReason" | "flaggedAsSpam" | "flaggedAt">
+  > = {},
 ) {
   return runWithDataBackend({
     storeName: "products",
-    localJson: () => updateProductReviewStatusLocalJson(productId, reviewId, status),
-    postgres: () => updateProductReviewStatusPostgres(productId, reviewId, status),
+    localJson: () => updateProductReviewStatusLocalJson(productId, reviewId, status, moderation),
+    postgres: () => updateProductReviewStatusPostgres(productId, reviewId, status, moderation),
   });
 }
 
