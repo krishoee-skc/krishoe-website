@@ -36,10 +36,30 @@ export const businessContact = {
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "",
 };
 
+/**
+ * The social profiles that are actually configured, each with its label.
+ *
+ * Trimmed before the emptiness check for the same reason getSiteUrl trims: a
+ * value pasted into a hosting dashboard can arrive as " " or with a trailing
+ * newline, and a plain truthiness test treats those as real. That would put a
+ * dead link in the footer and, worse, feed a malformed URL to Google through
+ * the `sameAs` fields below.
+ *
+ * Returned as a list rather than a URL-keyed lookup so two platforms can never
+ * collide on the same key and lose a label.
+ */
+export function businessSocialProfiles() {
+  return [
+    { label: "Facebook", url: businessContact.facebook },
+    { label: "Instagram", url: businessContact.instagram },
+    { label: "TikTok", url: businessContact.tiktok },
+  ]
+    .map((profile) => ({ ...profile, url: profile.url.trim() }))
+    .filter((profile) => profile.url.length > 0);
+}
+
 export function businessSocialLinks() {
-  return [businessContact.facebook, businessContact.instagram, businessContact.tiktok].filter(
-    (value): value is string => Boolean(value),
-  );
+  return businessSocialProfiles().map((profile) => profile.url);
 }
 
 export function getSiteUrl() {

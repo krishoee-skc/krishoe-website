@@ -1,14 +1,8 @@
 import Link from "next/link";
-import { businessContact, businessSocialLinks } from "@/lib/seo";
-
-const socialLabels: Record<string, string> = {
-  [businessContact.facebook]: "Facebook",
-  [businessContact.instagram]: "Instagram",
-  [businessContact.tiktok]: "TikTok",
-};
+import { businessContact, businessSocialProfiles } from "@/lib/seo";
 
 export default function Footer() {
-  const socials = businessSocialLinks();
+  const socials = businessSocialProfiles();
 
   return (
     <footer className="bg-brand-green pb-8 pt-16 text-white">
@@ -74,15 +68,15 @@ export default function Footer() {
 
           {socials.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              {socials.map((url) => (
+              {socials.map((profile) => (
                 <a
-                  key={url}
-                  href={url}
+                  key={profile.label}
+                  href={profile.url}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-full border border-white/30 px-3 py-1 text-sm text-gray-200 transition hover:border-brand-gold hover:text-white"
                 >
-                  {socialLabels[url] ?? "Follow"}
+                  {profile.label}
                 </a>
               ))}
             </div>
