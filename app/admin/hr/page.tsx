@@ -153,6 +153,12 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/hr/worker-portal-qr"
+            className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-bold text-brand-green"
+          >
+            Worker portal poster
+          </Link>
           <ExportButton
             href="/api/admin/hr/export?type=employees"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"

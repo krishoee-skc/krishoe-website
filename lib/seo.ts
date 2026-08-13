@@ -43,7 +43,12 @@ export function businessSocialLinks() {
 }
 
 export function getSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://krishoe.com").replace(/\/$/, "");
+  // Trim before anything else. A dashboard-pasted env value can carry a
+  // trailing newline, and without this it survives into every absolute URL we
+  // emit — the live sitemap was serving `<loc>https://host\n/shop</loc>`, and
+  // the same broken string would be encoded into printed QR codes.
+  const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+  return (configured || "https://krishoe.com").replace(/\/+$/, "");
 }
 
 export function absoluteUrl(pathOrUrl: string) {
