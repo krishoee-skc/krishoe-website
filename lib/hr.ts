@@ -1427,16 +1427,30 @@ export async function getEmployeeHrDetail(id: string): Promise<EmployeeHrDetail 
 }
 
 function groupTasksByWorker(tasks: WorkerTask[]) {
-  const groups = new Map<string, WorkerTask[]>();
+  return groupBy(tasks, (task) => employeeKey(task.workerName));
+}
 
-  for (const task of tasks) {
-    const key = employeeKey(task.workerName);
+// The snapshot below needs the same month of attendance and payroll sliced per
+// worker four separate times. Doing that with `.filter()` inside a `.map()` is
+// O(workers x records), which is invisible at a dozen workers and crippling at
+// several hundred. Indexing once up front makes each lookup O(1).
+function groupBy<T>(items: T[], keyOf: (item: T) => string) {
+  const groups = new Map<string, T[]>();
+
+  for (const item of items) {
+    const key = keyOf(item);
     const rows = groups.get(key) ?? [];
-    rows.push(task);
+    rows.push(item);
     groups.set(key, rows);
   }
 
   return groups;
+}
+
+const NO_ROWS = Object.freeze([]) as never[];
+
+function rowsFor<T>(groups: Map<string, T[]>, key: string): T[] {
+  return groups.get(key) ?? NO_ROWS;
 }
 
 export async function getHrSnapshot() {
@@ -1452,6 +1466,15 @@ export async function getHrSnapshot() {
   const attendanceThisMonth = hr.attendanceRecords.filter((record) => record.workDate.startsWith(currentMonth));
   const payrollThisMonth = hr.payrollRecords.filter((record) => record.periodLabel.startsWith(currentMonth));
 
+  // Two sets of indexes on purpose: performance rows are keyed by worker *name*
+  // (they include production workers with no HR employee record), while the
+  // payroll and attendance reports below key by employee *id*. Mixing the two
+  // would silently attribute one worker's days or pay to another.
+  const attendanceByNameKey = groupBy(attendanceThisMonth, (record) => employeeKey(record.employeeName));
+  const payrollByNameKey = groupBy(payrollThisMonth, (record) => employeeKey(record.employeeName));
+  const attendanceByEmployeeId = groupBy(attendanceThisMonth, (record) => record.employeeId);
+  const payrollByEmployeeId = groupBy(payrollThisMonth, (record) => record.employeeId);
+
   const employeePerformance = [...workerNames]
     .filter(Boolean)
     .map((key) => {
@@ -1459,14 +1482,8 @@ export async function getHrSnapshot() {
       const tasks = tasksByWorker.get(key) ?? [];
       const targetPairs = sum(tasks, (task) => task.targetPairs);
       const completedPairs = sum(tasks, (task) => task.completedPairs);
-      const attendanceDaysThisMonth = sum(
-        attendanceThisMonth.filter((record) => employeeKey(record.employeeName) === key),
-        attendanceDayValue,
-      );
-      const payrollPaid = sum(
-        payrollThisMonth.filter((record) => employeeKey(record.employeeName) === key),
-        (record) => record.netPay,
-      );
+      const attendanceDaysThisMonth = sum(rowsFor(attendanceByNameKey, key), attendanceDayValue);
+      const payrollPaid = sum(rowsFor(payrollByNameKey, key), (record) => record.netPay);
 
       return {
         employeeId: employee?.id ?? "",
@@ -1499,11 +1516,14 @@ export async function getHrSnapshot() {
     })
     .filter((row) => row.activeEmployees > 0)
     .sort((a, b) => b.activeEmployees - a.activeEmployees);
+  const performanceByEmployeeId = new Map(
+    employeePerformance.filter((row) => row.employeeId).map((row) => [row.employeeId, row]),
+  );
   const monthlyAttendanceSummary = hr.employees
     .map((employee) => {
-      const records = attendanceThisMonth.filter((record) => record.employeeId === employee.id);
-      const payrollRows = payrollThisMonth.filter((record) => record.employeeId === employee.id);
-      const performance = employeePerformance.find((row) => row.employeeId === employee.id);
+      const records = rowsFor(attendanceByEmployeeId, employee.id);
+      const payrollRows = rowsFor(payrollByEmployeeId, employee.id);
+      const performance = performanceByEmployeeId.get(employee.id);
 
       return {
         employeeId: employee.id,
@@ -1535,8 +1555,8 @@ export async function getHrSnapshot() {
     .map((employee) =>
       buildPayrollSuggestion({
         employee,
-        attendanceRecords: attendanceThisMonth.filter((record) => record.employeeId === employee.id),
-        payrollRecords: payrollThisMonth.filter((record) => record.employeeId === employee.id),
+        attendanceRecords: rowsFor(attendanceByEmployeeId, employee.id),
+        payrollRecords: rowsFor(payrollByEmployeeId, employee.id),
         workerTasks: tasksByWorker.get(employeeKey(employee.name)) ?? [],
         periodLabel: currentMonth,
       }),
@@ -1549,7 +1569,7 @@ export async function getHrSnapshot() {
     .map((suggestion) =>
       buildMonthlySalaryClosingRow({
         suggestion,
-        payrollRecords: payrollThisMonth.filter((record) => record.employeeId === suggestion.employeeId),
+        payrollRecords: rowsFor(payrollByEmployeeId, suggestion.employeeId),
       }),
     )
     .sort((a, b) => {
