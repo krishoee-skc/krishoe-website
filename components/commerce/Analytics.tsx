@@ -1,12 +1,22 @@
 import Script from "next/script";
+import { tiktokPixelSnippet } from "@/lib/analytics-snippets";
 
 // Marketing/analytics tags. Nothing renders until the matching public env var
 // is set, so the site stays clean until real IDs are added:
 //   NEXT_PUBLIC_META_PIXEL_ID  — Facebook/Instagram ads pixel (retargeting, conversions)
 //   NEXT_PUBLIC_GA4_ID         — Google Analytics 4 measurement id (G-XXXXXXX)
+//   NEXT_PUBLIC_TIKTOK_PIXEL_ID — TikTok ads pixel (retargeting, conversions)
+//
+// Each vendor's base snippet is reproduced as that vendor publishes it. If one
+// stops reporting, replace the block with the current snippet from that
+// vendor's events manager rather than editing it by hand — these are minified
+// third-party code, not ours to refactor. Confirm with the vendor's own
+// debugger (Meta Pixel Helper, TikTok Pixel Helper, GA4 DebugView) that hits
+// arrive before trusting an ad spend to them.
 export function Analytics() {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const ga4Id = process.env.NEXT_PUBLIC_GA4_ID;
+  const tiktokPixelId = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
 
   return (
     <>
@@ -50,6 +60,12 @@ gtag('js', new Date());
 gtag('config', '${ga4Id}');`}
           </Script>
         </>
+      ) : null}
+
+      {tiktokPixelId ? (
+        <Script id="tiktok-pixel" strategy="afterInteractive">
+          {tiktokPixelSnippet(tiktokPixelId)}
+        </Script>
       ) : null}
     </>
   );
