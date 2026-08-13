@@ -8,12 +8,14 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 import ProductOptionSelector from "@/components/ProductOptionSelector";
 import QuantitySelector from "@/components/QuantitySelector";
 import { stockLevel } from "@/lib/stock-thresholds";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type ProductDetailActionsProps = {
   product: Product;
 };
 
 export default function ProductDetailActions({ product }: ProductDetailActionsProps) {
+  const { text } = useLanguage();
   const { addToCart, toggleWishlist, isWishlisted } = useCommerce();
   const [size, setSize] = useState(product.sizes[0]);
   const [color, setColor] = useState(product.colors[0]);
@@ -41,9 +43,9 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   }, [color, outOfStock, product.name, product.price, selectedQuantity, size]);
 
   const trustItems = [
-    "Cash on Delivery available",
-    "Delivery across Nepal",
-    "Stock confirmed before digital payment",
+    text("Cash on Delivery available", "सामान बुझ्दा नगद सुविधा"),
+    text("Delivery across Nepal", "देशभर डेलिभरी"),
+    text("Stock confirmed before digital payment", "अनलाइन भुक्तानीअघि स्टक पक्का"),
   ];
 
   function addSelectedItem() {
@@ -65,17 +67,17 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
       <div className="rounded-lg border border-black/10 bg-white p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
         {outOfStock ? (
           <p className="mb-4 inline-flex items-center rounded-full bg-[#FBE9E7] px-3 py-1 text-sm font-bold text-brand-danger">
-            Sold out
+            {text("Sold out", "बिक्री सकियो")}
           </p>
         ) : lowStock ? (
           <p className="mb-4 inline-flex items-center rounded-full bg-brand-cream px-3 py-1 text-sm font-bold text-brand-gold-dark">
-            Hurry - only {product.stock} left
+            {text(`Hurry - only ${product.stock} left`, `हतार गर्नुहोस् — ${product.stock} जोडी मात्र बाँकी`)}
           </p>
         ) : null}
 
         <div className="space-y-6">
-          <ProductOptionSelector title="Select size" options={product.sizes} selectedValue={size} onValueChange={setSize} />
-          <ProductOptionSelector title="Select color" options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
+          <ProductOptionSelector title={text("Select size", "साइज छान्नुहोस्")} options={product.sizes} selectedValue={size} onValueChange={setSize} />
+          <ProductOptionSelector title={text("Select color", "रङ छान्नुहोस्")} options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -88,12 +90,20 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-[#9AA6A1] disabled:hover:text-white"
           >
             <ShoppingBagIcon className="h-4 w-4" />
-            {outOfStock ? "Sold out" : added ? "Added to cart" : "Add to cart"}
+            {outOfStock
+              ? text("Sold out", "बिक्री सकियो")
+              : added
+                ? text("Added to cart", "कार्टमा थपियो")
+                : text("Add to cart", "कार्टमा थप्नुहोस्")}
           </button>
 
           <button
             type="button"
-            aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+            aria-label={
+              wished
+                ? text("Remove from wishlist", "मनपर्नेबाट हटाउनुहोस्")
+                : text("Add to wishlist", "मनपर्नेमा राख्नुहोस्")
+            }
             onClick={() => toggleWishlist(product.id)}
             className={`grid h-12 w-12 place-items-center rounded-full border transition ${
               wished
@@ -112,13 +122,17 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
             rel="noreferrer"
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#25D366] px-6 text-sm font-bold text-white transition hover:brightness-95"
           >
-            {outOfStock ? "Ask on WhatsApp" : "Order on WhatsApp"}
+            {outOfStock
+              ? text("Ask on WhatsApp", "WhatsApp मा सोध्नुहोस्")
+              : text("Order on WhatsApp", "WhatsApp बाट अर्डर")}
           </a>
           <a
             href={viberOrderUrl(orderMessage)}
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#7360F2] px-6 text-sm font-bold text-white transition hover:brightness-95"
           >
-            {outOfStock ? "Ask on Viber" : "Order on Viber"}
+            {outOfStock
+              ? text("Ask on Viber", "Viber मा सोध्नुहोस्")
+              : text("Order on Viber", "Viber बाट अर्डर")}
           </a>
         </div>
 
@@ -141,7 +155,11 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[#9AA6A1]"
           >
             <ShoppingBagIcon className="h-4 w-4" />
-            {outOfStock ? "Sold out" : added ? "Added" : "Add"}
+            {outOfStock
+              ? text("Sold out", "सकियो")
+              : added
+                ? text("Added", "थपियो")
+                : text("Add", "थप्नुहोस्")}
           </button>
           <a
             href={whatsappOrderUrl(orderMessage)}

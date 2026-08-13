@@ -15,6 +15,7 @@ import { CheckIcon, StarIcon } from "@/components/Icons";
 import ProductReviews from "@/components/ProductReviews";
 import { stockLevel } from "@/lib/stock-thresholds";
 import ShareProduct from "@/components/ShareProduct";
+import T from "@/components/T";
 import {
   absoluteUrl,
   breadcrumbJsonLd,
@@ -66,20 +67,38 @@ export default async function ProductPage({ params }: Props) {
     canReview: Boolean(viewer && verifiedPurchase && !existingReview),
     isLoggedIn: Boolean(viewer),
     reason: !viewer
-      ? "Sign in to review a product you purchased."
+      ? {
+          en: "Sign in to review a product you purchased.",
+          ne: "किन्नुभएको सामानको समीक्षा लेख्न साइन इन गर्नुहोस्।",
+        }
       : existingReview
-        ? "You have already submitted a review for this product."
+        ? {
+            en: "You have already submitted a review for this product.",
+            ne: "तपाईंले यो सामानको समीक्षा पहिले नै लेखिसक्नुभएको छ।",
+          }
         : verifiedPurchase
-          ? "Your completed purchase is verified."
-          : "Reviews open after a completed purchase of this product.",
+          ? {
+              en: "Your completed purchase is verified.",
+              ne: "तपाईंको किनमेल पुष्टि भएको छ।",
+            }
+          : {
+              en: "Reviews open after a completed purchase of this product.",
+              ne: "यो सामान किनेर अर्डर पूरा भएपछि समीक्षा लेख्न मिल्छ।",
+            },
   };
   const level = stockLevel(product.stock);
+  // The product's own name, description and highlights are catalog data the
+  // owner types in; only KRISHOE's own wording is translated here.
   const stockLabel =
-    level === "out" ? "Sold out" : level === "low" ? `Only ${product.stock} left` : "Ready stock";
+    level === "out"
+      ? { en: "Sold out", ne: "बिक्री सकियो" }
+      : level === "low"
+        ? { en: `Only ${product.stock} left`, ne: `${product.stock} जोडी मात्र बाँकी` }
+        : { en: "Ready stock", ne: "स्टकमा उपलब्ध" };
   const serviceItems = [
-    "Stock checked before payment",
-    "Cash on delivery available",
-    "WhatsApp support for sizing",
+    { en: "Stock checked before payment", ne: "भुक्तानीअघि स्टक जाँचिन्छ" },
+    { en: "Cash on delivery available", ne: "सामान बुझ्दा नगद सुविधा" },
+    { en: "WhatsApp support for sizing", ne: "साइजका लागि WhatsApp मा सोध्नुहोस्" },
   ];
 
   return (
@@ -117,7 +136,7 @@ export default async function ProductPage({ params }: Props) {
                         : "bg-brand-green-tint text-brand-green"
                   }`}
                 >
-                  {stockLabel}
+                  <T en={stockLabel.en} ne={stockLabel.ne} />
                 </span>
               </div>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
@@ -138,11 +157,11 @@ export default async function ProductPage({ params }: Props) {
               <div className="mt-6 grid gap-2 sm:grid-cols-3">
                 {serviceItems.map((item) => (
                   <div
-                    key={item}
+                    key={item.en}
                     className="flex min-h-12 items-center gap-2 rounded-lg border border-brand-green/15 bg-brand-mist px-3 text-sm font-bold text-brand-green-ink"
                   >
                     <CheckIcon className="h-4 w-4 shrink-0 text-brand-green" />
-                    {item}
+                    <T en={item.en} ne={item.ne} />
                   </div>
                 ))}
               </div>
@@ -158,15 +177,34 @@ export default async function ProductPage({ params }: Props) {
 
               <div className="mt-10 grid gap-3 border-t border-black/10 pt-6 text-sm text-brand-muted sm:grid-cols-2">
                 {[
-                  ["SKU", product.sku],
-                  ["Material", product.material],
-                  ["Fit", product.fit],
-                  ["Delivery", "Kathmandu Valley and Nepal courier"],
-                  ["Payment", "COD or digital after stock confirmation"],
-                  ["Stock", stockLabel],
-                ].map(([label, value]) => (
-                  <p key={label} className="rounded-lg bg-brand-mist px-4 py-3">
-                    <span className="font-semibold text-brand-green-ink">{label}:</span> {value}
+                  // Value untranslated where it is catalog data the owner typed.
+                  { label: { en: "SKU", ne: "SKU" }, value: { en: product.sku, ne: product.sku } },
+                  {
+                    label: { en: "Material", ne: "सामग्री" },
+                    value: { en: product.material, ne: product.material },
+                  },
+                  { label: { en: "Fit", ne: "फिटिङ" }, value: { en: product.fit, ne: product.fit } },
+                  {
+                    label: { en: "Delivery", ne: "डेलिभरी" },
+                    value: {
+                      en: "Kathmandu Valley and Nepal courier",
+                      ne: "काठमाडौं उपत्यका र देशभर कुरियर",
+                    },
+                  },
+                  {
+                    label: { en: "Payment", ne: "भुक्तानी" },
+                    value: {
+                      en: "COD or digital after stock confirmation",
+                      ne: "नगद, वा स्टक पक्का भएपछि अनलाइन",
+                    },
+                  },
+                  { label: { en: "Stock", ne: "स्टक" }, value: stockLabel },
+                ].map((row) => (
+                  <p key={row.label.en} className="rounded-lg bg-brand-mist px-4 py-3">
+                    <span className="font-semibold text-brand-green-ink">
+                      <T en={row.label.en} ne={row.label.ne} />:
+                    </span>{" "}
+                    <T en={row.value.en} ne={row.value.ne} />
                   </p>
                 ))}
               </div>
@@ -178,14 +216,18 @@ export default async function ProductPage({ params }: Props) {
             <div className="mx-auto grid max-w-6xl gap-8 px-5 md:px-8 lg:grid-cols-[1fr_0.8fr]">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-                    Product notes
+                    <T en="Product notes" ne="सामानको जानकारी" />
                   </p>
-                  <h3 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">About this product</h3>
+                  <h3 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">
+                    <T en="About this product" ne="यो सामानबारे" />
+                  </h3>
                   <p className="mt-4 leading-7 text-brand-muted">{product.longDescription}</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                   <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
-                    <h4 className="font-black text-brand-green-ink">Highlights</h4>
+                    <h4 className="font-black text-brand-green-ink">
+                      <T en="Highlights" ne="मुख्य कुरा" />
+                    </h4>
                     <ul className="mt-4 grid gap-2 text-sm text-brand-muted">
                       {product.highlights.map((highlight) => (
                         <li key={highlight} className="flex gap-2">
@@ -196,7 +238,9 @@ export default async function ProductPage({ params }: Props) {
                     </ul>
                   </div>
                   <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
-                    <h4 className="font-black text-brand-green-ink">Care</h4>
+                    <h4 className="font-black text-brand-green-ink">
+                      <T en="Care" ne="हेरचाह" />
+                    </h4>
                     <ul className="mt-4 grid gap-2 text-sm text-brand-muted">
                       {product.care.map((item) => (
                         <li key={item} className="flex gap-2">
@@ -213,7 +257,9 @@ export default async function ProductPage({ params }: Props) {
         {relatedProducts.length > 0 && (
           <section className="bg-white py-14 md:py-20">
             <div className="mx-auto max-w-7xl px-5 md:px-8">
-              <h2 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">You might also like</h2>
+              <h2 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
+                <T en="You might also like" ne="यी पनि मन पर्न सक्छ" />
+              </h2>
               <div className="mt-8 grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">
                 {relatedProducts.map((p) => (
                   <ProductCard key={p.id} product={p} intent="shop" />
