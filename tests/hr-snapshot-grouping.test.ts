@@ -81,7 +81,7 @@ function task(workerName: string, completedPairs: number): WorkerTask {
   return {
     id: `TASK-${workerName}-${completedPairs}`,
     workerName,
-    station: "Upper",
+    station: "Stitching",
     batchId: "BATCH-1",
     design: "Flatpatta",
     targetPairs: completedPairs,

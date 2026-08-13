@@ -6,8 +6,10 @@ import { formatPrice } from "@/lib/products";
 import { describeStockShortfalls } from "@/lib/order-stock";
 import { MinusIcon, PlusIcon, TrashIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function CartClient() {
+  const { text } = useLanguage();
   const { cartItems, subtotalLabel, removeFromCart, updateQuantity, stockShortfalls, canCheckout } =
     useCommerce();
   const shortfallByProductId = new Map(
@@ -17,16 +19,23 @@ export default function CartClient() {
   if (cartItems.length === 0) {
     return (
       <div className="rounded-lg border border-black/10 bg-white p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Your cart</p>
-        <h1 className="mt-3 text-4xl font-black text-brand-green-ink">Cart is waiting for a good pair.</h1>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
+          {text("Your cart", "तपाईंको कार्ट")}
+        </p>
+        <h1 className="mt-3 text-4xl font-black text-brand-green-ink">
+          {text("Cart is waiting for a good pair.", "कार्टले राम्रो जोडी पर्खिरहेको छ।")}
+        </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
-          Add premium KRISHOE styles to your cart and continue to a guided checkout.
+          {text(
+            "Add premium KRISHOE styles to your cart and continue to a guided checkout.",
+            "मनपर्ने KRISHOE जुत्ता कार्टमा थप्नुहोस् र सजिलो तरिकाले अर्डर पूरा गर्नुहोस्।",
+          )}
         </p>
         <Link
           href="/shop"
           className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
         >
-          Browse collection
+          {text("Browse collection", "सङ्ग्रह हेर्नुहोस्")}
         </Link>
       </div>
     );
@@ -47,13 +56,16 @@ export default function CartClient() {
                     <h2 className="text-xl font-black text-brand-green-ink hover:text-brand-green">{item.name}</h2>
                   </Link>
                   <p className="mt-2 text-sm text-brand-muted">
-                    Size {item.size} / {item.color}
+                    {text("Size", "साइज")} {item.size} / {item.color}
                   </p>
                   {shortfallByProductId.has(item.productId) ? (
                     <p className="mt-2 text-sm font-semibold text-brand-clay">
                       {item.available === 0
-                        ? "Out of stock"
-                        : `Only ${item.available} in stock`}
+                        ? text("Out of stock", "स्टक सकियो")
+                        : text(
+                            `Only ${item.available} in stock`,
+                            `स्टकमा ${item.available} जोडी मात्र`,
+                          )}
                     </p>
                   ) : null}
                 </div>
@@ -64,7 +76,7 @@ export default function CartClient() {
                 <div className="flex h-11 items-center rounded-full border border-black/10">
                   <button
                     type="button"
-                    aria-label="Decrease quantity"
+                    aria-label={text("Decrease quantity", "सङ्ख्या घटाउनुहोस्")}
                     onClick={() => updateQuantity(item.key, item.quantity - 1)}
                     className="grid h-11 w-11 place-items-center text-brand-green"
                   >
@@ -73,7 +85,7 @@ export default function CartClient() {
                   <span className="min-w-8 text-center text-sm font-black text-brand-green-ink">{item.quantity}</span>
                   <button
                     type="button"
-                    aria-label="Increase quantity"
+                    aria-label={text("Increase quantity", "सङ्ख्या बढाउनुहोस्")}
                     onClick={() => updateQuantity(item.key, item.quantity + 1)}
                     className="grid h-11 w-11 place-items-center text-brand-green"
                   >
@@ -87,7 +99,7 @@ export default function CartClient() {
                   className="inline-flex h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-brand-clay transition hover:border-brand-clay"
                 >
                   <TrashIcon className="h-4 w-4" />
-                  Remove
+                  {text("Remove", "हटाउनुहोस्")}
                 </button>
               </div>
             </div>
@@ -96,19 +108,21 @@ export default function CartClient() {
       </div>
 
       <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">Order summary</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
+          {text("Order summary", "अर्डर विवरण")}
+        </p>
         <div className="mt-6 space-y-4 border-b border-white/10 pb-6 text-sm text-white/72">
           <div className="flex justify-between">
-            <span>Subtotal</span>
+            <span>{text("Subtotal", "जम्मा")}</span>
             <span className="font-bold text-white">{subtotalLabel}</span>
           </div>
           <div className="flex justify-between">
-            <span>Delivery</span>
-            <span>Calculated after inquiry</span>
+            <span>{text("Delivery", "डेलिभरी")}</span>
+            <span>{text("Calculated after inquiry", "सोधपुछपछि निर्धारण")}</span>
           </div>
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <span className="text-sm text-white/72">Estimated total</span>
+          <span className="text-sm text-white/72">{text("Estimated total", "अनुमानित कुल")}</span>
           <span className="text-3xl font-black">{subtotalLabel}</span>
         </div>
         {canCheckout ? (
@@ -116,7 +130,7 @@ export default function CartClient() {
             href="/checkout"
             className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
           >
-            Continue checkout
+            {text("Continue checkout", "अर्डर अगाडि बढाउनुहोस्")}
           </Link>
         ) : (
           <div className="mt-7">
@@ -124,13 +138,17 @@ export default function CartClient() {
               role="status"
               className="rounded-lg bg-white/12 px-4 py-3 text-sm font-semibold leading-6 text-white"
             >
-              {describeStockShortfalls(stockShortfalls)}. Please update the quantity to continue.
+              {describeStockShortfalls(stockShortfalls)}.{" "}
+              {text(
+                "Please update the quantity to continue.",
+                "अगाडि बढ्न सङ्ख्या मिलाउनुहोस्।",
+              )}
             </p>
             <span
               aria-disabled="true"
               className="mt-3 inline-flex h-12 w-full cursor-not-allowed items-center justify-center rounded-full bg-white/20 px-6 text-sm font-black text-white/60"
             >
-              Continue checkout
+              {text("Continue checkout", "अर्डर अगाडि बढाउनुहोस्")}
             </span>
           </div>
         )}
@@ -138,7 +156,7 @@ export default function CartClient() {
           href="/shop"
           className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/25 px-6 text-sm font-black text-white transition hover:bg-white hover:text-brand-green-ink"
         >
-          Keep shopping
+          {text("Keep shopping", "किनमेल जारी राख्नुहोस्")}
         </Link>
       </aside>
     </div>
