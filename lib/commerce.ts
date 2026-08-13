@@ -19,6 +19,22 @@ export const whatsappToUrl = (phone: string, message: string) => {
   return `https://wa.me/${withCode}?text=${encodeURIComponent(message)}`;
 };
 
+// Sharing a product with a friend, which is the opposite direction from the
+// ordering links above: no recipient in the path, so the app opens its own
+// contact picker and the shopper chooses who to send it to. Passing the shop's
+// number here would silently turn "send this to a friend" into "message the
+// shop", so these are kept separate on purpose.
+export const whatsappShareUrl = (message: string) =>
+  `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+export const viberShareUrl = (message: string) =>
+  `viber://forward?text=${encodeURIComponent(message)}`;
+
+// Facebook's sharer reads the page's Open Graph tags for the title, image and
+// description, so it takes the URL alone and ignores any message we pass.
+export const facebookShareUrl = (url: string) =>
+  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+
 export const shippingOptions = [
   "Kathmandu valley delivery",
   "Store pickup",

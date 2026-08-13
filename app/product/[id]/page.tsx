@@ -14,7 +14,9 @@ import ProductCard from "@/components/ProductCard";
 import { CheckIcon, StarIcon } from "@/components/Icons";
 import ProductReviews from "@/components/ProductReviews";
 import { stockLevel } from "@/lib/stock-thresholds";
+import ShareProduct from "@/components/ShareProduct";
 import {
+  absoluteUrl,
   breadcrumbJsonLd,
   createProductMetadata,
   productJsonLd,
@@ -147,6 +149,11 @@ export default async function ProductPage({ params }: Props) {
 
               <div className="mt-8">
                 <ProductDetailActions product={product} />
+                <ShareProduct
+                  name={product.name}
+                  price={product.price}
+                  url={absoluteUrl(`/product/${product.id}`)}
+                />
               </div>
 
               <div className="mt-10 grid gap-3 border-t border-black/10 pt-6 text-sm text-brand-muted sm:grid-cols-2">
