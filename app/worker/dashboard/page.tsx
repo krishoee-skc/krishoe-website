@@ -39,7 +39,9 @@ export default async function WorkerDashboardPage() {
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-bright">
           मेरो काम · My work
         </p>
-        <h1 className="mt-3 text-3xl font-black md:text-4xl">{detail.worker.name}</h1>
+        {/* Explicit text-white: globals.css colours every heading with --ink,
+            and that direct match beats the white inherited from this panel. */}
+        <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">{detail.worker.name}</h1>
         <p className="mt-2 text-sm text-white/70">{detail.worker.category}</p>
       </section>
 

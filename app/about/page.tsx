@@ -39,7 +39,11 @@ export default function AboutPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand-gold-bright">
             हाम्रो कथा — Our Story
           </p>
-          <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.96] tracking-tight md:text-7xl">
+          {/* text-white is spelled out rather than inherited from the section:
+              globals.css sets `h1..h6 { color: var(--ink) }`, and a rule that
+              matches the element directly beats a colour inherited from the
+              parent, so without this the heading renders dark on dark. */}
+          <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.96] tracking-tight text-white md:text-7xl">
             Made in Nepal. हाम्रै हातले, हाम्रै कारखानामा।
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
@@ -140,7 +144,7 @@ export default function AboutPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
               KRISHOE
             </p>
-            <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
+            <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl">
               नेपाली पाइला, नेपाली जुत्तामा।
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-white/78">

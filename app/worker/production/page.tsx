@@ -22,7 +22,7 @@ export default async function WorkerProductionPage() {
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-bright">
           मेरो उत्पादन · My production
         </p>
-        <h1 className="mt-3 text-3xl font-black md:text-4xl">
+        <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">
           {totalPairs.toLocaleString("en-IN")} जोडी
         </h1>
         <p className="mt-2 text-sm text-white/70">

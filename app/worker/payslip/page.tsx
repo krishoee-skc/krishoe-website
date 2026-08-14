@@ -20,7 +20,7 @@ export default async function WorkerPayslipPage() {
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-bright">
           मेरो तलब · My pay
         </p>
-        <h1 className="mt-3 text-3xl font-black md:text-4xl">{money(detail.balance)}</h1>
+        <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">{money(detail.balance)}</h1>
         <p className="mt-2 text-sm text-white/70">अहिलेसम्म पाउन बाँकी</p>
       </section>
 
