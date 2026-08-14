@@ -9,7 +9,10 @@ export default function AdminForgotPasswordPage() {
       <section className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">Staff recovery</p>
         <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Reset staff password</h1>
-        <p className="mt-3 text-sm leading-6 text-brand-muted">A one-time link will be sent if this is an active KRISHOE staff account.</p>
+        <p className="mt-3 text-sm leading-6 text-brand-muted">
+          Email मा <span className="font-black text-brand-green-ink">6-digit कोड</span> र
+          एउटा link — दुवै आउँछ। जुन सजिलो हुन्छ त्यही चलाउनुहोस्। कोड १ घण्टा चल्छ।
+        </p>
         <div className="mt-7"><AdminForgotPasswordForm /></div>
       </section>
     </main>

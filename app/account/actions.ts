@@ -14,6 +14,7 @@ import {
   setCustomerSessionCookie,
 } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
+import { emailLinkBaseUrl } from "@/lib/email-links";
 import {
   notifyEmailVerificationRequested,
   notifyPasswordResetRequested,
@@ -63,9 +64,7 @@ function textValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function publicSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-}
+const publicSiteUrl = emailLinkBaseUrl;
 
 function showLocalPasswordResetLink() {
   return process.env.PASSWORD_RESET_SHOW_LOCAL_LINK === "true" || process.env.NODE_ENV !== "production";

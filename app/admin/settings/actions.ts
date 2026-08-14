@@ -22,6 +22,7 @@ import {
   recordAdminStaffAccessHistory,
   revokeAllAdminStaffSessions,
 } from "@/lib/admin-staff-security";
+import { emailLinkBaseUrl } from "@/lib/email-links";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 
 function textValue(formData: FormData, key: string) {
@@ -33,9 +34,7 @@ function optionValue<T extends string>(value: string, options: readonly T[], fal
   return options.includes(value as T) ? (value as T) : fallback;
 }
 
-function publicSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-}
+const publicSiteUrl = emailLinkBaseUrl;
 
 function friendlyError(error: unknown) {
   return error instanceof Error && error.message

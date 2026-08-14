@@ -117,6 +117,20 @@ function secretHash(token: string, secret: string) {
   return hashValue(`${token}:${secret}`);
 }
 
+/**
+ * A code the holder can present without the raw token.
+ *
+ * MFA codes are bound to the token because the browser still holds the
+ * challenge token when the code is typed. A password reset code is typed on a
+ * fresh page — often on a different device from the one that asked for it — so
+ * the only thing the person has is their email address and the six digits. The
+ * code is therefore bound to the account instead, and guessing is held down by
+ * the five-attempt cap on the row and the rate limit on the action.
+ */
+function staffCodeHash(staffId: string, code: string) {
+  return hashValue(`staff:${staffId}:${code}`);
+}
+
 function safeEqual(left: string, right: string) {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
@@ -236,7 +250,12 @@ export function adminDeviceLabel(userAgent: string) {
 export async function createAdminStaffToken(
   staffId: string,
   purpose: AdminStaffTokenPurpose,
-  options: { expiresInMinutes: number; createdBy?: string; withCode?: boolean },
+  options: {
+    expiresInMinutes: number;
+    createdBy?: string;
+    withCode?: boolean;
+    codeBoundTo?: "token" | "staff";
+  },
 ) {
   const rawToken = randomBytes(32).toString("hex");
   const code = options.withCode ? randomInt(100_000, 1_000_000).toString() : "";
@@ -246,7 +265,11 @@ export async function createAdminStaffToken(
     staffId,
     purpose,
     tokenHash: hashValue(rawToken),
-    secretHash: code ? secretHash(rawToken, code) : "",
+    secretHash: !code
+      ? ""
+      : options.codeBoundTo === "staff"
+        ? staffCodeHash(staffId, code)
+        : secretHash(rawToken, code),
     expiresAt: new Date(Date.now() + options.expiresInMinutes * 60_000).toISOString(),
     attemptCount: 0,
     createdBy: options.createdBy?.trim() ?? "",
@@ -421,6 +444,75 @@ export async function verifyAdminStaffMfaCode(rawToken: string, code: string) {
           [record.id],
         );
         return { ok: false as const, reason: "Incorrect security code." };
+      }
+      await db.query("UPDATE admin_staff_tokens SET used_at = now() WHERE id = $1", [record.id]);
+      return { ok: true as const, staffId: record.staffId };
+    }),
+  });
+}
+
+/**
+ * Redeems a password reset code typed on the reset page.
+ *
+ * Looks the row up by account rather than by token, because the person holding
+ * the code may never have opened the emailed link at all — the code has to work
+ * on a phone that only ever saw the six digits.
+ */
+export async function verifyAdminStaffResetCode(staffId: string, code: string) {
+  const cleanCode = code.trim();
+  if (!staffId.trim() || !/^\d{6}$/.test(cleanCode)) {
+    return { ok: false as const, reason: "Enter the 6-digit code from the email." };
+  }
+  const expected = staffCodeHash(staffId, cleanCode);
+
+  return runWithDataBackend({
+    storeName: "admin settings",
+    localJson: async () => {
+      const store = await readLocalStore();
+      const index = store.tokens.findIndex(
+        (token) =>
+          token.staffId === staffId && token.purpose === "password_reset" && !token.usedAt,
+      );
+      if (index < 0 || new Date(store.tokens[index].expiresAt).getTime() <= Date.now()) {
+        return { ok: false as const, reason: "This code has expired. Request a new one." };
+      }
+      const record = store.tokens[index];
+      if (record.attemptCount >= 5) {
+        return { ok: false as const, reason: "Too many incorrect codes. Request a new one." };
+      }
+      if (!record.secretHash || !safeEqual(record.secretHash, expected)) {
+        store.tokens[index] = { ...record, attemptCount: record.attemptCount + 1 };
+        await writeLocalStore(store);
+        return { ok: false as const, reason: "Incorrect code." };
+      }
+      store.tokens[index] = { ...record, usedAt: nowIso() };
+      await writeLocalStore(store);
+      return { ok: true as const, staffId: record.staffId };
+    },
+    postgres: () => transactionPostgres("admin settings", async (db) => {
+      const rows = await db.query<StaffTokenRow>(
+        `SELECT id, staff_id, purpose, token_hash, secret_hash, expires_at, used_at,
+           attempt_count, created_by, created_at
+         FROM admin_staff_tokens
+         WHERE staff_id = $1 AND purpose = 'password_reset' AND used_at IS NULL
+         ORDER BY created_at DESC
+         LIMIT 1
+         FOR UPDATE`,
+        [staffId],
+      );
+      const record = rows[0] ? tokenFromRow(rows[0]) : undefined;
+      if (!record || new Date(record.expiresAt).getTime() <= Date.now()) {
+        return { ok: false as const, reason: "This code has expired. Request a new one." };
+      }
+      if (record.attemptCount >= 5) {
+        return { ok: false as const, reason: "Too many incorrect codes. Request a new one." };
+      }
+      if (!record.secretHash || !safeEqual(record.secretHash, expected)) {
+        await db.query(
+          "UPDATE admin_staff_tokens SET attempt_count = attempt_count + 1 WHERE id = $1",
+          [record.id],
+        );
+        return { ok: false as const, reason: "Incorrect code." };
       }
       await db.query("UPDATE admin_staff_tokens SET used_at = now() WHERE id = $1", [record.id]);
       return { ok: true as const, staffId: record.staffId };

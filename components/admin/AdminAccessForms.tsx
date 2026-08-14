@@ -6,6 +6,7 @@ import {
   acceptAdminInvitationAction,
   changeRequiredAdminPasswordAction,
   completeAdminPasswordResetAction,
+  completeAdminPasswordResetWithCodeAction,
   requestAdminPasswordResetAction,
   type AdminAccessActionState,
 } from "@/app/admin/access/actions";
@@ -71,8 +72,119 @@ export function AdminForgotPasswordForm() {
         {pending ? "Sending instructions..." : "Send reset instructions"}
       </button>
       <ResultMessage state={state} />
+      <Link
+        href="/admin/reset-password"
+        className="text-center text-sm font-black text-brand-green hover:underline"
+      >
+        कोड आइसक्यो? यहाँ हाल्नुहोस् · I already have a code
+      </Link>
       <Link href="/admin/login" className="text-center text-sm font-black text-brand-green hover:underline">
         Back to staff sign in
+      </Link>
+    </form>
+  );
+}
+
+/**
+ * Reset with the six digits from the email.
+ *
+ * Email, code and new password in one submission: the person may be standing at
+ * a different device from the one that asked for the reset, so nothing here can
+ * depend on a session or on the emailed link having been opened.
+ */
+export function AdminResetWithCodeForm() {
+  const [state, setState] = useState(initialState);
+  const [pending, setPending] = useState(false);
+  const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const strength = adminPasswordStrength(password);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    try {
+      setState(
+        await completeAdminPasswordResetWithCodeAction(state, new FormData(event.currentTarget)),
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-4">
+      <label className="grid gap-2 text-sm font-black text-brand-green-ink">
+        Staff email
+        <input name="email" type="email" autoComplete="email" required className={inputClass} />
+      </label>
+      <label className="grid gap-2 text-sm font-black text-brand-green-ink">
+        Email मा आएको 6-digit कोड
+        <input
+          name="code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          required
+          className={`${inputClass} text-center text-2xl font-black tracking-[0.4em]`}
+          placeholder="000000"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-black text-brand-green-ink">
+        New password
+        <input
+          name="password"
+          type={visible ? "text" : "password"}
+          autoComplete="new-password"
+          minLength={12}
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className={inputClass}
+          placeholder="12+ characters"
+        />
+      </label>
+      <div className="flex items-center gap-2" aria-label={`Password strength: ${strength.label}`}>
+        {[1, 2, 3, 4, 5].map((level) => (
+          <span
+            key={level}
+            className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-gray-200"}`}
+          />
+        ))}
+        <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
+      </div>
+      <label className="grid gap-2 text-sm font-black text-brand-green-ink">
+        Confirm new password
+        <input
+          name="confirmPassword"
+          type={visible ? "text" : "password"}
+          autoComplete="new-password"
+          minLength={12}
+          required
+          className={inputClass}
+        />
+      </label>
+      <label className="flex min-h-11 items-center gap-2 text-sm font-bold text-brand-muted-deep">
+        <input
+          type="checkbox"
+          checked={visible}
+          onChange={(event) => setVisible(event.target.checked)}
+          className="h-4 w-4 accent-brand-green"
+        />
+        Show password
+      </label>
+      <button
+        disabled={pending || state.ok}
+        className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
+      >
+        {pending ? "Saving password..." : "कोडले password बदल्ने"}
+      </button>
+      <ResultMessage state={state} />
+      <Link
+        href="/admin/forgot-password"
+        className="text-center text-sm font-black text-brand-green hover:underline"
+      >
+        नयाँ कोड पठाउने · Send a new code
       </Link>
     </form>
   );

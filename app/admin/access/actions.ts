@@ -26,7 +26,9 @@ import {
   getValidAdminStaffToken,
   recordAdminStaffAccessHistory,
   revokeAllAdminStaffSessions,
+  verifyAdminStaffResetCode,
 } from "@/lib/admin-staff-security";
+import { emailLinkBaseUrl } from "@/lib/email-links";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 
@@ -41,9 +43,7 @@ function textValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function publicSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-}
+const publicSiteUrl = emailLinkBaseUrl;
 
 async function requestFingerprint(email = "") {
   const headerStore = await headers();
@@ -113,8 +113,14 @@ export async function requestAdminPasswordResetAction(
     return { ok: true, message: genericMessage };
   }
 
+  // Both a link and a code. The link is the quick path; the code is the one
+  // that survives an email client that mangles URLs, a phone that opens the
+  // link in a browser without the session, or a reset started on the computer
+  // and finished on the phone.
   const reset = await createAdminStaffToken(staff.id, "password_reset", {
     expiresInMinutes: 60,
+    withCode: true,
+    codeBoundTo: "staff",
   });
   const resetUrl = `${publicSiteUrl()}/admin/reset-password?token=${encodeURIComponent(reset.token)}`;
   const delivery = await sendStaffSecurityEmail({
@@ -123,7 +129,14 @@ export async function requestAdminPasswordResetAction(
     payload: {
       email: staff.email,
       kind: "password-reset",
-      message: "A KRISHOE staff password reset was requested. Ignore this email if it was not you.",
+      message: [
+        "A KRISHOE staff password reset was requested. Ignore this email if it was not you.",
+        "",
+        `Your 6-digit reset code is ${reset.code}`,
+        `Enter it at ${publicSiteUrl()}/admin/reset-password`,
+        "",
+        "Or open the one-time link below.",
+      ].join("\n"),
       actionUrl: resetUrl,
       expiresAt: reset.expiresAt,
     },
@@ -194,6 +207,84 @@ export async function completeAdminPasswordResetAction(
   await sendOwnerAccessAlert(
     "KRISHOE staff password changed",
     `${updated.email} completed a password reset. ${revokedSessions} old session(s) were signed out automatically.`,
+  );
+
+  return { ok: true, message: "Password reset complete. You can now sign in.", href: "/admin/login" };
+}
+
+/**
+ * The code path to the same destination as completeAdminPasswordResetAction.
+ *
+ * Email, six digits, and the new password arrive together, so nothing depends
+ * on the emailed link having survived intact.
+ */
+export async function completeAdminPasswordResetWithCodeAction(
+  _previousState: AdminAccessActionState,
+  formData: FormData,
+): Promise<AdminAccessActionState> {
+  const email = textValue(formData, "email").toLowerCase();
+  const code = textValue(formData, "code");
+  const wrongCode = "That email and code do not match, or the code has expired.";
+
+  if (!email) return { ok: false, message: "Staff email is required." };
+
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "admin-password-reset-code",
+    key: await requestFingerprint(email),
+    maxAttempts: 8,
+    windowMs: 15 * 60_000,
+  });
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      message: `Too many attempts. Try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
+  }
+
+  const passwordResult = await validateNewPassword(formData);
+  if (passwordResult.error) return { ok: false, message: passwordResult.error };
+
+  const staff = await getAdminStaffAccountByEmail(email);
+  if (!staff || staff.status !== "Active") {
+    await shortDelay();
+    return { ok: false, message: wrongCode };
+  }
+
+  const verified = await verifyAdminStaffResetCode(staff.id, code);
+  if (!verified.ok) {
+    await recordAdminAuditEvent(
+      "staff_password_reset_code_rejected",
+      `Password reset code rejected for ${staff.email}: ${verified.reason}`,
+      "warning",
+      { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+    );
+    await shortDelay();
+    return { ok: false, message: verified.reason };
+  }
+
+  const updated = await updateAdminStaffPassword(staff.id, passwordResult.password, {
+    mustChangePassword: false,
+  });
+  const revokedSessions = await revokeAllAdminStaffSessions(updated.id, "password-reset");
+  await recordAdminStaffAccessHistory({
+    staffId: updated.id,
+    action: "password_reset_completed",
+    beforeState: { activeSessions: revokedSessions, method: "code" },
+    afterState: { activeSessions: 0, passwordChanged: true },
+    actorId: updated.id,
+    actorEmail: updated.email,
+    actorRole: updated.role,
+    ...(await securityRequestContext()),
+  });
+  await recordAdminAuditEvent(
+    "staff_password_reset_completed",
+    `Staff ${updated.email} completed a password reset with an emailed code. ${revokedSessions} existing session(s) were revoked.`,
+    "success",
+    { actorId: updated.id, actorEmail: updated.email, actorRole: updated.role },
+  );
+  await sendOwnerAccessAlert(
+    "KRISHOE staff password changed",
+    `${updated.email} completed a password reset with an emailed code. ${revokedSessions} old session(s) were signed out automatically.`,
   );
 
   return { ok: true, message: "Password reset complete. You can now sign in.", href: "/admin/login" };

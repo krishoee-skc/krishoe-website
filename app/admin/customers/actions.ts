@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { emailLinkBaseUrl } from "@/lib/email-links";
 import { createEmailVerificationToken } from "@/lib/email-verification-store";
 import {
   notifyEmailVerificationRequested,
@@ -20,9 +21,7 @@ function textValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function publicSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-}
+const publicSiteUrl = emailLinkBaseUrl;
 
 function accountPaths() {
   revalidatePath("/admin/customers");
