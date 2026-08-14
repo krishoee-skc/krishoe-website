@@ -96,6 +96,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Two workers reading the same in a dropdown cannot be told apart at entry
+    // time, and their pay quietly splits across both rows — "aarif" and
+    // "aarif " already did exactly that. Two people really can share a name, so
+    // this refuses rather than merges: distinguish them at entry.
+    const clash = await queryPostgres<{ name: string }>(
+      STORE,
+      `SELECT name FROM factory_workers WHERE lower(btrim(name)) = lower($1) LIMIT 1`,
+      [name],
+    );
+    if (clash[0]) {
+      return NextResponse.json(
+        {
+          error: `A worker named "${clash[0].name}" already exists. Add something that tells them apart, such as a surname.`,
+        },
+        { status: 409 },
+      );
+    }
+
     if (hrEmployeeId) {
       const employees = await queryPostgres<{ id: string }>(
         STORE,

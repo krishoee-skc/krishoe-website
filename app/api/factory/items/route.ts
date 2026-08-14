@@ -108,6 +108,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    // Case- and space-insensitive, because "bagopen" and "Bagopen" existing side
+    // by side is how one item ended up with two wage rates and work split across
+    // both. The name is what the owner recognises in a dropdown, so two rows
+    // that read the same are indistinguishable at the point of entry.
+    const clash = await queryPostgres<{ name: string }>(
+      STORE,
+      `SELECT name FROM factory_items WHERE lower(btrim(name)) = lower($1) LIMIT 1`,
+      [name],
+    );
+    if (clash[0]) {
+      return NextResponse.json(
+        { error: `An item named "${clash[0].name}" already exists.` },
+        { status: 409 },
+      );
+    }
+
     if (productionItemId) {
       const productionItems = await queryPostgres<{ id: string }>(
         STORE,
