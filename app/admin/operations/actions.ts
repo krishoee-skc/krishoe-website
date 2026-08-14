@@ -129,14 +129,23 @@ function operationsReturnPath(formData: FormData) {
   return "/admin/operations";
 }
 
-function refreshOperationsPage(nextPath = "/admin/operations") {
+/**
+ * Sends the reader back with something to read.
+ *
+ * These forms used to save and redirect to the same page in silence. The row
+ * had been written, but on a slow connection there was nothing to distinguish
+ * "saved" from "the button did nothing" — so the owner could not tell whether
+ * the app was broken or they had used it wrong, and the honest answer was
+ * neither. The message says what landed and where to look for it.
+ */
+function refreshOperationsPage(message: string, nextPath = "/admin/operations") {
   revalidatePath("/admin/operations");
 
   if (nextPath !== "/admin/operations") {
     revalidatePath(nextPath);
   }
 
-  redirect(nextPath);
+  redirect(`${nextPath}?saved=${encodeURIComponent(message)}`);
 }
 
 export async function createRawMaterialAction(formData: FormData) {
@@ -157,7 +166,7 @@ export async function createRawMaterialAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_raw_material", `Raw material ${name} created.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Raw material added. It is in the Raw material list below.");
 }
 
 export async function createProductionBatchAction(formData: FormData) {
@@ -180,7 +189,7 @@ export async function createProductionBatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_production_batch", `Production batch ${design} created.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Production batch added. It is in Production batches below.");
 }
 
 export async function createMaterialConsumptionAction(formData: FormData) {
@@ -208,7 +217,7 @@ export async function createMaterialConsumptionAction(formData: FormData) {
     `Batch ${batchId} material ${materialId}: ${quantity} used, ${wastage} wastage.`,
   );
 
-  refreshOperationsPage();
+  refreshOperationsPage("Material usage recorded. It is in Material consumption below.");
 }
 
 export async function createVehicleDispatchAction(formData: FormData) {
@@ -237,7 +246,7 @@ export async function createVehicleDispatchAction(formData: FormData) {
     `Vehicle dispatch ${vehicleNumber} for ${driverName} created.`,
   );
 
-  refreshOperationsPage();
+  refreshOperationsPage("Vehicle trip added. It is in Vehicle dispatch below.");
 }
 
 export async function createVehicleDispatchItemAction(formData: FormData) {
@@ -276,7 +285,7 @@ export async function createVehicleDispatchItemAction(formData: FormData) {
     `Dispatch ${dispatchId} item ${design}: loaded ${loadedPairs}, sold ${soldPairs}, returned ${returnedPairs}.`,
   );
 
-  refreshOperationsPage();
+  refreshOperationsPage("Dispatch item added. It is in Dispatch item history below.");
 }
 
 export async function createCustomerLedgerAction(formData: FormData) {
@@ -300,7 +309,7 @@ export async function createCustomerLedgerAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_customer_ledger", `Customer ledger ${customerName} created.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Customer ledger added. It is in Customer ledger below.");
 }
 
 export async function createWorkerTaskAction(formData: FormData) {
@@ -329,7 +338,7 @@ export async function createWorkerTaskAction(formData: FormData) {
     `Worker task for ${workerName} on ${design || batchId} created.`,
   );
 
-  refreshOperationsPage();
+  refreshOperationsPage("Worker task added. It is in Worker progress below.");
 }
 
 export async function createFinishedStockAction(formData: FormData) {
@@ -352,7 +361,7 @@ export async function createFinishedStockAction(formData: FormData) {
   await syncCatalogStock(`finished stock created for ${design}`);
   await auditOperationsAction("operations_create_finished_stock", `Finished stock ${design} created.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Finished stock saved. It is in Finished stock below, and the shop catalog now matches.");
 }
 
 export async function updateRawMaterialAction(formData: FormData) {
@@ -375,7 +384,7 @@ export async function updateRawMaterialAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_raw_material", `Raw material ${id} updated.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Raw material updated.");
 }
 
 export async function updateWorkerTaskAction(formData: FormData) {
@@ -402,7 +411,7 @@ export async function updateWorkerTaskAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_worker_task", `Worker task ${id} updated.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Worker task updated.");
 }
 
 export async function updateFinishedStockAction(formData: FormData) {
@@ -426,7 +435,7 @@ export async function updateFinishedStockAction(formData: FormData) {
   await syncCatalogStock(`finished stock ${id} updated`);
   await auditOperationsAction("operations_update_finished_stock", `Finished stock ${id} updated.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Finished stock updated, and the shop catalog now matches.");
 }
 
 export async function updateProductionBatchAction(formData: FormData) {
@@ -450,7 +459,7 @@ export async function updateProductionBatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_production_batch", `Production batch ${id} updated.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Production batch updated.");
 }
 
 export async function updateVehicleDispatchAction(formData: FormData) {
@@ -477,7 +486,7 @@ export async function updateVehicleDispatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_vehicle_dispatch", `Vehicle dispatch ${id} updated.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Vehicle trip updated.");
 }
 
 export async function updateCustomerLedgerAction(formData: FormData) {
@@ -502,7 +511,7 @@ export async function updateCustomerLedgerAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_customer_ledger", `Customer ledger ${id} updated.`);
 
-  refreshOperationsPage(operationsReturnPath(formData));
+  refreshOperationsPage("Customer ledger updated.", operationsReturnPath(formData));
 }
 
 export async function createStockMovementAction(formData: FormData) {
@@ -529,7 +538,7 @@ export async function createStockMovementAction(formData: FormData) {
   await syncCatalogStock(`stock movement for ${design}`);
   await auditOperationsAction("operations_create_stock_movement", `Stock movement for ${design} created.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Stock movement recorded. Finished stock and the shop catalog were both updated.");
 }
 
 export async function createLedgerTransactionAction(formData: FormData) {
@@ -553,7 +562,7 @@ export async function createLedgerTransactionAction(formData: FormData) {
     `Ledger ${ledgerId} transaction recorded for Rs. ${amount}.`,
   );
 
-  refreshOperationsPage(operationsReturnPath(formData));
+  refreshOperationsPage("Ledger transaction recorded.", operationsReturnPath(formData));
 }
 
 export async function updateProductionBatchStatusAction(formData: FormData) {
@@ -565,7 +574,7 @@ export async function updateProductionBatchStatusAction(formData: FormData) {
   await updateProductionBatchStatus(id, status);
   await auditOperationsAction("operations_update_production_status", `Production batch ${id} marked ${status}.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Batch stage updated.");
 }
 
 export async function updateVehicleDispatchStatusAction(formData: FormData) {
@@ -577,7 +586,7 @@ export async function updateVehicleDispatchStatusAction(formData: FormData) {
   await updateVehicleDispatchStatus(id, status);
   await auditOperationsAction("operations_update_dispatch_status", `Vehicle dispatch ${id} marked ${status}.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Trip status updated.");
 }
 
 export async function updateWorkerTaskStatusAction(formData: FormData) {
@@ -589,7 +598,7 @@ export async function updateWorkerTaskStatusAction(formData: FormData) {
   await updateWorkerTaskStatus(id, status);
   await auditOperationsAction("operations_update_worker_status", `Worker task ${id} marked ${status}.`);
 
-  refreshOperationsPage();
+  refreshOperationsPage("Worker task status updated.");
 }
 
 export async function deleteOperationRecordAction(formData: FormData) {
@@ -609,5 +618,5 @@ export async function deleteOperationRecordAction(formData: FormData) {
   }
 
   await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);
-  refreshOperationsPage(operationsReturnPath(formData));
+  refreshOperationsPage("Record deleted.", operationsReturnPath(formData));
 }

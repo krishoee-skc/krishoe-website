@@ -35,7 +35,10 @@ export default function OperationsQuickEntry({
     <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <SectionTitle
         title="Quick entry"
-        detail="Real local entries for factory, vehicle, and ledger records. These are saved in data/operations.json."
+        // Left over from the local-json era. The live shop runs on Postgres, so
+        // naming a file on disk told the owner their entries went somewhere
+        // they could not see and might lose.
+        detail="Factory, vehicle, and ledger entries. Saved to the KRISHOE database — a green message confirms each one, and it appears in the lists below."
       />
       <datalist id="stock-design-options">
         {stockDesignOptions.map((design) => (

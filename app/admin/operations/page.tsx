@@ -15,7 +15,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOperationsPage() {
+export default async function AdminOperationsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ saved?: string }>;
+}) {
+  const saved = (await searchParams)?.saved?.trim() ?? "";
   const [snapshot, costing, productionControl] = await Promise.all([
     getOperationsSnapshot(),
     getCostingSnapshot(),
@@ -37,6 +42,17 @@ export default async function AdminOperationsPage() {
 
   return (
     <section className="p-6">
+      {/* Saving used to be silent: the row was written and the page came back
+          looking identical, so there was no way to tell it apart from a button
+          that did nothing. */}
+      {saved ? (
+        <p
+          role="status"
+          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900"
+        >
+          ✅ {saved}
+        </p>
+      ) : null}
       <div>
         <h1 className="text-2xl font-black text-brand-green-ink">
           Factory, wholesale, retail and online operations
