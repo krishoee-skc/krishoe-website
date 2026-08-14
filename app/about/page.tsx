@@ -21,13 +21,18 @@ export default function AboutPage() {
       <Navbar />
 
       <section className="relative isolate overflow-hidden bg-brand-green-ink py-20 text-white">
+        {/* A photograph, not the marketing banner. hero-banner.png has its own
+            headline, buttons and badges baked into the artwork, so using it
+            behind this page's heading stacked two pieces of advertising on top
+            of each other and neither could be read. This is the actual shop,
+            which is also the more honest backdrop for the story page. */}
         <Image
-          src="/images/hero-banner.png"
-          alt="KRISHOE footwear, made in Nepal"
+          src="/images/products/about.jpg"
+          alt="The KRISHOE shop in Nepal"
           fill
           priority
           sizes="100vw"
-          className="object-cover opacity-55"
+          className="object-cover opacity-45"
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,35,29,0.95),rgba(16,35,29,0.68))]" />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8">
