@@ -1,68 +1,70 @@
 import { redirect } from "next/navigation";
-import PrintButton from "@/components/admin/PrintButton";
 import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
 import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
-
-type Props = { searchParams?: Promise<{ month?: string }> };
 
 function money(value: number) {
   return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
 }
 
-export default async function PayslipPage({ searchParams }: Props) {
+export default async function WorkerPayslipPage() {
   const access = await getCurrentWorkerAccess();
   if (!access.authenticated) redirect("/worker/login");
   if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} />;
 
-  const payroll = access.detail.payrollRecords.filter((record) => record.status !== "Draft");
-  const requestedMonth = (await searchParams)?.month || "";
-  const selected = payroll.find((record) => record.periodLabel === requestedMonth) ?? payroll[0];
+  const { detail } = access;
 
   return (
-    <WorkerPortalShell workerName={access.detail.employee.name}>
-      <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
-        <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">My payroll</p><h1 className="mt-2 text-3xl font-black text-brand-green-ink">Payslips</h1></div>
-        {selected ? <PrintButton className="h-11 rounded-full bg-brand-green px-5 text-sm font-bold text-white">Print / Save PDF</PrintButton> : null}
-      </div>
+    <WorkerPortalShell workerName={detail.worker.name}>
+      <section className="rounded-lg bg-brand-green-ink p-6 text-white md:p-8">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-bright">
+          मेरो तलब · My pay
+        </p>
+        <h1 className="mt-3 text-3xl font-black md:text-4xl">{money(detail.balance)}</h1>
+        <p className="mt-2 text-sm text-white/70">अहिलेसम्म पाउन बाँकी</p>
+      </section>
 
-      {payroll.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-          No approved or paid payslip has been published yet. Draft payroll is never shown in the worker portal.
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
-          <aside className="rounded-lg border border-gray-200 bg-white p-4 print:hidden">
-            <h2 className="font-black text-brand-green-ink">Pay periods</h2>
-            <div className="mt-3 grid gap-2">
-              {payroll.map((record) => (
-                <a key={record.id} href={`/worker/payslip?month=${encodeURIComponent(record.periodLabel)}`} className={`rounded-lg px-3 py-3 text-sm font-bold ${selected?.id === record.id ? "bg-brand-green text-white" : "bg-brand-mist text-brand-green-ink"}`}>
-                  {record.periodLabel} · {record.status}
-                </a>
-              ))}
-            </div>
-          </aside>
-
-          {selected ? (
-            <article className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 pb-5">
-                <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">KRISHOE payslip</p><h2 className="mt-2 text-2xl font-black text-brand-green-ink">{selected.periodLabel}</h2></div>
-                <span className="rounded-full bg-brand-green-mist px-4 py-2 text-sm font-black text-brand-green">{selected.status}</span>
-              </div>
-              <dl className="mt-6 grid gap-3 text-sm">
-                <div className="flex justify-between gap-3"><dt>Employee</dt><dd className="font-black">{access.detail.employee.name}</dd></div>
-                <div className="flex justify-between gap-3"><dt>Base / daily pay</dt><dd className="font-black">{money(selected.baseAmount)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>Piece-rate pay</dt><dd className="font-black">{money(selected.pieceAmount)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>Attendance bonus</dt><dd className="font-black">{money(selected.attendanceBonus)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>Overtime</dt><dd className="font-black">{money(selected.overtimeAmount)}</dd></div>
-                <div className="flex justify-between gap-3 text-brand-clay"><dt>Deductions</dt><dd className="font-black">− {money(selected.deduction)}</dd></div>
-                <div className="mt-2 flex justify-between gap-3 border-t border-gray-200 pt-4 text-xl text-brand-green"><dt className="font-black">Net pay</dt><dd className="font-black">{money(selected.netPay)}</dd></div>
-              </dl>
-              {selected.paidAt ? <p className="mt-5 text-xs text-gray-500">Paid/locked at {new Date(selected.paidAt).toLocaleString("en-IN")}</p> : null}
-            </article>
-          ) : null}
-        </div>
-      )}
+      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="text-xl font-black text-brand-green-ink">महिना अनुसार</h2>
+        {detail.months.length === 0 ? (
+          <p className="mt-4 text-sm text-gray-500">
+            अझै कुनै महिनाको हिसाब बनेको छैन।
+          </p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-500">
+                  <th className="py-2 font-semibold">महिना</th>
+                  <th className="py-2 text-right font-semibold">जोडी</th>
+                  <th className="py-2 text-right font-semibold">कमाइ</th>
+                  <th className="py-2 text-right font-semibold">पाएको</th>
+                  <th className="py-2 text-right font-semibold">बाँकी</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.months.map((month) => (
+                  <tr key={month.month} className="border-b border-gray-100">
+                    <td className="py-3 font-mono text-xs">{month.month}</td>
+                    <td className="py-3 text-right font-bold">{month.totalPairs}</td>
+                    <td className="py-3 text-right font-bold text-brand-green">
+                      {money(month.totalEarned)}
+                    </td>
+                    <td className="py-3 text-right">{money(month.totalPaid)}</td>
+                    <td className="py-3 text-right font-black text-brand-gold-ink">
+                      {money(month.finalBalance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-gray-600">
+          &quot;बाँकी&quot; भनेको त्यो महिनासम्मको जम्मा हिसाब हो। रकम नमिलेको लागे
+          मालिक वा HR लाई देखाउनुहोस्।
+        </p>
+      </section>
     </WorkerPortalShell>
   );
 }

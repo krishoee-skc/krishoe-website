@@ -1,7 +1,18 @@
 import { getAdminSession } from "@/lib/admin-auth";
 import { getAdminStaffAccountById } from "@/lib/admin-settings";
-import { getEmployeeHrDetail } from "@/lib/hr";
+import { getFactoryWorkerPortalDetail } from "@/lib/factory-worker-portal";
 
+/**
+ * Resolves the signed-in worker to the factory record their pairs and wages are
+ * kept against.
+ *
+ * This used to go through employee_id into hr_employees, but the shop floor
+ * runs on the factory_* tables and the HR module holds no attendance or
+ * payroll — so the portal showed an empty page beside a full one. The link is
+ * an explicit factory_worker_id rather than a name match, because two workers
+ * can share a name and matching on one is how wages get attributed to the
+ * wrong person.
+ */
 export async function getCurrentWorkerAccess() {
   const session = await getAdminSession();
 
@@ -14,24 +25,24 @@ export async function getCurrentWorkerAccess() {
     return { authenticated: false as const, reason: "This staff account is not active." };
   }
 
-  if (!staff.employeeId) {
+  if (!staff.factoryWorkerId) {
     return {
       authenticated: true as const,
       linked: false as const,
       session,
       staff,
-      reason: "HR has not linked this staff account to an employee record yet.",
+      reason: "This sign-in is not linked to a factory worker yet.",
     };
   }
 
-  const detail = await getEmployeeHrDetail(staff.employeeId);
-  if (!detail || detail.employee.status !== "Active") {
+  const detail = await getFactoryWorkerPortalDetail(staff.factoryWorkerId);
+  if (!detail || detail.worker.status !== "active") {
     return {
       authenticated: true as const,
       linked: false as const,
       session,
       staff,
-      reason: "The linked HR employee record is missing or inactive.",
+      reason: "The linked factory worker record is missing or inactive.",
     };
   }
 

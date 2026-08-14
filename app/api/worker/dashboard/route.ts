@@ -18,25 +18,23 @@ export async function GET() {
     );
   }
 
+  // Mirrors the portal pages: the worker's own factory record, their recent
+  // entries and their month totals. No attendance — the factory records pairs
+  // handed over, not clock-in times.
   const { detail } = access;
   return NextResponse.json(
     {
       data: {
         profile: {
-          id: detail.employee.id,
-          name: detail.employee.name,
-          phone: detail.employee.phone,
-          role: detail.employee.role,
-          department: detail.employee.department,
-          employmentType: detail.employee.employmentType,
-          salaryType: detail.employee.salaryType,
-          joinedAt: detail.employee.joinedAt,
-          status: detail.employee.status,
+          id: detail.worker.id,
+          name: detail.worker.name,
+          category: detail.worker.category,
+          workerType: detail.worker.workerType,
+          status: detail.worker.status,
         },
-        summary: detail.summary,
-        attendance: detail.attendanceRecords,
-        payroll: detail.payrollRecords.filter((record) => record.status !== "Draft"),
-        production: detail.workerTasks,
+        balance: detail.balance,
+        production: detail.work,
+        months: detail.months,
       },
     },
     { headers: { "Cache-Control": "private, no-store" } },

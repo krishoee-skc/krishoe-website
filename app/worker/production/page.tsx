@@ -3,52 +3,72 @@ import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
 import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 
-export default async function ProductionPage() {
+function money(value: number) {
+  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
+}
+
+export default async function WorkerProductionPage() {
   const access = await getCurrentWorkerAccess();
   if (!access.authenticated) redirect("/worker/login");
   if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} />;
 
-  const tasks = access.detail.workerTasks;
-  const target = tasks.reduce((total, task) => total + task.targetPairs, 0);
-  const completed = tasks.reduce((total, task) => total + task.completedPairs, 0);
-  const remaining = Math.max(0, target - completed);
-  const progress = target > 0 ? Math.min(100, Math.round((completed / target) * 100)) : 0;
+  const { detail } = access;
+  const totalPairs = detail.work.reduce((total, entry) => total + entry.pairs, 0);
+  const totalEarned = detail.work.reduce((total, entry) => total + entry.amountEarned, 0);
 
   return (
-    <WorkerPortalShell workerName={access.detail.employee.name}>
-      <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">My production</p>
-      <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Assigned work</h1>
+    <WorkerPortalShell workerName={detail.worker.name}>
+      <section className="rounded-lg bg-brand-green-ink p-6 text-white md:p-8">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-bright">
+          मेरो उत्पादन · My production
+        </p>
+        <h1 className="mt-3 text-3xl font-black md:text-4xl">
+          {totalPairs.toLocaleString("en-IN")} जोडी
+        </h1>
+        <p className="mt-2 text-sm text-white/70">
+          पछिल्ला entry · कुल {money(totalEarned)}
+        </p>
+      </section>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-4">
-        {[["Target pairs", target], ["Completed", completed], ["Remaining", remaining], ["Progress", `${progress}%`]].map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-gray-200 bg-white p-5">
-            <p className="text-sm font-semibold text-gray-500">{label}</p>
-            <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
+      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
+        {detail.work.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            अझै कुनै काम टिपिएको छैन। काम टिपिएपछि यहाँ देखिन्छ।
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-500">
+                  <th className="py-2 font-semibold">मिति</th>
+                  <th className="py-2 font-semibold">सामान</th>
+                  <th className="py-2 text-right font-semibold">जोडी</th>
+                  <th className="py-2 text-right font-semibold">कमाइ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.work.map((entry) => (
+                  <tr key={entry.id} className="border-b border-gray-100">
+                    <td className="py-3 font-mono text-xs">{entry.date}</td>
+                    <td className="py-3">
+                      <span className="font-bold text-brand-green-ink">{entry.itemName}</span>
+                      {entry.color || entry.size ? (
+                        <span className="ml-2 text-xs text-gray-500">
+                          {[entry.color, entry.size].filter(Boolean).join(" · ")}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-3 text-right font-bold">{entry.pairs}</td>
+                    <td className="py-3 text-right font-bold text-brand-green">
+                      {money(entry.amountEarned)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-4">
-        {tasks.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-            No production task is assigned to your linked employee name.
-          </div>
-        ) : tasks.map((task) => {
-          const taskProgress = task.targetPairs > 0
-            ? Math.min(100, Math.round((task.completedPairs / task.targetPairs) * 100))
-            : 0;
-          return (
-            <article key={task.id} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div><h2 className="text-lg font-black text-brand-green-ink">{task.design}</h2><p className="mt-1 text-sm text-gray-500">{task.station} · Batch {task.batchId}</p></div>
-                <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-black text-brand-green-ink">{task.status}</span>
-              </div>
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-brand-green" style={{ width: `${taskProgress}%` }} /></div>
-              <div className="mt-3 flex flex-wrap justify-between gap-2 text-sm"><span>{task.completedPairs} of {task.targetPairs} pairs</span><span className="font-black">{taskProgress}%</span></div>
-            </article>
-          );
-        })}
-      </div>
+        )}
+      </section>
     </WorkerPortalShell>
   );
 }

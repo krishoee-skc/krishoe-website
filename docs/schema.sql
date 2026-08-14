@@ -232,6 +232,9 @@ CREATE TABLE IF NOT EXISTS admin_staff_accounts (
   status TEXT NOT NULL CHECK (status IN ('Invited', 'Active', 'Locked', 'Disabled')),
   password_hash TEXT NOT NULL,
   employee_id TEXT,
+  -- Set for a Worker sign-in: the factory worker whose pairs and wages the
+  -- portal shows. Separate from employee_id, which points at hr_employees.
+  factory_worker_id TEXT,
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
   mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   password_changed_at TIMESTAMPTZ,

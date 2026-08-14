@@ -13,6 +13,7 @@ import {
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import { getHrData } from "@/lib/hr";
+import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
 import { getAdminStaffAccessHistory } from "@/lib/admin-staff-security";
 
 export const dynamic = "force-dynamic";
@@ -101,10 +102,11 @@ export default async function AdminSettingsPage({
   searchParams?: Promise<{ success?: string; error?: string }>;
 }) {
   const { role } = await requireAdminPermission("settings:write");
-  const [settings, hrData, accessHistory] = await Promise.all([
+  const [settings, hrData, accessHistory, factoryWorkers] = await Promise.all([
     getAdminSettings(),
     getHrData(),
     getAdminStaffAccessHistory(undefined, 40),
+    listFactoryWorkerOptions(),
   ]);
   const notice = await searchParams;
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
@@ -241,6 +243,7 @@ export default async function AdminSettingsPage({
         staff={settings.staff}
         branches={settings.branches.map(({ id, name, code }) => ({ id, name, code }))}
         employees={hrData.employees.map(({ id, name, department, status }) => ({ id, name, department, status }))}
+        factoryWorkers={factoryWorkers}
         permissionMap={permissionMap}
         defaultBranchId={settings.company.defaultBranchId}
       />

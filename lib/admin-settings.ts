@@ -50,6 +50,8 @@ export type AdminStaffAccount = {
   status: AdminStaffStatus;
   passwordHash: string;
   employeeId?: string;
+  /** The factory worker this sign-in belongs to; what the worker portal reads. */
+  factoryWorkerId?: string;
   mustChangePassword: boolean;
   mfaEnabled: boolean;
   passwordChangedAt?: string;
@@ -87,6 +89,7 @@ export type AdminStaffAccountInput = {
   branchId?: string;
   status?: string;
   employeeId?: string;
+  factoryWorkerId?: string;
   mustChangePassword?: boolean;
   mfaEnabled?: boolean;
   invitationAcceptedAt?: string;
@@ -127,6 +130,7 @@ type AdminStaffAccountRow = {
   status: AdminStaffStatus;
   password_hash: string;
   employee_id: string | null;
+  factory_worker_id: string | null;
   must_change_password: boolean;
   mfa_enabled: boolean;
   password_changed_at: Date | string | null;
@@ -274,6 +278,7 @@ function staffFromRow(row: AdminStaffAccountRow): AdminStaffAccount {
     status: allowedValue(row.status, adminStaffStatuses, "Active"),
     passwordHash: row.password_hash,
     employeeId: row.employee_id ?? undefined,
+    factoryWorkerId: row.factory_worker_id ?? undefined,
     mustChangePassword: Boolean(row.must_change_password),
     mfaEnabled: Boolean(row.mfa_enabled),
     passwordChangedAt: isoDate(row.password_changed_at),
@@ -420,7 +425,7 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
       "admin settings",
       `
         SELECT id, name, email, role, branch_id, status, password_hash,
-          employee_id, must_change_password, mfa_enabled, password_changed_at,
+          employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
           invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
           last_login_ip, last_login_user_agent,
           created_at, updated_at, last_login_at
@@ -736,6 +741,9 @@ async function staffRecordFromInput(
     employeeId: input.employeeId !== undefined
       ? input.employeeId.trim() || undefined
       : existing?.employeeId || undefined,
+    factoryWorkerId: input.factoryWorkerId !== undefined
+      ? input.factoryWorkerId.trim() || undefined
+      : existing?.factoryWorkerId || undefined,
     mustChangePassword:
       input.mustChangePassword ?? existing?.mustChangePassword ?? (status === "Active"),
     mfaEnabled: input.mfaEnabled ?? existing?.mfaEnabled ?? false,
@@ -779,6 +787,18 @@ async function saveAdminStaffAccountToLocalJson(input: Parameters<typeof staffRe
     throw new Error("This HR employee is already linked to another staff account.");
   }
 
+  // One sign-in per worker: two accounts on the same worker would show one
+  // person's wages to two people, with nothing to say which is the real one.
+  if (
+    nextStaff.factoryWorkerId &&
+    settings.staff.some(
+      (member) =>
+        member.id !== nextStaff.id && member.factoryWorkerId === nextStaff.factoryWorkerId,
+    )
+  ) {
+    throw new Error("This factory worker is already linked to another staff account.");
+  }
+
   if (existingIndex >= 0) {
     settings.staff[existingIndex] = nextStaff;
   } else {
@@ -818,14 +838,14 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
     `
       INSERT INTO admin_staff_accounts (
         id, name, email, role, branch_id, status, password_hash,
-        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent, created_at, updated_at, last_login_at
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20
+        $16, $17, $18, $19, $20, $21
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
@@ -835,6 +855,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
         status = EXCLUDED.status,
         password_hash = EXCLUDED.password_hash,
         employee_id = EXCLUDED.employee_id,
+        factory_worker_id = EXCLUDED.factory_worker_id,
         must_change_password = EXCLUDED.must_change_password,
         mfa_enabled = EXCLUDED.mfa_enabled,
         password_changed_at = EXCLUDED.password_changed_at,
@@ -847,7 +868,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
         updated_at = EXCLUDED.updated_at,
         last_login_at = EXCLUDED.last_login_at
       RETURNING id, name, email, role, branch_id, status, password_hash,
-        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
         created_at, updated_at, last_login_at
@@ -861,6 +882,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
       nextStaff.status,
       nextStaff.passwordHash,
       nextStaff.employeeId ?? null,
+      nextStaff.factoryWorkerId ?? null,
       nextStaff.mustChangePassword,
       nextStaff.mfaEnabled,
       nextStaff.passwordChangedAt ? new Date(nextStaff.passwordChangedAt) : null,
@@ -897,7 +919,7 @@ async function getStaffByEmailFromPostgres(email: string) {
     "admin settings",
     `
       SELECT id, name, email, role, branch_id, status, password_hash,
-        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
         created_at, updated_at, last_login_at
@@ -921,7 +943,7 @@ async function getStaffByIdFromPostgres(staffId: string) {
     "admin settings",
     `
       SELECT id, name, email, role, branch_id, status, password_hash,
-        employee_id, must_change_password, mfa_enabled, password_changed_at,
+        employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
         created_at, updated_at, last_login_at
@@ -1215,14 +1237,14 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
         `
           INSERT INTO admin_staff_accounts (
             id, name, email, role, branch_id, status, password_hash,
-            employee_id, must_change_password, mfa_enabled, password_changed_at,
+            employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
             invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
             last_login_ip, last_login_user_agent, created_at, updated_at, last_login_at
           )
           VALUES (
             $1, $2, $3, $4, $5, $6, $7,
             $8, $9, $10, $11, $12, $13, $14, $15,
-            $16, $17, $18, $19, $20
+            $16, $17, $18, $19, $20, $21
           )
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
@@ -1232,6 +1254,7 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
             status = EXCLUDED.status,
             password_hash = EXCLUDED.password_hash,
             employee_id = EXCLUDED.employee_id,
+            factory_worker_id = EXCLUDED.factory_worker_id,
             must_change_password = EXCLUDED.must_change_password,
             mfa_enabled = EXCLUDED.mfa_enabled,
             password_changed_at = EXCLUDED.password_changed_at,
@@ -1253,6 +1276,7 @@ export async function seedAdminSettingsToPostgres(settings: AdminSettingsStore) 
           staff.status,
           staff.passwordHash,
           staff.employeeId ?? null,
+          staff.factoryWorkerId ?? null,
           staff.mustChangePassword,
           staff.mfaEnabled,
           staff.passwordChangedAt ? new Date(staff.passwordChangedAt) : null,

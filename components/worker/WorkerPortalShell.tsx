@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { logoutWorkerAction } from "@/app/worker/actions";
 
+// No attendance tab: the factory records pairs handed over, not clock-in times.
 const navigation = [
-  { href: "/worker/dashboard", label: "Dashboard" },
-  { href: "/worker/attendance", label: "Attendance" },
-  { href: "/worker/production", label: "Production" },
-  { href: "/worker/payslip", label: "Payslips" },
+  { href: "/worker/dashboard", label: "गृह · Home" },
+  { href: "/worker/production", label: "मेरो काम · Work" },
+  { href: "/worker/payslip", label: "मेरो तलब · Pay" },
 ] as const;
 
 export default function WorkerPortalShell({

@@ -16,6 +16,8 @@ import type { SafeAdminStaffAccount } from "@/lib/admin-settings";
 
 type BranchOption = { id: string; name: string; code: string };
 type EmployeeOption = { id: string; name: string; department: string; status: string };
+/** A factory worker a Worker sign-in can be attached to. */
+type FactoryWorkerOption = { id: string; name: string; category: string };
 
 const inputClass = "min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
 const buttonClass = "min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white transition hover:bg-[#08392C] disabled:opacity-60";
@@ -44,12 +46,14 @@ export default function StaffAccessManager({
   staff,
   branches,
   employees,
+  factoryWorkers,
   permissionMap,
   defaultBranchId,
 }: {
   staff: SafeAdminStaffAccount[];
   branches: BranchOption[];
   employees: EmployeeOption[];
+  factoryWorkers: FactoryWorkerOption[];
   permissionMap: Record<AdminRole, string[]>;
   defaultBranchId: string;
 }) {
@@ -89,6 +93,17 @@ export default function StaffAccessManager({
             <select name="employeeId" defaultValue="" className={inputClass}>
               <option value="">No HR employee link</option>
               {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.department} ({employee.id})</option>)}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            Factory worker (for a Worker sign-in)
+            <select name="factoryWorkerId" defaultValue="" className={inputClass}>
+              <option value="">Not a factory worker</option>
+              {factoryWorkers.map((worker) => (
+                <option key={worker.id} value={worker.id}>
+                  {worker.name} · {worker.category}
+                </option>
+              ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">Role<select name="role" defaultValue="Viewer" className={inputClass}>{adminRoles.map((role) => <option key={role}>{role}</option>)}</select></label>
@@ -146,6 +161,17 @@ export default function StaffAccessManager({
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Role<select name="role" defaultValue={member.role} className={inputClass}>{adminRoles.map((role) => <option key={role}>{role}</option>)}</select></label>
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Branch<select name="branchId" defaultValue={member.branchId} className={inputClass}>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">HR employee<select name="employeeId" defaultValue={member.employeeId ?? ""} className={inputClass}><option value="">Not linked</option>{employees.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select></label>
+                  <label className="grid gap-1 text-xs font-black text-brand-green-ink">
+                    Factory worker
+                    <select name="factoryWorkerId" defaultValue={member.factoryWorkerId ?? ""} className={inputClass}>
+                      <option value="">Not linked</option>
+                      {factoryWorkers.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} · {item.category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="sm:col-span-3"><FormSubmitButton className={buttonClass} pendingLabel="Saving access…">Save access</FormSubmitButton></div>
                 </form>
 
