@@ -404,9 +404,15 @@ table th,
 
 /* Premium mobile optimizations */
 @media screen and (max-width: 767px) {
-  /* Ensure all buttons are at least 44px for touch accessibility */
+  /* Ensure all buttons are at least 44px for touch accessibility.
+     The brackets in the Tailwind arbitrary-value class must be escaped:
+     unescaped, `.text-[10px]` parses as an attribute selector, which the dev
+     server's stricter CSS parser rejects outright and which the production
+     build silently turned into `[10px]` — an attribute nothing has, so the
+     exemption never applied and these small-print links were being forced to
+     44px anyway. */
   button:not([aria-label]),
-  a:not(.text-xs):not(.text-[10px]) {
+  a:not(.text-xs):not(.text-\[10px\]) {
     min-height: 44px;
     min-width: 44px;
   }
