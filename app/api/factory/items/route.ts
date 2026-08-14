@@ -1,9 +1,15 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
+import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
+
+function duplicateItemMessage(existingName?: string) {
+  const what = existingName ? `An item named "${existingName}"` : "An item with this name";
+  return `${what} already exists.`;
+}
 
 interface Item {
   id: string;
@@ -119,7 +125,7 @@ export async function POST(request: NextRequest) {
     );
     if (clash[0]) {
       return NextResponse.json(
-        { error: `An item named "${clash[0].name}" already exists.` },
+        { error: duplicateItemMessage(clash[0].name) },
         { status: 409 },
       );
     }
@@ -161,6 +167,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    // Two saves of the same name arriving together: the check above ran twice
+    // before either insert, so the index is what stopped it.
+    if (isDuplicateNameViolation(error, "factory_items_name_unique_idx")) {
+      return NextResponse.json({ error: duplicateItemMessage() }, { status: 409 });
+    }
     console.error("Error creating item:", error);
     return NextResponse.json({ error: "Failed to create item" }, { status: 500 });
   }

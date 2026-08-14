@@ -1,7 +1,13 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
+import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
+
+function duplicateWorkerMessage(existingName?: string) {
+  const who = existingName ? `A worker named "${existingName}"` : "A worker with this name";
+  return `${who} already exists. Add something that tells them apart, such as a surname.`;
+}
 
 const STORE = "krishoe";
 const workerTypes = new Set(["piece_rate", "monthly_staff", "daily_staff"]);
@@ -100,6 +106,11 @@ export async function POST(request: NextRequest) {
     // time, and their pay quietly splits across both rows — "aarif" and
     // "aarif " already did exactly that. Two people really can share a name, so
     // this refuses rather than merges: distinguish them at entry.
+    //
+    // Case and surrounding spaces are ignored, so "ankus", "Ankus" and "ankus "
+    // are one worker. factory_workers_name_unique_idx applies the same rule in
+    // the database, for the two requests that arrive too close together for
+    // this check to see each other.
     const clash = await queryPostgres<{ name: string }>(
       STORE,
       `SELECT name FROM factory_workers WHERE lower(btrim(name)) = lower($1) LIMIT 1`,
@@ -107,9 +118,7 @@ export async function POST(request: NextRequest) {
     );
     if (clash[0]) {
       return NextResponse.json(
-        {
-          error: `A worker named "${clash[0].name}" already exists. Add something that tells them apart, such as a surname.`,
-        },
+        { error: duplicateWorkerMessage(clash[0].name) },
         { status: 409 },
       );
     }
@@ -152,6 +161,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    // The index caught what the check above could not see: the same name being
+    // saved twice at once. Same answer either way.
+    if (isDuplicateNameViolation(error, "factory_workers_name_unique_idx")) {
+      return NextResponse.json({ error: duplicateWorkerMessage() }, { status: 409 });
+    }
     console.error("Error creating worker:", error);
     return NextResponse.json({ error: "Failed to create worker" }, { status: 500 });
   }
