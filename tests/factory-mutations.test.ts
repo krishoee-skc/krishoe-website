@@ -21,7 +21,11 @@ const {
 } = await import("@/lib/factory-mutations");
 
 beforeEach(() => {
-  dbQuery.mockReset();
+  // Default to an empty result set so a test only scripts the queries it cares
+  // about. The real executor always resolves to an array; without this, any
+  // query a test did not anticipate resolves undefined and blows up on
+  // indexing, which turns "this mutation grew a step" into an unrelated crash.
+  dbQuery.mockReset().mockResolvedValue([]);
   transactionPostgres.mockClear();
 });
 
@@ -105,6 +109,61 @@ describe("Factory mutation idempotency", () => {
     expect(ledgerInsert?.[1]).toEqual(
       expect.arrayContaining(["work-key-1", expect.any(String), "worker-1", 10, 125, 175]),
     );
+  });
+
+  // The monthly figure is what the wage payment is read from. It used to be
+  // recomputed only when someone opened the reports page, so work posted after
+  // that was simply missing from its month — five workers were short a combined
+  // Rs 3,962 for one July before this was found.
+  it("refreshes the worker's month in the same transaction that posts the work", async () => {
+    dbQuery
+      .mockResolvedValueOnce([]) // advisory idempotency lock
+      .mockResolvedValueOnce([]) // no previous work with this key
+      .mockResolvedValueOnce([{ id: "worker-1", category: "Upper", worker_type: "piece_rate" }])
+      .mockResolvedValueOnce([{ id: "item-1" }])
+      .mockResolvedValueOnce([{ rate_per_pair: "12.50" }])
+      .mockResolvedValueOnce([
+        {
+          id: "work-1",
+          date: "2026-07-31",
+          worker_id: "worker-1",
+          item_id: "item-1",
+          color: "Black",
+          size: "36-40",
+          pairs_count: 10,
+          status: "completed",
+          rate_applied: "12.50",
+          amount_earned: "125.00",
+        },
+      ]);
+
+    await createFactoryWork({
+      submissionKey: "work-key-month",
+      date: "2026-07-31",
+      workerId: "worker-1",
+      itemId: "item-1",
+      color: "Black",
+      size: "36-40",
+      pairsCount: 10,
+      status: "completed",
+    });
+
+    // One transaction, not two: recomputing through the public refresh helper
+    // would open a second one and re-take the worker lock this one still holds.
+    expect(transactionPostgres).toHaveBeenCalledTimes(1);
+
+    const summaryUpsert = dbQuery.mock.calls.find(([statement]) =>
+      String(statement).includes("INSERT INTO factory_monthly_summary"),
+    );
+    expect(summaryUpsert).toBeDefined();
+
+    // The work's own month, not today's — back-dated entries belong to the month
+    // they were worked in.
+    expect(String(summaryUpsert?.[1]?.[1])).toBe("2026-07-01");
+    expect(summaryUpsert?.[1]?.[2]).toBe("worker-1");
+
+    // A finalised month is never rewritten behind the owner's back.
+    expect(String(summaryUpsert?.[0])).toContain("status <> 'locked'");
   });
 
   it("synchronizes linked factory work into approved production history", async () => {

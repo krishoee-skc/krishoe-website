@@ -472,6 +472,15 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       );
     }
 
+    // Keep the worker's month current in the same transaction that recorded the
+    // work. It used to be recomputed only when someone opened the reports page,
+    // so any work posted afterwards was missing from the month it belonged to —
+    // and the monthly figure is what the wage payment is read from. A locked
+    // month is left untouched (writeMonthlySummary returns null): the work is
+    // still real and still recorded, but a finalised month is not rewritten
+    // behind the owner's back.
+    await writeMonthlySummary(db, input.workerId, input.date.slice(0, 7));
+
     return {
       ...workResponse(inserted[0], input.submissionKey, false),
       production_synced: productionSynced,
@@ -786,6 +795,82 @@ interface SummaryRow {
   status: string;
 }
 
+/**
+ * Recomputes one worker's month from the daily work and ledger rows and writes
+ * it back, using a transaction the caller already opened.
+ *
+ * Split out so posting work can keep the summary current in the same
+ * transaction as the work itself. The alternative — calling
+ * refreshFactoryMonthlySummary — would open a second transaction and take the
+ * worker lock again while the first still holds it.
+ *
+ * Returns null when the month is locked, because the upsert declines to touch a
+ * finalised month. Callers decide what that means: a deliberate refresh reports
+ * the locked figures, while posting work simply leaves them alone.
+ */
+async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month: string) {
+  const workRows = await db.query<{
+    total_pairs: DbNumeric;
+    total_earned: DbNumeric;
+  }>(
+    `SELECT COALESCE(SUM(pairs_count), 0) AS total_pairs,
+            COALESCE(SUM(amount_earned), 0) AS total_earned
+     FROM factory_daily_work
+     WHERE worker_id = $1
+       AND date >= $2::date
+       AND date < ($2::date + INTERVAL '1 month')
+       AND status = 'completed'`,
+    [workerId, `${month}-01`],
+  );
+  const paymentRows = await db.query<{ total_paid: DbNumeric }>(
+    `SELECT COALESCE(SUM(payment_given), 0) AS total_paid
+     FROM factory_worker_ledger
+     WHERE worker_id = $1
+       AND entry_type = 'payment'
+       AND status <> 'reversed'
+       AND date >= $2::date
+       AND date < ($2::date + INTERVAL '1 month')`,
+    [workerId, `${month}-01`],
+  );
+  const balanceRows = await db.query<{ closing_balance: DbNumeric }>(
+    `SELECT COALESCE(
+              SUM(COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)),
+              0
+            ) AS closing_balance
+     FROM factory_worker_ledger
+     WHERE worker_id = $1
+       AND status <> 'reversed'
+       AND date < ($2::date + INTERVAL '1 month')`,
+    [workerId, `${month}-01`],
+  );
+
+  const rows = await db.query<SummaryRow>(
+    `INSERT INTO factory_monthly_summary
+     (id, month, worker_id, total_pairs, total_earned, total_paid, final_balance, status)
+     VALUES ($1, $2::date, $3, $4, $5, $6, $7, 'draft')
+     ON CONFLICT (month, worker_id) DO UPDATE SET
+       total_pairs = EXCLUDED.total_pairs,
+       total_earned = EXCLUDED.total_earned,
+       total_paid = EXCLUDED.total_paid,
+       final_balance = EXCLUDED.final_balance,
+       updated_at = now()
+     WHERE factory_monthly_summary.status <> 'locked'
+     RETURNING id, month, worker_id, total_pairs, total_earned, total_paid,
+               final_balance, status`,
+    [
+      crypto.randomUUID(),
+      `${month}-01`,
+      workerId,
+      numeric(workRows[0]?.total_pairs),
+      numeric(workRows[0]?.total_earned),
+      numeric(paymentRows[0]?.total_paid),
+      money(numeric(balanceRows[0]?.closing_balance)),
+    ],
+  );
+
+  return rows[0] ?? null;
+}
+
 export async function refreshFactoryMonthlySummary(input: {
   submissionKey: string;
   month: string;
@@ -802,70 +887,7 @@ export async function refreshFactoryMonthlySummary(input: {
       );
     }
 
-    const workRows = await db.query<{
-      total_pairs: DbNumeric;
-      total_earned: DbNumeric;
-    }>(
-      `SELECT COALESCE(SUM(pairs_count), 0) AS total_pairs,
-              COALESCE(SUM(amount_earned), 0) AS total_earned
-       FROM factory_daily_work
-       WHERE worker_id = $1
-         AND date >= $2::date
-         AND date < ($2::date + INTERVAL '1 month')
-         AND status = 'completed'`,
-      [input.workerId, `${input.month}-01`],
-    );
-    const paymentRows = await db.query<{ total_paid: DbNumeric }>(
-      `SELECT COALESCE(SUM(payment_given), 0) AS total_paid
-       FROM factory_worker_ledger
-       WHERE worker_id = $1
-         AND entry_type = 'payment'
-         AND status <> 'reversed'
-         AND date >= $2::date
-         AND date < ($2::date + INTERVAL '1 month')`,
-      [input.workerId, `${input.month}-01`],
-    );
-    const balanceRows = await db.query<{ closing_balance: DbNumeric }>(
-      `SELECT COALESCE(
-                SUM(COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)),
-                0
-              ) AS closing_balance
-       FROM factory_worker_ledger
-       WHERE worker_id = $1
-         AND status <> 'reversed'
-         AND date < ($2::date + INTERVAL '1 month')`,
-      [input.workerId, `${input.month}-01`],
-    );
-    const totalPairs = numeric(workRows[0]?.total_pairs);
-    const totalEarned = numeric(workRows[0]?.total_earned);
-    const totalPaid = numeric(paymentRows[0]?.total_paid);
-    const finalBalance = money(numeric(balanceRows[0]?.closing_balance));
-
-    const rows = await db.query<SummaryRow>(
-      `INSERT INTO factory_monthly_summary
-       (id, month, worker_id, total_pairs, total_earned, total_paid, final_balance, status)
-       VALUES ($1, $2::date, $3, $4, $5, $6, $7, 'draft')
-       ON CONFLICT (month, worker_id) DO UPDATE SET
-         total_pairs = EXCLUDED.total_pairs,
-         total_earned = EXCLUDED.total_earned,
-         total_paid = EXCLUDED.total_paid,
-         final_balance = EXCLUDED.final_balance,
-         updated_at = now()
-       WHERE factory_monthly_summary.status <> 'locked'
-       RETURNING id, month, worker_id, total_pairs, total_earned, total_paid,
-                 final_balance, status`,
-      [
-        crypto.randomUUID(),
-        `${input.month}-01`,
-        input.workerId,
-        totalPairs,
-        totalEarned,
-        totalPaid,
-        finalBalance,
-      ],
-    );
-
-    let summary = rows[0];
+    let summary = await writeMonthlySummary(db, input.workerId, input.month);
     if (!summary) {
       const lockedRows = await db.query<SummaryRow>(
         `SELECT id, month, worker_id, total_pairs, total_earned, total_paid,
