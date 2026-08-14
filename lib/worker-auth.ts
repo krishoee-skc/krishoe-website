@@ -31,7 +31,7 @@ export async function getCurrentWorkerAccess() {
       linked: false as const,
       session,
       staff,
-      reason: "This sign-in is not linked to a factory worker yet.",
+      reason: "यो sign-in अझै कुनै कारखानाको कामदारसँग जोडिएको छैन।",
     };
   }
 
@@ -42,7 +42,7 @@ export async function getCurrentWorkerAccess() {
       linked: false as const,
       session,
       staff,
-      reason: "The linked factory worker record is missing or inactive.",
+      reason: "जोडिएको कामदारको विवरण भेटिएन, वा त्यो कामदार अहिले निष्क्रिय छ।",
     };
   }
 
