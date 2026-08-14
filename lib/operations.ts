@@ -40,6 +40,7 @@ import {
   type BusinessChannel,
   type StockMovementType,
 } from "@/lib/stock-rules";
+import { canonicalDesignName, designKey } from "@/lib/design-name";
 
 // Re-exported so the rest of the app keeps importing these from here. The rules
 // themselves live in lib/stock-rules.ts, where the Postgres backend can reach
@@ -373,7 +374,9 @@ function sameDesign(left: string, right: string) {
 }
 
 function stockKey(value: Pick<FinishedStock, "design" | "channel">) {
-  return `${value.design.trim().toLowerCase()}::${value.channel}`;
+  // designKey, not a hand-rolled lowercase: the Postgres path compares the same
+  // way, and a design that counts as one row there has to count as one row here.
+  return `${designKey(value.design)}::${value.channel}`;
 }
 
 function percentage(part: number, total: number) {
@@ -635,7 +638,12 @@ function findOrCreateFinishedStock(
 
   const stock: FinishedStock = {
     id: createId("STOCK"),
-    design: movement.design,
+    // Adopt the spelling already used for this design on another channel rather
+    // than adding a second way of writing it.
+    design: canonicalDesignName(
+      movement.design,
+      data.finishedStock.map((item) => item.design),
+    ),
     channel: movement.channel,
     sizeRun: movement.sizeRun.trim() || "Mixed",
     stockPairs: 0,
@@ -650,6 +658,9 @@ function findOrCreateFinishedStock(
 
 function addStockMovementToLocalData(data: OperationsData, movement: StockMovement) {
   const stock = findOrCreateFinishedStock(data, movement);
+  // File it under the spelling the stock row carries, so the movement list does
+  // not grow a second way of writing the same design.
+  movement.design = stock.design;
   applyStockMovementToStock(stock, movement);
   data.stockMovements.unshift(movement);
 }

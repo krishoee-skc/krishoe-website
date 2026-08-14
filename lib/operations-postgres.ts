@@ -22,6 +22,7 @@ import type {
   VehicleDispatchItem,
   WorkerTask,
 } from "@/lib/operations";
+import { canonicalDesignName, designKey } from "@/lib/design-name";
 
 type RawMaterialRow = {
   id: string;
@@ -901,6 +902,13 @@ async function findOrCreateFinishedStock(
   movement: Pick<StockMovement, "design" | "channel" | "sizeRun">,
 ) {
   const sizeRun = (movement.sizeRun ?? "").trim() || "Mixed";
+  // Case and spacing are spelling, not identity: "bag open", "Bag Open" and
+  // "bag  open" are one design. The comparison collapses both sides the same
+  // way designKey() does in JavaScript, so the two never disagree about what
+  // counts as the same name.
+  const key = designKey(movement.design);
+  const normalizedColumn = "lower(regexp_replace(btrim(design), '\\s+', ' ', 'g'))";
+
   // Prefer an exact size-run row, then the aggregate "Mixed" row, then any row
   // for this design/channel — this keeps range-based stock rows working while
   // letting size-specific rows take over once the owner adds them.
@@ -908,7 +916,7 @@ async function findOrCreateFinishedStock(
     `
       SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
       FROM finished_stock
-      WHERE lower(design) = lower($1) AND channel = $2
+      WHERE ${normalizedColumn} = $1 AND channel = $2
       ORDER BY
         CASE
           WHEN size_run = $3 THEN 0
@@ -920,12 +928,28 @@ async function findOrCreateFinishedStock(
       LIMIT 1
       FOR UPDATE
     `,
-    [movement.design, movement.channel, sizeRun],
+    [key, movement.channel, sizeRun],
   );
 
   if (existingRows[0]) {
     return finishedStockFromRow(existingRows[0]);
   }
+
+  // No row for this channel yet. Before inventing a spelling, look for the same
+  // design on another channel and on the shop catalog, and adopt the name
+  // already in use — otherwise the Factory row reads "Bag Open" while the shop
+  // reads "bag open", and the owner has to work out that they are one product.
+  const knownRows = await db.query<{ design: string }>(
+    `
+      SELECT design FROM finished_stock WHERE ${normalizedColumn} = $1
+      UNION
+      SELECT name AS design FROM products
+      WHERE lower(regexp_replace(btrim(name), '\\s+', ' ', 'g')) = $1
+      LIMIT 5
+    `,
+    [key],
+  );
+  const design = canonicalDesignName(movement.design, knownRows.map((row) => row.design));
 
   const createdRows = await db.query<FinishedStockRow>(
     `
@@ -933,7 +957,7 @@ async function findOrCreateFinishedStock(
       VALUES ($1, $2, $3, $4, 0, 0, 0, now())
       RETURNING id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
     `,
-    [createId("STOCK"), movement.design, movement.channel, sizeRun],
+    [createId("STOCK"), design, movement.channel, sizeRun],
   );
 
   return finishedStockFromRow(createdRows[0]);
@@ -971,6 +995,9 @@ export async function insertStockMovement(
   };
 
   const stock = await findOrCreateFinishedStock(db, record);
+  // File the movement under the spelling the stock row already carries, so the
+  // movement list does not grow a second way of writing the same design.
+  record.design = stock.design;
   await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
 
   const rows = await db.query<StockMovementRow>(
