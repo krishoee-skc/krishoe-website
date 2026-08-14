@@ -1,9 +1,15 @@
-import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getPasswordResetToken } from "@/lib/password-reset-store";
 import ResetPasswordForm from "@/components/account/ResetPasswordForm";
+import ResetPasswordWithCodeForm from "@/components/account/ResetPasswordWithCodeForm";
 
+/**
+ * Two ways in, same page. A working link sets the password straight away;
+ * anything else — no link, a stale one, or one a mail client broke in half —
+ * falls through to the emailed code rather than a dead end that only offers to
+ * send another link that may break the same way.
+ */
 export default async function ResetPasswordPage({
   searchParams,
 }: {
@@ -11,35 +17,25 @@ export default async function ResetPasswordPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const token = typeof resolvedSearchParams?.token === "string" ? resolvedSearchParams.token : "";
-
-  if (!token) {
-    notFound();
-  }
-
-  const storedToken = await getPasswordResetToken(token);
-
-  if (!storedToken || new Date(storedToken.expiresAt) < new Date()) {
-    return (
-      <>
-        <Navbar />
-        <main className="mx-auto max-w-lg px-5 py-16 md:px-8">
-          <div className="rounded-lg border bg-white p-6 text-center shadow-sm">
-            <h1 className="text-2xl font-bold text-red-700">Invalid Link</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              This password reset link is invalid or has expired. Please request a new one.
-            </p>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+  const storedToken = token ? await getPasswordResetToken(token) : null;
+  const linkWorks = Boolean(storedToken && new Date(storedToken.expiresAt) >= new Date());
 
   return (
     <>
       <Navbar />
       <main className="mx-auto max-w-lg px-5 py-16 md:px-8">
-        <ResetPasswordForm token={token} />
+        {linkWorks ? (
+          <ResetPasswordForm token={token} />
+        ) : (
+          <div className="grid gap-4">
+            {token ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                त्यो link चल्न छाड्यो — तर email मा आएको ६ अंकको कोडले अहिल्यै हुन्छ।
+              </p>
+            ) : null}
+            <ResetPasswordWithCodeForm />
+          </div>
+        )}
       </main>
       <Footer />
     </>

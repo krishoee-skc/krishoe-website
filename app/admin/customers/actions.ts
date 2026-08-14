@@ -92,12 +92,13 @@ export async function sendCustomerPasswordResetAction(formData: FormData) {
     return;
   }
 
-  const token = await createPasswordResetToken(user.email);
+  const { token, code } = await createPasswordResetToken(user.email);
   const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
   const resetUrl = `${publicSiteUrl()}/account/reset-password?token=${encodeURIComponent(token)}`;
   const event = await notifyPasswordResetRequested({
     email: user.email,
     resetUrl,
+    resetCode: code,
     expiresAt,
     requestedAt: new Date().toISOString(),
   });

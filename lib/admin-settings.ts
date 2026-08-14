@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { adminRoles, type AdminRole } from "@/lib/admin-permissions";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import { looksLikePhone, normalizeStaffPhone } from "@/lib/staff-phone";
 
 export const companyBranchTypes = ["Factory", "Wholesale", "Retail", "Online", "Office"] as const;
 export const companyBranchStatuses = ["Active", "Inactive"] as const;
@@ -44,7 +45,10 @@ export type CompanyBranch = {
 export type AdminStaffAccount = {
   id: string;
   name: string;
+  /** Empty when the account signs in by phone. Never empty at the same time as phone. */
   email: string;
+  /** Digits only, no country code. Empty when the account signs in by email. */
+  phone: string;
   role: AdminRole;
   branchId: string;
   status: AdminStaffStatus;
@@ -84,6 +88,9 @@ export type AdminStaffAccountInput = {
   id?: string;
   name?: string;
   email?: string;
+  phone?: string;
+  /** A password the Owner hands over in person: shorter, and must be changed. */
+  temporaryPassword?: boolean;
   password?: string;
   role?: string;
   branchId?: string;
@@ -124,7 +131,8 @@ type CompanyBranchRow = {
 type AdminStaffAccountRow = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   role: AdminRole;
   branch_id: string;
   status: AdminStaffStatus;
@@ -272,7 +280,8 @@ function staffFromRow(row: AdminStaffAccountRow): AdminStaffAccount {
   return {
     id: row.id,
     name: row.name,
-    email: row.email,
+    email: row.email ?? "",
+    phone: row.phone ?? "",
     role: allowedValue(row.role, adminRoles, "Viewer"),
     branchId: row.branch_id,
     status: allowedValue(row.status, adminStaffStatuses, "Active"),
@@ -354,8 +363,9 @@ function normalizeStore(value: unknown): AdminSettingsStore {
       (records, staff) => {
         const item = staff as Partial<AdminStaffAccount>;
         const email = normalizeEmail(item.email ?? "");
+        const phone = normalizeStaffPhone(item.phone ?? "");
 
-        if (!email || !item.passwordHash) {
+        if ((!email && !phone) || !item.passwordHash) {
           return records;
         }
 
@@ -363,8 +373,9 @@ function normalizeStore(value: unknown): AdminSettingsStore {
         const lastLoginAt = isoDate(item.lastLoginAt);
         const record: AdminStaffAccount = {
           id: requiredText(item.id, `staff-${crypto.randomUUID()}`),
-          name: requiredText(item.name, email),
+          name: requiredText(item.name, email || phone),
           email,
+          phone,
           role: allowedValue(item.role, adminRoles, "Viewer"),
           branchId: branches.some((branch) => branch.id === item.branchId)
             ? item.branchId ?? defaultBranchId
@@ -424,7 +435,7 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     queryPostgres<AdminStaffAccountRow>(
       "admin settings",
       `
-        SELECT id, name, email, role, branch_id, status, password_hash,
+        SELECT id, name, email, phone, role, branch_id, status, password_hash,
           employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
           invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
           last_login_ip, last_login_user_agent,
@@ -455,15 +466,26 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
   };
 }
 
+/**
+ * Strips the password hash and nothing else.
+ *
+ * Every optional field has to be listed explicitly here. `factoryWorkerId` was
+ * missing, and because it is optional the omission type-checked: the Owner
+ * could link a worker in Settings, the link would reach the database, and the
+ * worker portal — which reads this shape — would still report the sign-in as
+ * unlinked, with nothing to show where the value had been lost.
+ */
 function toSafeStaff(staff: AdminStaffAccount): SafeAdminStaffAccount {
   return {
     id: staff.id,
     name: staff.name,
     email: staff.email,
+    phone: staff.phone,
     role: staff.role,
     branchId: staff.branchId,
     status: staff.status,
     employeeId: staff.employeeId,
+    factoryWorkerId: staff.factoryWorkerId,
     mustChangePassword: staff.mustChangePassword,
     mfaEnabled: staff.mfaEnabled,
     passwordChangedAt: staff.passwordChangedAt,
@@ -707,19 +729,32 @@ async function staffRecordFromInput(
   defaultBranchId = "",
 ) {
   const email = normalizeEmail(input.email ?? existing?.email ?? "");
+  const phone = normalizeStaffPhone(input.phone ?? existing?.phone ?? "");
   const password = input.password?.trim() ?? "";
   const status = allowedValue(input.status, adminStaffStatuses, existing?.status ?? "Active");
 
-  if (!email) {
-    throw new Error("Staff email is required.");
+  // Either identity will do, but an account with neither could never be signed
+  // into and could never be recovered.
+  if (!email && !phone) {
+    throw new Error("Staff email or mobile number is required.");
   }
 
-  if (!existing && status !== "Invited" && password.length < 12) {
-    throw new Error("New staff password must be at least 12 characters.");
+  if (input.phone?.trim() && !phone) {
+    throw new Error("Enter a valid mobile number, or leave it empty.");
   }
 
-  if (existing && password && password.length < 12) {
-    throw new Error("New password must be at least 12 characters.");
+  // A temporary password is spoken aloud to a worker standing on the shop
+  // floor, so twelve characters is the wrong bar — it would be written on a
+  // wall to be remembered. It is short, and it cannot survive the first
+  // sign-in.
+  const minimumPasswordLength = input.temporaryPassword ? 8 : 12;
+
+  if (!existing && status !== "Invited" && password.length < minimumPasswordLength) {
+    throw new Error(`New staff password must be at least ${minimumPasswordLength} characters.`);
+  }
+
+  if (existing && password && password.length < minimumPasswordLength) {
+    throw new Error(`New password must be at least ${minimumPasswordLength} characters.`);
   }
 
   const stamp = nowIso();
@@ -732,8 +767,9 @@ async function staffRecordFromInput(
 
   return {
     id: existing?.id ?? input.id ?? `staff-${crypto.randomUUID()}`,
-    name: requiredText(input.name, existing?.name ?? email),
+    name: requiredText(input.name, existing?.name ?? email ?? phone),
     email,
+    phone,
     role: allowedValue(input.role, adminRoles, existing?.role ?? "Viewer"),
     branchId: requiredText(input.branchId, existing?.branchId ?? defaultBranchId),
     status,
@@ -745,7 +781,9 @@ async function staffRecordFromInput(
       ? input.factoryWorkerId.trim() || undefined
       : existing?.factoryWorkerId || undefined,
     mustChangePassword:
-      input.mustChangePassword ?? existing?.mustChangePassword ?? (status === "Active"),
+      input.temporaryPassword
+        ? true
+        : input.mustChangePassword ?? existing?.mustChangePassword ?? (status === "Active"),
     mfaEnabled: input.mfaEnabled ?? existing?.mfaEnabled ?? false,
     passwordChangedAt: password ? stamp : existing?.passwordChangedAt,
     invitedAt: existing?.invitedAt ?? (status === "Invited" ? stamp : undefined),
@@ -774,8 +812,23 @@ async function saveAdminStaffAccountToLocalJson(input: Parameters<typeof staffRe
     throw new Error("Choose a valid branch for this staff account.");
   }
 
-  if (settings.staff.some((member) => member.id !== nextStaff.id && normalizeEmail(member.email) === nextStaff.email)) {
+  if (
+    nextStaff.email
+    && settings.staff.some(
+      (member) => member.id !== nextStaff.id && normalizeEmail(member.email) === nextStaff.email,
+    )
+  ) {
     throw new Error("Staff email already exists.");
+  }
+
+  if (
+    nextStaff.phone
+    && settings.staff.some(
+      (member) =>
+        member.id !== nextStaff.id && normalizeStaffPhone(member.phone) === nextStaff.phone,
+    )
+  ) {
+    throw new Error("Staff mobile number already exists.");
   }
 
   if (
@@ -822,6 +875,27 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
     throw new Error("Choose a valid branch for this staff account.");
   }
 
+  // The unique indexes would catch these, but a raw constraint violation reads
+  // as a crash to whoever is standing at the form.
+  if (
+    nextStaff.email
+    && settings.staff.some(
+      (member) => member.id !== nextStaff.id && normalizeEmail(member.email) === nextStaff.email,
+    )
+  ) {
+    throw new Error("Staff email already exists.");
+  }
+
+  if (
+    nextStaff.phone
+    && settings.staff.some(
+      (member) =>
+        member.id !== nextStaff.id && normalizeStaffPhone(member.phone) === nextStaff.phone,
+    )
+  ) {
+    throw new Error("Staff mobile number already exists.");
+  }
+
   const staffBranch = settings.branches.find((branch) => branch.id === nextStaff.branchId);
 
   if (staffBranch) {
@@ -837,19 +911,20 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
     "admin settings",
     `
       INSERT INTO admin_staff_accounts (
-        id, name, email, role, branch_id, status, password_hash,
+        id, name, email, phone, role, branch_id, status, password_hash,
         employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent, created_at, updated_at, last_login_at
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6, $7,
+        $1, $2, $3, $22, $4, $5, $6, $7,
         $8, $9, $10, $11, $12, $13, $14, $15,
         $16, $17, $18, $19, $20, $21
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         email = EXCLUDED.email,
+        phone = EXCLUDED.phone,
         role = EXCLUDED.role,
         branch_id = EXCLUDED.branch_id,
         status = EXCLUDED.status,
@@ -867,7 +942,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
         last_login_user_agent = EXCLUDED.last_login_user_agent,
         updated_at = EXCLUDED.updated_at,
         last_login_at = EXCLUDED.last_login_at
-      RETURNING id, name, email, role, branch_id, status, password_hash,
+      RETURNING id, name, email, phone, role, branch_id, status, password_hash,
         employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
@@ -876,7 +951,10 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
     [
       nextStaff.id,
       nextStaff.name,
-      nextStaff.email,
+      // Absent identities go in as NULL, never "". Postgres allows many NULLs
+      // in a unique index but only one empty string, so storing "" would let
+      // the first phone-only account block every account after it.
+      nextStaff.email || null,
       nextStaff.role,
       nextStaff.branchId,
       nextStaff.status,
@@ -895,6 +973,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
       new Date(nextStaff.createdAt),
       new Date(nextStaff.updatedAt),
       nextStaff.lastLoginAt ? new Date(nextStaff.lastLoginAt) : null,
+      nextStaff.phone || null,
     ],
   );
 
@@ -918,7 +997,7 @@ async function getStaffByEmailFromPostgres(email: string) {
   const rows = await queryPostgres<AdminStaffAccountRow>(
     "admin settings",
     `
-      SELECT id, name, email, role, branch_id, status, password_hash,
+      SELECT id, name, email, phone, role, branch_id, status, password_hash,
         employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
@@ -933,6 +1012,65 @@ async function getStaffByEmailFromPostgres(email: string) {
   return rows[0] ? staffFromRow(rows[0]) : undefined;
 }
 
+async function getStaffByPhoneFromLocalJson(phone: string) {
+  const digits = normalizeStaffPhone(phone);
+  if (!digits) return undefined;
+  const settings = await readSettingsFromLocalJson();
+  return settings.staff.find((member) => normalizeStaffPhone(member.phone) === digits);
+}
+
+async function getStaffByPhoneFromPostgres(phone: string) {
+  const digits = normalizeStaffPhone(phone);
+  if (!digits) return undefined;
+  const rows = await queryPostgres<AdminStaffAccountRow>(
+    "admin settings",
+    `
+      SELECT id, name, email, phone, role, branch_id, status, password_hash,
+        employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
+        invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
+        last_login_ip, last_login_user_agent,
+        created_at, updated_at, last_login_at
+      FROM admin_staff_accounts
+      WHERE phone = $1
+      LIMIT 1
+    `,
+    [digits],
+  );
+
+  return rows[0] ? staffFromRow(rows[0]) : undefined;
+}
+
+/**
+ * Resolves whatever was typed into the sign-in box.
+ *
+ * One field, two identities: an address if it carries "@", otherwise a mobile
+ * number. Asking a worker to know which of two boxes their identity belongs in
+ * is a step that only ever goes wrong.
+ */
+async function getStaffByIdentifier(identifier: string) {
+  const value = identifier.trim();
+  if (!value) return undefined;
+
+  if (looksLikePhone(value)) {
+    return runWithDataBackend({
+      storeName: "admin settings",
+      localJson: () => getStaffByPhoneFromLocalJson(value),
+      postgres: () => getStaffByPhoneFromPostgres(value),
+    });
+  }
+
+  return runWithDataBackend({
+    storeName: "admin settings",
+    localJson: () => getStaffByEmailFromLocalJson(value),
+    postgres: () => getStaffByEmailFromPostgres(value),
+  });
+}
+
+export async function getAdminStaffAccountByIdentifier(identifier: string) {
+  const staff = await getStaffByIdentifier(identifier);
+  return staff ? toSafeStaff(staff) : undefined;
+}
+
 async function getStaffByIdFromLocalJson(staffId: string) {
   const settings = await readSettingsFromLocalJson();
   return settings.staff.find((member) => member.id === staffId);
@@ -942,7 +1080,7 @@ async function getStaffByIdFromPostgres(staffId: string) {
   const rows = await queryPostgres<AdminStaffAccountRow>(
     "admin settings",
     `
-      SELECT id, name, email, role, branch_id, status, password_hash,
+      SELECT id, name, email, phone, role, branch_id, status, password_hash,
         employee_id, factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
         invited_at, invitation_accepted_at, failed_login_count, last_failed_login_at,
         last_login_ip, last_login_user_agent,
@@ -1032,11 +1170,9 @@ async function markStaffLoginInPostgres(
   );
 }
 
-async function recordStaffFailedLoginInLocalJson(email: string) {
+async function recordStaffFailedLoginInLocalJson(staffId: string) {
   const settings = await readSettingsFromLocalJson();
-  const index = settings.staff.findIndex(
-    (member) => normalizeEmail(member.email) === normalizeEmail(email),
-  );
+  const index = settings.staff.findIndex((member) => member.id === staffId);
 
   if (index < 0) return;
 
@@ -1048,34 +1184,36 @@ async function recordStaffFailedLoginInLocalJson(email: string) {
   await writeSettingsToLocalJson(settings);
 }
 
-async function recordStaffFailedLoginInPostgres(email: string) {
+async function recordStaffFailedLoginInPostgres(staffId: string) {
   await queryPostgres<{ id: string }>(
     "admin settings",
     `
       UPDATE admin_staff_accounts
       SET failed_login_count = failed_login_count + 1,
           last_failed_login_at = now()
-      WHERE lower(email) = lower($1)
+      WHERE id = $1
       RETURNING id
     `,
-    [normalizeEmail(email)],
+    [staffId],
   );
 }
 
-export async function recordAdminStaffFailedLogin(email: string) {
+export async function recordAdminStaffFailedLogin(identifier: string) {
+  // A failed attempt has to count against the account whichever identity was
+  // typed, or the lockout is trivially sidestepped by switching to the phone.
+  const staff = await getStaffByIdentifier(identifier);
+  if (!staff) return;
+
   await runWithDataBackend({
     storeName: "admin settings",
-    localJson: () => recordStaffFailedLoginInLocalJson(email),
-    postgres: () => recordStaffFailedLoginInPostgres(email),
+    localJson: () => recordStaffFailedLoginInLocalJson(staff.id),
+    postgres: () => recordStaffFailedLoginInPostgres(staff.id),
   });
 }
 
-export async function verifyAdminStaffCredentials(email: string, password: string) {
-  const staff = await runWithDataBackend({
-    storeName: "admin settings",
-    localJson: () => getStaffByEmailFromLocalJson(email),
-    postgres: () => getStaffByEmailFromPostgres(email),
-  });
+/** `identifier` is whatever was typed to sign in: an email or a mobile number. */
+export async function verifyAdminStaffCredentials(identifier: string, password: string) {
+  const staff = await getStaffByIdentifier(identifier);
 
   if (!staff || staff.status !== "Active") {
     return null;

@@ -48,6 +48,7 @@ import {
   createPasswordResetToken,
   deletePasswordResetToken,
   getPasswordResetToken,
+  verifyPasswordResetCode,
 } from "@/lib/password-reset-store";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 
@@ -80,6 +81,15 @@ async function shortDelay() {
   });
 }
 
+/**
+ * Deliberately gentler than the staff rule.
+ *
+ * A shopper who is made to invent a twelve-character password abandons the
+ * basket; a staff account guards the wage ledger and is worth the friction. So
+ * the length stays at eight, and the strength comes from refusing the passwords
+ * that are actually tried first — the guess list, the single repeated
+ * character, and the shop's own name.
+ */
 function passwordPolicyMessage(password: string, label = "Password") {
   if (password.length < 8) {
     return `${label} must be at least 8 characters.`;
@@ -87,6 +97,14 @@ function passwordPolicyMessage(password: string, label = "Password") {
 
   if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
     return `${label} must include at least one letter and one number.`;
+  }
+
+  if (/(.)\1{5,}/i.test(password)) {
+    return `Choose a less repetitive ${label.toLowerCase()}.`;
+  }
+
+  if (/password|123456|12345678|qwerty|abc123|krishoe|nepal123|iloveyou|admin123/i.test(password)) {
+    return `Choose a ${label.toLowerCase()} that is harder to guess.`;
   }
 
   return "";
@@ -320,7 +338,7 @@ export async function requestPasswordResetAction(
     return { ok: true, message: genericMessage };
   }
 
-  const token = await createPasswordResetToken(email);
+  const { token, code } = await createPasswordResetToken(email);
   const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
   const resetPath = `/account/reset-password?token=${encodeURIComponent(token)}`;
   const resetUrl = `${publicSiteUrl()}${resetPath}`;
@@ -328,6 +346,7 @@ export async function requestPasswordResetAction(
   await notifyPasswordResetRequested({
     email: user.email,
     resetUrl,
+    resetCode: code,
     expiresAt,
     requestedAt: new Date().toISOString(),
   });
@@ -371,6 +390,57 @@ export async function resetPasswordAction(
 
   await updateUserPassword(storedToken.email, password);
   await deletePasswordResetToken(token);
+  await clearCustomerSessionCookie();
+
+  redirect("/account/login?reset=success");
+}
+
+/**
+ * Resets a shopper's password from the emailed code.
+ *
+ * Same destination as resetPasswordAction, reached without the link. Email,
+ * code and new password arrive together so it works on a phone that only ever
+ * saw the six digits.
+ */
+export async function resetPasswordWithCodeAction(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const email = textValue(formData, "email").toLowerCase();
+  const code = textValue(formData, "code");
+  const password = textValue(formData, "password");
+  const confirmPassword = textValue(formData, "confirmPassword");
+
+  if (!email) return { ok: false, message: "Email is required." };
+
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "password-reset-code",
+    key: await loginKey(email),
+    maxAttempts: 8,
+    windowMs: 15 * 60 * 1000,
+  });
+
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      message: `Too many attempts. Try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+    };
+  }
+
+  const passwordMessage = passwordPolicyMessage(password);
+  if (passwordMessage) return { ok: false, message: passwordMessage };
+  if (password !== confirmPassword) {
+    return { ok: false, message: "New password and confirmation do not match." };
+  }
+
+  const verified = await verifyPasswordResetCode(email, code);
+  if (!verified.ok) {
+    await shortDelay();
+    return { ok: false, message: verified.reason };
+  }
+
+  await updateUserPassword(verified.email, password);
+  await deletePasswordResetToken(verified.token);
   await clearCustomerSessionCookie();
 
   redirect("/account/login?reset=success");

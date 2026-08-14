@@ -5,6 +5,7 @@ import {
   inviteStaffAccountAction,
   resendStaffInvitationAction,
   sendStaffPasswordResetAction,
+  setStaffTemporaryPasswordAction,
   updateStaffAccessAction,
   updateStaffMfaAction,
   updateStaffStatusAction,
@@ -13,6 +14,7 @@ import ConfirmSubmitButton from "@/app/admin/settings/ConfirmSubmitButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { adminRoles, type AdminRole } from "@/lib/admin-role-permissions";
 import type { SafeAdminStaffAccount } from "@/lib/admin-settings";
+import { formatStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
 
 type BranchOption = { id: string; name: string; code: string };
 type EmployeeOption = { id: string; name: string; department: string; status: string };
@@ -64,7 +66,7 @@ export default function StaffAccessManager({
   const filteredStaff = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return staff.filter((member) => {
-      const matchesQuery = !needle || [member.name, member.email, member.id, member.employeeId ?? ""]
+      const matchesQuery = !needle || [member.name, member.email, member.phone, member.id, member.employeeId ?? ""]
         .some((value) => value.toLowerCase().includes(needle));
       return matchesQuery
         && (roleFilter === "All" || member.role === roleFilter)
@@ -80,14 +82,43 @@ export default function StaffAccessManager({
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Secure onboarding</p>
             <h2 className="mt-2 text-xl font-black text-brand-green-ink">Invite a staff member</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
-              KRISHOE emails a one-time link. The Owner never sees or types the staff password.
+              <span className="font-black text-brand-green-ink">With an email:</span> KRISHOE sends a
+              one-time link and the Owner never sees or types the password.{" "}
+              <span className="font-black text-brand-green-ink">With a mobile number only</span> —
+              the usual case for a factory worker — set a temporary password below and tell them in
+              person. They must change it the moment they sign in.
             </p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800">48-hour link</span>
         </div>
         <form action={inviteStaffAccountAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">Name<input name="name" required autoComplete="name" className={inputClass} /></label>
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">Email<input name="email" type="email" required autoComplete="email" className={inputClass} /></label>
+          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            Email <span className="font-normal text-gray-500">(or leave empty)</span>
+            <input name="email" type="email" autoComplete="email" className={inputClass} />
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            मोबाइल नम्बर · Mobile
+            <input
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="98XXXXXXXX"
+              className={inputClass}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            Temporary password
+            <input
+              name="temporaryPassword"
+              type="text"
+              minLength={8}
+              autoComplete="off"
+              placeholder="Needed only when there is no email"
+              className={inputClass}
+            />
+          </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             HR employee link
             <select name="employeeId" defaultValue="" className={inputClass}>
@@ -141,7 +172,10 @@ export default function StaffAccessManager({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-black text-brand-green-ink">{member.name}</h3>
-                    <p className="truncate text-sm text-gray-600">{member.email}</p>
+                    <p className="truncate text-sm text-gray-600">{staffSignInLabel(member) || "No sign-in identity"}</p>
+                    {member.email && member.phone ? (
+                      <p className="truncate text-xs text-gray-500">{formatStaffPhone(member.phone)}</p>
+                    ) : null}
                     <p className="mt-1 font-mono text-[11px] text-gray-400">{member.id}</p>
                   </div>
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(member.status)}`}>{member.status}</span>
@@ -183,18 +217,39 @@ export default function StaffAccessManager({
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {member.status === "Invited" ? (
                     <form action={resendStaffInvitationAction}><input type="hidden" name="id" value={member.id} /><FormSubmitButton className={`${neutralButtonClass} w-full`} pendingLabel="Sending…">Resend invitation</FormSubmitButton></form>
-                  ) : member.status === "Active" ? (
+                  ) : member.status === "Active" && member.email ? (
                     <form action={sendStaffPasswordResetAction}><input type="hidden" name="id" value={member.id} /><ConfirmSubmitButton label="Email reset link" message={`Send a one-time password reset link to ${member.email}?`} className={`${neutralButtonClass} w-full`} /></form>
                   ) : null}
+                  {/* No inbox, no link to send. The Owner hands over a password
+                      instead, and the account is forced to replace it. */}
+                  {member.email ? null : (
+                    <form action={setStaffTemporaryPasswordAction} className="flex gap-2 sm:col-span-2">
+                      <input type="hidden" name="id" value={member.id} />
+                      <input
+                        name="temporaryPassword"
+                        type="text"
+                        minLength={8}
+                        required
+                        autoComplete="off"
+                        placeholder="New temporary password (8+)"
+                        className={inputClass}
+                      />
+                      <ConfirmSubmitButton
+                        label="Set password"
+                        message={`Give ${member.name} a new temporary password? Every device they are signed in on is signed out, and they must change it at the next sign-in.`}
+                        className={neutralButtonClass}
+                      />
+                    </form>
+                  )}
                   <form action={updateStaffMfaAction}>
                     <input type="hidden" name="id" value={member.id} />
                     <input type="hidden" name="enabled" value={member.mfaEnabled ? "false" : "true"} />
-                    <ConfirmSubmitButton label={member.mfaEnabled ? "Disable 2-step" : "Enable 2-step"} message={`${member.mfaEnabled ? "Disable" : "Enable"} email 2-step verification for ${member.email}? This signs out old devices.`} className={`${neutralButtonClass} w-full`} />
+                    <ConfirmSubmitButton label={member.mfaEnabled ? "Disable 2-step" : "Enable 2-step"} message={`${member.mfaEnabled ? "Disable" : "Enable"} email 2-step verification for ${staffSignInLabel(member)}? This signs out old devices.`} className={`${neutralButtonClass} w-full`} />
                   </form>
                   <form action={updateStaffStatusAction} className="flex gap-2 sm:col-span-2">
                     <input type="hidden" name="id" value={member.id} />
                     <select name="status" defaultValue={member.status} className={inputClass}><option>Invited</option><option>Active</option><option>Locked</option><option>Disabled</option></select>
-                    <ConfirmSubmitButton label="Save status" message={`Change status for ${member.email}? Disabled or locked accounts are signed out automatically.`} className={member.status === "Active" ? dangerButtonClass : neutralButtonClass} />
+                    <ConfirmSubmitButton label="Save status" message={`Change status for ${staffSignInLabel(member)}? Disabled or locked accounts are signed out automatically.`} className={member.status === "Active" ? dangerButtonClass : neutralButtonClass} />
                   </form>
                 </div>
               </article>

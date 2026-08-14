@@ -15,6 +15,7 @@ import {
   saveAdminStaffAccount,
   saveCompanySettings,
   setAdminStaffMfa,
+  updateAdminStaffPassword,
   type SafeAdminStaffAccount,
 } from "@/lib/admin-settings";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/admin-staff-security";
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
+import { formatStaffPhone, normalizeStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -189,67 +191,129 @@ export async function createBranchAction(formData: FormData) {
   refreshSettingsPage("Branch created successfully.");
 }
 
+/**
+ * Creates a staff or worker sign-in.
+ *
+ * Two routes, chosen by what the person actually has. With an email they get
+ * the zero-knowledge invitation: a one-time link, and the Owner never learns
+ * their password. A worker with only a phone cannot receive anything, so the
+ * Owner sets a temporary password and hands it over in person; it is marked
+ * must-change, so it stops working the moment the worker signs in and picks
+ * their own.
+ */
 export async function inviteStaffAccountAction(formData: FormData) {
   let deliveryFailed = false;
+  // redirect() throws, so the success redirect has to happen outside the try —
+  // inside it, failSettingsPage would swallow the redirect and report the
+  // successful save as an error.
+  let successMessage = "";
   try {
     const actor = await requireAdminPermission("settings:write");
     const name = textValue(formData, "name");
     const email = textValue(formData, "email").toLowerCase();
-    if (!name || !email) throw new Error("Staff name and email are required.");
+    const phoneInput = textValue(formData, "phone");
+    const phone = normalizeStaffPhone(phoneInput);
+    const temporaryPassword = textValue(formData, "temporaryPassword");
 
-    const existingSettings = await getAdminSettings();
-    if (existingSettings.staff.some((member) => member.email.toLowerCase() === email)) {
-      throw new Error("A staff account with this email already exists.");
+    if (!name) throw new Error("Staff name is required.");
+    if (phoneInput && !phone) throw new Error("Enter a valid mobile number, or leave it empty.");
+    if (!email && !phone) {
+      throw new Error("Enter an email address, a mobile number, or both.");
     }
 
-    const staff = await saveAdminStaffAccount({
-      name,
-      email,
-      role: optionValue(textValue(formData, "role"), adminRoles, "Viewer"),
-      branchId: textValue(formData, "branchId"),
-      employeeId: textValue(formData, "employeeId"),
-      factoryWorkerId: textValue(formData, "factoryWorkerId"),
-      status: "Invited",
-      mustChangePassword: false,
-      mfaEnabled: formData.get("mfaEnabled") === "on",
-    });
-    const invitation = await createAdminStaffToken(staff.id, "invitation", {
-      expiresInMinutes: 48 * 60,
-      createdBy: actor.session.staffId ?? actor.session.email ?? "Owner",
-    });
-    const invitationUrl = `${publicSiteUrl()}/admin/accept-invite?token=${encodeURIComponent(invitation.token)}`;
-    const delivery = await sendStaffSecurityEmail({
-      email: staff.email,
-      subject: "Your KRISHOE staff invitation",
-      payload: {
+    const phoneOnly = !email;
+    if (phoneOnly && temporaryPassword.length < 8) {
+      throw new Error(
+        "A mobile-only account needs a temporary password of at least 8 characters to hand over.",
+      );
+    }
+
+    const existingSettings = await getAdminSettings();
+    if (email && existingSettings.staff.some((member) => member.email.toLowerCase() === email)) {
+      throw new Error("A staff account with this email already exists.");
+    }
+    if (phone && existingSettings.staff.some((member) => normalizeStaffPhone(member.phone) === phone)) {
+      throw new Error("A staff account with this mobile number already exists.");
+    }
+
+    if (phoneOnly) {
+      const worker = await saveAdminStaffAccount({
+        name,
+        phone,
+        role: optionValue(textValue(formData, "role"), adminRoles, "Viewer"),
+        branchId: textValue(formData, "branchId"),
+        employeeId: textValue(formData, "employeeId"),
+        factoryWorkerId: textValue(formData, "factoryWorkerId"),
+        status: "Active",
+        password: temporaryPassword,
+        temporaryPassword: true,
+        mfaEnabled: false,
+      });
+      await recordStaffChange("staff_created_with_temporary_password", null, worker, actor);
+      await recordAdminAuditEvent(
+        "settings_staff_created_mobile",
+        `Mobile sign-in created for ${worker.name} (${worker.phone}) as ${worker.role}. A temporary password was set and must be changed at first sign-in.`,
+        "success",
+      );
+      await sendOwnerSecurityAlert(
+        "KRISHOE mobile staff account created",
+        `${actor.session.email ?? "Owner"} created a mobile sign-in for ${worker.name} (${worker.phone}) as ${worker.role}. The temporary password is not included in this alert.`,
+      );
+      successMessage =
+        `${worker.name} can now sign in with ${formatStaffPhone(worker.phone)} and the temporary password you set. They must change it at first sign-in.`;
+    }
+
+    if (!successMessage) {
+
+      const staff = await saveAdminStaffAccount({
+        name,
+        email,
+        phone,
+        role: optionValue(textValue(formData, "role"), adminRoles, "Viewer"),
+        branchId: textValue(formData, "branchId"),
+        employeeId: textValue(formData, "employeeId"),
+        factoryWorkerId: textValue(formData, "factoryWorkerId"),
+        status: "Invited",
+        mustChangePassword: false,
+        mfaEnabled: formData.get("mfaEnabled") === "on",
+      });
+      const invitation = await createAdminStaffToken(staff.id, "invitation", {
+        expiresInMinutes: 48 * 60,
+        createdBy: actor.session.staffId ?? actor.session.email ?? "Owner",
+      });
+      const invitationUrl = `${publicSiteUrl()}/admin/accept-invite?token=${encodeURIComponent(invitation.token)}`;
+      const delivery = await sendStaffSecurityEmail({
         email: staff.email,
-        kind: "invitation",
-        message: `You were invited to KRISHOE Admin as ${staff.role}. Use this one-time link to create your password.`,
-        actionUrl: invitationUrl,
-        expiresAt: invitation.expiresAt,
-      },
-    });
-    deliveryFailed = !delivery.ok;
-    await recordStaffChange("staff_invited", null, staff, actor);
-    await recordAdminAuditEvent(
-      delivery.ok ? "settings_staff_invite" : "settings_staff_invite_delivery_failed",
-      delivery.ok
-        ? `Invitation sent to ${staff.email} with ${staff.role} role.`
-        : `Invitation created for ${staff.email}, but email delivery failed: ${delivery.error}`,
-      delivery.ok ? "success" : "warning",
-    );
-    await sendOwnerSecurityAlert(
-      "KRISHOE staff invitation created",
-      `${actor.session.email ?? "Owner"} invited ${staff.email} as ${staff.role} for branch ${staff.branchId}.`,
-    );
+        subject: "Your KRISHOE staff invitation",
+        payload: {
+          email: staff.email,
+          kind: "invitation",
+          message: `You were invited to KRISHOE Admin as ${staff.role}. Use this one-time link to create your password.`,
+          actionUrl: invitationUrl,
+          expiresAt: invitation.expiresAt,
+        },
+      });
+      deliveryFailed = !delivery.ok;
+      await recordStaffChange("staff_invited", null, staff, actor);
+      await recordAdminAuditEvent(
+        delivery.ok ? "settings_staff_invite" : "settings_staff_invite_delivery_failed",
+        delivery.ok
+          ? `Invitation sent to ${staff.email} with ${staff.role} role.`
+          : `Invitation created for ${staff.email}, but email delivery failed: ${delivery.error}`,
+        delivery.ok ? "success" : "warning",
+      );
+      await sendOwnerSecurityAlert(
+        "KRISHOE staff invitation created",
+        `${actor.session.email ?? "Owner"} invited ${staff.email} as ${staff.role} for branch ${staff.branchId}.`,
+      );
+      successMessage = deliveryFailed
+        ? "Staff invitation created, but email was not delivered. Check email settings and use Resend invitation."
+        : "Secure staff invitation sent.";
+    }
   } catch (error) {
     failSettingsPage(error);
   }
-  refreshSettingsPage(
-    deliveryFailed
-      ? "Staff invitation created, but email was not delivered. Check email settings and use Resend invitation."
-      : "Secure staff invitation sent.",
-  );
+  refreshSettingsPage(successMessage);
 }
 
 // Backward-compatible name for any bookmarked/older form submission. New UI
@@ -379,6 +443,48 @@ export async function sendStaffPasswordResetAction(formData: FormData) {
 }
 
 export const resetStaffPasswordAction = sendStaffPasswordResetAction;
+
+/**
+ * Recovery for a worker with no inbox.
+ *
+ * Nothing can be emailed to them, so the Owner sets a password and says it out
+ * loud. Everything that makes that safe happens here: the account is forced to
+ * change it at the next sign-in, every existing session is cut, and the change
+ * is written to the security trail with the Owner named as the actor.
+ */
+export async function setStaffTemporaryPasswordAction(formData: FormData) {
+  try {
+    const actor = await requireAdminPermission("settings:write");
+    const staff = await getExistingStaff(formData);
+    const temporaryPassword = textValue(formData, "temporaryPassword");
+
+    if (staff.status === "Disabled") {
+      throw new Error("Enable this account before giving it a new password.");
+    }
+    if (temporaryPassword.length < 8) {
+      throw new Error("A temporary password must be at least 8 characters.");
+    }
+
+    await updateAdminStaffPassword(staff.id, temporaryPassword, {
+      mustChangePassword: true,
+      activateInvitation: staff.status === "Invited",
+    });
+    const revokedSessions = await revokeSecuritySessions(staff.id, actor, "temporary-password");
+    await recordStaffChange("staff_temporary_password_set", staff, staff, actor);
+    await recordAdminAuditEvent(
+      "settings_staff_temporary_password",
+      `${actor.session.email ?? "Owner"} set a temporary password for ${staff.name}. ${revokedSessions} session(s) revoked; it must be changed at next sign-in.`,
+      "warning",
+    );
+    await sendOwnerSecurityAlert(
+      "KRISHOE temporary password issued",
+      `${actor.session.email ?? "Owner"} issued a temporary password for ${staff.name} (${staffSignInLabel(staff)}). The password itself is not included in this alert.`,
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Temporary password set. Tell them in person — they must change it at first sign-in.");
+}
 
 export async function updateStaffMfaAction(formData: FormData) {
   try {

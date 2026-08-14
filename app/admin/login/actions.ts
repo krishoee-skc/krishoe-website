@@ -42,7 +42,7 @@ export type LoginState = {
 
 const invalidState: LoginState = {
   ok: false,
-  message: "Invalid admin email or password.",
+  message: "Wrong email/mobile number or password.",
 };
 
 function textValue(formData: FormData, key: string) {
@@ -228,7 +228,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     );
     return {
       ok: false,
-      message: "Staff email is required. Sign in with your KRISHOE staff account.",
+      message: "Enter your staff email or mobile number.",
     };
   }
 

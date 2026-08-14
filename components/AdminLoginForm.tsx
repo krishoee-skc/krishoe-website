@@ -128,21 +128,27 @@ export default function AdminLoginForm({
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {portal === "worker"
-          ? "Sign in with the staff email and password provided by HR. Your account must be linked to your employee record."
+          ? "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। मालिकले दिएको password पहिलो पटकमै फेर्नुहोस्।"
           : bootstrapLoginAllowed
           ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
-          : "Sign in with your staff email and password. This login will register the current phone or computer in Login devices."}
+          : "Sign in with your staff email or mobile number. This login will register the current phone or computer in Login devices."}
       </p>
 
+      {/* One box, either identity. A worker who has no email should not have to
+          work out which of two fields their number belongs in; the server
+          decides from whether the value carries an "@". type="text", because
+          type="email" would make the browser reject a phone number before the
+          form was ever submitted. */}
       <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
-        Staff email
+        Email वा मोबाइल नम्बर
         <input
           name="email"
-          type="email"
+          type="text"
+          inputMode="email"
           required={!bootstrapLoginAllowed}
           autoComplete="username"
           className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-          placeholder="owner@krishoe.com"
+          placeholder="owner@krishoe.com वा 98XXXXXXXX"
         />
       </label>
 

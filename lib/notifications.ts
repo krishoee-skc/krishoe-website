@@ -47,6 +47,8 @@ export type OperationalAlertCategory =
 export type PasswordResetNotificationPayload = {
   email: string;
   resetUrl: string;
+  /** The 6-digit code that works when the link does not. */
+  resetCode?: string;
   expiresAt: string;
   requestedAt: string;
 };
@@ -255,9 +257,12 @@ export function textSummary(event: NotificationEvent) {
     return [
       event.title,
       `Email: ${reset.email}`,
+      // The code first: it is what still works when a mail client breaks the
+      // link, and what someone reading this on a second device can use.
+      reset.resetCode ? `Your 6-digit reset code is ${reset.resetCode}` : "",
       `Reset link: ${reset.resetUrl}`,
       `Expires: ${reset.expiresAt}`,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
   }
 
   if (event.type === "email-verification") {
