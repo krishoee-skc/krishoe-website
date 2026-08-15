@@ -112,41 +112,27 @@ export default function PhotoGuidePage() {
 
       {/* Upload Instructions */}
       <section className="mt-8 rounded-2xl border border-brand-green/30 bg-brand-green-wash/40 p-6">
-        <h2 className="text-lg font-black text-brand-green-ink">⬆️ Step-by-Step Upload (१-२ मिनेट)</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">⬆️ फोटो हाल्ने — ३ पाइला</h2>
         <ol className="mt-4 grid gap-3 text-sm leading-6">
           <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">१.</span>
             <div>
-              <Link href="/admin/products" className="font-bold text-brand-green underline underline-offset-4">Products पेजमा जाऊ</Link>
-              <p className="text-xs text-gray-600 mt-1">तपाईंको सबै designs को list देख्नुहुन्छ।</p>
+              <Link href="/admin/products/photos" className="font-bold text-brand-green underline underline-offset-4">फोटो हाल्ने पेज खोल्नुहोस्</Link>
+              <p className="text-xs text-gray-600 mt-1">फोटो नभएका सामान माथि, रातो चिन्हसहित देखिन्छन् — खोज्नु पर्दैन।</p>
             </div>
           </li>
           <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">२.</span>
             <div>
-              <p className="font-bold">Edit बटन खोज्नुहोस्</p>
-              <p className="text-xs text-gray-600 mt-1">जुन design को फोटो लगाउन चाहनुहुन्छ, त्यसको Edit बटन थिच्नुहोस्।</p>
+              <p className="font-bold">📷 खिच्ने वा 🖼️ फाइलबाट थिच्नुहोस्</p>
+              <p className="text-xs text-gray-600 mt-1">खिच्ने थिच्दा फोनको camera सिधै खुल्छ। पहिले खिचेको फोटो भए फाइलबाट छान्नुहोस्।</p>
             </div>
           </li>
           <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">३.</span>
             <div>
-              <p className="font-bold">Main Image राख्नुहोस् (छेउबाट खिचेको फोटो)</p>
-              <p className="text-xs text-gray-600 mt-1">"Upload photo" बटन थिच्नुहोस् र फोनबाट सबैभन्दा राम्रो फोटो रोज्नुहोस्।</p>
-            </div>
-          </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
-            <span className="font-black text-brand-green-ink flex-shrink-0">४.</span>
-            <div>
-              <p className="font-bold">Gallery Images राख्नुहोस् (अन्य कोण)</p>
-              <p className="text-xs text-gray-600 mt-1">अगाडि, माथि, पछाडि, र जोडी मिलाएर भएका फोटो एकैचोटि upload गर्नुहोस्।</p>
-            </div>
-          </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
-            <span className="font-black text-brand-green-ink flex-shrink-0">५.</span>
-            <div>
-              <p className="font-bold">Save Changes क्लिक गर्नुहोस्</p>
-              <p className="text-xs text-gray-600 mt-1">बस! फोटो तुरुन्तै shop मा लाइभ हुन्छ। ग्राहकले तुरुन्तै देख्न सक्छन्।</p>
+              <p className="font-bold">सकियो</p>
+              <p className="text-xs text-gray-600 mt-1">Save थिच्नु पर्दैन — चढ्नेबित्तिकै पसलमा देखिन्छ। धमिलो आयो भने फेरि खिच्नुहोस्, पुरानो आफैँ हट्छ।</p>
             </div>
           </li>
         </ol>

@@ -36,6 +36,24 @@ describe("photo page", () => {
     expect(page).toContain("function hasRealPhoto");
     expect(page).toContain("leftHas - rightHas");
   });
+
+  it("lets the photo be judged at the size the customer sees", async () => {
+    const card = await readFile("app/admin/products/photos/PhotoCard.tsx", "utf8");
+    // A blurred photo looks fine at 220px on the card and soft on the product
+    // page, so judging it needs the full size.
+    expect(card).toContain("<dialog");
+    expect(card).toContain("showModal()");
+  });
+
+  it("warns when the file is too small to have come from a camera", async () => {
+    const card = await readFile("app/admin/products/photos/PhotoCard.tsx", "utf8");
+    // WhatsApp re-encodes photos down to a few hundred pixels; a phone camera
+    // shoots thousands. Measuring the pixels is honest — guessing "blurry" from
+    // the image is not, so nothing here tries to.
+    expect(card).toContain("MIN_GOOD_EDGE");
+    expect(card).toContain("naturalWidth");
+    expect(card).toContain("WhatsApp");
+  });
 });
 
 describe("saving one photo", () => {
@@ -59,5 +77,17 @@ describe("saving one photo", () => {
   it("is reachable from the menu", () => {
     const link = adminNavLinks.find((item) => item.href === "/admin/products/photos");
     expect(link?.nepali).toBe("फोटो हाल्ने");
+  });
+});
+
+describe("photo guide", () => {
+  it("describes the screen that now exists", async () => {
+    const guide = await readFile("app/admin/products/photo-guide/page.tsx", "utf8");
+
+    expect(guide).toContain("/admin/products/photos");
+    expect(guide).toContain("📷 खिच्ने");
+    // The old route — Products, Edit, Save Changes — is three screens longer
+    // and no longer how this is done.
+    expect(guide).not.toContain("Save Changes क्लिक");
   });
 });

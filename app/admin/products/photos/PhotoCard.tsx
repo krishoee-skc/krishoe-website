@@ -26,12 +26,39 @@ type PhotoProduct = {
  * with ten products on screen, a page full of unsaved changes is a page where
  * one gets forgotten.
  */
+/**
+ * A phone shoots 3000px or more, so anything this small did not come from a
+ * camera — it came through WhatsApp, or is a screenshot. Those are the photos
+ * that look sharp on the phone and blurred in the shop, where the product page
+ * shows them large. Reading the real pixels is honest; guessing at "blurry"
+ * from the image itself is not, so this checks only what it can measure.
+ */
+const MIN_GOOD_EDGE = 1000;
+
+function readSize(file: File) {
+  return new Promise<{ width: number; height: number } | null>((resolve) => {
+    const url = URL.createObjectURL(file);
+    const probe = new window.Image();
+    probe.onload = () => {
+      resolve({ width: probe.naturalWidth, height: probe.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    probe.onerror = () => {
+      resolve(null);
+      URL.revokeObjectURL(url);
+    };
+    probe.src = url;
+  });
+}
+
 export default function PhotoCard({ product }: { product: PhotoProduct }) {
   const [image, setImage] = useState(product.image);
   const [state, setState] = useState<PhotoActionState | null>(null);
+  const [sizeWarning, setSizeWarning] = useState("");
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const viewRef = useRef<HTMLDialogElement>(null);
 
   async function upload(files: FileList | null, slot: "main" | "gallery") {
     const file = files?.[0];
@@ -39,8 +66,16 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
     setBusy(true);
     setState(null);
+    setSizeWarning("");
 
     try {
+      const size = await readSize(file);
+      if (size && Math.min(size.width, size.height) < MIN_GOOD_EDGE) {
+        setSizeWarning(
+          `यो फोटो सानो छ (${size.width}×${size.height})। WhatsApp बाट आएको हो कि? पसलमा धमिलो देखिन सक्छ — फोनको camera बाट सिधै खिच्नुहोस्।`,
+        );
+      }
+
       const body = new FormData();
       body.append("file", file);
       const response = await fetch("/api/admin/upload", { method: "POST", body });
@@ -76,9 +111,23 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
   return (
     <article className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-mist">
+      {/* Tap to see it big. On the card a photo is 220px wide and a blurred one
+          looks fine there; the shop shows it far larger, which is where the
+          blur appears. Judging it needs the same size the customer gets. */}
+      <button
+        type="button"
+        onClick={() => viewRef.current?.showModal()}
+        disabled={!previewable}
+        aria-label={`${product.name} को फोटो ठूलो हेर्ने`}
+        className="relative block aspect-square w-full overflow-hidden rounded-xl bg-brand-mist"
+      >
         {previewable ? (
           <Image src={image} alt={product.name} fill sizes="(max-width: 640px) 45vw, 220px" className="object-cover" />
+        ) : null}
+        {previewable ? (
+          <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white">
+            🔍 ठूलो हेर्ने
+          </span>
         ) : null}
         {!product.hasRealPhoto ? (
           <span className="absolute left-2 top-2 rounded-full bg-brand-clay px-2.5 py-1 text-[11px] font-black text-white">
@@ -90,7 +139,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
             चढ्दै…
           </span>
         ) : null}
-      </div>
+      </button>
 
       <div>
         <h3 className="truncate font-black text-brand-green-ink">{product.name}</h3>
@@ -146,6 +195,44 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           {state.message}
         </p>
       ) : null}
+
+      {sizeWarning ? (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">
+          ⚠️ {sizeWarning}
+        </p>
+      ) : null}
+
+      {/* Native dialog: the browser handles Escape, the backdrop and focus, so
+          there is no hand-rolled modal to trap anyone in. */}
+      <dialog
+        ref={viewRef}
+        onClick={(event) => {
+          if (event.target === viewRef.current) viewRef.current?.close();
+        }}
+        className="max-h-[90dvh] max-w-[92vw] rounded-2xl bg-white p-3 backdrop:bg-black/70"
+      >
+        {previewable ? (
+          // Plain img, not next/image: this is a one-off full-size look at the
+          // original file, and optimising it would hide the very softness the
+          // owner opened it to judge.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt={product.name}
+            className="max-h-[74dvh] w-auto rounded-xl object-contain"
+          />
+        ) : null}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-black text-brand-green-ink">{product.name}</p>
+          <button
+            type="button"
+            onClick={() => viewRef.current?.close()}
+            className="min-h-11 rounded-xl bg-brand-green px-5 text-sm font-black text-white"
+          >
+            बन्द गर्ने
+          </button>
+        </div>
+      </dialog>
     </article>
   );
 }
