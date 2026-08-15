@@ -4,7 +4,6 @@ import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { getOperationsData, type FinishedStock } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { getAdminBranchContext } from "@/lib/admin-branch-context";
 import {
   categories,
   formatPrice,
@@ -335,10 +334,14 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         fit,
         colors,
         sizes,
-        CASE
-          WHEN krishoe_admin_branch_context_enabled() THEN COALESCE(branch_stock.stock, 0)
-          ELSE COALESCE(branch_stock.stock, products.stock)
-        END AS stock,
+        -- One number. This used to read branch_product_stock and fall back to
+        -- products.stock, which meant two rows could each hold a different
+        -- answer to "how many pairs are there" — and they did. A stale branch
+        -- row of 0 hid 170 pairs from the shop across three designs, while
+        -- products.stock still said 100, 15 and 55; another said 48 where the
+        -- stock ledger said 36. The branch table stays for branch reporting,
+        -- but it is no longer a second place the catalog count can live.
+        products.stock AS stock,
         highlights,
         care,
         reviews,
@@ -349,9 +352,6 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         wholesale_price_value,
         min_wholesale_qty
       FROM products
-      LEFT JOIN branch_product_stock AS branch_stock
-        ON branch_stock.product_id = products.id
-       AND branch_stock.branch_id = krishoe_effective_branch_id()
       ${options.includeDrafts ? "" : "WHERE status = 'Active'"}
       ORDER BY featured DESC, best_seller DESC, new_arrival DESC, name ASC
     `,
@@ -375,46 +375,30 @@ async function syncProductCatalogStockWithFinishedStockLocalJson(finishedStock: 
   return publicProductStockSyncResult(result);
 }
 
+/**
+ * Copies the finished-stock count onto the catalog.
+ *
+ * One destination, whoever is signed in. This used to write the branch row and
+ * recompute products.stock as the sum across branches when an admin had a
+ * branch, and write products.stock directly when they did not — so the same
+ * sync produced a different number depending on who ran it, and the two answers
+ * drifted apart until a stale branch row of 0 was hiding 170 pairs from the
+ * shop.
+ */
 async function syncProductCatalogStockWithFinishedStockPostgres(finishedStock: FinishedStock[]) {
   const products = await getProductsFromPostgres({ includeDrafts: true });
   const result = buildProductStockSync(products, finishedStock);
-  const branchContext = getAdminBranchContext();
 
   for (const row of result.rows) {
     if (row.signal !== "Synced") {
       continue;
     }
 
-    if (branchContext?.branchId) {
-      await queryPostgres<{ product_id: string }>(
-        "products",
-        `INSERT INTO branch_product_stock (branch_id, product_id, stock, updated_at)
-         VALUES ($1, $2, $3, now())
-         ON CONFLICT (branch_id, product_id) DO UPDATE SET
-           stock = EXCLUDED.stock,
-           updated_at = now()
-         RETURNING product_id`,
-        [branchContext.branchId, row.productId, row.nextStock],
-      );
-      await queryPostgres<{ id: string }>(
-        "products",
-        `UPDATE products
-         SET stock = COALESCE((
-           SELECT SUM(branch_product_stock.stock)
-           FROM branch_product_stock
-           WHERE branch_product_stock.product_id = products.id
-         ), 0), updated_at = now()
-         WHERE id = $1
-         RETURNING id`,
-        [row.productId],
-      );
-    } else {
-      await queryPostgres<{ id: string }>(
-        "products",
-        "UPDATE products SET stock = $2, updated_at = now() WHERE id = $1 RETURNING id",
-        [row.productId, row.nextStock],
-      );
-    }
+    await queryPostgres<{ id: string }>(
+      "products",
+      "UPDATE products SET stock = $2, updated_at = now() WHERE id = $1 RETURNING id",
+      [row.productId, row.nextStock],
+    );
   }
 
   return publicProductStockSyncResult(result);
@@ -664,35 +648,13 @@ async function upsertProductPostgres(product: Product) {
     ],
   );
 
-  const saved = productFromRow(rows[0]);
-  const branchContext = getAdminBranchContext();
-
-  if (branchContext?.branchId) {
-    await queryPostgres<{ product_id: string }>(
-      "products",
-      `INSERT INTO branch_product_stock (branch_id, product_id, stock, updated_at)
-       VALUES ($1, $2, $3, now())
-       ON CONFLICT (branch_id, product_id) DO UPDATE SET
-         stock = EXCLUDED.stock,
-         updated_at = now()
-       RETURNING product_id`,
-      [branchContext.branchId, saved.id, saved.stock],
-    );
-    await queryPostgres<{ id: string }>(
-      "products",
-      `UPDATE products
-       SET stock = COALESCE((
-         SELECT SUM(branch_product_stock.stock)
-         FROM branch_product_stock
-         WHERE branch_product_stock.product_id = products.id
-       ), 0), updated_at = now()
-       WHERE id = $1
-       RETURNING id`,
-      [saved.id],
-    );
-  }
-
-  return saved;
+  // Saving a product no longer touches stock at all.
+  //
+  // It used to write the branch row from whatever the form carried and then set
+  // products.stock to the sum across branches — so editing a photo or a price
+  // could move the pair count, and under a branch the owner had never stocked
+  // it moved it to zero. Pairs change where pairs move: Operations.
+  return productFromRow(rows[0]);
 }
 
 export async function upsertProduct(product: Product) {
