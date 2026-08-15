@@ -30,7 +30,9 @@ describe("admin navigation", () => {
     for (const href of before) {
       expect(now, href).toContain(href);
     }
-    expect(now).toHaveLength(before.length);
+    // Every pre-split destination survives. New ones may be added — the photo
+    // screen was — so this checks nothing was lost, not that nothing was gained.
+    expect(now.length).toBeGreaterThanOrEqual(before.length);
   });
 
   it("lists each destination once, though Stock is drawn on both sides", () => {

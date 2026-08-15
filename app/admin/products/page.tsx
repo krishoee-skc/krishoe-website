@@ -65,6 +65,12 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
+            href="/admin/products/photos"
+            className="inline-flex h-10 items-center rounded-full bg-brand-green px-4 text-sm font-black text-white transition hover:bg-brand-green-ink"
+          >
+            📷 फोटो हाल्ने
+          </Link>
+          <Link
             href="/admin/products/photo-guide"
             className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >

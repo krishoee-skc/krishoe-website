@@ -77,6 +77,7 @@ export const adminNavGroups: AdminNavGroup[] = [
       { href: "/admin/orders", label: "Orders", nepali: "अर्डर", icon: ShoppingCartIcon },
       { href: "/admin/pos", label: "POS Billing", nepali: "बिल काट्ने", icon: CreditCardIcon },
       { href: "/admin/products", label: "Products", nepali: "सामान र मूल्य", icon: PackageIcon },
+      { href: "/admin/products/photos", label: "Photos", nepali: "फोटो हाल्ने", icon: PackageIcon },
       { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
     ],
   },
