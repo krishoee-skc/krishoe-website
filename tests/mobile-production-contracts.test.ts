@@ -11,11 +11,15 @@ describe("mobile production contracts", () => {
     expect(source("app/admin/AdminQuickDock.tsx")).toContain("env(safe-area-inset-bottom)");
   });
 
-  it("keeps frequent admin destinations one tap away", () => {
+  it("keeps the daily jobs one tap away", () => {
     const dock = source("app/admin/AdminQuickDock.tsx");
-    for (const href of ["/admin/pos", "/admin/purchasing", "/admin/hr", "/admin/search"]) {
-      expect(dock).toContain(href);
+    // Booking a worker's pairs and checking stock happen every day and were not
+    // on this bar at all, while Purchasing and HR — which this shop has never
+    // recorded a single row in — took two of its five slots.
+    for (const href of ["/admin/factory/add-work", "/admin/pos", "/admin/stock", "/admin/search"]) {
+      expect(dock, href).toContain(href);
     }
+    expect(dock).not.toContain("/admin/purchasing");
   });
 
   it("reflows POS and renders staff access as phone-first cards", () => {

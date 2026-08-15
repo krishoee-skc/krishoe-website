@@ -11,18 +11,29 @@ import {
 } from "@/components/Icons";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 
+/**
+ * The jobs a thumb should reach without opening a menu.
+ *
+ * This used to be Home · POS · Buy · HR · Search. Purchasing and HR are not
+ * daily work here — the shop has never recorded a purchase invoice, and the HR
+ * module holds no attendance or payroll — while the two things done every day,
+ * booking a worker's pairs and checking stock, were not on it at all.
+ *
+ * Labels are Nepali, because this bar is read at a glance while standing on the
+ * factory floor.
+ */
 const links = [
-  { href: "/admin", label: "Home", Icon: HomeIcon },
-  { href: "/admin/pos", label: "POS", Icon: CreditCardIcon },
-  { href: "/admin/purchasing", label: "Buy", Icon: PackageIcon },
-  { href: "/admin/hr", label: "HR", Icon: UserIcon },
-  { href: "/admin/search", label: "Search", Icon: SearchIcon },
+  { href: "/admin", label: "घर", Icon: HomeIcon },
+  { href: "/admin/factory/add-work", label: "काम टिप्ने", Icon: UserIcon },
+  { href: "/admin/pos", label: "बिल", Icon: CreditCardIcon },
+  { href: "/admin/stock", label: "स्टक", Icon: PackageIcon },
+  { href: "/admin/search", label: "खोज्ने", Icon: SearchIcon },
 ];
 
 export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
   const roleLinks = adminRole === "Factory"
-    ? [{ href: "/admin/factory", label: "Factory", Icon: PackageIcon }]
+    ? [{ href: "/admin/factory", label: "कारखाना", Icon: PackageIcon }]
     : links;
   const visibleLinks = roleLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
 

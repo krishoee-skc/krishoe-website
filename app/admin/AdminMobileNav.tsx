@@ -87,7 +87,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
                 {group.title}
               </p>
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                {group.links.map(({ href, label, icon: Icon }) => {
+                {group.links.map(({ href, label, nepali, icon: Icon }) => {
                   const active = pathname === href;
                   return (
                     <Link
@@ -100,7 +100,10 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
                       }`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {label}
+                      <span className="grid leading-tight">
+                        <span>{label}</span>
+                        <span className="text-[11px] font-semibold text-gray-400">{nepali}</span>
+                      </span>
                     </Link>
                   );
                 })}

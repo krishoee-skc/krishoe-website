@@ -59,7 +59,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                   <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
                     {group.title}
                   </p>
-                  {group.links.map(({ href, label, icon: Icon }) => {
+                  {group.links.map(({ href, label, nepali, icon: Icon }) => {
                     const isActive = pathname === href;
                     return (
                       <Link
@@ -73,7 +73,10 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                         }`}
                       >
                         <Icon className="h-5 w-5 shrink-0" />
-                        <span className="text-sm">{label}</span>
+                        <span className="grid leading-tight">
+                          <span className="text-sm">{label}</span>
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">{nepali}</span>
+                        </span>
                       </Link>
                     );
                   })}

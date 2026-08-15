@@ -93,13 +93,13 @@ export default function AdminNav({
                     {group.title}
                   </p>
                 )}
-                {group.links.map(({ href, label, icon: Icon }) => {
+                {group.links.map(({ href, label, nepali, icon: Icon }) => {
                   const isActive = pathname === href;
                   return (
                     <Link
                       key={`${group.id}-${href}`}
                       href={href}
-                      title={isCollapsed ? label : undefined}
+                      title={isCollapsed ? `${label} · ${nepali}` : undefined}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                         isActive
                           ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
@@ -107,7 +107,16 @@ export default function AdminNav({
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {!isCollapsed && <span className="text-sm">{label}</span>}
+                      {/* English name kept as the heading — it is what the owner
+                          has already learned to look for — with the Nepali
+                          underneath for anyone reading the menu for the first
+                          time. */}
+                      {!isCollapsed && (
+                        <span className="grid leading-tight">
+                          <span className="text-sm">{label}</span>
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">{nepali}</span>
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

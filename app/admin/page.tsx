@@ -32,6 +32,7 @@ import {
 } from "@/lib/production-readiness";
 import { getProductionControlSummary } from "@/lib/production-accounting";
 import { getContactMessages, getOrders, type ContactSubmission, type OrderSubmission } from "@/lib/submissions";
+import TodayBoard from "@/app/admin/TodayBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -633,6 +634,14 @@ export default async function AdminDashboardPage() {
 
   return (
     <section className="p-6 space-y-6">
+      {/* What needs doing, before any of the reporting below it. */}
+      <TodayBoard
+        todayPairs={productionControl.todayGoodPairs}
+        newOrders={newOrders.length}
+        lowStockNames={lowStockProducts.map((product) => product.name)}
+        workerDue={productionControl.workerBalanceDue || 0}
+      />
+
       {/* Quick Admin Home Dashboard */}
       <QuickAdminHome
         todayProduction={{

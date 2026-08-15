@@ -215,10 +215,10 @@ export async function inviteStaffAccountAction(formData: FormData) {
     const phone = normalizeStaffPhone(phoneInput);
     const temporaryPassword = textValue(formData, "temporaryPassword");
 
-    if (!name) throw new Error("Staff name is required.");
-    if (phoneInput && !phone) throw new Error("Enter a valid mobile number, or leave it empty.");
+    if (!name) throw new Error("नाम चाहिन्छ।");
+    if (phoneInput && !phone) throw new Error("मोबाइल नम्बर मिलेन — ठीक नम्बर हाल्नुहोस्, वा खाली छाड्नुहोस्।");
     if (!email && !phone) {
-      throw new Error("Enter an email address, a mobile number, or both.");
+      throw new Error("Email वा मोबाइल नम्बर — कम्तीमा एउटा चाहिन्छ।");
     }
 
     const phoneOnly = !email;
@@ -230,10 +230,10 @@ export async function inviteStaffAccountAction(formData: FormData) {
 
     const existingSettings = await getAdminSettings();
     if (email && existingSettings.staff.some((member) => member.email.toLowerCase() === email)) {
-      throw new Error("A staff account with this email already exists.");
+      throw new Error("यो email भएको खाता पहिले नै छ।");
     }
     if (phone && existingSettings.staff.some((member) => normalizeStaffPhone(member.phone) === phone)) {
-      throw new Error("A staff account with this mobile number already exists.");
+      throw new Error("यो मोबाइल नम्बर भएको खाता पहिले नै छ।");
     }
 
     if (phoneOnly) {
@@ -462,7 +462,7 @@ export async function setStaffTemporaryPasswordAction(formData: FormData) {
       throw new Error("Enable this account before giving it a new password.");
     }
     if (temporaryPassword.length < 8) {
-      throw new Error("A temporary password must be at least 8 characters.");
+      throw new Error("अस्थायी password कम्तीमा ८ अक्षरको हुनुपर्छ।");
     }
 
     await updateAdminStaffPassword(staff.id, temporaryPassword, {

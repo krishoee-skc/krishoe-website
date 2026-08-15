@@ -28,12 +28,10 @@ describe("operations save feedback", () => {
 
   it("names what happened, not just that something did", async () => {
     const source = await readFile("app/admin/operations/actions.ts", "utf8");
-    // The stock entries are the ones the owner reaches for, and the ones whose
-    // effect reaches the shop, so they say so.
-    expect(source).toContain(
-      "Stock movement recorded. Finished stock and the shop catalog were both updated.",
-    );
-    expect(source).toContain("Finished stock saved.");
+    // In Nepali, and naming the shop: these two are the entries the owner
+    // reaches for, and the only ones whose effect leaves this page.
+    expect(source).toContain("स्टक चढ्यो ✅ तयारी स्टक र पसल दुवैमा मिल्यो।");
+    expect(source).toContain("तयारी स्टक सुरक्षित भयो ✅ पसलमा पनि मिल्यो।");
   });
 
   it("renders the message where it will be read", async () => {

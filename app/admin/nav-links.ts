@@ -30,6 +30,9 @@ export type AdminWorkspace = "factory" | "shop" | "both";
 export type AdminNavLink = {
   href: string;
   label: string;
+  /** Shown small beneath the English name. The owner reads Nepali; the English
+   *  name stays because it is what they have already learned to look for. */
+  nepali: string;
   icon: typeof HomeIcon;
 };
 
@@ -51,9 +54,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "काम",
     workspace: "factory",
     links: [
-      { href: "/admin/factory", label: "Factory Entry", icon: PackageIcon },
-      { href: "/admin/operations", label: "Operations", icon: PackageIcon },
-      { href: "/admin/stock", label: "Stock", icon: PackageIcon },
+      { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: PackageIcon },
+      { href: "/admin/operations", label: "Operations", nepali: "उत्पादन र स्टक", icon: PackageIcon },
+      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
     ],
   },
   {
@@ -61,9 +64,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "लागत र किनमेल",
     workspace: "factory",
     links: [
-      { href: "/admin/costing", label: "Costing", icon: CreditCardIcon },
-      { href: "/admin/purchasing", label: "Purchasing", icon: PackageIcon },
-      { href: "/admin/hr", label: "HR", icon: ShieldCheckIcon },
+      { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CreditCardIcon },
+      { href: "/admin/purchasing", label: "Purchasing", nepali: "किनमेल", icon: PackageIcon },
+      { href: "/admin/hr", label: "HR", nepali: "कर्मचारी", icon: ShieldCheckIcon },
     ],
   },
   {
@@ -71,10 +74,10 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "बिक्री",
     workspace: "shop",
     links: [
-      { href: "/admin/orders", label: "Orders", icon: ShoppingCartIcon },
-      { href: "/admin/pos", label: "POS Billing", icon: CreditCardIcon },
-      { href: "/admin/products", label: "Products", icon: PackageIcon },
-      { href: "/admin/stock", label: "Stock", icon: PackageIcon },
+      { href: "/admin/orders", label: "Orders", nepali: "अर्डर", icon: ShoppingCartIcon },
+      { href: "/admin/pos", label: "POS Billing", nepali: "बिल काट्ने", icon: CreditCardIcon },
+      { href: "/admin/products", label: "Products", nepali: "सामान र मूल्य", icon: PackageIcon },
+      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
     ],
   },
   {
@@ -82,11 +85,11 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "ग्राहक",
     workspace: "shop",
     links: [
-      { href: "/admin/customers", label: "Customers", icon: UserIcon },
-      { href: "/admin/reviews", label: "Reviews", icon: StarIcon },
-      { href: "/admin/feedback", label: "Feedback", icon: MessageSquareIcon },
-      { href: "/admin/insights", label: "Customer Voice", icon: StarIcon },
-      { href: "/admin/messages", label: "Messages", icon: MessageSquareIcon },
+      { href: "/admin/customers", label: "Customers", nepali: "ग्राहक", icon: UserIcon },
+      { href: "/admin/reviews", label: "Reviews", nepali: "ग्राहकको राय", icon: StarIcon },
+      { href: "/admin/feedback", label: "Feedback", nepali: "गुनासो", icon: MessageSquareIcon },
+      { href: "/admin/insights", label: "Customer Voice", nepali: "ग्राहकको आवाज", icon: StarIcon },
+      { href: "/admin/messages", label: "Messages", nepali: "सन्देश", icon: MessageSquareIcon },
     ],
   },
   {
@@ -94,8 +97,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "पैसा",
     workspace: "shop",
     links: [
-      { href: "/admin/payments", label: "Payments", icon: CreditCardIcon },
-      { href: "/admin/dues", label: "Credit / Dues", icon: CreditCardIcon },
+      { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
+      { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CreditCardIcon },
     ],
   },
   {
@@ -103,9 +106,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "सन्देश",
     workspace: "shop",
     links: [
-      { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
-      { href: "/admin/alerts", label: "Alerts", icon: BellIcon },
-      { href: "/admin/sms", label: "SMS", icon: MessageSquareIcon },
+      { href: "/admin/notifications", label: "Notifications", nepali: "सूचना", icon: BellIcon },
+      { href: "/admin/alerts", label: "Alerts", nepali: "चेतावनी", icon: BellIcon },
+      { href: "/admin/sms", label: "SMS", nepali: "मोबाइल सन्देश", icon: MessageSquareIcon },
     ],
   },
   {
@@ -113,9 +116,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "सबैतिर",
     workspace: "both",
     links: [
-      { href: "/admin", label: "Dashboard", icon: HomeIcon },
-      { href: "/admin/search", label: "Search", icon: SearchIcon },
-      { href: "/admin/settings", label: "Settings", icon: ShieldCheckIcon },
+      { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
+      { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
+      { href: "/admin/settings", label: "Settings", nepali: "सेटिङ", icon: ShieldCheckIcon },
     ],
   },
   {
@@ -123,12 +126,12 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "हिसाब र सुरक्षा",
     workspace: "both",
     links: [
-      { href: "/admin/analytics", label: "Analytics", icon: StarIcon },
-      { href: "/admin/activity", label: "Activity", icon: ShieldCheckIcon },
-      { href: "/admin/security", label: "Security / CCTV", icon: ShieldCheckIcon },
-      { href: "/admin/monitoring", label: "Monitoring", icon: ShieldCheckIcon },
-      { href: "/admin/devices", label: "Login devices", icon: ShieldCheckIcon },
-      { href: "/admin/getting-started", label: "Getting Started", icon: HomeIcon },
+      { href: "/admin/analytics", label: "Analytics", nepali: "हिसाब र नाफा", icon: StarIcon },
+      { href: "/admin/activity", label: "Activity", nepali: "को ले के गर्‍यो", icon: ShieldCheckIcon },
+      { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
+      { href: "/admin/monitoring", label: "Monitoring", nepali: "निगरानी", icon: ShieldCheckIcon },
+      { href: "/admin/devices", label: "Login devices", nepali: "कुन फोन/computer", icon: ShieldCheckIcon },
+      { href: "/admin/getting-started", label: "Getting Started", nepali: "सुरु गर्ने", icon: HomeIcon },
     ],
   },
 ];
