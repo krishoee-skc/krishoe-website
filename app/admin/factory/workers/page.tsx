@@ -161,7 +161,7 @@ export default function WorkersPage() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory people</p>
           <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Workers and HR linkage</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Link each factory worker to one permanent HR Employee ID. Factory wages, attendance and payroll then belong to the same person even if their name changes.
+            Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
           </p>
         </div>
         <button type="button" onClick={() => setShowForm((value) => !value)} className="min-h-11 rounded-full bg-brand-green px-5 text-sm font-black text-white">
@@ -171,7 +171,7 @@ export default function WorkersPage() {
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{workers.filter((worker) => worker.hr_employee_id).length} linked</span>
-        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">{workers.filter((worker) => !worker.hr_employee_id).length} need linking</span>
+        <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-600">{workers.filter((worker) => !worker.hr_employee_id).length} without an HR link (fine)</span>
         <Link href="/admin/hr" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-brand-green underline">Open HR employees</Link>
       </div>
 
@@ -202,13 +202,17 @@ export default function WorkersPage() {
         {loading ? <p className="text-sm text-slate-500">Loading workers...</p> : null}
         {!loading && workers.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">No factory workers yet.</p> : null}
         {workers.map((worker) => (
-          <article key={worker.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${worker.hr_employee_id ? "border-emerald-200" : "border-amber-200"}`}>
+          <article key={worker.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${worker.hr_employee_id ? "border-emerald-200" : "border-gray-200"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-slate-950">{worker.name}</h2>
                 <p className="mt-1 text-xs font-semibold text-slate-500">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{worker.hr_employee_id ? "HR linked" : "Link needed"}</span>
+              {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
+                  rates and the worker portal all read this list directly, and
+                  the HR link only matters for Work Orders. Amber read as "fix
+                  me" and pointed at a module holding no attendance or payroll. */}
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-gray-100 text-gray-500"}`}>{worker.hr_employee_id ? "HR linked" : "HR link optional"}</span>
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">

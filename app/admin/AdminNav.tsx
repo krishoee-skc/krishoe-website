@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "@/components/Icons";
 import { useSidebar } from "@/components/admin/SidebarProvider";
-import { adminNavLinks } from "@/app/admin/nav-links";
-import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
+import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
+import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { type AdminRole } from "@/lib/admin-role-permissions";
 
 export default function AdminNav({
   adminRole,
@@ -21,7 +22,7 @@ export default function AdminNav({
 }) {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const links = adminNavLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
+  const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
 
   return (
     <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 lg:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "lg:w-20" : "lg:w-[280px]"}`}>
@@ -73,27 +74,45 @@ export default function AdminNav({
           </div>
         )}
 
+        {/* Which half of the business this menu is showing. */}
+        <div className={`border-b border-admin-border pb-3 pt-3 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
+          <WorkspaceSwitch
+            workspace={workspace}
+            onChoose={chooseWorkspace}
+            compact={isCollapsed}
+          />
+        </div>
+
         {/* Navigation Links */}
         <div className="flex-1 overflow-auto py-4">
-          <nav className={`grid items-start gap-1 font-medium ${isCollapsed ? "px-2" : "px-3"}`}>
-            {links.map(({ href, label, icon: Icon }) => {
-              const isActive = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  title={isCollapsed ? label : undefined}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
-                    isActive
-                      ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-admin-hover dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-admin-hover-dark"
-                  } ${isCollapsed ? "justify-center" : ""}`}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {!isCollapsed && <span className="text-sm">{label}</span>}
-                </Link>
-              );
-            })}
+          <nav className={`grid items-start gap-4 font-medium ${isCollapsed ? "px-2" : "px-3"}`}>
+            {groups.map((group) => (
+              <div key={group.id} className="grid gap-1">
+                {!isCollapsed && (
+                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                    {group.title}
+                  </p>
+                )}
+                {group.links.map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href;
+                  return (
+                    <Link
+                      key={`${group.id}-${href}`}
+                      href={href}
+                      title={isCollapsed ? label : undefined}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
+                        isActive
+                          ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-admin-hover dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-admin-hover-dark"
+                      } ${isCollapsed ? "justify-center" : ""}`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      {!isCollapsed && <span className="text-sm">{label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 

@@ -6,8 +6,9 @@ import { useEffect, useState } from "react";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
-import { adminNavLinks } from "@/app/admin/nav-links";
-import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
+import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
+import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { type AdminRole } from "@/lib/admin-role-permissions";
 
 // Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
 // below 1024px there was no way to move between pages or get home — a real
@@ -18,7 +19,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
-  const links = adminNavLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
+  const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
 
   // Close the menu whenever the route changes, so tapping a link doesn't leave
   // the sheet hanging open over the new page. Done as a render-time state
@@ -78,25 +79,34 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
             aria-label="Admin"
             className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-gray-100 bg-white px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
           >
-          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-            {links.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-bold transition ${
-                    active
-                      ? "border-brand-green bg-brand-green-wash text-brand-green"
-                      : "border-gray-200 text-brand-green-ink hover:border-brand-green"
-                  }`}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
+          <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
+
+          {groups.map((group) => (
+            <div key={group.id} className="mt-4">
+              <p className="px-1 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">
+                {group.title}
+              </p>
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                {group.links.map(({ href, label, icon: Icon }) => {
+                  const active = pathname === href;
+                  return (
+                    <Link
+                      key={`${group.id}-${href}`}
+                      href={href}
+                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-bold transition ${
+                        active
+                          ? "border-brand-green bg-brand-green-wash text-brand-green"
+                          : "border-gray-200 text-brand-green-ink hover:border-brand-green"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           <form action={logoutAdminAction} className="mt-3">
             <button
