@@ -57,7 +57,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   }, [isOpen]);
 
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
       <CommandSearch />
 
       {/* The theme toggle crowds the phone bar, and the search and cart here
@@ -70,7 +70,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       <Link
         href="/wishlist"
         aria-label="Open wishlist"
-        className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md lg:grid"
+        className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green lg:grid"
       >
         <HeartIcon className="h-5 w-5" />
         <CountBadge count={wishlistCount} />
@@ -79,7 +79,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       <Link
         href="/cart"
         aria-label="Open cart"
-        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md"
+        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
       >
         <ShoppingBagIcon className="h-5 w-5" />
         <CountBadge count={cartCount} />
@@ -88,14 +88,14 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {isLoggedIn ? (
         <Link
           href={isAdmin ? "/admin" : "/account"}
-          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition duration-200 hover:bg-brand-gold-bright hover:text-brand-green-ink hover:shadow-md sm:inline-flex"
+          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
           My Account
         </Link>
       ) : (
         <Link
           href="/account/login"
-          className="hidden h-10 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition duration-200 hover:bg-brand-gold-bright hover:text-brand-green-ink hover:shadow-md sm:inline-flex"
+          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
           Account
         </Link>

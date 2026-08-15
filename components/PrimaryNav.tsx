@@ -13,17 +13,26 @@ export default function PrimaryNav() {
   const [shopOpen, setShopOpen] = useState(false);
 
   return (
-    <nav className="hidden items-center gap-1 lg:flex">
+    <nav className="hidden items-center gap-7 lg:flex xl:gap-9">
       {navLinks.map((item) => {
         const active = isActivePath(pathname, item.href);
-        const Icon = item.Icon;
-        const linkClass = `group relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition ${
-          active ? "text-brand-green" : "text-[#31413B] hover:text-brand-gold-deep"
+        // item.Icon is still carried for the phone menu, which keeps its icons —
+        // a drawer of large touch targets reads better with them. The desktop
+        // row does not.
+        // No icon, and no wrapping. A picture beside every word reads as an
+        // app's tab bar; a shop's nav is words. whitespace-nowrap is what stops
+        // "Our Story" breaking onto a second line and leaving the row visibly
+        // uneven, which is what it did.
+        const linkClass = `group relative flex items-center gap-1.5 whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
+          active ? "text-brand-green-ink" : "text-[#4A574F] hover:text-brand-green-ink"
         }`;
+        // Gold appears twice in this header, and this is one: a hairline under
+        // the page you are on. Kept to a hairline so it reads as a mark rather
+        // than a highlighter.
         const underline = (
           <span
-            className={`pointer-events-none absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-brand-gold-bright transition ${
-              active ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+            className={`pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-brand-gold-bright transition ${
+              active ? "opacity-100" : "opacity-0 group-hover:opacity-70"
             }`}
           />
         );
@@ -42,10 +51,9 @@ export default function PrimaryNav() {
                 aria-expanded={shopOpen}
                 onClick={() => setShopOpen(false)}
               >
-                <Icon className="h-4 w-4" />
                 {item.label}
                 <ChevronDownIcon
-                  className={`h-3.5 w-3.5 transition ${shopOpen ? "rotate-180" : ""}`}
+                  className={`h-3 w-3 transition ${shopOpen ? "rotate-180" : ""}`}
                 />
                 {underline}
               </Link>
@@ -95,7 +103,6 @@ export default function PrimaryNav() {
 
         return (
           <Link key={item.href} href={item.href} className={linkClass}>
-            <Icon className="h-4 w-4" />
             {item.label}
             {underline}
           </Link>
