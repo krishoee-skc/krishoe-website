@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // credentials or worker identity — hundreds of people will point a camera at
 // it, and anything secret in a QR is secret from nobody.
 export async function GET() {
-  await requireAdminPermission("hr:write");
+  await requireAdminPermission("production:entry");
 
   const svg = bwipjs.toSVG({
     bcid: "qrcode",

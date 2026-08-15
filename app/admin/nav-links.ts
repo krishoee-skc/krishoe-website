@@ -119,6 +119,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
       { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
+      { href: "/admin/open-on-phone", label: "Open on phone", nepali: "फोनमा खोल्ने", icon: SearchIcon },
       { href: "/admin/settings", label: "Settings", nepali: "सेटिङ", icon: ShieldCheckIcon },
     ],
   },

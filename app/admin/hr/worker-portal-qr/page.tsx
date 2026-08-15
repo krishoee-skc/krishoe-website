@@ -24,8 +24,8 @@ const steps = [
     en: "Tap the link that appears — the KRISHOE page opens",
   },
   {
-    ne: "आफ्नो इमेल र पासवर्ड हालेर भित्र जानुहोस्",
-    en: "Sign in with the email and password HR gave you",
+    ne: "आफ्नो मोबाइल नम्बर र पासवर्ड हालेर भित्र जानुहोस्",
+    en: "Sign in with your mobile number and the password the Owner gave you",
   },
   {
     ne: "मेनुबाट «Add to Home screen» थिच्नुहोस् — फोनमै icon बस्छ",
@@ -34,7 +34,7 @@ const steps = [
 ];
 
 export default async function WorkerPortalQrPage() {
-  await requireAdminPermission("hr:write");
+  await requireAdminPermission("production:entry");
   const loginUrl = absoluteUrl("/worker/login");
 
   return (
@@ -96,9 +96,9 @@ export default async function WorkerPortalQrPage() {
         </ol>
 
         <p className="mt-7 rounded-xl bg-brand-mist px-4 py-3 text-sm font-semibold leading-6 text-brand-green-ink print:bg-white">
-          इमेल र पासवर्ड नभएमा HR सँग माग्नुहोस्। आफ्नो पासवर्ड कसैलाई नदिनुहोस्।
+पहिलो पटक पस्दा नयाँ पासवर्ड राख्नुहोस् — मालिकले दिएको पुरानो त्यहीँ मर्छ। आफ्नो पासवर्ड कसैलाई नदिनुहोस्।
           <span className="mt-1 block text-xs font-normal text-gray-500">
-            Ask HR for your sign-in details. Never share your password.
+Ask the Owner for your mobile sign-in. Change the password on first use, and never share it.
           </span>
         </p>
       </article>

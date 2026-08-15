@@ -29,9 +29,12 @@ async function callRoute() {
 }
 
 describe("worker portal QR", () => {
-  it("requires an HR-write permission before rendering anything", async () => {
+  it("requires a factory permission before rendering anything", async () => {
     await callRoute();
-    expect(requireAdminPermission).toHaveBeenCalledWith("hr:write");
+    // Was hr:write. The HR module holds no attendance or payroll and the portal
+    // reads the factory tables, so the people who print this poster are the
+    // ones running the factory floor.
+    expect(requireAdminPermission).toHaveBeenCalledWith("production:entry");
   });
 
   it("encodes the worker login URL", async () => {

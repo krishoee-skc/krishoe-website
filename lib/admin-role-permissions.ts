@@ -163,6 +163,10 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/monitoring", "security:read"],
   ["/admin/sms", "notifications:read"],
   ["/admin/search", "search:read"],
+  // Only a QR of a public sign-in page, but it is an admin screen, so it is
+  // listed rather than left to the unlisted-means-allowed fallback — a Worker
+  // would otherwise see the menu entry and land on a refusal.
+  ["/admin/open-on-phone", "dashboard:read"],
   ["/admin/stock", "stock:read"],
   ["/admin/pos", "pos:read"],
   ["/admin/dues", "dues:read"],
