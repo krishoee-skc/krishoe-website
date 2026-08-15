@@ -3,8 +3,8 @@
  *
  * The keys here are the exact strings in `shippingOptions` / `paymentOptions`,
  * and those same English strings are what the radio inputs submit and what the
- * server validates against (`shippingOptions.includes(delivery)`) and branches
- * on (`delivery !== "Kathmandu valley delivery"`). Translate the label only —
+ * server validates against (`shippingOptions.includes(delivery)`). Translate the
+ * label only —
  * submitting a translated value would fail validation and would also write
  * Nepali text into order records the admin screens read back.
  *
@@ -12,9 +12,10 @@
  * option never breaks the form; it just shows untranslated until listed here.
  */
 const shippingLabelsNe: Record<string, string> = {
-  "Kathmandu valley delivery": "काठमाडौं उपत्यकाभित्र डेलिभरी",
-  "Store pickup": "पसलबाटै लिने",
-  "Nationwide courier coordination": "देशभर कुरियर मिलाइदिने",
+  // Kept as one line each: the customer is choosing between having it sent
+  // and coming to fetch it, and nothing else.
+  "Nationwide courier coordination": "कुरियरबाट पठाइदिने — नजिक होस् वा टाढा",
+  "Store pickup": "पसलमै आएर लिने",
 };
 
 const paymentLabelsNe: Record<string, string> = {

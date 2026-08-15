@@ -178,7 +178,17 @@ function CheckoutForm({
             <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
               {text(
                 "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
-                "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलबाटै लिँदा डेलिभरी शुल्क लाग्दैन।",
+                "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलमै आएर लिँदा शुल्क लाग्दैन।",
+              )}
+            </p>
+            {/* Someone choosing to fetch it themselves needs the hours before
+                they set out, not after. Monday especially — a closed shutter
+                after a journey is the kind of thing a customer tells people
+                about. */}
+            <p className="mt-2 rounded-lg border border-brand-gold/40 bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
+              {text(
+                "Store pickup: open 8 AM – 6 PM. Closed every Monday.",
+                "पसलमै आएर लिने: बिहान ८ बजे – साँझ ६ बजे। हरेक सोमबार बन्द।",
               )}
             </p>
           </div>

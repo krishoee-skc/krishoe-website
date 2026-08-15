@@ -126,7 +126,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return errorState(customerProfile.message);
   }
 
-  const deliveryError = validateDeliveryArea(delivery, customerProfile.profile.address ?? "");
+  const deliveryError = validateDeliveryArea(delivery);
 
   if (deliveryError) {
     return errorState(deliveryError);

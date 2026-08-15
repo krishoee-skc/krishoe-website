@@ -27,8 +27,8 @@ describe("checkout option labels", () => {
   });
 
   // The submitted value must stay English: the server checks it with
-  // shippingOptions.includes(delivery) and branches on the exact string
-  // "Kathmandu valley delivery" to decide the delivery-area rule.
+  // shippingOptions.includes(delivery), and the order record keeps whatever was
+  // submitted for the admin screens to read back.
   it("falls back to the English text for an unknown option rather than blanking it", () => {
     expect(shippingOptionLabel("Some new option", true)).toBe("Some new option");
     expect(paymentOptionLabel("Some new option", true)).toBe("Some new option");

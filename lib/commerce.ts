@@ -35,46 +35,27 @@ export const viberShareUrl = (message: string) =>
 export const facebookShareUrl = (url: string) =>
   `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
 
+/**
+ * How a pair reaches the buyer. Two ways, because the shop has two.
+ *
+ * There used to be a third, "Kathmandu valley delivery", and a rule behind it
+ * that read the address for names like "chitwan", "bharatpur" and "hetauda" and
+ * refused them as outside the valley. KRISHOE is in Narayangadh, Chitwan — the
+ * rule was written for a Kathmandu shop, and it told customers in the shop's
+ * own district that they were too far away. Both orders taken so far came from
+ * Gaidakot and Tulsipur and had to be booked as nationwide courier because
+ * nothing else fit.
+ *
+ * The owner sends everything by courier, near or far, so the courier option
+ * covers it and the valley one is gone.
+ */
 export const shippingOptions = [
-  "Kathmandu valley delivery",
-  "Store pickup",
   "Nationwide courier coordination",
+  "Store pickup",
 ];
 
-const outsideValleyPlaces = [
-  "bharatpur",
-  "chitwan",
-  "pokhara",
-  "biratnagar",
-  "birgunj",
-  "butwal",
-  "hetauda",
-  "janakpur",
-  "dharan",
-  "itahari",
-  "nepalgunj",
-  "dhangadhi",
-  "surkhet",
-  "baglung",
-  "birtamod",
-  "damak",
-];
-
-export function validateDeliveryArea(delivery: string, address: string) {
-  if (!shippingOptions.includes(delivery)) {
-    return "Please choose a valid delivery option.";
-  }
-
-  if (delivery !== "Kathmandu valley delivery") {
-    return "";
-  }
-
-  const normalizedAddress = address.toLowerCase();
-  const outsidePlace = outsideValleyPlaces.find((place) => normalizedAddress.includes(place));
-
-  return outsidePlace
-    ? `${outsidePlace.charAt(0).toUpperCase()}${outsidePlace.slice(1)} is outside Kathmandu Valley. Please choose Nationwide courier coordination.`
-    : "";
+export function validateDeliveryArea(delivery: string) {
+  return shippingOptions.includes(delivery) ? "" : "Please choose a valid delivery option.";
 }
 
 export const paymentOptions = [

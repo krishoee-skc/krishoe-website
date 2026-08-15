@@ -19,18 +19,16 @@ describe("order channel links", () => {
 });
 
 describe("delivery area validation", () => {
-  it("redirects an explicitly outside-valley address to nationwide courier", () => {
-    expect(validateDeliveryArea("Kathmandu valley delivery", "Bharatpur, Chitwan")).toMatch(
-      /outside Kathmandu Valley/,
-    );
-  });
-
-  it("allows valley delivery when the address does not identify an outside city", () => {
-    expect(validateDeliveryArea("Kathmandu valley delivery", "New Road, Kathmandu")).toBe("");
+  // The valley option and its address rule are gone — KRISHOE ships from
+  // Narayangadh, and the rule refused the shop's own district. See
+  // tests/delivery-options.test.ts.
+  it("accepts either way of getting the pairs to the buyer", () => {
+    expect(validateDeliveryArea("Nationwide courier coordination")).toBe("");
+    expect(validateDeliveryArea("Store pickup")).toBe("");
   });
 
   it("rejects an invented delivery option", () => {
-    expect(validateDeliveryArea("Teleport", "Kathmandu")).toBe(
+    expect(validateDeliveryArea("Teleport")).toBe(
       "Please choose a valid delivery option.",
     );
   });
