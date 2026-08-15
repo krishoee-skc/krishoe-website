@@ -103,10 +103,28 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             placeholder="1799"
           />
         </label>
-        <label className="grid gap-1.5">
+        {/* Not an input any more. Stock has one door — Operations — and a box
+            here was a second one: two answers to "how many pairs are there",
+            with nothing to say which was true. The count is shown because it is
+            worth seeing while editing a product; it is changed where the pairs
+            actually move. */}
+        <div className="grid gap-1.5">
           <span className="text-sm font-medium">Stock</span>
-          <input name="stock" defaultValue={product?.stock} type="number" required className="form-input" />
-        </label>
+          <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4">
+            <span className="text-lg font-black text-brand-green-ink">
+              {product ? `${product.stock} जोडी` : "0 जोडी"}
+            </span>
+            <Link
+              href="/admin/operations"
+              className="shrink-0 text-xs font-black text-brand-green underline"
+            >
+              Operations बाट बदल्ने
+            </Link>
+          </div>
+          <span className="text-xs leading-5 text-gray-500">
+            बनाएको · किनेको · सुरुको बाँकी — सबै Operations बाट। यहाँबाट बदलिँदैन।
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

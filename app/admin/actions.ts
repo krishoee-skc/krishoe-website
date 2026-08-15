@@ -23,7 +23,7 @@ import {
   type PaymentStatus,
 } from "@/lib/submissions";
 import { orderStatuses, paymentStatuses, paymentProviders } from "@/lib/order-constants";
-import { removeProduct, upsertProduct } from "@/lib/product-store";
+import { getProductById, removeProduct, upsertProduct } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
@@ -358,6 +358,19 @@ export async function upsertProductAction(
   const id = textValue(formData, "id") || crypto.randomUUID();
   const name = textValue(formData, "name") || "Untitled Product";
 
+  // Stock is not the catalog's to set. Every pair that exists arrived through
+  // Operations — made, bought, or counted as opening stock — and the catalog is
+  // the selling view of that one number, not a second place to declare it.
+  //
+  // A typed number here was a second, unbacked answer to "how many are there".
+  // That is how 132 pairs came to sit in the shop across 15 designs with no
+  // record of where they came from and no way for a sale to reduce them. Saving
+  // a product now leaves the count exactly where Operations left it.
+  const existingProduct = textValue(formData, "id")
+    ? await getProductById(id, { includeDrafts: true })
+    : null;
+  const stock = Math.max(0, existingProduct?.stock ?? 0);
+
   const product: Product = {
     id,
     sku: textValue(formData, "sku") || id.toUpperCase(),
@@ -378,7 +391,7 @@ export async function upsertProductAction(
     fit: textValue(formData, "fit") || "Regular fit",
     colors: listValue(formData, "colors").length > 0 ? listValue(formData, "colors") : ["Black"],
     sizes: listValue(formData, "sizes").length > 0 ? listValue(formData, "sizes") : ["36", "37", "38", "39", "40"],
-    stock: Math.max(0, Number(textValue(formData, "stock")) || 0),
+    stock,
     highlights: listValue(formData, "highlights"),
     care: listValue(formData, "care"),
     reviews: [],

@@ -241,8 +241,20 @@ export default function OperationsQuickEntry({
           <SubmitActionButton label="Add ledger" />
         </form>
 
-        <form action={createStockMovementAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+        <form action={createStockMovementAction} className="grid gap-3 rounded-lg border-2 border-brand-green/30 bg-white p-4">
           <h3 className="font-black text-brand-green-ink">Stock movement</h3>
+          {/* This is now the only way pairs enter the count — the product form
+              no longer takes a number — so the three ways in are spelled out
+              rather than left to be guessed from the dropdown. */}
+          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-gray-600">
+            स्टक भित्र्याउने <strong className="text-brand-green-ink">एउटै ठाउँ</strong>:
+            <br />
+            <strong>Production In</strong> — आफ्नै कारखानाले बनाएको
+            <br />
+            <strong>Purchase In</strong> — किनेर ल्याएको
+            <br />
+            <strong>Adjustment</strong> — पहिलेदेखि भएको / गन्ती मिलाउने
+          </p>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <select name="channel" className={inputClass} defaultValue="Factory">

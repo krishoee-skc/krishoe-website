@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const upsertProduct = vi.fn();
 const removeProduct = vi.fn();
+// The save reads the stored row to carry its stock forward — the form no longer
+// supplies a number. beforeEach defaults it to "no such product yet".
+const getProductById = vi.fn();
 
 vi.mock("@/lib/product-store", () => ({
   upsertProduct: (...args: unknown[]) => upsertProduct(...args),
   removeProduct: (...args: unknown[]) => removeProduct(...args),
+  getProductById: (...args: unknown[]) => getProductById(...args),
 }));
 vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn() }));
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
@@ -31,6 +35,46 @@ function productForm(overrides: Record<string, string> = {}) {
 beforeEach(() => {
   upsertProduct.mockReset().mockResolvedValue(undefined);
   removeProduct.mockReset().mockResolvedValue(undefined);
+  getProductById.mockReset().mockResolvedValue(null);
+});
+
+/**
+ * Stock has one door, and it is not this form.
+ *
+ * Pairs arrive through Operations — made, bought, or counted as opening stock.
+ * A number typed into the product form was a second, unbacked answer to "how
+ * many are there": 132 pairs across 15 designs sat in the shop with no record
+ * of where they came from, and a sale could not reduce them.
+ */
+describe("saving a product never sets stock", () => {
+  it("carries forward the count Operations left on the stored product", async () => {
+    getProductById.mockResolvedValue({ id: "prod-1", stock: 36 });
+
+    await upsertProductAction(null, productForm());
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ stock: 36 });
+  });
+
+  it("ignores a stock value posted with the form", async () => {
+    getProductById.mockResolvedValue({ id: "prod-1", stock: 36 });
+
+    // Nothing renders this field any more, but a stale tab or a hand-made
+    // request still can — and it must not move the count.
+    await upsertProductAction(null, productForm({ stock: "9999" }));
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ stock: 36 });
+  });
+
+  it("starts a brand-new product at zero", async () => {
+    const formData = productForm();
+    formData.delete("id");
+
+    await upsertProductAction(null, formData);
+
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ stock: 0 });
+    // No id means no stored row to read; nothing should be fetched.
+    expect(getProductById).not.toHaveBeenCalled();
+  });
 });
 
 // The owner uploaded a photo, pressed Save, and got the app's error page — the
