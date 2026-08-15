@@ -26,7 +26,29 @@ export default function AdminLoginForm({
 }) {
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
+  const [code, setCode] = useState("");
+  // Set when something arrived in the code box that was not a code — almost
+  // always the saved password, offered by the phone's password manager on the
+  // screen right after a password field.
+  const [codeWasFilled, setCodeWasFilled] = useState(false);
   const router = useRouter();
+
+  /**
+   * Keeps the code box to six digits, whatever is put in it.
+   *
+   * The input already asks for a numeric keypad and declares itself a one-time
+   * code, which is everything the platform offers — and iOS filled the saved
+   * password into it anyway, past maxLength, because autofill does not go
+   * through the keyboard. Left alone, "Krisha@rijal66" would either sit there
+   * looking like an answer or silently become "66", and the form would just say
+   * the code was wrong. Stripping it and naming what happened is the difference
+   * between a dead end and an instruction.
+   */
+  function acceptCode(raw: string) {
+    const digits = raw.replace(/\D+/g, "").slice(0, 6);
+    setCodeWasFilled(raw.length > 0 && digits.length !== raw.length);
+    setCode(digits);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,10 +112,21 @@ export default function AdminLoginForm({
             maxLength={6}
             required
             autoFocus
+            value={code}
+            onChange={(event) => acceptCode(event.target.value)}
             className="h-14 rounded-xl border border-black/10 px-4 text-center text-2xl font-black tracking-[0.35em] outline-none focus:border-brand-green"
             placeholder="000000"
           />
         </label>
+
+        {codeWasFilled ? (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold leading-5 text-amber-900">
+            ⚠️ त्यो password जस्तो देखियो — यहाँ चाहिने ६ अंकको कोड हो।
+            <span className="mt-0.5 block font-semibold">
+              Gmail खोलेर कोड हेर्नुहोस्, अनि हातले टाइप गर्नुहोस्।
+            </span>
+          </p>
+        ) : null}
 
         <div className="mt-6 grid gap-3">
           <SubmitButton

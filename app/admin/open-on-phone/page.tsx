@@ -8,22 +8,35 @@ import { absoluteUrl } from "@/lib/seo";
 export const metadata: Metadata = { title: "फोनमा खोल्ने | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
+/**
+ * Two doors, and the labels say which is which.
+ *
+ * "Owner & staff" read as two kinds of sign-in, and the owner could not tell
+ * which one their phone had opened. There is only one office door — Owner,
+ * Manager and Accountant all sign in at /admin/login — and one factory door.
+ * Each card now names the heading that appears on the page it opens, so the
+ * phone can be checked against the card.
+ */
 const codes = [
   {
     key: "admin",
-    title: "मालिक र staff",
-    english: "Owner & staff",
+    title: "यो तपाईंको",
+    english: "Office · Admin",
     path: "/admin/login",
-    who: "तपाईं · Manager · Accountant",
+    who: "तपाईं, Manager, Accountant — सबै यहीँबाट",
+    opens: "KRISHOE control room",
     guard: "password + Gmail मा आउने ६ अंकको कोड",
+    print: false,
   },
   {
     key: "worker",
-    title: "कामदार",
-    english: "Workers",
+    title: "यो कामदारको",
+    english: "Factory · Workers",
     path: "/worker/login",
-    who: "२५ जना कामदार — एउटै कागज सबैलाई",
+    who: "२५ जनालाई एउटै कागज — कसैको नाम छैन",
+    opens: "KRISHOE worker portal",
     guard: "मोबाइल नम्बर + password (पहिलो पटकमै फेर्नैपर्ने)",
+    print: true,
   },
 ];
 
@@ -65,6 +78,11 @@ export default async function OpenOnPhonePage() {
           <p className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-brand-clay print:bg-white">
             ⚠️ QR सँगै password चाहिँ कहिल्यै नलेख्नुहोस्। कागज हराए खाता जान्छ।
           </p>
+          <p className="rounded-lg bg-white px-3 py-2 text-xs leading-5 text-gray-600 print:bg-white">
+            <strong className="text-brand-green-ink">ढोका दुई मात्र छन्।</strong> मालिक, Manager र
+            Accountant — तीनै जना <strong>एउटै</strong> ढोकाबाट पस्छन् (पहिलो QR)। कामदारको ढोका
+            अर्को हो (दोस्रो QR)। यसबाहेक अरू कुनै login छैन।
+          </p>
         </div>
       </section>
 
@@ -75,10 +93,14 @@ export default async function OpenOnPhonePage() {
             className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm print:border print:shadow-none"
           >
             <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold-deep">
-              KRISHOE
+              {code.english}
             </p>
             <h2 className="mt-2 text-2xl font-black text-brand-green-ink">{code.title}</h2>
-            <p className="text-sm font-semibold text-gray-500">{code.english}</p>
+            {code.print ? (
+              <p className="text-sm font-semibold text-gray-500">छापेर भित्तामा टाँस्नुहोस्</p>
+            ) : (
+              <p className="text-sm font-semibold text-gray-500">आफ्नै फोनमा राख्नुहोस्</p>
+            )}
 
             <img
               src={`/api/admin/open-on-phone?to=${code.key}`}
@@ -91,6 +113,15 @@ export default async function OpenOnPhonePage() {
             </p>
 
             <dl className="mt-5 grid gap-2 text-left text-sm">
+              {/* The heading printed on the page this opens. Scan it, look at
+                  the top of the phone, and it either matches or it does not —
+                  which is the check the owner had no way to make. */}
+              <div className="rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-white">
+                <dt className="text-xs font-black uppercase tracking-wider text-brand-green">
+                  फोनमा यही लेखेको आउनुपर्छ
+                </dt>
+                <dd className="mt-0.5 font-black text-brand-green-ink">“{code.opens}”</dd>
+              </div>
               <div className="rounded-xl bg-gray-50 p-3 print:bg-white">
                 <dt className="text-xs font-black uppercase tracking-wider text-gray-400">कसका लागि</dt>
                 <dd className="mt-0.5 font-semibold text-brand-green-ink">{code.who}</dd>
