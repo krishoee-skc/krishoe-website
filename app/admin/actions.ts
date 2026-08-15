@@ -23,7 +23,9 @@ import {
   type PaymentStatus,
 } from "@/lib/submissions";
 import { orderStatuses, paymentStatuses, paymentProviders } from "@/lib/order-constants";
-import { getProductById, removeProduct, upsertProduct } from "@/lib/product-store";
+import { getProductById, getProducts, removeProduct, upsertProduct } from "@/lib/product-store";
+import { designKey } from "@/lib/design-name";
+import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
@@ -401,9 +403,31 @@ export async function upsertProductAction(
     newArrival: formData.get("newArrival") === "on",
   };
 
+  // Capitals and spacing are spelling, not identity: "Jeans Shoes" and
+  // "jeans shoes" are one product. Two rows reading the same are one design to
+  // the stock sync, so 55 counted pairs would have been handed to each of them
+  // — 110 pairs in a shop holding 55.
+  const clash = (await getProducts({ includeDrafts: true })).find(
+    (other) => other.id !== product.id && designKey(other.name) === designKey(product.name),
+  );
+  if (clash) {
+    return {
+      ok: false,
+      message: `A product named "${clash.name}" already exists. Use a name that tells them apart — capitals and spacing do not count as different.`,
+    };
+  }
+
   try {
     await upsertProduct(product);
   } catch (error) {
+    // The index caught what the check above could not see: two saves of the
+    // same name arriving together.
+    if (isDuplicateNameViolation(error, "products_name_unique_idx")) {
+      return {
+        ok: false,
+        message: "A product with this name already exists. Use a name that tells them apart.",
+      };
+    }
     reportError(`save product ${product.sku}`, error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this product.") };
   }

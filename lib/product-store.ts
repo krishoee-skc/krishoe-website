@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
+import { designKey } from "@/lib/design-name";
 import { getOperationsData, type FinishedStock } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
 import {
@@ -138,9 +139,10 @@ function stringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
-function productStockKey(value: string) {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
+// The one definition of "same name", shared with the stock ledger and with
+// products_name_unique_idx. Three copies of this rule that disagreed by a
+// single space is how one design ended up as two rows.
+const productStockKey = designKey;
 
 function productStockAliasKeys(product: Product) {
   return [...new Set([product.name, product.sku, product.id].map(productStockKey).filter(Boolean))];

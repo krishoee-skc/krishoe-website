@@ -5,11 +5,15 @@ const removeProduct = vi.fn();
 // The save reads the stored row to carry its stock forward — the form no longer
 // supplies a number. beforeEach defaults it to "no such product yet".
 const getProductById = vi.fn();
+// The save also scans the catalog for a look-alike name — "Jeans Shoes" and
+// "jeans shoes" are one product. beforeEach defaults it to an empty catalog.
+const getProducts = vi.fn();
 
 vi.mock("@/lib/product-store", () => ({
   upsertProduct: (...args: unknown[]) => upsertProduct(...args),
   removeProduct: (...args: unknown[]) => removeProduct(...args),
   getProductById: (...args: unknown[]) => getProductById(...args),
+  getProducts: (...args: unknown[]) => getProducts(...args),
 }));
 vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn() }));
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
@@ -36,6 +40,30 @@ beforeEach(() => {
   upsertProduct.mockReset().mockResolvedValue(undefined);
   removeProduct.mockReset().mockResolvedValue(undefined);
   getProductById.mockReset().mockResolvedValue(null);
+  getProducts.mockReset().mockResolvedValue([]);
+});
+
+describe("saving a product refuses a look-alike name", () => {
+  it("stops a second product whose name differs only by capitals", async () => {
+    getProducts.mockResolvedValue([{ id: "prod-9", name: "ladies heel" }]);
+
+    const state = await upsertProductAction(null, productForm({ name: "Ladies Heel" }));
+
+    expect(state.ok).toBe(false);
+    expect(state.message).toContain("ladies heel");
+    expect(upsertProduct).not.toHaveBeenCalled();
+  });
+
+  it("lets a product keep its own name when edited", async () => {
+    // The clash check has to skip the row being saved, or renaming nothing
+    // would report the product as a duplicate of itself.
+    getProducts.mockResolvedValue([{ id: "prod-1", name: "Ladies Heel" }]);
+
+    const state = await upsertProductAction(null, productForm({ name: "Ladies Heel" }));
+
+    expect(state.ok).toBe(true);
+    expect(upsertProduct).toHaveBeenCalled();
+  });
 });
 
 /**
