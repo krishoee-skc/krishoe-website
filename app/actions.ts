@@ -3,6 +3,8 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
+import { evaluateCoupon, getCoupon, normalizeCouponCode, redeemCoupon } from "@/lib/coupons";
+import { formatPrice } from "@/lib/products";
 import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
@@ -168,7 +170,21 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     );
   }
 
-  const authoritativeTotal = pricing.totalLabel;
+  // The code is the only thing taken from the form. What it is worth is decided
+  // here, against the total this server just computed — a discount submitted by
+  // the browser would be a price the customer chose for themselves.
+  const submittedCode = normalizeCouponCode(textValue(formData, "couponCode"));
+  const couponCheck = submittedCode
+    ? evaluateCoupon(await getCoupon(submittedCode), pricing.totalPaisa)
+    : null;
+
+  if (submittedCode && couponCheck && !couponCheck.ok) {
+    return errorState(couponCheck.reason);
+  }
+
+  const discountPaisa = couponCheck?.ok ? couponCheck.discountPaisa : 0;
+  const payablePaisa = Math.max(0, pricing.totalPaisa - discountPaisa);
+  const authoritativeTotal = formatPrice(payablePaisa);
 
   const session = await getCustomerSession();
   const profile = customerProfile.profile;
@@ -185,9 +201,20 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       // same thing as a sentence, which nothing can count.
       items: pricing.orderItems,
       total: authoritativeTotal,
+      couponCode: couponCheck?.ok ? couponCheck.coupon.code : undefined,
+      discountPaisa,
     },
     session?.userId,
   );
+
+  // Counted only once the order exists. Counting at validation time would burn
+  // a use every time someone typed a code and then changed their mind, and a
+  // hundred-use launch code would be gone before a hundred orders.
+  if (couponCheck?.ok) {
+    await reportingErrors(`redeem coupon ${couponCheck.coupon.code}`, () =>
+      redeemCoupon(couponCheck.coupon.code),
+    );
+  }
 
   if (session?.userId) {
     try {

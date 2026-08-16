@@ -163,6 +163,9 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/monitoring", "security:read"],
   ["/admin/sms", "notifications:read"],
   ["/admin/search", "search:read"],
+  // Coupons move money: only the Owner writes settings, and only the Owner
+  // should be able to hand out a discount.
+  ["/admin/coupons", "settings:write"],
   // Only a QR of a public sign-in page, but it is an admin screen, so it is
   // listed rather than left to the unlisted-means-allowed fallback — a Worker
   // would otherwise see the menu entry and land on a refusal.

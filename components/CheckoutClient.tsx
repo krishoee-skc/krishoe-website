@@ -156,6 +156,19 @@ function CheckoutForm({
               placeholder={text("City, area, landmark", "सहर, टोल, नजिकको चिनारी")}
             />
           </label>
+          {/* Optional, and small. A discount box shouted at every customer
+              teaches them all to go looking for a code before they buy. */}
+          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
+            {text("Discount code (if you have one)", "छुटको कोड (भए मात्र)")}
+            <input
+              name="couponCode"
+              maxLength={24}
+              autoComplete="off"
+              autoCapitalize="characters"
+              className="rounded-lg border border-black/10 px-4 py-3 font-normal uppercase tracking-[0.12em] outline-none focus:border-brand-green"
+              placeholder={text("e.g. DASHAIN10", "जस्तै DASHAIN10")}
+            />
+          </label>
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2">

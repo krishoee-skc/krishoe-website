@@ -29,7 +29,12 @@ export type OrderSubmission = {
   // a sentence for humans; it cannot be counted, so it cannot reserve stock.
   // Orders placed before this existed have an empty list.
   items: OrderItem[];
+  // What was charged after any discount — the figure the customer pays.
   total: string;
+  /** The code used, uppercase. Absent when the order carried none. */
+  couponCode?: string;
+  /** What the code took off, in paisa. Kept so a campaign can be measured. */
+  discountPaisa?: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentProvider: PaymentProvider;
@@ -88,6 +93,8 @@ type OrderRow = {
   payment: string;
   order_text: string;
   total: string;
+  coupon_code: string | null;
+  discount_paisa: number | string | null;
   status: string;
   payment_status: string;
   payment_provider: string;
@@ -248,6 +255,8 @@ function orderFromRow(row: OrderRow): OrderSubmission {
     delivery: row.delivery,
     payment: row.payment,
     order: row.order_text,
+    couponCode: row.coupon_code ?? undefined,
+    discountPaisa: Math.max(0, Math.round(Number(row.discount_paisa) || 0)),
     total: row.total,
     status: normalizeOrderStatus(row.status),
     paymentStatus: normalizePaymentStatus(row.payment_status),
@@ -295,6 +304,8 @@ async function getOrdersFromPostgres() {
         payment,
         order_text,
         total,
+        coupon_code,
+        discount_paisa,
         status,
         payment_status,
         payment_provider,
@@ -451,6 +462,8 @@ export async function saveOrder(
             payment,
             order_text,
             total,
+            coupon_code,
+            discount_paisa,
             status,
             payment_status,
             payment_provider,
@@ -463,7 +476,8 @@ export async function saveOrder(
           )
           VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+            $21, $22
           )
           RETURNING
             id,
@@ -477,6 +491,8 @@ export async function saveOrder(
             payment,
             order_text,
             total,
+            coupon_code,
+            discount_paisa,
             status,
             payment_status,
             payment_provider,
@@ -499,6 +515,8 @@ export async function saveOrder(
           record.payment,
           record.order,
           record.total,
+          record.couponCode ?? null,
+          Math.max(0, Math.round(record.discountPaisa ?? 0)),
           record.status,
           record.paymentStatus,
           record.paymentProvider,
@@ -590,6 +608,8 @@ export async function attachOrderToCustomer(
             payment,
             order_text,
             total,
+            coupon_code,
+            discount_paisa,
             status,
             payment_status,
             payment_provider,
@@ -731,6 +751,8 @@ export async function updateOrderPayment(id: string, payment: OrderPaymentUpdate
             payment,
             order_text,
             total,
+            coupon_code,
+            discount_paisa,
             status,
             payment_status,
             payment_provider,

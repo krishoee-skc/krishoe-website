@@ -100,6 +100,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
       { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CreditCardIcon },
+      { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: CreditCardIcon },
     ],
   },
   {
