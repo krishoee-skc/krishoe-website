@@ -46,6 +46,25 @@ describe("measurement setup", () => {
     expect(page).toContain("Redeploy");
   });
 
+  it("opens each destination rather than asking for it to be typed", async () => {
+    const page = await readFile("app/admin/measurement/page.tsx", "utf8");
+
+    // Typing "business.facebook.com/events_manager2" off a screen is a step
+    // that fails silently: one wrong character lands on a login page the owner
+    // cannot tell apart from the right one.
+    for (const url of [
+      "https://business.facebook.com/events_manager2",
+      "https://ads.tiktok.com/i18n/events_manager",
+      "https://analytics.google.com",
+      // The dashboard, not a guessed project URL — that path carries the
+      // account name, and a wrong guess lands on someone else's page.
+      "https://vercel.com/dashboard",
+    ]) {
+      expect(page, url).toContain(url);
+    }
+    expect(page).toContain('rel="noreferrer"');
+  });
+
   it("is Owner-only and in the menu", async () => {
     const permissions = await readFile("lib/admin-role-permissions.ts", "utf8");
     expect(permissions).toContain('["/admin/measurement", "settings:write"]');

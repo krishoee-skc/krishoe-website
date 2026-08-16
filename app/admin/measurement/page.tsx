@@ -24,6 +24,8 @@ const trackers = [
     nepali: "Facebook र Instagram",
     why: "Facebook/Instagram मा विज्ञापन चलाउँदा कुन विज्ञापनले बिक्री ल्यायो थाहा हुन्छ। यो बिना ad चलाउनु आँखा चिम्लेर पैसा फ्याँक्नु हो।",
     looksLike: "१५ अंकको नम्बर — जस्तै 1234567890123456",
+    link: "https://business.facebook.com/events_manager2",
+    linkLabel: "Meta Events Manager खोल्ने",
     steps: [
       "business.facebook.com खोल्नुहोस्",
       "बायाँ मेनुबाट Events Manager",
@@ -40,6 +42,8 @@ const trackers = [
     nepali: "TikTok",
     why: "नेपालमा अहिले TikTok ले सबैभन्दा बढी बिक्री गराउँछ। कारखानाको भिडियोले ल्याएको ग्राहक यहीँ गनिन्छ।",
     looksLike: "अक्षर र अंक मिसिएको — जस्तै C4A2B8QRSTUV",
+    link: "https://ads.tiktok.com/i18n/events_manager",
+    linkLabel: "TikTok Events Manager खोल्ने",
     steps: [
       "ads.tiktok.com मा खाता खोल्नुहोस्",
       "Assets → Events → Web Events → Set Up Web Events",
@@ -55,6 +59,8 @@ const trackers = [
     nepali: "Google",
     why: "कति मान्छे आए, कुन जुत्ता धेरै हेरे, कहाँबाट आए — सबै यहीँ देखिन्छ। निःशुल्क।",
     looksLike: "G- ले सुरु हुने — जस्तै G-XXXXXXXXXX",
+    link: "https://analytics.google.com",
+    linkLabel: "Google Analytics खोल्ने",
     steps: [
       "analytics.google.com खोल्नुहोस्",
       "Admin → Create → Property → नाम KRISHOE",
@@ -154,6 +160,20 @@ export default async function MeasurementPage() {
                   <p className="mt-3 text-xs leading-5 text-gray-500">
                     कस्तो देखिन्छ: <span className="font-mono text-brand-green-ink">{tracker.looksLike}</span>
                   </p>
+
+                  {/* The steps name a website; this opens it. Typing
+                      "business.facebook.com/events_manager2" from a screen is a
+                      step that fails silently — one wrong character and the
+                      owner lands on a login page they cannot tell apart from
+                      the right one. */}
+                  <a
+                    href={tracker.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink"
+                  >
+                    {tracker.linkLabel} ↗
+                  </a>
                 </>
               )}
             </article>
@@ -165,8 +185,18 @@ export default async function MeasurementPage() {
         <h2 className="text-lg font-black text-brand-green-ink">ID पाएपछि कहाँ हाल्ने</h2>
         <ol className="mt-3 grid gap-2 text-sm leading-6 text-gray-700">
           <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">१.</strong> vercel.com खोलेर KRISHOE
-            project छान्नुहोस्
+            <strong className="text-brand-green-ink">१.</strong> Vercel खोलेर{" "}
+            <strong>krishoe-website</strong> project छान्नुहोस्
+            {/* The dashboard, not a guessed project URL: the path carries the
+                account name, and a wrong guess lands on someone else's page. */}
+            <a
+              href="https://vercel.com/dashboard"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-brand-green-ink px-5 text-sm font-black text-white transition hover:bg-brand-green"
+            >
+              Vercel खोल्ने ↗
+            </a>
           </li>
           <li className="rounded-xl bg-white px-3 py-2">
             <strong className="text-brand-green-ink">२.</strong> Settings →{" "}
