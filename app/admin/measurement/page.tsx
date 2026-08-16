@@ -185,37 +185,43 @@ export default async function MeasurementPage() {
         <h2 className="text-lg font-black text-brand-green-ink">ID पाएपछि कहाँ हाल्ने</h2>
         <ol className="mt-3 grid gap-2 text-sm leading-6 text-gray-700">
           <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">१.</strong> Vercel खोलेर{" "}
-            <strong>krishoe-website</strong> project छान्नुहोस्
-            {/* The dashboard, not a guessed project URL: the path carries the
-                account name, and a wrong guess lands on someone else's page. */}
+            <strong className="text-brand-green-ink">१.</strong> तलको बटनले सिधै{" "}
+            <strong>Environment Variables</strong> मै पुर्‍याउँछ
+            {/* Straight to the Environment Variables screen. The account slug
+                came from the owner; without it this could only point at the
+                dashboard and leave three more clicks to be described. */}
             <a
-              href="https://vercel.com/dashboard"
+              href="https://vercel.com/krishoee-5610s-projects/krishoe-website/settings/environment-variables"
               target="_blank"
               rel="noreferrer"
               className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-brand-green-ink px-5 text-sm font-black text-white transition hover:bg-brand-green"
             >
-              Vercel खोल्ने ↗
+              Vercel — Environment Variables खोल्ने ↗
             </a>
           </li>
+          {/* Only the missing ones. Listing a key that is already live invites
+              it being pasted a second time, and a duplicate there overwrites a
+              working value with whatever was on the clipboard. */}
           <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">२.</strong> Settings →{" "}
-            <strong>Environment Variables</strong>
-          </li>
-          <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">३.</strong> नाम र ID हालेर Save:
+            <strong className="text-brand-green-ink">२.</strong> Key र Value हालेर{" "}
+            <strong>Save</strong> — यी{" "}
+            {missing.length === trackers.length ? "तीन" : `${missing.length}`} वटा बाँकी छन्:
             <div className="mt-2 grid gap-1 font-mono text-xs text-brand-green">
-              {trackers.map((tracker) => (
+              {(missing.length > 0 ? missing : trackers).map((tracker) => (
                 <span key={tracker.key}>{tracker.key}</span>
               ))}
             </div>
           </li>
           <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">४.</strong> Deployments →{" "}
-            <strong>Redeploy</strong> — नयाँ deploy नगरेसम्म चल्दैन
+            <strong className="text-brand-green-ink">३.</strong> माथि{" "}
+            <strong>Deployments</strong> → पछिल्लोमा <strong>⋯</strong> →{" "}
+            <strong>Redeploy</strong>
+            <span className="mt-1 block text-xs font-bold text-brand-clay">
+              ⚠️ यो नथिचेसम्म ID हालेको काम लाग्दैन — सबैले यहीँ चुक्छन्।
+            </span>
           </li>
           <li className="rounded-xl bg-white px-3 py-2">
-            <strong className="text-brand-green-ink">५.</strong> यही पाना फेरि खोल्नुहोस् —
+            <strong className="text-brand-green-ink">४.</strong> यही पाना फेरि खोल्नुहोस् —
             हरियो <strong>चालु</strong> देखियो भने भयो
           </li>
         </ol>

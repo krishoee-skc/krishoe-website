@@ -56,13 +56,20 @@ describe("measurement setup", () => {
       "https://business.facebook.com/events_manager2",
       "https://ads.tiktok.com/i18n/events_manager",
       "https://analytics.google.com",
-      // The dashboard, not a guessed project URL — that path carries the
-      // account name, and a wrong guess lands on someone else's page.
-      "https://vercel.com/dashboard",
+      // Straight to the screen the ids are pasted into. The account slug came
+      // from the owner; guessing one would have landed on another account.
+      "https://vercel.com/krishoee-5610s-projects/krishoe-website/settings/environment-variables",
     ]) {
       expect(page, url).toContain(url);
     }
     expect(page).toContain('rel="noreferrer"');
+  });
+
+  it("lists only the keys still missing", async () => {
+    const page = await readFile("app/admin/measurement/page.tsx", "utf8");
+    // Printing a key that is already live invites pasting it a second time, and
+    // a duplicate there overwrites a working value with the clipboard.
+    expect(page).toContain("(missing.length > 0 ? missing : trackers).map");
   });
 
   it("is Owner-only and in the menu", async () => {
