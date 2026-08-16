@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
+import { markCheckoutRecovered } from "@/lib/checkout-attempts";
 import { evaluateCoupon, getCoupon, normalizeCouponCode, redeemCoupon } from "@/lib/coupons";
 import { formatPrice } from "@/lib/products";
 import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
@@ -213,6 +214,15 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   if (couponCheck?.ok) {
     await reportingErrors(`redeem coupon ${couponCheck.coupon.code}`, () =>
       redeemCoupon(couponCheck.coupon.code),
+    );
+  }
+
+  // Whether or not a reminder was ever sent. An attempt that turned into an
+  // order on its own must stop being a candidate — nobody should be chased for
+  // a basket they already paid for.
+  if (email) {
+    await reportingErrors(`close checkout attempt for ${email}`, () =>
+      markCheckoutRecovered(email, record.id),
     );
   }
 

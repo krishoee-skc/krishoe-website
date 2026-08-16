@@ -14,6 +14,7 @@ import OrderSummary from "@/components/OrderSummary";
 import PaymentInstructions from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
+import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
 
 const initialState: FormState = {
   ok: false,
@@ -56,6 +57,17 @@ function CheckoutForm({
     text("Delivery", "डेलिभरी"),
     text("Confirm", "पुष्टि"),
   ];
+
+  function rememberAttempt(form: HTMLFormElement | null) {
+    if (!form) return;
+    const data = new FormData(form);
+    const email = String(data.get("email") ?? "").trim();
+    if (!email.includes("@")) return;
+
+    // Deliberately not awaited. A shopper waiting on a background note would be
+    // a shopper waiting for nothing.
+    void rememberCheckoutAttemptAction(data);
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
@@ -133,12 +145,18 @@ function CheckoutForm({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
             {text("Email for confirmation", "पुष्टिका लागि इमेल")}
+            {/* On blur, not on every keystroke: the moment the shopper has
+                finished giving an address is the moment the shop can write to
+                them if they walk away. Nothing is created here — no order, no
+                held stock — and a failure is silent, because a background
+                note-to-self must never interrupt a purchase. */}
             <input
               name="email"
               defaultValue={user?.email}
               type="email"
               maxLength={120}
               autoComplete="email"
+              onBlur={(event) => rememberAttempt(event.currentTarget.form)}
               className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
               placeholder="you@example.com"
             />
