@@ -87,6 +87,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "shop",
     links: [
       { href: "/admin/customers", label: "Customers", nepali: "ग्राहक", icon: UserIcon },
+      { href: "/admin/wholesale", label: "Wholesale", nepali: "थोकको सोधपुछ", icon: UserIcon },
       { href: "/admin/reviews", label: "Reviews", nepali: "ग्राहकको राय", icon: StarIcon },
       { href: "/admin/feedback", label: "Feedback", nepali: "गुनासो", icon: MessageSquareIcon },
       { href: "/admin/insights", label: "Customer Voice", nepali: "ग्राहकको आवाज", icon: StarIcon },

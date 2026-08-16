@@ -23,6 +23,7 @@ export default function Footer() {
             <li><Link href="/shop" className="hover:text-white">Shop</Link></li>
             <li><Link href="/about" className="hover:text-white">Our Story</Link></li>
             <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
+            <li><Link href="/wholesale" className="hover:text-white">थोक बिक्री · Wholesale</Link></li>
             <li><Link href="/return-policy" className="hover:text-white">Return Policy</Link></li>
           </ul>
         </div>

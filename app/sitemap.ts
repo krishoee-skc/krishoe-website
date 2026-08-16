@@ -32,6 +32,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    {
+      // A shopkeeper searching "थोक चप्पल नेपाल" is looking for a factory, and
+      // this is the page that answers them. Ranked with the story pages rather
+      // than below them.
+      url: `${baseUrl}/wholesale`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
   ];
 
   return [
