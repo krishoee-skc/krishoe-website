@@ -131,6 +131,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "both",
     links: [
       { href: "/admin/analytics", label: "Analytics", nepali: "हिसाब र नाफा", icon: StarIcon },
+      { href: "/admin/measurement", label: "Measurement setup", nepali: "मापन सेटअप", icon: StarIcon },
       { href: "/admin/activity", label: "Activity", nepali: "को ले के गर्‍यो", icon: ShieldCheckIcon },
       { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
       { href: "/admin/monitoring", label: "Monitoring", nepali: "निगरानी", icon: ShieldCheckIcon },

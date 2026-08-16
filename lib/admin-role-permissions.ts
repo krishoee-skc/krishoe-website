@@ -167,6 +167,7 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   // should be able to hand out a discount.
   ["/admin/coupons", "settings:write"],
   ["/admin/wholesale", "customers:read"],
+  ["/admin/measurement", "settings:write"],
   // Only a QR of a public sign-in page, but it is an admin screen, so it is
   // listed rather than left to the unlisted-means-allowed fallback — a Worker
   // would otherwise see the menu entry and land on a refusal.
