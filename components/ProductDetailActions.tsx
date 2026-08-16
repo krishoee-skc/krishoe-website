@@ -9,6 +9,7 @@ import ProductOptionSelector from "@/components/ProductOptionSelector";
 import QuantitySelector from "@/components/QuantitySelector";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
+import SizeGuide from "@/components/SizeGuide";
 
 type ProductDetailActionsProps = {
   product: Product;
@@ -76,7 +77,15 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         ) : null}
 
         <div className="space-y-6">
-          <ProductOptionSelector title={text("Select size", "साइज छान्नुहोस्")} options={product.sizes} selectedValue={size} onValueChange={setSize} />
+          <div>
+            <ProductOptionSelector title={text("Select size", "साइज छान्नुहोस्")} options={product.sizes} selectedValue={size} onValueChange={setSize} />
+            {/* Beside the sizes, where the doubt is. A guide linked from the
+                footer is a guide nobody opens — and guessing the size is the
+                single biggest reason a pair of shoes comes back. */}
+            <div className="mt-2">
+              <SizeGuide sizes={product.sizes} />
+            </div>
+          </div>
           <ProductOptionSelector title={text("Select color", "रङ छान्नुहोस्")} options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
         </div>
 
