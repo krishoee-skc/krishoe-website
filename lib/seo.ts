@@ -36,10 +36,14 @@ export const businessContact = {
   // friends). Those are per-share tokens: noise in the footer, and the wrong
   // thing to hand Google in `sameAs`, which wants the stable profile address.
   //
-  // The Facebook one currently resolves to a personal profile rather than a
-  // business Page. It works as a link, but ads and a Meta Pixel need a Page —
-  // swap this for the Page URL once one exists.
-  facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "https://www.facebook.com/krishna.abiral.1",
+  // The Facebook one is the KRISHOE business Page (id 61593622372780), not the
+  // owner's personal profile it used to point at — a shopper following the
+  // footer link was landing on a private account. Kept in `profile.php?id=`
+  // form because the Page has no username yet; once one is claimed this can
+  // become facebook.com/<username> without anything else changing.
+  facebook:
+    process.env.NEXT_PUBLIC_FACEBOOK_URL ??
+    "https://www.facebook.com/profile.php?id=61593622372780",
   instagram:
     process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/shree_krishna_chhapal",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",

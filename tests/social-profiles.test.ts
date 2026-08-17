@@ -109,14 +109,20 @@ describe("business social profiles", () => {
   // The shipped defaults came from links the owner shared from the apps, which
   // arrive carrying per-share tracking tokens. Those belong nowhere near the
   // footer or the SEO sameAs fields, so the defaults stay canonical.
+  //
+  // A query string is not itself the problem — a Facebook Page with no username
+  // is genuinely addressed as profile.php?id=<id>, and that is the permanent
+  // address Facebook itself redirects to. The tracking tokens are the problem,
+  // so they are what this forbids.
   it("ships canonical default profiles with no share tracking on them", async () => {
     const { businessSocialProfiles } = await profilesFromDefaults();
     const profiles = businessSocialProfiles();
 
     expect(profiles).toHaveLength(3);
     for (const profile of profiles) {
-      expect(profile.url).not.toMatch(/[?&]/);
-      expect(profile.url).not.toMatch(/mibextid|igsi|utm_|_t=|_r=|share_url|rdid/i);
+      expect(profile.url, profile.label).not.toMatch(
+        /mibextid|igsi|utm_|_t=|_r=|share_url|rdid|fbclid/i,
+      );
       expect(profile.url.startsWith("https://")).toBe(true);
       expect(profile.url).not.toMatch(/\s/);
     }
@@ -126,5 +132,23 @@ describe("business social profiles", () => {
     const { businessContact } = await profilesFromDefaults();
     // /share/<token>/ links can expire and are not the profile's real address.
     expect(businessContact.facebook).not.toContain("/share/");
+  });
+
+  /**
+   * The footer link used to go to the owner's personal Facebook account, so a
+   * shopper who tapped "Facebook" under the shop landed on a private profile.
+   *
+   * The business Page is a separate account with its own id — the one thing a
+   * Meta Pixel and a paid ad can attach to. These two ids look alike and were
+   * confused several times while setting the Page up, which is exactly why the
+   * personal one is named here and refused by name.
+   */
+  it("points Facebook at the business Page, not the owner's profile", async () => {
+    const { businessContact } = await profilesFromDefaults();
+
+    expect(businessContact.facebook).toContain("61593622372780");
+    expect(businessContact.facebook).not.toContain("61550727599279");
+    expect(businessContact.facebook).not.toContain("krishna.abiral");
+    expect(businessContact.facebook).not.toContain("/people/");
   });
 });
