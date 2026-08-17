@@ -88,7 +88,7 @@ export default function AdminLoginForm({
     return (
       <form
         onSubmit={handleMfaSubmit}
-        className="w-full max-w-md rounded-2xl border border-white/15 bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]"
+        className="w-full max-w-md rounded-2xl border border-white/15 bg-[#FFFFFF] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]"
       >
         <input type="hidden" name="challengeToken" value={state.challengeToken} />
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
@@ -114,7 +114,7 @@ export default function AdminLoginForm({
             autoFocus
             value={code}
             onChange={(event) => acceptCode(event.target.value)}
-            className="h-14 rounded-xl border border-black/10 px-4 text-center text-2xl font-black tracking-[0.35em] outline-none focus:border-brand-green"
+            className="h-14 rounded-xl border border-black/15 bg-[#FFFFFF] px-4 text-center text-2xl font-black tracking-[0.35em] text-[#16211C] outline-none placeholder:text-[#C4CBC6] focus:border-brand-green"
             placeholder="000000"
           />
         </label>
@@ -152,7 +152,7 @@ export default function AdminLoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
+    <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-[#FFFFFF] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
         {portal === "worker" ? "Secure worker portal" : "Secure admin"}
       </p>
@@ -164,7 +164,7 @@ export default function AdminLoginForm({
           ? "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। मालिकले दिएको password पहिलो पटकमै फेर्नुहोस्।"
           : bootstrapLoginAllowed
           ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
-          : "Sign in with your staff email or mobile number. This login will register the current phone or computer in Login devices."}
+          : "आफ्नै email वा मोबाइल नम्बर र आफ्नै password हाल्नुहोस् — मालिकको होइन। यो फोन वा computer Login devices मा दर्ता हुन्छ।"}
       </p>
 
       {/* One box, either identity. A worker who has no email should not have to
@@ -180,8 +180,8 @@ export default function AdminLoginForm({
           inputMode="email"
           required={!bootstrapLoginAllowed}
           autoComplete="username"
-          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-          placeholder="owner@krishoe.com वा 98XXXXXXXX"
+          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-[#8A938C] focus:border-brand-green"
+          placeholder="तपाईंकै email वा मोबाइल नम्बर"
         />
       </label>
 
@@ -192,8 +192,8 @@ export default function AdminLoginForm({
           type="password"
           required
           autoComplete="current-password"
-          className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-          placeholder="Enter password"
+          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-[#8A938C] focus:border-brand-green"
+          placeholder="तपाईंकै password"
         />
       </label>
 
