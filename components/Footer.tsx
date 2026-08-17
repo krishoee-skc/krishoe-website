@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { businessContact, businessSocialProfiles } from "@/lib/seo";
+import T from "@/components/T";
 
 export default function Footer() {
   const socials = businessSocialProfiles();
@@ -16,31 +17,31 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="mb-4 text-xl font-bold">Quick Links</h3>
+          <h3 className="mb-4 text-xl font-bold"><T en="Quick Links" ne="छिटो जाने" /></h3>
 
           <ul className="space-y-2 text-gray-300">
-            <li><Link href="/" className="hover:text-white">Home</Link></li>
-            <li><Link href="/shop" className="hover:text-white">Shop</Link></li>
-            <li><Link href="/about" className="hover:text-white">Our Story</Link></li>
-            <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-            <li><Link href="/wholesale" className="hover:text-white">थोक बिक्री · Wholesale</Link></li>
-            <li><Link href="/return-policy" className="hover:text-white">Return Policy</Link></li>
+            <li><Link href="/" className="hover:text-white"><T en="Home" ne="गृह पृष्ठ" /></Link></li>
+            <li><Link href="/shop" className="hover:text-white"><T en="Shop" ne="पसल" /></Link></li>
+            <li><Link href="/about" className="hover:text-white"><T en="Our Story" ne="हाम्रो कथा" /></Link></li>
+            <li><Link href="/contact" className="hover:text-white"><T en="Contact" ne="सम्पर्क" /></Link></li>
+            <li><Link href="/wholesale" className="hover:text-white"><T en="Wholesale" ne="थोक बिक्री" /></Link></li>
+            <li><Link href="/return-policy" className="hover:text-white"><T en="Return Policy" ne="साट्ने नियम" /></Link></li>
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-4 text-xl font-bold">Categories</h3>
+          <h3 className="mb-4 text-xl font-bold"><T en="Categories" ne="किसिम" /></h3>
 
           <ul className="space-y-2 text-gray-300">
-            <li><Link href="/shop/ladies-sandals" className="hover:text-white">Ladies Sandals</Link></li>
-            <li><Link href="/shop/ladies-slippers" className="hover:text-white">Ladies Slippers</Link></li>
-            <li><Link href="/shop/casual-shoes" className="hover:text-white">Casual Shoes</Link></li>
-            <li><Link href="/shop/party-heels" className="hover:text-white">Party Heels</Link></li>
+            <li><Link href="/shop/ladies-sandals" className="hover:text-white"><T en="Ladies Sandals" ne="महिला सेन्डिल" /></Link></li>
+            <li><Link href="/shop/ladies-slippers" className="hover:text-white"><T en="Ladies Slippers" ne="महिला चप्पल" /></Link></li>
+            <li><Link href="/shop/casual-shoes" className="hover:text-white"><T en="Casual Shoes" ne="दैनिक जुत्ता" /></Link></li>
+            <li><Link href="/shop/party-heels" className="hover:text-white"><T en="Party Heels" ne="पार्टी हिल" /></Link></li>
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-4 text-xl font-bold">Contact</h3>
+          <h3 className="mb-4 text-xl font-bold"><T en="Contact" ne="सम्पर्क" /></h3>
 
           <p className="text-gray-300">
             {businessContact.streetAddress}, {businessContact.addressLocality},{" "}

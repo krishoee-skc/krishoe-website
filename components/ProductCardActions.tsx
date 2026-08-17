@@ -6,6 +6,7 @@ import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { stockLevel } from "@/lib/stock-thresholds";
 
+import { useLanguage } from "@/components/LanguageProvider";
 type ProductCardActionsProps = {
   product: Product;
 };
@@ -13,6 +14,7 @@ type ProductCardActionsProps = {
 export default function ProductCardActions({ product }: ProductCardActionsProps) {
   const { addToCart, toggleWishlist, isWishlisted } = useCommerce();
   const [added, setAdded] = useState(false);
+  const { text } = useLanguage();
   const wished = isWishlisted(product.id);
   const outOfStock = stockLevel(product.stock) === "out";
 
@@ -36,7 +38,7 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
       <button
         type="button"
         onClick={() => toggleWishlist(product.id)}
-        aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+        aria-label={wished ? text("Remove from wishlist", "मनपर्नेबाट हटाउने") : text("Add to wishlist", "मनपर्नेमा राख्ने")}
         className={`grid min-h-12 w-12 place-items-center rounded-full border transition md:h-11 md:w-11 ${
           wished
             ? "border-brand-gold-bright bg-brand-cream text-brand-gold-dark"
@@ -58,7 +60,11 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
         }`}
       >
         <ShoppingBagIcon className="h-4 w-4" />
-        {outOfStock ? "Sold out" : added ? "Added" : "Add"}
+        {outOfStock
+          ? text("Sold out", "सकियो")
+          : added
+            ? text("Added", "थपियो")
+            : text("Add", "थप्ने")}
       </button>
     </div>
   );

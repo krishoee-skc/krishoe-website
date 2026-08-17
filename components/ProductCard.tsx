@@ -4,6 +4,7 @@ import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
 import SafeImage from "@/components/SafeImage";
 import { stockLevel } from "@/lib/stock-thresholds";
+import T from "@/components/T";
 
 type ProductCardProps = {
   product: Product;
@@ -43,11 +44,14 @@ export default function ProductCard({
         </div>
         {outOfStock ? (
           <div className="absolute right-4 top-4 rounded-full bg-brand-danger px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-            Sold out
+            <T en="Sold out" ne="बिक्री सकियो" />
           </div>
         ) : lowStock ? (
           <div className="absolute right-4 top-4 rounded-full bg-brand-gold-dark px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-            Only {product.stock} left
+            <T
+              en={`Only ${product.stock} left`}
+              ne={`${product.stock} जोडी मात्र बाँकी`}
+            />
           </div>
         ) : null}
       </Link>
@@ -92,7 +96,7 @@ export default function ProductCard({
               compact ? "hidden md:inline-flex" : "inline-flex"
             }`}
           >
-            {intent === "shop" ? "Details" : "View"}
+            {intent === "shop" ? <T en="Details" ne="हेर्नुहोस्" /> : <T en="View" ne="हेर्ने" />}
             <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </div>
