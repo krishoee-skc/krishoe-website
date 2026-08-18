@@ -443,7 +443,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
         trackCommerceEvent("purchase", {
           id: result.reference,
           name: "KRISHOE order",
-          price: subtotal,
+          pricePaisa: subtotal,
           quantity: 1,
         });
         setSubmittedOrder({

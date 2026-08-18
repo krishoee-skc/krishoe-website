@@ -1,9 +1,23 @@
 export type CommerceAnalyticsItem = {
   id: string;
   name: string;
-  price: number;
+  /**
+   * Paisa, matching `priceValue` and the cart subtotal everywhere else in this
+   * codebase — named for the unit because getting it wrong is invisible.
+   *
+   * Meta, TikTok and GA all read `value` as whole currency. Sending paisa makes
+   * every reported sale a hundred times too large, and that number is not just
+   * a report: Meta bids with it. A shop would be told its ads returned 100x and
+   * would spend accordingly.
+   */
+  pricePaisa: number;
   quantity?: number;
 };
+
+/** Paisa to rupees, to two decimals — what the ad platforms expect. */
+function toRupees(paisa: number) {
+  return Math.round(paisa) / 100;
+}
 
 type AnalyticsEvent =
   | "view_item"
@@ -22,15 +36,16 @@ declare global {
 
 function eventPayload(item: CommerceAnalyticsItem) {
   const quantity = Math.max(1, Math.round(item.quantity ?? 1));
+  const price = toRupees(item.pricePaisa);
 
   return {
     content_ids: [item.id],
     content_name: item.name,
     content_type: "product",
-    contents: [{ id: item.id, quantity, item_price: item.price }],
+    contents: [{ id: item.id, quantity, item_price: price }],
     currency: "NPR",
-    value: item.price * quantity,
-    items: [{ item_id: item.id, item_name: item.name, price: item.price, quantity }],
+    value: Math.round(price * quantity * 100) / 100,
+    items: [{ item_id: item.id, item_name: item.name, price, quantity }],
   };
 }
 

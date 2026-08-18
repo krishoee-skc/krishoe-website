@@ -33,7 +33,7 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
     trackCommerceEvent("add_to_cart", {
       id: product.id,
       name: product.name,
-      price: product.priceValue,
+      pricePaisa: product.priceValue,
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
