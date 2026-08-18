@@ -161,7 +161,7 @@ export default async function Home() {
 
       <WhyChoose />
 
-      <Testimonials />
+      <Testimonials products={products} />
 
       <Footer />
 

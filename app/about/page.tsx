@@ -5,6 +5,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
+import type { Product } from "@/lib/products";
+import { getProducts } from "@/lib/product-store";
+import { reportError } from "@/lib/report-error";
 
 export const metadata: Metadata = {
   title: "Our Story | KRISHOE — Made in Nepal",
@@ -15,7 +18,22 @@ export const metadata: Metadata = {
 // The story only claims what is true of the shop: its own factory, its own
 // designs, direct prices, easy exchange, and that reviews shape what gets made
 // next. No invented history, no invented numbers.
-export default function AboutPage() {
+//
+// The reviews are loaded for the same reason: the section below them shows real
+// customers or nobody. A failure to reach the database costs the testimonials,
+// not the page — the story stands on its own.
+async function loadReviewedProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load reviews for the about page", error);
+    return [];
+  }
+}
+
+export default async function AboutPage() {
+  const products = await loadReviewedProducts();
+
   return (
     <main className="bg-white">
       <Navbar />
@@ -161,7 +179,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <Testimonials />
+      <Testimonials products={products} />
       <Footer />
     </main>
   );
