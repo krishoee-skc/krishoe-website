@@ -57,12 +57,18 @@ const trackers = [
     link: "https://ads.tiktok.com/i18n/events_manager",
     linkLabel: "TikTok Events Manager खोल्ने",
     steps: [
-      "ads.tiktok.com मा खाता खोल्नुहोस्",
+      "ads.tiktok.com मा खाता खोल्न प्रयास गर्नुहोस्",
       "Assets → Events → Web Events → Set Up Web Events",
       "TikTok Pixel → Manual Setup छान्नुहोस्",
       "नाम राख्नुहोस् (KRISHOE) → Pixel ID copy गर्नुहोस्",
     ],
-    blocker: "",
+    // Tried on 2026-08-16: the country list in TikTok Ads Manager's sign-up has
+    // no Nepal. Searching "ne" returned Indonesia, Netherlands, New Zealand,
+    // Philippines and Ukraine. Left in the list rather than removed, because the
+    // organic TikTok account still sells and the day this opens is worth
+    // catching — but the steps above should not read as though they will work.
+    blocker:
+      "⚠️ TikTok Ads Manager मा अहिले नेपाल छैन — खाता खोल्न मिल्दैन। अर्को देश छानेर खोल्न नखोज्नुहोस्: PAN र व्यापारको नाम नमिलेर पछि खाता बन्द हुन्छ। TikTok मा भिडियो हाल्न भने केही रोक छैन।",
   },
   {
     key: "NEXT_PUBLIC_GA4_ID",
@@ -102,22 +108,45 @@ export default async function MeasurementPage() {
         </p>
       </div>
 
+      {/* Three states, not two.
+          "Nothing is on" and "one of three is missing" are different situations
+          and deserve different advice. This banner used to tell the owner not
+          to spend a rupee on advertising whenever anything was missing — which,
+          once Meta and Google were live, would have held them back from the
+          Facebook campaign those two exist to measure. The warning is kept for
+          the case it was written for: no measurement at all. */}
       <div
         className={`mt-5 rounded-2xl border-2 p-5 ${
           missing.length === 0
             ? "border-emerald-300 bg-emerald-50"
-            : "border-brand-clay/40 bg-brand-clay/5"
+            : live.length === 0
+              ? "border-brand-clay/40 bg-brand-clay/5"
+              : "border-amber-300 bg-amber-50"
         }`}
       >
         <p className="text-lg font-black text-brand-green-ink">
           {missing.length === 0
             ? "✅ तीनै चालु छन् — app ले देख्दैछ"
-            : `🔴 ${missing.length} वटा बाँकी — अहिले app ${live.length === 0 ? "पूरै अन्धो" : "आधा अन्धो"} छ`}
+            : live.length === 0
+              ? "🔴 अहिले app पूरै अन्धो छ — केही पनि गनिँदैन"
+              : `🟡 ${live.map((tracker) => tracker.nepali).join(" र ")} नापिन्छ — ${missing
+                  .map((tracker) => tracker.nepali)
+                  .join(" र ")} नापिँदैन`}
         </p>
-        {missing.length > 0 ? (
+
+        {live.length === 0 ? (
           <p className="mt-2 text-sm leading-6 text-gray-700">
             <strong className="text-brand-green-ink">खर्च रु ०। समय ~३० मिनेट।</strong>{" "}
             यो नगरी विज्ञापनमा एक रुपैयाँ पनि नहाल्नुहोस् — कुन काम लाग्यो थाहै हुँदैन।
+          </p>
+        ) : missing.length > 0 ? (
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            <strong className="text-brand-green-ink">
+              {live.map((tracker) => tracker.nepali).join(" र ")} मा विज्ञापन चलाउन ढुक्क हुनुहोस्
+            </strong>{" "}
+            — कुन विज्ञापनले बिक्री ल्यायो ठ्याक्कै देखिन्छ। तर{" "}
+            {missing.map((tracker) => tracker.nepali).join(" र ")} मा भने अहिले नहाल्नुहोस्, त्यहाँको
+            हिसाब थाहा हुँदैन।
           </p>
         ) : null}
       </div>
