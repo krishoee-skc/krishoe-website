@@ -1,5 +1,7 @@
-const CACHE_NAME = "krishoe-shell-v2";
-const RUNTIME_CACHE = "krishoe-public-assets-v2";
+// Bumped so the push and notification-click handlers below actually replace
+// the old worker; a service worker with an unchanged file is not reinstalled.
+const CACHE_NAME = "krishoe-shell-v3";
+const RUNTIME_CACHE = "krishoe-public-assets-v3";
 const OFFLINE_URL = "/offline";
 const SHELL_ASSETS = [OFFLINE_URL];
 
@@ -122,6 +124,12 @@ self.addEventListener("push", (event) => {
       const data = event.data.json();
       options.title = data.title || "KRISHOE";
       options.body = data.body || "New notification";
+      // Carried through to the click handler below, which is what lets tapping
+      // a new-order notification land on the order instead of the front page.
+      options.data = { url: data.url || "/admin" };
+      // Same tag replaces an earlier notification rather than stacking a second
+      // copy of the same news on the phone.
+      if (data.tag) options.tag = data.tag;
     } catch {
       options.title = "KRISHOE";
       options.body = event.data.text();
@@ -133,17 +141,30 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// Open what the notification was about, not the front page.
+//
+// This used to focus a tab only when its URL was exactly "/", and otherwise
+// open "/" in a new one — so tapping "new order" landed the owner on the shop
+// homepage and left them to find the order themselves, which is most of the
+// delay the notification exists to remove.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  const data = event.notification.data || {};
+  const target = data.url || "/admin";
+
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clientList) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === "/" && "focus" in client) {
+        // An admin window is already open: send it there rather than adding a
+        // third tab to a phone that already has two.
+        if (client.url.includes("/admin") && "focus" in client) {
+          if ("navigate" in client) client.navigate(target);
           return client.focus();
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow("/");
+        return self.clients.openWindow(target);
       }
     }),
   );

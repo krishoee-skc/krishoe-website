@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
+import PushNotificationSetup from "@/components/admin/PushNotificationSetup";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   createAndDeliverOperationalAlertNotificationsAction,
@@ -132,6 +133,12 @@ export default async function AdminNotificationsPage() {
             Export CSV
           </ExportButton>
         </div>
+      </div>
+
+      {/* Placed first because it is the only channel that reaches the owner
+          when the admin app is closed, which is most of the day. */}
+      <div className="mt-6">
+        <PushNotificationSetup publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">

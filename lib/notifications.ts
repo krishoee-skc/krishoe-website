@@ -14,6 +14,7 @@ import {
   type PeriodKind,
 } from "@/lib/period-report";
 import { queryPostgres } from "@/lib/postgres/client";
+import { sendPushToStaff } from "@/lib/push-notifications";
 import { getProducts } from "@/lib/product-store";
 import {
   getProductionControlSummary,
@@ -816,6 +817,22 @@ export async function notifyOrderReceived(order: OrderSubmission) {
   await reportingErrors(`deliver order notification ${event.id}`, () =>
     deliverNotificationEvent(event),
   );
+
+  // And the owner's phone, which is the point of the whole thing: the shop
+  // promises to "call you shortly to confirm", and an order placed at nine at
+  // night used to sit unseen until morning. Wrapped like the delivery above —
+  // a push that fails must never take the order down with it.
+  await reportingErrors(`push order notification ${event.id}`, () =>
+    sendPushToStaff({
+      title: "नयाँ अर्डर आयो 🛍️",
+      body: `${order.name} · ${order.total}`,
+      url: "/admin/orders",
+      // Tagged by order, so a retry replaces the earlier notification on the
+      // phone rather than stacking a second copy of the same news.
+      tag: `order-${order.id}`,
+    }),
+  );
+
   return event;
 }
 

@@ -45,7 +45,16 @@ describe("mobile production contracts", () => {
     );
     const worker = source("public/sw.js");
     expect(worker).toContain('const OFFLINE_URL = "/offline"');
-    expect(worker).toContain('const CACHE_NAME = "krishoe-shell-v2"');
+    // Versioned, not a specific version. A service worker whose file has not
+    // changed is never reinstalled, so the number here has to move whenever the
+    // worker does — pinning the literal made a correct bump look like a
+    // regression. What must hold is that both caches carry the same version, or
+    // the activate handler deletes the runtime cache it just filled.
+    const shell = worker.match(/const CACHE_NAME = "krishoe-shell-v(\d+)"/);
+    const runtime = worker.match(/const RUNTIME_CACHE = "krishoe-public-assets-v(\d+)"/);
+
+    expect(shell?.[1]).toBeDefined();
+    expect(runtime?.[1]).toBe(shell?.[1]);
     expect(worker).toContain('fetch(request, { cache: "no-store" })');
     expect(worker).toContain('pathname.startsWith("/_next/static/")');
     expect(worker).not.toContain("caches.open(RUNTIME_CACHE).then((cache)");
