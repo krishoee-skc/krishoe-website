@@ -232,6 +232,41 @@ export type AnalyticsSnapshot = {
   channels: NamedCount[];
 };
 
+/**
+ * Paths only the shop's own people can reach, which therefore are not shopping.
+ *
+ * Both sit behind a password, so a customer never lands on one. Left in the
+ * figures they drowned everything else: of 79 page views in the first month,
+ * 53 were the owner working inside /admin, which made the dashboard read like
+ * a busy shop when almost nobody had visited it. A number that flatters is
+ * worse than no number, because it is acted on.
+ */
+export const INTERNAL_PATH_PREFIXES = ["/admin", "/worker"] as const;
+
+/**
+ * Excludes those paths from a report.
+ *
+ * Applied to the totals as well as the page list, so "visitors" means people
+ * who looked at something for sale rather than anyone who loaded any page at
+ * all. Nothing is deleted by this — Google keeps every hit, and the full
+ * picture is still there in Google's own reports. This only decides what the
+ * shop's own screen counts.
+ */
+function shopOnlyFilter() {
+  return {
+    notExpression: {
+      orGroup: {
+        expressions: INTERNAL_PATH_PREFIXES.map((prefix) => ({
+          filter: {
+            fieldName: "pagePath",
+            stringFilter: { matchType: "BEGINS_WITH", value: prefix },
+          },
+        })),
+      },
+    },
+  };
+}
+
 export type SnapshotResult =
   | { ok: true; snapshot: AnalyticsSnapshot }
   | { ok: false; reason: string; configured: boolean };
@@ -254,11 +289,13 @@ export async function fetchAnalyticsSnapshot(
 
   const { config } = configResult;
   const dateRanges = [{ startDate: `${days}daysAgo`, endDate: "today" }];
+  const dimensionFilter = shopOnlyFilter();
 
   try {
     const [totals, pages, channels] = await Promise.all([
       runReport(config, {
         dateRanges,
+        dimensionFilter,
         metrics: [
           { name: "activeUsers" },
           { name: "screenPageViews" },
@@ -268,6 +305,7 @@ export async function fetchAnalyticsSnapshot(
       }),
       runReport(config, {
         dateRanges,
+        dimensionFilter,
         dimensions: [{ name: "pagePath" }],
         metrics: [{ name: "screenPageViews" }],
         orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
@@ -275,6 +313,7 @@ export async function fetchAnalyticsSnapshot(
       }),
       runReport(config, {
         dateRanges,
+        dimensionFilter,
         dimensions: [{ name: "sessionDefaultChannelGroup" }],
         metrics: [{ name: "sessions" }],
         orderBys: [{ metric: { metricName: "sessions" }, desc: true }],

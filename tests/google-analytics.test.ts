@@ -1,10 +1,12 @@
 import crypto from "node:crypto";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   analyticsConfigured,
   buildAssertion,
   fetchAnalyticsSnapshot,
   readAnalyticsConfig,
+  resetAnalyticsTokenCache,
+  INTERNAL_PATH_PREFIXES,
 } from "@/lib/google-analytics";
 
 /**
@@ -185,5 +187,47 @@ describe("the snapshot when nothing is configured", () => {
     // rather than "Google is down".
     expect(result.configured).toBe(false);
     expect(result.reason).toContain("GA4_PROPERTY_ID");
+  });
+});
+
+describe("whose visits get counted", () => {
+  it("names the paths only the shop's own people can reach", () => {
+    // Both sit behind a password, so a customer never lands on one.
+    expect([...INTERNAL_PATH_PREFIXES]).toEqual(["/admin", "/worker"]);
+  });
+
+  it("asks Google to leave those out of every report", async () => {
+    const bodies: unknown[] = [];
+    const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      if (String(url).includes("oauth2")) {
+        return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), {
+          status: 200,
+        });
+      }
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    resetAnalyticsTokenCache();
+
+    const result = await fetchAnalyticsSnapshot(28, {
+      GA4_PROPERTY_ID: "550128614",
+      GA_SERVICE_ACCOUNT_KEY: keyJson(),
+    });
+
+    expect(result.ok).toBe(true);
+    // Totals as well as the page list. Of the shop's first 79 page views, 53
+    // were the owner working inside /admin — counted, they made an almost
+    // empty shop look busy, and a number that flatters gets acted on.
+    expect(bodies).toHaveLength(3);
+    for (const body of bodies as { dimensionFilter?: unknown }[]) {
+      expect(JSON.stringify(body.dimensionFilter)).toContain("/admin");
+      expect(JSON.stringify(body.dimensionFilter)).toContain("/worker");
+      expect(JSON.stringify(body.dimensionFilter)).toContain("notExpression");
+      expect(JSON.stringify(body.dimensionFilter)).toContain("BEGINS_WITH");
+    }
+
+    vi.unstubAllGlobals();
+    resetAnalyticsTokenCache();
   });
 });

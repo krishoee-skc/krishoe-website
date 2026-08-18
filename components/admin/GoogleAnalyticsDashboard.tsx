@@ -87,7 +87,9 @@ export default function GoogleAnalyticsDashboard() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Google Analytics 4</p>
           <h2 className="mt-1 text-xl font-black text-brand-green-ink">Website मा आएका ग्राहक</h2>
-          <p className="mt-1 text-sm text-gray-600">कुन पाना हेरे र कहाँबाट आए भन्ने live website data।</p>
+          <p className="mt-1 text-sm text-gray-600">
+            कुन पाना हेरे र कहाँबाट आए भन्ने live website data।
+          </p>
         </div>
         <div className="flex gap-2" aria-label="Analytics time range">
           {[7, 28, 90].map((option) => (
