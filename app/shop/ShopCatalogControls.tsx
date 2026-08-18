@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import { SearchIcon, XIcon } from "@/components/Icons";
 import { categories, type Category, type Product } from "@/lib/products";
@@ -13,7 +14,6 @@ type SortMode = "featured" | "new" | "price-asc" | "price-desc" | "rating-desc";
 type ShopCatalogControlsProps = {
   products: Product[];
   activeCategory?: Category;
-  initialQuery?: string;
 };
 
 function searchText(product: Product) {
@@ -59,12 +59,25 @@ function availabilityLabel(filter: AvailabilityFilter, products: Product[]) {
   return `${products.length} products`;
 }
 
+/**
+ * Reads the search term from the URL here rather than being handed it by the
+ * server.
+ *
+ * `/shop?query=…` is what the site-wide search box navigates to. Having the
+ * page read that on the server made every visit to /shop build a fresh page —
+ * over two seconds, against well under one for the prerendered category pages.
+ * This component owns the search box, so it is the natural place to read it,
+ * and doing it in the browser lets the page itself be built once.
+ *
+ * useState seeds from the URL only on first render, which is what is wanted: a
+ * shopper who then edits the box is not fighting the address bar.
+ */
 export default function ShopCatalogControls({
   products,
   activeCategory,
-  initialQuery = "",
 }: ShopCatalogControlsProps) {
-  const [query, setQuery] = useState(initialQuery);
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("query") ?? "");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("featured");
   const cleanQuery = query.trim().toLowerCase();

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShopCatalogControls from "@/app/shop/ShopCatalogControls";
@@ -7,7 +8,6 @@ import { type Category, type Product } from "@/lib/products";
 type ShopCatalogProps = {
   products: Product[];
   activeCategory?: Category;
-  query?: string;
 };
 
 /**
@@ -17,12 +17,15 @@ type ShopCatalogProps = {
  * catalogue, which is one shared set of words used by the storefront, the admin
  * screens and the structured data handed to Google. Translating them at this
  * one call site would make the shop disagree with itself.
+ *
+ * The heading no longer changes for a search. It used to read "Search results
+ * for X", which meant the page had to be built per visitor — two seconds of
+ * waiting on the page where customers choose a pair, to restate a word they had
+ * just typed and can still see in the search box below it.
  */
-export default function ShopCatalog({ products, activeCategory, query = "" }: ShopCatalogProps) {
+export default function ShopCatalog({ products, activeCategory }: ShopCatalogProps) {
   const heading = activeCategory ? (
     `${activeCategory.title} collection`
-  ) : query ? (
-    <T en={`Search results for "${query}"`} ne={`"${query}" को खोजी`} />
   ) : (
     <T en="Premium pairs, ready to browse." ne="राम्रा जोडीहरू — हेर्न तयार।" />
   );
@@ -67,7 +70,13 @@ export default function ShopCatalog({ products, activeCategory, query = "" }: Sh
           </div>
         </div>
 
-        <ShopCatalogControls products={products} activeCategory={activeCategory} initialQuery={query} />
+        {/* Suspense is what lets the page stay prerendered while the controls
+            read the search term from the URL in the browser. Without it, one
+            client component reading searchParams drags the whole route back
+            into being built per request. */}
+        <Suspense fallback={<div className="min-h-[60vh]" aria-hidden />}>
+          <ShopCatalogControls products={products} activeCategory={activeCategory} />
+        </Suspense>
       </section>
       <Footer />
     </main>

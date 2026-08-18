@@ -2,12 +2,7 @@ import type { Metadata } from "next";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import ShopCatalog from "@/app/shop/ShopCatalog";
 import { getProducts } from "@/lib/product-store";
-import {
-  collectionPageJsonLd,
-  createPageMetadata,
-  getCategoryBySlug,
-  getProductsByCategory,
-} from "@/lib/seo";
+import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Shop",
@@ -15,20 +10,21 @@ export const metadata: Metadata = createPageMetadata({
   path: "/shop",
 });
 
-type ShopPageProps = {
-  searchParams?: Promise<{
-    query?: string;
-    category?: string;
-  }>;
-};
-
-export default async function ShopPage({ searchParams }: ShopPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const query = resolvedSearchParams?.query ?? "";
-  const category = resolvedSearchParams?.category ?? "";
-  const sourceProducts = await getProducts();
-  const activeCategory = category ? getCategoryBySlug(category) : undefined;
-  const products = activeCategory ? getProductsByCategory(sourceProducts, activeCategory) : sourceProducts;
+/**
+ * The whole catalogue, prerendered.
+ *
+ * This page used to read `searchParams` so it could seed the search box from
+ * `/shop?query=…`. Reading them opts the route into dynamic rendering, and it
+ * was doing so for every visitor: the shop's own category pages were served as
+ * prerendered HTML in well under a second while this one — the page the "पसल"
+ * link goes to, where customers actually choose a pair — took over two.
+ *
+ * The search term is now read in the browser instead, by the controls that own
+ * the search box anyway. Nothing about `/shop?query=…` changes for the visitor;
+ * the page simply arrives already built.
+ */
+export default async function ShopPage() {
+  const products = await getProducts();
 
   return (
     <>
@@ -40,7 +36,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           products,
         })}
       />
-      <ShopCatalog products={products} activeCategory={activeCategory} query={query} />
+      <ShopCatalog products={products} />
     </>
   );
 }
