@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { configuredTrackingIds } from "@/lib/tracking-ids";
+
+// The same source the shop's tags read, so this page cannot report a tracker as
+// missing while it is live — the one lie that would make this page worse than
+// having no page. `configured` rather than `active`: the owner is asking what
+// production does, not what this particular machine does.
+const trackingIds = configuredTrackingIds();
 
 export const metadata: Metadata = { title: "मापन सेटअप | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -7,19 +14,21 @@ export const dynamic = "force-dynamic";
 /**
  * Whether the shop can see anything, and how to switch it on.
  *
- * The tracking code for Meta, TikTok and Google is written and shipped; the
- * three ids that turn it on are blank, so the shop currently measures nothing.
- * Until they are set, an advertising rupee cannot be told from a wasted one —
- * which makes this the highest-value thirty minutes available to the owner and
- * the only one I cannot do for them.
+ * The tracking code for Meta, TikTok and Google is written and shipped. Until
+ * an id is set, that tracker measures nothing, and an advertising rupee cannot
+ * be told from a wasted one — which makes filling these in the highest-value
+ * half hour available to the owner, and the one thing here I cannot do for
+ * them.
  *
- * So this page does the next best thing: says plainly which are on, and gives
- * the exact steps for the ones that are not.
+ * So this page says plainly which are on, and gives the exact steps for the
+ * ones that are not. The counts below are read from the ids themselves rather
+ * than written into the copy, because prose that says "three remaining" outlives
+ * being true and then quietly misleads the person acting on it.
  */
 const trackers = [
   {
     key: "NEXT_PUBLIC_META_PIXEL_ID",
-    value: process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    value: trackingIds.meta,
     name: "Meta Pixel",
     nepali: "Facebook र Instagram",
     why: "Facebook/Instagram मा विज्ञापन चलाउँदा कुन विज्ञापनले बिक्री ल्यायो थाहा हुन्छ। यो बिना ad चलाउनु आँखा चिम्लेर पैसा फ्याँक्नु हो।",
@@ -40,7 +49,7 @@ const trackers = [
   },
   {
     key: "NEXT_PUBLIC_TIKTOK_PIXEL_ID",
-    value: process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID,
+    value: trackingIds.tiktok,
     name: "TikTok Pixel",
     nepali: "TikTok",
     why: "नेपालमा अहिले TikTok ले सबैभन्दा बढी बिक्री गराउँछ। कारखानाको भिडियोले ल्याएको ग्राहक यहीँ गनिन्छ।",
@@ -57,7 +66,7 @@ const trackers = [
   },
   {
     key: "NEXT_PUBLIC_GA4_ID",
-    value: process.env.NEXT_PUBLIC_GA4_ID,
+    value: trackingIds.ga4,
     name: "Google Analytics 4",
     nepali: "Google",
     why: "कति मान्छे आए, कुन जुत्ता धेरै हेरे, कहाँबाट आए — सबै यहीँ देखिन्छ। निःशुल्क।",
@@ -86,7 +95,10 @@ export default async function MeasurementPage() {
         <h1 className="text-2xl font-black text-brand-green-ink">मापन सेटअप</h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
           कति मान्छे आए, के हेरे, किन नकिनी गए — यी नराखेसम्म केही थाहा हुँदैन।
-          कोड तयारै छ, तीनवटा ID मात्र हाल्न बाँकी।
+          कोड तयारै छ।{" "}
+          {missing.length === 0
+            ? "सबै ID हालिसकिए।"
+            : `${missing.length} वटा ID हाल्न बाँकी।`}
         </p>
       </div>
 

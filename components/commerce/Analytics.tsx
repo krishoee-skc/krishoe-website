@@ -1,5 +1,6 @@
 import Script from "next/script";
 import { tiktokPixelSnippet } from "@/lib/analytics-snippets";
+import { activeTrackingIds } from "@/lib/tracking-ids";
 
 // Marketing/analytics tags. Nothing renders until the matching public env var
 // is set, so the site stays clean until real IDs are added:
@@ -14,9 +15,9 @@ import { tiktokPixelSnippet } from "@/lib/analytics-snippets";
 // debugger (Meta Pixel Helper, TikTok Pixel Helper, GA4 DebugView) that hits
 // arrive before trusting an ad spend to them.
 export function Analytics() {
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
-  const ga4Id = process.env.NEXT_PUBLIC_GA4_ID;
-  const tiktokPixelId = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+  // Nothing fires outside production, so browsing the shop while working on it
+  // cannot teach the live ad account anything. See lib/tracking-ids.ts.
+  const { meta: pixelId, ga4: ga4Id, tiktok: tiktokPixelId } = activeTrackingIds();
 
   return (
     <>
