@@ -25,7 +25,11 @@ export default function Footer() {
             <li><Link href="/about" className="hover:text-white"><T en="Our Story" ne="हाम्रो कथा" /></Link></li>
             <li><Link href="/contact" className="hover:text-white"><T en="Contact" ne="सम्पर्क" /></Link></li>
             <li><Link href="/wholesale" className="hover:text-white"><T en="Wholesale" ne="थोक बिक्री" /></Link></li>
+            <li><Link href="/track-order" className="hover:text-white"><T en="Track your order" ne="अर्डर कहाँ पुग्यो" /></Link></li>
+            <li><Link href="/faq" className="hover:text-white"><T en="FAQ" ne="प्रश्न उत्तर" /></Link></li>
             <li><Link href="/return-policy" className="hover:text-white"><T en="Return Policy" ne="साट्ने नियम" /></Link></li>
+            <li><Link href="/privacy" className="hover:text-white"><T en="Privacy" ne="गोपनीयता" /></Link></li>
+            <li><Link href="/terms" className="hover:text-white"><T en="Terms" ne="सर्तहरू" /></Link></li>
           </ul>
         </div>
 

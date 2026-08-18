@@ -41,6 +41,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      // Ranked above the policy pages on purpose. Its answers — how many days,
+      // can I pay on delivery, what if the size is wrong — are the questions
+      // people actually type, and the page carries FAQPage structured data, so
+      // Google can show an answer to someone who has not clicked anything yet.
+      url: `${baseUrl}/faq`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      // Low priority but present: a shopper who wants this wants it now, and a
+      // page Google has never seen is a page they cannot search for.
+      url: `${baseUrl}/track-order`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   return [
