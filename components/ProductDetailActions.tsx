@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { whatsappOrderUrl, viberOrderUrl } from "@/lib/commerce";
 import { CheckIcon, HeartIcon, ShoppingBagIcon } from "@/components/Icons";
@@ -29,6 +29,14 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   const lowStock = level === "low";
   const maxQuantity = outOfStock ? 1 : Math.max(1, Math.min(9, product.stock));
   const selectedQuantity = Math.min(quantity, maxQuantity);
+
+  useEffect(() => {
+    trackCommerceEvent("view_item", {
+      id: product.id,
+      name: product.name,
+      pricePaisa: product.priceValue,
+    });
+  }, [product.id, product.name, product.priceValue]);
 
   const orderMessage = useMemo(() => {
     if (outOfStock) {
