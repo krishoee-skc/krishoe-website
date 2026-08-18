@@ -5,6 +5,7 @@ import type { Product } from "@/lib/products";
 import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { stockLevel } from "@/lib/stock-thresholds";
+import { trackCommerceEvent } from "@/lib/analytics-events";
 
 import { useLanguage } from "@/components/LanguageProvider";
 type ProductCardActionsProps = {
@@ -28,6 +29,11 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
       size: product.sizes[0],
       color: product.colors[0],
       quantity: 1,
+    });
+    trackCommerceEvent("add_to_cart", {
+      id: product.id,
+      name: product.name,
+      price: product.priceValue,
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);

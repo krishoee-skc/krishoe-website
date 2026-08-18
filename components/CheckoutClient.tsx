@@ -15,6 +15,7 @@ import PaymentInstructions from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
+import { trackCommerceEvent } from "@/lib/analytics-events";
 
 const initialState: FormState = {
   ok: false,
@@ -390,7 +391,7 @@ type CheckoutClientProps = {
 
 export default function CheckoutClient({ user = null }: CheckoutClientProps) {
   const { text } = useLanguage();
-  const { cartItems, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
+  const { cartItems, subtotal, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
@@ -430,6 +431,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsPending(true);
+    trackCommerceEvent("begin_checkout");
     const submittedTotal = subtotalLabel;
     const submittedWhatsappMessage = whatsappMessage;
 
@@ -438,6 +440,12 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
       setState(result);
 
       if (result.ok && result.reference) {
+        trackCommerceEvent("purchase", {
+          id: result.reference,
+          name: "KRISHOE order",
+          price: subtotal,
+          quantity: 1,
+        });
         setSubmittedOrder({
           reference: result.reference,
           total: result.total ?? submittedTotal,

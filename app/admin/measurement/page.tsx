@@ -33,7 +33,10 @@ const trackers = [
       "Pixel को नाम राख्नुहोस् (KRISHOE) → Create",
       "माथि देखिने Pixel ID copy गर्नुहोस्",
     ],
-    blocker: "⚠️ यसका लागि Facebook Page चाहिन्छ — व्यक्तिगत profile ले हुँदैन।",
+    // Was blocked on there being no Page — a pixel cannot attach to a personal
+    // profile. The Page now exists, so this says where to find it instead of
+    // what is missing.
+    blocker: "✅ KRISHOE Page बनिसक्यो — Events Manager मा त्यही Page छान्नुहोस्।",
   },
   {
     key: "NEXT_PUBLIC_TIKTOK_PIXEL_ID",

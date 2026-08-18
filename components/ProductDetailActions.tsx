@@ -10,6 +10,7 @@ import QuantitySelector from "@/components/QuantitySelector";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
 import SizeGuide from "@/components/SizeGuide";
+import { trackCommerceEvent, trackContact } from "@/lib/analytics-events";
 
 type ProductDetailActionsProps = {
   product: Product;
@@ -55,6 +56,12 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
     }
 
     addToCart({ productId: product.id, size, color, quantity: selectedQuantity });
+    trackCommerceEvent("add_to_cart", {
+      id: product.id,
+      name: product.name,
+      price: product.priceValue,
+      quantity: selectedQuantity,
+    });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
   }
@@ -127,6 +134,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <a
             href={whatsappOrderUrl(orderMessage)}
+            onClick={() => trackContact("whatsapp")}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#25D366] px-6 text-sm font-bold text-white transition hover:brightness-95"
@@ -137,6 +145,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           </a>
           <a
             href={viberOrderUrl(orderMessage)}
+            onClick={() => trackContact("viber")}
             className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#7360F2] px-6 text-sm font-bold text-white transition hover:brightness-95"
           >
             {outOfStock
@@ -172,6 +181,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           </button>
           <a
             href={whatsappOrderUrl(orderMessage)}
+            onClick={() => trackContact("whatsapp")}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-12 items-center justify-center rounded-full bg-[#25D366] px-5 text-sm font-bold text-white"
