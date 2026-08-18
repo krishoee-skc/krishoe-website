@@ -50,7 +50,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.2px;
@@ -85,13 +85,6 @@ p {
   margin-bottom: 1rem;
   line-height: 1.8;
   color: var(--ink-body);
-}
-
-/* Luxury text for premium sections */
-.luxury-text {
-  font-family: var(--font-luxury), var(--font-heading), sans-serif;
-  font-weight: 700;
-  letter-spacing: 1px;
 }
 
 html {
@@ -134,7 +127,10 @@ table th,
 
 @layer components {
   .admin-wide-title {
-    font-family: "Arial Black", var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    /* Was "Arial Black", which Android does not ship — the same screen rendered
+       heavy on Windows and ordinary on a phone. */
+    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-weight: 800;
     font-stretch: 112%;
     letter-spacing: 0;
   }
@@ -599,4 +595,17 @@ table th,
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
+}
+
+/* The serif is the shop's voice, not the back office's.
+   Admin screens are dense tables of numbers and short labels, where a display
+   serif costs legibility and gains nothing — nobody is being sold to in here.
+   `.admin-canvas` wraps every admin page, so this is the one place it belongs. */
+.admin-canvas h1,
+.admin-canvas h2,
+.admin-canvas h3,
+.admin-canvas h4,
+.admin-canvas h5,
+.admin-canvas h6 {
+  font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
 }

@@ -52,7 +52,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "Inter", "Segoe UI", "Arial", "Helvetica", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        display: ["var(--font-display)", "Georgia", "Times New Roman", "serif"],
       },
       spacing: {
         xs: "4px",
