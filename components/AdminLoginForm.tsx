@@ -114,7 +114,7 @@ export default function AdminLoginForm({
             autoFocus
             value={code}
             onChange={(event) => acceptCode(event.target.value)}
-            className="h-14 rounded-xl border border-black/15 bg-[#FFFFFF] px-4 text-center text-2xl font-black tracking-[0.35em] text-[#16211C] outline-none placeholder:text-[#C4CBC6] focus:border-brand-green"
+            className="h-14 rounded-xl border border-black/15 bg-[#FFFFFF] px-4 text-center text-2xl font-black tracking-[0.35em] text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
             placeholder="000000"
           />
         </label>
@@ -180,7 +180,7 @@ export default function AdminLoginForm({
           inputMode="email"
           required={!bootstrapLoginAllowed}
           autoComplete="username"
-          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-[#8A938C] focus:border-brand-green"
+          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
           placeholder="तपाईंकै email वा मोबाइल नम्बर"
         />
       </label>
@@ -192,7 +192,7 @@ export default function AdminLoginForm({
           type="password"
           required
           autoComplete="current-password"
-          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-[#8A938C] focus:border-brand-green"
+          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
           placeholder="तपाईंकै password"
         />
       </label>

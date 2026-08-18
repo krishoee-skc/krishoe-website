@@ -118,7 +118,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl dark:bg-[#13221d]">
+          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl dark:bg-brand-green-ink">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>

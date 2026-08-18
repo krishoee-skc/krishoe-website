@@ -91,7 +91,7 @@ export default async function AboutPage() {
               "Order on WhatsApp or Viber, get a clear bill, and exchange easily if something isn't right. Buying shoes should feel simple.",
             ],
           ].map(([nepali, english, text]) => (
-            <article key={english} className="rounded-lg border border-black/10 bg-[#F9FAF8] p-6">
+            <article key={english} className="rounded-lg border border-black/10 bg-brand-mist p-6">
               <p className="text-2xl font-black text-brand-green-ink">{nepali}</p>
               <p className="mt-1 text-sm font-bold uppercase tracking-[0.18em] text-brand-gold-deep">
                 {english}

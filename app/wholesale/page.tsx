@@ -66,7 +66,7 @@ export default async function WholesalePage() {
             ["नियमित सप्लाई", "महिनैपिच्छे उही design, उही गुणस्तर।"],
             ["साट्ने सुविधा", "मिलेन भने साट्न मिल्छ — पसलको जोखिम कम।"],
           ].map(([title, detail]) => (
-            <article key={title} className="rounded-2xl border border-black/10 bg-[#F9FAF8] p-6">
+            <article key={title} className="rounded-2xl border border-black/10 bg-brand-mist p-6">
               <h2 className="text-xl font-black text-brand-green-ink">{title}</h2>
               <p className="mt-2 text-sm leading-7 text-brand-muted">{detail}</p>
             </article>

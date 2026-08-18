@@ -83,7 +83,7 @@ export default function CommandSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search premium styles"
-        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-[#F7F8F5] px-4 text-brand-muted-deep transition hover:border-brand-green/40 xl:flex"
+        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-brand-mist px-4 text-brand-muted-deep transition hover:border-brand-green/40 xl:flex"
       >
         <SearchIcon className="h-4 w-4" />
         <span className="text-sm">Search premium styles</span>
@@ -120,7 +120,7 @@ export default function CommandSearch() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search premium styles..."
                 enterKeyHint="search"
-                className="h-14 w-full bg-transparent text-base outline-none placeholder:text-[#9AA29E]"
+                className="h-14 w-full bg-transparent text-base outline-none placeholder:text-brand-muted-soft"
               />
               <button
                 type="button"
@@ -133,7 +133,7 @@ export default function CommandSearch() {
             </form>
 
             <div className="overflow-y-auto p-3">
-              <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9AA29E]">
+              <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
                 Browse categories
               </p>
               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -142,7 +142,7 @@ export default function CommandSearch() {
                     key={category.slug}
                     href={`/shop/${category.slug}`}
                     onClick={closePalette}
-                    className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-brand-mist active:bg-[#EDF1EE]"
+                    className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-brand-mist active:bg-brand-green-mist"
                   >
                     <Image
                       src={category.image}

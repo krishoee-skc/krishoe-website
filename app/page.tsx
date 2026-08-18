@@ -37,7 +37,7 @@ export default async function Home() {
           visually-hidden heading keeps the real text for SEO and screen
           readers. */}
       <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
-        <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-[#F7EFE2] shadow-[0_22px_70px_rgba(59,42,24,0.18)] md:hidden">
+        <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-brand-cream-hero shadow-[0_22px_70px_rgba(59,42,24,0.18)] md:hidden">
           <Image
             src="/images/mobile-hero-krishoe-gold-v2.png"
             alt="Premium champagne-gold KRISHOE sandals with artisan-inspired detailing"
@@ -60,17 +60,17 @@ export default async function Home() {
                 <p className="font-display text-2xl font-black leading-none tracking-[0.08em] text-brand-green">
                   KRISHOE
                 </p>
-                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.22em] text-[#9A7024]">
+                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.22em] text-brand-gold-label">
                   Walk with Authority
                 </p>
               </div>
             </div>
-            <p className="mt-4 inline-flex rounded-full border border-[#C9A24D]/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#9A7024] shadow-sm backdrop-blur">
+            <p className="mt-4 inline-flex rounded-full border border-brand-gold/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold-label shadow-sm backdrop-blur">
               The Signature Collection
             </p>
             <h1 className="mt-3 max-w-[310px] font-display text-[2.4rem] font-bold leading-[0.92] tracking-[-0.03em]">
               Your Step.
-              <span className="mt-1 block text-[#7A1818]">Your Identity.</span>
+              <span className="mt-1 block text-brand-clay-deep">Your Identity.</span>
             </h1>
             <p className="mt-3 max-w-[285px] text-sm font-semibold leading-6 text-brand-green-ink/75">
               Premium comfort, artisan detail and confident style—crafted for Nepal.
@@ -84,7 +84,7 @@ export default async function Home() {
               </Link>
               <Link
                 href="/shop/ladies-sandals"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#C9A24D]/50 bg-white/75 px-4 py-2.5 text-sm font-black text-brand-green shadow-sm backdrop-blur transition hover:bg-white/85 md:min-h-11 md:py-0"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-brand-gold/50 bg-white/75 px-4 py-2.5 text-sm font-black text-brand-green shadow-sm backdrop-blur transition hover:bg-white/85 md:min-h-11 md:py-0"
               >
                 Explore
               </Link>
@@ -94,7 +94,7 @@ export default async function Home() {
         <Link
           href="/shop"
           aria-label="Shop KRISHOE premium footwear — Your Step, Your Identity"
-          className="relative mx-auto hidden min-h-[clamp(560px,65vw,760px)] max-w-7xl overflow-hidden rounded-[2rem] bg-[#F7EFE2] shadow-[0_24px_80px_rgba(11,77,59,0.14)] transition hover:shadow-[0_30px_90px_rgba(11,77,59,0.2)] md:block"
+          className="relative mx-auto hidden min-h-[clamp(560px,65vw,760px)] max-w-7xl overflow-hidden rounded-[2rem] bg-brand-cream-hero shadow-[0_24px_80px_rgba(11,77,59,0.14)] transition hover:shadow-[0_30px_90px_rgba(11,77,59,0.2)] md:block"
         >
           <Image
             src="/images/hero-krishoe-gold-v2.png"
@@ -119,17 +119,17 @@ export default async function Home() {
                 <p className="font-display text-4xl font-black leading-none tracking-[0.08em] text-brand-green">
                   KRISHOE
                 </p>
-                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#A47A28]">
+                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.28em] text-brand-gold-label">
                   Walk with Authority
                 </p>
               </div>
             </div>
-            <p className="mt-7 text-xs font-black uppercase tracking-[0.28em] text-[#A47A28]">
+            <p className="mt-7 text-xs font-black uppercase tracking-[0.28em] text-brand-gold-label">
               The Signature Collection
             </p>
             <h1 className="mt-5 font-display text-[clamp(3.75rem,5.5vw,6rem)] font-bold leading-[0.86] tracking-[-0.045em] text-brand-green-ink">
               Your Step.
-              <span className="mt-3 block text-[#7A1818]">Your Identity.</span>
+              <span className="mt-3 block text-brand-clay-deep">Your Identity.</span>
             </h1>
             <p className="mt-7 max-w-xl text-[clamp(1rem,1.35vw,1.2rem)] font-medium leading-8 text-brand-green-ink/70">
               Premium comfort, artisan detail and confident style—crafted for Nepal.
@@ -138,14 +138,14 @@ export default async function Home() {
               <span className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-brand-green px-8 py-3.5 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(11,77,59,0.24)]">
                 Shop now
               </span>
-              <span className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[#B88B32] bg-white/65 px-8 py-3.5 text-sm font-black uppercase tracking-[0.1em] text-brand-green-ink backdrop-blur">
+              <span className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-brand-gold-deep bg-white/65 px-8 py-3.5 text-sm font-black uppercase tracking-[0.1em] text-brand-green-ink backdrop-blur">
                 Explore collection
               </span>
             </div>
           </div>
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-[72px] border-t-2 border-[#D7AE52] bg-[#651B24]/95 shadow-[0_-14px_36px_rgba(101,27,36,0.16)] backdrop-blur"
+            className="absolute inset-x-0 bottom-0 h-[72px] border-t-2 border-brand-gold-bright bg-brand-clay-ink/95 shadow-[0_-14px_36px_rgba(101,27,36,0.16)] backdrop-blur"
           />
         </Link>
       </section>

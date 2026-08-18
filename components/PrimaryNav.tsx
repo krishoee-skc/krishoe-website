@@ -24,7 +24,7 @@ export default function PrimaryNav() {
         // "Our Story" breaking onto a second line and leaving the row visibly
         // uneven, which is what it did.
         const linkClass = `group relative flex items-center gap-1.5 whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
-          active ? "text-brand-green-ink" : "text-[#4A574F] hover:text-brand-green-ink"
+          active ? "text-brand-green-ink" : "text-brand-muted hover:text-brand-green-ink"
         }`;
         // Gold appears twice in this header, and this is one: a hairline under
         // the page you are on. Kept to a hairline so it reads as a mark rather

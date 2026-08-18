@@ -72,7 +72,7 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
           {reviews.map((review) => (
             <div
               key={review.id}
-              className="rounded-lg bg-[#F8F8F8] p-8 shadow-lg duration-300 hover:shadow-2xl"
+              className="rounded-lg bg-brand-mist p-8 shadow-lg duration-300 hover:shadow-2xl"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black tracking-[0.2em] text-brand-gold">

@@ -99,7 +99,11 @@ describe("mobile production contracts", () => {
     expect(homepage).toContain("The Signature Collection");
     expect(homepage).toContain("/icons/icon.svg");
     expect(homepage).toContain("Walk with Authority");
-    expect(homepage).toContain("bg-[#651B24]/95");
+    // The deep maroon band under the hero. Named rather than spelled as
+    // #651B24: the storefront's colours moved into tailwind.config.js so that
+    // near-identical twins of the same shade stop accumulating, and a test that
+    // insists on the literal hex would pull them back out.
+    expect(homepage).toContain("bg-brand-clay-ink/95");
     expect(homepage).not.toContain("Trusted support");
   });
 

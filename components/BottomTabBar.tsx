@@ -52,7 +52,7 @@ export default function BottomTabBar() {
           </Link>
 
           <Link href="/shop" className={tabClass(isShop)} aria-current={isShop ? "page" : undefined}>
-            <span className={iconBubble("bg-[#DDF3E6] text-brand-green", isShop)}>
+            <span className={iconBubble("bg-brand-green-tint text-brand-green", isShop)}>
               <ShoppingBagIcon className="h-[18px] w-[18px]" />
             </span>
             {text("Shop", "पसल")}

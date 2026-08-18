@@ -82,7 +82,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
     <>
       <div className="rounded-lg border border-black/10 bg-white p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
         {outOfStock ? (
-          <p className="mb-4 inline-flex items-center rounded-full bg-[#FBE9E7] px-3 py-1 text-sm font-bold text-brand-danger">
+          <p className="mb-4 inline-flex items-center rounded-full bg-brand-clay-tint px-3 py-1 text-sm font-bold text-brand-danger">
             {text("Sold out", "बिक्री सकियो")}
           </p>
         ) : lowStock ? (
@@ -111,7 +111,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
             type="button"
             onClick={addSelectedItem}
             disabled={outOfStock}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-[#9AA6A1] disabled:hover:text-white"
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-brand-muted-soft disabled:hover:text-white"
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock
@@ -178,7 +178,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
             type="button"
             onClick={addSelectedItem}
             disabled={outOfStock}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[#9AA6A1]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock

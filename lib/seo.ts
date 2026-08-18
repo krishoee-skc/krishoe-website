@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { categories, type Category, type Product } from "@/lib/products";
+import { categories, formatPrice, type Category, type Product } from "@/lib/products";
 
 export const siteConfig = {
   name: "KRISHOE",
@@ -81,7 +81,13 @@ export function getSiteUrl() {
   // emit — the live sitemap was serving `<loc>https://host\n/shop</loc>`, and
   // the same broken string would be encoded into printed QR codes.
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
-  return (configured || "https://krishoe.com").replace(/\/+$/, "");
+  // The fallback is the address that actually resolves. It used to be
+  // https://krishoe.com, which nobody has registered — checked, and it does not
+  // answer at all. Every canonical link, every sitemap entry and every QR code
+  // would have pointed at a dead host the moment this variable went missing,
+  // and Google would have been told the whole shop lives there. Change this the
+  // day the domain is really bought, not before.
+  return (configured || "https://krishoe-website.vercel.app").replace(/\/+$/, "");
 }
 
 export function absoluteUrl(pathOrUrl: string) {
@@ -147,20 +153,63 @@ export function createPageMetadata({
   };
 }
 
+/**
+ * What Google is given to show for one pair of shoes.
+ *
+ * A search result is two lines of text and it decides whether anyone clicks.
+ * These used to be the product's name and its marketing sentence, which told a
+ * searcher nothing they were actually deciding on — what it costs, whether it
+ * is in stock, whether it reaches them.
+ *
+ * The description below answers those in the order a Nepali shopper asks them,
+ * in both languages, because a search here is as likely to be typed in Nepali
+ * as in English. Every claim in it is one the shop already keeps: the price is
+ * the live price, the stock line follows real stock, and delivery and
+ * cash-on-arrival are how the shop actually works.
+ *
+ * Google shows roughly 155 characters, so the price and availability come
+ * first — they are what a shopper is scanning for.
+ */
+export function productSearchDescription(product: Product) {
+  const price = formatPrice(product.priceValue);
+  const availability =
+    product.stock > 0 ? "अहिले उपलब्ध · In stock" : "अहिले सकियो · Currently sold out";
+
+  return [
+    `${product.name} — ${price}`,
+    availability,
+    "नेपालमै बनेको, सिधै कारखानाबाट",
+    "नेपालभरि delivery · सामान पाएपछि पैसा (COD)",
+  ].join(" · ");
+}
+
 export function createProductMetadata(product: Product): Metadata {
-  const title = `${product.name} | KRISHOE`;
+  // The category carries the words people search for — "sandal", "chappal",
+  // "shoes" — which the product's own name often does not.
+  const title = `${product.name} — ${product.category} | KRISHOE Nepal`;
+  const description = productSearchDescription(product);
   const canonical = absoluteUrl(`/product/${product.id}`);
   const imageUrl = absoluteUrl(product.image);
 
   return {
     title,
-    description: product.description,
+    description,
+    keywords: [
+      product.name,
+      product.category,
+      "KRISHOE",
+      "Nepal footwear",
+      "made in Nepal shoes",
+      "जुत्ता",
+      "चप्पल",
+      "नेपाली जुत्ता",
+    ],
     alternates: {
       canonical,
     },
     openGraph: {
       title,
-      description: product.description,
+      description,
       url: canonical,
       siteName: siteConfig.name,
       images: [
@@ -176,7 +225,7 @@ export function createProductMetadata(product: Product): Metadata {
     twitter: {
       card: "summary_large_image",
       title,
-      description: product.description,
+      description,
       images: [imageUrl],
     },
   };

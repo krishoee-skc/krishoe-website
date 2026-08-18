@@ -36,9 +36,20 @@ describe("getSiteUrl", () => {
     expect(getSiteUrl()).toBe("https://krishoe-website.vercel.app");
   });
 
-  it("falls back when the value is unset or only whitespace", async () => {
-    expect((await siteUrlWith(undefined)).getSiteUrl()).toBe("https://krishoe.com");
-    expect((await siteUrlWith("   \n  ")).getSiteUrl()).toBe("https://krishoe.com");
+  /**
+   * The fallback has to be a host that answers.
+   *
+   * It was https://krishoe.com, which nobody has registered — a request to it
+   * gets no response at all. With this variable missing or blank, that address
+   * would have gone into every canonical link, every sitemap entry and every
+   * printed QR code, and Google would have been told the shop lives at a domain
+   * that does not exist.
+   *
+   * Change this the day the domain is really bought, not in anticipation of it.
+   */
+  it("falls back to a host that actually resolves", async () => {
+    expect((await siteUrlWith(undefined)).getSiteUrl()).toBe("https://krishoe-website.vercel.app");
+    expect((await siteUrlWith("   \n  ")).getSiteUrl()).toBe("https://krishoe-website.vercel.app");
   });
 
   it("builds an absolute URL with no stray whitespace inside it", async () => {
