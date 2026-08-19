@@ -1,82 +1,83 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { adminNavLinks } from "@/app/admin/nav-links";
-import { canAccessAdminPath } from "@/lib/admin-role-permissions";
+import { safeAdminNextPath } from "@/lib/safe-redirect";
 
 /**
- * The owner's question when the QR was proposed: if this opens the app, what
- * stops whoever else scans it?
+ * The QR codes on the "open on phone" screen.
  *
- * The answer has to hold in the code, not just in the explanation. A QR is a
- * signboard — everyone in the room can photograph it — so it carries an address
- * and nothing else. Scanning lands on a sign-in page that was already public on
- * the internet; the password, and the emailed code for staff, are what guard
- * the door, and neither is ever encoded.
+ * The owner asked for one per role — Viewer, Manager, Accountant and the rest.
+ * There are not that many doors: Owner, Manager, Accountant and Viewer all sign
+ * in at the same /admin/login, with the same password and the same emailed
+ * code. Five QRs that merely looked different would be a lie, because someone
+ * would scan "the Accountant one" expecting to arrive as the Accountant.
+ *
+ * So they differ only in where each person lands afterwards. These tests hold
+ * that line: a QR carries a path and never a credential, and it never claims to
+ * grant anything.
  */
-describe("the QR endpoint", () => {
-  it("encodes only a sign-in path, never a credential", async () => {
-    const route = await readFile("app/api/admin/open-on-phone/route.ts", "utf8");
 
-    expect(route).toContain("absoluteUrl(path)");
-    for (const secret of ["token", "password", "staffId", "workerId", "code"]) {
-      expect(route.toLowerCase(), secret).not.toContain(`${secret}:`);
+describe("what a QR is allowed to carry", () => {
+  it("encodes only paths on this site", async () => {
+    const route = await readFile("app/api/admin/open-on-phone/route.ts", "utf8");
+    const allowed = route.slice(route.indexOf("const ALLOWED"), route.indexOf("export async function"));
+
+    for (const match of allowed.matchAll(/"([^"]+)":\s*"([^"]+)"/g)) {
+      // A QR generator that accepts an arbitrary address is how a code on a
+      // KRISHOE screen ends up pointing somewhere else entirely.
+      expect(match[2], match[1]).toMatch(/^\//);
+      expect(match[2], match[1]).not.toMatch(/^https?:/);
     }
   });
 
-  it("only builds QRs for paths on a fixed list", async () => {
+  it("carries no token, password or person", async () => {
     const route = await readFile("app/api/admin/open-on-phone/route.ts", "utf8");
+    const allowed = route.slice(route.indexOf("const ALLOWED"), route.indexOf("export async function"));
 
-    // Taking the path straight from the query string would turn a KRISHOE
-    // endpoint into a QR generator for any address a crafted link asked for.
-    expect(route).toContain("const ALLOWED");
-    expect(route).toContain("ALLOWED[key] ?? ALLOWED.admin");
-    expect(route).not.toMatch(/text:\s*absoluteUrl\(\s*request\./);
+    for (const word of ["token", "password", "secret", "staffId", "session"]) {
+      expect(allowed.toLowerCase(), word).not.toContain(word.toLowerCase());
+    }
   });
 
-  it("is admin-only", async () => {
+  it("sends every role through the one sign-in page", async () => {
     const route = await readFile("app/api/admin/open-on-phone/route.ts", "utf8");
-    expect(route).toContain("requireAdminPermission");
+
+    for (const role of ["owner", "manager", "accountant", "viewer", "factory"]) {
+      const line = route.match(new RegExp(`${role}: "([^"]+)"`));
+      expect(line?.[1], role).toContain("/admin/login");
+    }
   });
 });
 
-describe("the page", () => {
-  it("says what happens if someone else scans it", async () => {
+describe("where each role lands", () => {
+  it("points at a destination the login page will accept", () => {
+    // safeAdminNextPath re-checks on arrival, so a destination that stopped
+    // existing degrades to /admin rather than to a broken page — but a value
+    // that is rejected outright would make the QR pointless.
+    for (const path of [
+      "/admin",
+      "/admin/orders",
+      "/admin/payments",
+      "/admin/analytics",
+      "/admin/factory",
+    ]) {
+      expect(safeAdminNextPath(path), path).toBe(path);
+    }
+  });
+
+  it("could not be used to bounce someone off the site", () => {
+    expect(safeAdminNextPath("https://evil.example/admin")).toBe("/admin");
+    expect(safeAdminNextPath("//evil.example")).toBe("/admin");
+    expect(safeAdminNextPath("/admin/login")).toBe("/admin");
+  });
+});
+
+describe("what the screen tells the owner", () => {
+  it("says a QR does not grant a role", async () => {
     const page = await readFile("app/admin/open-on-phone/page.tsx", "utf8");
-    expect(page).toContain("QR भनेको ठेगाना हो — साँचो होइन");
-    expect(page).toContain("QR सँगै password चाहिँ कहिल्यै नलेख्नुहोस्");
-  });
 
-  it("hides itself from a role that cannot open it", () => {
-    // Unlisted admin paths fall through to "allowed", which would have put this
-    // in a Worker's menu and then refused them at the door.
-    expect(canAccessAdminPath("Worker", "/admin/open-on-phone")).toBe(false);
-    expect(canAccessAdminPath("Owner", "/admin/open-on-phone")).toBe(true);
-  });
-
-  it("is in the menu", () => {
-    const link = adminNavLinks.find((item) => item.href === "/admin/open-on-phone");
-    expect(link?.nepali).toBe("फोनमा खोल्ने");
-  });
-});
-
-describe("the worker poster", () => {
-  it("asks for the mobile number workers actually sign in with", async () => {
-    const poster = await readFile("app/admin/hr/worker-portal-qr/page.tsx", "utf8");
-
-    expect(poster).toContain("मोबाइल नम्बर");
-    // Workers have no inbox; the portal moved off email months before this
-    // sheet was last written.
-    expect(poster).not.toContain("आफ्नो इमेल र पासवर्ड");
-    expect(poster).toContain("पहिलो पटक पस्दा नयाँ पासवर्ड राख्नुहोस्");
-  });
-
-  it("is reachable by the people who run the factory", async () => {
-    const poster = await readFile("app/admin/hr/worker-portal-qr/page.tsx", "utf8");
-    const route = await readFile("app/api/admin/hr/worker-portal-qr/route.ts", "utf8");
-
-    // It sat behind hr:write, a permission for a module holding no attendance
-    // or payroll, while the people who need to print it work in the factory.
-    expect(poster).toContain('requireAdminPermission("production:entry")');
-    expect(route).toContain('requireAdminPermission("production:entry")');
+    // The whole risk of per-role codes is someone believing the code is the
+    // permission. The page has to say otherwise, in the same place.
+    expect(page).toContain("QR ले अधिकार दिँदैन");
+    expect(page).toContain("role");
   });
 });

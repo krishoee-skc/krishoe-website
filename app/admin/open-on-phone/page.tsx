@@ -40,6 +40,56 @@ const codes = [
   },
 ];
 
+/**
+ * One QR per person, which is what was asked for — but not one door per person.
+ *
+ * Owner, Manager, Accountant and Viewer all sign in at the same address with
+ * the same password and the same emailed code. Five QR codes that merely looked
+ * different would be a lie: someone would scan "the Accountant one" and expect
+ * to arrive as the Accountant, and their account's role would decide otherwise.
+ *
+ * So these differ in the only way they honestly can — where each person lands
+ * after signing in. It saves the daily navigation, which is the real benefit,
+ * and the caption on each card says plainly that the door is shared.
+ */
+const roleCodes = [
+  {
+    key: "owner",
+    role: "Owner · मालिक",
+    lands: "मुख्य पाना",
+    path: "/admin",
+    why: "सबै कुरा एकै ठाउँबाट",
+  },
+  {
+    key: "manager",
+    role: "Manager",
+    lands: "अर्डर",
+    path: "/admin/orders",
+    why: "दिनभरि अर्डर हेर्ने-पठाउने",
+  },
+  {
+    key: "accountant",
+    role: "Accountant",
+    lands: "भुक्तानी",
+    path: "/admin/payments",
+    why: "पैसाको हिसाब",
+  },
+  {
+    key: "viewer",
+    role: "Viewer",
+    lands: "हिसाब र नाफा",
+    path: "/admin/analytics",
+    why: "हेर्ने मात्र — बदल्न पाउँदैन",
+  },
+  {
+    key: "factory",
+    role: "Factory / Staff",
+    lands: "कारखाना",
+    path: "/admin/factory",
+    why: "काम, कामदार, तलब",
+  },
+];
+
 export default async function OpenOnPhonePage() {
   await requireAdminPermission("dashboard:read");
 
@@ -134,6 +184,51 @@ export default async function OpenOnPhonePage() {
           </article>
         ))}
       </div>
+
+      <section className="mt-8">
+        <h2 className="text-xl font-black text-brand-green-ink">
+          हरेक जनाको आफ्नै QR
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+          माथिकै ढोका हो — तर खिच्ने मान्छे भित्र पसेपछि{" "}
+          <strong className="text-brand-green-ink">सिधै आफ्नो कामको पानामा</strong> पुग्छ।
+          हरेक पटक मेनु खोज्नु पर्दैन।
+        </p>
+        <p className="mt-2 max-w-3xl rounded-xl bg-brand-clay/10 px-3 py-2 text-sm font-bold leading-6 text-brand-clay">
+          ⚠️ QR ले अधिकार दिँदैन। Accountant को QR खिच्दैमा कोही Accountant बन्दैन —
+          कसले के गर्न पाउने भन्ने कुरा <strong>खातालाई दिइएको role</strong> ले तय गर्छ,
+          सेटिङबाट। यी QR ले खालि बाटो छोट्याउँछन्।
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {roleCodes.map((code) => (
+            <article
+              key={code.key}
+              className="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm print:border print:shadow-none"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+                {code.role}
+              </p>
+
+              <img
+                src={`/api/admin/open-on-phone?to=${code.key}`}
+                alt={`QR code opening ${code.path}`}
+                className="mx-auto mt-4 h-40 w-40"
+              />
+
+              <div className="mt-4 rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-white">
+                <p className="text-xs font-black uppercase tracking-wider text-brand-green">
+                  पुग्ने ठाउँ
+                </p>
+                <p className="mt-0.5 font-black text-brand-green-ink">{code.lands}</p>
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-gray-600">{code.why}</p>
+              <p className="mt-2 break-all font-mono text-[11px] text-gray-400">{code.path}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 print:hidden">
         <h2 className="text-lg font-black text-brand-green-ink">फोनमा app जस्तै बनाउने</h2>

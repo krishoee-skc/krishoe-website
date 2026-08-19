@@ -18,10 +18,28 @@ export const dynamic = "force-dynamic";
  * link cannot turn this endpoint into a QR generator for any address it likes —
  * which is how a QR on a KRISHOE screen would end up pointing somewhere else.
  */
+/**
+ * Every address a QR on this screen is allowed to carry.
+ *
+ * The role entries are not extra doors. Owner, Manager, Accountant and Viewer
+ * all sign in at the same /admin/login with the same password and the same
+ * emailed code; what differs is only where they are dropped afterwards, through
+ * the `next` parameter the login page already accepts. A QR cannot grant a
+ * role and must never look as though it can — the role lives on the account.
+ *
+ * `next` is validated again on arrival by safeAdminNextPath, so a value here
+ * that stopped existing degrades to /admin rather than to a broken page.
+ */
 const ALLOWED: Record<string, string> = {
   admin: "/admin/login",
   worker: "/worker/login",
   shop: "/",
+  // Same door, different room on the other side of it.
+  owner: "/admin/login?next=%2Fadmin",
+  manager: "/admin/login?next=%2Fadmin%2Forders",
+  accountant: "/admin/login?next=%2Fadmin%2Fpayments",
+  viewer: "/admin/login?next=%2Fadmin%2Fanalytics",
+  factory: "/admin/login?next=%2Fadmin%2Ffactory",
 };
 
 export async function GET(request: NextRequest) {
