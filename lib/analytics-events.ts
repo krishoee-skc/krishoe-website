@@ -24,7 +24,8 @@ type AnalyticsEvent =
   | "add_to_cart"
   | "begin_checkout"
   | "purchase"
-  | "contact";
+  | "contact"
+  | "share";
 
 declare global {
   interface Window {
@@ -69,7 +70,9 @@ export function trackCommerceEvent(event: AnalyticsEvent, item?: CommerceAnalyti
           ? "InitiateCheckout"
           : event === "purchase"
             ? "Purchase"
-            : "Contact";
+            : event === "share"
+              ? "Share"
+              : "Contact";
   const tiktokEvent =
     event === "view_item"
       ? "ViewContent"
@@ -79,7 +82,9 @@ export function trackCommerceEvent(event: AnalyticsEvent, item?: CommerceAnalyti
           ? "InitiateCheckout"
           : event === "purchase"
             ? "CompletePayment"
-            : "Contact";
+            : event === "share"
+              ? "Share"
+              : "Contact";
 
   window.gtag?.("event", event, payload);
   window.fbq?.("track", metaEvent, payload);
@@ -91,5 +96,43 @@ export function trackContact(channel: "whatsapp" | "viber" | "facebook" | "insta
 
   if (typeof window !== "undefined") {
     window.gtag?.("event", "select_content", { content_type: "contact_channel", item_id: channel });
+  }
+}
+
+export type ShareChannel = "native" | "whatsapp" | "viber" | "facebook" | "copy";
+
+/**
+ * The address to put in a shared message.
+ *
+ * A shared link used to be the plain product URL, so a friend who followed it
+ * arrived indistinguishable from anyone else. Sharing could therefore never be
+ * shown to work: the owner had no way to answer "did that get us customers?"
+ * except by feeling.
+ *
+ * These parameters are what Google Analytics reads to attribute a visit, and
+ * they cost nothing — the product page declares a canonical URL, so Google
+ * still treats every variant as one page for search.
+ */
+export function shareableProductUrl(url: string, channel: ShareChannel) {
+  const target = new URL(url);
+  target.searchParams.set("utm_source", "krishoe-share");
+  target.searchParams.set("utm_medium", channel);
+  target.searchParams.set("utm_campaign", "product-share");
+  return target.toString();
+}
+
+/**
+ * Records that a shopper passed a pair on to someone.
+ *
+ * Worth its own event rather than folding into `contact`: a share is a
+ * recommendation, and the pairs people recommend are not always the pairs they
+ * buy — which is exactly the sort of thing worth knowing before deciding what
+ * to make next.
+ */
+export function trackShare(channel: ShareChannel, item?: CommerceAnalyticsItem) {
+  trackCommerceEvent("share", item);
+
+  if (typeof window !== "undefined") {
+    window.gtag?.("event", "share", { method: channel, content_type: "product" });
   }
 }

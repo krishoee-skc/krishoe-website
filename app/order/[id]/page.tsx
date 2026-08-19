@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ShareShop from "@/components/ShareShop";
+import { absoluteUrl } from "@/lib/seo";
 import OnlinePaymentButtons from "@/components/payments/OnlinePaymentButtons";
 import PendingPaymentStatus from "@/components/payments/PendingPaymentStatus";
 import { getCurrentCustomer } from "@/lib/customer-auth";
@@ -263,6 +265,13 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
             </Link>
           </div>
         </div>
+
+        {/* Asked here and nowhere else. Someone looking at their own order is
+            the one person on the site who has already decided KRISHOE is worth
+            trusting, and in Nepal that recommendation travels further than any
+            advertising the shop could buy. Until now the moment passed in
+            silence. */}
+        <ShareShop url={absoluteUrl("/shop")} />
       </section>
       <Footer />
     </main>
