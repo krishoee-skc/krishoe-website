@@ -82,3 +82,25 @@ describe("text on the dark install prompt", () => {
     }
   });
 });
+
+describe("caching the bootstrap check", () => {
+  it("remembers only that the recovery login is closed", async () => {
+    const source = code(await readFile("lib/admin-bootstrap-login.ts", "utf8"));
+
+    // One-sided on purpose. Caching "closed" costs a few minutes of waiting
+    // during first-time setup; caching "open" would leave a shared environment
+    // password accepted for minutes after the first real Owner exists, which is
+    // the window this check was written to shut.
+    expect(source).toContain("unstable_cache");
+    expect(source).toContain("(await activeOwnerCount()) > 0");
+    expect(source).toContain("if (await rememberBootstrapClosed()) return false;");
+  });
+
+  it("re-checks the database before ever offering the recovery password", async () => {
+    const source = code(await readFile("lib/admin-bootstrap-login.ts", "utf8"));
+    const permissive = source.slice(source.indexOf("rememberBootstrapClosed()) return false"));
+
+    // The permissive answer is the one that must not be stale.
+    expect(permissive).toContain("activeOwnerCount: await activeOwnerCount()");
+  });
+});

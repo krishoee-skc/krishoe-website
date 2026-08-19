@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { queryPostgres } from "@/lib/postgres/client";
 
@@ -38,11 +39,36 @@ async function activeOwnerCount() {
   }
 }
 
+/**
+ * Remembers only that the recovery login is closed.
+ *
+ * Even counting is a database round trip, and on a cold serverless function
+ * against Neon that is most of the second the sign-in page still took. The
+ * answer changes only when an Owner account is created or removed, which
+ * happens perhaps twice in the life of a shop.
+ *
+ * Deliberately one-sided. Caching "closed" costs, at worst, a few minutes of
+ * waiting before the recovery password works during first-time setup. Caching
+ * "open" would leave a shared environment password accepted for minutes after
+ * the first real Owner exists, which is exactly the window this check was
+ * written to shut. So only the closed answer is remembered.
+ */
+const rememberBootstrapClosed = unstable_cache(
+  async () => (await activeOwnerCount()) > 0,
+  ["admin-bootstrap-owner-exists"],
+  { revalidate: 300 },
+);
+
 export async function isAdminBootstrapLoginAllowed() {
   const explicitRecoveryOverride = process.env.ADMIN_BOOTSTRAP_LOGIN_ENABLED === "true";
   if (explicitRecoveryOverride) return true;
 
   try {
+    if (await rememberBootstrapClosed()) return false;
+
+    // No Owner according to the cache, which is the answer that must not be
+    // stale in the permissive direction — so it is confirmed against the
+    // database before the recovery password is offered.
     return shouldAllowAdminBootstrapLogin({
       activeOwnerCount: await activeOwnerCount(),
       explicitRecoveryOverride,
