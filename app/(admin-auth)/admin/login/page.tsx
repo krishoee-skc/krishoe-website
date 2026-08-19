@@ -30,11 +30,18 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-brand-green-ink px-5 py-16">
+      {/* Decoration behind a form, at 35% opacity over a near-opaque gradient.
+          It carried `priority`, which tells the browser to fetch it before the
+          things people came for — on a phone that meant the sign-in fields
+          waited on a 909KB photograph almost nobody can see. It loads when it
+          gets there now, and `aria-hidden` keeps a screen reader from
+          announcing a picture that carries no information. */}
       <Image
         src="/images/hero-banner.png"
-        alt="KRISHOE premium footwear"
+        alt=""
+        aria-hidden
         fill
-        priority
+        loading="lazy"
         sizes="100vw"
         className="object-cover opacity-35"
       />

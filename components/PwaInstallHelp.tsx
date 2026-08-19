@@ -80,7 +80,13 @@ export default function PwaInstallHelp() {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-black">Add KRISHOE to your Home Screen</p>
+          {/* text-white spelled out, not inherited from the card. globals.css
+              sets `p { color: var(--ink-body) }`, and a rule matching the
+              element directly beats a colour inherited from a parent — so this
+              heading rendered in dark body ink on a dark green card and could
+              not be read. The line below was legible only because it names its
+              own colour. */}
+          <p className="font-black text-white">Add KRISHOE to your Home Screen</p>
           {/* Left in English on purpose: "Share" and "Add to Home Screen" are
               the words printed on the phone's own menu, and a translation would
               send the reader looking for a label that is not there. */}
