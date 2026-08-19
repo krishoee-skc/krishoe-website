@@ -1,3 +1,4 @@
+import PasskeyManager from "@/components/admin/PasskeyManager";
 import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getAdminSettings } from "@/lib/admin-settings";
@@ -42,6 +43,14 @@ export default async function AdminDevicesPage({
           {success}
         </div>
       ) : null}
+
+      {/* Passkeys live beside the sessions rather than in Settings: this is the
+          page someone opens when they are thinking about which devices can get
+          in, and removing a lost phone's key belongs in the same breath as
+          ending its session. */}
+      <div className="mt-6">
+        <PasskeyManager />
+      </div>
 
       {role === "Owner" && activeStaffIds.length ? (
         <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">

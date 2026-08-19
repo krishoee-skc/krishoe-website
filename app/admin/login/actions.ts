@@ -30,6 +30,7 @@ import {
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { constantTimeEqual } from "@/lib/session-security";
 import { isAdminBootstrapLoginAllowed } from "@/lib/admin-bootstrap-login";
+import { alertOnNewDeviceLogin } from "@/lib/login-alerts";
 
 export type LoginState = {
   ok: boolean;
@@ -122,11 +123,46 @@ async function completeStaffLogin(
     },
   );
 
+  // A stolen password is silent. The audit entry above records this sign-in,
+  // but only for someone who later goes looking; this tells the owner while it
+  // is happening, and only for a device the account has never used — an alert
+  // that fires on every routine sign-in is one nobody reads.
+  await alertOnNewDeviceLogin({
+    staffId: markedStaff.id,
+    staffName: markedStaff.name,
+    role: markedStaff.role,
+    deviceLabel: sessionRecord.deviceLabel,
+    sessionId: sessionRecord.id,
+    mfaVerified,
+  });
+
   return {
     ok: true,
     message: "Login successful. Redirecting...",
     nextPath: markedStaff.mustChangePassword ? "/admin/change-password" : undefined,
   } satisfies LoginState;
+}
+
+/**
+ * Signs in an account whose passkey has already been verified.
+ *
+ * Deliberately the same `completeStaffLogin` a password sign-in uses, so a
+ * passkey login is recorded, alerted on and session-tracked identically. A
+ * second path that "also logs someone in" is how two paths drift until one of
+ * them stops writing an audit entry.
+ *
+ * Counted as MFA-verified: the passkey already proves possession of the device
+ * plus a fingerprint or PIN, which is a stronger pair than a password and a
+ * code sent to an inbox that same password might open.
+ */
+export async function completePasskeyStaffLogin(staff: SafeAdminStaffAccount) {
+  if (staff.status !== "Active") {
+    return { ok: false, message: "यो खाता बन्द छ। मालिकलाई भन्नुहोस्।" } satisfies LoginState;
+  }
+
+  const context = await loginRequestContext();
+  await clearLoginRateLimit(await loginKey());
+  return completeStaffLogin(staff, true, context);
 }
 
 export async function loginAdminAction(_previousState: LoginState, formData: FormData) {

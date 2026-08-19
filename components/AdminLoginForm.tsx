@@ -9,6 +9,7 @@ import {
   type LoginState,
 } from "@/app/admin/login/actions";
 import SubmitButton from "@/components/SubmitButton";
+import PasskeySignInButton from "@/components/PasskeySignInButton";
 
 const initialState: LoginState = {
   ok: false,
@@ -154,10 +155,10 @@ export default function AdminLoginForm({
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-[#FFFFFF] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-        {portal === "worker" ? "Secure worker portal" : "Secure admin"}
+        {portal === "worker" ? "KRISHOE · कामदार" : "KRISHOE · Admin"}
       </p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-        {portal === "worker" ? "KRISHOE worker portal" : "KRISHOE control room"}
+        {portal === "worker" ? "KRISHOE worker portal" : "KRISHOE Admin"}
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {portal === "worker"
@@ -166,6 +167,11 @@ export default function AdminLoginForm({
           ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
           : "आफ्नै email वा मोबाइल नम्बर र आफ्नै password हाल्नुहोस् — मालिकको होइन। यो फोन वा computer Login devices मा दर्ता हुन्छ।"}
       </p>
+
+      {/* Offered above the password, because it is the better way in when the
+          device has one. It removes itself where passkeys cannot work, so the
+          password below is never left as the unexplained second choice. */}
+      <PasskeySignInButton nextPath={nextPath} />
 
       {/* One box, either identity. A worker who has no email should not have to
           work out which of two fields their number belongs in; the server
@@ -212,7 +218,7 @@ export default function AdminLoginForm({
           href="/admin/forgot-password"
           className="text-center text-sm font-black text-brand-green hover:underline"
         >
-          Forgot staff password?
+          आफ्नो password बिर्सनुभयो?
         </Link>
       </div>
     </form>
