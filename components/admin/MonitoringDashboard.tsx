@@ -403,7 +403,11 @@ export default function MonitoringDashboard() {
           {monitoring.uptime < 99.9 && (
             <li>✓ Uptime below 99.9% - review system stability</li>
           )}
-          {Object.values(monitoring.health).some((v) => !v) && (
+          {/* This read `!v`, left over from when these were booleans. Every value
+              here is now a non-empty string, so the test was false for "down"
+              exactly as often as for "up" — the line could never appear, on any
+              screen, for any outage. */}
+          {Object.values(monitoring.health).some((v) => v === "down") && (
             <li>✓ Some services unhealthy - check system status</li>
           )}
         </ul>

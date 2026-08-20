@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * What the monitoring screen is allowed to claim.
@@ -16,8 +16,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const ORIGINAL = { ...process.env };
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("no network in tests")));
+});
+
 afterEach(() => {
   process.env = { ...ORIGINAL };
+  vi.unstubAllGlobals();
   vi.resetModules();
 });
 
@@ -41,6 +46,19 @@ describe("what red means", () => {
     expect(code).not.toContain("BREVO_API_KEY");
   });
 
+  it("goes and looks at the cache rather than assuming an answer", async () => {
+    const source = await readFile("lib/monitoring.ts", "utf8");
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+    // `cache: "off"` was a hard-coded value that had never looked at anything,
+    // and it read on the dashboard as a service the shop had failed to buy.
+    // The shop's pages are prerendered and served from Vercel's edge cache —
+    // /shop answers from it — so the honest report is whatever that cache says
+    // when asked.
+    expect(code).toContain("x-vercel-cache");
+    expect(code).toContain("cacheStatusFromHeader");
+  });
+
   it("calls an unconfigured service off, not down", async () => {
     delete process.env.EMAIL_PROVIDER_URL;
     delete process.env.TWILIO_ACCOUNT_SID;
@@ -53,9 +71,6 @@ describe("what red means", () => {
     expect(health.sms).toBe("off");
     expect(health.email).toBe("off");
     expect(health.storage).toBe("off");
-    // Cache was hard-coded false and therefore permanently red, for a service
-    // this shop has never used.
-    expect(health.cache).toBe("off");
   });
 
   it("calls a configured service up", async () => {

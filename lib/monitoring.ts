@@ -1,5 +1,6 @@
 import { fingerprintFailure } from "@/lib/error-fingerprint";
 import { queryPostgres } from "@/lib/postgres/client";
+import { getSiteUrl } from "@/lib/seo";
 
 const STORE = "krishoe";
 
@@ -50,6 +51,40 @@ export interface UptimeStatus {
  * - "down"      — configured, and it failed. This is the only red.
  */
 export type ServiceStatus = "up" | "off" | "down";
+
+/**
+ * What "Cache" means for this shop, and why the check has to go and ask.
+ *
+ * The field was hard-coded to "off" and had never looked at anything, which
+ * read on the dashboard as a service the shop had failed to buy. There is no
+ * such service, and none is wanted. The shop's pages are prerendered and served
+ * from Vercel's edge cache — /shop, the category pages and the home page all
+ * answer from it — so the cache is not merely set up, it is the fastest part of
+ * the site. Putting a cache server in front of that would buy a second thing
+ * that can go down in exchange for pages that are already being served from
+ * memory at the edge.
+ *
+ * So ask the cache itself. Every response Vercel serves carries x-vercel-cache
+ * saying how it was answered; a HEAD request to a shopper's page reads it
+ * without pulling the page down.
+ */
+export function cacheStatusFromHeader(header: string | null | undefined): ServiceStatus {
+  const state = header?.trim().toUpperCase();
+
+  // No header at all means nothing is in front of the app: local development,
+  // or a host that does not cache. Not a fault, and not something to fix.
+  if (!state) return "off";
+
+  // Caching deliberately switched off for this route.
+  if (state === "BYPASS") return "off";
+
+  // HIT and STALE are the cache answering. PRERENDER and MISS are the cache
+  // filling — the first request after every deploy is a MISS, and calling that
+  // an outage would put the card in red several times a week for nothing.
+  return "up";
+}
+
+export const CACHE_PROBE_PATH = "/shop";
 
 export interface HealthCheck {
   database: ServiceStatus;
@@ -388,8 +423,6 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
 export async function checkSystemHealth(): Promise<HealthCheck> {
   const checks: HealthCheck = {
     database: "down",
-    // Never wired up. It was hard-coded to false and therefore permanently red,
-    // for a service this shop has never used.
     cache: "off",
     api: "down",
     email: "off",
@@ -415,6 +448,21 @@ export async function checkSystemHealth(): Promise<HealthCheck> {
     checks.api = response.ok ? "up" : "down";
   } catch {
     checks.api = "down";
+  }
+
+  // Cache. Read from the page a shopper actually loads, over the public
+  // address — VERCEL_URL points at the deployment itself, which answers from
+  // the function and never carries a cache header at all.
+  try {
+    const response = await fetch(`${getSiteUrl()}${CACHE_PROBE_PATH}`, {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    checks.cache = response.ok
+      ? cacheStatusFromHeader(response.headers.get("x-vercel-cache"))
+      : "down";
+  } catch {
+    checks.cache = "down";
   }
 
   // Email. This read BREVO_API_KEY, which is the key for reading delivery

@@ -119,3 +119,38 @@ describe("keeping the tables from growing without end", () => {
     await expect(pruneOldMonitoringRows()).resolves.toBeUndefined();
   });
 });
+
+/**
+ * The Cache tile said "Not set up" because the field was hard-coded and had
+ * never looked at anything — reading, to the shop's owner, as a service they
+ * had failed to buy. The shop's pages are prerendered and served from Vercel's
+ * edge cache; /shop answers from it right now. The check asks that cache.
+ */
+describe("checking the cache", () => {
+  it("counts the cache answering as healthy", async () => {
+    const { cacheStatusFromHeader } = await import("@/lib/monitoring");
+
+    for (const header of ["HIT", "STALE", "hit", " Hit "]) {
+      expect(cacheStatusFromHeader(header), header).toBe("up");
+    }
+  });
+
+  it("does not call a cold entry an outage", async () => {
+    const { cacheStatusFromHeader } = await import("@/lib/monitoring");
+
+    // The first request after every deploy is a MISS. Red here would put the
+    // card in alarm several times a week for nothing, which is how a health
+    // screen teaches its reader to ignore red.
+    expect(cacheStatusFromHeader("MISS")).toBe("up");
+    expect(cacheStatusFromHeader("PRERENDER")).toBe("up");
+  });
+
+  it("says so plainly when nothing caches in front of the app", async () => {
+    const { cacheStatusFromHeader } = await import("@/lib/monitoring");
+
+    // Local development, or a host with no edge cache. Not a fault.
+    expect(cacheStatusFromHeader(null)).toBe("off");
+    expect(cacheStatusFromHeader("")).toBe("off");
+    expect(cacheStatusFromHeader("BYPASS")).toBe("off");
+  });
+});
