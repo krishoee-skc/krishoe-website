@@ -28,6 +28,7 @@
     "audit:access": "node scripts/audit-admin-access-branch.mjs",
     "db:import": "node scripts/import-backup-to-postgres.mjs",
     "db:smoke": "node scripts/postgres-smoke-check.mjs",
+    "db:monitoring": "node scripts/create-monitoring-tables.mjs",
     "business:clean-start": "node scripts/clean-business-start.mjs"
   },
   "overrides": {

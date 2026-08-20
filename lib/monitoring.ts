@@ -1,3 +1,4 @@
+import { fingerprintFailure } from "@/lib/error-fingerprint";
 import { queryPostgres } from "@/lib/postgres/client";
 
 const STORE = "krishoe";
@@ -60,21 +61,53 @@ export interface HealthCheck {
   timestamp: string;
 }
 
-// Log error
+const MESSAGE_MAX = 500;
+const STACK_MAX = 4000;
+
+/**
+ * Writing a failure down must never itself become the failure.
+ *
+ * When the database is what broke, every request that fails then tries to
+ * record that failure in the database that is failing. The shop spends the
+ * capacity it has left on writes that cannot land, each one waiting out its own
+ * connection timeout, and the outage gets worse for being logged. After a few
+ * refusals in a row this stops trying and comes back in a minute. Nothing is
+ * lost that was not already lost: reportError writes its console line either
+ * way, and a database that is down is exactly the thing the health check and
+ * the uptime monitor are watching for.
+ */
+const WRITE_FAILURE_LIMIT = 3;
+const WRITE_PAUSE_MS = 60_000;
+let consecutiveWriteFailures = 0;
+let writesPausedUntil = 0;
+
+function truncate(value: string, max: number) {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+/** Record a failure so /admin/monitoring can show it. Never throws. */
 export async function logError(error: Omit<ErrorLog, "id" | "timestamp">) {
+  if (Date.now() < writesPausedUntil) {
+    return;
+  }
+
   try {
-    const id = `err-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `err-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
     await queryPostgres(
       STORE,
       `INSERT INTO monitoring_errors
-       (id, level, message, stack, context, user_id, path, method, status_code, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+       (id, level, message, fingerprint, stack, context, user_id, path, method, status_code, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
       [
         id,
         error.level,
-        error.message,
-        error.stack || null,
+        // A message is a sentence for a person to read. A stack that arrives in
+        // this field unbounded is a row the dashboard cannot render and a table
+        // that grows without limit; the full text goes in `stack`.
+        truncate(error.message, MESSAGE_MAX),
+        fingerprintFailure(error.message),
+        error.stack ? truncate(error.stack, STACK_MAX) : null,
         error.context || null,
         error.userId || null,
         error.path || null,
@@ -83,13 +116,19 @@ export async function logError(error: Omit<ErrorLog, "id" | "timestamp">) {
       ]
     );
 
-    // Send alert if critical
-    if (error.level === "error") {
-      await sendCriticalAlert(error);
-    }
-
+    consecutiveWriteFailures = 0;
     return id;
   } catch (err) {
+    consecutiveWriteFailures += 1;
+
+    if (consecutiveWriteFailures >= WRITE_FAILURE_LIMIT) {
+      writesPausedUntil = Date.now() + WRITE_PAUSE_MS;
+      consecutiveWriteFailures = 0;
+    }
+
+    // Deliberately console, not reportError. reportError calls this function,
+    // so reporting from here would turn one failed write into an unbounded
+    // chain of them.
     console.error("Failed to log error:", err);
   }
 }
@@ -150,6 +189,40 @@ export async function recordUptimeCheck(status: Omit<UptimeStatus, "timestamp">)
   }
 }
 
+export const MONITORING_RETENTION_DAYS = 90;
+
+/**
+ * Drop monitoring rows older than the window the dashboard can show.
+ *
+ * Nothing writes to these tables on purpose — they fill up when things go
+ * wrong — so an unbounded table is a slow leak that only widens on the shop's
+ * worst days, and the screen never looks back further than thirty days anyway.
+ * Called once a day from the sales cron, which already runs and already has no
+ * other reason to fail. Never throws: a prune that could not run is not a
+ * reason to fail a night's summaries.
+ */
+export async function pruneOldMonitoringRows() {
+  try {
+    await queryPostgres(
+      STORE,
+      `DELETE FROM monitoring_errors WHERE created_at < NOW() - ($1 * INTERVAL '1 day')`,
+      [MONITORING_RETENTION_DAYS]
+    );
+    await queryPostgres(
+      STORE,
+      `DELETE FROM monitoring_performance WHERE created_at < NOW() - ($1 * INTERVAL '1 day')`,
+      [MONITORING_RETENTION_DAYS]
+    );
+    await queryPostgres(
+      STORE,
+      `DELETE FROM monitoring_uptime WHERE checked_at < NOW() - ($1 * INTERVAL '1 day')`,
+      [MONITORING_RETENTION_DAYS]
+    );
+  } catch (err) {
+    console.error("Failed to prune monitoring rows:", err);
+  }
+}
+
 // Get error statistics
 export async function getErrorStats(hours: number = 24): Promise<{
   totalErrors: number;
@@ -166,13 +239,17 @@ export async function getErrorStats(hours: number = 24): Promise<{
       message: string;
     }>(
       STORE,
+      // Grouped on the fingerprint, so one fault that struck fifty orders is
+      // one row reading 50x instead of fifty rows each reading 1x. The message
+      // shown is the most recent of the group, which is the one whose ids and
+      // amounts are still worth looking up.
       `SELECT
-        COUNT(*) as total,
+        COUNT(*)::integer as total,
         level,
-        message
+        (array_agg(message ORDER BY created_at DESC))[1] as message
       FROM monitoring_errors
       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
-      GROUP BY level, message
+      GROUP BY level, COALESCE(fingerprint, message)
       ORDER BY COUNT(*) DESC
       LIMIT 50`,
       [safeHours]
@@ -352,30 +429,6 @@ export async function checkSystemHealth(): Promise<HealthCheck> {
   checks.storage = process.env.BLOB_READ_WRITE_TOKEN?.trim() ? "up" : "off";
 
   return checks;
-}
-
-// Send critical alert
-async function sendCriticalAlert(error: Omit<ErrorLog, "id" | "timestamp">) {
-  try {
-    const message = `
-🚨 CRITICAL ERROR IN PRODUCTION
-
-Message: ${error.message}
-Level: ${error.level}
-Path: ${error.path}
-Time: ${new Date().toISOString()}
-
-Stack: ${error.stack || "N/A"}
-Context: ${error.context || "N/A"}
-
-Please check immediately!
-    `;
-
-    console.error("CRITICAL ALERT:", message);
-    // Send email alert here if configured
-  } catch (err) {
-    console.error("Failed to send critical alert:", err);
-  }
 }
 
 // Get uptime percentage

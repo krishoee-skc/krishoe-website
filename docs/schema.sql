@@ -1435,6 +1435,10 @@ CREATE TABLE IF NOT EXISTS monitoring_errors (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   level TEXT NOT NULL CHECK (level IN ('error', 'warning', 'info')),
   message TEXT NOT NULL,
+  -- The message with its ids, amounts and timestamps masked out, so one fault
+  -- is a single row in the summary rather than one row per occurrence. See
+  -- lib/error-fingerprint.ts.
+  fingerprint TEXT,
   stack TEXT,
   context TEXT,
   user_id TEXT,
@@ -1466,6 +1470,7 @@ CREATE TABLE IF NOT EXISTS monitoring_uptime (
 
 CREATE INDEX IF NOT EXISTS monitoring_errors_created_at_idx ON monitoring_errors(created_at DESC);
 CREATE INDEX IF NOT EXISTS monitoring_errors_level_idx ON monitoring_errors(level);
+CREATE INDEX IF NOT EXISTS monitoring_errors_fingerprint_idx ON monitoring_errors(fingerprint);
 CREATE INDEX IF NOT EXISTS monitoring_performance_created_at_idx ON monitoring_performance(created_at DESC);
 CREATE INDEX IF NOT EXISTS monitoring_performance_path_idx ON monitoring_performance(path);
 CREATE INDEX IF NOT EXISTS monitoring_uptime_checked_at_idx ON monitoring_uptime(checked_at DESC);

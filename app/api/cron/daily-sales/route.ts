@@ -4,6 +4,7 @@ import {
   notifyPeriodSalesSummary,
   notifyProductionSummary,
 } from "@/lib/notifications";
+import { pruneOldMonitoringRows } from "@/lib/monitoring";
 import { reportError } from "@/lib/report-error";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,10 @@ export async function GET(request: Request) {
         ]
       : []),
   ];
+  // Housekeeping, not a job: it has nothing to deliver and nothing to report,
+  // so a failure here must not colour the summaries' result.
+  await pruneOldMonitoringRows();
+
   const settled = await Promise.allSettled(jobs.map((job) => job.run()));
   const sent: Record<string, string> = {};
   const failed: string[] = [];

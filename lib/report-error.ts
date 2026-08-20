@@ -5,12 +5,26 @@
 // work that succeeded, and a retry posts it twice. Swallowing leaves nobody
 // knowing. So: carry on, but say so.
 //
-// console.error is the whole delivery mechanism, which is enough because the
-// host captures it into runtime logs. It is deliberately not a notification —
-// the admin cannot act on "the catalog sync failed", and a failure loud enough
-// to interrupt work should be thrown instead of reported.
+// It is deliberately not a notification — the admin cannot act on "the catalog
+// sync failed", and a failure loud enough to interrupt work should be thrown
+// instead of reported. It is written twice: to the console, which the host
+// captures into runtime logs, and to monitoring_errors, which is what
+// /admin/monitoring reads.
+//
+// The second one is the point. Runtime logs live on a host nobody in this shop
+// has ever signed into and drop what they hold after a few days, so a fault
+// that ran for a week was, in practice, never recorded anywhere the owner could
+// find it. Thirty-nine call sites already say exactly what was being attempted;
+// they only needed somewhere to say it to.
+
+import { after } from "next/server";
+import { logError } from "@/lib/monitoring";
 
 const PREFIX = "[krishoe]";
+
+function firstLine(text: string) {
+  return text.split("\n", 1)[0] ?? text;
+}
 
 function describe(error: unknown) {
   if (error instanceof Error) {
@@ -27,7 +41,37 @@ function describe(error: unknown) {
  *   "sync catalog stock after purchase PUR-12"
  */
 export function reportError(where: string, error: unknown) {
-  console.error(`${PREFIX} ${where} failed: ${describe(error)}`);
+  const described = describe(error);
+  console.error(`${PREFIX} ${where} failed: ${described}`);
+  record(where, described, error);
+}
+
+/**
+ * Put the failure in the table, without making anyone wait for it.
+ *
+ * Every one of these sites sits after the real work has committed — the bill is
+ * posted, the order is saved — so the response should leave at the speed it
+ * would have left anyway. `after` is Next's own hook for exactly this: work
+ * that runs once the response is on its way. Outside a request there is nothing
+ * to run after — a script, a test, a build — so the write just runs; logError
+ * swallows its own failures, so neither path can throw into the caller.
+ */
+function record(where: string, described: string, error: unknown) {
+  const write = () =>
+    logError({
+      level: "error",
+      // The first line only. The rest of a stack is not a sentence, and the
+      // whole of it is kept in its own column.
+      message: `${where} failed: ${firstLine(described)}`,
+      stack: error instanceof Error ? error.stack : undefined,
+      context: where,
+    });
+
+  try {
+    after(write);
+  } catch {
+    void write();
+  }
 }
 
 /**

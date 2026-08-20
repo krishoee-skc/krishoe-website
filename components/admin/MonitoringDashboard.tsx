@@ -12,6 +12,7 @@ interface MonitoringData {
       id: string;
       message: string;
       level: string;
+      context?: string | null;
       timestamp?: string;
       created_at?: string;
     }>;
@@ -37,6 +38,23 @@ interface MonitoringData {
     sms: ServiceStatus;
     storage: ServiceStatus;
   };
+}
+
+/** Nepal time, as a clock reads it. The column stores UTC. */
+function formatWhen(value?: string | null) {
+  if (!value) return "—";
+
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) return "—";
+
+  return when.toLocaleString("en-GB", {
+    timeZone: "Asia/Kathmandu",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function MonitoringDashboard() {
@@ -268,6 +286,57 @@ export default function MonitoringDashboard() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Recent Errors.
+          These were being fetched on every refresh and then dropped: the page
+          asked the server for the last twenty failures and rendered none of
+          them. Top Errors above answers "what keeps breaking"; only this
+          answers "what broke just now, and during what" — which is the one a
+          shop needs at four in the afternoon with an order half-placed. */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          🕐 Recent Errors
+        </h2>
+        {monitoring.errors.recentErrors.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-green-600">✨ केही बिग्रेको छैन।</p>
+            <p className="mt-1 text-xs text-gray-500">
+              पछिल्लो २४ घण्टामा एउटै गल्ती रेकर्ड भएको छैन।
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {monitoring.errors.recentErrors.map((entry) => (
+              <li key={entry.id} className="py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${
+                      entry.level === "error"
+                        ? "bg-red-100 text-red-700"
+                        : entry.level === "warning"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {entry.level}
+                  </span>
+                  <span className="text-xs tabular-nums text-gray-500">
+                    {formatWhen(entry.created_at ?? entry.timestamp)}
+                  </span>
+                  {entry.context ? (
+                    <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-600">
+                      {entry.context}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1 break-words text-sm text-gray-900">
+                  {entry.message}
+                </p>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
