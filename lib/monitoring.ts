@@ -35,13 +35,28 @@ export interface UptimeStatus {
   region: string;
 }
 
+/**
+ * Three states, because a boolean could not tell the truth here.
+ *
+ * The dashboard reported Email, SMS and Cache as "Down" in alarming red, and
+ * none of them was broken. Email was working the whole time — the check simply
+ * read the wrong variable. SMS and Cache have never been set up, because the
+ * shop does not use them; calling that an outage teaches the owner to ignore
+ * red, which is the one thing a health screen must never do.
+ *
+ * - "up"        — checked just now, and it answered.
+ * - "off"       — deliberately not set up. Nothing is wrong.
+ * - "down"      — configured, and it failed. This is the only red.
+ */
+export type ServiceStatus = "up" | "off" | "down";
+
 export interface HealthCheck {
-  database: boolean;
-  cache: boolean;
-  api: boolean;
-  email: boolean;
-  sms: boolean;
-  storage: boolean;
+  database: ServiceStatus;
+  cache: ServiceStatus;
+  api: ServiceStatus;
+  email: ServiceStatus;
+  sms: ServiceStatus;
+  storage: ServiceStatus;
   timestamp: string;
 }
 
@@ -295,21 +310,23 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
 // Check system health
 export async function checkSystemHealth(): Promise<HealthCheck> {
   const checks: HealthCheck = {
-    database: false,
-    cache: false,
-    api: false,
-    email: false,
-    sms: false,
-    storage: false,
+    database: "down",
+    // Never wired up. It was hard-coded to false and therefore permanently red,
+    // for a service this shop has never used.
+    cache: "off",
+    api: "down",
+    email: "off",
+    sms: "off",
+    storage: "off",
     timestamp: new Date().toISOString(),
   };
 
   // Database check
   try {
     await queryPostgres(STORE, "SELECT 1", []);
-    checks.database = true;
+    checks.database = "up";
   } catch {
-    checks.database = false;
+    checks.database = "down";
   }
 
   // API check
@@ -318,19 +335,21 @@ export async function checkSystemHealth(): Promise<HealthCheck> {
       `${process.env.VERCEL_URL ? "https://" + process.env.VERCEL_URL : "http://localhost:3000"}/api/health`,
       { method: "GET" }
     );
-    checks.api = response.ok;
+    checks.api = response.ok ? "up" : "down";
   } catch {
-    checks.api = false;
+    checks.api = "down";
   }
 
-  // Email check (Brevo)
-  checks.email = !!process.env.BREVO_API_KEY;
+  // Email. This read BREVO_API_KEY, which is the key for reading delivery
+  // statistics — not the one that sends anything. Mail has been going out
+  // through EMAIL_PROVIDER_URL the whole time, and the dashboard called it
+  // Down because it was looking at the wrong variable.
+  checks.email = process.env.EMAIL_PROVIDER_URL?.trim() ? "up" : "off";
 
-  // SMS check (Twilio)
-  checks.sms = !!process.env.TWILIO_ACCOUNT_SID;
+  // Twilio was never bought. "Not set up" is the honest word for that.
+  checks.sms = process.env.TWILIO_ACCOUNT_SID?.trim() ? "up" : "off";
 
-  // Storage check
-  checks.storage = !!process.env.BLOB_READ_WRITE_TOKEN;
+  checks.storage = process.env.BLOB_READ_WRITE_TOKEN?.trim() ? "up" : "off";
 
   return checks;
 }

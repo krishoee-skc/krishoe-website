@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ServiceStatus } from "@/lib/monitoring";
 
 interface MonitoringData {
   errors: {
@@ -29,12 +30,12 @@ interface MonitoringData {
   };
   uptime: number;
   health: {
-    database: boolean;
-    cache: boolean;
-    api: boolean;
-    email: boolean;
-    sms: boolean;
-    storage: boolean;
+    database: ServiceStatus;
+    cache: ServiceStatus;
+    api: ServiceStatus;
+    email: ServiceStatus;
+    sms: ServiceStatus;
+    storage: ServiceStatus;
   };
 }
 
@@ -85,8 +86,13 @@ export default function MonitoringDashboard() {
     );
   }
 
-  const getHealthColor = (healthy: boolean) =>
-    healthy ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+  // Grey for "not set up", so the eye stops treating it as a fault.
+  const getHealthColor = (status: ServiceStatus) =>
+    status === "up"
+      ? "bg-green-100 text-green-700"
+      : status === "off"
+        ? "bg-gray-100 text-gray-600"
+        : "bg-red-100 text-red-700";
 
   return (
     <div className="space-y-6">
@@ -144,8 +150,18 @@ export default function MonitoringDashboard() {
                 <span className="text-2xl">{service.icon}</span>
                 <span className="font-semibold">{service.name}</span>
               </div>
+              {/* Red is reserved for something that is configured and failing.
+                  Three of these six were red for services this shop has never
+                  set up, and one — Email — was working the whole time. A
+                  dashboard that cries outage over a service nobody bought
+                  teaches its reader to ignore red, which is the one thing a
+                  health screen must never do. */}
               <span className="text-sm">
-                {service.status ? "🟢 Healthy" : "🔴 Down"}
+                {service.status === "up"
+                  ? "🟢 Healthy"
+                  : service.status === "off"
+                    ? "⚪ Not set up"
+                    : "🔴 Down"}
               </span>
             </div>
           ))}
@@ -155,19 +171,36 @@ export default function MonitoringDashboard() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
+          {/* Nothing records uptime yet — the tables this would read were never
+              created — so the figure is zero for want of measurement, not
+              because the shop was down. It was being shown as 0.00% under a
+              badge reading "Good", which is worse than showing nothing: the
+              same screen would say "Good" on the day the shop really was down.
+              Until there is something to count, it says so. */}
           <div className="text-sm text-gray-600">Uptime (30 days)</div>
-          <div className="text-3xl font-bold text-gray-900 mt-2">
-            {monitoring.uptime.toFixed(2)}%
-          </div>
-          <div
-            className={`mt-2 text-xs font-medium px-2 py-1 rounded ${
-              monitoring.uptime >= 99.9
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
-          >
-            {monitoring.uptime >= 99.9 ? "Excellent" : "Good"}
-          </div>
+          {monitoring.uptime > 0 ? (
+            <>
+              <div className="text-3xl font-bold text-gray-900 mt-2">
+                {monitoring.uptime.toFixed(2)}%
+              </div>
+              <div
+                className={`mt-2 text-xs font-medium px-2 py-1 rounded ${
+                  monitoring.uptime >= 99.9
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {monitoring.uptime >= 99.9 ? "Excellent" : "Needs attention"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-2 text-3xl font-bold text-gray-400">—</div>
+              <div className="mt-2 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                अझै नापिएको छैन
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
