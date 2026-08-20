@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { categories } from "@/lib/products";
+import { searchProducts } from "@/lib/product-search";
+import { stockLevel } from "@/lib/stock-thresholds";
+import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { SearchIcon, XIcon } from "@/components/Icons";
 
 // Command-palette style search: opens on Ctrl/⌘+K or "/", closes on Esc.
@@ -13,6 +16,11 @@ export default function CommandSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { products } = useCommerce();
+
+  // Six is what fits without the panel needing to scroll on a phone. Anyone
+  // who wants the full list is one Enter away from the shop.
+  const matches = useMemo(() => searchProducts(products, query, 6), [products, query]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -132,6 +140,83 @@ export default function CommandSearch() {
               </button>
             </form>
 
+            {/* Results while typing, categories when the box is empty. The two
+                never show together: a shopper who has typed something is
+                looking for a pair, not a department, and stacking both is how
+                the panel stopped feeling like an answer. */}
+            {query.trim() ? (
+              <div className="max-h-[60vh] overflow-y-auto p-3">
+                {matches.length === 0 ? (
+                  <div className="px-3 py-8 text-center">
+                    <p className="text-sm font-semibold text-brand-green-ink">
+                      “{query.trim()}” भेटिएन
+                    </p>
+                    <p className="mt-1 text-sm text-brand-muted">
+                      अर्को नाम वा रङ लेखेर हेर्नुहोस्।
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="grid gap-1">
+                    {matches.map(({ product }) => {
+                      const soldOut = stockLevel(product.stock) === "out";
+
+                      return (
+                        <li key={product.id}>
+                          <Link
+                            href={`/product/${product.id}`}
+                            onClick={closePalette}
+                            className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-brand-mist active:bg-brand-green-mist"
+                          >
+                            <Image
+                              src={product.image}
+                              alt=""
+                              width={52}
+                              height={52}
+                              className="h-13 w-13 shrink-0 rounded-lg object-cover"
+                              style={{ height: 52, width: 52 }}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-brand-green-ink">
+                                {product.name}
+                              </span>
+                              <span className="mt-0.5 block text-xs text-brand-muted">
+                                {product.category}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-right">
+                              <span className="block text-sm font-black text-brand-green">
+                                {product.price}
+                              </span>
+                              {/* Said here rather than discovered on the product
+                                  page: a shopper should not click through to
+                                  find out they cannot buy it. */}
+                              <span
+                                className={`mt-0.5 block text-[11px] font-bold ${
+                                  soldOut ? "text-brand-clay" : "text-brand-muted"
+                                }`}
+                              >
+                                {soldOut ? "सकियो" : `${product.stock} जोडी`}
+                              </span>
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push(`/shop?query=${encodeURIComponent(query.trim())}`);
+                    closePalette();
+                  }}
+                  className="mt-2 min-h-11 w-full rounded-xl border border-brand-green/25 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
+                >
+                  पसलमा सबै हेर्ने →
+                </button>
+              </div>
+            ) : (
             <div className="overflow-y-auto p-3">
               <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
                 Browse categories
@@ -156,6 +241,7 @@ export default function CommandSearch() {
                 ))}
               </div>
             </div>
+            )}
           </div>
         </div>
       ) : null}

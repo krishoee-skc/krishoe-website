@@ -133,13 +133,19 @@ export default function ShopCatalogControls({
         </div>
 
         <div className="grid gap-3 border-t border-black/10 pt-4 lg:grid-cols-[1fr_180px_auto]">
+          {/* Called filtering, not searching, and deliberately.
+              This box and the palette in the header looked like the same
+              control in two places, and a shopper could not tell which one to
+              use. They do different jobs: the palette finds a pair anywhere in
+              the shop, this one narrows the pairs already on screen. Naming
+              them differently is most of the fix. */}
           <label className="relative block">
-            <span className="sr-only">Search products</span>
+            <span className="sr-only">Filter the pairs shown below</span>
             <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-muted" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search name, color, SKU"
+              placeholder="यीमध्ये छान्नुहोस् — नाम, रङ, SKU"
               className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-sm font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-white"
             />
           </label>
