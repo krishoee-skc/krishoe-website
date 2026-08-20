@@ -24,6 +24,7 @@ import {
 import { getPurchasingSnapshot } from "@/lib/purchasing";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { reportingErrors } from "@/lib/report-error";
+import { getOrders } from "@/lib/submissions";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
 
 export type NotificationDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
@@ -1229,14 +1230,56 @@ function alertAmountRank(alert: OperationalAlert) {
 }
 
 export async function getOperationalAlertCenter(): Promise<OperationalAlertCenter> {
-  const [operations, purchasing, pos, paymentReconciliation, products] = await Promise.all([
+  const [operations, purchasing, pos, paymentReconciliation, products, orders] = await Promise.all([
     getOperationsSnapshot(),
     getPurchasingSnapshot(),
     getPosSnapshot(),
     getPaymentReconciliation(),
     getProducts({ includeDrafts: true }),
+    getOrders(),
   ]);
   const alerts: OperationalAlert[] = [];
+
+  /**
+   * Customers still waiting for the call the shop promised them.
+   *
+   * The shop tells every customer "we will call you shortly to confirm", and
+   * the order screen shows them as New — but nothing counted how long they had
+   * been New. Three orders had been sitting untouched, the oldest for six days,
+   * while this alert centre reported cheerfully on suppliers and stock. Money
+   * owed to suppliers raised a warning; a person waiting for their shoes did
+   * not.
+   *
+   * This is the shop's own promise, so it outranks everything else here and is
+   * pushed first.
+   */
+  const waitingOrders = orders
+    .filter((order) => order.status === "New")
+    .map((order) => ({
+      order,
+      hoursWaiting: Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 3_600_000),
+    }))
+    .filter((entry) => Number.isFinite(entry.hoursWaiting) && entry.hoursWaiting >= 2)
+    .sort((first, second) => second.hoursWaiting - first.hoursWaiting);
+
+  for (const { order, hoursWaiting } of waitingOrders.slice(0, 5)) {
+    const days = Math.floor(hoursWaiting / 24);
+    // Two hours is a nudge; a whole day means the promise is already broken.
+    const severity: OperationalAlertSeverity = days >= 1 ? "critical" : "warning";
+
+    alerts.push({
+      id: `order-waiting-${order.id}`,
+      category: "sales",
+      severity,
+      title: `${order.name} is waiting for a call`,
+      detail:
+        days >= 1
+          ? `Ordered ${days} day${days === 1 ? "" : "s"} ago and still not contacted. ${order.total}.`
+          : `Ordered ${hoursWaiting} hours ago and still not contacted. ${order.total}.`,
+      action: `Call ${order.phone} and mark the order Contacted.`,
+      href: "/admin/orders",
+    });
+  }
 
   for (const ledger of operations.reports.ledgerCollectionFollowups.slice(0, 5)) {
     if (ledger.priority === "Clear") continue;
