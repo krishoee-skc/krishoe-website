@@ -5,6 +5,7 @@ import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { buildStockOverview, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
+import { outlookAdvice, stockOutlook, type StockOutlook } from "@/lib/stock-forecast";
 
 export const metadata = { title: "Stock Control | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -97,16 +98,107 @@ function movementTone(type: StockMovement["type"]) {
   return "bg-gray-100 text-gray-700";
 }
 
+/**
+ * When each design runs out, for the ones where that can honestly be said.
+ *
+ * The rows that cannot be forecast are shown too, quietly, saying what they are
+ * waiting for. Hiding them would leave the owner wondering whether a design was
+ * fine or simply missing, and "no sales yet" is itself worth seeing on a shelf
+ * holding sixty pairs.
+ */
+function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
+  if (rows.length === 0) return null;
+
+  const known = rows.filter((row) => row.status !== "unknown");
+  const waiting = rows.filter((row) => row.status === "unknown");
+
+  const tone: Record<StockOutlook["status"], string> = {
+    out: "bg-brand-clay text-white",
+    urgent: "bg-brand-clay-mist text-brand-clay",
+    soon: "bg-amber-100 text-amber-900",
+    healthy: "bg-emerald-100 text-emerald-900",
+    unknown: "bg-gray-100 text-gray-600",
+  };
+
+  return (
+    <section className="mt-6 rounded-2xl border border-brand-green/20 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="text-lg font-black text-brand-green-ink">कति दिन पुग्छ</h2>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+        बिक्रीको गतिबाट गनिएको। <strong className="text-brand-green-ink">पुग्दो बिक्री
+        नभएसम्म अनुमान गर्दैन</strong> — गलत अंकले नचाहिने माल बनाउन लगाउँछ।
+      </p>
+
+      {known.length > 0 ? (
+        <div className="mt-4 grid gap-2">
+          {known.map((row) => (
+            <div
+              key={row.design}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-black text-brand-green-ink">{row.design}</p>
+                <p className="mt-0.5 text-xs font-semibold text-gray-500">
+                  {row.onHand} जोडी बाँकी · {row.historyDays} दिनमा {row.soldInWindow} बिक्री
+                  {row.dailyRate ? ` · दिनको ${row.dailyRate}` : ""}
+                </p>
+              </div>
+              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${tone[row.status]}`}>
+                {outlookAdvice(row)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          अझै कुनै design को गति नापिएको छैन — बिक्री बढेपछि यहीँ देखिन थाल्छ।
+        </p>
+      )}
+
+      {waiting.length > 0 ? (
+        <details className="mt-3 rounded-xl bg-gray-50 px-4 py-3">
+          <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
+            {waiting.length} design — अझै भन्न सकिँदैन
+          </summary>
+          <div className="mt-3 grid gap-1.5">
+            {waiting.map((row) => (
+              <p key={row.design} className="text-sm text-gray-600">
+                <strong className="text-brand-green-ink">{row.design}</strong> · {row.onHand} जोडी ·{" "}
+                {row.waitingFor}
+              </p>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
 async function loadStock() {
   try {
     const [products, operations] = await Promise.all([
       getProducts({ includeDrafts: true }),
       getOperationsData(),
     ]);
-    return { overview: buildStockOverview(operations, products), error: "" };
+    const overview = buildStockOverview(operations, products);
+    // Every design that holds pairs, collapsed across channels: the question
+    // "when does this run out?" is about the shoe, not about which shelf it is
+    // counted on.
+    const pairsByDesign = new Map<string, number>();
+    for (const row of operations.finishedStock) {
+      pairsByDesign.set(row.design, (pairsByDesign.get(row.design) ?? 0) + row.stockPairs);
+    }
+
+    return {
+      overview,
+      outlook: stockOutlook(
+        [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
+        operations.stockMovements,
+      ),
+      error: "",
+    };
   } catch (error) {
     reportError("load unified stock control", error);
-    return { overview: null, error: saveFailureMessage(error, "Could not load stock control.") };
+    return { overview: null, outlook: [], error: saveFailureMessage(error, "Could not load stock control.") };
   }
 }
 
@@ -137,6 +229,8 @@ export default async function AdminStockPage() {
         <StatCard label="Purchased for resale" value={summary.purchasedPairs} detail="Current pairs whose source history is Purchase In." />
         <StatCard label="Raw materials" value={summary.rawMaterialItems} detail={`${summary.rawMaterialReorderItems} material item(s) at or below reorder level.`} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
       </div>
+
+      <StockOutlookPanel rows={loaded.outlook} />
 
       <div className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft p-4 text-sm leading-6 text-brand-green-ink">
         <strong>Do not add catalog stock twice:</strong> the shop catalog currently shows {summary.sellableCatalogPairs} sellable pairs across {summary.catalogDesigns} designs. It is the selling view of ready stock, not a fourth warehouse.
