@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
@@ -29,14 +30,24 @@ export default function AdminNav({
       <div className="flex h-full max-h-screen flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
-          {!isCollapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-admin-primary to-admin-accent text-white font-bold text-sm">
-                K
-              </div>
-              <span className="font-bold text-lg text-gray-900 dark:text-white">KRISHOE</span>
-            </Link>
-          )}
+          {/* The shop's own mark, not a letter in a gradient box. It stays
+              when the sidebar collapses, where the header used to hold nothing
+              but the toggle arrow. */}
+          <Link href="/admin" className="flex min-w-0 items-center gap-2.5">
+            <Image
+              src="/images/logo-mark.png"
+              alt={isCollapsed ? "KRISHOE" : ""}
+              width={80}
+              height={80}
+              priority
+              className="h-10 w-10 shrink-0"
+            />
+            {!isCollapsed && (
+              <span className="truncate text-xl font-black tracking-wide text-gray-900 dark:text-white">
+                KRISHOE
+              </span>
+            )}
+          </Link>
           <button
             onClick={toggleSidebar}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}

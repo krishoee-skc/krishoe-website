@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
-import { HomeIcon, MenuIcon, XIcon } from "@/components/Icons";
+import { MenuIcon, XIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { type AdminRole } from "@/lib/admin-role-permissions";
@@ -50,7 +51,9 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
     <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
-          <HomeIcon className="h-5 w-5" />
+          {/* A generic house icon stood where the shop's own mark belongs,
+              on the bar that is on screen all day. */}
+          <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9" />
           KRISHOE Admin
         </Link>
         <div className="flex items-center gap-1">

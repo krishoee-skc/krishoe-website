@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { XIcon } from "@/components/Icons";
@@ -37,10 +38,14 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
           {/* Header */}
           <div className="flex h-16 items-center justify-between border-b border-admin-border px-4 dark:border-admin-border-dark">
             <Link href="/admin" className="flex items-center gap-2" onClick={onClose}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-admin-primary to-admin-accent text-white font-bold text-sm">
-                K
-              </div>
-              <span className="font-bold text-gray-900 dark:text-white">KRISHOE</span>
+              <Image
+                src="/images/logo-mark.png"
+                alt=""
+                width={80}
+                height={80}
+                className="h-10 w-10 shrink-0"
+              />
+              <span className="text-xl font-black tracking-wide text-gray-900 dark:text-white">KRISHOE</span>
             </Link>
             <button
               onClick={onClose}

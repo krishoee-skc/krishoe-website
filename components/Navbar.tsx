@@ -36,13 +36,21 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
             {/* The shop's own mark, set in a gold hairline ring. A stamped seal
                 rather than a picture pasted on a page — one distinctive detail,
                 and everything around it stays quiet. */}
+            {/* The emblem alone, not the whole logo shrunk down. logo.png is
+                the stacked lockup — crown, shield, KRISHOE and "Walk with
+                Authority" — and it was being drawn twenty-eight pixels tall
+                inside this ring, where the wordmark under the shield was a
+                grey smudge and the tagline was nothing at all. The word is
+                already set beside it in type that stays sharp at any size, so
+                the picture only has to carry the crest. */}
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-brand-gold/50 sm:h-12 sm:w-12">
               <Image
-                src="/images/logo.png"
+                src="/images/logo-mark.png"
                 alt="KRISHOE"
-                width={72}
-                height={48}
-                className="h-7 w-auto sm:h-8"
+                width={80}
+                height={80}
+                priority
+                className="h-9 w-9 sm:h-10 sm:w-10"
               />
             </span>
             <span className="min-w-0">

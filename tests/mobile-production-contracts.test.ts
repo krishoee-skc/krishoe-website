@@ -106,7 +106,12 @@ describe("mobile production contracts", () => {
     expect(homepage).toContain("/images/mobile-hero-krishoe-gold-v2.png");
     expect(homepage).toContain("Your Identity.");
     expect(homepage).toContain("The Signature Collection");
-    expect(homepage).toContain("/icons/icon.svg");
+    // The crest, not the placeholder. /icons/icon.svg was a rounded square
+    // with a serif K typed into it — a stand-in from before the shop had a
+    // logo — and it sat beside the word KRISHOE in the first thing any
+    // customer sees. The real emblem is cut from the brand artwork.
+    expect(homepage).toContain("/images/logo-mark.png");
+    expect(homepage).not.toContain("/icons/icon.svg");
     expect(homepage).toContain("Walk with Authority");
     // The deep maroon band under the hero. Named rather than spelled as
     // #651B24: the storefront's colours moved into tailwind.config.js so that

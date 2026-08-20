@@ -50,11 +50,11 @@ export default async function Home() {
           <div className="absolute inset-x-0 top-0 p-6 pt-7 text-brand-green-ink">
             <div className="flex items-center gap-2.5">
               <Image
-                src="/icons/icon.svg"
+                src="/images/logo-mark.png"
                 alt=""
-                width={44}
-                height={44}
-                className="h-11 w-11 rounded-xl shadow-md"
+                width={96}
+                height={96}
+                className="h-12 w-12 rounded-full shadow-md"
               />
               <div>
                 <p className="font-display text-2xl font-black leading-none tracking-[0.08em] text-brand-green">
@@ -109,11 +109,11 @@ export default async function Home() {
           <div className="absolute inset-y-0 left-0 flex w-[48%] flex-col justify-center px-[clamp(3rem,6vw,6rem)] pb-24">
             <div className="flex items-center gap-4">
               <Image
-                src="/icons/icon.svg"
+                src="/images/logo-mark.png"
                 alt=""
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-2xl shadow-lg"
+                width={128}
+                height={128}
+                className="h-16 w-16 rounded-full shadow-lg"
               />
               <div>
                 <p className="font-display text-4xl font-black leading-none tracking-[0.08em] text-brand-green">
