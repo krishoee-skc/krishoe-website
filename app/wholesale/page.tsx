@@ -18,8 +18,6 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
-
 /**
  * The page a shopkeeper needs and could not find.
  *

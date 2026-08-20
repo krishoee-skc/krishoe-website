@@ -66,3 +66,31 @@ describe("the search box", () => {
     expect(catalog).toContain("ShopCatalogControls");
   });
 });
+
+/**
+ * /wholesale must stay prerendered too.
+ *
+ * It carried `force-dynamic` from the commit that created it — not added to fix
+ * anything, just the shape the page was born in — and it was the only shopper
+ * page the edge cache never held: MISS at nine hundred milliseconds against
+ * three hundred for /shop beside it, reading the same catalogue with the same
+ * function and needing nothing about the visitor.
+ *
+ * It is also the page that matters most per visit. A retail customer buys one
+ * pair; a shopkeeper reading this one buys fifty.
+ */
+describe("the wholesale page", () => {
+  it("is not forced to rebuild for every visitor", async () => {
+    const page = code(await readFile("app/wholesale/page.tsx", "utf8"));
+
+    expect(page).not.toContain("force-dynamic");
+    expect(page).not.toContain("searchParams");
+  });
+
+  it("still reads the trade rates it exists to show", async () => {
+    const page = await readFile("app/wholesale/page.tsx", "utf8");
+
+    expect(page).toContain("getProducts");
+    expect(page).toContain("wholesalePriceValue");
+  });
+});
