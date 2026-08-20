@@ -187,15 +187,15 @@ export default function PhotoGuidePage() {
           </li>
           <li className="text-sm text-gray-700 flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
-            <span><span className="font-bold">एउटै जोडीका ५-६ फोटो खिच।</span> फेरिल्टर गरी सबैभन्दा राम्रो (Clear, Sharp, Well-lit) मात्र राख।</span>
+            <span><span className="font-bold">एउटै जोडीका ५-६ फोटो खिच्नुहोस्।</span> छानेर सबैभन्दा राम्रो (Clear, Sharp, Well-lit) मात्र राख्नुहोस्।</span>
           </li>
           <li className="text-sm text-gray-700 flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
-            <span><span className="font-bold">सबै designs को फोटो एकै दिनमा खिच।</span> यसले consistency सुनिश्चित गर्छ।</span>
+            <span><span className="font-bold">सबै designs को फोटो एकै दिनमा खिच्नुहोस्।</span> यसले consistency सुनिश्चित गर्छ।</span>
           </li>
           <li className="text-sm text-gray-700 flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
-            <span><span className="font-bold">Phone settings check गर।</span> HDR on, Portrait mode off, Maximum quality selected भएको आवश्यक छ।</span>
+            <span><span className="font-bold">Phone settings check गर्नुहोस्।</span> HDR on, Portrait mode off, Maximum quality selected भएको आवश्यक छ।</span>
           </li>
         </ul>
       </section>
