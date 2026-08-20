@@ -1,5 +1,6 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
+import { addProductionItem } from "@/lib/production-accounting";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
@@ -184,12 +185,63 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const itemId = typeof body.item_id === "string" ? body.item_id.trim() : "";
-    const productionItemId = typeof body.production_item_id === "string" && body.production_item_id.trim()
+    let productionItemId = typeof body.production_item_id === "string" && body.production_item_id.trim()
       ? body.production_item_id.trim()
       : null;
 
     if (!itemId) {
       return NextResponse.json({ error: "item_id is required" }, { status: 400 });
+    }
+
+    /**
+     * Create the Production Item this Factory Item should point at, then link it.
+     *
+     * The link is what turns two half-pictures into one: the Factory side knows
+     * who made how many pairs, the Production side knows what those pairs cost
+     * in leather and soles, and only a linked item can answer what a pair
+     * actually earns.
+     *
+     * Nine factory items existed and one production item, so eight of them had
+     * nothing to point at. Making them by hand meant leaving this screen,
+     * creating an item, coming back, and choosing it — nine times over, which
+     * is why after months not one link had been made.
+     *
+     * The name is copied rather than asked for. Two names for one shoe is how
+     * the two sides drift apart again, and it is the drift, not the typing,
+     * that costs.
+     */
+    if (!productionItemId && body.create_production_item) {
+      const source = await queryPostgres<{ name: string }>(
+        STORE,
+        `SELECT name FROM factory_items WHERE id = $1`,
+        [itemId],
+      );
+      if (!source[0]) {
+        return NextResponse.json({ error: "Factory Item not found" }, { status: 404 });
+      }
+
+      const existing = await queryPostgres<{ id: string }>(
+        STORE,
+        `SELECT id FROM production_items
+          WHERE lower(btrim(name)) = lower(btrim($1)) AND status = 'Active'
+          LIMIT 1`,
+        [source[0].name],
+      );
+
+      // Reuse a Production Item that already carries this name instead of
+      // making a second one — a duplicate here would split the same shoe's
+      // costs across two records for good.
+      productionItemId =
+        existing[0]?.id ??
+        (
+          await addProductionItem({
+            name: source[0].name,
+            category: typeof body.category === "string" ? body.category : "Footwear",
+            productionType: "Manufactured",
+            sizeGroup: "Mixed",
+            catalogProductId: "",
+          })
+        ).id;
     }
 
     if (productionItemId) {

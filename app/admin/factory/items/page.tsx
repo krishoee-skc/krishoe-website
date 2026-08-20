@@ -57,6 +57,34 @@ export default function FactoryItemsPage() {
     [items],
   );
 
+  /**
+   * Makes the Production Item this Factory Item should point at, and links it.
+   *
+   * The name is copied from the Factory Item rather than asked for. Two names
+   * for one shoe is exactly how the factory ledger and the costing ledger drift
+   * apart again, and the drift is what costs — not the typing.
+   */
+  async function createAndLink(itemId: string) {
+    setSaving(itemId);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/factory/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId, create_production_item: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Production Item could not be created.");
+      setMessage("Production Item बनेर जोडियो — अब यो item को लागत निस्कन थाल्छ।");
+      await loadItems();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Production Item could not be created.");
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function saveLink(itemId: string) {
     setSaving(itemId);
     setMessage("");
@@ -128,6 +156,22 @@ export default function FactoryItemsPage() {
               </select>
               <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-slate-200 disabled:text-slate-400">{saving === item.id ? "Saving..." : "Save item link"}</button>
             </div>
+
+            {/* The dropdown above can only offer Production Items that already
+                exist, and eight of nine factory items had nothing to point at.
+                Making each one meant leaving this screen, creating it, coming
+                back and choosing it — which is why, after months, not one link
+                had been made. */}
+            {!item.production_item_id ? (
+              <button
+                type="button"
+                onClick={() => void createAndLink(item.id)}
+                disabled={saving === item.id}
+                className="mt-2 min-h-12 w-full rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
+              >
+                {saving === item.id ? "बनाउँदैछौँ…" : `“${item.name}” को Production Item बनाएर जोड्ने`}
+              </button>
+            ) : null}
           </article>
         ))}
       </div>
