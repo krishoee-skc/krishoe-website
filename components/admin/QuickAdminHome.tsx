@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowRightIcon, PackageIcon, UserIcon, BellIcon } from "@/components/Icons";
+import {
+  ArrowRightIcon,
+  BellIcon,
+  CreditCardIcon,
+  PackageIcon,
+  PlusIcon,
+  ShoppingBagIcon,
+  ShoppingCartIcon,
+  UserIcon,
+} from "@/components/Icons";
 import type { ReactNode } from "react";
 
 interface QuickCardProps {
@@ -130,7 +139,11 @@ export default function QuickAdminHome({
           titleNepali="आज को उत्पादन"
           value={`${todayProduction.pairs} जोडी`}
           detail={`Total: ${formatMoney(todayProduction.amount)}`}
-          detailNepali={`${todayProduction.activeWorkers}/12 workers active`}
+          // Twelve used to be written in by hand here and matched nothing: the
+          // shop has eight workers in the app and twenty-five in the factory,
+          // so it was wrong the day it was typed and gets wronger as workers
+          // are added. How many worked today is a number we actually know.
+          detailNepali={`आज ${todayProduction.activeWorkers} जनाले काम गरे`}
           action="Production"
           href="/admin/operations/production-accounts"
           tone={todayProduction.pairs > 200 ? "good" : "default"}
@@ -153,7 +166,7 @@ export default function QuickAdminHome({
         {/* Card 3: New Orders */}
         <QuickCard
           title="New Orders"
-          titleNepali="नयाँ অর्डर"
+          titleNepali="नयाँ अर्डर"
           value={newOrders.count}
           detail={`Revenue: ${formatMoney(newOrders.totalAmount)}`}
           detailNepali={`नयाँ customers को अर्डर`}
@@ -190,32 +203,55 @@ export default function QuickAdminHome({
         />
       </div>
 
-      {/* Quick Actions Bar */}
+      {/* The five things done most often, in one row.
+          These read Add Work, Payments, Orders, Billing — one language, at the
+          owner's decision. Before, the row mixed "काम भर्ने" and "Orders" side
+          by side, which is what made it look unfinished; the fix was picking
+          one, not picking Nepali or English.
+
+          The marks beside them are the shop's own icons rather than 💰📦🛒.
+          An emoji is drawn by whatever font the phone happens to carry, so the
+          same screen looked different on every device and never in the brand's
+          colour. These inherit currentColor and match every other icon in
+          admin. */}
       <div className="flex flex-wrap gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <p className="w-full text-xs font-black uppercase text-gray-500">तुरुन्त काम</p>
+        <p className="w-full text-xs font-black uppercase tracking-wide text-gray-500">
+          Quick actions
+        </p>
         <Link
           href="/admin/factory/add-work"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2 font-bold text-white shadow-sm transition hover:bg-brand-green-ink"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-green px-4 py-2 font-bold text-white shadow-sm transition hover:bg-brand-green-ink"
         >
-          + काम भर्ने
+          <PlusIcon className="h-4 w-4" />
+          Add Work
         </Link>
         <Link
           href="/admin/factory/ledger"
-          className="inline-flex items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
-          💰 भुक्तानी
+          <CreditCardIcon className="h-4 w-4" />
+          Payments
         </Link>
         <Link
           href="/admin/orders"
-          className="inline-flex items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
-          📦 Orders
+          <PackageIcon className="h-4 w-4" />
+          Orders
         </Link>
         <Link
           href="/admin/pos"
-          className="inline-flex items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
-          🛒 POS Bill
+          <ShoppingCartIcon className="h-4 w-4" />
+          Billing
+        </Link>
+        <Link
+          href="/admin/stock"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+        >
+          <ShoppingBagIcon className="h-4 w-4" />
+          Stock
         </Link>
       </div>
     </section>
