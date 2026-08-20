@@ -107,7 +107,13 @@ describe("the checkout", () => {
     // A discount submitted by the browser would be a price the customer chose
     // for themselves — the same reason the total is recomputed here.
     expect(source).toContain('normalizeCouponCode(textValue(formData, "couponCode"))');
-    expect(source).toContain("evaluateCoupon(await getCoupon(submittedCode), pricing.totalPaisa)");
+    // Checked as intent rather than as one expression: a referral code is now
+    // resolved through the same call, deliberately, so that there stays exactly
+    // one place where a price can fall. What must hold is that the worth of the
+    // code is decided here, against the total this server computed.
+    expect(source).toContain("evaluateCoupon(");
+    expect(source).toContain("pricing.totalPaisa)");
+    expect(source).toContain("getCoupon(submittedCode)");
     expect(source).not.toContain('textValue(formData, "discount')
   });
 

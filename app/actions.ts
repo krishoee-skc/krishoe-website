@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
 import { markCheckoutRecovered } from "@/lib/checkout-attempts";
 import { evaluateCoupon, getCoupon, normalizeCouponCode, redeemCoupon } from "@/lib/coupons";
+import { findReferralCode, recordReferralClaim, referralAsCoupon } from "@/lib/referrals";
 import { formatPrice } from "@/lib/products";
 import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
@@ -175,8 +176,19 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // here, against the total this server just computed — a discount submitted by
   // the browser would be a price the customer chose for themselves.
   const submittedCode = normalizeCouponCode(textValue(formData, "couponCode"));
+  const checkoutSession = await getCustomerSession();
+
+  // A referral code is entered in the same box as a coupon, because to the
+  // person typing it there is no difference. Resolving it into a coupon here
+  // means the minimum, the cap and the server-side recalculation all apply
+  // unchanged, and there stays exactly one place where a price can fall.
+  const referral = submittedCode ? await findReferralCode(submittedCode) : null;
+  const referralCoupon = referral
+    ? referralAsCoupon(referral, checkoutSession?.userId)
+    : null;
+
   const couponCheck = submittedCode
-    ? evaluateCoupon(await getCoupon(submittedCode), pricing.totalPaisa)
+    ? evaluateCoupon(referralCoupon ?? (await getCoupon(submittedCode)), pricing.totalPaisa)
     : null;
 
   if (submittedCode && couponCheck && !couponCheck.ok) {
@@ -187,7 +199,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   const payablePaisa = Math.max(0, pricing.totalPaisa - discountPaisa);
   const authoritativeTotal = formatPrice(payablePaisa);
 
-  const session = await getCustomerSession();
+  const session = checkoutSession;
   const profile = customerProfile.profile;
   const record = await saveOrder(
     {
@@ -211,9 +223,23 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // Counted only once the order exists. Counting at validation time would burn
   // a use every time someone typed a code and then changed their mind, and a
   // hundred-use launch code would be gone before a hundred orders.
-  if (couponCheck?.ok) {
+  if (couponCheck?.ok && !referralCoupon) {
     await reportingErrors(`redeem coupon ${couponCheck.coupon.code}`, () =>
       redeemCoupon(couponCheck.coupon.code),
+    );
+  }
+
+  // A referral code has no use counter to burn — it is meant to be passed to
+  // many people. What is recorded instead is the claim, which is what the
+  // referrer eventually gets paid on, and only once the order is delivered.
+  if (couponCheck?.ok && referral && referralCoupon) {
+    await reportingErrors(`record referral claim for ${record.id}`, () =>
+      recordReferralClaim({
+        orderId: record.id,
+        code: referral.code,
+        referrerUserId: referral.referrerUserId,
+        friendUserId: session?.userId,
+      }),
     );
   }
 

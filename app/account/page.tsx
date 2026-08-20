@@ -12,6 +12,10 @@ import {
   logoutCustomerAction,
 } from "@/app/account/actions";
 import { getCurrentCustomer } from "@/lib/customer-auth";
+import ReferralCard from "@/components/ReferralCard";
+import { referralSummary } from "@/lib/referrals";
+import { reportingErrors } from "@/lib/report-error";
+import { absoluteUrl } from "@/lib/seo";
 import {
   getOrdersForCustomer,
   type OrderSubmission,
@@ -151,6 +155,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const openOrders = orders.filter((order) => order.status !== "Closed");
   const pendingPayments = orders.filter((order) => order.paymentStatus === "Pending" || order.paymentStatus === "Unpaid");
   const latestOrder = orders[0];
+  // Made on first sight of this page rather than at signup: a code nobody has
+  // seen is a row nobody needed.
+  const referral = await reportingErrors(`referral summary for ${user.id}`, () =>
+    referralSummary(user.id),
+  ).catch(() => null);
 
   return (
     <main className="bg-brand-mist">
@@ -200,7 +209,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {referral ? <ReferralCard summary={referral} shopUrl={absoluteUrl("/shop")} /> : null}
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="grid gap-6">
             <ProfileEditForm user={user} />
             <PasswordChangeForm />

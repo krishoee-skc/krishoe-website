@@ -27,7 +27,8 @@ import { getProductById, getProducts, removeProduct, upsertProduct } from "@/lib
 import { designKey } from "@/lib/design-name";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
-import { reportError } from "@/lib/report-error";
+import { reportError, reportingErrors } from "@/lib/report-error";
+import { rewardReferrerForDeliveredOrder } from "@/lib/referrals";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
@@ -137,6 +138,20 @@ export async function updateOrderStatusAction(
       "order_status_update",
       `Order ${validatedFields.data.id} marked ${validatedFields.data.status}.`,
     );
+
+    // The referrer is paid here and nowhere else. Closed is the shop's word for
+    // "the customer has their shoes", and paying any earlier means paying on
+    // orders that merely exist — which anyone willing to place orders they
+    // never accept could farm. Safe to reach twice: the reward only settles a
+    // claim that has not been settled, so moving an order out of Closed and
+    // back cannot mint a second coupon. Wrapped, because a marketing reward
+    // must never be able to fail an order desk.
+    if (validatedFields.data.status === "Closed") {
+      await reportingErrors(`reward referrer for ${validatedFields.data.id}`, () =>
+        rewardReferrerForDeliveredOrder(validatedFields.data.id),
+      );
+    }
+
     revalidatePath("/admin/orders");
     return { ok: true, message: `Order marked ${validatedFields.data.status}.` };
   } catch {
