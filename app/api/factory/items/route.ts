@@ -277,6 +277,34 @@ export async function PATCH(request: NextRequest) {
         [source[0].name],
       );
 
+      /**
+       * The last link in the chain, which was being left open.
+       *
+       * Posting finished stock from Packing/QC refuses an item with no catalog
+       * product — "Link the production item to a catalog product first" — and
+       * the Packing/QC form does not even list one. So a Production Item
+       * created here with an empty catalogProductId looked linked on this
+       * screen and was still a dead end at the only place it mattered: the
+       * owner would press the button, see "Master linked", and find nothing to
+       * choose when they went to post the pairs they had made.
+       *
+       * Matched on the name, normalised the same way stock movements are
+       * matched to products — trimmed, single-spaced, lowercased — because one
+       * shoe carries one name across the factory, the costing and the shop.
+       * When no product carries that name, the field is left empty rather than
+       * pointed at a guess; the production-accounts screen can set it by hand,
+       * and a wrong link would put one shoe's pairs into another's stock.
+       */
+      const catalogMatch = await queryPostgres<{ id: string }>(
+        STORE,
+        `SELECT id FROM products
+          WHERE lower(regexp_replace(btrim(name), '\\s+', ' ', 'g'))
+              = lower(regexp_replace(btrim($1), '\\s+', ' ', 'g'))
+          ORDER BY CASE WHEN status = 'Active' THEN 0 ELSE 1 END
+          LIMIT 1`,
+        [source[0].name],
+      );
+
       // Reuse a Production Item that already carries this name instead of
       // making a second one — a duplicate here would split the same shoe's
       // costs across two records for good.
@@ -288,9 +316,22 @@ export async function PATCH(request: NextRequest) {
             category: typeof body.category === "string" ? body.category : "Footwear",
             productionType: "Manufactured",
             sizeGroup: "Mixed",
-            catalogProductId: "",
+            catalogProductId: catalogMatch[0]?.id ?? "",
           })
         ).id;
+
+      // An item reused from an earlier run may itself have been created before
+      // this, with the field left open. Fill it, but never overwrite a link
+      // somebody chose by hand.
+      if (existing[0]?.id && catalogMatch[0]?.id) {
+        await queryPostgres(
+          STORE,
+          `UPDATE production_items
+           SET catalog_product_id = $2
+           WHERE id = $1 AND coalesce(btrim(catalog_product_id), '') = ''`,
+          [existing[0].id, catalogMatch[0].id],
+        );
+      }
     }
 
     if (productionItemId) {
