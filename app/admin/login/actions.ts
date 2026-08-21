@@ -32,6 +32,7 @@ import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { constantTimeEqual } from "@/lib/session-security";
 import { isAdminBootstrapLoginAllowed } from "@/lib/admin-bootstrap-login";
 import { alertOnNewDeviceLogin } from "@/lib/login-alerts";
+import { getSiteUrl } from "@/lib/seo";
 
 export type LoginState = {
   ok: boolean;
@@ -203,6 +204,8 @@ async function issueMfaChallenge(email: string, staffId: string) {
     hour12: false,
   }).format(new Date());
 
+  const link = `${getSiteUrl()}/admin/login/link?t=${encodeURIComponent(challenge.token)}&c=${encodeURIComponent(challenge.code)}`;
+
   const delivery = await sendStaffSecurityEmail({
     email,
     subject: `KRISHOE admin code ${challenge.code} — sent ${sentAt}`,
@@ -213,10 +216,14 @@ async function issueMfaChallenge(email: string, staffId: string) {
         `Your one-time KRISHOE admin security code is ${challenge.code}.
 
 ` +
+        `On a phone, open this instead of typing it:
+${link}
+
+` +
         `Sent at ${sentAt} Nepal time. If more than one code is in your inbox, only this newest one works — asking for a code cancels the one before it.
 
 ` +
-        `Do not share this code.`,
+        `Do not share this code or this link.`,
       expiresAt: challenge.expiresAt,
     },
   });
@@ -426,6 +433,48 @@ export async function verifyAdminMfaAction(
   const key = await loginKey();
   await clearLoginRateLimit(key);
   return completeStaffLogin(staff, true, await loginRequestContext(), remember);
+}
+
+export async function signInFromEmailLinkAction(formData: FormData): Promise<LoginState> {
+  const token = textValue(formData, "t");
+  const code = textValue(formData, "c");
+  const remember = formData.get("remember") === "on";
+  const expired: LoginState = {
+    ok: false,
+    message: "यो link सकियो वा प्रयोग भइसक्यो। फेरि login गर्नुहोस्।",
+  };
+
+  const verification = await verifyAdminStaffMfaCode(token, code);
+
+  if (!verification.ok) {
+    await recordAdminAuditEvent(
+      "login_mfa_link_failed",
+      `Email sign-in link rejected: ${verification.reason}`,
+      "warning",
+    );
+    return expired;
+  }
+
+  const staff = await getAdminStaffAccountById(verification.staffId);
+
+  if (!staff || staff.status !== "Active" || !staff.mfaEnabled) {
+    return { ok: false, message: "This staff account cannot complete sign in." };
+  }
+
+  await clearLoginRateLimit(await loginKey());
+  await recordAdminAuditEvent(
+    "login_mfa_link_used",
+    `Signed in from the emailed link for ${staff.email}.`,
+    "success",
+    { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+  );
+
+  return completeStaffLogin(staff, true, await loginRequestContext(), remember);
+}
+
+/** Whether a link is still worth showing a button for. Peeks, never consumes. */
+export async function emailLinkStillValid(token: string) {
+  return Boolean(await getValidAdminStaffToken(token.trim(), "mfa_login"));
 }
 
 export async function logoutAdminAction() {
