@@ -7,6 +7,7 @@ type FactoryItem = {
   id: string;
   name: string;
   code: string | null;
+  status: string;
   production_item_id: string | null;
   production_item_name: string | null;
 };
@@ -33,7 +34,9 @@ export default function FactoryItemsPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/factory/items", { cache: "no-store" });
+      // Retired items included, because this is the only screen that can
+      // bring one back. Everywhere else they stay hidden.
+      const response = await fetch("/api/factory/items?include=retired", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Items could not be loaded.");
       const nextItems = (data.items || []) as FactoryItem[];
@@ -64,6 +67,43 @@ export default function FactoryItemsPage() {
    * for one shoe is exactly how the factory ledger and the costing ledger drift
    * apart again, and the drift is what costs — not the typing.
    */
+  /**
+   * Take an item out of the work forms, or put it back.
+   *
+   * An item is created by typing its name while entering work, and a typo there
+   * was permanent: one of the nine was called "45", because a rate had been
+   * typed into the name box. Nothing in the app could remove it, so it sat in
+   * every dropdown waiting to be picked by mistake.
+   *
+   * Retired, never deleted. The wages and daily work recorded against an item
+   * stay exactly where they are — deleting would take a month of somebody's pay
+   * with it, and could not be undone. This can, with the same button.
+   */
+  async function setItemStatus(itemId: string, status: "active" | "inactive") {
+    setSaving(itemId);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/factory/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId, status }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Item status could not be changed.");
+      setMessage(
+        status === "inactive"
+          ? "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। हिसाब जस्ताको तस्तै छ।"
+          : "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।",
+      );
+      await loadItems();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Item status could not be changed.");
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function createAndLink(itemId: string) {
     setSaving(itemId);
     setMessage("");
@@ -138,15 +178,18 @@ export default function FactoryItemsPage() {
           </p>
         ) : null}
         {items.map((item) => (
-          <article key={item.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${item.production_item_id ? "border-emerald-200" : "border-amber-200"}`}>
+          <article key={item.id} className={`rounded-3xl border p-5 shadow-sm ${item.status !== "active" ? "border-slate-200 bg-slate-50" : item.production_item_id ? "border-emerald-200 bg-white" : "border-amber-200 bg-white"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-950">{item.name}</h2>
+                <h2 className={`text-lg font-black ${item.status !== "active" ? "text-slate-500 line-through" : "text-slate-950"}`}>{item.name}</h2>
                 <p className="mt-1 text-xs font-semibold text-slate-500">Factory code: {item.code || "Not set"}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.production_item_id ? "Master linked" : "Link needed"}</span>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-slate-200 text-slate-700" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? "बन्द" : item.production_item_id ? "Master linked" : "Link needed"}</span>
             </div>
 
+            {/* Nothing to link while an item is out of use. Offering it would
+                invite someone to wire up a shoe that no work form can reach. */}
+            {item.status === "active" ? (
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select value={drafts[item.id] || ""} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))} className={inputClass} aria-label={`Production Item for ${item.name}`}>
                 <option value="">Not linked</option>
@@ -156,13 +199,34 @@ export default function FactoryItemsPage() {
               </select>
               <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-slate-200 disabled:text-slate-400">{saving === item.id ? "Saving..." : "Save item link"}</button>
             </div>
+            ) : null}
 
             {/* The dropdown above can only offer Production Items that already
                 exist, and eight of nine factory items had nothing to point at.
                 Making each one meant leaving this screen, creating it, coming
                 back and choosing it — which is why, after months, not one link
                 had been made. */}
-            {!item.production_item_id ? (
+            {item.status !== "active" ? (
+              <button
+                type="button"
+                onClick={() => void setItemStatus(item.id, "active")}
+                disabled={saving === item.id}
+                className="mt-2 min-h-12 w-full rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:opacity-60"
+              >
+                {saving === item.id ? "गर्दैछौँ…" : "फेरि चालु गर्ने"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void setItemStatus(item.id, "inactive")}
+                disabled={saving === item.id}
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-600 disabled:opacity-60"
+              >
+                {saving === item.id ? "गर्दैछौँ…" : "बन्द गर्ने — काम भर्ने फारमबाट हटाउने"}
+              </button>
+            )}
+
+            {!item.production_item_id && item.status === "active" ? (
               <button
                 type="button"
                 onClick={() => void createAndLink(item.id)}

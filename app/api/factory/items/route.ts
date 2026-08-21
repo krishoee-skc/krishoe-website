@@ -42,9 +42,14 @@ interface WorkOrderOption {
   due_date: string | Date | null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/items", "GET");
   if (denied) return denied;
+
+  // Retired items are hidden by default, which is the point of retiring one.
+  // This screen is the exception: it is where they are brought back, and a
+  // list that cannot show them is a one-way door.
+  const includeRetired = request.nextUrl.searchParams.get("include") === "retired";
 
   try {
     const [items, productionItems, workOrders] = await Promise.all([
@@ -54,8 +59,8 @@ export async function GET() {
                 items.production_item_id, production.name AS production_item_name
          FROM factory_items items
          LEFT JOIN production_items production ON production.id = items.production_item_id
-         WHERE items.status = 'active'
-         ORDER BY items.name ASC`,
+         ${includeRetired ? "" : "WHERE items.status = 'active'"}
+         ORDER BY items.status ASC, items.name ASC`,
       ),
       queryPostgres<ProductionItemOption>(
         STORE,
@@ -191,6 +196,50 @@ export async function PATCH(request: NextRequest) {
 
     if (!itemId) {
       return NextResponse.json({ error: "item_id is required" }, { status: 400 });
+    }
+
+    /**
+     * Retire an item, or bring it back.
+     *
+     * An item is created by typing its name while entering work, and a typo
+     * there was permanent: nine items existed and one of them was called "45",
+     * because a rate had been typed into the name box. Nothing in the app could
+     * remove it, so it sat in every dropdown for anyone entering work to pick
+     * by mistake, forever.
+     *
+     * Retired, not deleted. Every list and every form already asks for
+     * status = 'active', so an inactive item disappears from all of them —
+     * while the wages and the daily work recorded against it stay exactly where
+     * they are. Deleting would take a month of somebody's pay with it, and
+     * could not be undone; this can, with the same button.
+     */
+    if (typeof body.status === "string") {
+      const status = body.status.trim();
+
+      if (status !== "active" && status !== "inactive") {
+        return NextResponse.json({ error: "status must be active or inactive" }, { status: 400 });
+      }
+
+      const changed = await queryPostgres<Item>(
+        STORE,
+        `UPDATE factory_items
+         SET status = $2, updated_at = now()
+         WHERE id = $1
+         RETURNING id, name, code, status, production_item_id,
+                   NULL::text AS production_item_name`,
+        [itemId, status],
+      );
+
+      if (!changed[0]) {
+        return NextResponse.json({ error: "Factory Item not found" }, { status: 404 });
+      }
+
+      await recordAdminAuditEvent(
+        status === "active" ? "factory_item_restored" : "factory_item_retired",
+        `Factory item ${changed[0].name} ${status === "active" ? "brought back into use" : "retired from the work forms"}.`,
+      );
+
+      return NextResponse.json({ item: changed[0] });
     }
 
     /**

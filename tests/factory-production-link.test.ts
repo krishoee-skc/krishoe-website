@@ -21,8 +21,12 @@ describe("creating the item to link to", () => {
     const page = await readFile("app/admin/factory/items/page.tsx", "utf8");
 
     expect(page).toContain("create_production_item: true");
-    // Only where it is needed. An item already linked has nothing to create.
-    expect(page).toContain("{!item.production_item_id ? (");
+    // Only where it is needed: an item already linked has nothing to create,
+    // and neither does one that has been retired out of the work forms. Matched
+    // on the condition rather than the whole line, so adding a reason to hide
+    // the button does not read as removing it.
+    expect(page).toContain("!item.production_item_id");
+    expect(page).toContain("createAndLink(item.id)");
   });
 
   it("copies the factory name instead of asking for one", async () => {
