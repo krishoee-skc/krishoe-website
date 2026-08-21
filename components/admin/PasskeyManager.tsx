@@ -95,8 +95,21 @@ export default function PasskeyManager() {
         Passkey — password बिनाको login
       </h2>
       <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
-        औंलाको छाप वा फोनको PIN ले भित्र जाने। Password टाइप गर्नै पर्दैन, र
-        कसैले हेरेर वा अनुमान गरेर चोर्न सक्दैन।
+        {/* Which of the three it uses is the device's decision, not ours, and
+            naming only the fingerprint is what made an owner on a Face ID phone
+            look for a sensor that is not there and conclude the app does not
+            work on their phone. The device words stay in English because that
+            is what the phone itself says on screen. */}
+        Face ID, Touch ID वा फोनकै PIN — यन्त्रसँग जे छ, त्यसैले भित्र जाने।
+        Password टाइप गर्नै पर्दैन, र कसैले हेरेर वा अनुमान गरेर चोर्न सक्दैन।
+      </p>
+      {/* A passkey lives on one device and dies with it. Saying so here is the
+          difference between a shortcut and a trap: if the phone is lost or
+          reset, the password and the emailed code are still the way in, and
+          that path is never taken away. */}
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+        यो यन्त्रमा मात्र बस्छ — अर्को फोन वा computer मा छुट्टै दर्ता गर्नुपर्छ।
+        फोन हरायो वा reset भयो भने password र email को कोडले सधैँ पस्न मिल्छ।
       </p>
 
       {!supported ? (

@@ -24,6 +24,7 @@ import {
 import {
   createAdminStaffSession,
   createAdminStaffToken,
+  getValidAdminStaffToken,
   revokeAdminStaffSession,
   verifyAdminStaffMfaCode,
 } from "@/lib/admin-staff-security";
@@ -165,6 +166,102 @@ export async function completePasskeyStaffLogin(staff: SafeAdminStaffAccount) {
   return completeStaffLogin(staff, true, context);
 }
 
+/**
+ * Send a fresh two-step code, and say in the email that it replaces the last.
+ *
+ * Issuing a code deletes the account's previous unused one — which is right,
+ * and was invisible. The owner asked for another code twice while trying to
+ * sign in on their phone, so three arrived; the first two were already dead,
+ * and nothing in the inbox or on screen said which of the three to type. They
+ * spent eleven minutes in that loop.
+ *
+ * The time is stamped in Nepal time because that is the only way to tell three
+ * near-identical emails apart on a phone, where they stack newest-last in a
+ * thread as often as newest-first.
+ */
+async function issueMfaChallenge(email: string, staffId: string) {
+  const challenge = await createAdminStaffToken(staffId, "mfa_login", {
+    expiresInMinutes: 10,
+    withCode: true,
+  });
+
+  const sentAt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kathmandu",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+
+  const delivery = await sendStaffSecurityEmail({
+    email,
+    subject: `KRISHOE admin code ${challenge.code} — sent ${sentAt}`,
+    payload: {
+      email,
+      kind: "mfa",
+      message:
+        `Your one-time KRISHOE admin security code is ${challenge.code}.
+
+` +
+        `Sent at ${sentAt} Nepal time. If more than one code is in your inbox, only this newest one works — asking for a code cancels the one before it.
+
+` +
+        `Do not share this code.`,
+      expiresAt: challenge.expiresAt,
+    },
+  });
+
+  return { challenge, delivery };
+}
+
+/**
+ * Another code, without making anyone type their password again.
+ *
+ * The two-step screen offered only "Start sign-in again", which threw the
+ * person back to the password field — and the code that arrived from there
+ * killed the one they were still holding. Safe to do from the challenge alone:
+ * a live mfa_login token is proof the password was already accepted minutes ago.
+ */
+export async function resendAdminMfaCodeAction(challengeToken: string): Promise<LoginState> {
+  const existing = await getValidAdminStaffToken(challengeToken.trim(), "mfa_login");
+
+  if (!existing) {
+    return { ok: false, message: "पुरानो प्रयास सकियो। फेरि सुरुबाट login गर्नुहोस्।" };
+  }
+
+  const staff = await getAdminStaffAccountById(existing.staffId);
+
+  if (!staff || staff.status !== "Active" || !staff.mfaEnabled) {
+    return { ok: false, message: "This staff account cannot complete sign in." };
+  }
+
+  const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);
+
+  if (!delivery.ok) {
+    await recordAdminAuditEvent(
+      "login_mfa_delivery_failed",
+      `Could not deliver MFA code for ${staff.email}: ${delivery.error}`,
+      "warning",
+      { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+    );
+    return { ok: false, message: "Security code could not be sent. Ask the Owner to check email delivery." };
+  }
+
+  await recordAdminAuditEvent(
+    "login_mfa_resent",
+    `New MFA code sent for ${staff.email}; the previous code is now void.`,
+    "success",
+    { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+  );
+
+  return {
+    ok: false,
+    message: "नयाँ कोड पठाइयो। पुराना कोड अब चल्दैनन् — email को सबैभन्दा नयाँ कोड हाल्नुहोस्।",
+    requiresMfa: true,
+    challengeToken: challenge.token,
+    emailHint: emailHint(staff.email),
+  };
+}
+
 export async function loginAdminAction(_previousState: LoginState, formData: FormData) {
   const email = textValue(formData, "email");
   const password = textValue(formData, "password");
@@ -211,20 +308,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     }
 
     if (staff.mfaEnabled) {
-      const challenge = await createAdminStaffToken(staff.id, "mfa_login", {
-        expiresInMinutes: 10,
-        withCode: true,
-      });
-      const delivery = await sendStaffSecurityEmail({
-        email: staff.email,
-        subject: "Your KRISHOE admin security code",
-        payload: {
-          email: staff.email,
-          kind: "mfa",
-          message: `Your one-time KRISHOE admin security code is ${challenge.code}. Do not share this code.`,
-          expiresAt: challenge.expiresAt,
-        },
-      });
+      const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);
 
       if (!delivery.ok) {
         await recordAdminAuditEvent(
@@ -308,6 +392,11 @@ export async function verifyAdminMfaAction(
   const verification = await verifyAdminStaffMfaCode(challengeToken, code);
 
   if (!verification.ok) {
+    await recordAdminAuditEvent(
+      "login_mfa_failed",
+      `Two-step code rejected: ${verification.reason}`,
+      "warning",
+    );
     return { ok: false, message: verification.reason, requiresMfa: true, challengeToken };
   }
 

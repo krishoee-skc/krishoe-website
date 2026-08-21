@@ -72,7 +72,7 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
         disabled={busy}
         className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-brand-green bg-[#FFFFFF] px-5 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white disabled:opacity-60"
       >
-        {busy ? "खुल्दैछ…" : "👆 औंलाको छापले भित्र जाने"}
+        {busy ? "खुल्दैछ…" : "🔓 यो यन्त्रले चिनेर भित्र जाने"}
       </button>
 
       {error ? (

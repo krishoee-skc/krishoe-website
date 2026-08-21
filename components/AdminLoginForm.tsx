@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   loginAdminAction,
+  resendAdminMfaCodeAction,
   verifyAdminMfaAction,
   type LoginState,
 } from "@/app/admin/login/actions";
@@ -68,6 +69,17 @@ export default function AdminLoginForm({
     }
   }
 
+  async function handleResend() {
+    if (!state.challengeToken) return;
+    setIsPending(true);
+    try {
+      setState({ ...state, ...(await resendAdminMfaCodeAction(state.challengeToken)) });
+      setCode("");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   async function handleMfaSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsPending(true);
@@ -93,17 +105,25 @@ export default function AdminLoginForm({
       >
         <input type="hidden" name="challengeToken" value={state.challengeToken} />
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-          Two-step verification
+          KRISHOE · दुई चरणको जाँच
         </p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-          Check your email
+          Email हेर्नुहोस्
         </h1>
         <p className="mt-3 text-sm leading-7 text-brand-muted">
-          Enter the 6-digit code sent to {state.emailHint ?? "your staff email"}. It expires in 10 minutes.
+          {state.emailHint ?? "तपाईंको staff email"} मा पठाइएको ६ अंकको कोड हाल्नुहोस्। १० मिनेटमा सकिन्छ।
+        </p>
+
+        {/* Asking for a code deletes the one before it, and nothing said so.
+            The owner asked twice while trying to sign in on their phone, so
+            three arrived, the first two were already dead, and there was no way
+            to tell which of the three to type. */}
+        <p className="mt-3 rounded-xl bg-brand-mist px-3 py-2 text-sm font-semibold leading-6 text-brand-green-ink">
+          Email मा एकभन्दा बढी कोड छन् भने — <strong>सबैभन्दा नयाँ मात्र चल्छ</strong>। नयाँ माग्दा पुरानो आफैँ रद्द हुन्छ।
         </p>
 
         <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Security code
+          ६ अंकको कोड
           <input
             name="code"
             type="text"
@@ -131,8 +151,8 @@ export default function AdminLoginForm({
 
         <div className="mt-6 grid gap-3">
           <SubmitButton
-            idleLabel={isPending ? "Verifying code" : "Verify and continue"}
-            pendingLabel="Verifying code"
+            idleLabel={isPending ? "जाँच्दैछौँ…" : "कोड हालेर भित्र जाने"}
+            pendingLabel="जाँच्दैछौँ…"
             disabled={isPending}
           />
           {state.message && !state.ok ? (
@@ -140,12 +160,24 @@ export default function AdminLoginForm({
               {state.message}
             </p>
           ) : null}
+          {/* "Start sign-in again" was the only way out, and it sent the
+              person back to the password field — where the code that arrived
+              killed the one they were still holding. This asks for another
+              without leaving the screen. */}
+          <button
+            type="button"
+            onClick={() => void handleResend()}
+            disabled={isPending}
+            className="min-h-11 text-sm font-black text-brand-green hover:underline disabled:opacity-60"
+          >
+            नयाँ कोड पठाउने
+          </button>
           <button
             type="button"
             onClick={() => setState(initialState)}
-            className="min-h-11 text-sm font-black text-brand-green hover:underline"
+            className="min-h-11 text-sm font-bold text-brand-muted hover:underline"
           >
-            Start sign-in again
+            सुरुबाट फेरि login गर्ने
           </button>
         </div>
       </form>
