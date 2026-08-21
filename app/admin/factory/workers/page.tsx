@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FACTORY_WORKER_CATEGORIES,
+  FACTORY_WORKER_TYPES,
+  FACTORY_WORKER_TYPE_LABELS,
+  type FactoryWorkerType,
+} from "@/lib/factory-worker-options";
 
 type Worker = {
   id: string;
@@ -23,14 +29,7 @@ type HrEmployee = {
   salary_type: string;
 };
 
-const categories = [
-  "Upper",
-  "Fiber Preparation",
-  "Fiber Silai",
-  "Bottom Final",
-  "Packing / QC",
-  "Staff",
-] as const;
+const categories = FACTORY_WORKER_CATEGORIES;
 
 const inputClass = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900";
 
@@ -53,6 +52,7 @@ export default function WorkersPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [hrEmployees, setHrEmployees] = useState<HrEmployee[]>([]);
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
+  const [edits, setEdits] = useState<Record<string, { name: string; category: string; worker_type: string }>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState("");
@@ -70,13 +70,23 @@ export default function WorkersPage() {
   const loadWorkers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/factory/workers", { cache: "no-store" });
+      // Retired workers included, because this is the only screen that can
+      // bring one back. Every other list and form still hides them.
+      const response = await fetch("/api/factory/workers?include=retired", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Workers could not be loaded.");
       const nextWorkers = (data.workers || []) as Worker[];
       setWorkers(nextWorkers);
       setHrEmployees((data.hrEmployees || []) as HrEmployee[]);
       setLinkDrafts(Object.fromEntries(nextWorkers.map((worker) => [worker.id, worker.hr_employee_id || ""])));
+      setEdits(
+        Object.fromEntries(
+          nextWorkers.map((worker) => [
+            worker.id,
+            { name: worker.name, category: worker.category, worker_type: worker.worker_type },
+          ]),
+        ),
+      );
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Workers could not be loaded.");
     } finally {
@@ -128,6 +138,45 @@ export default function WorkersPage() {
       await loadWorkers();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Worker could not be created.");
+    } finally {
+      setSaving("");
+    }
+  }
+
+  /**
+   * Correct what was typed, or take someone off the forms.
+   *
+   * A worker record was created by typing a name while entering work, and none
+   * of it could be changed afterwards. A name mistyped once printed on that
+   * person's payslip every month after; someone who left the factory stayed in
+   * every dropdown, waiting for a day's work to be entered against them.
+   *
+   * Changing the stage is safe for the reason it looks dangerous: every row of
+   * daily work already carries the rate and the amount it was paid at, so a
+   * correction moves what happens next and never rewrites last month's wages.
+   */
+  async function saveWorker(workerId: string, patch: Record<string, string>) {
+    setSaving(workerId);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/factory/workers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ worker_id: workerId, ...patch }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Worker could not be saved.");
+      setMessage(
+        patch.status === "inactive"
+          ? "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। पुरानो ज्याला जस्ताको तस्तै छ।"
+          : patch.status === "active"
+            ? "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।"
+            : "सच्चियो — पुरानो ज्याला जस्ताको तस्तै छ।",
+      );
+      await loadWorkers();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Worker could not be saved.");
     } finally {
       setSaving("");
     }
@@ -202,18 +251,105 @@ export default function WorkersPage() {
         {loading ? <p className="text-sm text-slate-500">Loading workers...</p> : null}
         {!loading && workers.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">No factory workers yet.</p> : null}
         {workers.map((worker) => (
-          <article key={worker.id} className={`rounded-3xl border bg-white p-5 shadow-sm ${worker.hr_employee_id ? "border-emerald-200" : "border-gray-200"}`}>
+          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-slate-200 bg-slate-50" : worker.hr_employee_id ? "border-emerald-200 bg-white" : "border-gray-200 bg-white"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-950">{worker.name}</h2>
+                <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-slate-500 line-through" : "text-slate-950"}`}>{worker.name}</h2>
                 <p className="mt-1 text-xs font-semibold text-slate-500">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
               </div>
+              {worker.status !== "active" ? (
+                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-black text-slate-700">बन्द</span>
+              ) : null}
               {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
                   rates and the worker portal all read this list directly, and
                   the HR link only matters for Work Orders. Amber read as "fix
                   me" and pointed at a module holding no attendance or payroll. */}
               <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-gray-100 text-gray-500"}`}>{worker.hr_employee_id ? "HR linked" : "HR link optional"}</span>
             </div>
+
+            {/* What was typed can be typed again. The stage list comes from
+                lib/factory-worker-options so it cannot drift from what the
+                database will accept — it had already lost "Fibermen", which is
+                where five of this shop's eight workers work, so their stage
+                could not have been saved back. */}
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                नाम
+                <input
+                  value={edits[worker.id]?.name ?? worker.name}
+                  onChange={(event) =>
+                    setEdits((current) => ({
+                      ...current,
+                      [worker.id]: { ...current[worker.id], name: event.target.value },
+                    }))
+                  }
+                  className={`mt-1 ${inputClass}`}
+                  aria-label={`Name for ${worker.name}`}
+                />
+              </label>
+              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                कारखानाको चरण
+                <select
+                  value={edits[worker.id]?.category ?? worker.category}
+                  onChange={(event) =>
+                    setEdits((current) => ({
+                      ...current,
+                      [worker.id]: { ...current[worker.id], category: event.target.value },
+                    }))
+                  }
+                  className={`mt-1 ${inputClass}`}
+                  aria-label={`Stage for ${worker.name}`}
+                >
+                  {FACTORY_WORKER_CATEGORIES.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                ज्यालाको किसिम
+                <select
+                  value={edits[worker.id]?.worker_type ?? worker.worker_type}
+                  onChange={(event) =>
+                    setEdits((current) => ({
+                      ...current,
+                      [worker.id]: { ...current[worker.id], worker_type: event.target.value },
+                    }))
+                  }
+                  className={`mt-1 ${inputClass}`}
+                  aria-label={`Pay type for ${worker.name}`}
+                >
+                  {FACTORY_WORKER_TYPES.map((option) => (
+                    <option key={option} value={option}>{FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType]}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => void saveWorker(worker.id, edits[worker.id] ?? {})}
+                disabled={
+                  saving === worker.id ||
+                  ((edits[worker.id]?.name ?? worker.name) === worker.name &&
+                    (edits[worker.id]?.category ?? worker.category) === worker.category &&
+                    (edits[worker.id]?.worker_type ?? worker.worker_type) === worker.worker_type)
+                }
+                className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                {saving === worker.id ? "गर्दैछौँ…" : "सच्याउने"}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void saveWorker(worker.id, { status: worker.status === "active" ? "inactive" : "active" })}
+              disabled={saving === worker.id}
+              className={`mt-3 min-h-12 w-full rounded-xl border px-4 text-sm font-bold disabled:opacity-60 ${worker.status === "active" ? "border-slate-300 text-slate-600" : "border-brand-green font-black text-brand-green"}`}
+            >
+              {saving === worker.id
+                ? "गर्दैछौँ…"
+                : worker.status === "active"
+                  ? "बन्द गर्ने — काम भर्ने फारमबाट हटाउने"
+                  : "फेरि चालु गर्ने"}
+            </button>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select value={linkDrafts[worker.id] || ""} onChange={(event) => setLinkDrafts((current) => ({ ...current, [worker.id]: event.target.value }))} className={inputClass} aria-label={`HR employee for ${worker.name}`}>

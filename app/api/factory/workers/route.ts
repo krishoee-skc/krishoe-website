@@ -1,6 +1,10 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
+import {
+  FACTORY_WORKER_CATEGORIES,
+  FACTORY_WORKER_TYPES,
+} from "@/lib/factory-worker-options";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -10,15 +14,11 @@ function duplicateWorkerMessage(existingName?: string) {
 }
 
 const STORE = "krishoe";
-const workerTypes = new Set(["piece_rate", "monthly_staff", "daily_staff"]);
-const workerCategories = new Set([
-  "Upper",
-  "Fiber Preparation",
-  "Fiber Silai",
-  "Bottom Final",
-  "Packing / QC",
-  "Staff",
-]);
+// One list, shared with the screen. Written out here as well, it had already
+// dropped "Fibermen" — the stage five of this shop's eight workers are in — so
+// this endpoint would have refused to save a correction to any of them.
+const workerTypes = new Set<string>(FACTORY_WORKER_TYPES);
+const workerCategories = new Set<string>(FACTORY_WORKER_CATEGORIES);
 
 interface Worker {
   id: string;
@@ -41,9 +41,11 @@ interface HrEmployeeOption {
   salary_type: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/workers", "GET");
   if (denied) return denied;
+
+  const includeRetired = request.nextUrl.searchParams.get("include") === "retired";
 
   try {
     const [workers, hrEmployees] = await Promise.all([
@@ -61,8 +63,8 @@ export async function GET() {
            FROM factory_daily_work work
            WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
          ) today_work ON true
-         WHERE workers.status = 'active'
-         ORDER BY workers.name ASC`,
+         ${includeRetired ? "" : "WHERE workers.status = 'active'"}
+         ORDER BY workers.status ASC, workers.name ASC`,
       ),
       queryPostgres<HrEmployeeOption>(
         STORE,
@@ -184,6 +186,93 @@ export async function PATCH(request: NextRequest) {
 
     if (!workerId) {
       return NextResponse.json({ error: "worker_id is required" }, { status: 400 });
+    }
+
+    /**
+     * Correct a worker's name, stage or pay type — or take them off the forms.
+     *
+     * A worker record is created by typing a name while entering work, and none
+     * of it could be changed afterwards. A name mistyped once printed on that
+     * person's payslip every month after, and someone who left the factory
+     * stayed in every dropdown for the rest of the shop's life, waiting for a
+     * day's work to be entered against them by mistake.
+     *
+     * Retired, never deleted — and the database agrees: worker_id in
+     * factory_daily_work is ON DELETE RESTRICT, so removing someone who has
+     * ever worked a day is refused outright, which is exactly right. Their
+     * wages are theirs.
+     *
+     * Changing the stage is safe for the same reason it looks dangerous: every
+     * row of daily work already carries the rate_applied and amount_earned it
+     * was paid at, so a correction moves what happens next and never rewrites
+     * what someone was paid last month.
+     */
+    const wantsDetails =
+      typeof body.name === "string" ||
+      typeof body.category === "string" ||
+      typeof body.worker_type === "string" ||
+      typeof body.status === "string";
+
+    if (wantsDetails) {
+      const current = await queryPostgres<Worker>(
+        STORE,
+        `SELECT id, name, worker_type, category, status FROM factory_workers WHERE id = $1`,
+        [workerId],
+      );
+      if (!current[0]) {
+        return NextResponse.json({ error: "Worker not found" }, { status: 404 });
+      }
+
+      const name = typeof body.name === "string" ? body.name.trim() : current[0].name;
+      const category = typeof body.category === "string" ? body.category.trim() : current[0].category;
+      const workerType = typeof body.worker_type === "string" ? body.worker_type.trim() : current[0].worker_type;
+      const status = typeof body.status === "string" ? body.status.trim() : current[0].status;
+
+      if (!name) {
+        return NextResponse.json({ error: "A worker needs a name" }, { status: 400 });
+      }
+      if (!workerCategories.has(category)) {
+        return NextResponse.json({ error: "That factory stage is not one this shop uses" }, { status: 400 });
+      }
+      if (!workerTypes.has(workerType)) {
+        return NextResponse.json({ error: "That pay type is not one this shop uses" }, { status: 400 });
+      }
+      if (status !== "active" && status !== "inactive") {
+        return NextResponse.json({ error: "status must be active or inactive" }, { status: 400 });
+      }
+
+      try {
+        const saved = await queryPostgres<Worker>(
+          STORE,
+          `UPDATE factory_workers
+           SET name = $2, category = $3, worker_type = $4, status = $5, updated_at = now()
+           WHERE id = $1
+           RETURNING id, name, worker_type, category, monthly_salary, weekly_advance,
+                     status, hr_employee_id, NULL::text AS hr_employee_name`,
+          [workerId, name, category, workerType, status],
+        );
+
+        const changes = [
+          name !== current[0].name ? `renamed from ${current[0].name}` : "",
+          category !== current[0].category ? `stage ${current[0].category} → ${category}` : "",
+          workerType !== current[0].worker_type ? `pay type ${current[0].worker_type} → ${workerType}` : "",
+          status !== current[0].status ? (status === "active" ? "brought back into use" : "retired from the work forms") : "",
+        ].filter(Boolean);
+
+        await recordAdminAuditEvent(
+          status !== current[0].status && status === "inactive"
+            ? "factory_worker_retired"
+            : "factory_worker_updated",
+          `Factory worker ${name}: ${changes.join("; ") || "no change"}.`,
+        );
+
+        return NextResponse.json({ worker: saved[0] });
+      } catch (error) {
+        if (isDuplicateNameViolation(error, "factory_workers_name_unique_idx")) {
+          return NextResponse.json({ error: duplicateWorkerMessage(name) }, { status: 409 });
+        }
+        throw error;
+      }
     }
 
     if (hrEmployeeId) {
