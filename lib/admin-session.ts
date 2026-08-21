@@ -58,6 +58,24 @@ function getSessionSecret() {
   return secret;
 }
 
+/**
+ * How long a signed-in device stays signed in when its owner asks it to.
+ *
+ * Eight hours is right for a machine other people can reach, and wrong for the
+ * phone in the owner's pocket: it means signing in again — password, then wait
+ * for an emailed code, then type six digits — most days, on the device used to
+ * check an order while standing on the factory floor. Thirty days is the same
+ * bargain a bank app makes, and it is never taken by default: it is offered as
+ * a box to tick, on the understanding that the device belongs to the person
+ * ticking it. Either way the session can be ended from Login devices, and
+ * either way two-step still runs when it does expire.
+ */
+export const REMEMBERED_SESSION_MAX_AGE = 30 * 24 * 60 * 60;
+
+export function sessionMaxAge(remember: boolean) {
+  return remember ? REMEMBERED_SESSION_MAX_AGE : getAdminSessionMaxAge();
+}
+
 export function getAdminSessionMaxAge() {
   const configuredValue = Number(process.env.ADMIN_SESSION_TTL_SECONDS);
   return Number.isFinite(configuredValue) && configuredValue > 0 ? configuredValue : 60 * 60 * 8;
@@ -141,11 +159,14 @@ function parseAdminSessionPayload(value: unknown): AdminSessionPayload | null {
 
 type AdminSessionOptions = Omit<Partial<AdminSessionPayload>, "sub" | "exp">;
 
-export async function createAdminSessionToken(options: AdminSessionOptions = {}) {
+export async function createAdminSessionToken(
+  options: AdminSessionOptions = {},
+  maxAgeSeconds = getAdminSessionMaxAge(),
+) {
   const payload = base64UrlEncode(
     JSON.stringify({
       sub: "admin",
-      exp: Date.now() + getAdminSessionMaxAge() * 1000,
+      exp: Date.now() + maxAgeSeconds * 1000,
       ...options,
     }),
   );

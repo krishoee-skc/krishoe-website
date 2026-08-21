@@ -73,7 +73,10 @@ export default function AdminLoginForm({
     if (!state.challengeToken) return;
     setIsPending(true);
     try {
-      setState({ ...state, ...(await resendAdminMfaCodeAction(state.challengeToken)) });
+      setState({
+        ...state,
+        ...(await resendAdminMfaCodeAction(state.challengeToken, state.remember ?? false)),
+      });
       setCode("");
     } finally {
       setIsPending(false);
@@ -104,6 +107,7 @@ export default function AdminLoginForm({
         className="w-full max-w-md rounded-2xl border border-white/15 bg-[#FFFFFF] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]"
       >
         <input type="hidden" name="challengeToken" value={state.challengeToken} />
+        {state.remember ? <input type="hidden" name="remember" value="on" /> : null}
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           KRISHOE · दुई चरणको जाँच
         </p>
@@ -241,6 +245,25 @@ export default function AdminLoginForm({
           className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
           placeholder="तपाईंकै password"
         />
+      </label>
+
+      {/* Eight hours is right for a machine other people can reach and wrong
+          for the phone in the owner's pocket, where it means password, wait for
+          an emailed code, type six digits — most days, standing on the factory
+          floor. Offered, never assumed: unticked by default, and it says whose
+          device it is meant for. */}
+      <label className="mt-5 flex items-start gap-3 text-sm font-semibold text-brand-green-ink">
+        <input
+          type="checkbox"
+          name="remember"
+          className="mt-0.5 h-5 w-5 shrink-0 accent-brand-green"
+        />
+        <span>
+          यो यन्त्र सम्झनुहोस् — ३० दिन
+          <span className="mt-0.5 block text-xs font-medium text-brand-muted">
+            आफ्नै फोन वा computer मा मात्र। अरूले चलाउने यन्त्रमा नटिक्नुहोस्।
+          </span>
+        </span>
       </label>
 
       <div className="mt-6 grid gap-3">

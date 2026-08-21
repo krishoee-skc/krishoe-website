@@ -19,7 +19,7 @@ import {
 } from "@/lib/admin-settings";
 import {
   createAdminSessionToken,
-  getAdminSessionMaxAge,
+  sessionMaxAge,
 } from "@/lib/admin-session";
 import {
   createAdminStaffSession,
@@ -40,6 +40,9 @@ export type LoginState = {
   challengeToken?: string;
   emailHint?: string;
   nextPath?: string;
+  // Carried across the two-step round trip, because the box is ticked on the
+  // first screen and the session is not created until after the second.
+  remember?: boolean;
 };
 
 const invalidState: LoginState = {
@@ -88,28 +91,36 @@ async function completeStaffLogin(
   staff: SafeAdminStaffAccount,
   mfaVerified: boolean,
   context: Awaited<ReturnType<typeof loginRequestContext>>,
+  remember = false,
 ) {
   const markedStaff = await markAdminStaffLogin(staff.id, context);
   if (!markedStaff) return invalidState;
 
+  // One lifetime for the record, the token and the cookie. Three reads of the
+  // same figure would drift the day one of them learned about the tick box and
+  // the others did not, leaving a cookie outliving the session behind it.
+  const maxAge = sessionMaxAge(remember);
   const sessionRecord = await createAdminStaffSession({
     staffId: markedStaff.id,
-    expiresInSeconds: getAdminSessionMaxAge(),
+    expiresInSeconds: maxAge,
     ipAddress: context.ipAddress,
     userAgent: context.userAgent,
     mfaVerified,
   });
   await setAdminSessionCookie(
-    await createAdminSessionToken({
-      staffId: markedStaff.id,
-      name: markedStaff.name,
-      email: markedStaff.email,
-      role: markedStaff.role,
-      branchId: markedStaff.branchId,
-      sessionId: sessionRecord.id,
-      mustChangePassword: markedStaff.mustChangePassword,
-      mfaVerified,
-    }),
+    await createAdminSessionToken(
+      {
+        staffId: markedStaff.id,
+        name: markedStaff.name,
+        email: markedStaff.email,
+        role: markedStaff.role,
+        branchId: markedStaff.branchId,
+        sessionId: sessionRecord.id,
+        mustChangePassword: markedStaff.mustChangePassword,
+        mfaVerified,
+      },
+      maxAge,
+    ),
   );
   await recordAdminAuditEvent(
     "login_success",
@@ -221,7 +232,10 @@ async function issueMfaChallenge(email: string, staffId: string) {
  * killed the one they were still holding. Safe to do from the challenge alone:
  * a live mfa_login token is proof the password was already accepted minutes ago.
  */
-export async function resendAdminMfaCodeAction(challengeToken: string): Promise<LoginState> {
+export async function resendAdminMfaCodeAction(
+  challengeToken: string,
+  remember = false,
+): Promise<LoginState> {
   const existing = await getValidAdminStaffToken(challengeToken.trim(), "mfa_login");
 
   if (!existing) {
@@ -259,12 +273,14 @@ export async function resendAdminMfaCodeAction(challengeToken: string): Promise<
     requiresMfa: true,
     challengeToken: challenge.token,
     emailHint: emailHint(staff.email),
+    remember,
   };
 }
 
 export async function loginAdminAction(_previousState: LoginState, formData: FormData) {
   const email = textValue(formData, "email");
   const password = textValue(formData, "password");
+  const remember = formData.get("remember") === "on";
   const expectedPassword = process.env.ADMIN_PASSWORD;
   const sessionSecret = process.env.ADMIN_SESSION_SECRET;
   const key = await loginKey();
@@ -332,11 +348,12 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
         requiresMfa: true,
         challengeToken: challenge.token,
         emailHint: emailHint(staff.email),
+        remember,
       };
     }
 
     await clearLoginRateLimit(key);
-    return completeStaffLogin(staff, false, requestContext);
+    return completeStaffLogin(staff, false, requestContext, remember);
   }
 
   if (!(await isAdminBootstrapLoginAllowed())) {
@@ -389,6 +406,7 @@ export async function verifyAdminMfaAction(
 ): Promise<LoginState> {
   const challengeToken = textValue(formData, "challengeToken");
   const code = textValue(formData, "code");
+  const remember = formData.get("remember") === "on";
   const verification = await verifyAdminStaffMfaCode(challengeToken, code);
 
   if (!verification.ok) {
@@ -397,7 +415,7 @@ export async function verifyAdminMfaAction(
       `Two-step code rejected: ${verification.reason}`,
       "warning",
     );
-    return { ok: false, message: verification.reason, requiresMfa: true, challengeToken };
+    return { ok: false, message: verification.reason, requiresMfa: true, challengeToken, remember };
   }
 
   const staff = await getAdminStaffAccountById(verification.staffId);
@@ -407,7 +425,7 @@ export async function verifyAdminMfaAction(
 
   const key = await loginKey();
   await clearLoginRateLimit(key);
-  return completeStaffLogin(staff, true, await loginRequestContext());
+  return completeStaffLogin(staff, true, await loginRequestContext(), remember);
 }
 
 export async function logoutAdminAction() {

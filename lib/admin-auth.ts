@@ -52,7 +52,10 @@ export async function requireAdminSession() {
   return session;
 }
 
-export async function setAdminSessionCookie(token: string) {
+export async function setAdminSessionCookie(
+  token: string,
+  maxAgeSeconds = getAdminSessionMaxAge(),
+) {
   const cookieStore = await cookies();
 
   cookieStore.set({
@@ -63,7 +66,7 @@ export async function setAdminSessionCookie(token: string) {
     secure: process.env.NODE_ENV === "production",
     priority: "high",
     path: "/",
-    maxAge: getAdminSessionMaxAge(),
+    maxAge: maxAgeSeconds,
   });
 }
 
