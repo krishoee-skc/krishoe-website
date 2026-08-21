@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { getSiteUrl } from "@/lib/seo";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
@@ -444,6 +445,52 @@ export function getNotificationDeliveryConfig() {
   };
 }
 
+/**
+ * The message, in the shop's own colours.
+ *
+ * Escaped rather than interpolated: an order note carries a customer's name and
+ * a design name, and one apostrophe or angle bracket in either would otherwise
+ * break the markup — or, from a form anyone on the internet can fill, carry
+ * something worse into the owner's inbox.
+ *
+ * Laid out with a table and inline styles because that is what email clients
+ * from a decade ago still understand, and the owner's customers are not all on
+ * new phones.
+ */
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function brandedEmailHtml(title: string, message: string) {
+  const logo = `${getSiteUrl()}/images/logo-email.png`;
+  const paragraphs = message
+    .split(/\n{2,}/)
+    .map((block) => `<p style="margin:0 0 14px;line-height:1.65;color:#16211C;">${escapeHtml(block).replace(/\n/g, "<br />")}</p>`)
+    .join("");
+
+  return [
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F1EA;padding:24px 0;">',
+    '<tr><td align="center">',
+    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden;font-family:Segoe UI,Arial,sans-serif;">',
+    '<tr><td align="center" style="background:#10231D;padding:20px;">',
+    `<img src="${logo}" alt="KRISHOE" width="180" style="display:block;width:180px;height:auto;border:0;" />`,
+    "</td></tr>",
+    '<tr><td style="padding:26px 26px 8px;">',
+    `<h1 style="margin:0 0 16px;font-size:19px;line-height:1.4;color:#0B4D3B;">${escapeHtml(title)}</h1>`,
+    paragraphs,
+    "</td></tr>",
+    '<tr><td style="padding:8px 26px 24px;border-top:1px solid #E7E2D6;">',
+    '<p style="margin:14px 0 0;font-size:12px;color:#6B6B6B;">KRISHOE — Narayangadh, Chitwan</p>',
+    "</td></tr>",
+    "</table></td></tr></table>",
+  ].join("");
+}
+
 async function postJson(channel: NotificationChannel, event: NotificationEvent) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), deliveryTimeoutMs());
@@ -470,7 +517,14 @@ async function postJson(channel: NotificationChannel, event: NotificationEvent) 
       sender: { name: "KRISHOE", email: senderEmail },
       to: [{ email: target }],
       subject: event.title,
+      // Both, deliberately. Gmail and most webmail block remote images until
+      // the reader asks for them, so an HTML-only message would arrive as an
+      // empty frame; textContent is what actually gets read, and it is the same
+      // text that was sent before this. The HTML adds the shop's mark for the
+      // readers whose client does load it, and legible spacing for everyone
+      // else — the plain body is never removed to make room for a picture.
       textContent: message,
+      htmlContent: brandedEmailHtml(event.title, message),
     });
   } else {
     if (channel.token) {

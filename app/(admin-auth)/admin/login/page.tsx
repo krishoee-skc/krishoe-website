@@ -46,7 +46,24 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         className="object-cover opacity-35"
       />
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,35,29,0.96),rgba(16,35,29,0.68))]" />
-      <div className="relative z-10 flex w-full justify-center">
+      <div className="relative z-10 flex w-full flex-col items-center gap-6">
+        {/* The full lockup, and this is the one screen in the app with room for
+            it. The artwork is set on black, which sits inside a deep-green page
+            without a seam; anywhere the ground is white it would print as a
+            slab, so the crest alone goes there instead.
+
+            priority, unlike the photograph behind it: this is the first thing
+            the owner sees every morning, and it is 150KB against that image's
+            909KB. */}
+        <Image
+          src="/images/logo-full.webp"
+          alt="KRISHOE"
+          width={1200}
+          height={1061}
+          priority
+          sizes="(max-width: 640px) 220px, 260px"
+          className="h-auto w-[220px] sm:w-[260px]"
+        />
         <AdminLoginForm
           nextPath={nextPath}
           bootstrapLoginAllowed={bootstrapLoginAllowed}

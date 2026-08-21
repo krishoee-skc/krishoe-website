@@ -55,8 +55,14 @@ describe("the photograph behind the form", () => {
 
     // 909KB, shown at 35% opacity under a near-opaque gradient. `priority`
     // told the browser to fetch it before the things people came for.
-    expect(page).not.toContain("priority");
-    expect(page).toContain('loading="lazy"');
+    //
+    // Scoped to this image rather than the whole page: the logo above the form
+    // is 150KB, is the first thing the owner looks at, and should load first.
+    // A page-wide ban would have read as "never prioritise anything here",
+    // which was never the point.
+    const banner = page.slice(page.indexOf("/images/hero-banner.png"), page.indexOf("/>", page.indexOf("/images/hero-banner.png")));
+    expect(banner).not.toContain("priority");
+    expect(banner).toContain('loading="lazy"');
   });
 
   it("is not announced to someone who cannot see it", async () => {

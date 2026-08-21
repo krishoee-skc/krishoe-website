@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -82,8 +83,24 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
       </div>
 
       <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
-          <div>
+        {/* The crest, not the full lockup, and small.
+            This sheet is printed on white, and the full artwork is set on
+            black — a slab of it at the top of every bill would drink ink and
+            leave the paper cockled. The crest is about a fingernail wide and
+            the gold rule under it costs almost nothing to print, which is how
+            an expensive-looking document is actually made: thin lines and
+            white space, not a large picture. */}
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-gold/40 pb-5">
+          <div className="flex items-start gap-3">
+            <Image
+              src="/images/logo-mark.png"
+              alt=""
+              aria-hidden
+              width={128}
+              height={128}
+              className="mt-0.5 h-11 w-11 shrink-0"
+            />
+            <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
@@ -95,6 +112,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <p className="mt-2 text-sm text-gray-500">
               {invoice.channel} - <DateDisplayAdmin date={invoice.createdAt} time={true} />
             </p>
+            </div>
           </div>
           <div className="text-right">
             <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.invoiceNumber}</p>
