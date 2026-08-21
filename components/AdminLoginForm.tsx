@@ -184,6 +184,14 @@ export default function AdminLoginForm({
           name="email"
           type="text"
           inputMode="email"
+          // A phone capitalises the first letter of a text field and runs
+          // autocorrect over it. The email lookup is case-insensitive so a
+          // capital survives, but autocorrect rewriting a word inside the
+          // address does not, and either way the box shows something the owner
+          // did not type — which reads as the app refusing a correct address.
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required={!bootstrapLoginAllowed}
           autoComplete="username"
           className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"

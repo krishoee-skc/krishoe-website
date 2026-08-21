@@ -42,10 +42,21 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
       router.push(result.nextPath ?? nextPath);
       router.refresh();
     } catch (cause) {
-      // Cancelling the fingerprint prompt throws too, and that is not a failure
-      // worth shouting about — the person simply changed their mind.
+      // On a device that has no passkey saved, the browser cannot say so. It
+      // offers to scan a QR code from another device instead, and when that
+      // sheet is dismissed it throws the same NotAllowedError as someone who
+      // simply changed their mind at the fingerprint prompt.
+      //
+      // Treating both as "nothing to say" is what made the owner's phone look
+      // broken: the button was pressed, a QR sheet appeared, it was closed, and
+      // the page sat there in silence. Nothing on screen said the phone has no
+      // passkey yet, or that the password below still works.
       const name = (cause as { name?: string })?.name;
-      if (name !== "NotAllowedError" && name !== "AbortError") {
+      if (name === "NotAllowedError" || name === "AbortError") {
+        setError(
+          "यो यन्त्रमा passkey दर्ता छैन। तलको password ले पस्नुहोस् — अनि Login devices मा एक पटक दर्ता गर्नुहोस्।"
+        );
+      } else {
         setError("Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।");
       }
     } finally {
