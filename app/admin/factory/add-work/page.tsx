@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 
@@ -55,6 +56,9 @@ export default function AddWorkPage() {
   const [selectedRate, setSelectedRate] = useState<number | null>(null);
   const [selectedRateSource, setSelectedRateSource] = useState("");
   const [calculatedAmount, setCalculatedAmount] = useState<number>(0);
+  // Bumped when a work entry saves, so the panel below recounts what is made
+  // against what is on the shelf without the page being reloaded by hand.
+  const [workSaved, setWorkSaved] = useState(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -256,6 +260,7 @@ export default function AddWorkPage() {
 
       const result = await res.json();
       idempotencyKeys.rotate(keyScope);
+      setWorkSaved((count) => count + 1);
       setSuccess(
         result.production_synced
           ? "Work and wage saved. Production history synchronized."
@@ -521,6 +526,8 @@ export default function AddWorkPage() {
           </button>
         </div>
       </form>
+
+      <ReadyToPost refreshKey={workSaved} />
 
       {/* Add Product Modal */}
       {showAddProduct && (

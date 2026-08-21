@@ -31,6 +31,13 @@ const factoryApiPolicies: Record<string, Partial<Record<string, FactoryApiPolicy
     GET: { permissions: productionEntry },
     POST: { permissions: ["costing:write"], ownerOnly: true },
   },
+  // Reading what is made but not yet on the shelf is part of entering work.
+  // Putting pairs on the shelf is a stock decision, held to the same bar as
+  // every other door into stock: the owner, and operations:write.
+  "/api/factory/ready": {
+    GET: { permissions: productionEntry },
+    POST: { permissions: ["operations:write"], ownerOnly: true },
+  },
   "/api/factory/salary": {
     GET: { permissions: hrRead },
   },
