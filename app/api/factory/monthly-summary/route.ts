@@ -5,7 +5,8 @@ import {
   submissionKeyForFactoryRequest,
 } from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
-import { monthKey, numeric } from "@/lib/factory-money";
+import { bikramMonthRange } from "@/lib/bikram-sambat";
+import { numeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -27,12 +28,15 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   try {
-    const requestedMonth = request.nextUrl.searchParams.get("month");
-    const month = monthKey(requestedMonth);
+    const requestedMonth = request.nextUrl.searchParams.get("bsMonth");
+    const range = requestedMonth ? bikramMonthRange(requestedMonth) : null;
     const workerId = request.nextUrl.searchParams.get("workerId");
 
-    if (!requestedMonth || !month) {
-      return NextResponse.json({ error: "month parameter is required (YYYY-MM)" }, { status: 400 });
+    if (!requestedMonth || !range) {
+      return NextResponse.json(
+        { error: "bsMonth is required (a Bikram Sambat month such as 2083-05)" },
+        { status: 400 },
+      );
     }
 
     let query = `SELECT ms.id, ms.month, ms.worker_id, ms.total_pairs, ms.total_earned,
@@ -40,13 +44,13 @@ export async function GET(request: NextRequest) {
                         fw.name as worker_name, fw.worker_type, fw.category
                  FROM factory_monthly_summary ms
                  JOIN factory_workers fw ON ms.worker_id = fw.id
-                 WHERE DATE_TRUNC('month', ms.month) = DATE_TRUNC('month', $1::date)
+                 WHERE ms.month >= $1::date AND ms.month < $2::date
                    AND fw.worker_type = 'piece_rate'`;
 
-    const params: (string | null)[] = [month + "-01"];
+    const params: (string | null)[] = [range.startKey, range.endKey];
 
     if (workerId) {
-      query += ` AND ms.worker_id = $2`;
+      query += ` AND ms.worker_id = $3`;
       params.push(workerId);
     }
 
@@ -75,12 +79,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
-    const month = monthKey(body.month);
+    // A Bikram Sambat month key, the same shape the reader takes.
+    const month = typeof body.bsMonth === "string" && bikramMonthRange(body.bsMonth) ? body.bsMonth.trim() : null;
     const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
     if (!month || !workerId) {
       return NextResponse.json(
-        { error: "month and worker_id are required" },
+        { error: "bsMonth and worker_id are required" },
         { status: 400 }
       );
     }

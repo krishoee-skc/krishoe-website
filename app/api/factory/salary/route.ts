@@ -1,6 +1,7 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { queryPostgres } from "@/lib/postgres/client";
-import { monthKey, numeric, type DbNumeric } from "@/lib/factory-money";
+import { bikramMonthRange } from "@/lib/bikram-sambat";
+import { numeric, type DbNumeric } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 const STORE = "krishoe";
@@ -18,12 +19,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const workerId = request.nextUrl.searchParams.get("workerId");
-    const requestedMonth = request.nextUrl.searchParams.get("month");
-    const selectedMonth = monthKey(requestedMonth);
+    const requestedMonth = request.nextUrl.searchParams.get("bsMonth");
+    const range = requestedMonth ? bikramMonthRange(requestedMonth) : null;
 
-    if (!workerId || !requestedMonth || !selectedMonth) {
+    if (!workerId || !requestedMonth || !range) {
       return NextResponse.json(
-        { error: "workerId and month (YYYY-MM) are required" },
+        { error: "workerId and bsMonth (a Bikram Sambat month such as 2083-05) are required" },
         { status: 400 },
       );
     }
@@ -55,8 +56,9 @@ export async function GET(request: NextRequest) {
        WHERE worker_id = $1
        AND entry_type = 'payment'
        AND status <> 'reversed'
-       AND COALESCE(salary_period_month, date_trunc('month', date)::date) = $2::date`,
-      [workerId, `${selectedMonth}-01`]
+       AND COALESCE(salary_period_month, date)::date >= $2::date
+       AND COALESCE(salary_period_month, date)::date < $3::date`,
+      [workerId, range.startKey, range.endKey]
     );
 
     // Get advances this month
@@ -65,8 +67,9 @@ export async function GET(request: NextRequest) {
       `SELECT COALESCE(SUM(advance_amount), 0) as total_advance
        FROM factory_weekly_advance
        WHERE worker_id = $1
-       AND COALESCE(salary_period_month, date_trunc('month', date_given)::date) = $2::date`,
-      [workerId, `${selectedMonth}-01`]
+       AND COALESCE(salary_period_month, date_given)::date >= $2::date
+       AND COALESCE(salary_period_month, date_given)::date < $3::date`,
+      [workerId, range.startKey, range.endKey]
     );
 
     const totalSalary = numeric(worker.monthly_salary);
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       worker_id: workerId,
-      month: selectedMonth,
+      month: requestedMonth,
       total_salary: totalSalary,
       total_paid: totalPaid,
       total_advance: totalAdvance,

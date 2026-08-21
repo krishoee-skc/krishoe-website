@@ -5,8 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
   nepalDateKey,
-  nepalMonthKey,
 } from "@/app/admin/factory/_components/nepal-date";
+import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
 
 interface StaffWorker {
   id: string;
@@ -31,7 +32,10 @@ export default function StaffSalaryPage() {
   const requestedWorkerId = searchParams.get("workerId");
   const [workers, setWorkers] = useState<StaffWorker[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
-  const [month, setMonth] = useState(() => nepalMonthKey());
+  // The Bikram Sambat month, because that is the month wages are agreed in.
+  // nepalMonthKey() gave the English month in Nepal's timezone, which is a
+  // different thing and was never the one being asked about.
+  const [month, setMonth] = useState(() => bikramMonthKeyOf(new Date()));
   const [summary, setSummary] = useState<SalarySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +84,7 @@ export default function StaffSalaryPage() {
       try {
         setError(null);
         const res = await fetch(
-          `/api/factory/salary?workerId=${selectedWorkerId}&month=${month}`
+          `/api/factory/salary?workerId=${selectedWorkerId}&bsMonth=${month}`
         );
         if (!res.ok) throw new Error("Failed to load salary summary");
         const data = await res.json();
@@ -184,15 +188,7 @@ export default function StaffSalaryPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-900 mb-2">
-            Month
-          </label>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-          />
+          <BikramMonthPicker value={month} onChange={setMonth} label="महिना" />
         </div>
       </div>
 

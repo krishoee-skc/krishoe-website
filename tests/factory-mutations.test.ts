@@ -158,8 +158,11 @@ describe("Factory mutation idempotency", () => {
     expect(summaryUpsert).toBeDefined();
 
     // The work's own month, not today's — back-dated entries belong to the month
-    // they were worked in.
-    expect(String(summaryUpsert?.[1]?.[1])).toBe("2026-07-01");
+    // they were worked in. And the Nepali month, not the English one: wages are
+    // agreed by it, and Shrawan 2083 opens on 17 July 2026, so work done in the
+    // second half of July belongs there rather than to a month that began on
+    // the 1st and means nothing to the worker being paid.
+    expect(String(summaryUpsert?.[1]?.[1])).toBe("2026-07-17");
     expect(summaryUpsert?.[1]?.[2]).toBe("worker-1");
 
     // A finalised month is never rewritten behind the owner's back.
@@ -670,7 +673,7 @@ describe("Factory mutation idempotency", () => {
 
     const result = await refreshFactoryMonthlySummary({
       submissionKey: "summary-request-key",
-      month: "2026-08",
+      month: "2083-05",
       workerId: "worker-1",
     });
 
@@ -702,7 +705,7 @@ describe("Factory mutation idempotency", () => {
 
     const result = await refreshFactoryMonthlySummary({
       submissionKey: "summary-request-key",
-      month: "2026-08",
+      month: "2083-05",
       workerId: "worker-1",
     });
 

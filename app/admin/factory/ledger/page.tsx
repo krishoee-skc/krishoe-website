@@ -5,8 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
   nepalDateKey,
-  nepalMonthKey,
 } from "@/app/admin/factory/_components/nepal-date";
+import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
 
 interface WorkerLedger {
   id: string;
@@ -48,7 +49,10 @@ export default function LedgerPage() {
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [month, setMonth] = useState(() => nepalMonthKey());
+  // The Bikram Sambat month, because that is the month wages are agreed in.
+  // nepalMonthKey() gave the English month in Nepal's timezone, which is a
+  // different thing and was never the one being asked about.
+  const [month, setMonth] = useState(() => bikramMonthKeyOf(new Date()));
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => nepalDateKey());
   const [paymentKind, setPaymentKind] = useState("Saturday kharcha / advance");
@@ -92,7 +96,7 @@ export default function LedgerPage() {
       setError(null);
       try {
         const res = await fetch(
-          `/api/factory/ledger?workerId=${selectedWorkerId}&month=${month}`,
+          `/api/factory/ledger?workerId=${selectedWorkerId}&bsMonth=${month}`,
           { signal: AbortSignal.timeout(60000) }
         );
         if (!res.ok) throw new Error(`Failed to fetch ledger: ${res.status}`);
@@ -201,13 +205,7 @@ export default function LedgerPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">Month</label>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg"
-          />
+          <BikramMonthPicker value={month} onChange={setMonth} label="महिना" />
         </div>
       </div>
 

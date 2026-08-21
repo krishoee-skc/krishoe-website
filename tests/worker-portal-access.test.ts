@@ -82,7 +82,9 @@ describe("worker portal access", () => {
 
     expect(access.detail.worker.name).toBe("ankus");
     expect(access.detail.work[0]).toMatchObject({ itemName: "panja", pairs: 60, amountEarned: 1500 });
-    expect(access.detail.months[0]).toMatchObject({ month: "2026-07", totalPairs: 120, totalEarned: 3000 });
+    // The month named the way the worker knows it, not "2026-07". 1 July 2026
+    // is still Ashar — Shrawan does not open until the 17th.
+    expect(access.detail.months[0]).toMatchObject({ month: "असार २०८३", totalPairs: 120, totalEarned: 3000 });
     expect(access.detail.balance).toBe(3000);
   });
 

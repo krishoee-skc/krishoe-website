@@ -42,7 +42,7 @@ describe("factory staff salary summary", () => {
     });
 
     const response = await GET(
-      new NextRequest("http://localhost/api/factory/salary?workerId=staff-1&month=2026-07"),
+      new NextRequest("http://localhost/api/factory/salary?workerId=staff-1&bsMonth=2083-04"),
     );
     const body = await response.json();
 
@@ -52,7 +52,7 @@ describe("factory staff salary summary", () => {
     expect(queryPostgres.mock.calls[1][1]).toContain("salary_period_month");
     expect(body).toMatchObject({
       worker_id: "staff-1",
-      month: "2026-07",
+      month: "2083-04",
       total_salary: 15000,
       total_paid: 3500.5,
       total_advance: 1000.25,
@@ -62,7 +62,7 @@ describe("factory staff salary summary", () => {
 
   it("rejects an invalid month instead of silently using the current month", async () => {
     const response = await GET(
-      new NextRequest("http://localhost/api/factory/salary?workerId=staff-1&month=2026-99"),
+      new NextRequest("http://localhost/api/factory/salary?workerId=staff-1&bsMonth=2026-99"),
     );
 
     expect(response.status).toBe(400);
@@ -78,7 +78,7 @@ describe("factory staff salary summary", () => {
     }]);
 
     const response = await GET(
-      new NextRequest("http://localhost/api/factory/salary?workerId=daily-1&month=2026-08"),
+      new NextRequest("http://localhost/api/factory/salary?workerId=daily-1&bsMonth=2083-05"),
     );
 
     expect(response.status).toBe(409);

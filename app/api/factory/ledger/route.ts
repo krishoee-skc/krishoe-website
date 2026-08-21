@@ -4,9 +4,9 @@ import {
   FactoryMutationError,
   submissionKeyForFactoryRequest,
 } from "@/lib/factory-mutations";
+import { bikramMonthRange } from "@/lib/bikram-sambat";
 import { queryPostgres } from "@/lib/postgres/client";
 import {
-  monthKey,
   numeric,
   positiveAmount,
   positiveInteger,
@@ -46,14 +46,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const workerId = request.nextUrl.searchParams.get("workerId");
-    const requestedMonth = request.nextUrl.searchParams.get("month");
-    const month = requestedMonth ? monthKey(requestedMonth) : null;
+    // A Bikram Sambat month key — "2083-05" for Bhadra. The parameter is
+    // named for what it holds, because the two calendars share the YYYY-MM
+    // shape and an A.D. month read as a BS one reports a worker's pay for 1969.
+    const requestedMonth = request.nextUrl.searchParams.get("bsMonth");
+    const range = requestedMonth ? bikramMonthRange(requestedMonth) : null;
 
     if (!workerId) {
       return NextResponse.json({ error: "workerId is required" }, { status: 400 });
     }
-    if (requestedMonth && !month) {
-      return NextResponse.json({ error: "month must use YYYY-MM format" }, { status: 400 });
+    if (requestedMonth && !range) {
+      return NextResponse.json(
+        { error: "bsMonth must be a Bikram Sambat month such as 2083-05" },
+        { status: 400 },
+      );
     }
 
     // Get worker info first
@@ -94,9 +100,13 @@ export async function GET(request: NextRequest) {
                        WHERE true`;
     const params: LedgerParam[] = [workerId];
 
-    if (month) {
-      ledgerQuery += ` AND date >= $2::date AND date < ($2::date + INTERVAL '1 month')`;
-      params.push(`${month}-01`);
+    if (range) {
+      // Both ends passed, never start + INTERVAL '1 month'. Bhadra runs 17
+      // August to 17 September and Asoj 17 September to 18 October — BS months
+      // are 29 to 32 days, so the arithmetic that looks right for one month
+      // drops a day of somebody's wages out of the next.
+      ledgerQuery += ` AND date >= $2::date AND date < $3::date`;
+      params.push(range.startKey, range.endKey);
     }
 
     ledgerQuery += ` ORDER BY created_at ASC, id ASC`;

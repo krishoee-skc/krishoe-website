@@ -1,3 +1,4 @@
+import { bikramMonthKeyOf, bikramMonthRange } from "@/lib/bikram-sambat";
 import { numeric, type DbNumeric } from "@/lib/factory-money";
 import {
   transactionPostgres,
@@ -479,7 +480,10 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     // month is left untouched (writeMonthlySummary returns null): the work is
     // still real and still recorded, but a finalised month is not rewritten
     // behind the owner's back.
-    await writeMonthlySummary(db, input.workerId, input.date.slice(0, 7));
+    // The Bikram Sambat month the work date falls in — .slice(0, 7) gave the
+    // English one, which would put work done on 17 August into the month the
+    // shop had already closed.
+    await writeMonthlySummary(db, input.workerId, bikramMonthKeyOf(input.date));
 
     return {
       ...workResponse(inserted[0], input.submissionKey, false),
@@ -644,7 +648,7 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
         newBalance,
         input.status,
         input.notes,
-        input.salaryPeriodMonth ? `${input.salaryPeriodMonth}-01` : null,
+        input.salaryPeriodMonth ? (bikramMonthRange(input.salaryPeriodMonth)?.startKey ?? null) : null,
       ],
     );
 
@@ -808,7 +812,25 @@ interface SummaryRow {
  * finalised month. Callers decide what that means: a deliberate refresh reports
  * the locked figures, while posting work simply leaves them alone.
  */
+/**
+ * `month` is a Bikram Sambat month key — "2083-05" for Bhadra.
+ *
+ * This function decides what a worker is owed for a month, so the month it
+ * counts has to be the one the wage was agreed in. Filtered on the English
+ * month, Bhadra split in half: the work from 17 August landed in "August" and
+ * the rest in "September", and "how much did this worker earn in Bhadra" was a
+ * question the app could not answer.
+ *
+ * The row is stored against the month's first A.D. day — 2026-08-17 for Bhadra
+ * — so the dates in the database stay A.D. and every comparison Postgres does
+ * keeps working. Only the boundary moved.
+ */
 async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month: string) {
+  const range = bikramMonthRange(month);
+  if (!range) {
+    throw new Error(`Not a Bikram Sambat month: ${month}`);
+  }
+
   const workRows = await db.query<{
     total_pairs: DbNumeric;
     total_earned: DbNumeric;
@@ -818,9 +840,9 @@ async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month
      FROM factory_daily_work
      WHERE worker_id = $1
        AND date >= $2::date
-       AND date < ($2::date + INTERVAL '1 month')
+       AND date < $3::date
        AND status = 'completed'`,
-    [workerId, `${month}-01`],
+    [workerId, range.startKey, range.endKey],
   );
   const paymentRows = await db.query<{ total_paid: DbNumeric }>(
     `SELECT COALESCE(SUM(payment_given), 0) AS total_paid
@@ -829,8 +851,8 @@ async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month
        AND entry_type = 'payment'
        AND status <> 'reversed'
        AND date >= $2::date
-       AND date < ($2::date + INTERVAL '1 month')`,
-    [workerId, `${month}-01`],
+       AND date < $3::date`,
+    [workerId, range.startKey, range.endKey],
   );
   const balanceRows = await db.query<{ closing_balance: DbNumeric }>(
     `SELECT COALESCE(
@@ -840,8 +862,8 @@ async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month
      FROM factory_worker_ledger
      WHERE worker_id = $1
        AND status <> 'reversed'
-       AND date < ($2::date + INTERVAL '1 month')`,
-    [workerId, `${month}-01`],
+       AND date < $2::date`,
+    [workerId, range.endKey],
   );
 
   const rows = await db.query<SummaryRow>(
@@ -859,7 +881,7 @@ async function writeMonthlySummary(db: PostgresExecutor, workerId: string, month
                final_balance, status`,
     [
       crypto.randomUUID(),
-      `${month}-01`,
+      range.startKey,
       workerId,
       numeric(workRows[0]?.total_pairs),
       numeric(workRows[0]?.total_earned),

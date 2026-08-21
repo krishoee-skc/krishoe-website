@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
-import { nepalMonthKey } from "@/app/admin/factory/_components/nepal-date";
+import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
 
 interface Summary {
   id: string;
@@ -20,7 +21,10 @@ interface Summary {
 
 export default function ReportsPage() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [month, setMonth] = useState(() => nepalMonthKey());
+  // The Bikram Sambat month, because that is the month wages are agreed in.
+  // nepalMonthKey() gave the English month in Nepal's timezone, which is a
+  // different thing and was never the one being asked about.
+  const [month, setMonth] = useState(() => bikramMonthKeyOf(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
@@ -45,7 +49,7 @@ export default function ReportsPage() {
             "Idempotency-Key": idempotencyKeys.get(keyScope),
           },
           body: JSON.stringify({
-            month: selectedMonth,
+            bsMonth: selectedMonth,
             worker_id: worker.id,
           }),
         });
@@ -105,12 +109,7 @@ export default function ReportsPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">📊 Monthly Reports</h1>
 
         <div className="flex gap-3 mb-6">
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="min-h-12 px-3 py-2 border border-slate-300 rounded-lg"
-          />
+          <BikramMonthPicker value={month} onChange={setMonth} label="महिना" className="min-w-[180px]" />
           <button
             onClick={() => generateSummaries(month)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"

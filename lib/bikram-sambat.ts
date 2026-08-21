@@ -125,3 +125,88 @@ export function toBikramSambatRoman(value: string | Date): string {
     return "";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Bikram Sambat months as a period, so money can be counted the way a Nepali
+// shop counts it.
+//
+// A factory ledger filtered on the English month splits Bhadra in half: work
+// from 17 August lands in "August" and the rest in "September", so the answer
+// to "how much did this worker earn in Bhadra" is a figure the app never
+// produces. Wages are agreed by the Nepali month, so they have to be summed by
+// it.
+//
+// The dates stay stored as A.D. — Postgres compares and sorts them natively,
+// and "the last seven days" has to keep working. Only the boundaries move.
+// ---------------------------------------------------------------------------
+
+const BIKRAM_MONTH_KEY = /^(\d{4})-(\d{2})$/;
+
+/** "2083-05" for whatever Bikram Sambat month a date falls in. Month 01 = Baisakh. */
+export function bikramMonthKeyOf(value: string | Date): string {
+  const bs = bikramYearMonth(value);
+  return bs ? `${bs.year}-${String(bs.monthIndex + 1).padStart(2, "0")}` : "";
+}
+
+/**
+ * The A.D. days a Bikram Sambat month covers, as a half-open range.
+ *
+ * End-exclusive on purpose. A closed range needs the month's last day, and BS
+ * months run 29 to 32 days — the length that is wrong is the one nobody
+ * checks. Asking for the next month's first day never has to know.
+ *
+ * `+ INTERVAL '1 month'` cannot stand in for this either: Bhadra starts 17
+ * August and Asoj starts 17 September, which looks like it works, until Asoj
+ * runs 31 days to 18 October and a day of somebody's wages falls outside the
+ * month they earned it in.
+ */
+export function bikramMonthRange(monthKey: string): { startKey: string; endKey: string } | null {
+  const match = BIKRAM_MONTH_KEY.exec(monthKey.trim());
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isInteger(year) || month < 1 || month > 12) return null;
+  // A Bikram Sambat year runs about 57 ahead of the Gregorian one, so BS
+  // 2070-2110 is 2013-2053 A.D. — every year this shop could be closing books
+  // in, and nothing an A.D. date could be mistaken for. Without the lower
+  // bound, a stale link carrying "2026-08" reads as BS 2026 Bhadra and reports
+  // a worker's pay for 1969.
+  if (year < 2070 || year > 2110) return null;
+
+  const startKey = bikramMonthStartAdKey(year, month - 1);
+  const endKey = bikramMonthStartAdKey(year, month);
+  return startKey && endKey ? { startKey, endKey } : null;
+}
+
+/**
+ * Recent Bikram Sambat months, newest first, for a picker.
+ *
+ * `<input type="month">` is the browser's own English control and cannot be
+ * made to speak BS, so the months are listed instead — which also means the
+ * owner picks "भाद्र २०८३" by name rather than converting a date in their head.
+ */
+export function recentBikramMonths(
+  count = 14,
+  reference: Date = new Date(),
+): { key: string; label: string }[] {
+  const bs = bikramYearMonth(reference);
+  if (!bs) return [];
+
+  const months: { key: string; label: string }[] = [];
+  for (let back = 0; back < count; back += 1) {
+    let year = bs.year;
+    let index = bs.monthIndex - back;
+    while (index < 0) {
+      index += 12;
+      year -= 1;
+    }
+    const startKey = bikramMonthStartAdKey(year, index);
+    if (!startKey) continue;
+    months.push({
+      key: `${year}-${String(index + 1).padStart(2, "0")}`,
+      label: bikramMonthLabel(`${startKey}T06:00:00.000Z`),
+    });
+  }
+  return months;
+}

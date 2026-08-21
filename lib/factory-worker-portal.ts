@@ -1,3 +1,4 @@
+import { bikramMonthLabel } from "@/lib/bikram-sambat";
 import { numeric } from "@/lib/factory-money";
 import { queryPostgres } from "@/lib/postgres/client";
 
@@ -158,7 +159,7 @@ export async function getFactoryWorkerPortalDetail(
       status: row.status,
     })),
     months: monthRows.map((row) => ({
-      month: dateKey(row.month).slice(0, 7),
+      month: bikramMonthLabel(`${dateKey(row.month)}T06:00:00.000Z`) || dateKey(row.month).slice(0, 7),
       totalPairs: numeric(row.total_pairs),
       totalEarned: numeric(row.total_earned),
       totalPaid: numeric(row.total_paid),

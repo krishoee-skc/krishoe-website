@@ -4,7 +4,8 @@ import {
   FactoryMutationError,
   submissionKeyForFactoryRequest,
 } from "@/lib/factory-mutations";
-import { monthKey, positiveAmount, ymdDate } from "@/lib/factory-money";
+import { bikramMonthRange } from "@/lib/bikram-sambat";
+import { positiveAmount, ymdDate } from "@/lib/factory-money";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -16,7 +17,9 @@ export async function POST(request: NextRequest) {
     const workerId = typeof body.worker_id === "string" ? body.worker_id.trim() : "";
     const amount = positiveAmount(body.amount);
     const date = ymdDate(body.date);
-    const periodMonth = monthKey(body.period_month);
+    // A Bikram Sambat month key — "2083-05" for Bhadra.
+    const requestedPeriod = typeof body.period_month === "string" ? body.period_month.trim() : "";
+    const periodMonth = bikramMonthRange(requestedPeriod) ? requestedPeriod : null;
     const submissionKey = submissionKeyForFactoryRequest(request, body.submission_key);
 
     if (!workerId || !amount || !date || !periodMonth) {

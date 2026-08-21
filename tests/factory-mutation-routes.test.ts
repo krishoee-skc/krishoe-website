@@ -96,7 +96,7 @@ describe("Factory mutation route contracts", () => {
         worker_id: "worker-1",
         date: "2026-08-01",
         amount: 100,
-        period_month: "2026-07",
+        period_month: "2083-04",
       }),
     );
     const advanceResponse = await postAdvance(
@@ -104,13 +104,13 @@ describe("Factory mutation route contracts", () => {
         worker_id: "worker-1",
         date: "2026-08-01",
         amount: 50,
-        period_month: "2026-08",
+        period_month: "2083-05",
       }),
     );
     const summaryResponse = await postSummary(
       request("/api/factory/monthly-summary", {
         worker_id: "worker-1",
-        month: "2026-08",
+        bsMonth: "2083-05",
       }),
     );
 
@@ -130,12 +130,14 @@ describe("Factory mutation route contracts", () => {
     expect(createFactoryLedgerEntry).toHaveBeenCalledWith(
       expect.objectContaining({
         submissionKey: "client-key-1",
-        salaryPeriodMonth: "2026-07",
+        // Bikram Sambat, because that is the month the wage was agreed in.
+        salaryPeriodMonth: "2083-04",
         allowedWorkerTypes: ["monthly_staff"],
       }),
     );
     expect(createFactoryAdvance).toHaveBeenCalledWith(
-      expect.objectContaining({ submissionKey: "client-key-1", periodMonth: "2026-08" }),
+      // Bikram Sambat, so the salary screen — which reads a BS range — finds it.
+      expect.objectContaining({ submissionKey: "client-key-1", periodMonth: "2083-05" }),
     );
     expect(refreshFactoryMonthlySummary).toHaveBeenCalledWith(
       expect.objectContaining({ submissionKey: "client-key-1" }),
