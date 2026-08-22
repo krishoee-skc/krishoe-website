@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById, getProducts } from "@/lib/product-store";
-import { getCurrentCustomer } from "@/lib/customer-auth";
-import { getOrdersForCustomer } from "@/lib/submissions";
 import { getProductByIdFromList, getRelatedProductsFromList } from "@/lib/products";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
@@ -12,7 +10,7 @@ import ProductDetailActions from "@/components/ProductDetailActions";
 import ProductGallery from "@/components/ProductGallery";
 import ProductCard from "@/components/ProductCard";
 import { CheckIcon, StarIcon } from "@/components/Icons";
-import ProductReviews from "@/components/ProductReviews";
+import ProductReviewsPanel from "@/components/ProductReviewsPanel";
 import { stockLevel } from "@/lib/stock-thresholds";
 import ShareProduct from "@/components/ShareProduct";
 import T from "@/components/T";
@@ -44,9 +42,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return createProductMetadata(product);
 }
 
+/**
+ * Every product gets its own built page.
+ *
+ * This is where a Facebook ad lands, where a shared link lands, and where a
+ * Google result lands — the page a shopper meets KRISHOE on. It was taking 2.3
+ * seconds and never caching, against 0.45 for /shop, because working out who
+ * was reading meant reading a cookie and one request-time read makes a whole
+ * route dynamic. That work moved to the browser; this makes the page itself.
+ *
+ * dynamicParams stays on, its default: a shoe added after the last build still
+ * has a page, rendered the first time somebody asks for it. And the ten-second
+ * revalidate the catalogue already runs on means a shoe that was removed stops
+ * being served within ten seconds — which is the failure this has to avoid,
+ * because a prerendered page for a deleted product is exactly what put 404s in
+ * front of shoppers after the trial data was cleared.
+ */
+export async function generateStaticParams() {
+  const products = await getProducts();
+  return products.map((product) => ({ id: product.id }));
+}
+
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const [products, viewer] = await Promise.all([getProducts(), getCurrentCustomer()]);
+  const products = await getProducts();
   const product = getProductByIdFromList(products, id);
 
   if (!product) {
@@ -54,38 +73,7 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const relatedProducts = getRelatedProductsFromList(products, product);
-  const viewerOrders = viewer ? await getOrdersForCustomer(viewer) : [];
-  const existingReview = viewer
-    ? product.reviews.some((review) => review.customerUserId === viewer.id)
-    : false;
-  const verifiedPurchase = viewerOrders.some(
-    (order) =>
-      order.status === "Closed" &&
-      order.items.some((item) => item.productId === product.id && item.quantity > 0),
-  );
-  const reviewAccess = {
-    canReview: Boolean(viewer && verifiedPurchase && !existingReview),
-    isLoggedIn: Boolean(viewer),
-    reason: !viewer
-      ? {
-          en: "Sign in to review a product you purchased.",
-          ne: "किन्नुभएको सामानको समीक्षा लेख्न साइन इन गर्नुहोस्।",
-        }
-      : existingReview
-        ? {
-            en: "You have already submitted a review for this product.",
-            ne: "तपाईंले यो सामानको समीक्षा पहिले नै लेखिसक्नुभएको छ।",
-          }
-        : verifiedPurchase
-          ? {
-              en: "Your completed purchase is verified.",
-              ne: "तपाईंको किनमेल पुष्टि भएको छ।",
-            }
-          : {
-              en: "Reviews open after a completed purchase of this product.",
-              ne: "यो सामान किनेर अर्डर पूरा भएपछि समीक्षा लेख्न मिल्छ।",
-            },
-  };
+
   const level = stockLevel(product.stock);
   // The product's own name, description and highlights are catalog data the
   // owner types in; only KRISHOE's own wording is translated here.
@@ -112,7 +100,7 @@ export default async function ProductPage({ params }: Props) {
           { name: product.name, path: `/product/${product.id}` },
         ])}
       />
-      <Navbar isLoggedIn={Boolean(viewer)} />
+      <Navbar />
       <div className="pb-24 md:pb-0">
       <main className="bg-white">
         <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
@@ -270,7 +258,7 @@ export default async function ProductPage({ params }: Props) {
         )}
       </main>
 
-      <ProductReviews product={product} reviewAccess={reviewAccess} />
+      <ProductReviewsPanel product={product} />
 
       <Footer />
       </div>
