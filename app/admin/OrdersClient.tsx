@@ -23,6 +23,7 @@ import {
   paymentProviders as PAYMENT_PROVIDERS,
   paymentStatuses as PAYMENT_STATUSES,
 } from "@/lib/order-constants";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 type OrderPosInvoiceLink = {
   id: string;
@@ -224,7 +225,7 @@ function OrderPaymentForm({
           <p className={`text-xs ${state.ok ? "text-gray-500" : "text-red-600"}`}>
             {state.message ||
               (order.paymentVerifiedAt
-                ? `Verified ${new Date(order.paymentVerifiedAt).toLocaleString("en-US")}`
+                ? "Verified"
                 : "Not verified")}
           </p>
           <button
@@ -492,11 +493,7 @@ export default function OrdersClient({
               <tr key={order.id}>
                 <td className="reflow-primary whitespace-nowrap px-4 py-3 font-mono text-gray-700">{order.id}</td>
                 <td data-label="Date" className="whitespace-nowrap px-4 py-3 text-gray-700">
-                  {new Date(order.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  <DateDisplayAdmin date={order.createdAt} />
                 </td>
                 <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
                   <p className="font-medium text-gray-900">{order.name}</p>

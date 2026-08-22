@@ -22,6 +22,7 @@ import {
   type OrderStatus,
   type PaymentStatus,
 } from "@/lib/submissions";
+import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = {
   title: "My Account | KRISHOE",
@@ -38,10 +39,7 @@ type AccountPageProps = {
 };
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatAdminDate(value, { time: true });
 }
 
 function orderStatusClass(status: OrderStatus) {
@@ -229,11 +227,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <div>
                   <dt className="font-semibold text-brand-muted">Member since</dt>
                   <dd className="mt-1 font-bold text-brand-green-ink">
-                    {new Date(user.createdAt).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {formatAdminDate(user.createdAt)}
                   </dd>
                 </div>
                 <div>

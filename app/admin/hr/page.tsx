@@ -14,6 +14,7 @@ import {
   updatePayrollStatusAction,
 } from "@/app/admin/hr/actions";
 import { getHrSnapshot, hrDepartments, type EmployeePerformanceRow } from "@/lib/hr";
+import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = {
   title: "HR | KRISHOE Admin",
@@ -182,7 +183,7 @@ export default async function AdminHrPage({ searchParams }: AdminHrPageProps) {
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         <StatCard label="Active staff" value={hr.summary.activeEmployees} detail={`${hr.summary.employeeCount} total`} tone="good" />
-        <StatCard label="Present today" value={hr.summary.todayPresent} detail={new Date(today + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "2-digit", year: "numeric" })} tone={hr.summary.todayPresent > 0 ? "good" : "warn"} />
+        <StatCard label="Present today" value={hr.summary.todayPresent} detail={formatAdminDate(today + "T00:00:00")} tone={hr.summary.todayPresent > 0 ? "good" : "warn"} />
         <StatCard label="Month payroll" value={money(hr.summary.monthPayroll)} detail={`${money(hr.summary.draftPayroll)} draft due`} tone={hr.summary.draftPayroll > 0 ? "warn" : "good"} />
         <StatCard label="Worker output" value={hr.summary.completedPairs} detail={`${hr.summary.averageProgressRate}% task progress`} />
         <StatCard label="Attendance days" value={hr.summary.monthAttendanceDays} detail={currentMonth} />

@@ -10,6 +10,7 @@ import {
 } from "@/app/admin/login/passkey-actions";
 import type { StoredPasskey } from "@/lib/passkeys";
 import { usePasskeySupport } from "@/lib/use-passkey-support";
+import { formatAdminDate } from "@/lib/format-date";
 
 /**
  * Adding and removing the devices that can sign in without a password.
@@ -156,7 +157,7 @@ export default function PasskeyManager() {
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
                     {key.lastUsedAt
-                      ? `पछिल्लो पटक: ${new Date(key.lastUsedAt).toLocaleDateString()}`
+                      ? `पछिल्लो पटक: ${formatAdminDate(key.lastUsedAt)}`
                       : "अझै प्रयोग भएको छैन"}
                   </p>
                 </div>

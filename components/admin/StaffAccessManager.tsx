@@ -15,6 +15,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { adminRoles, type AdminRole } from "@/lib/admin-role-permissions";
 import type { SafeAdminStaffAccount } from "@/lib/admin-settings";
 import { formatStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
+import { formatAdminDate } from "@/lib/format-date";
 
 type BranchOption = { id: string; name: string; code: string };
 type EmployeeOption = { id: string; name: string; department: string; status: string };
@@ -29,7 +30,7 @@ const dangerButtonClass = "min-h-11 rounded-xl border border-red-200 px-4 text-s
 function displayDate(value?: string) {
   if (!value) return "Never";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("en-NP", { dateStyle: "medium", timeStyle: "short" });
+  return Number.isNaN(date.getTime()) ? value : formatAdminDate(date, { time: true });
 }
 
 function permissionLabel(permission: string) {

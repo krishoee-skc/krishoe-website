@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PrintSalaryClosingButton from "@/app/admin/hr/salary-closing/PrintSalaryClosingButton";
 import { getHrSnapshot } from "@/lib/hr";
+import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = {
   title: "Salary Closing Report | KRISHOE Admin",
@@ -70,7 +71,7 @@ export default async function SalaryClosingReportPage() {
             <p className="mt-2 text-sm text-gray-500">{periodLabel}</p>
           </div>
           <div className="text-right text-sm text-gray-500">
-            <p className="font-bold text-brand-green-ink">{new Date().toLocaleDateString("en-IN")}</p>
+            <p className="font-bold text-brand-green-ink">{formatAdminDate(new Date())}</p>
             <p>{rows.length} employee row(s)</p>
           </div>
         </div>

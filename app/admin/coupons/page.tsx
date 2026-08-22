@@ -3,6 +3,7 @@ import { saveCouponAction } from "./actions";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listCoupons } from "@/lib/coupons";
+import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = { title: "छुटको कोड | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ function rupees(paisa: number) {
 
 function nepaliDate(value: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return formatAdminDate(value);
 }
 
 export default async function CouponsPage({

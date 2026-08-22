@@ -8,6 +8,7 @@ import {
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
 import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 interface WorkerLedger {
   id: string;
@@ -292,7 +293,7 @@ export default function LedgerPage() {
                     ledgerData.ledger.map((entry, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-2 sm:px-4 text-slate-900">
-                          {entry.date}
+                          <DateDisplayAdmin date={entry.date} />
                         </td>
                         <td className="py-3 px-2 sm:px-4">
                           <span className="text-xs sm:text-sm capitalize bg-slate-100 px-2 py-1 rounded">

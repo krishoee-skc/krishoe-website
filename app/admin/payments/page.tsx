@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPaymentReconciliation, type PaymentReconciliationIssueSeverity } from "@/lib/payment-reconciliation";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 export const metadata = {
   title: "Payment Reconciliation | KRISHOE Admin",
@@ -187,7 +188,7 @@ export default async function AdminPaymentsPage() {
               {reconciliation.transactions.slice(0, 20).map((transaction) => (
                 <tr key={transaction.id}>
                   <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
-                    {new Date(transaction.createdAt).toLocaleString("en-IN")}
+                    <DateDisplayAdmin date={transaction.createdAt} time />
                   </td>
                   <td data-label="Order" className="py-3 pr-3">
                     <p className="font-mono text-xs text-brand-green-ink">{transaction.orderId}</p>

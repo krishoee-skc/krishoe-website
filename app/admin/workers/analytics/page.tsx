@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import WorkerAnalyticsDashboard from "@/components/admin/WorkerAnalyticsDashboard";
+import { bikramMonthLabel, bikramYearMonth } from "@/lib/bikram-sambat";
 
 interface WorkerMetrics {
   workerId: string;
@@ -164,8 +165,10 @@ export default function WorkerAnalyticsPage() {
   }
 
   const currentDate = new Date();
-  const month = currentDate.toLocaleString("default", { month: "long" });
-  const year = currentDate.getFullYear().toString();
+  // The Nepali month, because that is the month a wage belongs to. The
+  // English one names a period this shop never closes.
+  const month = bikramMonthLabel(currentDate);
+  const year = String(bikramYearMonth(currentDate)?.year ?? currentDate.getFullYear());
 
   return (
     <div className="p-4 sm:p-6">

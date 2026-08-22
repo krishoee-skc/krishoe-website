@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatAdminDate } from "@/lib/format-date";
 
 interface SMSRecord {
   id: string;
@@ -106,12 +107,7 @@ export default function SMSManagementPanel() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString("default", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatAdminDate(date, { time: true });
   };
 
   if (loading && !messages.length) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import {
   updateCustomerLedgerAction,
   updateFinishedStockAction,
@@ -77,8 +78,8 @@ function agingClass(bucket: string) {
   return "text-brand-green";
 }
 
-function formatOptionalDate(value: string) {
-  return value ? new Date(value).toLocaleString("en-IN") : "No movement";
+function OptionalDate({ value }: { value: string }) {
+  return value ? <DateDisplayAdmin date={value} time /> : <>No movement</>;
 }
 
 function stockMovementSource(
@@ -362,7 +363,7 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
               {snapshot.materialConsumptions.map((consumption) => (
                 <tr key={consumption.id}>
                   <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
-                    {new Date(consumption.createdAt).toLocaleString("en-IN")}
+                    <DateDisplayAdmin date={consumption.createdAt} time />
                   </td>
                   <td data-label="Batch" className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
                   <td data-label="Material" className="py-3 pr-3">{consumption.materialName}</td>
@@ -584,7 +585,7 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
                     <p>Out {row.dispatchOut + row.saleOut}</p>
                     <p>Market {row.marketSale}</p>
                   </td>
-                  <td data-label="Last movement" className="py-3 pr-3 text-xs text-gray-500">{formatOptionalDate(row.lastMovementAt)}</td>
+                  <td data-label="Last movement" className="py-3 pr-3 text-xs text-gray-500"><OptionalDate value={row.lastMovementAt} /></td>
                   <td data-label="Signal" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockLedgerSignalClass(row.signal)}`}>
                       {row.signal}
@@ -788,7 +789,7 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
               {snapshot.vehicleDispatchItems.map((item) => (
                 <tr key={item.id}>
                   <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
-                    {new Date(item.createdAt).toLocaleString("en-IN")}
+                    <DateDisplayAdmin date={item.createdAt} time />
                   </td>
                   <td data-label="Vehicle" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.vehicleNumber}</p>
@@ -937,7 +938,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
                 return (
                   <tr key={movement.id}>
                     <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
-                      {new Date(movement.createdAt).toLocaleString("en-IN")}
+                      <DateDisplayAdmin date={movement.createdAt} time />
                     </td>
                     <td data-label="Design" className="py-3 pr-3 font-semibold text-brand-green-ink">{movement.design}</td>
                     <td data-label="Channel" className="py-3 pr-3">{movement.channel}</td>
@@ -989,7 +990,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
               {snapshot.ledgerTransactions.map((transaction) => (
                 <tr key={transaction.id}>
                   <td className="reflow-primary py-3 pr-3 text-xs text-gray-500">
-                    {new Date(transaction.createdAt).toLocaleString("en-IN")}
+                    <DateDisplayAdmin date={transaction.createdAt} time />
                   </td>
                   <td data-label="Customer" className="py-3 pr-3">
                     <Link

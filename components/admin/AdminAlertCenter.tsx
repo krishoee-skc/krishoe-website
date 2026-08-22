@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { formatAdminDate } from "@/lib/format-date";
 
 interface AdminAlert {
   id: string;
@@ -154,7 +155,7 @@ export default function AdminAlertCenter() {
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return formatAdminDate(date);
   };
 
   const filterOptions = [
@@ -405,7 +406,7 @@ export default function AdminAlertCenter() {
                       Created
                     </label>
                     <div className="text-gray-900">
-                      {new Date(selectedAlert.created_at).toLocaleString()}
+                      {formatAdminDate(selectedAlert.created_at, { time: true })}
                     </div>
                   </div>
                 </div>

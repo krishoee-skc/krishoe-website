@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatAdminDate } from "@/lib/format-date";
 
 interface TrendDataPoint {
   date: string;
@@ -381,7 +382,7 @@ export default function AdvancedAnalyticsDashboard() {
 
                 <div className="flex justify-between text-xs text-gray-600">
                   <span>{Math.round(goal.progress)}% Complete</span>
-                  <span>Due: {new Date(goal.deadline).toLocaleDateString()}</span>
+                  <span>Due: {formatAdminDate(goal.deadline)}</span>
                 </div>
               </div>
             </div>

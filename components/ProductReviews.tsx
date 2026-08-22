@@ -7,6 +7,7 @@ import { StarIcon } from "@/components/Icons";
 import { submitReview, type FormState } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { useLanguage } from "@/components/LanguageProvider";
+import { toBikramSambatNepali } from "@/lib/bikram-sambat";
 
 const initialState: FormState = {
   ok: false,
@@ -192,10 +193,17 @@ export default function ProductReviews({
                 <p className="mt-2 text-base leading-7 text-brand-muted">{review.comment}</p>
                 <p className="mt-2 text-xs text-gray-400">
                   {text("Reviewed on", "समीक्षा मिति")}{" "}
-                  {new Date(review.createdAt).toLocaleDateString(
-                    language === "ne" ? "ne-NP" : "en-US",
-                    { month: "long", day: "numeric", year: "numeric" },
-                  )}
+                  {/* Bikram Sambat for a Nepali reader, the English date
+                      for everyone else — not the English calendar rendered in
+                      Nepali numerals, which is what ne-NP gave and which names
+                      a month no Nepali shopper counts by. */}
+                  {language === "ne"
+                    ? toBikramSambatNepali(review.createdAt)
+                    : new Date(review.createdAt).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                 </p>
               </article>
             ))

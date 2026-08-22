@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listWholesaleEnquiries } from "@/lib/wholesale-enquiries";
 import { updateEnquiryStatusAction } from "./actions";
+import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = { title: "थोकको सोधपुछ | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -106,10 +107,7 @@ export default async function WholesaleEnquiriesPage({
                 <div className="sm:col-span-2">
                   <dt className="text-xs font-black uppercase tracking-wider text-gray-400">आयो</dt>
                   <dd className="font-bold text-brand-green-ink">
-                    {new Date(enquiry.createdAt).toLocaleString("en-GB", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
+                    {formatAdminDate(enquiry.createdAt, { time: true })}
                   </dd>
                 </div>
               </dl>

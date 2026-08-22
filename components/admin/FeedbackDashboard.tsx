@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Feedback, FeedbackStatus } from "@/lib/feedback";
+import { formatAdminDate } from "@/lib/format-date";
 
 export default function FeedbackDashboard() {
   const [loading, setLoading] = useState(true);
@@ -189,7 +190,7 @@ export default function FeedbackDashboard() {
                     From: {f.userName} ({f.userType})
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(f.createdAt).toLocaleDateString()} -{" "}
+                    {formatAdminDate(f.createdAt)} -{" "}
                     {new Date(f.createdAt).toLocaleTimeString()}
                   </div>
                 </div>
@@ -287,7 +288,7 @@ export default function FeedbackDashboard() {
               </div>
 
               <div className="text-xs text-gray-500">
-                Created: {new Date(selectedFeedback.createdAt).toLocaleString()}
+                Created: {formatAdminDate(selectedFeedback.createdAt, { time: true })}
               </div>
             </div>
           ) : (

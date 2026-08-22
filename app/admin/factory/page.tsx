@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
+import { formatAdminDate } from "@/lib/format-date";
 
 const moneyFormatter = new Intl.NumberFormat("en-IN", {
   minimumFractionDigits: 2,
@@ -154,13 +155,7 @@ export default function FactoryDashboard() {
       <div className="mb-1">
         <h1 className="text-lg sm:text-xl font-bold text-slate-900">KRISHOE Factory</h1>
         <p className="text-slate-600 text-xs sm:text-sm">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "short",
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            timeZone: "Asia/Kathmandu",
-          })}
+          {formatAdminDate(new Date())}
         </p>
       </div>
 

@@ -7,6 +7,7 @@ import {
   type AccountActionState,
 } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { formatAdminDate } from "@/lib/format-date";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
@@ -43,14 +44,14 @@ export default function EmailVerificationPanel({ user }: { user: SafeUser }) {
         <div>
           <p className="font-bold text-brand-green-ink">{user.email}</p>
           <p className="mt-1 font-semibold text-brand-muted">
-            {isEmailVerified ? `Verified ${new Date(user.emailVerifiedAt ?? "").toLocaleDateString("en-IN")}` : "Not verified yet"}
+            {isEmailVerified ? `Verified ${formatAdminDate(user.emailVerifiedAt ?? "")}` : "Not verified yet"}
           </p>
         </div>
         <div className="border-t border-black/10 pt-3">
           <p className="font-bold text-brand-green-ink">{user.phone || "No phone saved"}</p>
           <p className="mt-1 font-semibold text-brand-muted">
             {isPhoneVerified
-              ? `Phone verified ${new Date(user.phoneVerifiedAt ?? "").toLocaleDateString("en-IN")}`
+              ? `Phone verified ${formatAdminDate(user.phoneVerifiedAt ?? "")}`
               : "Phone is verified manually by KRISHOE after WhatsApp or call confirmation."}
           </p>
         </div>
