@@ -122,6 +122,24 @@ describe("searching in Nepali", () => {
 });
 
 describe("the screen", () => {
+  it("answers from the first letter", async () => {
+    const route = await readFile("app/api/admin/search/route.ts", "utf8");
+
+    // A two-letter minimum was borrowed from searching a large catalogue. This
+    // shop has eight workers and seven products, so "a" returning most of them
+    // is a short list — and waiting for a second letter reads as a box that
+    // does not work.
+    expect(route).toContain("query.length === 0");
+    expect(route).not.toContain("query.length < 2");
+  });
+
+  it("offers the screens when the box is empty", async () => {
+    const route = await readFile("app/api/admin/search/route.ts", "utf8");
+
+    // Opening search and seeing nothing is what sends someone back to the menu.
+    expect(route).toContain("ADMIN_SEARCH_PAGES.map");
+  });
+
   it("answers while you type", async () => {
     const page = await readFile("app/admin/search/SearchAsYouType.tsx", "utf8");
 

@@ -30,11 +30,9 @@ export default function SearchAsYouType() {
     const trimmed = query.trim();
     latest.current = trimmed;
 
-    // Nothing is set here. React rejects a state write in an effect body, and
-    // it is not needed: what a short query shows is derived below from the
-    // query itself, so there is no stale list to clear.
-    if (trimmed.length < 2) return;
-
+    // No pause on the very first load: the screens are what an empty box
+    // offers, and they should already be there when it is opened.
+    const wait = trimmed ? 220 : 0;
     const id = window.setTimeout(async () => {
       setBusy(true);
       try {
@@ -52,13 +50,12 @@ export default function SearchAsYouType() {
       } finally {
         if (latest.current === trimmed) setBusy(false);
       }
-    }, 220);
+    }, wait);
 
     return () => window.clearTimeout(id);
   }, [query]);
 
   const trimmed = query.trim();
-  const ready = trimmed.length >= 2 ? hits : [];
 
   return (
     <div>
@@ -86,26 +83,20 @@ export default function SearchAsYouType() {
         ) : null}
       </div>
 
-      {trimmed.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-600">
-          टाइप गर्नुहोस् — टाइप गर्दै नतिजा आफैँ देखिन्छ। कामदारको नाम, जुत्ताको नाम,
-          ग्राहकको फोन, बिल नम्बर, वा पानाको नाम — जे भए पनि हुन्छ।
-        </p>
-      ) : trimmed.length < 2 ? (
-        // One letter matches most of the shop, and the list that comes back is
-        // noise the reader has to scroll past.
-        <p className="mt-4 text-sm text-slate-500">अझै एक अक्षर…</p>
-      ) : failed ? (
+      {failed ? (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
           खोज्न सकिएन। फेरि टाइप गर्नुहोस्।
         </p>
-      ) : ready.length === 0 ? (
+      ) : hits.length === 0 ? (
         <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          {busy ? "हेर्दैछौँ…" : `“${trimmed}” भन्ने केही भेटिएन।`}
+          {/* "" भन्ने केही भेटिएन would flash in the moment before the first
+              answer arrives, which reads as a broken box on the screen someone
+              just opened. */}
+          {busy || !trimmed ? "हेर्दैछौँ…" : `“${trimmed}” भन्ने केही भेटिएन।`}
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {ready.map((hit) => {
+          {hits.map((hit) => {
             const mark = ADMIN_SEARCH_LABELS[hit.kind];
             return (
               <li key={`${hit.kind}-${hit.href}-${hit.title}`}>

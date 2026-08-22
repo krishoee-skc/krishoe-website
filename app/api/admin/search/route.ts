@@ -54,10 +54,15 @@ export async function GET(request: NextRequest) {
 
   const query = (request.nextUrl.searchParams.get("q") ?? "").trim();
 
-  // Two letters, because one letter matches most of the shop and the list that
-  // comes back is noise the reader has to scroll past.
-  if (query.length < 2) {
-    return NextResponse.json({ hits: [], query });
+  // One letter answers. A two-letter minimum was borrowed from searching a
+  // large catalogue, and this shop has eight workers, ten factory items and
+  // seven products — "a" returning most of them is a short list, not noise, and
+  // waiting for a second letter reads as a box that does not work.
+  //
+  // An empty box offers the screens, so it is never dead: opening search and
+  // seeing nothing is what sends someone back to the menu.
+  if (query.length === 0) {
+    return NextResponse.json({ query, hits: ADMIN_SEARCH_PAGES.map((page) => ({ ...page, rank: 0 })) });
   }
 
   const like = `%${query.toLowerCase()}%`;
