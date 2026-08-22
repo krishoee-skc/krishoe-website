@@ -6,6 +6,15 @@ import { useEffect, useState } from "react";
 type MobilePlatform = "ios" | "android" | null;
 
 /**
+ * Chrome's own install event. It is not in the DOM types, and the only two
+ * things anyone needs from it are here.
+ */
+type InstallPrompt = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+/**
  * Signing in is the one thing this must never sit on top of.
  *
  * The card floats above the fold of the page, and on a sign-in screen — which
@@ -42,10 +51,26 @@ function bottomOffset(pathname: string) {
     : "bottom-[calc(1rem+env(safe-area-inset-bottom))]";
 }
 
+/**
+ * Putting KRISHOE on the phone's home screen.
+ *
+ * This used to be instructions only: "open the three-dot menu and choose
+ * Install app". Chrome offers a real one-press install through
+ * beforeinstallprompt, and the event was going unused — so a shopper who would
+ * have tapped a button was asked to go hunting in a browser menu instead, which
+ * almost nobody does. Now Android gets the button and iOS keeps the words,
+ * because Safari has no equivalent and Apple gives no way to ask.
+ *
+ * The device words stay in English — Share, Add to Home Screen, Install app —
+ * because those are the labels printed on the phone's own menu, and translating
+ * them sends the reader looking for something that is not there.
+ */
 export default function PwaInstallHelp() {
   const pathname = usePathname();
   const [platform, setPlatform] = useState<MobilePlatform>(null);
   const [visible, setVisible] = useState(false);
+  const [installer, setInstaller] = useState<InstallPrompt | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches ||
@@ -63,7 +88,26 @@ export default function PwaInstallHelp() {
       setVisible(Boolean(nextPlatform && !standalone && !dismissed));
     }, 0);
 
-    return () => window.clearTimeout(updateId);
+    // Caught and kept, not left to Chrome's own strip at the bottom of the
+    // screen, which most people close without reading.
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstaller(event as InstallPrompt);
+    };
+    // Once it is on the home screen there is nothing left to offer.
+    const onInstalled = () => {
+      setVisible(false);
+      setInstaller(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+
+    return () => {
+      window.clearTimeout(updateId);
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   if (!visible || !platform || SIGN_IN_PATHS.includes(pathname)) return null;
@@ -73,38 +117,63 @@ export default function PwaInstallHelp() {
     setVisible(false);
   };
 
+  const install = async () => {
+    if (!installer) return;
+    setBusy(true);
+    try {
+      await installer.prompt();
+      const { outcome } = await installer.userChoice;
+      // Spent either way: Chrome will not let the same event be shown twice.
+      setInstaller(null);
+      if (outcome === "accepted") setVisible(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <aside
       className={`fixed inset-x-3 ${bottomOffset(pathname)} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink p-4 text-white shadow-2xl lg:hidden print:hidden`}
       aria-label="Install KRISHOE app"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           {/* text-white spelled out, not inherited from the card. globals.css
               sets `p { color: var(--ink-body) }`, and a rule matching the
               element directly beats a colour inherited from a parent — so this
               heading rendered in dark body ink on a dark green card and could
-              not be read. The line below was legible only because it names its
-              own colour. */}
-          <p className="font-black text-white">Add KRISHOE to your Home Screen</p>
-          {/* Left in English on purpose: "Share" and "Add to Home Screen" are
-              the words printed on the phone's own menu, and a translation would
-              send the reader looking for a label that is not there. */}
+              not be read. */}
+          <p className="font-black text-white">KRISHOE फोनमा राख्नुहोस्</p>
           <p className="mt-1 text-sm leading-5 text-white/80">
-            {platform === "ios"
-              ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
-              : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen."}
+            {installer
+              ? "एक थिचाइमा — app जस्तै खुल्छ, छिटो चल्छ।"
+              : platform === "ios"
+                ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
+                : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen."}
           </p>
         </div>
         <button
           type="button"
           onClick={close}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-lg font-black"
           aria-label="Dismiss install help"
+          className="shrink-0 text-lg leading-none text-white/70"
         >
           X
         </button>
       </div>
+
+      {/* Only where the browser has actually offered it. A button that opens
+          nothing is worse than the sentence it replaced. */}
+      {installer ? (
+        <button
+          type="button"
+          onClick={() => void install()}
+          disabled={busy}
+          className="mt-3 min-h-12 w-full rounded-xl bg-brand-gold px-4 text-sm font-black text-brand-green-ink disabled:opacity-60"
+        >
+          {busy ? "राख्दैछौँ…" : "📲 अहिले नै राख्नुहोस्"}
+        </button>
+      ) : null}
     </aside>
   );
 }
