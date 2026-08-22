@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type MobilePlatform = "ios" | "android" | null;
+type Platform = "ios" | "android" | "desktop" | null;
 
 /**
  * Chrome's own install event. It is not in the DOM types, and the only two
@@ -47,7 +47,7 @@ function bottomOffset(pathname: string) {
     || pathname.startsWith("/product/");
 
   return hasBottomBar
-    ? "bottom-[calc(6rem+env(safe-area-inset-bottom))]"
+    ? "bottom-[calc(6rem+env(safe-area-inset-bottom))] lg:bottom-4"
     : "bottom-[calc(1rem+env(safe-area-inset-bottom))]";
 }
 
@@ -67,7 +67,7 @@ function bottomOffset(pathname: string) {
  */
 export default function PwaInstallHelp() {
   const pathname = usePathname();
-  const [platform, setPlatform] = useState<MobilePlatform>(null);
+  const [platform, setPlatform] = useState<Platform>(null);
   const [visible, setVisible] = useState(false);
   const [installer, setInstaller] = useState<InstallPrompt | null>(null);
   const [busy, setBusy] = useState(false);
@@ -77,11 +77,15 @@ export default function PwaInstallHelp() {
       ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
     const dismissed = window.sessionStorage.getItem("krishoe-install-help-dismissed") === "yes";
     const agent = navigator.userAgent;
-    const nextPlatform: MobilePlatform = /iPad|iPhone|iPod/.test(agent)
+    // Desktop counts. Chrome and Edge on Windows install a PWA the same way
+    // Android does, and the card was hidden there twice over — `lg:hidden` in
+    // the markup and a platform check that returned null for anything that was
+    // not a phone. The owner runs the shop from a computer at the desk.
+    const nextPlatform: Platform = /iPad|iPhone|iPod/.test(agent)
       ? "ios"
       : /Android/i.test(agent)
         ? "android"
-        : null;
+        : "desktop";
 
     const updateId = window.setTimeout(() => {
       setPlatform(nextPlatform);
@@ -133,7 +137,7 @@ export default function PwaInstallHelp() {
 
   return (
     <aside
-      className={`fixed inset-x-3 ${bottomOffset(pathname)} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink p-4 text-white shadow-2xl lg:hidden print:hidden`}
+      className={`fixed inset-x-3 ${bottomOffset(pathname)} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink p-4 text-white shadow-2xl lg:inset-x-auto lg:right-4 lg:mx-0 print:hidden`}
       aria-label="Install KRISHOE app"
     >
       <div className="flex items-start justify-between gap-3">
@@ -143,13 +147,17 @@ export default function PwaInstallHelp() {
               element directly beats a colour inherited from a parent — so this
               heading rendered in dark body ink on a dark green card and could
               not be read. */}
-          <p className="font-black text-white">KRISHOE फोनमा राख्नुहोस्</p>
+          <p className="font-black text-white">
+            {platform === "desktop" ? "KRISHOE computer मा राख्नुहोस्" : "KRISHOE फोनमा राख्नुहोस्"}
+          </p>
           <p className="mt-1 text-sm leading-5 text-white/80">
             {installer
               ? "एक थिचाइमा — app जस्तै खुल्छ, छिटो चल्छ।"
               : platform === "ios"
                 ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
-                : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen."}
+                : platform === "desktop"
+                  ? "In Chrome or Edge, click the Install icon in the address bar — or the three-dot menu, then Install."
+                  : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen."}
           </p>
         </div>
         <button

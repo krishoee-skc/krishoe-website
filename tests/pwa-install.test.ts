@@ -4,6 +4,11 @@ import sharp from "sharp";
 
 const CARD = "components/PwaInstallHelp.tsx";
 
+/** Source with comments removed — the fix's own comment names what it took out. */
+function code(source: string) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*(?:\/\/|{\/\*).*$/gm, "");
+}
+
 /**
  * KRISHOE has been installable since the manifest and service worker were
  * written: standalone display, offline pages, push, its own icons. What it
@@ -94,5 +99,35 @@ describe("the icon on the home screen", () => {
     ]) {
       expect((await stat(file)).size, file).toBeLessThan(120 * 1024);
     }
+  });
+});
+
+/**
+ * The shop is run from a computer at the desk as much as from a phone on the
+ * factory floor, and Chrome and Edge on Windows install a PWA exactly the way
+ * Android does. The card was hidden there twice over — `lg:hidden` in the
+ * markup, and a platform check that returned null for anything that was not a
+ * phone — so a computer was never offered the app at all.
+ */
+describe("installing on a computer", () => {
+  it("is offered, not hidden on wide screens", async () => {
+    const card = await readFile(CARD, "utf8");
+
+    expect(card).toContain('"desktop"');
+    expect(code(card)).not.toContain("lg:hidden");
+  });
+
+  it("points at the control a desktop actually has", async () => {
+    const card = await readFile(CARD, "utf8");
+
+    // There is no Share sheet on Windows; the install control lives in the
+    // address bar.
+    expect(card).toContain("Install icon in the address bar");
+  });
+
+  it("does not tell a computer it is a phone", async () => {
+    const card = await readFile(CARD, "utf8");
+
+    expect(card).toContain('KRISHOE computer मा राख्नुहोस्');
   });
 });
