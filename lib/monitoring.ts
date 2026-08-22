@@ -22,6 +22,14 @@ export interface PerformanceMetric {
   timestamp: string;
   path: string;
   method: string;
+  /**
+   * Which measurement this row holds — LCP, TTFB, INP and friends.
+   *
+   * Without it an average over the table mixes a paint time with a byte time
+   * and means nothing: LCP runs in seconds, TTFB in tens of milliseconds, and
+   * one figure covering both answers no question anyone has.
+   */
+  metric?: string;
   duration: number; // milliseconds
   statusCode: number;
   dbTime?: number;
@@ -178,12 +186,13 @@ export async function logPerformanceMetric(
     await queryPostgres(
       STORE,
       `INSERT INTO monitoring_performance
-       (id, path, method, duration, status_code, db_time, render_time, user_id, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+       (id, path, method, metric, duration, status_code, db_time, render_time, user_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
       [
         id,
         metric.path,
         metric.method,
+        metric.metric ?? null,
         metric.duration,
         metric.statusCode,
         metric.dbTime || null,
@@ -360,7 +369,8 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         COUNT(CASE WHEN status_code >= 400 THEN 1 END)::integer as error_count,
         COUNT(*)::integer as total_count
       FROM monitoring_performance
-      WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')`,
+      WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
+        AND COALESCE(metric, 'LCP') = 'LCP'`,
       [safeHours]
     );
 
@@ -386,6 +396,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         COUNT(*)::integer as count
       FROM monitoring_performance
       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
+        AND COALESCE(metric, 'LCP') = 'LCP'
       GROUP BY path, method
       ORDER BY avg_time DESC
       LIMIT 10`,

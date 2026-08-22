@@ -1452,6 +1452,10 @@ CREATE TABLE IF NOT EXISTS monitoring_performance (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   path TEXT NOT NULL,
   method TEXT NOT NULL,
+  -- Which measurement this row holds: LCP, TTFB, INP and friends. Without it
+  -- an average over the table mixes a paint time with a byte time and means
+  -- nothing. See app/api/monitoring/vitals.
+  metric TEXT,
   duration INTEGER NOT NULL,
   status_code INTEGER NOT NULL,
   db_time INTEGER,
@@ -1473,6 +1477,7 @@ CREATE INDEX IF NOT EXISTS monitoring_errors_level_idx ON monitoring_errors(leve
 CREATE INDEX IF NOT EXISTS monitoring_errors_fingerprint_idx ON monitoring_errors(fingerprint);
 CREATE INDEX IF NOT EXISTS monitoring_performance_created_at_idx ON monitoring_performance(created_at DESC);
 CREATE INDEX IF NOT EXISTS monitoring_performance_path_idx ON monitoring_performance(path);
+CREATE INDEX IF NOT EXISTS monitoring_performance_metric_idx ON monitoring_performance(metric, created_at DESC);
 CREATE INDEX IF NOT EXISTS monitoring_uptime_checked_at_idx ON monitoring_uptime(checked_at DESC);
 
 -- Auto-cleanup old monitoring data (keep 90 days)

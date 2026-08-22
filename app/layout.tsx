@@ -9,6 +9,7 @@ import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import PwaInstallHelp from "@/components/PwaInstallHelp";
+import SpeedReporter from "@/components/SpeedReporter";
 import LanguageProvider from "@/components/LanguageProvider";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
@@ -117,6 +118,7 @@ export default async function RootLayout({
           <CommerceProvider catalogProducts={products}>
             {children}
             <PwaInstallHelp />
+            <SpeedReporter />
             <BottomTabBar />
           </CommerceProvider>
         </LanguageProvider>

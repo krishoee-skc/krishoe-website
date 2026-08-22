@@ -241,7 +241,13 @@ export type AnalyticsSnapshot = {
  * a busy shop when almost nobody had visited it. A number that flatters is
  * worse than no number, because it is acted on.
  */
-export const INTERNAL_PATH_PREFIXES = ["/admin", "/worker"] as const;
+// Imported as well as re-exported: a bare `export … from` hands the name to
+// other modules without binding it here, and this file filters on it too.
+import { INTERNAL_PATH_PREFIXES } from "@/lib/internal-paths";
+
+// Re-exported so existing readers keep working; it lives in its own module now
+// because the browser needs it too, and this one signs a JWT with node:crypto.
+export { INTERNAL_PATH_PREFIXES };
 
 /**
  * Excludes those paths from a report.

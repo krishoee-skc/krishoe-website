@@ -1,0 +1,128 @@
+import { readFile } from "node:fs/promises";
+import { describe, expect, it } from "vitest";
+
+const REPORTER = "components/SpeedReporter.tsx";
+const API = "app/api/monitoring/vitals/route.ts";
+const LIB = "lib/monitoring.ts";
+const DASHBOARD = "components/admin/MonitoringDashboard.tsx";
+
+/** Source with comments removed. */
+function code(source: string) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*(?:\/\/|\{\/\*).*$/gm, "");
+}
+
+/**
+ * The monitoring screen showed "Avg Response Time" with nothing under it,
+ * because nothing had ever written a figure there — and a figure taken on the
+ * server would not have been worth much: a prerendered page answers in a few
+ * milliseconds while the shopper on a Nepali mobile connection still waits
+ * seconds for it to appear. Only the shopper's browser can take the number that
+ * matters.
+ */
+describe("measuring how fast the shop felt", () => {
+  it("is taken in the shopper's browser", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    expect(reporter).toContain('"use client"');
+    expect(reporter).toContain("useReportWebVitals");
+  });
+
+  it("survives the navigation it is measuring", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    // A plain fetch is cancelled by the page unloading; sendBeacon is handed to
+    // the browser to deliver afterwards.
+    expect(reporter).toContain("navigator.sendBeacon");
+    expect(reporter).toContain("keepalive: true");
+  });
+
+  it("leaves the owner's own screens out", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    // Admin is used from a desk on wifi and would drag every average towards a
+    // speed no customer sees — the same reason it is cut from visitor counts.
+    expect(reporter).toContain("INTERNAL_PATH_PREFIXES");
+  });
+
+  it("never breaks a page over a measurement", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    expect(reporter).toContain("try {");
+    expect(reporter).toContain("catch {");
+  });
+});
+
+/**
+ * The endpoint is open by necessity — the measurement comes from a shopper who
+ * has signed in to nothing. Open means anyone can post to it, so nothing that
+ * arrives is trusted.
+ */
+describe("what the endpoint accepts", () => {
+  it("takes only the measurements a real page produces", async () => {
+    const api = await readFile(API, "utf8");
+
+    expect(api).toContain('const METRICS = new Set(["LCP", "TTFB", "FCP", "INP", "CLS"])');
+    expect(api).toContain("METRICS.has(metric)");
+  });
+
+  it("refuses a number no page could produce", async () => {
+    const api = await readFile(API, "utf8");
+
+    expect(api).toContain("!Number.isFinite(value) || value < 0 || value > MAX_VALUE_MS");
+  });
+
+  it("refuses a path that is not ours", async () => {
+    const api = await readFile(API, "utf8");
+
+    // Storing an attacker's text would put it on the owner's dashboard.
+    expect(api).toContain('!path.startsWith("/") || path.includes("://")');
+    expect(api).toContain("path.length > MAX_PATH");
+  });
+
+  it("keeps nothing about who was reading", async () => {
+    const api = code(await readFile(API, "utf8"));
+
+    // The point is which page is slow, not who found it slow.
+    expect(api).not.toContain("userId");
+    expect(api).not.toContain("ipAddress");
+    expect(api).not.toContain("headers.get");
+  });
+});
+
+/**
+ * LCP runs in seconds and TTFB in tens of milliseconds. One average covering
+ * both answers no question anyone has.
+ */
+describe("keeping the measurements apart", () => {
+  it("records which one each row holds", async () => {
+    const lib = await readFile(LIB, "utf8");
+
+    expect(lib).toContain("metric.metric ?? null");
+    expect(lib).toContain("(id, path, method, metric, duration");
+  });
+
+  it("builds the headline from LCP alone", async () => {
+    const lib = await readFile(LIB, "utf8");
+    const stats = lib.slice(lib.indexOf("export async function getPerformanceStats"));
+
+    // Twice: once for the average and percentiles, once for the slowest pages.
+    expect([...stats.matchAll(/COALESCE\(metric, 'LCP'\) = 'LCP'/g)]).toHaveLength(2);
+  });
+});
+
+describe("what the dashboard claims", () => {
+  it("no longer calls it a response time", async () => {
+    const dashboard = code(await readFile(DASHBOARD, "utf8"));
+
+    // It is what the shopper waited to see, not what the server took.
+    expect(dashboard).not.toContain("Avg Response Time");
+    expect(dashboard).toContain("पाना देखिन लाग्ने समय");
+  });
+
+  it("says so when nobody has visited yet", async () => {
+    const dashboard = await readFile(DASHBOARD, "utf8");
+
+    // Zero seconds would read as instant, which is the opposite of the truth.
+    expect(dashboard).toContain("अझै कुनै ग्राहक आएका छैनन्");
+  });
+});

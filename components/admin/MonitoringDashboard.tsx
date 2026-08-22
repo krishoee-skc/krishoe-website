@@ -222,13 +222,39 @@ export default function MonitoringDashboard() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Avg Response Time</div>
-          <div className="text-3xl font-bold text-gray-900 mt-2">
-            {monitoring.performance.avgResponseTime}ms
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            P95: {monitoring.performance.p95ResponseTime}ms
-          </div>
+          {/* Largest Contentful Paint, taken on the shopper's own phone —
+              how long until the main thing is on screen. A server timing would
+              read a few milliseconds for a prerendered page while the shopper
+              on a Nepali mobile connection waited seconds for it. */}
+          <div className="text-sm text-gray-600">पाना देखिन लाग्ने समय</div>
+          {monitoring.performance.avgResponseTime > 0 ? (
+            <>
+              <div
+                className={`mt-2 text-3xl font-bold ${
+                  monitoring.performance.avgResponseTime <= 2500
+                    ? "text-green-600"
+                    : monitoring.performance.avgResponseTime <= 4000
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                }`}
+              >
+                {(monitoring.performance.avgResponseTime / 1000).toFixed(1)}s
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                {/* The slowest quarter is what people leave over, so the
+                    average alone is not the whole answer. */}
+                सुस्त ५%: {(monitoring.performance.p95ResponseTime / 1000).toFixed(1)}s
+                {monitoring.performance.avgResponseTime <= 2500 ? " · राम्रो" : " · सुधार चाहिन्छ"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-2 text-3xl font-bold text-gray-400">—</div>
+              <div className="mt-2 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                अझै कुनै ग्राहक आएका छैनन्
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -343,7 +369,7 @@ export default function MonitoringDashboard() {
       {/* Slowest Endpoints */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          🐢 Slowest Endpoints
+          🐢 सबैभन्दा सुस्त पाना
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
