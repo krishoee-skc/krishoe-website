@@ -36,6 +36,7 @@ export type NotificationEventType =
   | "email-verification"
   | "staff-security"
   | "review-request"
+  | "order-confirmation"
   | "operational-alert";
 export type OperationalAlertSeverity = "critical" | "warning" | "info";
 export type OperationalAlertCategory =
@@ -72,6 +73,26 @@ export type EmailVerificationNotificationPayload = {
  * email address travels in the payload instead of coming from
  * ADMIN_NOTIFICATION_EMAIL.
  */
+/**
+ * What the customer gets the moment they order.
+ *
+ * They got nothing. The screen said "Order request saved. Reference: KRS-…"
+ * and that was the whole of it — close the tab and there was no record, no
+ * number to quote, nothing in writing. On a shop that takes cash on delivery
+ * and rings to confirm, that gap sits exactly where the customer is decidxing
+ * whether to trust it, and they are deciding it alone.
+ */
+export type OrderConfirmationNotificationPayload = {
+  email: string;
+  orderId: string;
+  customerName: string;
+  orderText: string;
+  total: string;
+  payment: string;
+  delivery: string;
+  trackUrl: string;
+};
+
 export type ReviewRequestNotificationPayload = {
   email: string;
   customerName: string;
@@ -104,6 +125,7 @@ type NotificationPayload =
   | EmailVerificationNotificationPayload
   | StaffSecurityNotificationPayload
   | ReviewRequestNotificationPayload
+  | OrderConfirmationNotificationPayload
   | OperationalAlertNotificationPayload;
 
 export type NotificationEvent = {
@@ -214,6 +236,7 @@ function normalizeEventType(value: unknown): NotificationEventType {
     value === "email-verification" ||
     value === "staff-security" ||
     value === "review-request" ||
+    value === "order-confirmation" ||
     value === "operational-alert"
   ) {
     return value;
@@ -271,6 +294,34 @@ export function textSummary(event: NotificationEvent) {
       `Address: ${order.address}`,
       `Order: ${cleanOrder}`,
     ].filter(Boolean).join("\n");
+  }
+
+  if (event.type === "order-confirmation") {
+    const order = event.payload as OrderConfirmationNotificationPayload;
+    const first = (order.customerName || "").trim().split(" ")[0];
+
+    // Written to the customer, in Nepali, saying the three things they are
+    // actually wondering: did it go through, what did I order, and who do I
+    // ring. The order number is on its own line so it can be read out.
+    return [
+      `नमस्कार${first ? " " + first + " जी" : ""} 🙏`,
+      "",
+      "KRISHOE मा अर्डर गर्नुभएकोमा धन्यवाद। तपाईंको अर्डर हामीले पायौँ।",
+      "",
+      `अर्डर नम्बर: ${order.orderId}`,
+      order.orderText ? `सामान: ${order.orderText}` : "",
+      order.total ? `जम्मा: ${order.total}` : "",
+      order.payment ? `भुक्तानी: ${order.payment}` : "",
+      order.delivery ? `डेलिभरी: ${order.delivery}` : "",
+      "",
+      "हामी छिट्टै फोन गरेर पक्का गर्नेछौँ।",
+      "",
+      "📞 ९८५५०१९३५१",
+      "💬 WhatsApp ९७६६६३०१९३",
+      order.trackUrl ? `🔎 अर्डर हेर्न: ${order.trackUrl}` : "",
+      "",
+      "— KRISHOE, कमलनगर, नारायणगढ, चितवन",
+    ].filter((line) => line !== "").join(String.fromCharCode(10));
   }
 
   if (event.type === "password-reset") {
@@ -369,13 +420,15 @@ function getConfiguredChannels(event?: NotificationEvent): NotificationChannel[]
     event?.type === "password-reset" ||
     event?.type === "email-verification" ||
     event?.type === "staff-security" ||
-    event?.type === "review-request"
+    event?.type === "review-request" ||
+    event?.type === "order-confirmation"
       ? (
           event.payload as
             | PasswordResetNotificationPayload
             | EmailVerificationNotificationPayload
             | StaffSecurityNotificationPayload
             | ReviewRequestNotificationPayload
+            | OrderConfirmationNotificationPayload
         ).email
       : envValue("ADMIN_NOTIFICATION_EMAIL");
   const channels: NotificationChannel[] = [];
@@ -386,7 +439,8 @@ function getConfiguredChannels(event?: NotificationEvent): NotificationChannel[]
     event?.type === "password-reset" ||
     event?.type === "email-verification" ||
     event?.type === "staff-security" ||
-    event?.type === "review-request"
+    event?.type === "review-request" ||
+    event?.type === "order-confirmation"
   ) {
     return emailUrl && emailTarget
       ? [
@@ -1274,6 +1328,25 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
  * a shopper choosing between KRISHOE and a shop they already know has nothing
  * to read. Reviews do not arrive unless someone asks — this is the asking.
  */
+/**
+ * Told the customer their order arrived.
+ *
+ * Sent after the order is saved and never in front of it: a mail that fails
+ * must not make a saved order look unsaved to the person who placed it.
+ */
+export async function notifyOrderConfirmation(payload: OrderConfirmationNotificationPayload) {
+  const event = await appendEvent({
+    type: "order-confirmation",
+    title: `तपाईंको अर्डर आयो — ${payload.orderId}`,
+    payload,
+  });
+
+  await reportingErrors(`deliver order confirmation ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
+  return event;
+}
+
 export async function notifyReviewRequested(payload: ReviewRequestNotificationPayload) {
   const event = await appendEvent({
     type: "review-request",

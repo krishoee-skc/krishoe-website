@@ -18,6 +18,8 @@ import {
 import { addProductReview, getProductById } from "@/lib/product-store";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { getOrdersForCustomer, saveContactMessage, saveOrder } from "@/lib/submissions";
+import { notifyOrderConfirmation } from "@/lib/notifications";
+import { getSiteUrl } from "@/lib/seo";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 import { updateUser } from "@/lib/user-store";
 import { autoNotifyOrderCreatedBySMS } from "@/lib/sms-order-integration";
@@ -265,6 +267,31 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // customer must still be told it worked — an error here would send them back
   // to place the same order again, and the shop would hold two.
   await reportingErrors(`notify admin of order ${record.id}`, () => notifyOrderReceived(record));
+
+  // And the customer, who until now got nothing: the screen said the order was
+  // saved and gave a reference, and closing the tab took both away. On a shop
+  // that takes cash on delivery and rings to confirm, that silence sits exactly
+  // where the buyer is deciding whether to trust it.
+  //
+  // After the order is saved and never in front of it — a mail that fails must
+  // not make a saved order look unsaved to the person who placed it.
+  // No address, no confirmation — and no error either. Ordering by phone
+  // alone is ordinary here, and it must not be made to look like a failure.
+  const customerEmail = record.email?.trim() ?? "";
+  if (customerEmail) {
+    await reportingErrors(`confirm order ${record.id} to the customer`, () =>
+      notifyOrderConfirmation({
+        email: customerEmail,
+        orderId: record.id,
+        customerName: record.name,
+        orderText: record.order,
+        total: record.total,
+        payment: record.payment || record.paymentProvider || "",
+        delivery: record.delivery || "",
+        trackUrl: `${getSiteUrl()}/track-order`,
+      }),
+    );
+  }
 
   // Send SMS notification to customer (non-blocking)
   await autoNotifyOrderCreatedBySMS(record);
