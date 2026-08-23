@@ -49,8 +49,15 @@ describe("what the sign-in page tells the owner", () => {
 
     // "Not registered" alone leaves the reader stuck. Say why, and what
     // happens next.
-    expect(button).toContain("passkey हरेक यन्त्रमा एक पटक दर्ता गर्नुपर्छ");
-    expect(button).toContain("भित्र गएपछि दर्ता गर्ने बाटो आफैँ देखिन्छ");
+    //
+    // And say it in the reader's words: दर्ता is what happens at a government
+    // counter, and it describes the filing rather than the thing the person
+    // gains, which is that they stop typing a password. The owner asked whether
+    // a good app would write it that way. It would not — Apple says "you can
+    // now use Face ID to sign in", never "registered".
+    expect(button).toContain("हरेक यन्त्रमा एक पटक मिलाउनुपर्छ");
+    expect(button).toContain("भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ");
+    expect(button).not.toContain("दर्ता");
   });
 });
 
@@ -107,5 +114,44 @@ describe("the offer to register this device", () => {
 
     expect(invite).toContain("} catch {");
     expect(invite).toContain("Settings → Login devices मा जानुहोस्");
+  });
+});
+
+/**
+ * The owner watched the card say "यो iPhone दर्ता भयो" and asked whether a good
+ * app would write it that way.
+ *
+ * It would not. दर्ता is what happens at a government counter — it names the
+ * filing, not the thing the person gained, and what they gained is the whole
+ * point: they stop typing a password. Apple says "you can now use Face ID to
+ * sign in". Nobody writes "registered".
+ */
+describe("the words on the passkey screens", () => {
+  it("leads with what the person gets, not what was filed", async () => {
+    const invite = await readFile(INVITE, "utf8");
+    const shown = invite.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+    // The headline after success, and the one asking.
+    expect(shown).toContain("अब {unlockWord()} ले खुल्छ");
+    expect(shown).toContain("password टाइप गर्नु पर्दैन");
+  });
+
+  it("keeps the filing-counter word out of every passkey screen", async () => {
+    for (const file of [INVITE, BUTTON]) {
+      const source = await readFile(file, "utf8");
+      const shown = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+      expect(shown, file).not.toContain("दर्ता");
+    }
+  });
+
+  it("leaves the device's own words in the device's own language", async () => {
+    const invite = await readFile(INVITE, "utf8");
+
+    // Face ID and Touch ID are what Apple prints on the phone. Translating them
+    // sends the reader hunting for a Nepali label that does not exist — the
+    // same rule the shop follows for Share and Install.
+    expect(invite).toContain("Face ID वा Touch ID");
+    expect(invite).toContain("Windows Hello");
   });
 });

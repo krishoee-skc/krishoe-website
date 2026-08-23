@@ -118,7 +118,7 @@ export default function PasskeyInvite() {
     } catch {
       // A cancelled Face ID prompt lands here, and it is not an error worth a
       // red box — the person simply changed their mind.
-      setProblem("दर्ता भएन। फेरि प्रयास गर्न Settings → Login devices मा जानुहोस्।");
+      setProblem("चालु भएन। फेरि प्रयास गर्न Settings → Login devices मा जानुहोस्।");
       setStage("failed");
     }
   }
@@ -133,9 +133,11 @@ export default function PasskeyInvite() {
             ✅
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-base font-black text-brand-green-ink">यो {deviceLabel()} दर्ता भयो</p>
+            <p className="text-base font-black text-brand-green-ink">
+              अब {unlockWord()} ले खुल्छ
+            </p>
             <p className="mt-0.5 text-sm text-brand-muted">
-              अर्को पटक {unlockWord()} ले खुल्छ — password टाइप गर्नु पर्दैन।
+              यो {deviceLabel()} मा अब password टाइप गर्नु पर्दैन।
             </p>
           </div>
           <button
@@ -157,7 +159,7 @@ export default function PasskeyInvite() {
               अर्को पटक {unlockWord()} ले खोल्ने?
             </p>
             <p className="mt-1 text-sm leading-6 text-brand-muted">
-              यो {deviceLabel()} एक पटक दर्ता गर्नुहोस् — अनि password टाइप गर्नु पर्दैन।
+              यो {deviceLabel()} मा एक पटक मिलाउनुहोस् — अनि password टाइप गर्नु पर्दैन।
             </p>
 
             {stage === "failed" && problem ? (
@@ -173,7 +175,7 @@ export default function PasskeyInvite() {
                 disabled={stage === "working"}
                 className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white disabled:opacity-60"
               >
-                {stage === "working" ? "दर्ता हुँदै…" : "हुन्छ, दर्ता गर्ने"}
+                {stage === "working" ? "मिलाउँदै…" : "हुन्छ, चालु गर्ने"}
               </button>
               <button
                 type="button"

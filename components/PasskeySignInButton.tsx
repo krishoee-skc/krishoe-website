@@ -58,7 +58,7 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
           // a screen name the reader had to go and find; the shop now offers
           // the registration itself the moment they are inside, so the honest
           // instruction is simply to sign in and say yes.
-          "यो फोनमा अझै दर्ता भएको छैन — passkey हरेक यन्त्रमा एक पटक दर्ता गर्नुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि दर्ता गर्ने बाटो आफैँ देखिन्छ।"
+          "यो फोनमा अझै चालु छैन — हरेक यन्त्रमा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ।"
         );
       } else {
         setError("Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।");
