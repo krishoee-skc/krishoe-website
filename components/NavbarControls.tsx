@@ -8,6 +8,7 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 import CommandSearch from "@/components/CommandSearch";
 import ThemeToggle from "@/components/ThemeToggle";
 import { isActivePath, navLinks } from "@/components/nav-links";
+import { businessContact } from "@/lib/seo";
 import { useLanguage } from "@/components/LanguageProvider";
 
 type NavbarControlsProps = {
@@ -26,6 +27,21 @@ function CountBadge({ count }: { count: number }) {
     </span>
   );
 }
+
+/**
+ * The shelves, for the menu drawer.
+ *
+ * Kept to the ones the shop actually sells today. A category with nothing in it
+ * is a shopper tapping through to an empty page, which reads as a shop that has
+ * closed rather than one that has not stocked that shelf yet.
+ */
+const DRAWER_CATEGORIES = [
+  { slug: "ladies-sandals", emoji: "👡", en: "Ladies sandals", ne: "महिलाको सयडल" },
+  { slug: "ladies-slippers", emoji: "🩴", en: "Ladies slippers", ne: "महिलाको चप्पल" },
+  { slug: "casual-shoes", emoji: "👞", en: "Casual shoes", ne: "दैनिक जुत्ता" },
+  { slug: "kids-collection", emoji: "👶", en: "Kids", ne: "बच्चाको" },
+  { slug: "new-arrivals", emoji: "✨", en: "New arrivals", ne: "नयाँ आएका" },
+] as const;
 
 export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsProps) {
   const pathname = usePathname();
@@ -63,16 +79,17 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {/* The theme toggle crowds the phone bar, and the search and cart here
           double up on the bottom tab bar — keep the top bar to brand + wishlist
           + cart + menu on phones, and move the toggle into the menu drawer. */}
-      {/* The language switch was inside the menu drawer, below the fold, so a
-          shopper in Narayangadh met an English page with no sign that a Nepali
-          one existed. It is two characters wide and it is on the bar on every
-          screen size — the drawer copy stays for anyone who looks there. */}
+      {/* Desktop only. The phone bar is three controls wide and adding a
+          fourth crowded it — the note above had already said so, and the shop
+          looked worse for a day. On a phone the switch is the first thing in
+          the menu drawer instead, one tap from here, and a first-time visitor
+          is asked outright by LanguageInvite before they ever go looking. */}
       <button
         type="button"
         onClick={() => setLanguage(language === "ne" ? "en" : "ne")}
         aria-label={text("Read in Nepali", "नेपालीमा पढ्ने")}
         title={text("Read in Nepali", "नेपालीमा पढ्ने")}
-        className="h-10 shrink-0 rounded-full border border-black/[0.09] px-2.5 text-xs font-black text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
+        className="hidden h-10 shrink-0 rounded-full border border-black/[0.09] px-2.5 text-xs font-black text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green lg:block"
       >
         {language === "ne" ? "EN" : "ने"}
       </button>
@@ -132,7 +149,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl dark:bg-brand-green-ink">
+          <div className="absolute right-0 top-0 h-dvh w-[min(90vw,390px)] overflow-y-auto bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] shadow-2xl dark:bg-brand-green-ink">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>
@@ -153,7 +170,31 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
               </div>
             </div>
 
-            <nav className="mt-8 grid gap-1">
+            {/* First, not last. It used to sit below the wishlist and cart
+                tiles, off the bottom of a phone screen, which is how a shop
+                with a Nepali translation looked like a shop without one. */}
+            <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-black/[0.07] bg-brand-mist p-1.5">
+              <button
+                type="button"
+                onClick={() => setLanguage("ne")}
+                className={`min-h-11 rounded-xl text-sm font-black transition ${
+                  language === "ne" ? "bg-brand-green text-white shadow-sm" : "text-brand-green-ink"
+                }`}
+              >
+                नेपाली
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`min-h-11 rounded-xl text-sm font-black transition ${
+                  language === "en" ? "bg-brand-green text-white shadow-sm" : "text-brand-green-ink"
+                }`}
+              >
+                English
+              </button>
+            </div>
+
+            <nav className="mt-6 grid gap-1">
               {navLinks.map((item) => {
                 const active = isActivePath(pathname, item.href);
                 const Icon = item.Icon;
@@ -185,6 +226,65 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
               )}
             </nav>
 
+            {/* What a shopper opens a menu for. The four links above are the
+                same four on the bottom tab bar, so until now the drawer
+                repeated what was already one tap away and offered nothing
+                else — a shelf of shoes is what someone is actually looking
+                for. */}
+            <div className="mt-7">
+              <p className="px-1 text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+                {text("Shop by category", "किसिम अनुसार")}
+              </p>
+              <div className="mt-2 grid gap-1">
+                {DRAWER_CATEGORIES.map((entry) => (
+                  <Link
+                    key={entry.slug}
+                    href={`/shop/${entry.slug}`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                  >
+                    <span aria-hidden="true">{entry.emoji}</span>
+                    {text(entry.en, entry.ne)}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* The questions a first-time buyer has before they will part with
+                money: can I send it back, who are these people, and is there
+                someone to talk to. */}
+            <div className="mt-7">
+              <p className="px-1 text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+                {text("Before you buy", "किन्नुअघि")}
+              </p>
+              <div className="mt-2 grid gap-1">
+                <Link
+                  href="/return-policy"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                >
+                  <span aria-hidden="true">📜</span>
+                  {text("Return policy", "फिर्ता नीति")}
+                </Link>
+                <Link
+                  href="/track-order"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                >
+                  <span aria-hidden="true">📦</span>
+                  {text("Track an order", "अर्डर खोज्ने")}
+                </Link>
+                <Link
+                  href="/wholesale"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                >
+                  <span aria-hidden="true">🏪</span>
+                  {text("Wholesale", "थोकमा किन्ने")}
+                </Link>
+              </div>
+            </div>
+
             <div className="mt-8 grid grid-cols-2 gap-3">
               <Link
                 href="/wishlist"
@@ -203,30 +303,34 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 <span className="mt-1 block text-2xl font-black text-brand-green">{cartCount}</span>
               </Link>
             </div>
-            <div className="mt-5 rounded-2xl border border-black/10 bg-brand-mist p-3">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-brand-muted">
-                {text("Language", "भाषा")}
+
+            {/* A phone number, because that is what gets used here. A shopper
+                who cannot find one on a shop they have not bought from before
+                assumes there is nobody behind it. */}
+            <div className="mt-7 rounded-2xl border border-black/[0.07] bg-brand-mist p-4">
+              <a
+                href={`tel:${businessContact.phoneTel}`}
+                className="flex items-center gap-3 text-base font-black text-brand-green-ink"
+              >
+                <span aria-hidden="true">📞</span>
+                {businessContact.phoneDisplay}
+              </a>
+              <a
+                href={`https://wa.me/${businessContact.whatsappNumber.replace(/[^d]/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 flex items-center gap-3 text-base font-black text-brand-green-ink"
+              >
+                <span aria-hidden="true">💬</span>
+                WhatsApp
+              </a>
+              <p className="mt-3 flex items-start gap-3 text-sm leading-6 text-brand-muted">
+                <span aria-hidden="true">📍</span>
+                {text(
+                  "Kamalnagar, Narayangadh, Chitwan",
+                  "कमलनगर, नारायणगढ, चितवन",
+                )}
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLanguage("en")}
-                  className={`min-h-11 rounded-xl text-sm font-black ${
-                    language === "en" ? "bg-brand-green text-white" : "bg-white text-brand-green-ink"
-                  }`}
-                >
-                  English
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("ne")}
-                  className={`min-h-11 rounded-xl text-sm font-black ${
-                    language === "ne" ? "bg-brand-green text-white" : "bg-white text-brand-green-ink"
-                  }`}
-                >
-                  नेपाली
-                </button>
-              </div>
             </div>
           </div>
         </div>
