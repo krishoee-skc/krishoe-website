@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { formatPrice } from "@/lib/products";
 import type { Product, Category } from "@/lib/products";
 import { upsertProductAction, type ActionState } from "./actions";
 import ActionMessage from "@/components/admin/ActionMessage";
@@ -13,10 +14,18 @@ type ProductFormProps = {
   categories: Category[];
 };
 
+/** Rupees as typed, shown the way the storefront will show them. */
+function rupeeLabel(rupees: number) {
+  return formatPrice(Math.round(rupees * 100));
+}
+
 export default function ProductForm({ product, categories }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
+  const [pricePreview, setPricePreview] = useState(
+    product ? String(product.priceValue / 100) : "",
+  );
   const [isSaving, startSaving] = useTransition();
 
   // Submitted here rather than through `action={...}` so a failure comes back as
@@ -90,8 +99,17 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             Rs. 5,000 shoe — which would have saved as Rs. 50 and undercut the
             shop by a factor of a hundred, silently, with the form looking
             perfectly filled in. */}
+        {/* Shown back as the shopper will see it, while it is being typed.
+            The owner reads "priceValue is in paisa" in a report and reasonably
+            wonders whether the shop is storing the wrong thing — this answers
+            that where the question actually arises, without touching the
+            storage, which is in paisa for the same reason every payment system
+            is: a rupee held as a decimal loses a paisa to rounding, and fifty
+            bills a day is fifty chances for the books not to balance. */}
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Price (Rs.)</span>
+          <span className="text-sm font-medium">
+            मूल्य — रुपैयाँमा <span className="font-normal text-gray-500">Price (Rs.)</span>
+          </span>
           <input
             name="priceRupees"
             defaultValue={product ? product.priceValue / 100 : ""}
@@ -101,7 +119,13 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             required
             className="form-input"
             placeholder="1799"
+            onChange={(event) => setPricePreview(event.target.value)}
           />
+          <span className="text-xs text-gray-500">
+            {pricePreview.trim() === "" || Number.isNaN(Number(pricePreview))
+              ? "ग्राहकले देख्नेछन्: —"
+              : `ग्राहकले देख्नेछन्: ${rupeeLabel(Number(pricePreview))}`}
+          </span>
         </label>
         {/* Not an input any more. Stock has one door — Operations — and a box
             here was a second one: two answers to "how many pairs are there",

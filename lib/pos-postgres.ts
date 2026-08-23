@@ -101,7 +101,9 @@ const selectPosInvoiceColumns = `
 export async function getPosInvoicesFromPostgres() {
   const rows = await queryPostgres<PosInvoiceRow>(
     "pos invoices",
-    `SELECT ${selectPosInvoiceColumns} FROM pos_invoices ORDER BY created_at DESC`,
+    // Capped: a counter that writes fifty bills a day fills this table faster
+    // than any other, and nobody scrolls a year of them.
+    `SELECT ${selectPosInvoiceColumns} FROM pos_invoices ORDER BY created_at DESC LIMIT 1000`,
   );
 
   return rows.map(posInvoiceFromRow);

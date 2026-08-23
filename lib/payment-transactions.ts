@@ -163,7 +163,10 @@ async function getPaymentTransactionsFromPostgres() {
         source,
         note
       FROM payment_transactions
+      -- Newest first, capped. Every payment the shop has ever taken is not a
+      -- screen anyone reads; the ones being chased are always recent.
       ORDER BY created_at DESC
+      LIMIT 1000
     `,
   );
 
@@ -213,6 +216,7 @@ export async function getPaymentTransactionsByOrderIds(orderIds: string[]) {
           FROM payment_transactions
           WHERE order_id = ANY($1)
           ORDER BY created_at DESC
+          LIMIT 1000
         `,
         [ids],
       );
@@ -251,7 +255,9 @@ export async function getPaymentTransactionsByLedgerId(ledgerId: string) {
           FROM payment_transactions
           WHERE ledger_id = $1
           ORDER BY created_at DESC
-        `,
+        
+       LIMIT 500
+     `,
         [ledgerId],
       );
 

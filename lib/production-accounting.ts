@@ -1088,7 +1088,9 @@ export async function getWorkerProductionAccount(
        FROM production_work_entries
        WHERE employee_id = $1 AND status = 'Approved'
          AND work_date BETWEEN $2::date AND $3::date
-       ORDER BY work_date, created_at`,
+       ORDER BY work_date, created_at
+       LIMIT 500
+     `,
       [employeeId, period.start, period.end],
     ),
     queryPostgres<PaymentRow>(
@@ -1098,7 +1100,9 @@ export async function getWorkerProductionAccount(
        FROM worker_payments
        WHERE employee_id = $1 AND reversed_at IS NULL
          AND payment_date BETWEEN $2::date AND $3::date
-       ORDER BY payment_date, created_at`,
+       ORDER BY payment_date, created_at
+       LIMIT 500
+     `,
       [employeeId, period.start, period.end],
     ),
     queryPostgres<WorkerAccountTotalsRow>(
@@ -1188,7 +1192,9 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
          item_name_snapshot, stage, total_pairs, size_breakdown, rejected_pairs,
          rate_per_pair_snapshot, earned_wage, status
        FROM production_work_entries
-       WHERE work_order_id = $1 ORDER BY work_date, created_at`,
+       WHERE work_order_id = $1 ORDER BY work_date, created_at
+       LIMIT 500
+     `,
       [workOrderId],
     ),
     queryPostgres<HandoverRow>(
@@ -1197,7 +1203,9 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
          from_stage, to_stage, from_employee_name_snapshot,
          to_employee_name_snapshot, sent_pairs, received_pairs, received_size_breakdown
        FROM production_stage_handovers
-       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY handover_date, created_at`,
+       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY handover_date, created_at
+       LIMIT 500
+     `,
       [workOrderId],
     ),
     queryPostgres<QcPostingRow>(
@@ -1206,7 +1214,9 @@ export async function getProductionWorkOrderDetail(workOrderId: string) {
          catalog_product_name_snapshot, packing_employee_name_snapshot,
          total_pairs, rejected_pairs, size_breakdown, stock_movement_id, approved_by
        FROM production_qc_postings
-       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY qc_date, created_at`,
+       WHERE work_order_id = $1 AND reversed_at IS NULL ORDER BY qc_date, created_at
+       LIMIT 500
+     `,
       [workOrderId],
     ),
     queryPostgres<WorkOrderMaterialPlanRow>(
@@ -1784,7 +1794,9 @@ export async function createProductionHandover(input: {
     if (input.receivedPairs > 0) {
       const previousSizes = await db.query<{ received_size_breakdown: SizeBreakdown | string }>(
         `SELECT received_size_breakdown FROM production_stage_handovers
-         WHERE work_order_id = $1 AND to_stage = $2 AND reversed_at IS NULL`,
+         WHERE work_order_id = $1 AND to_stage = $2 AND reversed_at IS NULL
+       LIMIT 500
+     `,
         [input.workOrderId, toStage],
       );
       assertCumulativeSizePlan(
@@ -2034,7 +2046,9 @@ export async function addApprovedWorkEntry(input: {
       if (order.item_id !== input.itemId) throw new Error("Work Order item does not match work entry item.");
       const previousSizes = await db.query<{ size_breakdown: SizeBreakdown | string }>(
         `SELECT size_breakdown FROM production_work_entries
-         WHERE work_order_id = $1 AND stage = $2 AND status = 'Approved'`,
+         WHERE work_order_id = $1 AND stage = $2 AND status = 'Approved'
+       LIMIT 500
+     `,
         [input.workOrderId, input.stage],
       );
       assertCumulativeSizePlan(
@@ -2302,7 +2316,9 @@ export async function approvePackingQcAndPostStock(input: {
 
       const previousSizes = await db.query<{ size_breakdown: SizeBreakdown | string }>(
         `SELECT size_breakdown FROM production_qc_postings
-         WHERE work_order_id = $1 AND reversed_at IS NULL`,
+         WHERE work_order_id = $1 AND reversed_at IS NULL
+       LIMIT 500
+     `,
         [input.workOrderId],
       );
       assertCumulativeSizePlan(

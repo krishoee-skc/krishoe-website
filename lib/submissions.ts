@@ -317,7 +317,11 @@ async function getOrdersFromPostgres() {
         payment_ledger_id,
         payment_ledger_transaction_id
       FROM orders
+      -- Newest first, capped. The orders screen is read to see what needs
+      -- doing, and what needs doing is always recent; a shop that reaches a
+      -- thousand orders should not have that screen get slower for it.
       ORDER BY created_at DESC
+      LIMIT 1000
     `,
   );
 
