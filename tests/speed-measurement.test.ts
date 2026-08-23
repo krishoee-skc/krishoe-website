@@ -177,3 +177,58 @@ describe("what the speed panel claims", () => {
     expect(dashboard).toContain("अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि");
   });
 });
+
+/**
+ * Every metric was being recorded twice.
+ *
+ * useReportWebVitals registers its listeners inside an effect keyed on the
+ * function it is handed, and never removes the ones already added:
+ *
+ *   useEffect(() => { onCLS(fn); onLCP(fn); ... }, [reportWebVitalsFn])
+ *
+ * An inline arrow is a new function every render, so every render added a
+ * second set of listeners on top of the first. A shopper who landed on the home
+ * page and tapped through to Contact changed the pathname, re-rendered the
+ * reporter, and reported that page's metrics twice — identical values,
+ * identical timestamps. Six rows in the table were three visits, and the
+ * average counted the slow page twice over.
+ */
+describe("counting each measurement once", () => {
+  it("hands the hook one function that never changes", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    expect(reporter).toContain("useReportWebVitals(useCallback((metric)");
+    expect(reporter).toContain("}, []));");
+  });
+
+  it("reads the path without making the function change", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    // A stable callback cannot close over pathname, or it would change with it
+    // and register a second time — the bug it is written to avoid.
+    expect(reporter).toContain("const pathRef = useRef(pathname)");
+    expect(reporter).toContain("const path = pathRef.current");
+  });
+});
+
+/**
+ * The functions ran in iad1 (Washington) against a Neon database in
+ * ap-southeast-1 (Singapore), so every request that touched data crossed the
+ * Pacific twice before a shopper in Narayangadh saw anything.
+ */
+describe("where the shop runs", () => {
+  it("runs beside its database", async () => {
+    const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
+
+    // The database round trip happens on every request; the shopper round trip
+    // happens once. Putting the function beside the data wins, and Singapore is
+    // far nearer Nepal than Washington besides.
+    expect(vercel.regions).toEqual(["sin1"]);
+  });
+
+  it("still keeps its scheduled jobs", async () => {
+    const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
+
+    expect(vercel.crons).toHaveLength(3);
+  });
+});

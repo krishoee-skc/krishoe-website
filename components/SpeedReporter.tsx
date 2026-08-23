@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useReportWebVitals } from "next/web-vitals";
+import { useCallback, useEffect, useRef } from "react";
 import { INTERNAL_PATH_PREFIXES } from "@/lib/internal-paths";
 
 /**
@@ -32,20 +33,40 @@ const REPORTED = new Set(["LCP", "TTFB", "FCP", "INP", "CLS"]);
 export default function SpeedReporter() {
   const pathname = usePathname();
 
-  useReportWebVitals((metric) => {
+  // The path is read through a ref so the reporter below can stay one stable
+  // function for the life of the page.
+  //
+  // useReportWebVitals registers its listeners inside an effect keyed on the
+  // function it is given, and never removes the ones it already added:
+  //
+  //   useEffect(() => { onCLS(fn); onLCP(fn); ... }, [reportWebVitalsFn])
+  //
+  // An inline arrow is a new function on every render, so every render added a
+  // second set of listeners on top of the first. A shopper who landed on the
+  // home page and tapped through to Contact changed the pathname, re-rendered
+  // this component, and reported every metric on that page twice — identical
+  // values, identical timestamps. Six rows in the table were three visits, and
+  // an average built on them counted the slow page twice over.
+  const pathRef = useRef(pathname);
+  useEffect(() => {
+    pathRef.current = pathname;
+  }, [pathname]);
+
+  useReportWebVitals(useCallback((metric) => {
     if (!REPORTED.has(metric.name)) return;
 
     // The owner's own screens are not the shop. Admin is used from a desk on
     // wifi and would drag every average down towards a speed no customer sees
     // — the same reason these prefixes are cut out of the visitor counts.
-    if (INTERNAL_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return;
+    const path = pathRef.current;
+    if (INTERNAL_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) return;
 
     const body = JSON.stringify({
       metric: metric.name,
       // CLS is a ratio, not milliseconds. Multiplied so it survives an integer
       // column, and read back the same way.
       value: metric.name === "CLS" ? metric.value * 1000 : metric.value,
-      path: pathname,
+      path,
       rating: metric.rating,
     });
 
@@ -59,7 +80,7 @@ export default function SpeedReporter() {
     } catch {
       // A measurement that cannot be sent is not worth a broken page.
     }
-  });
+  }, []));
 
   return null;
 }
