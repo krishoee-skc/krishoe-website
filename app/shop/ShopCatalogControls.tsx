@@ -225,13 +225,13 @@ export default function ShopCatalogControls({
               onClick={clearFilters}
               className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
             >
-              Clear filters
+              {text("Clear filters", "छनोट हटाउने")}
             </button>
             <Link
               href="/shop"
               className="inline-flex min-h-11 items-center rounded-full border border-brand-green px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
             >
-              Browse all
+              {text("Browse all", "सबै हेर्ने")}
             </Link>
           </div>
         </div>

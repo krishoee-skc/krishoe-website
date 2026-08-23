@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Provider = "esewa" | "khalti";
 
@@ -12,6 +13,7 @@ export default function PendingPaymentStatus({
   orderId: string;
   provider: Provider;
 }) {
+  const { text } = useLanguage();
   const router = useRouter();
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,7 +48,7 @@ export default function PendingPaymentStatus({
 
   return (
     <div className="mt-5 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
-      <h2 className="text-lg font-black text-brand-green-ink">Payment awaiting verification</h2>
+      <h2 className="text-lg font-black text-brand-green-ink">{text("Payment awaiting verification", "भुक्तानी जाँच हुँदैछ")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
         Do not pay again yet. Ask {provider === "esewa" ? "eSewa" : "Khalti"} for the
         authoritative status first.

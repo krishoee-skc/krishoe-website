@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
@@ -16,10 +17,10 @@ export default function ContactPage() {
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-[0.9fr_1.1fr] md:px-8">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            Contact
+            <T en="Contact" ne="सम्पर्क" />
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
-            Premium service, clear answers.
+            <T en="Premium service, clear answers." ne="सोध्नुहोस् — छिटो र प्रस्ट जवाफ पाउनुहुन्छ।" />
           </h1>
           <p className="mt-5 text-base leading-8 text-brand-muted">
             Ask about sizing, stock, delivery, bulk orders, or a pair you saw in

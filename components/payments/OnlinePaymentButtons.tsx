@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Provider = "esewa" | "khalti";
 
@@ -27,6 +28,7 @@ export default function OnlinePaymentButtons({
   orderId: string;
   providers: Provider[];
 }) {
+  const { text } = useLanguage();
   const [pendingProvider, setPendingProvider] = useState<Provider | null>(null);
   const [error, setError] = useState("");
 
@@ -85,7 +87,7 @@ export default function OnlinePaymentButtons({
 
   return (
     <div className="mt-5 rounded-lg border border-brand-green/20 bg-brand-green-mist p-5">
-      <h2 className="text-lg font-black text-brand-green-ink">Pay securely online</h2>
+      <h2 className="text-lg font-black text-brand-green-ink">{text("Pay securely online", "अनलाइन सुरक्षित भुक्तानी")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
         Your amount is calculated from the saved order. KRISHOE marks it paid only after
         server-side verification from the selected provider.

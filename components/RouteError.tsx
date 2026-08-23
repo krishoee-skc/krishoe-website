@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 // Shared body for the storefront's per-route error boundaries. A failure in one
 // area (checkout, a product, the shop grid) shows this in place instead of
@@ -14,6 +15,7 @@ export default function RouteError({
   title?: string;
   message?: string;
 }) {
+  const { text } = useLanguage();
   return (
     <main className="min-h-screen bg-brand-mist px-5 py-16">
       <div className="mx-auto max-w-2xl rounded-lg border border-black/10 bg-white p-8 text-center shadow-[0_24px_70px_rgba(16,35,29,0.10)] md:p-10">
@@ -33,13 +35,13 @@ export default function RouteError({
             onClick={reset}
             className="h-11 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
-            Try again
+            {text("Try again", "फेरि प्रयास")}
           </button>
           <Link
             href="/shop"
             className="inline-flex h-11 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
-            Shop collection
+            {text("Shop collection", "पसल हेर्ने")}
           </Link>
         </div>
       </div>

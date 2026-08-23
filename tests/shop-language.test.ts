@@ -22,10 +22,34 @@ async function screens(dir: string, out: string[] = []): Promise<string[]> {
   return out;
 }
 
-/** Visible English: text between tags, plus the attributes a reader sees. */
+/**
+ * Names, which are not English so much as spelling.
+ *
+ * The count exists to measure work left to do, and these are not work: the
+ * brand and its motto are printed on the box, WhatsApp and Facebook are what
+ * those apps are called in every language, and the "English" on the language
+ * button has to say English or the reader who needs it cannot find it. Counting
+ * them meant the number could never reach zero, which makes a ceiling test into
+ * noise nobody acts on.
+ */
+const NAMES = new Set([
+  "KRISHOE",
+  "KRISHOE shop",
+  "Walk with Authority",
+  "WhatsApp",
+  "Facebook",
+  "Instagram",
+  "TikTok",
+  "English",
+  "Viber",
+]);
+
+/** Visible English a Nepali reader would be shown, excluding names. */
 function englishCount(source: string) {
   const clean = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  const between = clean.match(/>[\s]*[A-Z][A-Za-z ,.'’!?&/-]{5,70}[\s]*</g) ?? [];
+  const between = (clean.match(/>[\s]*[A-Z][A-Za-z ,.'’!?&/-]{5,70}[\s]*</g) ?? []).filter(
+    (match) => !NAMES.has(match.slice(1, -1).trim()),
+  );
   const attrs = clean.match(/(?:placeholder|title|aria-label|alt)="[A-Z][^"]{5,70}"/g) ?? [];
   return between.length + attrs.length;
 }
@@ -93,10 +117,19 @@ describe("how much of the shop the switch actually reaches", () => {
     let count = 0;
     for (const file of files) count += englishCount(await readFile(file, "utf8"));
 
-    // It was 227 when this was first measured. The number only ever comes
-    // down; a new screen written in English only pushes it up and fails here.
-    // Lower the ceiling whenever a batch lands, never raise it.
-    expect(count).toBeLessThanOrEqual(115);
+    // 227 when this was first measured. The ceiling is set to exactly what is
+    // left, with no slack — slack is how a screen written in English only slips
+    // in unnoticed, and at 115 against an actual 95 there was room for twenty
+    // more before anything complained.
+    //
+    // What is left is largely what should stay: a bank's name and an account
+    // name, which have to match letter for letter or money goes astray; "Ctrl
+    // K", which is a key on a keyboard; and alt text on server components,
+    // which cannot be translated without reading the language on the server and
+    // costing every shopper the prerendered HTML.
+    //
+    // Lower it whenever a batch lands. Never raise it.
+    expect(count).toBeLessThanOrEqual(23);
   });
 });
 

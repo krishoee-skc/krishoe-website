@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function OfflinePage() {
+  const { text } = useLanguage();
   const router = useRouter();
   const [backOnline, setBackOnline] = useState(false);
 
@@ -41,14 +43,14 @@ export default function OfflinePage() {
             onClick={() => router.push("/")}
             className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700"
           >
-            Try home
+            {text("Try home", "मुख्य पानामा")}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
             className="w-full rounded-lg bg-gray-200 py-3 font-medium text-gray-900 hover:bg-gray-300"
           >
-            Go back
+            {text("Go back", "पछाडि जाने")}
           </button>
         </div>
       </div>

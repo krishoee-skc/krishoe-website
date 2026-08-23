@@ -137,7 +137,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
               <div>
                 <p className="text-2xl font-black tracking-[0.08em] text-brand-green">KRISHOE</p>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold-deep">
-                  Premium menu
+                  {text("Premium menu", "मेनु")}
                 </p>
               </div>
               <div className="flex items-center gap-2">

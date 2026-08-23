@@ -8,10 +8,12 @@ import {
 } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { formatAdminDate } from "@/lib/format-date";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
 export default function EmailVerificationPanel({ user }: { user: SafeUser }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const isEmailVerified = Boolean(user.emailVerifiedAt);
@@ -31,9 +33,9 @@ export default function EmailVerificationPanel({ user }: { user: SafeUser }) {
   return (
     <section className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-        Account trust
+        {text("Account trust", "खाताको भरोसा")}
       </p>
-      <h2 className="mt-3 text-xl font-black text-brand-green-ink">Account verification</h2>
+      <h2 className="mt-3 text-xl font-black text-brand-green-ink">{text("Account verification", "खाता पक्का गर्ने")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
         {isEmailVerified
           ? "Your email is verified. Guest orders using this email can safely link to your account."

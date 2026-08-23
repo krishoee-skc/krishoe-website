@@ -57,7 +57,7 @@ export default function ContactForm() {
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Message
+          {text("Message", "सन्देश")}
           <textarea
             name="message"
             required

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import T from "@/components/T";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -92,7 +93,7 @@ export default function PrimaryNav() {
                       onClick={() => setShopOpen(false)}
                       className="mt-1.5 flex items-center justify-center rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
                     >
-                      View all products
+                      <T en="View all products" ne="सबै जुत्ता हेर्ने" />
                     </Link>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import T from "@/components/T";
 import Link from "next/link";
 
 const categories = [
@@ -39,11 +40,11 @@ export default function Categories() {
     <section className="bg-brand-mist py-20">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="text-center text-4xl font-bold text-brand-green">
-          Shop by Category
+          <T en="Shop by Category" ne="किसिम अनुसार" />
         </h2>
 
         <p className="mb-12 mt-3 text-center text-gray-500">
-          Find your perfect footwear.
+          <T en="Find your perfect footwear." ne="आफूलाई मिल्ने जुत्ता भेट्टाउनुहोस्।" />
         </p>
 
         <div className="grid grid-cols-2 gap-8 md:grid-cols-3">

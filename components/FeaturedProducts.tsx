@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/product-store";
 import type { Product } from "@/lib/products";
@@ -16,17 +17,17 @@ export default async function FeaturedProducts({ products }: FeaturedProductsPro
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-              Featured Collection
+              <T en="Featured Collection" ne="छानिएका जुत्ता" />
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-              Polished pairs for daily confidence.
+              <T en="Polished pairs for daily confidence." ne="दिनहुँ लगाउन मिल्ने, हेर्दा राम्रो।" />
             </h2>
           </div>
           <Link
             href="/shop"
             className="inline-flex h-11 w-fit items-center rounded-full border border-brand-green px-5 text-sm font-semibold text-brand-green transition hover:bg-brand-green hover:text-white"
           >
-            View all products
+            <T en="View all products" ne="सबै जुत्ता हेर्ने" />
           </Link>
         </div>
 

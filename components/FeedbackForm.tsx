@@ -81,7 +81,7 @@ export default function FeedbackForm() {
     <div className="max-w-2xl mx-auto bg-white rounded-lg border p-8">
       <h1 className="text-3xl font-bold mb-2">{text("Share Your Feedback", "तपाईंको सुझाव लेख्नुहोस्")}</h1>
       <p className="text-gray-600 mb-8">
-        Help us improve! Your feedback helps us make better decisions.
+        {text("Help us improve! Your feedback helps us make better decisions.", "तपाईंको सुझावले हामीलाई सुधार्न सहयोग गर्छ।")}
       </p>
 
       {success && (
@@ -100,7 +100,7 @@ export default function FeedbackForm() {
         {/* Feedback Type */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-3">
-            Feedback Type
+            {text("Feedback Type", "कस्तो कुरा")}
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {typeOptions.map((option) => (

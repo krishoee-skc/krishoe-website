@@ -4,10 +4,12 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { claimOrderAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
 export default function OrderClaimForm() {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
@@ -33,13 +35,13 @@ export default function OrderClaimForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-black text-brand-green-ink">Link guest order</h2>
+      <h2 className="text-lg font-black text-brand-green-ink">{text("Link guest order", "पुरानो अर्डर जोड्ने")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
         Add a KRISHOE order reference to bring eligible guest orders into this account.
       </p>
 
       <label className="mt-5 grid gap-2 text-sm font-semibold text-brand-green-ink">
-        Order reference
+        {text("Order reference", "अर्डर नम्बर")}
         <input
           name="orderId"
           required

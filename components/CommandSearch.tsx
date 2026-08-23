@@ -9,9 +9,11 @@ import { searchProducts } from "@/lib/product-search";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { SearchIcon, XIcon } from "@/components/Icons";
+import { useLanguage } from "@/components/LanguageProvider";
 
 // Command-palette style search: opens on Ctrl/⌘+K or "/", closes on Esc.
 export default function CommandSearch() {
+  const { text } = useLanguage();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -90,11 +92,11 @@ export default function CommandSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Search premium styles"
+        aria-label={text("Search premium styles", "जुत्ता खोज्ने")}
         className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-brand-mist px-4 text-brand-muted-deep transition hover:border-brand-green/40 xl:flex"
       >
         <SearchIcon className="h-4 w-4" />
-        <span className="text-sm">Search premium styles</span>
+        <span className="text-sm">{text("Search premium styles", "जुत्ता खोज्ने")}</span>
         <kbd className="ml-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-muted-deep">
           Ctrl K
         </kbd>
@@ -105,7 +107,7 @@ export default function CommandSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Search premium styles"
+        aria-label={text("Search premium styles", "जुत्ता खोज्ने")}
         className="hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid xl:hidden"
       >
         <SearchIcon className="h-5 w-5" />
@@ -115,7 +117,7 @@ export default function CommandSearch() {
         <div className="fixed inset-0 z-[60]">
           <button
             type="button"
-            aria-label="Close search"
+            aria-label={text("Close search", "खोज बन्द गर्ने")}
             onClick={closePalette}
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
           />
@@ -126,7 +128,7 @@ export default function CommandSearch() {
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search premium styles..."
+                placeholder={text("Search premium styles...", "जुत्ता खोज्नुहोस्…")}
                 enterKeyHint="search"
                 className="h-14 w-full bg-transparent text-base outline-none placeholder:text-brand-muted-soft"
               />
@@ -219,7 +221,7 @@ export default function CommandSearch() {
             ) : (
             <div className="overflow-y-auto p-3">
               <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
-                Browse categories
+                {text("Browse categories", "किसिम अनुसार हेर्ने")}
               </p>
               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {categories.map((category) => (

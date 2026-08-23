@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Platform = "ios" | "android" | "desktop" | null;
 
@@ -66,6 +67,7 @@ function bottomOffset(pathname: string) {
  * them sends the reader looking for something that is not there.
  */
 export default function PwaInstallHelp() {
+  const { text } = useLanguage();
   const pathname = usePathname();
   const [platform, setPlatform] = useState<Platform>(null);
   const [visible, setVisible] = useState(false);
@@ -138,7 +140,7 @@ export default function PwaInstallHelp() {
   return (
     <aside
       className={`fixed inset-x-3 ${bottomOffset(pathname)} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink p-4 text-white shadow-2xl lg:inset-x-auto lg:right-4 lg:mx-0 print:hidden`}
-      aria-label="Install KRISHOE app"
+      aria-label={text("Install KRISHOE app", "KRISHOE app राख्ने")}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -163,7 +165,7 @@ export default function PwaInstallHelp() {
         <button
           type="button"
           onClick={close}
-          aria-label="Dismiss install help"
+          aria-label={text("Dismiss install help", "हटाउने")}
           className="shrink-0 text-lg leading-none text-white/70"
         >
           X

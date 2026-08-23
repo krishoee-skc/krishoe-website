@@ -40,7 +40,7 @@ export default function BottomTabBar() {
       <div className="h-[calc(5rem+env(safe-area-inset-bottom))] lg:hidden" aria-hidden />
 
       <nav
-        aria-label="Primary"
+        aria-label={text("Primary", "मुख्य मेनु")}
         className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/88 shadow-[0_18px_55px_rgba(47,28,46,0.22)] backdrop-blur-xl lg:hidden"
       >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
@@ -62,7 +62,7 @@ export default function BottomTabBar() {
             type="button"
             onClick={() => window.dispatchEvent(new Event("krishoe:open-search"))}
             className={tabClass(false)}
-            aria-label="Open search"
+            aria-label={text("Open search", "खोज्ने")}
           >
             <span className={iconBubble("bg-[#EEE5FF] text-[#7451A8]", false)}>
               <SearchIcon className="h-[18px] w-[18px]" />
