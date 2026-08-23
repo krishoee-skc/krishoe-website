@@ -55,6 +55,17 @@ export default function SpeedReporter() {
   useReportWebVitals(useCallback((metric) => {
     if (!REPORTED.has(metric.name)) return;
 
+    // Only the real shop. A page served by `npm run dev` is compiled the first
+    // time it is asked for, which takes ten to twenty seconds — and those
+    // numbers were landing in the same table as the shop's, against the same
+    // paths, indistinguishable. The dashboard then reported /contact at 20.6s
+    // while the live page was answering the same request in 1.1s.
+    //
+    // The owner opened localhost because I handed them a localhost link. The
+    // reporter should never have accepted the measurement either way:
+    // ServiceWorkerRegistration already guards on this and this did not.
+    if (process.env.NODE_ENV !== "production") return;
+
     // The owner's own screens are not the shop. Admin is used from a desk on
     // wifi and would drag every average down towards a speed no customer sees
     // — the same reason these prefixes are cut out of the visitor counts.

@@ -105,8 +105,11 @@ describe("keeping the measurements apart", () => {
     const lib = await readFile(LIB, "utf8");
     const stats = lib.slice(lib.indexOf("export async function getPerformanceStats"));
 
-    // Twice: once for the average and percentiles, once for the slowest pages.
-    expect([...stats.matchAll(/COALESCE\(metric, 'LCP'\) = 'LCP'/g)]).toHaveLength(2);
+    // Three of them now: the average and percentiles, the slowest pages, and
+    // the count of readings set aside as not-the-shop. Every one has to filter
+    // to LCP, or a TTFB in tens of milliseconds is averaged with an LCP in
+    // seconds and the figure answers no question anyone has.
+    expect([...stats.matchAll(/COALESCE\(metric, 'LCP'\) = 'LCP'/g)]).toHaveLength(3);
   });
 });
 
@@ -230,5 +233,79 @@ describe("where the shop runs", () => {
     const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 
     expect(vercel.crons).toHaveLength(3);
+  });
+});
+
+/**
+ * A dev server and the shop were writing into the same table.
+ *
+ * `npm run dev` compiles a page the first time it is asked for, which takes ten
+ * to twenty seconds. Those readings landed against the same paths as the live
+ * shop's with nothing to tell them apart, so the dashboard reported /contact at
+ * 20.6s and filed "Slow API: poor /contact took 20648ms" as an error — on a day
+ * the live page answered the same request in 1.1s. The owner read it as an
+ * outage, which is exactly what it looked like.
+ */
+describe("telling the shop from a laptop", () => {
+  it("decides on the server, never from the browser", async () => {
+    const lib = await readFile(LIB, "utf8");
+
+    // A browser can say anything. VERCEL_ENV is set by the platform.
+    expect(lib).toContain("export function metricEnvironment()");
+    expect(lib).toContain("process.env.VERCEL_ENV");
+  });
+
+  it("catches a preview deployment, which NODE_ENV alone does not", async () => {
+    const lib = await readFile(LIB, "utf8");
+    const fn = lib.slice(lib.indexOf("export function metricEnvironment"));
+
+    // A Vercel preview runs with NODE_ENV=production, so the browser-side guard
+    // would wave it through as though it were the shop.
+    expect(fn).toContain('if (vercelEnv === "preview") return "preview"');
+  });
+
+  it("also refuses to send from a dev server at all", async () => {
+    const reporter = await readFile(REPORTER, "utf8");
+
+    // Belt and braces: the browser does not send it, and the server would not
+    // have counted it if it had.
+    expect(reporter).toContain('if (process.env.NODE_ENV !== "production") return;');
+  });
+
+  it("counts only the shop", async () => {
+    const lib = await readFile(LIB, "utf8");
+    const stats = lib.slice(lib.indexOf("export async function getPerformanceStats"));
+
+    // Twice: the headline figures, and the per-page list.
+    expect([...stats.matchAll(/AND environment = 'production'/g)]).toHaveLength(2);
+  });
+
+  it("sets the rest aside rather than deleting them", async () => {
+    const lib = await readFile(LIB, "utf8");
+    const dashboard = await readFile(DASHBOARD, "utf8");
+
+    // A reading from a laptop is real and is sometimes the only way to tell
+    // whether a change helped. It is kept, counted, and named on screen — a
+    // number quietly removed is its own kind of dishonesty.
+    expect(lib).toContain("AND environment <> 'production'");
+    expect(lib).toContain("setAside: Number(aside[0]?.n) || 0");
+    expect(dashboard).toContain("monitoring.performance.setAside > 0");
+    expect(dashboard).toContain("माथिको हिसाबमा गनिएको छैन");
+  });
+
+  it("does not raise a slow-page warning about a laptop", async () => {
+    const lib = await readFile(LIB, "utf8");
+
+    // This is what filled the owner's error log with a page that was never slow.
+    expect(lib).toContain('if (metric.duration > 5000 && environment === "production")');
+  });
+
+  it("stamps every row, so nothing arrives unlabelled", async () => {
+    const lib = await readFile(LIB, "utf8");
+    const sql = await readFile("scripts/migrations/20260823_metric_environment.sql", "utf8");
+
+    expect(lib).toContain("const environment = metricEnvironment();");
+    expect(lib).toContain("user_id, environment, created_at)");
+    expect(sql).toContain("environment text NOT NULL DEFAULT 'production'");
   });
 });

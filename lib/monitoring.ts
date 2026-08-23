@@ -106,6 +106,27 @@ export const CACHE_PROBE_PATH = "/shop";
  */
 export type HealthScope = "live" | "local";
 
+/**
+ * Which deployment a measurement was taken against.
+ *
+ * Decided here, on the server, and never taken from the browser: a page served
+ * by `npm run dev` compiles on first request and takes ten to twenty seconds,
+ * and those readings were landing in the same table as the shop's. Checking
+ * NODE_ENV in the browser catches the laptop but not a Vercel preview, which
+ * runs with NODE_ENV=production — VERCEL_ENV is the only thing that knows the
+ * difference, and only the server can read it.
+ */
+export type MetricEnvironment = "production" | "preview" | "development";
+
+export function metricEnvironment(): MetricEnvironment {
+  const vercelEnv = (process.env.VERCEL_ENV ?? "").trim();
+  if (vercelEnv === "production") return "production";
+  if (vercelEnv === "preview") return "preview";
+  if (vercelEnv === "development") return "development";
+  // No VERCEL_ENV at all means this is not running on Vercel — a laptop.
+  return process.env.NODE_ENV === "production" ? "production" : "development";
+}
+
 /** Vercel sets VERCEL=1 on its own servers and nowhere else. */
 export function healthScope(): HealthScope {
   return process.env.VERCEL ? "live" : "local";
@@ -200,12 +221,14 @@ export async function logPerformanceMetric(
 ) {
   try {
     const id = `perf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const environment = metricEnvironment();
 
     await queryPostgres(
       STORE,
       `INSERT INTO monitoring_performance
-       (id, path, method, metric, duration, status_code, db_time, render_time, user_id, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+       (id, path, method, metric, duration, status_code, db_time, render_time,
+        user_id, environment, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
       [
         id,
         metric.path,
@@ -216,11 +239,15 @@ export async function logPerformanceMetric(
         metric.dbTime || null,
         metric.renderTime || null,
         metric.userId || null,
+        environment,
       ]
     );
 
-    // Alert if slow
-    if (metric.duration > 5000) {
+    // Alert if slow — but only for the shop. This is what put "Slow API: poor
+    // /contact took 20648ms" in front of the owner as an error: a laptop
+    // building the page for the first time, filed as though customers were
+    // waiting twenty seconds.
+    if (metric.duration > 5000 && environment === "production") {
       // 5 seconds
       await logError({
         level: "warning",
@@ -378,6 +405,16 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
    * it is, or the first entry looks like a finding.
    */
   samples: number;
+  /**
+   * Readings taken against a laptop or a preview deployment, set aside.
+   *
+   * A dev server compiles a page the first time it is asked for, which takes
+   * ten to twenty seconds; /contact was reported at 20.6s on a day the live
+   * page answered the same request in 1.1s. Those readings are real, they are
+   * simply not the shop — kept and counted here rather than discarded, so the
+   * screen can say what it left out instead of quietly dropping it.
+   */
+  setAside: number;
 }> {
   try {
     const normalizedHours = Number.isFinite(hours) ? Math.trunc(hours) : 24;
@@ -398,7 +435,9 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         COUNT(*)::integer as total_count
       FROM monitoring_performance
       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
-        AND COALESCE(metric, 'LCP') = 'LCP'`,
+        AND COALESCE(metric, 'LCP') = 'LCP'
+        -- The shop, not a laptop and not a preview deployment.
+        AND environment = 'production'`,
       [safeHours]
     );
 
@@ -409,6 +448,18 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
       error_count: 0,
       total_count: 0,
     };
+
+    // Counted, not hidden. A reading from a laptop or a preview deployment is
+    // real; it is simply not the shop, and the screen says how many there were
+    // rather than silently discarding them.
+    const aside = await queryPostgres<{ n: number }>(
+      STORE,
+      `SELECT COUNT(*)::integer AS n FROM monitoring_performance
+       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
+         AND COALESCE(metric, 'LCP') = 'LCP'
+         AND environment <> 'production'`,
+      [safeHours]
+    );
 
     const slowest = await queryPostgres<{
       path: string;
@@ -425,6 +476,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
       FROM monitoring_performance
       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
         AND COALESCE(metric, 'LCP') = 'LCP'
+        AND environment = 'production'
       GROUP BY path, method
       ORDER BY avg_time DESC
       LIMIT 10`,
@@ -449,6 +501,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
           ? (data.error_count / data.total_count) * 100
           : 0,
       samples: data.total_count,
+      setAside: Number(aside[0]?.n) || 0,
     };
   } catch (err) {
     console.error("Failed to get performance stats:", err);
@@ -459,6 +512,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
       slowestEndpoints: [],
       samples: 0,
       errorRate: 0,
+      setAside: 0,
     };
   }
 }

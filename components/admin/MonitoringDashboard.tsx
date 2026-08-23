@@ -29,6 +29,7 @@ interface MonitoringData {
     }>;
     errorRate: number;
     samples: number;
+    setAside: number;
   };
   uptime: number;
   health: {
@@ -404,6 +405,19 @@ export default function MonitoringDashboard() {
             ? ` · जम्मा ${monitoring.performance.samples} नाप`
             : ""}
         </p>
+
+        {/* Said out loud rather than dropped silently. A dev server compiles a
+            page on first request and takes ten to twenty seconds; those
+            readings were landing here as though customers were waiting that
+            long, and /contact was reported at 20.6s on a day the live page
+            answered in 1.1s. They are set aside now — and the screen says so,
+            because a number quietly removed is its own kind of dishonesty. */}
+        {monitoring.performance.setAside > 0 ? (
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            ℹ️ {monitoring.performance.setAside} नाप परीक्षणका (आफ्नै कम्प्युटर वा
+            preview) — माथिको हिसाबमा गनिएको छैन।
+          </p>
+        ) : null}
 
         {monitoring.performance.slowestEndpoints.length === 0 ? (
           <p className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
