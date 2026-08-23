@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function ErrorPage({
   reset,
@@ -8,6 +9,7 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { text } = useLanguage();
   return (
     <main className="flex min-h-screen items-center justify-center bg-brand-mist px-5 py-16">
       <section className="w-full max-w-2xl rounded-lg border border-black/10 bg-white p-8 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
@@ -15,7 +17,7 @@ export default function ErrorPage({
           KRISHOE
         </p>
         <h1 className="mt-4 text-4xl font-black tracking-tight text-brand-green-ink">
-          Something needs a quick retry.
+          {text("Something needs a quick retry.", "केही अड्कियो — फेरि प्रयास गर्नुहोस्।")}
         </h1>
         <p className="mt-4 text-sm leading-7 text-brand-muted">
           Your cart and browsing session are kept safe. Please retry, or return to the shop.
@@ -26,13 +28,13 @@ export default function ErrorPage({
             onClick={() => reset()}
             className="h-12 rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
           >
-            Try again
+            {text("Try again", "फेरि प्रयास")}
           </button>
           <Link
             href="/shop"
             className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
-            Shop collection
+            {text("Shop collection", "पसल हेर्ने")}
           </Link>
         </div>
       </section>

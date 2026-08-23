@@ -76,6 +76,9 @@ describe("how much of the shop the switch actually reaches", () => {
       "app/about/page.tsx",
       "app/account/login/page.tsx",
       "app/wishlist/page.tsx",
+      "app/error.tsx",
+      "components/account/PasswordChangeForm.tsx",
+      "components/account/ProfileEditForm.tsx",
     ];
 
     for (const file of walked) {
@@ -93,7 +96,7 @@ describe("how much of the shop the switch actually reaches", () => {
     // It was 227 when this was first measured. The number only ever comes
     // down; a new screen written in English only pushes it up and fails here.
     // Lower the ceiling whenever a batch lands, never raise it.
-    expect(count).toBeLessThanOrEqual(150);
+    expect(count).toBeLessThanOrEqual(115);
   });
 });
 
@@ -117,5 +120,82 @@ describe("what stays English on purpose", () => {
     // Share, Install, Add to Home Screen are what the device says. Translating
     // them sends the reader looking for a Nepali button that is not there.
     expect(share).toMatch(/Share|share/);
+  });
+});
+
+/**
+ * The translation existed and almost nobody saw it.
+ *
+ * The shop opened in English and the switch lived inside the menu drawer,
+ * below the fold — several taps and a scroll from a shopper who did not know a
+ * Nepali version existed in the first place. The work was done and hidden.
+ */
+describe("finding the Nepali", () => {
+  it("is on the bar, not buried in a drawer", async () => {
+    const controls = await readFile("components/NavbarControls.tsx", "utf8");
+    const bar = controls.slice(0, controls.indexOf("Premium menu"));
+
+    // Two characters wide, on every screen size — no lg: guard hiding it from
+    // the phones most shoppers arrive on.
+    expect(bar).toContain('setLanguage(language === "ne" ? "en" : "ne")');
+    expect(bar).toContain('{language === "ne" ? "EN" : "ने"}');
+  });
+
+  it("asks once rather than guessing", async () => {
+    const invite = await readFile("components/LanguageInvite.tsx", "utf8");
+
+    // Most Nepali phones are set to English while their owners would rather
+    // read Nepali: the phone reports the setting, not the preference. A
+    // question is never wrong the way a guess can be.
+    expect(invite).toContain("नेपालीमा हेर्नुहुन्छ?");
+    expect(invite).toContain("Read this shop in Nepali?");
+  });
+
+  it("never asks a second time, whichever way it was answered", async () => {
+    const invite = await readFile("components/LanguageInvite.tsx", "utf8");
+
+    // Dismissing counts as answering: a card that returns is an advert.
+    expect(invite).toContain('const ASKED_KEY = "krishoe-language-asked"');
+    expect(invite).toContain("window.localStorage.setItem(ASKED_KEY");
+    expect(invite).toContain("onClick={() => answer(null)}");
+  });
+
+  it("waits, and does not block the page", async () => {
+    const invite = await readFile("components/LanguageInvite.tsx", "utf8");
+
+    // Not a modal. A foreign or wholesale visitor ignores it and keeps
+    // shopping in English, which is what they wanted anyway.
+    expect(invite).toContain("const DELAY_MS = 2500");
+    expect(invite).toContain("fixed inset-x-3 bottom-3");
+  });
+
+  it("survives a browser that refuses to store anything", async () => {
+    const invite = await readFile("components/LanguageInvite.tsx", "utf8");
+
+    expect(invite).toContain("} catch {");
+  });
+
+  it("is mounted where it can reach the language", async () => {
+    const layout = await readFile("app/layout.tsx", "utf8");
+
+    expect(layout).toContain("<LanguageInvite />");
+    expect(layout.indexOf("<LanguageInvite />")).toBeGreaterThan(
+      layout.indexOf("<LanguageProvider>"),
+    );
+  });
+});
+
+/**
+ * global-error replaces the entire application — LanguageProvider included —
+ * when everything else has failed. There is no context to read a preference
+ * from, so it carries both languages at once.
+ */
+describe("the screen shown when everything breaks", () => {
+  it("speaks both languages, because it cannot ask", async () => {
+    const globalError = await readFile("app/global-error.tsx", "utf8");
+
+    expect(globalError).toContain("केही अड्कियो");
+    expect(globalError).toContain("We need a quick retry.");
+    expect(globalError).toContain("फेरि प्रयास · Try again");
   });
 });

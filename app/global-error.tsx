@@ -49,8 +49,15 @@ export default function GlobalError({
               KRISHOE
             </p>
             <h1 style={{ margin: "16px 0 0", fontSize: 36, lineHeight: 1.1 }}>
-              We need a quick retry.
+              केही अड्कियो — फेरि प्रयास गर्नुहोस्।
             </h1>
+            {/* Both languages, side by side, because this screen replaces the
+                whole app — LanguageProvider included — when everything else has
+                failed. There is no context to read a preference from, and a
+                reader who cannot understand the one line offered is stranded. */}
+            <p style={{ margin: "6px 0 0", fontSize: 18, color: "#5F6B66" }}>
+              We need a quick retry.
+            </p>
             <p style={{ margin: "16px 0 0", color: "#5F6B66", lineHeight: 1.7 }}>
               The page hit a temporary issue. Your session stays safe while you retry.
             </p>
@@ -70,7 +77,7 @@ export default function GlobalError({
                 padding: "0 24px",
               }}
             >
-              Try again
+              फेरि प्रयास · Try again
             </button>
           </section>
         </main>

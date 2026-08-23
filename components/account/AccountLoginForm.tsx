@@ -40,7 +40,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Customer account", "ग्राहक खाता")}</p>
       <h1 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Sign in", "लगइन गर्नुहोस्")}</h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
-        Save checkout details and manage your KRISHOE profile.
+        {text("Save checkout details and manage your KRISHOE profile.", "ठेगाना बचाउनुहोस् — अर्को पटक अर्डर छिटो हुन्छ।")}
       </p>
 
       <div className="mt-7 grid gap-4">
@@ -56,7 +56,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Password
+          {text("Password", "पासवर्ड")}
           <input
             name="password"
             type="password"
@@ -86,10 +86,10 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
           href={`/account/register?next=${encodeURIComponent(nextPath)}`}
           className="text-brand-green hover:text-brand-gold-deep"
         >
-          Create account
+          {text("Create account", "खाता खोल्नुहोस्")}
         </Link>
         <a href="#password-reset" className="text-brand-muted hover:text-brand-green">
-          Forgot password?
+          {text("Forgot password?", "पासवर्ड बिर्सनुभयो?")}
         </a>
       </div>
     </form>

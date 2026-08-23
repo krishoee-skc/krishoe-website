@@ -3,10 +3,12 @@
 import { FormEvent, useState } from "react";
 import SubmitButton from "@/components/SubmitButton";
 import { resetPasswordAction, type AccountActionState } from "@/app/account/actions";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
 export default function ResetPasswordForm({ token }: { token: string }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
 
@@ -24,15 +26,15 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border bg-white p-6 shadow-sm">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black text-brand-green-ink">Reset Your Password</h1>
-        <p className="mt-2 text-sm text-gray-500">Enter a new password for your account.</p>
+        <h1 className="text-3xl font-black text-brand-green-ink">{text("Reset Your Password", "पासवर्ड फेर्नुहोस्")}</h1>
+        <p className="mt-2 text-sm text-gray-500">{text("Enter a new password for your account.", "नयाँ पासवर्ड राख्नुहोस्।")}</p>
       </div>
 
       <input type="hidden" name="token" value={token} />
 
       <div className="grid gap-4">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">New password</span>
+          <span className="text-sm font-medium">{text("New password", "नयाँ पासवर्ड")}</span>
           <input
             name="password"
             type="password"
@@ -43,7 +45,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Confirm new password</span>
+          <span className="text-sm font-medium">{text("Confirm new password", "नयाँ पासवर्ड फेरि")}</span>
           <input
             name="confirmPassword"
             type="password"

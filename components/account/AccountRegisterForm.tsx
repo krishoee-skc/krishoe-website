@@ -48,7 +48,7 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
           </label>
         </div>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Full name
+          {text("Full name", "पूरा नाम")}
           <input name="name" required autoComplete="name" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
@@ -56,7 +56,7 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
           <input name="email" type="email" required autoComplete="email" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Password
+          {text("Password", "पासवर्ड")}
           <input name="password" type="password" required minLength={8} autoComplete="new-password" className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green" />
         </label>
       </div>
@@ -80,7 +80,7 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
           href={`/account/login?next=${encodeURIComponent(nextPath)}`}
           className="text-brand-green hover:text-brand-gold-deep"
         >
-          Sign in
+          {text("Sign in", "लगइन")}
         </Link>
       </p>
     </form>

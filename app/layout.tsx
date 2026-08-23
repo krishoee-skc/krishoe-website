@@ -11,6 +11,7 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import PwaInstallHelp from "@/components/PwaInstallHelp";
 import SpeedReporter from "@/components/SpeedReporter";
 import LanguageProvider from "@/components/LanguageProvider";
+import LanguageInvite from "@/components/LanguageInvite";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
@@ -119,6 +120,7 @@ export default async function RootLayout({
             {children}
             <PwaInstallHelp />
             <SpeedReporter />
+            <LanguageInvite />
             <BottomTabBar />
           </CommerceProvider>
         </LanguageProvider>

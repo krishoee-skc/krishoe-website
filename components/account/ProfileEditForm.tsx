@@ -4,10 +4,12 @@ import { FormEvent, useState } from "react";
 import type { SafeUser } from "@/lib/user-store";
 import { updateProfileAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
 export default function ProfileEditForm({ user }: { user: SafeUser }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
 
@@ -24,11 +26,11 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Saved profile</p>
-      <h2 className="mt-3 text-xl font-black text-brand-green-ink">Account details</h2>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Saved profile", "बचाएको विवरण")}</p>
+      <h2 className="mt-3 text-xl font-black text-brand-green-ink">{text("Account details", "खाताको विवरण")}</h2>
       <div className="mt-5 grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Full name
+          {text("Full name", "पूरा नाम")}
           <input
             name="name"
             defaultValue={user.name}
@@ -61,7 +63,7 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-          Default address
+          {text("Default address", "सधैँको ठेगाना")}
           <textarea
             name="address"
             defaultValue={user.address}
@@ -69,7 +71,7 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
             maxLength={600}
             autoComplete="street-address"
             className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
-            placeholder="City, area, landmark"
+            placeholder={text("City, area, landmark", "सहर, टोल, चिनारी")}
           />
         </label>
       </div>

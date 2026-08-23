@@ -48,7 +48,7 @@ export default function About() {
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,45,34,0.22),transparent_40%,rgba(8,45,34,0.16))]" />
 
             <div className="absolute left-4 top-4 rounded-full border border-white/25 bg-brand-green-ink/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur sm:left-6 sm:top-6">
-              Made in Nepal
+              <T en="Made in Nepal" ne="नेपालमै बनेको" />
             </div>
 
             <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/20 bg-white/90 p-4 shadow-xl backdrop-blur-md sm:inset-x-6 sm:bottom-6 sm:p-5">
@@ -73,7 +73,7 @@ export default function About() {
         <div className="lg:py-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-green-line bg-white/75 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-brand-green shadow-sm backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-brand-gold-bright" />
-            About KRISHOE
+            <T en="About KRISHOE" ne="KRISHOE बारे" />
           </div>
 
           <h2 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
@@ -130,7 +130,7 @@ export default function About() {
               href="/about"
               className="inline-flex h-12 items-center justify-center rounded-full border border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green-wash"
             >
-              Read our story
+              <T en="Read our story" ne="हाम्रो कथा पढ्ने" />
             </Link>
           </div>
         </div>

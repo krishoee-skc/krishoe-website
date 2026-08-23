@@ -25,7 +25,7 @@ export default function PaymentInstructions() {
         </p>
       </div>
       <p className="mt-4 text-xs text-gray-500">
-        After payment, send a screenshot on WhatsApp for faster confirmation.
+        <T en="After payment, send a screenshot on WhatsApp for faster confirmation." ne="तिरेपछि WhatsApp मा screenshot पठाउनुहोस् — छिटो पक्का हुन्छ।" />
       </p>
     </div>
   );

@@ -63,6 +63,20 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {/* The theme toggle crowds the phone bar, and the search and cart here
           double up on the bottom tab bar — keep the top bar to brand + wishlist
           + cart + menu on phones, and move the toggle into the menu drawer. */}
+      {/* The language switch was inside the menu drawer, below the fold, so a
+          shopper in Narayangadh met an English page with no sign that a Nepali
+          one existed. It is two characters wide and it is on the bar on every
+          screen size — the drawer copy stays for anyone who looks there. */}
+      <button
+        type="button"
+        onClick={() => setLanguage(language === "ne" ? "en" : "ne")}
+        aria-label={text("Read in Nepali", "नेपालीमा पढ्ने")}
+        title={text("Read in Nepali", "नेपालीमा पढ्ने")}
+        className="h-10 shrink-0 rounded-full border border-black/[0.09] px-2.5 text-xs font-black text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
+      >
+        {language === "ne" ? "EN" : "ने"}
+      </button>
+
       <span className="hidden lg:block">
         <ThemeToggle />
       </span>
@@ -90,14 +104,14 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
           href={isAdmin ? "/admin" : "/account"}
           className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
-          My Account
+          {text("My Account", "मेरो खाता")}
         </Link>
       ) : (
         <Link
           href="/account/login"
           className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
-          Account
+          {text("Account", "खाता")}
         </Link>
       )}
 

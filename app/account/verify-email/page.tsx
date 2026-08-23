@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -29,10 +30,10 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
       <section className="mx-auto max-w-2xl px-5 py-16 md:px-8">
         <div className="rounded-lg border border-black/10 bg-white p-6 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            KRISHOE account
+            <T en="KRISHOE account" ne="KRISHOE खाता" />
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink">
-            Verify your email.
+            <T en="Verify your email." ne="इमेल पक्का गर्नुहोस्।" />
           </h1>
 
           {validToken ? (
@@ -47,7 +48,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
                   type="submit"
                   className="inline-flex h-12 items-center justify-center rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
                 >
-                  Verify email
+                  <T en="Verify email" ne="इमेल पक्का गर्ने" />
                 </button>
               </form>
             </>
@@ -61,7 +62,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
                 href="/account/login"
                 className="mt-7 inline-flex h-12 items-center justify-center rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
               >
-                Go to login
+                <T en="Go to login" ne="लगइनमा जाने" />
               </Link>
             </>
           )}

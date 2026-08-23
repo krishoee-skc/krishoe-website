@@ -77,14 +77,14 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
             <T en="Order history" ne="अर्डरको इतिहास" />
           </h2>
           <p className="mt-1 text-sm leading-6 text-brand-muted">
-            Requests linked by account id, verified email, or verified phone.
+            <T en="Requests linked by account id, verified email, or verified phone." ne="खाता, इमेल वा फोन मिलेका अर्डर यहाँ देखिन्छन्।" />
           </p>
         </div>
         <Link
           href="/shop"
           className="inline-flex h-9 items-center rounded-full border border-brand-green px-3 text-xs font-bold text-brand-green transition hover:bg-brand-mist"
         >
-          Shop again
+          <T en="Shop again" ne="फेरि किन्ने" />
         </Link>
       </div>
 
@@ -171,13 +171,13 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-              My account
+              <T en="My account" ne="मेरो खाता" />
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-5xl">
               Namaste, {user.name}.
             </h1>
             <p className="mt-3 text-sm leading-7 text-brand-muted">
-              Manage your saved checkout details for faster KRISHOE order requests.
+              <T en="Manage your saved checkout details for faster KRISHOE order requests." ne="ठेगाना र विवरण यहीँ राख्नुहोस् — अर्को पटक अर्डर छिटो हुन्छ।" />
             </p>
           </div>
           <form action={logoutCustomerAction}>
@@ -185,19 +185,19 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               type="submit"
               className="inline-flex h-11 items-center rounded-full border border-black/10 bg-white px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
             >
-              Sign out
+              <T en="Sign out" ne="लगआउट" />
             </button>
           </form>
         </div>
 
         {resolvedSearchParams?.verified === "success" ? (
           <p className="mb-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
-            Email verified. Your account can now safely link matching guest orders.
+            <T en="Email verified. Your account can now safely link matching guest orders." ne="इमेल पक्का भयो। पहिलेका अर्डर पनि यही खातामा जोडिन्छन्।" />
           </p>
         ) : null}
         {resolvedSearchParams?.session === "ended" ? (
           <p className="mb-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
-            All customer sessions have been signed out.
+            <T en="All customer sessions have been signed out." ne="सबै यन्त्रबाट लगआउट भयो।" />
           </p>
         ) : null}
 
@@ -249,7 +249,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   type="submit"
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand-clay/30 bg-white px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay-mist"
                 >
-                  Sign out all devices
+                  <T en="Sign out all devices" ne="सबै यन्त्रबाट लगआउट" />
                 </button>
               </form>
             </aside>

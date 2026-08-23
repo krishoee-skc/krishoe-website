@@ -3,10 +3,12 @@
 import { FormEvent, useState } from "react";
 import { changePasswordAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = { ok: false, message: "" };
 
 export default function PasswordChangeForm() {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
 
@@ -29,14 +31,14 @@ export default function PasswordChangeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-black text-brand-green-ink">Password</h2>
+      <h2 className="text-xl font-black text-brand-green-ink">{text("Password", "पासवर्ड")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
-        Change your account password using your current password.
+        {text("Change your account password using your current password.", "अहिलेको पासवर्ड हालेर नयाँ राख्नुहोस्।")}
       </p>
 
       <div className="mt-5 grid gap-4">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-brand-green-ink">Current password</span>
+          <span className="text-sm font-medium text-brand-green-ink">{text("Current password", "अहिलेको पासवर्ड")}</span>
           <input
             name="currentPassword"
             type="password"
@@ -45,7 +47,7 @@ export default function PasswordChangeForm() {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-brand-green-ink">New password</span>
+          <span className="text-sm font-medium text-brand-green-ink">{text("New password", "नयाँ पासवर्ड")}</span>
           <input
             name="newPassword"
             type="password"
@@ -55,7 +57,7 @@ export default function PasswordChangeForm() {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-brand-green-ink">Confirm new password</span>
+          <span className="text-sm font-medium text-brand-green-ink">{text("Confirm new password", "नयाँ पासवर्ड फेरि")}</span>
           <input
             name="confirmPassword"
             type="password"
