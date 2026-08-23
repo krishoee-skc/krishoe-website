@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -36,27 +37,27 @@ export default async function AccountLoginPage({ searchParams }: AccountLoginPag
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 md:px-8 lg:grid-cols-[minmax(0,520px)_1fr]">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            KRISHOE account
+            <T en="KRISHOE account" ne="KRISHOE खाता" />
           </p>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
-            Your saved checkout starts here.
+            <T en="Your saved checkout starts here." ne="तपाईंको विवरण यहीँ सुरक्षित रहन्छ।" />
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted">
-            Sign in to keep delivery details ready for your next order request.
+            <T en="Sign in to keep delivery details ready for your next order request." ne="लगइन गर्नुहोस् — अर्को पटक ठेगाना फेरि लेख्नु पर्दैन।" />
           </p>
           {resolvedSearchParams?.reset === "success" ? (
             <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
-              Password reset complete. Please sign in with your new password.
+              <T en="Password reset complete. Please sign in with your new password." ne="पासवर्ड फेरियो। नयाँ पासवर्डले लगइन गर्नुहोस्।" />
             </p>
           ) : null}
           {resolvedSearchParams?.session === "ended" ? (
             <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
-              All customer sessions have been signed out. Please sign in again.
+              <T en="All customer sessions have been signed out. Please sign in again." ne="सबै यन्त्रबाट लगआउट भयो। फेरि लगइन गर्नुहोस्।" />
             </p>
           ) : null}
           {resolvedSearchParams?.verified === "success" ? (
             <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
-              Email verified. Please sign in to continue.
+              <T en="Email verified. Please sign in to continue." ne="इमेल पक्का भयो। अब लगइन गर्नुहोस्।" />
             </p>
           ) : null}
           {resolvedSearchParams?.verified === "invalid" ? (

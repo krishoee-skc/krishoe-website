@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -142,13 +143,13 @@ export default async function AboutPage() {
               href="/return-policy"
               className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
             >
-              Read our return policy
+              <T en="Read our return policy" ne="फिर्ता नीति पढ्ने" />
             </Link>
             <Link
               href="/contact"
               className="inline-flex h-12 items-center rounded-full border border-black/10 px-6 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
             >
-              Talk to us
+              <T en="Talk to us" ne="हामीलाई सोध्ने" />
             </Link>
           </div>
         </div>
@@ -174,7 +175,7 @@ export default async function AboutPage() {
             href="/shop"
             className="inline-flex h-12 w-fit items-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
           >
-            Shop KRISHOE
+            <T en="Shop KRISHOE" ne="पसल हेर्ने" />
           </Link>
         </div>
       </section>

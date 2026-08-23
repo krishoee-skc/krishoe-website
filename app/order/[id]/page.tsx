@@ -103,7 +103,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
       <section className="mx-auto max-w-4xl px-5 py-16 md:px-8">
         <div className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            Order request
+            <T en="Order request" ne="अर्डर" />
           </p>
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-start">
             <div>
@@ -156,13 +156,13 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                   href={loginPath}
                   className="inline-flex h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
                 >
-                  Sign in to view details
+                  <T en="Sign in to view details" ne="विवरण हेर्न लगइन गर्नुहोस्" />
                 </Link>
                 <Link
                   href={registerPath}
                   className="inline-flex h-11 items-center rounded-full border border-brand-green px-5 text-sm font-bold text-brand-green transition hover:bg-white"
                 >
-                  Create account
+                  <T en="Create account" ne="खाता खोल्नुहोस्" />
                 </Link>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                   <p className="mt-2 text-sm leading-7 text-brand-muted">
                     तपाईंको अनुभव लेखिदिनुभयो भने अरू ग्राहकलाई छान्न सजिलो हुन्छ।
                     <span className="mt-1 block text-xs text-gray-500">
-                      Tell other shoppers how these pairs worked out for you.
+                      <T en="Tell other shoppers how these pairs worked out for you." ne="यी जुत्ता कस्ता लागे? अरू ग्राहकलाई सहयोग हुन्छ।" />
                     </span>
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -268,13 +268,13 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
               href="/shop"
               className="inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
             >
-              Continue shopping
+              <T en="Continue shopping" ne="अझै किन्ने" />
             </Link>
             <Link
               href="/contact"
               className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-white"
             >
-              Contact KRISHOE
+              <T en="Contact KRISHOE" ne="KRISHOE लाई सम्पर्क" />
             </Link>
           </div>
         </div>
