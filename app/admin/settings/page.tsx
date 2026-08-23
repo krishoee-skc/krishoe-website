@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { adminSetupGroups } from "@/app/admin/nav-links";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { adminRoles, getAdminPermissionSummary, requireAdminPermission } from "@/lib/admin-permissions";
 import {
@@ -140,6 +142,44 @@ export default async function AdminSettingsPage({
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm">
           <p className="font-black text-emerald-950">{role}</p>
           <p className="text-xs font-semibold text-emerald-700">current permission role</p>
+        </div>
+      </div>
+
+      {/* The screens that are set up once and then not opened again.
+          They used to sit in the main menu beside Factory Entry and Orders,
+          which are opened fifty times a day — ten of the twenty-five a
+          shopkeeper saw were things like "Getting Started" and "Login devices",
+          and the daily work had to be found among them. Nothing is unreachable:
+          they are here, and Search finds them by name. */}
+      <div className="mt-8">
+        <h2 className="text-lg font-black text-brand-green-ink">⚙️ सेटअप र प्रणाली</h2>
+        <p className="mt-1 text-sm leading-6 text-gray-500">
+          एकपटक मिलाएपछि फेरि खोल्नु नपर्ने पानाहरू — यहीँ भेटिन्छन्।
+        </p>
+
+        <div className="mt-4 grid gap-5 md:grid-cols-3">
+          {adminSetupGroups.map((group) => (
+            <div key={group.title} className="rounded-2xl border border-gray-200 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
+                {group.title}
+              </p>
+              <ul className="mt-3 grid gap-1">
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="block rounded-lg px-3 py-2 hover:bg-brand-mist"
+                    >
+                      <span className="block text-sm font-bold text-brand-green-ink">
+                        {link.label}
+                      </span>
+                      <span className="block text-xs text-gray-500">{link.nepali}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
 

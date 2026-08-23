@@ -238,3 +238,32 @@ export function daysWaiting(voice: CustomerVoice, now = new Date()): number {
   const ms = now.getTime() - new Date(voice.createdAt).getTime();
   return Math.max(0, Math.floor(ms / 86_400_000));
 }
+
+/**
+ * Published reviews per product, counted in the database.
+ *
+ * For a screen that reads every product at once. Reading them one product at a
+ * time would be one query per pair on the shelf, which is fine at seven and not
+ * at seventy.
+ */
+export async function getReviewSummaryByProduct(): Promise<
+  Map<string, { count: number; average: number }>
+> {
+  const rows = await queryPostgres<{ product_id: string; n: string; avg: string }>(
+    STORE,
+    `SELECT product_id, COUNT(*)::int AS n, AVG(rating)::numeric(3,2) AS avg
+     FROM customer_voice
+     WHERE kind = 'review' AND published = true AND product_id <> ''
+     GROUP BY product_id`,
+    [],
+  );
+
+  const summary = new Map<string, { count: number; average: number }>();
+  for (const row of rows) {
+    summary.set(row.product_id, {
+      count: Number(row.n) || 0,
+      average: Number(row.avg) || 0,
+    });
+  }
+  return summary;
+}

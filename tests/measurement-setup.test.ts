@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { adminNavLinks } from "@/app/admin/nav-links";
+import { adminNavLinks, adminSetupLinks } from "@/app/admin/nav-links";
+import { ADMIN_SEARCH_PAGES } from "@/lib/admin-search";
 
 /**
  * The tracking code for Meta, TikTok and Google is written and shipped; the
@@ -72,12 +73,21 @@ describe("measurement setup", () => {
     expect(page).toContain("(missing.length > 0 ? missing : trackers).map");
   });
 
-  it("is Owner-only and in the menu", async () => {
+  it("is Owner-only, and reachable without living in the daily menu", async () => {
     const permissions = await readFile("lib/admin-role-permissions.ts", "utf8");
     expect(permissions).toContain('["/admin/measurement", "settings:write"]');
 
-    const link = adminNavLinks.find((item) => item.href === "/admin/measurement");
+    // This is opened once, when the pixel ids are pasted in, and then not
+    // again. It used to sit in the main menu beside Orders and Factory Entry,
+    // which are opened fifty times a day — the owner asked for it to stop
+    // being in the way. It is on the Settings screen and in Search now, so it
+    // is still two taps from anywhere; what changed is that it is no longer
+    // read past on every other trip.
+    expect(adminNavLinks.map((item) => item.href)).not.toContain("/admin/measurement");
+
+    const link = adminSetupLinks.find((item) => item.href === "/admin/measurement");
     expect(link?.nepali).toBe("मापन सेटअप");
+    expect(ADMIN_SEARCH_PAGES.map((page) => page.href)).toContain("/admin/measurement");
   });
 });
 

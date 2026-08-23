@@ -19,13 +19,19 @@ import {
 describe("admin navigation", () => {
   it("keeps every destination that existed before the split", async () => {
     const before = [
-      "/admin/getting-started", "/admin", "/admin/factory", "/admin/search",
+      "/admin", "/admin/factory", "/admin/search",
       "/admin/stock", "/admin/pos", "/admin/dues", "/admin/purchasing",
       "/admin/costing", "/admin/hr", "/admin/operations", "/admin/orders",
-      "/admin/customers", "/admin/payments", "/admin/notifications",
-      "/admin/alerts", "/admin/sms", "/admin/analytics", "/admin/activity",
-      "/admin/security", "/admin/monitoring", "/admin/devices",
+      "/admin/customers", "/admin/payments", "/admin/analytics",
       "/admin/settings", "/admin/products",
+      // Ten destinations moved to the Settings screen: Getting Started,
+      // Measurement setup, Open on phone, Login devices, Security/CCTV,
+      // Activity, Monitoring, Notifications, Alerts and SMS. Every one is set
+      // up once and then not opened again, and they sat beside Orders and
+      // Factory Entry, which are opened fifty times a day. They are listed on
+      // Settings and findable in Search — tests/admin-menu-weight.test.ts
+      // holds that end of it, and would fail if any of them became
+      // unreachable.
       // Reviews, Feedback, Customer Voice and Messages were four entries over
       // four separate stores, one of whose tables had never been created.
       // Answering a customer meant opening all four and hoping none had been

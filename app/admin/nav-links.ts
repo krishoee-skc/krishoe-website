@@ -76,8 +76,10 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/orders", label: "Orders", nepali: "अर्डर", icon: ShoppingCartIcon },
       { href: "/admin/pos", label: "POS Billing", nepali: "बिल काट्ने", icon: CreditCardIcon },
-      { href: "/admin/products", label: "Products", nepali: "सामान र मूल्य", icon: PackageIcon },
-      { href: "/admin/products/photos", label: "Photos", nepali: "फोटो हाल्ने", icon: PackageIcon },
+      // Photos is reached from the Products screen, which is where a photo is
+      // actually missing from and where the owner is already standing when
+      // they notice.
+      { href: "/admin/products", label: "Products", nepali: "सामान · फोटो · मूल्य", icon: PackageIcon },
       { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
     ],
   },
@@ -106,41 +108,59 @@ export const adminNavGroups: AdminNavGroup[] = [
     ],
   },
   {
-    id: "shop-messages",
-    title: "सन्देश",
-    workspace: "shop",
-    links: [
-      { href: "/admin/notifications", label: "Notifications", nepali: "सूचना", icon: BellIcon },
-      { href: "/admin/alerts", label: "Alerts", nepali: "चेतावनी", icon: BellIcon },
-      { href: "/admin/sms", label: "SMS", nepali: "मोबाइल सन्देश", icon: MessageSquareIcon },
-    ],
-  },
-  {
     id: "everywhere",
     title: "सबैतिर",
     workspace: "both",
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
       { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
-      { href: "/admin/open-on-phone", label: "Open on phone", nepali: "फोनमा खोल्ने", icon: SearchIcon },
-      { href: "/admin/settings", label: "Settings", nepali: "सेटिङ", icon: ShieldCheckIcon },
-    ],
-  },
-  {
-    id: "records",
-    title: "हिसाब र सुरक्षा",
-    workspace: "both",
-    links: [
       { href: "/admin/analytics", label: "Analytics", nepali: "हिसाब र नाफा", icon: StarIcon },
-      { href: "/admin/measurement", label: "Measurement setup", nepali: "मापन सेटअप", icon: StarIcon },
-      { href: "/admin/activity", label: "Activity", nepali: "को ले के गर्‍यो", icon: ShieldCheckIcon },
-      { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
-      { href: "/admin/monitoring", label: "Monitoring", nepali: "निगरानी", icon: ShieldCheckIcon },
-      { href: "/admin/devices", label: "Login devices", nepali: "कुन फोन/computer", icon: ShieldCheckIcon },
-      { href: "/admin/getting-started", label: "Getting Started", nepali: "सुरु गर्ने", icon: HomeIcon },
+      { href: "/admin/settings", label: "Settings", nepali: "सेटिङ · सेटअप", icon: ShieldCheckIcon },
     ],
   },
 ];
+
+/**
+ * The screens that are opened once and then not again.
+ *
+ * These sat in the main menu beside Factory Entry and Orders, which are opened
+ * fifty times a day. Ten of the twenty-five a shopkeeper saw were things like
+ * "Getting Started" and "Login devices" — set up on the first afternoon and
+ * never touched since — and the daily work had to be found among them.
+ *
+ * Nothing is deleted or made unreachable: every one is listed on the Settings
+ * screen, and Search finds them by name. They are simply not in the way.
+ */
+export const adminSetupGroups: Array<{ title: string; links: AdminNavLink[] }> = [
+  {
+    title: "सुरु गर्ने",
+    links: [
+      { href: "/admin/getting-started", label: "Getting Started", nepali: "सुरु गर्ने", icon: HomeIcon },
+      { href: "/admin/measurement", label: "Measurement setup", nepali: "मापन सेटअप", icon: StarIcon },
+      { href: "/admin/open-on-phone", label: "Open on phone", nepali: "फोनमा खोल्ने", icon: SearchIcon },
+    ],
+  },
+  {
+    title: "सुरक्षा",
+    links: [
+      { href: "/admin/devices", label: "Login devices", nepali: "कुन फोन/computer", icon: ShieldCheckIcon },
+      { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
+      { href: "/admin/activity", label: "Activity", nepali: "को ले के गर्‍यो", icon: ShieldCheckIcon },
+    ],
+  },
+  {
+    title: "प्रणाली",
+    links: [
+      { href: "/admin/monitoring", label: "Monitoring", nepali: "निगरानी", icon: ShieldCheckIcon },
+      { href: "/admin/notifications", label: "Notifications", nepali: "सूचना", icon: BellIcon },
+      { href: "/admin/alerts", label: "Alerts", nepali: "चेतावनी", icon: BellIcon },
+      { href: "/admin/sms", label: "SMS", nepali: "मोबाइल सन्देश", icon: MessageSquareIcon },
+    ],
+  },
+];
+
+/** Every setup destination, flat. */
+export const adminSetupLinks = adminSetupGroups.flatMap((group) => group.links);
 
 /**
  * Every destination once, in group order.

@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getProducts } from "@/lib/product-store";
 import { getOperationsSnapshot } from "@/lib/operations";
+import { getReviewSummaryByProduct } from "@/lib/customer-voice";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 export const metadata: Metadata = {
-  title: "Customer Voice | KRISHOE Admin",
+  title: "कुन जुत्ता राम्रो | KRISHOE Admin",
 };
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ async function loadInsights() {
       data: await Promise.all([
         getProducts({ includeDrafts: true }),
         getOperationsSnapshot(),
+        getReviewSummaryByProduct(),
       ]),
       error: "",
     };
@@ -50,15 +52,20 @@ export default async function CustomerVoicePage() {
     return <LoadFailure what="the customer voice report" message={loaded.error} retryHref="/admin/insights" />;
   }
 
-  const [products, operations] = loaded.data;
+  const [products, operations, reviewSummary] = loaded.data;
 
-  // Words: every non-rejected review, grouped per design.
+  // Words: the published reviews on each design.
+  //
+  // Read from customer_voice, not from product.reviews. Reviews used to be
+  // kept as JSON inside the products row — a migration for a table of their
+  // own sat unread in a folder nothing looks at — and they moved when the four
+  // customer screens became one inbox. This page kept reading the old field,
+  // which no longer receives anything, so it would have shown zero reviews for
+  // ever while reviews arrived elsewhere.
   const reviewRows = products
     .map((product) => {
-      const reviews = product.reviews.filter((review) => review.status !== "rejected");
-      const count = reviews.length;
-      const average = count > 0 ? reviews.reduce((total, review) => total + review.rating, 0) / count : 0;
-      return { id: product.id, name: product.name, reviews, count, average };
+      const summary = reviewSummary.get(product.id) ?? { count: 0, average: 0 };
+      return { id: product.id, name: product.name, ...summary };
     })
     .filter((row) => row.count > 0);
 
@@ -127,7 +134,7 @@ export default async function CustomerVoicePage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">ग्राहकको आवाज — Customer Voice</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">कुन जुत्ता राम्रो — राय र फिर्ता</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
             ग्राहकले शब्दले (review) र खुट्टाले (return) के भन्छन् — दुवै एकै ठाउँमा। यसैबाट अर्को design
             र सुधारको दिशा निस्कन्छ।

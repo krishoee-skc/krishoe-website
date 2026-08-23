@@ -74,9 +74,16 @@ describe("saving one photo", () => {
     expect(source).toContain('revalidatePath("/", "layout")');
   });
 
-  it("is reachable from the menu", () => {
-    const link = adminNavLinks.find((item) => item.href === "/admin/products/photos");
-    expect(link?.nepali).toBe("फोटो हाल्ने");
+  it("is reached from Products, where a missing photo is noticed", async () => {
+    const products = await readFile("app/admin/products/page.tsx", "utf8");
+
+    // It had a menu entry of its own beside Products, which is the screen it
+    // is opened from: the owner sees a pair with no photograph there and goes
+    // to fix it. Two entries for one job is what made the menu long enough for
+    // the owner to complain about it.
+    expect(products).toContain('href="/admin/products/photos"');
+    expect(adminNavLinks.map((item) => item.href)).not.toContain("/admin/products/photos");
+    expect(adminNavLinks.map((item) => item.href)).toContain("/admin/products");
   });
 });
 

@@ -128,6 +128,22 @@ export const ADMIN_SEARCH_PAGES: AdminSearchRecord[] = [
   { kind: "page", title: "निगरानी", detail: "app ठीक छ कि छैन", href: "/admin/monitoring", terms: ["निगरानी", "monitoring", "health", "error"] },
   { kind: "page", title: "सेटिङ", detail: "पसलको नाम, ठेगाना, शाखा", href: "/admin/settings", terms: ["सेटिङ", "settings", "setting"] },
   { kind: "page", title: "कुन फोन/computer", detail: "कहाँबाट login भएको", href: "/admin/devices", terms: ["devices", "login", "passkey", "फोन"] },
+  // Search is what makes moving a screen out of the menu safe rather than a
+  // way to lose it. Eight of these were reachable only from the menu, so
+  // taking them out of it without adding them here would have hidden them.
+  { kind: "page", title: "ग्राहकको आवाज", detail: "राय, सोधपुछ, गुनासो — सबै एकै ठाउँ", href: "/admin/inbox", terms: ["राय", "review", "गुनासो", "feedback", "सोधपुछ", "message", "सन्देश", "inbox", "grahak", "customer voice"] },
+  { kind: "page", title: "सुरु गर्ने", detail: "पहिलो पटक के-के मिलाउने", href: "/admin/getting-started", terms: ["सुरु", "getting started", "suru", "setup", "सेटअप", "help"] },
+  { kind: "page", title: "मापन सेटअप", detail: "Meta Pixel, Google Analytics, TikTok", href: "/admin/measurement", terms: ["मापन", "measurement", "pixel", "analytics", "ga4", "tiktok", "meta", "मापन सेटअप", "tracking"] },
+  { kind: "page", title: "फोनमा खोल्ने", detail: "app जसरी फोनमा राख्ने", href: "/admin/open-on-phone", terms: ["फोन", "phone", "mobile", "install", "app", "qr"] },
+  { kind: "page", title: "सुरक्षा / CCTV", detail: "पसलको सुरक्षा", href: "/admin/security", terms: ["सुरक्षा", "security", "cctv", "camera", "surakshya"] },
+  { kind: "page", title: "को ले के गर्‍यो", detail: "कसले कहिले के बदल्यो", href: "/admin/activity", terms: ["activity", "log", "इतिहास", "history", "audit", "kasle"] },
+  { kind: "page", title: "सूचना", detail: "पठाइएका इमेल र notification", href: "/admin/notifications", terms: ["सूचना", "notification", "email", "इमेल", "push", "suchana"] },
+  { kind: "page", title: "चेतावनी", detail: "ध्यान दिनुपर्ने कुरा", href: "/admin/alerts", terms: ["चेतावनी", "alert", "warning", "chetawani"] },
+  { kind: "page", title: "मोबाइल सन्देश", detail: "SMS पठाउने", href: "/admin/sms", terms: ["sms", "मोबाइल सन्देश", "text", "message"] },
+  // Named for what it shows, not "Customer Voice" — that name belongs to the
+  // inbox now, and two screens sharing it is how the owner ended up opening
+  // the wrong one.
+  { kind: "page", title: "कुन जुत्ता राम्रो", detail: "राय र फिर्ता — कुन design सुधार्ने", href: "/admin/insights", terms: ["insight", "राय", "फिर्ता", "return", "design", "kun jutta", "सुधार", "rating"] },
 ];
 
 /** What each kind is called on screen, and the mark beside it. */
