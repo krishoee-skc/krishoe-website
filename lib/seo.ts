@@ -40,16 +40,12 @@ export const businessContact = {
   // owner's personal profile it used to point at — a shopper following the
   // footer link was landing on a private account.
   //
-  // Written in the /people/<name>/<id>/ form because that is where Facebook
-  // itself sends a visitor: profile.php?id= answers 301 to this address. Giving
-  // Google the 301 target rather than the hop is the point of `sameAs`, and the
-  // name is legible in a footer in a way a bare numeric id is not.
-  //
-  // The Page still has no username. Once one is claimed this becomes
-  // facebook.com/<username> without anything else changing.
-  facebook:
-    process.env.NEXT_PUBLIC_FACEBOOK_URL ??
-    "https://www.facebook.com/people/Krishoe/61593622372780/",
+  // The username the owner claimed on 2026-08-23, which is the shortest and
+  // steadiest address the Page has: it survives the id, it is legible in a
+  // footer, and it is the one thing here that can be printed on a card or a
+  // shoebox. It answers 200 directly — no redirect, unlike the two forms that
+  // came before it.
+  facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "https://www.facebook.com/krishoe.np",
   instagram:
     process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/shree_krishna_chhapal",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",

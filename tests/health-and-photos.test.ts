@@ -158,10 +158,10 @@ describe("when the monthly report goes out", () => {
  * of a profile.
  */
 describe("the Facebook link", () => {
-  it("is the Page, in the form Facebook itself redirects to", async () => {
+  it("is the Page, at the username the owner claimed", async () => {
     const seo = await readFile("lib/seo.ts", "utf8");
 
-    expect(seo).toContain("https://www.facebook.com/people/Krishoe/61593622372780/");
+    expect(seo).toContain("https://www.facebook.com/krishoe.np");
   });
 
   it("carries no per-share tracking token", async () => {

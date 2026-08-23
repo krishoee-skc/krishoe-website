@@ -156,7 +156,10 @@ describe("business social profiles", () => {
   it("points Facebook at the business Page, not the owner's profile", async () => {
     const { businessContact } = await profilesFromDefaults();
 
-    expect(businessContact.facebook).toContain("61593622372780");
+    // The Page now has a username, so the id is gone from the address. What has
+    // to stay true is that this is the shop's Page and not the owner's personal
+    // account — the two were confused several times while the Page was set up.
+    expect(businessContact.facebook).toBe("https://www.facebook.com/krishoe.np");
     expect(businessContact.facebook).not.toContain("61550727599279");
     expect(businessContact.facebook).not.toContain("krishna.abiral");
   });
