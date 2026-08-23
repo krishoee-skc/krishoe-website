@@ -48,8 +48,28 @@ describe("what the sign-in page asks for", () => {
 
   it("says whose details are wanted, in Nepali", async () => {
     const form = await readFile("components/AdminLoginForm.tsx", "utf8");
-    expect(form).toContain("तपाईंकै email वा मोबाइल नम्बर");
-    expect(form).toContain("तपाईंकै password");
-    expect(form).toContain("मालिकको होइन");
+
+    // This used to require "मालिकको होइन" — do not use the owner's account —
+    // because a new member had read an example address as being asked for the
+    // owner's login. It fixed that and created the opposite problem: the owner
+    // opened the admin on their iPhone, read that the account they were about
+    // to use was the wrong one, and stopped.
+    //
+    // Saying whose details are wanted is still the point. Saying whose are not
+    // is what went wrong, in both directions.
+    expect(form).toContain("तपाईंलाई दिइएको email र password हाल्नुहोस्");
+    expect(form).toContain("आफ्नै खाता चलाउनुहोस्");
+    expect(form).not.toContain("मालिकको होइन");
+  });
+
+  it("does not tell a worker whose password they are holding", async () => {
+    const form = await readFile("components/AdminLoginForm.tsx", "utf8");
+    const qr = await readFile("app/admin/hr/worker-portal-qr/page.tsx", "utf8");
+
+    // Same fix, same reason. A worker signing in does not need to be told the
+    // owner handed the password over — they were there. What they need is to
+    // change it, which is what these say now.
+    expect(form).not.toContain("मालिकले दिएको password");
+    expect(qr).not.toContain("मालिकले दिएको पुरानो");
   });
 });

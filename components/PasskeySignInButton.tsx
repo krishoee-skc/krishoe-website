@@ -54,7 +54,11 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
       const name = (cause as { name?: string })?.name;
       if (name === "NotAllowedError" || name === "AbortError") {
         setError(
-          "यो यन्त्रमा passkey दर्ता छैन। तलको password ले पस्नुहोस् — अनि Login devices मा एक पटक दर्ता गर्नुहोस्।"
+          // Says what to do next, not just what is missing. "Login devices" was
+          // a screen name the reader had to go and find; the shop now offers
+          // the registration itself the moment they are inside, so the honest
+          // instruction is simply to sign in and say yes.
+          "यो फोनमा अझै दर्ता भएको छैन — passkey हरेक यन्त्रमा एक पटक दर्ता गर्नुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि दर्ता गर्ने बाटो आफैँ देखिन्छ।"
         );
       } else {
         setError("Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।");

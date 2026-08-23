@@ -17,6 +17,29 @@ const initialState: LoginState = {
   message: "",
 };
 
+/**
+ * What the sign-in page says above the fields.
+ *
+ * It used to say the account being used was not the right one — a line meant
+ * to stop staff borrowing a login. The owner read it on their own phone, as
+ * the owner, and it told them they were in the wrong place.
+ *
+ * The sentence about Login devices went with it: it described what happens
+ * after signing in, on a screen where the reader has not signed in yet.
+ */
+const ADMIN_SIGN_IN_HINT =
+  "तपाईंलाई दिइएको email र password हाल्नुहोस्। आफ्नै खाता चलाउनुहोस्।";
+
+/**
+ * The same, for the worker portal.
+ *
+ * It used to say "the password the owner gave you". A worker knows who gave it
+ * to them — they were standing there. What matters is changing it, so that is
+ * what this says, without naming anybody.
+ */
+const WORKER_SIGN_IN_HINT =
+  "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। पहिलो पटकमै आफ्नो नयाँ password राख्नुहोस्।";
+
 export default function AdminLoginForm({
   nextPath = "/admin",
   bootstrapLoginAllowed = false,
@@ -198,10 +221,10 @@ export default function AdminLoginForm({
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {portal === "worker"
-          ? "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। मालिकले दिएको password पहिलो पटकमै फेर्नुहोस्।"
+          ? WORKER_SIGN_IN_HINT
           : bootstrapLoginAllowed
           ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
-          : "आफ्नै email वा मोबाइल नम्बर र आफ्नै password हाल्नुहोस् — मालिकको होइन। यो फोन वा computer Login devices मा दर्ता हुन्छ।"}
+          : ADMIN_SIGN_IN_HINT}
       </p>
 
       {/* Offered above the password, because it is the better way in when the

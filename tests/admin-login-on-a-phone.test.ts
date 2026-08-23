@@ -20,7 +20,12 @@ describe("signing in with a passkey on a device that has none", () => {
     // fingerprint prompt. Both were being swallowed, so the button appeared to
     // do nothing at all.
     expect(source).toContain('name === "NotAllowedError" || name === "AbortError"');
-    expect(source).toContain("passkey दर्ता छैन");
+    // The wording changed after the owner hit this on their iPhone: "passkey
+    // दर्ता छैन" was accurate and left them stuck, because it never said that
+    // registration is per-device or where it happens. What has to hold is that
+    // the message explains rather than merely reports.
+    expect(source).toContain("यो फोनमा अझै दर्ता भएको छैन");
+    expect(source).toContain("हरेक यन्त्रमा एक पटक दर्ता गर्नुपर्छ");
     // And it points at the way in that does work.
     expect(source).toContain("password");
   });

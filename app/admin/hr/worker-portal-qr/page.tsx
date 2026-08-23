@@ -96,7 +96,7 @@ export default async function WorkerPortalQrPage() {
         </ol>
 
         <p className="mt-7 rounded-xl bg-brand-mist px-4 py-3 text-sm font-semibold leading-6 text-brand-green-ink print:bg-white">
-पहिलो पटक पस्दा नयाँ पासवर्ड राख्नुहोस् — मालिकले दिएको पुरानो त्यहीँ मर्छ। आफ्नो पासवर्ड कसैलाई नदिनुहोस्।
+पहिलो पटक पस्दा नयाँ पासवर्ड राख्नुहोस् — पुरानो त्यहीँ मर्छ। आफ्नो पासवर्ड कसैलाई नदिनुहोस्।
           <span className="mt-1 block text-xs font-normal text-gray-500">
 Ask the Owner for your mobile sign-in. Change the password on first use, and never share it.
           </span>

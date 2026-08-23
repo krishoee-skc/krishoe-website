@@ -1,4 +1,5 @@
 import AdminNav from "./AdminNav";
+import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
@@ -26,6 +27,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <AdminMobileNav adminRole={adminRole} />
           {children}
           <AdminQuickDock adminRole={adminRole} />
+          {/* Offered just after signing in, on the device being held. It
+              hides itself when this account already has a passkey, and once
+              declined it does not come back. */}
+          <PasskeyInvite />
         </main>
       </div>
     </SidebarProvider>
