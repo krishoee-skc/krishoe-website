@@ -66,6 +66,12 @@ function bottomOffset(pathname: string) {
  * because those are the labels printed on the phone's own menu, and translating
  * them sends the reader looking for something that is not there.
  */
+/** Set the first time the shop is opened from the home screen. */
+const INSTALLED_KEY = "krishoe-installed";
+
+/** Set when the card is closed. Both outlive the tab, which is the point. */
+const DISMISSED_KEY = "krishoe-install-help-dismissed";
+
 export default function PwaInstallHelp() {
   const { text } = useLanguage();
   const pathname = usePathname();
@@ -77,7 +83,31 @@ export default function PwaInstallHelp() {
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
-    const dismissed = window.sessionStorage.getItem("krishoe-install-help-dismissed") === "yes";
+
+    // Running from the home screen is proof it was installed. Written down,
+    // because Safari cannot be asked later: a browser tab has no way to know
+    // whether this site is sitting on the home screen beside it, so without
+    // this the shop keeps offering to install something already installed.
+    if (standalone) {
+      try {
+        window.localStorage.setItem(INSTALLED_KEY, "yes");
+      } catch {
+        // Storage blocked. The card will ask again; that is the lesser harm.
+      }
+    }
+
+    // localStorage, not session. The owner had a dozen Safari tabs open, and
+    // sessionStorage is per tab — the card had been dismissed and came back
+    // with every new one, on a phone where the app was already installed.
+    let remembered = false;
+    try {
+      remembered =
+        window.localStorage.getItem(DISMISSED_KEY) === "yes" ||
+        window.localStorage.getItem(INSTALLED_KEY) === "yes";
+    } catch {
+      remembered = false;
+    }
+    const dismissed = remembered;
     const agent = navigator.userAgent;
     // Desktop counts. Chrome and Edge on Windows install a PWA the same way
     // Android does, and the card was hidden there twice over — `lg:hidden` in
@@ -102,6 +132,11 @@ export default function PwaInstallHelp() {
     };
     // Once it is on the home screen there is nothing left to offer.
     const onInstalled = () => {
+      try {
+        window.localStorage.setItem(INSTALLED_KEY, "yes");
+      } catch {
+        // Nothing to do; the card is closing regardless.
+      }
       setVisible(false);
       setInstaller(null);
     };
@@ -119,7 +154,11 @@ export default function PwaInstallHelp() {
   if (!visible || !platform || SIGN_IN_PATHS.includes(pathname)) return null;
 
   const close = () => {
-    window.sessionStorage.setItem("krishoe-install-help-dismissed", "yes");
+    try {
+      window.localStorage.setItem(DISMISSED_KEY, "yes");
+    } catch {
+      // Nothing to do; the card closes either way.
+    }
     setVisible(false);
   };
 
