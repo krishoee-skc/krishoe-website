@@ -46,8 +46,12 @@ export const businessContact = {
   // shoebox. It answers 200 directly — no redirect, unlike the two forms that
   // came before it.
   facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL ?? "https://www.facebook.com/krishoe.np",
-  instagram:
-    process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/shree_krishna_chhapal",
+  // krishoe.np, matching the Facebook Page username. The shop used to point at
+  // shree_krishna_chhapal — the account the owner posted from before there was a
+  // business profile. The two are now connected under one Meta business
+  // portfolio, so a shopper following the footer should land on the one the shop
+  // actually posts from.
+  instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/krishoe.np",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",
 };
 

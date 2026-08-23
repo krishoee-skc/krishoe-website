@@ -164,3 +164,30 @@ describe("business social profiles", () => {
     expect(businessContact.facebook).not.toContain("krishna.abiral");
   });
 });
+
+/**
+ * The shop posted from shree_krishna_chhapal before there was a business
+ * profile. Instagram is now krishoe.np, matching the Facebook Page username,
+ * and the two are connected under one Meta business portfolio — so the footer
+ * has to point at the one the shop actually posts from, not the one it used to.
+ */
+describe("the Instagram link", () => {
+  it("is the account the shop posts from", async () => {
+    const { businessContact } = await profilesFromDefaults();
+
+    expect(businessContact.instagram).toBe("https://www.instagram.com/krishoe.np");
+  });
+
+  it("no longer points at the account it outgrew", async () => {
+    const { businessContact } = await profilesFromDefaults();
+
+    expect(businessContact.instagram).not.toContain("shree_krishna_chhapal");
+  });
+
+  it("matches the Facebook username, so both read the same on a card", async () => {
+    const { businessContact } = await profilesFromDefaults();
+
+    expect(businessContact.facebook).toContain("krishoe.np");
+    expect(businessContact.instagram).toContain("krishoe.np");
+  });
+});
