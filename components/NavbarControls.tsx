@@ -69,7 +69,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
 
       <Link
         href="/wishlist"
-        aria-label="Open wishlist"
+        aria-label={text("Open wishlist", "मन परेका जुत्ता खोल्ने")}
         className="relative hidden h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green lg:grid"
       >
         <HeartIcon className="h-5 w-5" />
@@ -78,7 +78,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
 
       <Link
         href="/cart"
-        aria-label="Open cart"
+        aria-label={text("Open cart", "कार्ट खोल्ने")}
         className="relative grid h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
       >
         <ShoppingBagIcon className="h-5 w-5" />
@@ -103,7 +103,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
 
       <button
         type="button"
-        aria-label="Open menu"
+        aria-label={text("Open menu", "मेनु खोल्ने")}
         onClick={() => setIsOpen(true)}
         className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition duration-200 hover:border-brand-green hover:bg-brand-mist hover:shadow-md lg:hidden"
       >
@@ -114,7 +114,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            aria-label="Close menu overlay"
+            aria-label={text("Close menu overlay", "मेनु बन्द गर्ने")}
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
@@ -130,7 +130,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 <ThemeToggle />
                 <button
                   type="button"
-                  aria-label="Close menu"
+                  aria-label={text("Close menu", "मेनु बन्द गर्ने")}
                   onClick={() => setIsOpen(false)}
                   className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green"
                 >

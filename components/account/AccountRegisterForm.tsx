@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { registerCustomerAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = {
   ok: false,
@@ -12,6 +13,7 @@ const initialState: AccountActionState = {
 };
 
 export default function AccountRegisterForm({ nextPath = "/account" }: { nextPath?: string }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
@@ -35,8 +37,8 @@ export default function AccountRegisterForm({ nextPath = "/account" }: { nextPat
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">New customer</p>
-      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Create account</h1>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("New customer", "नयाँ ग्राहक")}</p>
+      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Create account", "खाता खोल्नुहोस्")}</h1>
 
       <div className="mt-7 grid gap-4">
         <div className="hidden" aria-hidden="true">

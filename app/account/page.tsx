@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -72,7 +73,9 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
     <section className="mt-6 rounded-lg border border-black/10 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-brand-green-ink">Order history</h2>
+          <h2 className="text-xl font-black text-brand-green-ink">
+            <T en="Order history" ne="अर्डरको इतिहास" />
+          </h2>
           <p className="mt-1 text-sm leading-6 text-brand-muted">
             Requests linked by account id, verified email, or verified phone.
           </p>
@@ -87,7 +90,9 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
 
       {orders.length === 0 ? (
         <div className="mt-5 rounded-lg border border-dashed border-black/10 bg-brand-mist p-5">
-          <p className="text-sm font-semibold text-brand-green-ink">No linked order request yet.</p>
+          <p className="text-sm font-semibold text-brand-green-ink">
+            <T en="No linked order request yet." ne="अझै कुनै अर्डर छैन।" />
+          </p>
             <p className="mt-1 text-sm leading-6 text-brand-muted">
             Sign in before checkout or verify your email to safely link older guest order requests.
           </p>
@@ -97,13 +102,13 @@ function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
           <table className="min-w-full text-sm">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Reference</th>
+                <th className="py-2 pr-3"><T en="Reference" ne="अर्डर नम्बर" /></th>
                 <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Total</th>
-                <th className="py-2 pr-3">Order</th>
-                <th className="py-2 pr-3">Payment</th>
+                <th className="py-2 pr-3"><T en="Total" ne="जम्मा" /></th>
+                <th className="py-2 pr-3"><T en="Order" ne="सामान" /></th>
+                <th className="py-2 pr-3"><T en="Payment" ne="भुक्तानी" /></th>
                 <th className="py-2 pr-3">
-                  <span className="sr-only">Action</span>
+                  <span className="sr-only"><T en="Action" ne="कारबाही" /></span>
                 </th>
               </tr>
             </thead>
@@ -218,20 +223,22 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             <EmailVerificationPanel user={user} />
             <OrderClaimForm />
             <aside className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-black text-brand-green-ink">Account status</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">
+                <T en="Account status" ne="खाताको अवस्था" />
+              </h2>
               <dl className="mt-5 grid gap-4 text-sm">
                 <div>
-                  <dt className="font-semibold text-brand-muted">Email</dt>
+                  <dt className="font-semibold text-brand-muted"><T en="Email" ne="इमेल" /></dt>
                   <dd className="mt-1 font-bold text-brand-green-ink">{user.email}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold text-brand-muted">Member since</dt>
+                  <dt className="font-semibold text-brand-muted"><T en="Member since" ne="कहिलेदेखि" /></dt>
                   <dd className="mt-1 font-bold text-brand-green-ink">
                     {formatAdminDate(user.createdAt)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-semibold text-brand-muted">Password updated</dt>
+                  <dt className="font-semibold text-brand-muted"><T en="Password updated" ne="पासवर्ड फेरिएको" /></dt>
                   <dd className="mt-1 font-bold text-brand-green-ink">
                     {user.passwordUpdatedAt ? formatDate(user.passwordUpdatedAt) : "-"}
                   </dd>

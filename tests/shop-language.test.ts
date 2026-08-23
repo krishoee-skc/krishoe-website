@@ -66,6 +66,11 @@ describe("how much of the shop the switch actually reaches", () => {
       "components/ContactForm.tsx",
       "components/account/AccountLoginForm.tsx",
       "components/About.tsx",
+      "app/account/page.tsx",
+      "components/NavbarControls.tsx",
+      "components/account/AccountRegisterForm.tsx",
+      "components/FeedbackForm.tsx",
+      "components/PaymentInstructions.tsx",
     ];
 
     for (const file of walked) {
@@ -80,9 +85,10 @@ describe("how much of the shop the switch actually reaches", () => {
     let count = 0;
     for (const file of files) count += englishCount(await readFile(file, "utf8"));
 
-    // It was 227 when this was measured. The number only ever comes down; a
-    // new screen written in English only pushes it up and fails here.
-    expect(count).toBeLessThanOrEqual(200);
+    // It was 227 when this was first measured. The number only ever comes
+    // down; a new screen written in English only pushes it up and fails here.
+    // Lower the ceiling whenever a batch lands, never raise it.
+    expect(count).toBeLessThanOrEqual(175);
   });
 });
 

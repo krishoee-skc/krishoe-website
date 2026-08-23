@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { FeedbackType } from "@/lib/feedback";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function FeedbackForm() {
+  const { text } = useLanguage();
   const [type, setType] = useState<FeedbackType>("improvement");
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -77,7 +79,7 @@ export default function FeedbackForm() {
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg border p-8">
-      <h1 className="text-3xl font-bold mb-2">Share Your Feedback</h1>
+      <h1 className="text-3xl font-bold mb-2">{text("Share Your Feedback", "तपाईंको सुझाव लेख्नुहोस्")}</h1>
       <p className="text-gray-600 mb-8">
         Help us improve! Your feedback helps us make better decisions.
       </p>
@@ -128,7 +130,7 @@ export default function FeedbackForm() {
             type="text"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            placeholder="Your name"
+            placeholder={text("Your name", "तपाईंको नाम")}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
@@ -197,7 +199,7 @@ export default function FeedbackForm() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Brief summary of your feedback"
+            placeholder={text("Brief summary of your feedback", "छोटकरीमा के भन्न खोज्नुभएको")}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
@@ -211,7 +213,7 @@ export default function FeedbackForm() {
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Detailed explanation..."
+            placeholder={text("Detailed explanation...", "विस्तारमा लेख्नुहोस्…")}
             rows={5}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             required
