@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Product } from "@/lib/products";
+import { hasNoPhoto, isSamplePhoto } from "@/lib/product-photo";
 import { PencilIcon, TrashIcon } from "@/components/Icons";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { deleteProductAction, type ActionState } from "@/app/admin/actions";
@@ -60,9 +61,36 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
     );
   }
 
+  // Counted over what is on sale. A stand-in on a draft costs nothing; a
+  // stand-in on a shoe with stock is shown to every shopper who finds it.
+  const wrongPhotos = products.filter(
+    (product) =>
+      product.stock > 0 && (isSamplePhoto(product.image) || hasNoPhoto(product.image)),
+  );
+
   return (
     <div className="mt-6 space-y-4">
       <ActionMessage state={state} />
+
+      {wrongPhotos.length > 0 ? (
+        <div className="rounded-lg border border-brand-clay bg-brand-clay-tint p-4">
+          <h2 className="text-sm font-black text-brand-clay">
+            📷 {wrongPhotos.length} जुत्ताको फोटो मिलेको छैन
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-brand-clay">
+            यी जुत्ता बिक्रीमा छन्, तर ग्राहकले गलत फोटो देख्छन् —{" "}
+            {wrongPhotos.reduce((total, product) => total + product.stock, 0)} जोर
+            जुत्ता यसरी बिक्दैन। मोबाइलबाटै खिचेर हाल्न मिल्छ।
+          </p>
+          <ul className="mt-2 space-y-1">
+            {wrongPhotos.map((product) => (
+              <li key={product.id} className="text-sm font-bold text-brand-clay">
+                • {product.name} ({product.stock} जोर)
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
@@ -99,6 +127,20 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                 >
                   {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
                 </span>
+                {/* A stand-in photograph is not a missing one. It looks
+                    finished, so nobody goes back to it — which is how three
+                    shoes with stock ended up showing a picture of something
+                    else. Said here, beside the name, where the fix is one
+                    click away. */}
+                {isSamplePhoto(product.image) ? (
+                  <span className="mt-1 block text-xs font-bold text-brand-clay">
+                    ⚠️ नमुना फोटो — असली जुत्ताको होइन
+                  </span>
+                ) : hasNoPhoto(product.image) ? (
+                  <span className="mt-1 block text-xs font-bold text-brand-clay">
+                    ⚠️ फोटो छैन
+                  </span>
+                ) : null}
               </td>
               <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-700">{product.sku}</td>
               <td className="whitespace-nowrap px-4 py-3 text-gray-700">{product.price}</td>

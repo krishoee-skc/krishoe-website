@@ -110,10 +110,15 @@ describe("business social profiles", () => {
   // arrive carrying per-share tracking tokens. Those belong nowhere near the
   // footer or the SEO sameAs fields, so the defaults stay canonical.
   //
-  // A query string is not itself the problem — a Facebook Page with no username
-  // is genuinely addressed as profile.php?id=<id>, and that is the permanent
-  // address Facebook itself redirects to. The tracking tokens are the problem,
-  // so they are what this forbids.
+  // A query string is not itself the problem. This used to say profile.php?id=
+  // was "the permanent address Facebook itself redirects to", which is backwards
+  // — asking for it, with no tracking on it at all, answers:
+  //
+  //   HTTP/1.1 301 Moved Permanently
+  //   Location: https://www.facebook.com/people/Krishoe/61593622372780/
+  //
+  // Facebook calls the /people/ form permanent and the profile.php form the hop.
+  // The tracking tokens are the problem, so they are what this forbids.
   it("ships canonical default profiles with no share tracking on them", async () => {
     const { businessSocialProfiles } = await profilesFromDefaults();
     const profiles = businessSocialProfiles();
@@ -142,6 +147,11 @@ describe("business social profiles", () => {
    * Meta Pixel and a paid ad can attach to. These two ids look alike and were
    * confused several times while setting the Page up, which is exactly why the
    * personal one is named here and refused by name.
+   *
+   * This also refused any /people/ address, on the belief that the shape marked
+   * a personal profile. It does not — it is the form Facebook 301s the Page
+   * itself to, and the shop's link now uses it. The id is what tells the two
+   * accounts apart, and the id is what is checked.
    */
   it("points Facebook at the business Page, not the owner's profile", async () => {
     const { businessContact } = await profilesFromDefaults();
@@ -149,6 +159,5 @@ describe("business social profiles", () => {
     expect(businessContact.facebook).toContain("61593622372780");
     expect(businessContact.facebook).not.toContain("61550727599279");
     expect(businessContact.facebook).not.toContain("krishna.abiral");
-    expect(businessContact.facebook).not.toContain("/people/");
   });
 });

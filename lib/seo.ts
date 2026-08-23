@@ -26,7 +26,7 @@ export const businessContact = {
   whatsappDisplay: process.env.NEXT_PUBLIC_WHATSAPP_DISPLAY ?? "+977 9766630193",
   viberNumber: process.env.NEXT_PUBLIC_VIBER_NUMBER ?? "+9779766630193",
   email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "skschhapal@gmail.com",
-  streetAddress: process.env.NEXT_PUBLIC_BUSINESS_STREET ?? "Pulchowk, Narayangadh",
+  streetAddress: process.env.NEXT_PUBLIC_BUSINESS_STREET ?? "Kamalnagar, Narayangadh",
   addressLocality: process.env.NEXT_PUBLIC_BUSINESS_CITY ?? "Bharatpur",
   addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION ?? "Chitwan",
   postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL ?? "44200",
@@ -38,12 +38,18 @@ export const businessContact = {
   //
   // The Facebook one is the KRISHOE business Page (id 61593622372780), not the
   // owner's personal profile it used to point at — a shopper following the
-  // footer link was landing on a private account. Kept in `profile.php?id=`
-  // form because the Page has no username yet; once one is claimed this can
-  // become facebook.com/<username> without anything else changing.
+  // footer link was landing on a private account.
+  //
+  // Written in the /people/<name>/<id>/ form because that is where Facebook
+  // itself sends a visitor: profile.php?id= answers 301 to this address. Giving
+  // Google the 301 target rather than the hop is the point of `sameAs`, and the
+  // name is legible in a footer in a way a bare numeric id is not.
+  //
+  // The Page still has no username. Once one is claimed this becomes
+  // facebook.com/<username> without anything else changing.
   facebook:
     process.env.NEXT_PUBLIC_FACEBOOK_URL ??
-    "https://www.facebook.com/profile.php?id=61593622372780",
+    "https://www.facebook.com/people/Krishoe/61593622372780/",
   instagram:
     process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/shree_krishna_chhapal",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",

@@ -19,7 +19,7 @@
 >
 > आफ्नो जोडी हेर्न यहाँ जानुहोस्: **https://krishoe-website.vercel.app/shop**
 >
-> 📍 Pulchowk, Narayangadh, Chitwan
+> 📍 Kamalnagar, Narayangadh, Chitwan
 > 📱 WhatsApp: +977 9766630193
 >
 > #KRISHOE #NepalFootwear #WalkWithAuthority
@@ -34,7 +34,7 @@
 - Website: `https://krishoe-website.vercel.app`
 - WhatsApp: `+977 9766630193`
 - Phone: `+977 9855019351`
-- Address: Pulchowk, Narayangadh, Bharatpur, Chitwan
+- Address: Kamalnagar, Narayangadh, Bharatpur, Chitwan
 - Action button: **WhatsApp** वा **Shop now**
 
 ## Post पछि जाँच

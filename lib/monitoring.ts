@@ -94,7 +94,25 @@ export function cacheStatusFromHeader(header: string | null | undefined): Servic
 
 export const CACHE_PROBE_PATH = "/shop";
 
+/**
+ * Which machine the env-derived checks are describing.
+ *
+ * Storage, Email and SMS are read off environment variables, and environment
+ * variables belong to whatever machine is rendering the page. Run the dashboard
+ * on the owner's laptop and it reports the laptop: Storage came up "Not set up"
+ * while the live shop had a Blob store with four product photos in it, serving
+ * them fine. The screen exists to say whether the shop is well, so it has to say
+ * which machine it is actually looking at.
+ */
+export type HealthScope = "live" | "local";
+
+/** Vercel sets VERCEL=1 on its own servers and nowhere else. */
+export function healthScope(): HealthScope {
+  return process.env.VERCEL ? "live" : "local";
+}
+
 export interface HealthCheck {
+  scope: HealthScope;
   database: ServiceStatus;
   cache: ServiceStatus;
   api: ServiceStatus;
@@ -345,11 +363,21 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
   p99ResponseTime: number;
   slowestEndpoints: Array<{
     path: string;
-    method: string;
+    /** good, needs-improvement or poor — the browser's own verdict. */
+    rating: string;
     avgTime: number;
     count: number;
   }>;
   errorRate: number;
+  /**
+   * How many measurements the figures above rest on.
+   *
+   * Two readings of one page were being shown as "the slowest page", which
+   * reads as a fault and was nothing of the kind — 428ms is a good time, and it
+   * was the only page anyone had measured. A ranking has to say how much of one
+   * it is, or the first entry looks like a finding.
+   */
+  samples: number;
 }> {
   try {
     const normalizedHours = Number.isFinite(hours) ? Math.trunc(hours) : 24;
@@ -409,7 +437,10 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
       p99ResponseTime: data.p99_time,
       slowestEndpoints: slowest.map((s) => ({
         path: s.path,
-        method: s.method,
+        // The column holds the browser's rating for these rows, not an HTTP
+        // verb. It was being drawn glued to the path — "good /account/reset-
+        // password" — which reads as part of the address.
+        rating: s.method,
         avgTime: s.avg_time,
         count: s.count,
       })),
@@ -417,6 +448,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         data.total_count > 0
           ? (data.error_count / data.total_count) * 100
           : 0,
+      samples: data.total_count,
     };
   } catch (err) {
     console.error("Failed to get performance stats:", err);
@@ -425,6 +457,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
       p95ResponseTime: 0,
       p99ResponseTime: 0,
       slowestEndpoints: [],
+      samples: 0,
       errorRate: 0,
     };
   }
@@ -433,6 +466,7 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
 // Check system health
 export async function checkSystemHealth(): Promise<HealthCheck> {
   const checks: HealthCheck = {
+    scope: healthScope(),
     database: "down",
     cache: "off",
     api: "down",

@@ -126,3 +126,54 @@ describe("what the dashboard claims", () => {
     expect(dashboard).toContain("अझै कुनै ग्राहक आएका छैनन्");
   });
 });
+
+/**
+ * The panel said two things the numbers did not.
+ *
+ * It ranked two readings of one page as "the slowest page", which reads as a
+ * fault and was nothing of the kind — 428ms is a good time and it was the only
+ * page anybody had measured. And it coloured anything over 1000ms as a warning,
+ * so that good time was drawn in yellow. The owner spotted it, which is exactly
+ * the reflex a dashboard should never have to survive.
+ */
+describe("what the speed panel claims", () => {
+  it("does not call a single reading a ranking", async () => {
+    const dashboard = await readFile(DASHBOARD, "utf8");
+
+    expect(dashboard).toContain("monitoring.performance.samples < 10");
+    expect(dashboard).toContain("भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ");
+  });
+
+  it("says how many readings it rests on", async () => {
+    const dashboard = await readFile(DASHBOARD, "utf8");
+    const lib = await readFile(LIB, "utf8");
+
+    expect(lib).toContain("samples: data.total_count");
+    expect(dashboard).toContain("नाप`");
+  });
+
+  it("judges a time against the bar the shop is actually judged by", async () => {
+    const dashboard = code(await readFile(DASHBOARD, "utf8"));
+
+    // Google's own Largest Contentful Paint thresholds — 2.5s good, 4s needs
+    // work. The old rule called everything over one second a warning.
+    expect(dashboard).toContain("endpoint.avgTime <= 2500");
+    expect(dashboard).toContain("endpoint.avgTime <= 4000");
+    expect(dashboard).not.toContain("endpoint.avgTime > 1000");
+  });
+
+  it("keeps the rating out of the page address", async () => {
+    const dashboard = code(await readFile(DASHBOARD, "utf8"));
+
+    // It was printed against the path — "good /account/reset-password" — where
+    // it read as part of the address.
+    expect(dashboard).not.toContain("{endpoint.method} {endpoint.path}");
+    expect(dashboard).toContain("endpoint.rating");
+  });
+
+  it("says nothing rather than a ranking of nothing", async () => {
+    const dashboard = await readFile(DASHBOARD, "utf8");
+
+    expect(dashboard).toContain("अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि");
+  });
+});

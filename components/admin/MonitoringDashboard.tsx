@@ -23,14 +23,16 @@ interface MonitoringData {
     p99ResponseTime: number;
     slowestEndpoints: Array<{
       path: string;
-      method: string;
+      rating: string;
       avgTime: number;
       count: number;
     }>;
     errorRate: number;
+    samples: number;
   };
   uptime: number;
   health: {
+    scope: "live" | "local";
     database: ServiceStatus;
     cache: ServiceStatus;
     api: ServiceStatus;
@@ -148,9 +150,25 @@ export default function MonitoringDashboard() {
 
       {/* System Health */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
           💚 System Health
         </h2>
+        {/* Storage, Email and SMS are read off environment variables, which
+            belong to the machine rendering this page. On the owner's laptop
+            Storage read "Not set up" while the live shop had a Blob store with
+            four product photos in it, serving them fine — the screen was
+            describing the laptop and saying it about the shop. */}
+        {monitoring.health.scope === "local" ? (
+          <p className="mb-4 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-900">
+            💻 यो <strong>तपाईंको कम्प्युटरको</strong> हालत हो — पसलको होइन।
+            Storage, Email र SMS यहाँ &quot;सेट अप छैन&quot; देखिन सक्छन्, तर live
+            पसलमा चालु हुन सक्छन्। पसलको साँचो हालत हेर्न live साइटबाट खोल्नुहोस्।
+          </p>
+        ) : (
+          <p className="mb-4 mt-1 text-sm leading-6 text-gray-600">
+            live पसलको हालत
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { name: "Database", status: monitoring.health.database, icon: "🗄️" },
@@ -366,51 +384,85 @@ export default function MonitoringDashboard() {
         )}
       </div>
 
-      {/* Slowest Endpoints */}
+      {/* How fast the shop felt, ordered slowest first. */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          🐢 सबैभन्दा सुस्त पाना
+        <h2 className="text-lg font-semibold text-gray-900">
+          ⚡ पाना कति छिटो खुल्छ
         </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-2 text-left font-semibold text-gray-900">
-                  Endpoint
-                </th>
-                <th className="px-4 py-2 text-left font-semibold text-gray-900">
-                  Avg Time
-                </th>
-                <th className="px-4 py-2 text-left font-semibold text-gray-900">
-                  Calls
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {monitoring.performance.slowestEndpoints.map((endpoint, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-gray-900">
-                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">
-                      {endpoint.method} {endpoint.path}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`font-medium ${
-                        endpoint.avgTime > 1000
-                          ? "text-red-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      {endpoint.avgTime}ms
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-gray-600">{endpoint.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Two readings of one page were being ranked as "the slowest page",
+            which reads as a fault and was nothing of the kind: 428ms is a good
+            time, and it was the only page anybody had measured. The colour
+            called anything over 1000ms slow, so that good time was drawn in
+            warning yellow. Both said something the numbers did not.
+
+            The thresholds are Google's own for Largest Contentful Paint — 2.5s
+            good, 4s needs work — because that is the bar the shop is judged
+            against by the search that sends it customers. */}
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          ग्राहकको फोनमा नापिएको — पछिल्लो २४ घण्टा
+          {monitoring.performance.samples > 0
+            ? ` · जम्मा ${monitoring.performance.samples} नाप`
+            : ""}
+        </p>
+
+        {monitoring.performance.slowestEndpoints.length === 0 ? (
+          <p className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि यहीँ देखिन्छ।
+          </p>
+        ) : (
+          <>
+            {/* A ranking has to say how much of one it is. Under ten readings
+                the order is chance, and the first row looks like a finding. */}
+            {monitoring.performance.samples < 10 ? (
+              <p className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">
+                🔵 अझै थोरै नाप — भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ। तल क्रम
+                होइन, भएको जति देखाइएको हो।
+              </p>
+            ) : null}
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-900">पाना</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-900">समय</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-900">कस्तो</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-900">नाप</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {monitoring.performance.slowestEndpoints.map((endpoint) => {
+                    const verdict =
+                      endpoint.avgTime <= 2500
+                        ? { label: "🟢 राम्रो", tone: "text-green-700" }
+                        : endpoint.avgTime <= 4000
+                          ? { label: "🟡 सुधार चाहिन्छ", tone: "text-yellow-700" }
+                          : { label: "🔴 सुस्त", tone: "text-red-700" };
+                    return (
+                      <tr key={`${endpoint.path}-${endpoint.rating}`} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-900">
+                          {/* The rating used to be printed against the path —
+                              "good /account/reset-password" — where it read as
+                              part of the address. */}
+                          <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs">
+                            {endpoint.path}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-2 font-medium tabular-nums ${verdict.tone}`}>
+                          {(endpoint.avgTime / 1000).toFixed(1)}s
+                        </td>
+                        <td className={`px-4 py-2 text-xs font-bold ${verdict.tone}`}>
+                          {verdict.label}
+                        </td>
+                        <td className="px-4 py-2 tabular-nums text-gray-600">{endpoint.count}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Recommendations */}

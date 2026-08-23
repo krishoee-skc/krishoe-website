@@ -137,7 +137,7 @@
 4. Fill in all details:
    - Phone: +977 9855019351
    - Email: skschhapal@gmail.com
-   - Address: Pulchowk, Narayangadh, Bharatpur, Chitwan
+   - Address: Kamalnagar, Narayangadh, Bharatpur, Chitwan
    - Website: https://krishoe-website.vercel.app
    - Opening hours: 10:00-19:00
 
