@@ -1,4 +1,6 @@
 import { isBikramMonthStart } from "@/lib/bikram-sambat";
+import { sendReviewRequests } from "@/lib/review-requests";
+import { getOrderById } from "@/lib/submissions";
 import {
   notifyDailySalesSummary,
   notifyPeriodSalesSummary,
@@ -16,6 +18,22 @@ export const dynamic = "force-dynamic";
 // scheduled job — well inside the free plan's cron limit — instead of three.
 // If CRON_SECRET is set, only requests carrying it are accepted, so nobody else
 // can make the shop spam itself.
+/**
+ * The pairs on an order, for the review request.
+ *
+ * Passed in rather than imported inside lib/review-requests so that module has
+ * one job — deciding who to ask and stamping that they were asked — and can be
+ * read without the order store coming with it.
+ */
+async function orderItemsFor(orderId: string) {
+  const order = await getOrderById(orderId);
+  return (order?.items ?? []).map((item) => ({
+    productId: item.productId,
+    name: item.productName,
+    quantity: item.quantity,
+  }));
+}
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
 
@@ -44,6 +62,22 @@ export async function GET(request: Request) {
   const jobs = [
     { name: "daily", run: () => notifyDailySalesSummary() },
     { name: "daily-production", run: () => notifyProductionSummary("daily") },
+    // Asking buyers what they thought, a week after their order closed. Carried
+    // by the daily cron rather than a schedule of its own: the shop is on a
+    // hosting plan with a small cron allowance, and a job that only has work on
+    // some days does not need a slot reserved for the days it does not.
+    {
+      name: "review-requests",
+      // The loop reports each job by delivery status. This one delivers many
+      // small things rather than one digest, and reports its own failures as it
+      // goes, so a completed run is "sent" however many it found to ask —
+      // including none, which is the ordinary case on a day with no closed
+      // orders a week old.
+      run: async () => {
+        await sendReviewRequests(orderItemsFor);
+        return { deliveryStatus: "sent" as const };
+      },
+    },
     ...(isSunday
       ? [
           { name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) },

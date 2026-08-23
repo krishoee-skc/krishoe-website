@@ -29,6 +29,8 @@ export type CustomerVoice = {
   email: string;
   productId: string;
   productName: string;
+  /** Which order a review came from. Empty on anything that is not one. */
+  orderId: string;
   /** 1..5 on a review, 0 where the kind carries no verdict. */
   rating: number;
   message: string;
@@ -48,6 +50,7 @@ type VoiceRow = {
   email: string;
   product_id: string;
   product_name: string;
+  order_id: string;
   rating: number | string;
   message: string;
   status: VoiceStatus;
@@ -58,7 +61,7 @@ type VoiceRow = {
 };
 
 const COLUMNS = `id, created_at, kind, customer_name, phone, email, product_id,
-  product_name, rating, message, status, replied_at, reply_note, published, source`;
+  product_name, order_id, rating, message, status, replied_at, reply_note, published, source`;
 
 function fromRow(row: VoiceRow): CustomerVoice {
   return {
@@ -70,6 +73,7 @@ function fromRow(row: VoiceRow): CustomerVoice {
     email: row.email ?? "",
     productId: row.product_id ?? "",
     productName: row.product_name ?? "",
+    orderId: row.order_id ?? "",
     rating: Math.min(5, Math.max(0, Math.round(Number(row.rating) || 0))),
     message: row.message ?? "",
     status: row.status,
@@ -91,6 +95,7 @@ export async function saveCustomerVoice(input: {
   email?: string;
   productId?: string;
   productName?: string;
+  orderId?: string;
   rating?: number;
   message?: string;
   source?: string;
@@ -100,8 +105,8 @@ export async function saveCustomerVoice(input: {
     STORE,
     `INSERT INTO customer_voice
        (id, kind, customer_name, phone, email, product_id, product_name,
-        rating, message, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        order_id, rating, message, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING ${COLUMNS}`,
     [
       id,
@@ -111,6 +116,7 @@ export async function saveCustomerVoice(input: {
       (input.email ?? "").trim().slice(0, NAME_MAX),
       (input.productId ?? "").trim(),
       (input.productName ?? "").trim().slice(0, NAME_MAX),
+      (input.orderId ?? "").trim(),
       Math.min(5, Math.max(0, Math.round(Number(input.rating) || 0))),
       (input.message ?? "").trim().slice(0, MESSAGE_MAX),
       (input.source ?? "site").trim().slice(0, 40),

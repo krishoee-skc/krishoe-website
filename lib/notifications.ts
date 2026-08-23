@@ -35,6 +35,7 @@ export type NotificationEventType =
   | "password-reset"
   | "email-verification"
   | "staff-security"
+  | "review-request"
   | "operational-alert";
 export type OperationalAlertSeverity = "critical" | "warning" | "info";
 export type OperationalAlertCategory =
@@ -63,6 +64,22 @@ export type EmailVerificationNotificationPayload = {
   requestedAt: string;
 };
 
+/**
+ * Asking a buyer what they thought, a week after the pair arrived.
+ *
+ * Addressed to the customer rather than the owner, which is why it sits beside
+ * the password-reset and verification payloads: those are the events whose
+ * email address travels in the payload instead of coming from
+ * ADMIN_NOTIFICATION_EMAIL.
+ */
+export type ReviewRequestNotificationPayload = {
+  email: string;
+  customerName: string;
+  productName: string;
+  reviewUrl: string;
+  orderId: string;
+};
+
 export type StaffSecurityNotificationPayload = {
   email: string;
   kind: "invitation" | "password-reset" | "mfa" | "security-alert";
@@ -86,6 +103,7 @@ type NotificationPayload =
   | PasswordResetNotificationPayload
   | EmailVerificationNotificationPayload
   | StaffSecurityNotificationPayload
+  | ReviewRequestNotificationPayload
   | OperationalAlertNotificationPayload;
 
 export type NotificationEvent = {
@@ -195,6 +213,7 @@ function normalizeEventType(value: unknown): NotificationEventType {
     value === "password-reset" ||
     value === "email-verification" ||
     value === "staff-security" ||
+    value === "review-request" ||
     value === "operational-alert"
   ) {
     return value;
@@ -349,20 +368,25 @@ function getConfiguredChannels(event?: NotificationEvent): NotificationChannel[]
   const emailTarget =
     event?.type === "password-reset" ||
     event?.type === "email-verification" ||
-    event?.type === "staff-security"
+    event?.type === "staff-security" ||
+    event?.type === "review-request"
       ? (
           event.payload as
             | PasswordResetNotificationPayload
             | EmailVerificationNotificationPayload
             | StaffSecurityNotificationPayload
+            | ReviewRequestNotificationPayload
         ).email
       : envValue("ADMIN_NOTIFICATION_EMAIL");
   const channels: NotificationChannel[] = [];
 
+  // These go to a person, at the address in the payload. Everything else is
+  // the shop telling itself something, and goes to the owner.
   if (
     event?.type === "password-reset" ||
     event?.type === "email-verification" ||
-    event?.type === "staff-security"
+    event?.type === "staff-security" ||
+    event?.type === "review-request"
   ) {
     return emailUrl && emailTarget
       ? [
@@ -1238,6 +1262,26 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
   // A reset link that never arrives looks identical to a wrong email address.
   // The log is the only way to tell them apart.
   await reportingErrors(`deliver password reset notification ${event.id}`, () =>
+    deliverNotificationEvent(event),
+  );
+  return event;
+}
+
+/**
+ * The review request itself.
+ *
+ * The shop has seven products with real photographs and no reviews at all, and
+ * a shopper choosing between KRISHOE and a shop they already know has nothing
+ * to read. Reviews do not arrive unless someone asks — this is the asking.
+ */
+export async function notifyReviewRequested(payload: ReviewRequestNotificationPayload) {
+  const event = await appendEvent({
+    type: "review-request",
+    title: `${payload.productName} कस्तो लाग्यो?`,
+    payload,
+  });
+
+  await reportingErrors(`deliver review request ${event.id}`, () =>
     deliverNotificationEvent(event),
   );
   return event;

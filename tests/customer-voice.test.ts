@@ -23,6 +23,7 @@ function voice(over: Partial<CustomerVoice> = {}): CustomerVoice {
     email: "",
     productId: "",
     productName: "",
+    orderId: "",
     rating: 0,
     message: "साइज ३२ छ?",
     status: "new",
