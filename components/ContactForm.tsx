@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { submitContact, type FormState } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: FormState = {
   ok: false,
@@ -10,6 +11,7 @@ const initialState: FormState = {
 };
 
 export default function ContactForm() {
+  const { text } = useLanguage();
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
 
@@ -31,8 +33,8 @@ export default function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Send a request</p>
-      <h2 className="mt-3 text-3xl font-black text-brand-green-ink">Talk to KRISHOE</h2>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Send a request", "सोध्नुहोस्")}</p>
+      <h2 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Talk to KRISHOE", "KRISHOE सँग कुरा गर्नुहोस्")}</h2>
 
       <div className="mt-7 grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
@@ -41,7 +43,7 @@ export default function ContactForm() {
             name="name"
             required
             className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-            placeholder="Your name"
+            placeholder={text("Your name", "तपाईंको नाम")}
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
@@ -61,7 +63,7 @@ export default function ContactForm() {
             required
             rows={5}
             className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
-            placeholder="Tell us what you are looking for"
+            placeholder={text("Tell us what you are looking for", "के चाहिएको हो लेख्नुहोस्")}
           />
         </label>
       </div>

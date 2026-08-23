@@ -7,6 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import { SearchIcon, XIcon } from "@/components/Icons";
 import { categories, type Category, type Product } from "@/lib/products";
 import { stockLevel } from "@/lib/stock-thresholds";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type AvailabilityFilter = "all" | "ready" | "low";
 type SortMode = "featured" | "new" | "price-asc" | "price-desc" | "rating-desc";
@@ -76,6 +77,7 @@ export default function ShopCatalogControls({
   products,
   activeCategory,
 }: ShopCatalogControlsProps) {
+  const { text } = useLanguage();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("query") ?? "");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
@@ -140,7 +142,7 @@ export default function ShopCatalogControls({
               the shop, this one narrows the pairs already on screen. Naming
               them differently is most of the fix. */}
           <label className="relative block">
-            <span className="sr-only">Filter the pairs shown below</span>
+            <span className="sr-only">{text("Filter the pairs shown below", "तलका जुत्ता छान्ने")}</span>
             <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-muted" />
             <input
               value={query}
@@ -151,17 +153,17 @@ export default function ShopCatalogControls({
           </label>
 
           <label>
-            <span className="sr-only">Sort products</span>
+            <span className="sr-only">{text("Sort products", "क्रम मिलाउने")}</span>
             <select
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value as SortMode)}
               className="min-h-12 w-full rounded-full border border-black/10 bg-white px-4 text-sm font-bold text-brand-green-ink outline-none transition focus:border-brand-green"
             >
-              <option value="featured">Featured first</option>
-              <option value="new">New arrivals</option>
-              <option value="price-asc">Price low to high</option>
-              <option value="price-desc">Price high to low</option>
-              <option value="rating-desc">Top rated</option>
+              <option value="featured">{text("Featured first", "छानिएका पहिले")}</option>
+              <option value="new">{text("New arrivals", "नयाँ आएका")}</option>
+              <option value="price-asc">{text("Price low to high", "सस्तोदेखि महँगो")}</option>
+              <option value="price-desc">{text("Price high to low", "महँगोदेखि सस्तो")}</option>
+              <option value="rating-desc">{text("Top rated", "उत्तम राय भएका")}</option>
             </select>
           </label>
 
@@ -209,10 +211,13 @@ export default function ShopCatalogControls({
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-brand-green/20 bg-white p-8 text-center shadow-sm md:p-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">No match</p>
-          <h2 className="mt-3 text-2xl font-black text-brand-green-ink">No products found.</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("No match", "भेटिएन")}</p>
+          <h2 className="mt-3 text-2xl font-black text-brand-green-ink">{text("No products found.", "कुनै जुत्ता भेटिएन।")}</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-brand-muted">
-            Try a different name, color, category, or stock filter.
+            {text(
+              "Try a different name, color, category, or stock filter.",
+              "अर्को नाम, रङ, वा किसिम राखेर हेर्नुहोस्।",
+            )}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button

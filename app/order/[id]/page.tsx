@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -143,7 +144,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
 
           {!canViewPrivateDetails ? (
             <div className="mt-6 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
-              <h2 className="text-lg font-black text-brand-green-ink">Private details protected</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Private details protected" ne="व्यक्तिगत विवरण सुरक्षित" />
+                </h2>
               <p className="mt-2 text-sm leading-7 text-brand-muted">
                 Customer phone, address, items, total, and payment references are only visible
                 from the KRISHOE account that placed this order or has a verified matching email/phone.
@@ -169,7 +172,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
             <>
               <div className="mt-8 grid gap-5 md:grid-cols-2">
                 <div className="rounded-lg border border-black/10 p-5">
-                  <h2 className="text-lg font-black text-brand-green-ink">Customer</h2>
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Customer" ne="ग्राहक" />
+                </h2>
                   <div className="mt-4 grid gap-2 text-sm leading-7 text-brand-muted">
                     <span>{order.name}</span>
                     <span>{order.phone}</span>
@@ -177,7 +182,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                   </div>
                 </div>
                 <div className="rounded-lg border border-black/10 p-5">
-                  <h2 className="text-lg font-black text-brand-green-ink">Delivery</h2>
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Delivery" ne="डेलिभरी" />
+                </h2>
                   <div className="mt-4 grid gap-2 text-sm leading-7 text-brand-muted">
                     <span>{order.delivery}</span>
                     <span>{order.payment}</span>
@@ -187,7 +194,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
               </div>
 
               <div className="mt-5 rounded-lg border border-black/10 p-5">
-                <h2 className="text-lg font-black text-brand-green-ink">Payment</h2>
+                <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Payment" ne="भुक्तानी" />
+                </h2>
                 <div className="mt-4 grid gap-2 text-sm leading-7 text-brand-muted md:grid-cols-2">
                   <span>Status: {order.paymentStatus}</span>
                   <span>Provider: {order.paymentProvider.toUpperCase()}</span>
@@ -210,7 +219,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                 <PendingPaymentStatus orderId={order.id} provider={pendingOnlineProvider} />
               ) : order.status === "New" && order.paymentStatus !== "Paid" ? (
                 <div className="mt-5 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
-                  <h2 className="text-lg font-black text-brand-green-ink">Payment opens after confirmation</h2>
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Payment opens after confirmation" ne="पक्का भएपछि भुक्तानी खुल्छ" />
+                </h2>
                   <p className="mt-2 text-sm leading-6 text-brand-muted">
                     KRISHOE will confirm stock and delivery first. When this order becomes Contacted,
                     secure eSewa/Khalti buttons will appear here.
@@ -219,7 +230,9 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
               ) : null}
 
               <div className="mt-5 rounded-lg border border-black/10 p-5">
-                <h2 className="text-lg font-black text-brand-green-ink">Items</h2>
+                <h2 className="text-lg font-black text-brand-green-ink">
+                  <T en="Items" ne="सामान" />
+                </h2>
                 <p className="mt-4 whitespace-pre-line text-sm leading-7 text-brand-muted">{order.order}</p>
               </div>
 

@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginCustomerAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AccountActionState = {
   ok: false,
@@ -12,6 +13,7 @@ const initialState: AccountActionState = {
 };
 
 export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?: string }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
@@ -35,8 +37,8 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">Customer account</p>
-      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">Sign in</h1>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Customer account", "ग्राहक खाता")}</p>
+      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Sign in", "लगइन गर्नुहोस्")}</h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         Save checkout details and manage your KRISHOE profile.
       </p>
@@ -61,7 +63,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
             required
             autoComplete="current-password"
             className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-            placeholder="Your password"
+            placeholder={text("Your password", "तपाईंको पासवर्ड")}
           />
         </label>
       </div>

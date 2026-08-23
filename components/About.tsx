@@ -1,4 +1,5 @@
 import Image from "next/image";
+import T from "@/components/T";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
 
@@ -77,7 +78,9 @@ export default function About() {
 
           <h2 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
             Shaped by Nepali hands.
-            <span className="mt-1 block text-brand-green">Made to move Nepal.</span>
+            <span className="mt-1 block text-brand-green">
+              <T en="Made to move Nepal." ne="नेपाल हिँडाउन बनेको।" />
+            </span>
           </h2>
 
           <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-brand-muted-deep">

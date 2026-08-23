@@ -1,4 +1,5 @@
 import Image from "next/image";
+import T from "@/components/T";
 import Link from "next/link";
 import NewArrivals from "@/components/NewArrivals";
 import Navbar from "@/components/Navbar";
@@ -66,27 +67,32 @@ export default async function Home() {
               </div>
             </div>
             <p className="mt-4 inline-flex rounded-full border border-brand-gold/35 bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold-label shadow-sm backdrop-blur">
-              The Signature Collection
+              <T en="The Signature Collection" ne="हस्ताक्षर संग्रह" />
             </p>
             <h1 className="mt-3 max-w-[310px] font-display text-[2.4rem] font-bold leading-[0.92] tracking-[-0.03em]">
-              Your Step.
-              <span className="mt-1 block text-brand-clay-deep">Your Identity.</span>
+              <T en="Your Step." ne="तपाईंको पाइला।" />
+              <span className="mt-1 block text-brand-clay-deep">
+                <T en="Your Identity." ne="तपाईंको पहिचान।" />
+              </span>
             </h1>
             <p className="mt-3 max-w-[285px] text-sm font-semibold leading-6 text-brand-green-ink/75">
-              Premium comfort, artisan detail and confident style—crafted for Nepal.
+              <T
+                en="Premium comfort, artisan detail and confident style—crafted for Nepal."
+                ne="नेपालमै बनेको — दिनभर लगाउँदा खुट्टा दुख्दैन, र हेर्दा राम्रो देखिन्छ।"
+              />
             </p>
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-2.5">
               <Link
                 href="/shop"
                 className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-5 py-2.5 text-sm font-black text-white shadow-lg transition hover:shadow-xl md:min-h-11 md:py-0"
               >
-                Shop now
+                <T en="Shop now" ne="पसल हेर्ने" />
               </Link>
               <Link
                 href="/shop/ladies-sandals"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-brand-gold/50 bg-white/75 px-4 py-2.5 text-sm font-black text-brand-green shadow-sm backdrop-blur transition hover:bg-white/85 md:min-h-11 md:py-0"
               >
-                Explore
+                <T en="Explore" ne="सबै जुत्ता" />
               </Link>
             </div>
           </div>
@@ -125,21 +131,26 @@ export default async function Home() {
               </div>
             </div>
             <p className="mt-7 text-xs font-black uppercase tracking-[0.28em] text-brand-gold-label">
-              The Signature Collection
+              <T en="The Signature Collection" ne="हस्ताक्षर संग्रह" />
             </p>
             <h1 className="mt-5 font-display text-[clamp(3.75rem,5.5vw,6rem)] font-bold leading-[0.86] tracking-[-0.045em] text-brand-green-ink">
-              Your Step.
-              <span className="mt-3 block text-brand-clay-deep">Your Identity.</span>
+              <T en="Your Step." ne="तपाईंको पाइला।" />
+              <span className="mt-3 block text-brand-clay-deep">
+                <T en="Your Identity." ne="तपाईंको पहिचान।" />
+              </span>
             </h1>
             <p className="mt-7 max-w-xl text-[clamp(1rem,1.35vw,1.2rem)] font-medium leading-8 text-brand-green-ink/70">
-              Premium comfort, artisan detail and confident style—crafted for Nepal.
+              <T
+                en="Premium comfort, artisan detail and confident style—crafted for Nepal."
+                ne="नेपालमै बनेको — दिनभर लगाउँदा खुट्टा दुख्दैन, र हेर्दा राम्रो देखिन्छ।"
+              />
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <span className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-brand-green px-8 py-3.5 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_30px_rgba(11,77,59,0.24)]">
-                Shop now
+                <T en="Shop now" ne="पसल हेर्ने" />
               </span>
               <span className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-brand-gold-deep bg-white/65 px-8 py-3.5 text-sm font-black uppercase tracking-[0.1em] text-brand-green-ink backdrop-blur">
-                Explore collection
+                <T en="Explore collection" ne="सबै जुत्ता हेर्ने" />
               </span>
             </div>
           </div>
