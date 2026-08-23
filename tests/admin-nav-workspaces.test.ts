@@ -12,6 +12,9 @@ import {
  * find "Factory Entry", fifty times a day. They are now split by the two halves
  * of the business — but splitting a menu is only safe if nothing falls out of
  * it, so this counts the destinations rather than trusting the eye.
+ *
+ * Deliberate merges belong in the list below, with the reason written down.
+ * Anything vanishing without that is the accident this test exists to catch.
  */
 describe("admin navigation", () => {
   it("keeps every destination that existed before the split", async () => {
@@ -20,10 +23,16 @@ describe("admin navigation", () => {
       "/admin/stock", "/admin/pos", "/admin/dues", "/admin/purchasing",
       "/admin/costing", "/admin/hr", "/admin/operations", "/admin/orders",
       "/admin/customers", "/admin/payments", "/admin/notifications",
-      "/admin/alerts", "/admin/sms", "/admin/reviews", "/admin/feedback",
-      "/admin/insights", "/admin/analytics", "/admin/activity",
+      "/admin/alerts", "/admin/sms", "/admin/analytics", "/admin/activity",
       "/admin/security", "/admin/monitoring", "/admin/devices",
-      "/admin/settings", "/admin/products", "/admin/messages",
+      "/admin/settings", "/admin/products",
+      // Reviews, Feedback, Customer Voice and Messages were four entries over
+      // four separate stores, one of whose tables had never been created.
+      // Answering a customer meant opening all four and hoping none had been
+      // missed. They are /admin/inbox now — a merge, not a loss, and the old
+      // addresses still redirect there so a bookmark still lands somewhere
+      // useful. tests/customer-voice.test.ts holds that end of it.
+      "/admin/inbox",
     ];
 
     const now = adminNavLinks.map((link) => link.href);

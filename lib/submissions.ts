@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
+import { saveCustomerVoice } from "@/lib/customer-voice";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import type { OrderItem } from "@/lib/order-stock";
 
@@ -820,25 +821,26 @@ export async function saveContactMessage(
       await writeJsonFile(messagesPath, [record, ...messages]);
       return record;
     },
+    // Into customer_voice, not contact_messages.
+    //
+    // A question typed into the contact form is the same kind of thing as a
+    // review or a complaint — the customer talking to the shop — and it used to
+    // land in a table of its own with a screen of its own. The owner had four
+    // such screens and had to open all four to know whether anyone was waiting.
+    // Writing here rather than there is what makes one inbox true rather than
+    // merely another list beside the others.
     postgres: async () => {
-      const rows = await queryPostgres<ContactMessageRow>(
-        "contact messages",
-        `
-          INSERT INTO contact_messages (id, created_at, name, email, message, status)
-          VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING id, created_at, name, email, message, status
-        `,
-        [
-          record.id,
-          new Date(record.createdAt),
-          record.name,
-          record.email,
-          record.message,
-          record.status,
-        ],
-      );
+      await saveCustomerVoice({
+        kind: "question",
+        customerName: record.name,
+        email: record.email,
+        message: record.message,
+        source: "contact-form",
+      });
 
-      return contactMessageFromRow(rows[0]);
+      // The caller wants the reference it already showed the customer, and the
+      // notification wants the same shape it has always had.
+      return record;
     },
   });
 }

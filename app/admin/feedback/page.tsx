@@ -1,24 +1,14 @@
-import FeedbackDashboard from "@/components/admin/FeedbackDashboard";
-import { requireAdminPermission } from "@/lib/admin-permissions";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Feedback Management | KRISHOE Admin",
-  description: "Manage user feedback, bug reports, and feature requests",
-};
-
-export default async function FeedbackPage() {
-  await requireAdminPermission("feedback:read");
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Feedback Management</h1>
-        <p className="text-gray-600 mt-2">
-          Review and manage feedback from users (customers, workers, admins)
-        </p>
-      </div>
-
-      <FeedbackDashboard />
-    </div>
-  );
+/**
+ * Moved into the one inbox.
+ *
+ * Reviews, Feedback and Messages were three screens over three different
+ * stores — Feedback's table had never even been created — and answering a
+ * customer meant opening all three and hoping none had been missed. The link
+ * stays so that a bookmark, an older page, or a habit still arrives somewhere
+ * useful rather than at a 404.
+ */
+export default function Page() {
+  redirect("/admin/inbox");
 }

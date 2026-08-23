@@ -87,11 +87,12 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "shop",
     links: [
       { href: "/admin/customers", label: "Customers", nepali: "ग्राहक", icon: UserIcon },
+      // Reviews, Feedback, Customer Voice and Messages were four entries over
+      // four different stores — one of them a table that had never been
+      // created. Answering a customer meant opening all four and hoping none
+      // had been missed. They are one inbox now.
+      { href: "/admin/inbox", label: "Customer Voice", nepali: "ग्राहकको आवाज", icon: MessageSquareIcon },
       { href: "/admin/wholesale", label: "Wholesale", nepali: "थोकको सोधपुछ", icon: UserIcon },
-      { href: "/admin/reviews", label: "Reviews", nepali: "ग्राहकको राय", icon: StarIcon },
-      { href: "/admin/feedback", label: "Feedback", nepali: "गुनासो", icon: MessageSquareIcon },
-      { href: "/admin/insights", label: "Customer Voice", nepali: "ग्राहकको आवाज", icon: StarIcon },
-      { href: "/admin/messages", label: "Messages", nepali: "सन्देश", icon: MessageSquareIcon },
     ],
   },
   {
