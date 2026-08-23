@@ -316,7 +316,10 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 {businessContact.phoneDisplay}
               </a>
               <a
-                href={`https://wa.me/${businessContact.whatsappNumber.replace(/[^d]/g, "")}`}
+                // businessContact.whatsappNumber is already bare digits with the
+                // country code. Stripping it again here was how this link ended
+                // up as wa.me/ with no number at all.
+                href={`https://wa.me/${businessContact.whatsappNumber}`}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-3 flex items-center gap-3 text-base font-black text-brand-green-ink"
