@@ -53,3 +53,6 @@ next-env.d.ts
 
 # local dev photo uploads (not on the live shop)
 /public/uploads/
+
+# Throwaway edit scripts, never part of the app.
+scripts/.tmp-*
