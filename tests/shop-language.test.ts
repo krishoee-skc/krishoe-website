@@ -71,6 +71,8 @@ describe("how much of the shop the switch actually reaches", () => {
       "components/account/AccountRegisterForm.tsx",
       "components/FeedbackForm.tsx",
       "components/PaymentInstructions.tsx",
+      // The pages a shopper reads before deciding to trust the shop at all.
+      "app/return-policy/page.tsx",
     ];
 
     for (const file of walked) {
@@ -88,7 +90,7 @@ describe("how much of the shop the switch actually reaches", () => {
     // It was 227 when this was first measured. The number only ever comes
     // down; a new screen written in English only pushes it up and fails here.
     // Lower the ceiling whenever a batch lands, never raise it.
-    expect(count).toBeLessThanOrEqual(175);
+    expect(count).toBeLessThanOrEqual(165);
   });
 });
 

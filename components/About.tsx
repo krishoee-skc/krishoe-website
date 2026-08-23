@@ -53,10 +53,10 @@ export default function About() {
 
             <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/20 bg-white/90 p-4 shadow-xl backdrop-blur-md sm:inset-x-6 sm:bottom-6 sm:p-5">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
-                The KRISHOE promise
+                <T en="The KRISHOE promise" ne="KRISHOE को वाचा" />
               </p>
               <p className="mt-1 text-lg font-black text-brand-green-ink sm:text-xl">
-                Thoughtful design. Dependable finishing.
+                <T en="Thoughtful design. Dependable finishing." ne="सोचेर बनाएको। टिक्ने गरी सिलाएको।" />
               </p>
             </div>
           </div>
@@ -77,20 +77,23 @@ export default function About() {
           </div>
 
           <h2 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
-            Shaped by Nepali hands.
+            <T en="Shaped by Nepali hands." ne="नेपाली हातले बनेको।" />
             <span className="mt-1 block text-brand-green">
               <T en="Made to move Nepal." ne="नेपाल हिँडाउन बनेको।" />
             </span>
           </h2>
 
           <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-brand-muted-deep">
-            KRISHOE is a Nepali footwear maker and shop. We bring design,
-            production, and service together so every pair feels considered—from
-            the first cut to the final step.
+            <T
+              en="KRISHOE is a Nepali footwear maker and shop. We bring design, production, and service together so every pair feels considered—from the first cut to the final step."
+              ne="KRISHOE नेपालकै जुत्ता कारखाना र पसल हो। डिजाइनदेखि सिलाइ र बिक्रीसम्म सबै हामी आफैँ गर्छौँ — त्यसैले हरेक जोडीमा हाम्रो हात हुन्छ।"
+            />
           </p>
           <p className="mt-4 max-w-2xl text-base leading-7 text-brand-muted">
-            Comfortable everyday silhouettes, dependable finishing, honest
-            factory-direct value, and people you can talk to when you need help.
+            <T
+              en="Comfortable everyday silhouettes, dependable finishing, honest factory-direct value, and people you can talk to when you need help."
+              ne="दिनहुँ लगाउन मिल्ने, टिक्ने, कारखानाकै मूल्यमा — अनि अल्झिँदा कुरा गर्न मान्छे भेटिन्छ।"
+            />{" "}
             जुत्ता मात्र होइन, भरोसा।
           </p>
 
@@ -120,7 +123,7 @@ export default function About() {
               href="/shop"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-sm font-black text-white shadow-[0_14px_35px_rgba(11,77,59,0.22)] transition hover:-translate-y-0.5 hover:bg-brand-green-ink"
             >
-              Explore the collection
+              <T en="Explore the collection" ne="सबै जुत्ता हेर्ने" />
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
             <Link
