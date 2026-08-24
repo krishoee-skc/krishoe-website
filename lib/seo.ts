@@ -1,4 +1,10 @@
 import type { Metadata } from "next";
+import {
+  CATEGORY_WORDS,
+  FOOTWEAR_WORDS,
+  PLACE_WORDS,
+  productSearchWords,
+} from "@/lib/search-words";
 import { categories, formatPrice, type Category, type Product } from "@/lib/products";
 
 export const siteConfig = {
@@ -119,11 +125,14 @@ export function createPageMetadata({
   description,
   path,
   image = siteConfig.defaultImagePath,
+  categorySlug,
 }: {
   title: string;
   description: string;
   path: string;
   image?: string;
+  /** Adds the words someone looking for that particular shelf would type. */
+  categorySlug?: string;
 }): Metadata {
   const pageTitle = title.includes(siteConfig.name) ? title : `${title} | ${siteConfig.name}`;
   const canonical = absoluteUrl(path);
@@ -132,6 +141,10 @@ export function createPageMetadata({
   return {
     title: pageTitle,
     description,
+    // Every page a shopper could land on from a search carries the words they
+    // would have typed. Only the product pages had any, and those were
+    // Devanagari alone.
+    keywords: shopSearchWords(categorySlug),
     alternates: {
       canonical,
     },
@@ -200,16 +213,14 @@ export function createProductMetadata(product: Product): Metadata {
   return {
     title,
     description,
-    keywords: [
-      product.name,
-      product.category,
-      "KRISHOE",
-      "Nepal footwear",
-      "made in Nepal shoes",
-      "जुत्ता",
-      "चप्पल",
-      "नेपाली जुत्ता",
-    ],
+    // Devanagari alone was the whole list, and almost nobody types Devanagari
+    // into a search box — they type jutta, chappal, bachha ko jutta. This
+    // shop's own Instagram was shree_krishna_chhapal.
+    keywords: productSearchWords({
+      name: product.name,
+      category: product.category,
+      categorySlug: product.categorySlug,
+    }),
     alternates: {
       canonical,
     },
@@ -407,4 +418,22 @@ export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>) {
       item: absoluteUrl(item.path),
     })),
   };
+}
+
+/**
+ * The keyword list for the shop and its category pages.
+ *
+ * These are the pages a search for "chappal nepal" or "bachha ko jutta" should
+ * land on, and they carried no keywords at all — only the individual product
+ * pages did, and only in Devanagari.
+ */
+export function shopSearchWords(categorySlug?: string): string[] {
+  return [
+    ...new Set([
+      "KRISHOE",
+      ...(categorySlug ? (CATEGORY_WORDS[categorySlug] ?? []) : []),
+      ...FOOTWEAR_WORDS,
+      ...PLACE_WORDS,
+    ]),
+  ];
 }

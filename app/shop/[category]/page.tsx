@@ -39,6 +39,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     description: `${category.description} Shop KRISHOE ${category.title.toLowerCase()} in Nepal.`,
     path: `/shop/${category.slug}`,
     image: category.image,
+    categorySlug: slug,
   });
 }
 

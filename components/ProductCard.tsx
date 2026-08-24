@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { productImageAlt } from "@/lib/search-words";
 import type { Product } from "@/lib/products";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
@@ -33,7 +34,10 @@ export default function ProductCard({
       <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-brand-mist">
         <SafeImage
           src={product.image}
-          alt={product.name}
+          // The name alone leaves out what kind of shoe it is and where it
+          // was made — the two things a Google Images search and a screen
+          // reader both need.
+          alt={productImageAlt(product)}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           loading={eager ? "eager" : "lazy"}
