@@ -152,8 +152,10 @@ export default function FactoryItemsPage() {
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory item control</p>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Item Master linkage</h1>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका item</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+            item र दर <span className="text-lg font-bold text-slate-500">· Item Master linkage</span>
+          </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, Work Orders, costing and finished-stock identity. Link them once so both systems refer to the same product.
           </p>

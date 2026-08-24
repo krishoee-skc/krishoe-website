@@ -153,8 +153,10 @@ export default function StaffSalaryPage() {
 
   return (
     <div className="p-6">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Monthly staff payroll</p>
-      <h1 className="mt-2 text-3xl font-black text-brand-green-ink mb-2">Staff salary, advance and payment</h1>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">मासिक तलब</p>
+      <h1 className="mt-2 text-3xl font-black text-brand-green-ink mb-2">
+        तलब, पेश्की र भुक्तानी <span className="text-lg font-bold text-slate-500">· Staff salary</span>
+      </h1>
 
       <p className="mb-6 text-sm text-slate-600">
         Monthly factory staff are managed here. Daily staff attendance, wages,

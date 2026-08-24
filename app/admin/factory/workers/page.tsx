@@ -207,8 +207,10 @@ export default function WorkersPage() {
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory people</p>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Workers and HR linkage</h1>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका मान्छे</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+            कामदार <span className="text-lg font-bold text-slate-500">· Workers and HR linkage</span>
+          </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
           </p>

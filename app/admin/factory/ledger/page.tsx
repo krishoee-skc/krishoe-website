@@ -173,8 +173,10 @@ export default function LedgerPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Piece-rate wage control</p>
-      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 mb-2">Worker work and payment ledger</h1>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">ज्यालाको हिसाब</p>
+      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 mb-2">
+        कामदारको खाता <span className="text-lg font-bold text-slate-500">· Work and payment ledger</span>
+      </h1>
       <p className="mb-6 text-sm leading-6 text-slate-600">Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.</p>
 
       {error && (

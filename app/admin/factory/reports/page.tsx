@@ -106,7 +106,8 @@ export default function ReportsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">📊 Monthly Reports</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">📊 मासिक रिपोर्ट</h1>
+        <p className="mb-4 mt-1 text-sm text-slate-500">Monthly reports</p>
 
         <div className="flex gap-3 mb-6">
           <BikramMonthPicker value={month} onChange={setMonth} label="महिना" className="min-w-[180px]" />

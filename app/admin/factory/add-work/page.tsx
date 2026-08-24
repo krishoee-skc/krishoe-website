@@ -315,7 +315,8 @@ export default function AddWorkPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">➕ Add Daily Work Entry</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">➕ काम टिप्ने</h1>
+      <p className="mb-6 mt-1 text-sm text-slate-500">Add daily work entry</p>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-6">
         {error && (
