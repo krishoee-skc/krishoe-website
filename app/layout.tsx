@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { unstable_cache } from "next/cache";
-import { Inter, Fraunces } from "next/font/google";
+import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
@@ -31,6 +31,42 @@ const display = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
+  display: "swap",
+});
+
+/**
+ * The half of the shop that had no typeface at all.
+ *
+ * Inter and Fraunces are loaded `subsets: ["latin"]` — they carry no
+ * Devanagari, and a font cannot render a letter it does not contain. So every
+ * Nepali word on this site fell through to whatever the reader's device
+ * happened to have: Nirmala UI on a Windows machine, Noto on one Android, a
+ * different Noto on another, Devanagari Sangam on an iPhone. The English was
+ * designed and the Nepali was borrowed, on the same line, and the shop that
+ * sells to Nepal was the half that looked unfinished.
+ *
+ * These two carry Devanagari and are chosen to sit with the Latin already
+ * here rather than to be noticed: Tiro Devanagari Hindi is a serif with the
+ * weight and the calm of Fraunces, and Mukta is a humanist sans that holds
+ * its counters at small sizes on the cheap phones most of this shop's
+ * customers read on.
+ *
+ * They are listed AFTER the Latin faces in the CSS stacks (globals.css), so a
+ * browser takes each letter from the first font that has it: Latin from Inter
+ * or Fraunces, Devanagari from these. One rule, both scripts, no switching in
+ * the markup.
+ */
+const devanagariSans = Mukta({
+  subsets: ["devanagari", "latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-dev-sans",
+  display: "swap",
+});
+
+const devanagariDisplay = Tiro_Devanagari_Hindi({
+  subsets: ["devanagari", "latin"],
+  weight: ["400"],
+  variable: "--font-dev-display",
   display: "swap",
 });
 
@@ -104,7 +140,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${sans.variable} ${display.variable}`}
+      className={`h-full antialiased ${sans.variable} ${display.variable} ${devanagariSans.variable} ${devanagariDisplay.variable}`}
     >
       <head>
         {/* Before the first paint, so the page never renders light and then

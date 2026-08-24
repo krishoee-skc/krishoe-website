@@ -55,8 +55,13 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "Inter", "Segoe UI", "Arial", "Helvetica", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "Times New Roman", "serif"],
+        // The Devanagari face follows the Latin one in each stack: a browser
+        // takes every letter from the first font that contains it, so Latin
+        // comes from Inter or Fraunces and Nepali from Mukta or Tiro. Without
+        // the second entry the Nepali fell through to whatever the reader's
+        // phone happened to ship with.
+        sans: ["var(--font-sans)", "var(--font-dev-sans)", "Inter", "Mukta", "Segoe UI", "Arial", "Helvetica", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-dev-display)", "Georgia", "Times New Roman", "serif"],
       },
       spacing: {
         xs: "4px",

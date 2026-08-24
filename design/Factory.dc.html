@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&family=Tiro+Devanagari+Hindi&family=Mukta:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #F5F7F4; }
+    a { color: #B98A2E; } a:hover { color: #9A6B08; }
+    .devdisp { font-family: "Tiro Devanagari Hindi", "Fraunces", Georgia, serif; }
+    .disp { font-family: "Fraunces", Georgia, serif; }
+    .body { font-family: "Inter", "Mukta", "Segoe UI", Arial, sans-serif; }
+    .dev { font-family: "Mukta", "Inter", "Segoe UI", Arial, sans-serif; }
+  </style>
+</helmet>
+
+<div class="body" style="width: 390px; height: 844px; display: flex; flex-direction: column; box-sizing: border-box; background: #F5F7F4; color: #10231D; letter-spacing: 0.3px; overflow: hidden;">
+
+  <!-- Factory bar: clay is the factory's own signature -->
+  <header style="background: #10231D; border-bottom: 3px solid #7B3128; padding: 16px 18px 14px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 32px; height: 32px; border-radius: 10px; background: #7B3128; display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 14px; font-weight: 700;">K</span>
+        <div>
+          <p class="dev" style="margin: 0; font-size: 15px; font-weight: 700; color: #FFFFFF;">कारखाना</p>
+          <p class="body" style="margin: 0; font-size: 10px; letter-spacing: 1.4px; color: #7d8d85;">FACTORY</p>
+        </div>
+      </div>
+      <div style="display: inline-flex; align-items: stretch; height: 32px; border: 1px solid #C8A04D; border-radius: 999px; overflow: hidden;">
+        <span class="dev" style="display: inline-flex; align-items: center; padding: 0 13px; font-size: 13px; font-weight: 700; background: #D4AF37; color: #10231D;">ने</span>
+        <span class="body" style="display: inline-flex; align-items: center; padding: 0 13px; font-size: 13px; font-weight: 700; color: #9baba3;">EN</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 14px; overflow: hidden;">
+      <span class="dev" style="flex-shrink: 0; padding: 8px 15px; border-radius: 999px; background: #7B3128; color: #FFFFFF; font-size: 13px; font-weight: 700;">काम टिप्ने</span>
+      <span class="dev" style="flex-shrink: 0; padding: 8px 15px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #cbd8d1; font-size: 13px; font-weight: 600;">कामदार</span>
+      <span class="dev" style="flex-shrink: 0; padding: 8px 15px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #cbd8d1; font-size: 13px; font-weight: 600;">तलब</span>
+    </div>
+  </header>
+
+  <main style="flex-grow: 1; padding: 20px 18px; overflow: hidden;">
+    <p class="body" style="margin: 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #B98A2E;">२०८३ भदौ ९</p>
+    <h1 class="devdisp" style="margin: 7px 0 0; font-size: 26px; font-weight: 700; line-height: 1.2; color: #10231D;">आजको काम टिप्ने</h1>
+
+    <!-- Worker -->
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 7px;">
+      <label class="dev" style="font-size: 13px; font-weight: 700; color: #10231D;">कामदार</label>
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 0 16px; border-radius: 12px; background: #FFFFFF; border: 1px solid #D9E8DF;">
+        <span class="dev" style="font-size: 16px; font-weight: 600; color: #10231D;">राम बहादुर</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A958F" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- Item -->
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 7px;">
+      <label class="dev" style="font-size: 13px; font-weight: 700; color: #10231D;">कुन जुत्ता</label>
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 0 16px; border-radius: 12px; background: #FFFFFF; border: 1px solid #D9E8DF;">
+        <span class="dev" style="font-size: 16px; font-weight: 600; color: #10231D;">Doctor Chappal</span>
+        <span class="body" style="font-size: 13px; font-weight: 600; color: #8A958F;">रु. २५ / जोडी</span>
+      </div>
+    </div>
+
+    <!-- Pairs: big touch targets, gloved hands -->
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 7px;">
+      <label class="dev" style="font-size: 13px; font-weight: 700; color: #10231D;">कति जोडी</label>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="width: 56px; height: 56px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9E8DF; display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B4D3B" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </span>
+        <span class="disp" style="flex-grow: 1; height: 56px; border-radius: 14px; background: #FFFFFF; border: 1px solid #C8A04D; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #10231D;">४०</span>
+        <span style="width: 56px; height: 56px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9E8DF; display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B4D3B" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+      </div>
+    </div>
+
+    <!-- The sum, shown before saving -->
+    <div style="margin-top: 22px; border-radius: 14px; background: #10231D; padding: 20px 22px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p class="dev" style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 1.2px; color: #9baba3;">राम बहादुरले कमाउने</p>
+        <p class="disp" style="margin: 6px 0 0; font-size: 34px; font-weight: 700; line-height: 1; color: #FFFFFF;">रु. १,०००</p>
+      </div>
+      <p class="dev" style="margin: 0; font-size: 12px; line-height: 1.5; text-align: right; color: #cbd8d1;">४० × २५<br>आजको जम्मा</p>
+    </div>
+
+    <p class="dev" style="margin: 14px 0 0; font-size: 12px; line-height: 1.55; color: #5F6B66;">थिच्नुअघि नै रकम देखिन्छ — गलत भए यहीँ थाहा हुन्छ, खातामा चढेपछि होइन।</p>
+  </main>
+
+  <!-- One action, gold used exactly once -->
+  <div style="padding: 0 18px 26px;">
+    <span style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 58px; border-radius: 999px; background: #D4AF37; color: #10231D;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#10231D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 7"/></svg>
+      <span class="dev" style="font-size: 17px; font-weight: 700;">काम टिप्ने</span>
+    </span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

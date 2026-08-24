@@ -40,7 +40,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), var(--font-dev-sans), "Inter", "Mukta", "Segoe UI", Arial, Helvetica, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   letter-spacing: 0.3px;
@@ -50,7 +50,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), var(--font-dev-display), Georgia, "Times New Roman", serif;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.2px;
@@ -129,21 +129,21 @@ table th,
   .admin-wide-title {
     /* Was "Arial Black", which Android does not ship — the same screen rendered
        heavy on Windows and ordinary on a phone. */
-    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-family: var(--font-sans), var(--font-dev-sans), "Segoe UI", Arial, Helvetica, sans-serif;
     font-weight: 800;
     font-stretch: 112%;
     letter-spacing: 0;
   }
 
   .admin-wide-value {
-    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-family: var(--font-sans), var(--font-dev-sans), "Segoe UI", Arial, Helvetica, sans-serif;
     font-stretch: 108%;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
   }
 
   .admin-wide-label {
-    font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+    font-family: var(--font-sans), var(--font-dev-sans), "Segoe UI", Arial, Helvetica, sans-serif;
     font-stretch: 106%;
     letter-spacing: 0;
   }
@@ -607,5 +607,5 @@ table th,
 .admin-canvas h4,
 .admin-canvas h5,
 .admin-canvas h6 {
-  font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), var(--font-dev-sans), "Segoe UI", Arial, Helvetica, sans-serif;
 }
