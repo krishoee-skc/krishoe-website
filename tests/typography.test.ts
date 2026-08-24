@@ -47,7 +47,7 @@ describe("the shop's typefaces", () => {
 
     // A Devanagari family imported without the "devanagari" subset downloads
     // Latin glyphs and leaves the Nepali borrowed all the same.
-    expect(layout).toContain('subsets: ["devanagari", "latin"]');
+    expect(layout).toContain('subsets: ["devanagari"]');
   });
 
   it("does not load a family it no longer uses", async () => {

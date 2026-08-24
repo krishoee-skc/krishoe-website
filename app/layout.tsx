@@ -56,18 +56,34 @@ const display = Fraunces({
  * or Fraunces, Devanagari from these. One rule, both scripts, no switching in
  * the markup.
  */
+/*
+ * Devanagari only, and only the weights the shop actually sets.
+ *
+ * Loading these with the Latin subset too cost 39KB of glyphs that can never
+ * be drawn: Inter and Fraunces come first in every stack, so a Latin letter
+ * never reaches these fonts. Adding them naively took the shop from 83KB of
+ * type to 397KB, all of it preloaded ahead of the page — a bad trade to make
+ * on a Nepali mobile connection in the name of looking better on one.
+ *
+ * Mukta drops to two weights; 600 is synthesised from 400 where a semibold is
+ * asked for, which is invisible next to what a whole missing script cost.
+ * Tiro is not preloaded because it only draws headings: a heading that swaps
+ * face a moment after the page paints is a smaller price than making every
+ * shopper wait 66KB for it.
+ */
 const devanagariSans = Mukta({
-  subsets: ["devanagari", "latin"],
-  weight: ["400", "600", "700"],
+  subsets: ["devanagari"],
+  weight: ["400", "700"],
   variable: "--font-dev-sans",
   display: "swap",
 });
 
 const devanagariDisplay = Tiro_Devanagari_Hindi({
-  subsets: ["devanagari", "latin"],
+  subsets: ["devanagari"],
   weight: ["400"],
   variable: "--font-dev-display",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = pwaViewport;
