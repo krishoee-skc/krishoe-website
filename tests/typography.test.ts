@@ -14,9 +14,20 @@ import { describe, expect, it } from "vitest";
  *
  * Two remain: Inter for text, Fraunces for headings — the sans-and-serif pairing
  * that expensive-looking brands actually use.
+ *
+ * Two DESIGNS, that is, which is what a reader perceives. Each now comes in two
+ * scripts, because Inter and Fraunces carry no Devanagari and the Nepali was
+ * falling through to whatever font the reader's phone happened to ship with.
+ * Mukta stands in for Inter and Tiro Devanagari Hindi for Fraunces, and the two
+ * never compete for a letter — a browser takes each character from the first
+ * font in the stack that contains it. A page still shows one sans and one
+ * serif; it just no longer borrows half of them.
  */
+const SANS = ["Inter", "Mukta"];
+const SERIF = ["Fraunces", "Tiro_Devanagari_Hindi"];
+
 describe("the shop's typefaces", () => {
-  it("loads exactly two families", async () => {
+  it("loads two designs and nothing more, each in both scripts", async () => {
     const layout = await readFile("app/layout.tsx", "utf8");
     const imported = layout.match(/from "next\/font\/google"/)
       ? (layout.match(/import \{([^}]*)\} from "next\/font\/google"/)?.[1] ?? "")
@@ -26,7 +37,17 @@ describe("the shop's typefaces", () => {
       .map((name) => name.trim())
       .filter(Boolean);
 
-    expect(families).toEqual(["Inter", "Fraunces"]);
+    // A third design is what this test exists to stop — four families on one
+    // page is what made the shop read as assembled from a template.
+    expect([...families].sort()).toEqual([...SANS, ...SERIF].sort());
+  });
+
+  it("gives each script a face rather than leaving one to the device", async () => {
+    const layout = await readFile("app/layout.tsx", "utf8");
+
+    // A Devanagari family imported without the "devanagari" subset downloads
+    // Latin glyphs and leaves the Nepali borrowed all the same.
+    expect(layout).toContain('subsets: ["devanagari", "latin"]');
   });
 
   it("does not load a family it no longer uses", async () => {

@@ -56,3 +56,8 @@ next-env.d.ts
 
 # Throwaway edit scripts, never part of the app.
 scripts/.tmp-*
+
+# The assembled design canvas is 2MB of editor code rebuilt from the
+# .dc.html sources beside it — keep the sources, not the build.
+design/*.html
+!design/*.dc.html
