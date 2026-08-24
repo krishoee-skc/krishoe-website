@@ -58,6 +58,42 @@ describe("what the buyer is told", () => {
     expect(body).toContain("कमलनगर, नारायणगढ");
   });
 
+  // The letter went out in Nepali whichever language the shop had been
+  // switched to. Somebody's brother abroad, who had read the whole shop in
+  // English and paid for a pair to be sent to their mother, got back the one
+  // message from the shop they could not read.
+  it("answers in English when the shop was read in English", async () => {
+    const notifications = await readFile(NOTIFICATIONS, "utf8");
+    const body = notifications.slice(
+      notifications.indexOf('if (event.type === "order-confirmation")'),
+      notifications.indexOf('if (event.type === "password-reset")'),
+    );
+
+    expect(body).toContain('order.language === "en"');
+    expect(body).toContain("Thank you for ordering from KRISHOE");
+    expect(body).toContain("Order number: ${order.orderId}");
+    // The subject is the half that shows in the inbox before anything is
+    // opened, so it turns as well.
+    expect(notifications).toContain('payload.language === "en"');
+    expect(notifications).toContain("We have your order — ${payload.orderId}");
+  });
+
+  it("stays Nepali unless the checkout says otherwise", async () => {
+    const actions = await readFile(ACTIONS, "utf8");
+
+    // An order placed by any other route sends no language at all, and must
+    // keep the Nepali letter this shop has always sent.
+    expect(code(actions)).toContain('language: textValue(formData, "language") === "en" ? "en" : "ne"');
+  });
+
+  it("is told the language by the checkout, which is the only place that knows it", async () => {
+    const checkout = await readFile("components/CheckoutClient.tsx", "utf8");
+
+    // The choice lives in the browser's own storage. No server can read it, so
+    // the form has to carry it or the shop cannot know.
+    expect(code(checkout)).toContain('<input type="hidden" name="language" value={language} />');
+  });
+
   it("is a type the table will accept", async () => {
     const sql = await readFile(MIGRATION, "utf8");
 

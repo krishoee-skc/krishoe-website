@@ -64,6 +64,20 @@ describe("the switch itself", () => {
     expect(provider).toContain("document.documentElement.lang = language");
   });
 
+  it("shows the chosen language on the first paint, not the second", async () => {
+    const provider = await readFile("components/LanguageProvider.tsx", "utf8");
+
+    // The server sends English, because the pages are prerendered and it cannot
+    // know one reader from another. Restoring the saved Nepali in useEffect
+    // behind a setTimeout put it two frames away, so a shopper who had chosen
+    // Nepali watched every page arrive in English and turn over in front of
+    // them. A layout effect runs before the browser paints, so it is drawn
+    // once, in the right language.
+    expect(provider).toContain("useIsomorphicLayoutEffect(() => {");
+    expect(provider).toContain('typeof window === "undefined" ? useEffect : useLayoutEffect');
+    expect(provider).not.toContain("setTimeout(() => setLanguage");
+  });
+
   it("is reachable from the navbar", async () => {
     const controls = await readFile("components/NavbarControls.tsx", "utf8");
 
@@ -230,5 +244,67 @@ describe("the screen shown when everything breaks", () => {
     expect(globalError).toContain("केही अड्कियो");
     expect(globalError).toContain("We need a quick retry.");
     expect(globalError).toContain("फेरि प्रयास · Try again");
+  });
+});
+
+/**
+ * The switch in the other direction.
+ *
+ * Everything above counts English shown to a Nepali reader. Nothing counted the
+ * reverse, and the reverse was worse: the terms, the privacy policy, the FAQ,
+ * the wholesale page and order tracking were written in Devanagari with no
+ * English half at all, so pressing EN changed the navbar and left the page it
+ * framed unreadable. The owner found it before any test did.
+ *
+ * Devanagari is fine in a `text()` pair, in a `ne=` prop, or beside its own
+ * English in one deliberate line. What is counted here is Devanagari standing
+ * alone as the only thing an English reader is given.
+ */
+
+/** Nepali with no English half, on a screen a shopper walks through. */
+function unpairedNepali(source: string) {
+  const clean = source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    // text("…", "…") — including the ones written across several lines
+    .replace(/\btext\(\s*(["'`])[\s\S]*?\1\s*,\s*(["'`])[\s\S]*?\2\s*,?\s*\)/g, "")
+    // ne="…" / ne={"…"} / ne={`…`}
+    .replace(/\bne=\{?\s*(["'`])[\s\S]*?\1\s*\}?/g, "")
+    // ne: "…", detailNe: "…", and the rest of that family
+    .replace(/\b\w*[Nn]e:\s*(["'`])[\s\S]*?\1/g, "");
+
+  return clean.split("\n").filter((line) => /[\u0900-\u097F]/.test(line)).length;
+}
+
+describe("how much of the shop an English reader cannot read", () => {
+  it("is getting shorter, not longer", async () => {
+    const files = [...(await screens("app")), ...(await screens("components"))];
+
+    let count = 0;
+    for (const file of files) count += unpairedNepali(await readFile(file, "utf8"));
+
+    // 193 when this was first measured, across the pages a buyer reads before
+    // trusting the shop. What is left is largely what should stay: the staff
+    // login form, which is for the factory rather than for shoppers; the
+    // language invitation, which has to be in Nepali to invite anyone into it;
+    // and lines deliberately written in both at once, which the count above
+    // cannot tell from a line written in one.
+    //
+    // Lower it whenever a batch lands. Never raise it.
+    expect(count).toBeLessThanOrEqual(91);
+  });
+
+  it("leaves nothing unreadable on the pages that earn trust", async () => {
+    // These four are where a first-time buyer decides. Each was Devanagari
+    // only, top to bottom, with a language switch that did nothing to them.
+    for (const file of [
+      "app/faq/page.tsx",
+      "app/terms/page.tsx",
+      "app/privacy/page.tsx",
+      "app/wholesale/page.tsx",
+    ]) {
+      const source = await readFile(file, "utf8");
+      expect(unpairedNepali(source), file).toBeLessThanOrEqual(4);
+    }
   });
 });

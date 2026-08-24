@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { submitInvitedReview, type ReviewFormState } from "./actions";
 
 /**
@@ -15,7 +16,8 @@ import { submitInvitedReview, type ReviewFormState } from "./actions";
 
 const START: ReviewFormState = { ok: false, message: "" };
 
-const WORDS = ["नराम्रो", "ठीकै छैन", "ठीकै", "राम्रो", "धेरै राम्रो"];
+const WORDS_NE = ["नराम्रो", "ठीकै छैन", "ठीकै", "राम्रो", "धेरै राम्रो"];
+const WORDS_EN = ["Poor", "Not quite", "All right", "Good", "Very good"];
 
 export default function ReviewInviteForm({
   token,
@@ -31,6 +33,8 @@ export default function ReviewInviteForm({
     START,
   );
   const [rating, setRating] = useState(0);
+  const { text, language } = useLanguage();
+  const words = language === "ne" ? WORDS_NE : WORDS_EN;
 
   if (state.ok) {
     return (
@@ -41,7 +45,7 @@ export default function ReviewInviteForm({
           href="/shop"
           className="mt-6 inline-block rounded-xl bg-brand-green-ink px-6 py-3 text-sm font-black text-white"
         >
-          पसल हेर्ने
+          {text("Visit the shop", "पसल हेर्ने")}
         </Link>
       </div>
     );
@@ -51,7 +55,7 @@ export default function ReviewInviteForm({
     <form action={action} className="space-y-6">
       <fieldset>
         <legend className="text-base font-black text-brand-green-ink">
-          {productName} कस्तो लाग्यो?
+          {text(`How were the ${productName}?`, `${productName} कस्तो लाग्यो?`)}
         </legend>
 
         {/* Radios rather than buttons: the star row has to work before the
@@ -61,7 +65,7 @@ export default function ReviewInviteForm({
             <label
               key={value}
               className="cursor-pointer p-1 text-4xl leading-none"
-              title={WORDS[value - 1]}
+              title={words[value - 1]}
             >
               <input
                 type="radio"
@@ -76,26 +80,34 @@ export default function ReviewInviteForm({
           ))}
         </div>
         <p className="mt-1 h-5 text-sm font-bold text-amber-700">
-          {rating > 0 ? WORDS[rating - 1] : ""}
+          {rating > 0 ? words[rating - 1] : ""}
         </p>
       </fieldset>
 
       <label className="block">
-        <span className="text-sm font-bold text-gray-800">दुई शब्द लेख्नुहोस्</span>
+        <span className="text-sm font-bold text-gray-800">
+          {text("Write a line or two", "दुई शब्द लेख्नुहोस्")}
+        </span>
         <textarea
           name="comment"
           required
           minLength={5}
           maxLength={1200}
           rows={4}
-          placeholder="साइज कस्तो थियो? टिकाउ छ? अरूलाई सुझाउनुहुन्छ?"
+          placeholder={text(
+            "How was the size? Do they last? Would you tell a friend?",
+            "साइज कस्तो थियो? टिकाउ छ? अरूलाई सुझाउनुहुन्छ?",
+          )}
           className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-base"
         />
       </label>
 
       <label className="block">
         <span className="text-sm font-bold text-gray-800">
-          नाम <span className="font-normal text-gray-500">— नलेखे पनि हुन्छ</span>
+          {text("Name", "नाम")}{" "}
+          <span className="font-normal text-gray-500">
+            {text("— you may leave this blank", "— नलेखे पनि हुन्छ")}
+          </span>
         </span>
         <input
           type="text"
@@ -117,11 +129,14 @@ export default function ReviewInviteForm({
         disabled={pending}
         className="w-full rounded-xl bg-brand-green-ink px-6 py-4 text-base font-black text-white disabled:opacity-60"
       >
-        {pending ? "पठाउँदै…" : "राय पठाउने"}
+        {pending ? text("Sending…", "पठाउँदै…") : text("Send my review", "राय पठाउने")}
       </button>
 
       <p className="text-center text-xs leading-5 text-gray-500">
-        तपाईंको राय KRISHOE ले हेरेर मात्र पसलमा देखाइन्छ।
+        {text(
+          "KRISHOE reads every review before it appears in the shop.",
+          "तपाईंको राय KRISHOE ले हेरेर मात्र पसलमा देखाइन्छ।",
+        )}
       </p>
     </form>
   );

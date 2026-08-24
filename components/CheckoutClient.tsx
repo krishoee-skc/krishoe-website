@@ -78,6 +78,11 @@ function CheckoutForm({
         {/* Structured items let the server recompute the total from catalog
             prices — the submitted total above is never trusted. */}
         <input type="hidden" name="items" value={itemsJson} />
+        {/* The language the customer is reading the shop in, carried with the
+            order so the confirmation email arrives in it. The choice lives in
+            the browser's storage, which no server can see — if it is not sent
+            here, the shop has no way of knowing and everyone gets Nepali. */}
+        <input type="hidden" name="language" value={language} />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">

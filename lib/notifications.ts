@@ -91,6 +91,15 @@ export type OrderConfirmationNotificationPayload = {
   payment: string;
   delivery: string;
   trackUrl: string;
+  /**
+   * The language the customer was reading the shop in when they ordered.
+   *
+   * Nepali when nothing says otherwise: that is who this shop mostly sells to,
+   * and it is what every confirmation said before this field existed. The
+   * checkout sends it because the choice lives in the browser's own storage,
+   * where no server can reach it.
+   */
+  language?: "en" | "ne";
 };
 
 export type ReviewRequestNotificationPayload = {
@@ -300,9 +309,37 @@ export function textSummary(event: NotificationEvent) {
     const order = event.payload as OrderConfirmationNotificationPayload;
     const first = (order.customerName || "").trim().split(" ")[0];
 
-    // Written to the customer, in Nepali, saying the three things they are
-    // actually wondering: did it go through, what did I order, and who do I
-    // ring. The order number is on its own line so it can be read out.
+    // Written to the customer, saying the three things they are actually
+    // wondering: did it go through, what did I order, and who do I ring. The
+    // order number is on its own line so it can be read out over the phone.
+    //
+    // In the language they were reading the shop in. This letter went out in
+    // Nepali only, whichever language the shop had been switched to — so the
+    // Nepali abroad who had ordered a pair for their mother, in English, got
+    // back the one message from the shop they could not read, at exactly the
+    // moment they were deciding whether to trust it.
+    if (order.language === "en") {
+      return [
+        `Hello${first ? " " + first : ""} 🙏`,
+        "",
+        "Thank you for ordering from KRISHOE. We have your order.",
+        "",
+        `Order number: ${order.orderId}`,
+        order.orderText ? `Items: ${order.orderText}` : "",
+        order.total ? `Total: ${order.total}` : "",
+        order.payment ? `Payment: ${order.payment}` : "",
+        order.delivery ? `Delivery: ${order.delivery}` : "",
+        "",
+        "We will ring you shortly to confirm.",
+        "",
+        "📞 9855019351",
+        "💬 WhatsApp 9766630193",
+        order.trackUrl ? `🔎 Track your order: ${order.trackUrl}` : "",
+        "",
+        "— KRISHOE, Kamalnagar, Narayangadh, Chitwan",
+      ].filter((line) => line !== "").join(String.fromCharCode(10));
+    }
+
     return [
       `नमस्कार${first ? " " + first + " जी" : ""} 🙏`,
       "",
@@ -1337,7 +1374,13 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
 export async function notifyOrderConfirmation(payload: OrderConfirmationNotificationPayload) {
   const event = await appendEvent({
     type: "order-confirmation",
-    title: `तपाईंको अर्डर आयो — ${payload.orderId}`,
+    // The subject line is the half of the letter that shows in the inbox
+    // list, so it follows the reader's language too — an English reader
+    // otherwise sees Devanagari before deciding whether to open it at all.
+    title:
+      payload.language === "en"
+        ? `We have your order — ${payload.orderId}`
+        : `तपाईंको अर्डर आयो — ${payload.orderId}`,
     payload,
   });
 

@@ -56,21 +56,21 @@ export default function SizeGuide({ sizes }: { sizes: string[] }) {
 
           <ol className="mt-4 grid gap-2 text-sm leading-6 text-brand-muted">
             <li>
-              <strong className="text-brand-green-ink">१.</strong>{" "}
+              <strong className="text-brand-green-ink">{text("1.", "१.")}</strong>{" "}
               {text(
                 "Put a sheet of paper on the floor against a wall and stand on it, heel touching the wall.",
                 "भुइँमा कागज राखेर भित्तामा कुर्कुच्चा टेकाएर उभिनुहोस्।",
               )}
             </li>
             <li>
-              <strong className="text-brand-green-ink">२.</strong>{" "}
+              <strong className="text-brand-green-ink">{text("2.", "२.")}</strong>{" "}
               {text(
                 "Mark the paper at the tip of your longest toe.",
                 "सबैभन्दा लामो औँलाको टुप्पोमा चिन्ह लगाउनुहोस्।",
               )}
             </li>
             <li>
-              <strong className="text-brand-green-ink">३.</strong>{" "}
+              <strong className="text-brand-green-ink">{text("3.", "३.")}</strong>{" "}
               {text(
                 "Measure from the wall to the mark in centimetres, and find that number below.",
                 "भित्तादेखि चिन्हसम्म सेन्टिमिटरमा नाप्नुहोस्, अनि तल त्यही संख्या खोज्नुहोस्।",

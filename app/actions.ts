@@ -289,6 +289,10 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
         payment: record.payment || record.paymentProvider || "",
         delivery: record.delivery || "",
         trackUrl: `${getSiteUrl()}/track-order`,
+        // Nepali unless the checkout says English. An order placed by any
+        // other route sends nothing here and keeps the Nepali letter this
+        // shop has always sent.
+        language: textValue(formData, "language") === "en" ? "en" : "ne",
       }),
     );
   }
