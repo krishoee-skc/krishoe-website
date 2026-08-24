@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import T from "@/components/T";
 import WholesaleForm from "./WholesaleForm";
 import { getProducts } from "@/lib/product-store";
 import { absoluteUrl, siteConfig } from "@/lib/seo";
@@ -48,11 +49,16 @@ export default async function WholesalePage() {
             थोक बिक्री · Wholesale
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight text-white md:text-5xl">
-            पसल चलाउनुहुन्छ? सिधै कारखानाबाट लिनुहोस्।
+            <T
+              en="Run a shop? Buy straight from the factory."
+              ne="पसल चलाउनुहुन्छ? सिधै कारखानाबाट लिनुहोस्।"
+            />
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">
-            KRISHOE आफ्नै कारखाना हो — नारायणगढ, चितवन। बीचमा कोही नभएकाले
-            थोकको दर इमानदार हुन्छ, र माल आफ्नै हातले जाँचेर पठाइन्छ।
+            <T
+              en="KRISHOE is its own factory, in Narayangadh, Chitwan. With nobody in between, the trade rate is an honest one — and every consignment is checked by our own hands before it goes."
+              ne="KRISHOE आफ्नै कारखाना हो — नारायणगढ, चितवन। बीचमा कोही नभएकाले थोकको दर इमानदार हुन्छ, र माल आफ्नै हातले जाँचेर पठाइन्छ।"
+            />
           </p>
         </div>
       </section>
@@ -60,13 +66,35 @@ export default async function WholesalePage() {
       <section className="py-14">
         <div className="mx-auto grid max-w-5xl gap-8 px-5 md:grid-cols-3 md:px-8">
           {[
-            ["आफ्नै कारखाना", "बीचको कमिसन छैन — दर सिधै कारखानाको।"],
-            ["नियमित सप्लाई", "महिनैपिच्छे उही design, उही गुणस्तर।"],
-            ["साट्ने सुविधा", "मिलेन भने साट्न मिल्छ — पसलको जोखिम कम।"],
-          ].map(([title, detail]) => (
-            <article key={title} className="rounded-2xl border border-black/10 bg-brand-mist p-6">
-              <h2 className="text-xl font-black text-brand-green-ink">{title}</h2>
-              <p className="mt-2 text-sm leading-7 text-brand-muted">{detail}</p>
+            {
+              title: { en: "Our own factory", ne: "आफ्नै कारखाना" },
+              detail: {
+                en: "No commission in the middle — the rate comes straight from the factory.",
+                ne: "बीचको कमिसन छैन — दर सिधै कारखानाको।",
+              },
+            },
+            {
+              title: { en: "Steady supply", ne: "नियमित सप्लाई" },
+              detail: {
+                en: "The same design at the same quality, month after month.",
+                ne: "महिनैपिच्छे उही design, उही गुणस्तर।",
+              },
+            },
+            {
+              title: { en: "Exchange allowed", ne: "साट्ने सुविधा" },
+              detail: {
+                en: "What does not sell can be exchanged — less risk sitting on your shelf.",
+                ne: "मिलेन भने साट्न मिल्छ — पसलको जोखिम कम।",
+              },
+            },
+          ].map(({ title, detail }) => (
+            <article key={title.en} className="rounded-2xl border border-black/10 bg-brand-mist p-6">
+              <h2 className="text-xl font-black text-brand-green-ink">
+                <T en={title.en} ne={title.ne} />
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-brand-muted">
+                <T en={detail.en} ne={detail.ne} />
+              </p>
             </article>
           ))}
         </div>
@@ -76,10 +104,16 @@ export default async function WholesalePage() {
         <section className="bg-brand-mist py-14">
           <div className="mx-auto max-w-5xl px-5 md:px-8">
             <h2 className="text-2xl font-black text-brand-green-ink">
-              थोकमा पाइने design र न्यूनतम अर्डर
+              <T
+                en="Designs available wholesale, and the minimum order"
+                ne="थोकमा पाइने design र न्यूनतम अर्डर"
+              />
             </h2>
             <p className="mt-2 text-sm leading-7 text-brand-muted">
-              दर फोनमा भनिन्छ — तपाईंको परिमाण र नियमितता अनुसार फरक पर्छ।
+              <T
+                en="Rates are given on the phone — they depend on your quantity and how regularly you buy."
+                ne="दर फोनमा भनिन्छ — तपाईंको परिमाण र नियमितता अनुसार फरक पर्छ।"
+              />
             </p>
 
             <div className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-white">
@@ -87,8 +121,12 @@ export default async function WholesalePage() {
                 <thead>
                   <tr className="border-b border-black/10">
                     <th className="px-5 py-3 font-black text-brand-green-ink">Design</th>
-                    <th className="px-5 py-3 font-black text-brand-green-ink">न्यूनतम अर्डर</th>
-                    <th className="px-5 py-3 font-black text-brand-green-ink">साइज</th>
+                    <th className="px-5 py-3 font-black text-brand-green-ink">
+                      <T en="Minimum order" ne="न्यूनतम अर्डर" />
+                    </th>
+                    <th className="px-5 py-3 font-black text-brand-green-ink">
+                      <T en="Sizes" ne="साइज" />
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -96,7 +134,7 @@ export default async function WholesalePage() {
                     <tr key={product.id} className="border-b border-black/[0.06] last:border-0">
                       <td className="px-5 py-3 font-bold text-brand-green-ink">{product.name}</td>
                       <td className="px-5 py-3 tabular-nums text-brand-muted">
-                        {product.minWholesaleQty} जोडी
+                        {product.minWholesaleQty} <T en="pairs" ne="जोडी" />
                       </td>
                       <td className="px-5 py-3 text-brand-muted">
                         {product.sizes[0]}–{product.sizes[product.sizes.length - 1]}
@@ -112,9 +150,14 @@ export default async function WholesalePage() {
 
       <section className="py-14">
         <div className="mx-auto max-w-3xl px-5 md:px-8">
-          <h2 className="text-2xl font-black text-brand-green-ink">दर सोध्नुहोस्</h2>
+          <h2 className="text-2xl font-black text-brand-green-ink">
+            <T en="Ask for a rate" ne="दर सोध्नुहोस्" />
+          </h2>
           <p className="mt-2 text-sm leading-7 text-brand-muted">
-            तल भर्नुहोस् — हामी फोन गरेर दर, साइज र पठाउने कुरा मिलाउँछौँ।
+            <T
+              en="Fill this in — we will ring you and settle the rate, the sizes and the delivery."
+              ne="तल भर्नुहोस् — हामी फोन गरेर दर, साइज र पठाउने कुरा मिलाउँछौँ।"
+            />
           </p>
           <div className="mt-6">
             <WholesaleForm />

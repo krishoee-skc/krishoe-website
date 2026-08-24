@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 import { submitWholesaleEnquiry, type WholesaleFormState } from "./actions";
 
 const initialState: WholesaleFormState = { ok: false, message: "" };
@@ -10,11 +11,14 @@ const inputClass =
 
 export default function WholesaleForm() {
   const [state, formAction] = useActionState(submitWholesaleEnquiry, initialState);
+  const { text } = useLanguage();
 
   if (state.ok) {
     return (
       <div className="rounded-2xl border border-brand-green/25 bg-brand-green-mist p-6 text-center">
-        <p className="text-2xl font-black text-brand-green-ink">धन्यवाद 🙏</p>
+        <p className="text-2xl font-black text-brand-green-ink">
+          {text("Thank you 🙏", "धन्यवाद 🙏")}
+        </p>
         <p className="mt-2 text-sm font-semibold leading-6 text-brand-green">{state.message}</p>
         <p className="mt-3 font-mono text-xs text-brand-muted">{state.reference}</p>
       </div>
@@ -24,17 +28,23 @@ export default function WholesaleForm() {
   return (
     <form action={formAction} className="grid gap-4 md:grid-cols-2">
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        पसलको नाम *
-        <input name="shopName" required maxLength={120} className={inputClass} placeholder="जस्तै: गुरुङ फुटवेयर" />
+        {text("Shop name *", "पसलको नाम *")}
+        <input
+          name="shopName"
+          required
+          maxLength={120}
+          className={inputClass}
+          placeholder={text("e.g. Gurung Footwear", "जस्तै: गुरुङ फुटवेयर")}
+        />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        तपाईंको नाम *
+        {text("Your name *", "तपाईंको नाम *")}
         <input name="contactName" required maxLength={120} autoComplete="name" className={inputClass} />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        फोन नम्बर *
+        {text("Phone number *", "फोन नम्बर *")}
         <input
           name="phone"
           type="tel"
@@ -47,28 +57,36 @@ export default function WholesaleForm() {
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        इमेल (भए)
+        {text("Email (if you have one)", "इमेल (भए)")}
         <input name="email" type="email" maxLength={160} autoComplete="email" className={inputClass} />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        पसल कहाँ छ
-        <input name="location" maxLength={160} className={inputClass} placeholder="सहर, जिल्ला" />
+        {text("Where the shop is", "पसल कहाँ छ")}
+        <input
+          name="location"
+          maxLength={160}
+          className={inputClass}
+          placeholder={text("Town, district", "सहर, जिल्ला")}
+        />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-        महिनामा कति जोडी जति
+        {text("Roughly how many pairs a month", "महिनामा कति जोडी जति")}
         <input name="monthlyPairs" type="number" min="0" className={inputClass} placeholder="200" />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
-        के चाहिन्छ
+        {text("What you need", "के चाहिन्छ")}
         <textarea
           name="requirement"
           rows={4}
           maxLength={1200}
           className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
-          placeholder="जस्तै: महिलाको चप्पल र सेन्डिल, साइज ३६–४१, महिनामा २०० जोडी जति"
+          placeholder={text(
+            "e.g. ladies' slippers and sandals, sizes 36–41, about 200 pairs a month",
+            "जस्तै: महिलाको चप्पल र सेन्डिल, साइज ३६–४१, महिनामा २०० जोडी जति",
+          )}
         />
       </label>
 
@@ -79,7 +97,10 @@ export default function WholesaleForm() {
       ) : null}
 
       <div className="md:col-span-2">
-        <SubmitButton idleLabel="सोधपुछ पठाउने" pendingLabel="पठाउँदै…" />
+        <SubmitButton
+          idleLabel={text("Send enquiry", "सोधपुछ पठाउने")}
+          pendingLabel={text("Sending…", "पठाउँदै…")}
+        />
       </div>
     </form>
   );

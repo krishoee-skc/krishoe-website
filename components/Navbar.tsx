@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import T from "@/components/T";
 import NavbarControls from "@/components/NavbarControls";
 import PrimaryNav from "@/components/PrimaryNav";
 
@@ -22,12 +23,19 @@ type NavbarProps = {
 export default async function Navbar({ isLoggedIn = false, isAdmin = false }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-      {/* The strongest thing this shop can say, said first and small. */}
+      {/* The strongest thing this shop can say, said first and small — and said
+          in the reader's language, since it rides on top of every page. */}
       <p className="flex items-center justify-center gap-2 bg-brand-green-ink px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-gold-bright">
-        <span>नेपालमै बनेको</span>
+        <span>
+          <T en="Made in Nepal" ne="नेपालमै बनेको" />
+        </span>
         <span aria-hidden className="opacity-50">·</span>
-        <span className="hidden sm:inline">१ हप्ताभित्र साट्ने सुविधा</span>
-        <span className="sm:hidden">हाम्रै कारखानाबाट</span>
+        <span className="hidden sm:inline">
+          <T en="Exchange within a week" ne="१ हप्ताभित्र साट्ने सुविधा" />
+        </span>
+        <span className="sm:hidden">
+          <T en="From our own factory" ne="हाम्रै कारखानाबाट" />
+        </span>
       </p>
 
       <div className="border-b border-black/[0.08]">

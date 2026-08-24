@@ -63,7 +63,10 @@ export default async function AboutPage() {
               matches the element directly beats a colour inherited from the
               parent, so without this the heading renders dark on dark. */}
           <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.96] tracking-tight text-white md:text-7xl">
-            Made in Nepal. हाम्रै हातले, हाम्रै कारखानामा।
+            <T
+              en="Made in Nepal. By our own hands, in our own factory."
+              ne="Made in Nepal. हाम्रै हातले, हाम्रै कारखानामा।"
+            />
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
             KRISHOE is a Nepali footwear factory and shop. We design our own
@@ -109,32 +112,34 @@ export default async function AboutPage() {
             हाम्रो वाचा — Our Promise
           </p>
           <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-            जुत्ता मात्र होइन, भरोसा।
+            <T en="Not just shoes — trust." ne="जुत्ता मात्र होइन, भरोसा।" />
           </h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {/* The count is in the digits the reader counts with: १२३ for the
+                Nepali page, 1 2 3 for the English one. */}
             {[
-              [
-                "१",
-                "Checked before it leaves",
-                "हरेक जोडी कारखानाबाट निस्कनु अघि जाँचिन्छ। A pair that isn't good enough for our own family doesn't leave the workshop.",
-              ],
-              [
-                "२",
-                "Easy exchange",
-                "मिलेन भने सजिलै साट्नुहोस्। Our return policy is written for customers, not against them.",
-              ],
-              [
-                "३",
-                "We listen, then we make",
-                "तपाईंको प्रतिक्रियाले नै हाम्रो अर्को design जन्माउँछ। Every review is read, and the next batch is better for it.",
-              ],
-            ].map(([number, title, text]) => (
+              {
+                step: { en: "1", ne: "१" },
+                title: "Checked before it leaves",
+                body: "हरेक जोडी कारखानाबाट निस्कनु अघि जाँचिन्छ। A pair that isn't good enough for our own family doesn't leave the workshop.",
+              },
+              {
+                step: { en: "2", ne: "२" },
+                title: "Easy exchange",
+                body: "मिलेन भने सजिलै साट्नुहोस्। Our return policy is written for customers, not against them.",
+              },
+              {
+                step: { en: "3", ne: "३" },
+                title: "We listen, then we make",
+                body: "तपाईंको प्रतिक्रियाले नै हाम्रो अर्को design जन्माउँछ। Every review is read, and the next batch is better for it.",
+              },
+            ].map(({ step, title, body }) => (
               <article key={title} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
                 <p className="grid h-10 w-10 place-items-center rounded-full bg-brand-green text-lg font-black text-white">
-                  {number}
+                  <T en={step.en} ne={step.ne} />
                 </p>
                 <p className="mt-4 text-xl font-black text-brand-green-ink">{title}</p>
-                <p className="mt-3 text-sm leading-7 text-brand-muted">{text}</p>
+                <p className="mt-3 text-sm leading-7 text-brand-muted">{body}</p>
               </article>
             ))}
           </div>
@@ -164,7 +169,7 @@ export default async function AboutPage() {
               KRISHOE
             </p>
             <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl">
-              नेपाली पाइला, नेपाली जुत्तामा।
+              <T en="Nepali steps, in Nepali shoes." ne="नेपाली पाइला, नेपाली जुत्तामा।" />
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-white/78">
               Every KRISHOE pair keeps a Nepali workshop running and a Nepali
