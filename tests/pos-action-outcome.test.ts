@@ -61,11 +61,14 @@ describe("saving a POS bill reports what happened", () => {
     );
   });
 
-  it("refuses a return with no ledger, in plain words, without throwing", async () => {
+  it("refuses a return with no account, in both the shop's languages, without throwing", async () => {
     const state = await createPosInvoiceAction(null, saleForm({ kind: "Return" }));
 
     expect(state.ok).toBe(false);
-    expect(state.message).toContain("customer ledger");
+    // The counter reads Nepali; the words have to be there, not only the
+    // English the library used to throw.
+    expect(state.message).toContain("खातामा");
+    expect(state.message).toContain("customer account");
     expect(createPosInvoice).not.toHaveBeenCalled();
   });
 

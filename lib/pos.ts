@@ -320,11 +320,16 @@ function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "payme
   }
 
   if (input.kind === "Sale" && creditAmount > 0 && !ledgerId) {
-    throw new Error("Credit or partial POS sale must be linked to a customer ledger.");
+    throw new Error(
+      "उधारो वा आंशिक बिल कसको खातामा चढाउने, त्यो छान्नुहोस्। " +
+        "A credit or part-paid sale must be linked to a customer account.",
+    );
   }
 
   if (input.kind === "Return" && !ledgerId) {
-    throw new Error("POS return must be linked to a customer ledger.");
+    throw new Error(
+      "फिर्ता कसको खातामा जान्छ, त्यो छान्नुहोस्। A return must be linked to a customer account.",
+    );
   }
 }
 

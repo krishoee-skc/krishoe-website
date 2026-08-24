@@ -16,3 +16,22 @@ export function posBillTotal(itemsSubtotal: number, billDiscount: number, tax: n
 export function autoPaidAmount(paymentMethod: string, billTotal: number) {
   return paymentMethod === "Credit" ? 0 : billTotal;
 }
+
+/**
+ * Whether this bill has to name a customer's account before it can be saved.
+ *
+ * A bill that is not paid in full leaves the shop owed money, and a return
+ * hands money back — both have to land against somebody, or the books cannot
+ * say who owes what. The rule lived only inside the save, so the counter met it
+ * as a thrown sentence after the bill was already keyed. It lives here now so
+ * the bill screen can ask the question while the bill is still on screen, and
+ * so the rule the screen enforces is the same one the save enforces.
+ */
+export function posBillCreditDue(kind: string, billTotal: number, paidAmount: number) {
+  if (kind === "Return") {
+    return { needsAccount: billTotal > 0, creditAmount: 0 };
+  }
+
+  const creditAmount = Math.max(0, Math.round((billTotal - paidAmount) * 100) / 100);
+  return { needsAccount: billTotal > 0 && creditAmount > 0, creditAmount };
+}

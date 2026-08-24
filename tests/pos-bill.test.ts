@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoPaidAmount, posBillTotal } from "@/lib/pos-bill";
+import { autoPaidAmount, posBillCreditDue, posBillTotal } from "@/lib/pos-bill";
 
 describe("the bill total the counter pays against", () => {
   it("is items less a bill discount plus tax", () => {
@@ -31,5 +31,39 @@ describe("what the paid amount fills itself to", () => {
   // A credit bill is the due itself, so nothing is paid up front.
   it("stays at zero for a credit bill", () => {
     expect(autoPaidAmount("Credit", 7400)).toBe(0);
+  });
+});
+
+// The shop lost two bills to this rule on the morning of 2026-08-24: a credit
+// sale was refused after it had been keyed, in an English sentence that did not
+// say what to do. The rule is right; the moment it was applied was wrong. These
+// hold the rule where the bill screen can ask the question in time.
+describe("whether a bill has to name a customer's account", () => {
+  it("does not for a cash sale paid in full", () => {
+    expect(posBillCreditDue("Sale", 7200, 7200)).toEqual({ needsAccount: false, creditAmount: 0 });
+  });
+
+  it("does for a credit sale, and says the whole amount is owed", () => {
+    expect(posBillCreditDue("Sale", 7200, 0)).toEqual({ needsAccount: true, creditAmount: 7200 });
+  });
+
+  it("does for a part payment, and says only the rest is owed", () => {
+    expect(posBillCreditDue("Sale", 7200, 5000)).toEqual({ needsAccount: true, creditAmount: 2200 });
+  });
+
+  it("does for every return, whatever was paid", () => {
+    expect(posBillCreditDue("Return", 7200, 7200)).toEqual({ needsAccount: true, creditAmount: 0 });
+  });
+
+  it("does not while the bill is still empty, so an untouched screen stays quiet", () => {
+    expect(posBillCreditDue("Sale", 0, 0)).toEqual({ needsAccount: false, creditAmount: 0 });
+  });
+
+  it("treats an overpayment as settled rather than owing a negative amount", () => {
+    expect(posBillCreditDue("Sale", 7200, 8000)).toEqual({ needsAccount: false, creditAmount: 0 });
+  });
+
+  it("does not trip on rupees-and-paisa arithmetic", () => {
+    expect(posBillCreditDue("Sale", 1250.1, 1250.1)).toEqual({ needsAccount: false, creditAmount: 0 });
   });
 });

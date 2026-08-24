@@ -2,11 +2,11 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPosInvoiceAction } from "@/app/admin/pos/actions";
+import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { posLineIssue } from "@/lib/pos-line-check";
-import { autoPaidAmount, posBillTotal } from "@/lib/pos-bill";
+import { autoPaidAmount, posBillCreditDue, posBillTotal } from "@/lib/pos-bill";
 
 type LedgerOption = { id: string; label: string };
 
@@ -43,6 +43,8 @@ type PosBillFormProps = {
   ledgers: LedgerOption[];
   catalog: SellableItem[];
   lastBill?: RepeatBill | null;
+  /** Whether this admin may open a customer account without leaving the bill. */
+  canOpenLedger?: boolean;
 };
 
 type ItemRow = {
@@ -80,14 +82,28 @@ function fieldClass(hasError: boolean) {
   return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-gray-200 bg-white"}`;
 }
 
-export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormProps) {
+export default function PosBillForm({
+  ledgers,
+  catalog,
+  lastBill,
+  canOpenLedger = false,
+}: PosBillFormProps) {
   const [submissionKey] = useState(
     () => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
   );
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
   const [nextKey, setNextKey] = useState(4);
   const [channel, setChannel] = useState("Retail");
+  const [kind, setKind] = useState("Sale");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
+  // The customer's details are read back when opening their account from here,
+  // so they are held rather than left to the form alone.
+  const [customerName, setCustomerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [ledgerId, setLedgerId] = useState("");
+  const [ledgerOptions, setLedgerOptions] = useState(ledgers);
+  const [ledgerNote, setLedgerNote] = useState("");
+  const [isOpeningLedger, setIsOpeningLedger] = useState(false);
   const [invoiceDiscount, setInvoiceDiscount] = useState("");
   const [tax, setTax] = useState("");
   // The paid amount fills itself to the bill total; the cashier only touches it
@@ -280,6 +296,30 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
   const paidValue = paidTouched ? paidManual : autoPaid > 0 ? String(autoPaid) : "";
   const isCredit = paymentMethod === "Credit";
 
+  // What the shop is still owed once this bill is saved. A Credit bill owes all
+  // of it; a part payment owes the rest. That amount has to sit in somebody's
+  // account, or the shop has handed over pairs with nobody's name against them.
+  const paidNumber = isCredit ? 0 : Number(paidValue) || 0;
+  const { needsAccount: needsLedger, creditAmount } = posBillCreditDue(kind, billTotal, paidNumber);
+  const ledgerMissing = needsLedger && !ledgerId;
+
+  // Opens the customer's account from the bill itself and selects it, so a
+  // credit sale is never sent back to /admin/operations and re-keyed.
+  function openLedger() {
+    setLedgerNote("");
+    setIsOpeningLedger(true);
+    startSaving(async () => {
+      const result = await openPosCustomerLedgerAction({ customerName, phone, channel });
+      setIsOpeningLedger(false);
+      setLedgerNote(result.message);
+
+      if (result.ok && result.ledger) {
+        setLedgerOptions((current) => [result.ledger!, ...current]);
+        setLedgerId(result.ledger.id);
+      }
+    });
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitStartedRef.current) {
@@ -299,6 +339,19 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
     if (firstBadIndex !== -1) {
       const issue = posLineIssue(started[firstBadIndex]);
       setState({ ok: false, message: `Item ${firstBadIndex + 1}: ${issue?.message ?? "please complete this line."}` });
+      return;
+    }
+
+    // Caught here rather than after the save, so the bill is still on screen
+    // and the account can be picked or opened in the box right above.
+    if (ledgerMissing) {
+      setState({
+        ok: false,
+        message:
+          kind === "Return"
+            ? "फिर्ता कसको खातामा जान्छ, माथि Customer account छान्नुहोस्। Pick the customer's account above."
+            : `उधारो रु. ${creditAmount.toLocaleString("en-IN")} बाँकी छ — कसको खातामा चढाउने, माथि छान्नुहोस् वा नयाँ खोल्नुहोस्।`,
+      });
       return;
     }
 
@@ -364,7 +417,13 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <select name="kind" className={inputClass} defaultValue="Sale" aria-label="Bill type">
+        <select
+          name="kind"
+          className={inputClass}
+          value={kind}
+          onChange={(event) => setKind(event.target.value)}
+          aria-label="Bill type"
+        >
           <option>Sale</option>
           <option>Return</option>
         </select>
@@ -398,11 +457,29 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-4">
-        <input name="customerName" className={inputClass} placeholder="Customer name" />
-        <input name="phone" className={inputClass} placeholder="Phone" />
-        <select name="ledgerId" className={inputClass} defaultValue="" aria-label="Customer ledger">
-          <option value="">No ledger / walk-in</option>
-          {ledgers.map((ledger) => (
+        <input
+          name="customerName"
+          className={inputClass}
+          placeholder="Customer name"
+          value={customerName}
+          onChange={(event) => setCustomerName(event.target.value)}
+        />
+        <input
+          name="phone"
+          className={inputClass}
+          placeholder="Phone"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+        />
+        <select
+          name="ledgerId"
+          className={fieldClass(ledgerMissing)}
+          value={ledgerId}
+          onChange={(event) => setLedgerId(event.target.value)}
+          aria-label="Customer account"
+        >
+          <option value="">{needsLedger ? "खाता छान्नुहोस् — pick an account" : "No account / walk-in"}</option>
+          {ledgerOptions.map((ledger) => (
             <option key={ledger.id} value={ledger.id}>
               {ledger.label}
             </option>
@@ -410,6 +487,42 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
         </select>
         <input name="paymentReference" className={inputClass} placeholder="Cheque/QR/ref no." />
       </div>
+
+      {/* The bill is not yet paid in full, so it owes somebody. Said here, while
+          the bill can still be finished — not thrown away by the Save button. */}
+      {ledgerMissing ? (
+        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm font-bold text-amber-900">
+            {kind === "Return"
+              ? "फिर्ता कसको खातामा जान्छ?"
+              : `उधारो रु. ${creditAmount.toLocaleString("en-IN")} — कसको खातामा चढाउने?`}
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            {kind === "Return"
+              ? "A return has to land in a customer's account."
+              : "पैसा पूरै नआएको बिल कसैको नाममा चढ्नुपर्छ, नत्र कसले तिर्न बाँकी छ थाहा हुँदैन। An unpaid amount needs an account."}
+          </p>
+          {canOpenLedger ? (
+            <button
+              type="button"
+              onClick={openLedger}
+              disabled={isOpeningLedger || !customerName.trim()}
+              className="mt-2 inline-flex h-10 items-center rounded-full bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isOpeningLedger
+                ? "खोल्दैछौँ…"
+                : customerName.trim()
+                  ? `+ ${customerName.trim()} को नयाँ खाता खोल्ने`
+                  : "+ नयाँ खाता — पहिले नाम लेख्नुहोस्"}
+            </button>
+          ) : (
+            <p className="mt-2 text-xs font-semibold text-amber-900">
+              नयाँ खाता खोल्न मालिक वा Manager लाई भन्नुहोस् — /admin/operations मा।
+            </p>
+          )}
+          {ledgerNote ? <p className="mt-2 text-xs font-semibold text-amber-900">{ledgerNote}</p> : null}
+        </div>
+      ) : null}
 
       {/* Scan or type a code to add an item. A barcode scanner types the SKU
           and hits Enter; this catches that and drops the item into the bill so
@@ -696,7 +809,11 @@ export default function PosBillForm({ ledgers, catalog, lastBill }: PosBillFormP
           disabled={isSaving || saveLocked}
           className="h-14 w-full rounded-full bg-brand-green-ink px-6 text-base font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          {isSaving || saveLocked ? "Saving..." : "Save bill and open receipt"}
+          {isOpeningLedger
+            ? "खाता खोल्दैछौँ…"
+            : isSaving || saveLocked
+              ? "Saving..."
+              : "Save bill and open receipt"}
         </button>
       </div>
     </form>

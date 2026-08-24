@@ -9,6 +9,8 @@ import PosBillForm from "@/app/admin/pos/_components/PosBillForm";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
 import LoadFailure from "@/components/admin/LoadFailure";
+import { canAdmin, getSessionAdminRole } from "@/lib/admin-permissions";
+import { requireAdminSession } from "@/lib/admin-auth";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
@@ -156,6 +158,9 @@ async function loadPos() {
 
 export default async function AdminPosPage() {
   const loaded = await loadPos();
+  // Only a role that may write to operations can open a customer account from
+  // the bill; the others are told who to ask instead of meeting a refusal.
+  const canOpenLedger = canAdmin(getSessionAdminRole(await requireAdminSession()), "operations:write");
 
   if (!loaded.data) {
     return (
@@ -447,6 +452,7 @@ export default async function AdminPosPage() {
           }))}
           catalog={catalog}
           lastBill={lastBill}
+          canOpenLedger={canOpenLedger}
         />
 
         <div className="grid gap-6">

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
@@ -31,6 +32,7 @@ const channels: PosChannel[] = ["Retail", "Wholesale", "Online"];
 const invoiceKinds: PosInvoiceKind[] = ["Sale", "Return"];
 const paymentMethods: PosPaymentMethod[] = ["Cash", "Cheque", "Credit", "QR", "eSewa", "Khalti", "Bank"];
 const referencePaymentMethods: PosPaymentMethod[] = ["Cheque", "QR", "eSewa", "Khalti", "Bank"];
+const ledgerChannels: CustomerLedger["channel"][] = ["Wholesale", "Retail", "Online"];
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -94,15 +96,28 @@ export async function createPosInvoiceAction(
   const paidAmount = numberValue(formData, "paidAmount");
 
   if (paymentMethod === "Credit" && paidAmount > 0) {
-    return { ok: false, message: "A Credit bill cannot have a paid amount. Use Cash, QR, Cheque, Bank, eSewa, or Khalti." };
+    return {
+      ok: false,
+      message:
+        "उधारो बिलमा तिरेको रकम राख्न मिल्दैन — तिरेको छ भने Cash, QR, Cheque, Bank, eSewa वा Khalti छान्नुहोस्. " +
+        "A Credit bill cannot carry a paid amount.",
+    };
   }
 
   if (referencePaymentMethods.includes(paymentMethod) && paidAmount > 0 && !paymentReference) {
-    return { ok: false, message: `${paymentMethod} needs a reference number when a paid amount is entered.` };
+    return {
+      ok: false,
+      message: `${paymentMethod} बाट पैसा आएको हो भने reference नम्बर लेख्नुहोस्. ${paymentMethod} needs a reference number.`,
+    };
   }
 
   if (kind === "Return" && !ledgerId) {
-    return { ok: false, message: "A return must be linked to a customer ledger." };
+    return {
+      ok: false,
+      message:
+        "फिर्ता कसको खातामा जान्छ, त्यो छान्नुहोस् — तल Customer account मा। " +
+        "A return must be linked to a customer account.",
+    };
   }
 
   let invoice;
@@ -178,4 +193,70 @@ export async function repairPosInvoicePostingAction(formData: FormData) {
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   redirect(posReturnPath(formData, id));
+}
+
+/**
+ * Open a customer's credit account without leaving the bill.
+ *
+ * An unpaid or part-paid sale has to land in somebody's account — otherwise the
+ * shop has given away pairs with no record of who owes for them. The counter
+ * used to learn this only after pressing Save, as an English sentence from deep
+ * in the library ("Credit or partial POS sale must be linked to a customer
+ * ledger"), with the only cure being to abandon the bill, walk to
+ * /admin/operations, open an account there, and key the whole bill again. It
+ * happened twice on the morning of 2026-08-24, an hour apart, and the shop has
+ * one POS bill to show for it.
+ *
+ * So the account is opened from where the problem is noticed. The name and
+ * phone are already typed on the bill; this turns them into an account and
+ * hands its id straight back to the form.
+ */
+export async function openPosCustomerLedgerAction(input: {
+  customerName: string;
+  phone: string;
+  channel: string;
+}): Promise<ActionState & { ledger?: { id: string; label: string } }> {
+  await requireAdminPermission("operations:write");
+
+  const customerName = input.customerName.trim();
+
+  if (!customerName) {
+    return {
+      ok: false,
+      message: "ग्राहकको नाम लेख्नुहोस्, अनि खाता खुल्छ। — Type the customer's name first.",
+    };
+  }
+
+  const channel = optionValue(input.channel.trim(), ledgerChannels, "Retail");
+
+  let ledger;
+  try {
+    ledger = await addCustomerLedger({
+      customerName,
+      channel,
+      phone: input.phone.trim(),
+      cashPaid: 0,
+      chequePaid: 0,
+      creditGiven: 0,
+      balanceDue: 0,
+      creditLimit: 0,
+    });
+  } catch (error) {
+    reportError("open customer ledger from POS", error);
+    return { ok: false, message: saveFailureMessage(error, "खाता खोल्न सकिएन। — Could not open the account.") };
+  }
+
+  await recordAdminAuditEvent(
+    "operations_create_customer_ledger",
+    `Customer ledger ${customerName} opened from the POS bill screen.`,
+  );
+
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/pos");
+
+  return {
+    ok: true,
+    message: `${customerName} को खाता खुल्यो ✅ — account opened.`,
+    ledger: { id: ledger.id, label: `${ledger.customerName} (${ledger.channel})` },
+  };
 }
