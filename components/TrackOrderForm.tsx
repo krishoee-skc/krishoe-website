@@ -39,7 +39,7 @@ export default function TrackOrderForm() {
 
   return (
     <div className="mx-auto w-full max-w-xl">
-      <form action={formAction} className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+      <form action={formAction} className="rounded-2xl border border-black/10 bg-brand-paper p-6 shadow-sm">
         <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
           {text("Order number", "अर्डर नम्बर")}
           <span className="text-xs font-semibold text-brand-muted">
@@ -52,7 +52,7 @@ export default function TrackOrderForm() {
             name="reference"
             required
             autoComplete="off"
-            className="h-12 rounded-lg border border-black/15 bg-white px-4 font-normal text-brand-green-ink outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
+            className="h-12 rounded-lg border border-black/15 bg-brand-paper px-4 font-normal text-brand-green-ink outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
             placeholder="KRI-1042"
           />
         </label>
@@ -73,7 +73,7 @@ export default function TrackOrderForm() {
             inputMode="tel"
             required
             autoComplete="tel"
-            className="h-12 rounded-lg border border-black/15 bg-white px-4 font-normal text-brand-green-ink outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
+            className="h-12 rounded-lg border border-black/15 bg-brand-paper px-4 font-normal text-brand-green-ink outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
             placeholder="98XXXXXXXX"
           />
         </label>
@@ -109,7 +109,7 @@ export default function TrackOrderForm() {
                     className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${
                       stage.step >= step
                         ? "bg-brand-green text-white"
-                        : "bg-white text-brand-muted-soft"
+                        : "bg-brand-paper text-brand-muted-soft"
                     }`}
                   >
                     {stage.step >= step ? "✓" : step}

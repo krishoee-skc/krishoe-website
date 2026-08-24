@@ -18,7 +18,7 @@ export default function RouteError({
   const { text } = useLanguage();
   return (
     <main className="min-h-screen bg-brand-mist px-5 py-16">
-      <div className="mx-auto max-w-2xl rounded-lg border border-black/10 bg-white p-8 text-center shadow-[0_24px_70px_rgba(16,35,29,0.10)] md:p-10">
+      <div className="mx-auto max-w-2xl rounded-lg border border-black/10 bg-brand-paper p-8 text-center shadow-[0_24px_70px_rgba(16,35,29,0.10)] md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">KRISHOE</p>
         <h1 className="mt-4 text-2xl font-black text-brand-green-ink md:text-3xl">{title}</h1>
         <p className="mt-3 text-sm leading-7 text-brand-muted">{message}</p>

@@ -61,7 +61,7 @@ export default function PrimaryNav() {
 
               {shopOpen ? (
                 <div className="absolute left-1/2 top-full z-50 w-[min(92vw,660px)] -translate-x-1/2 pt-3">
-                  <div className="rounded-2xl border border-black/10 bg-white p-3 shadow-2xl">
+                  <div className="rounded-2xl border border-black/10 bg-brand-paper p-3 shadow-2xl">
                     <div className="grid grid-cols-2 gap-1.5">
                       {categories.map((category) => (
                         <Link

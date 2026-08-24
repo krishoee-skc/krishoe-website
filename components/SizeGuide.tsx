@@ -111,7 +111,7 @@ export default function SizeGuide({ sizes }: { sizes: string[] }) {
           </p>
 
           {isKids ? (
-            <p className="mt-2 rounded-xl border border-brand-gold/40 bg-white px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
+            <p className="mt-2 rounded-xl border border-brand-gold/40 bg-brand-paper px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
               {text(
                 "Children's feet grow fast. A finger's width of room at the toe lasts a few months longer.",
                 "बच्चाको खुट्टा छिटो बढ्छ। औँलाको अगाडि एक औँला जति ठाउँ छाडे केही महिना बढी टिक्छ।",

@@ -1,7 +1,7 @@
 import T from "@/components/T";
 export default function PaymentInstructions() {
   return (
-    <div className="rounded-lg border border-brand-green/20 bg-white p-6 shadow-sm">
+    <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep"><T en="Payment note" ne="भुक्तानीबारे" /></p>
       <h3 className="mt-3 text-xl font-black text-brand-green-ink">
         <T en="Bank transfer / QR payment" ne="बैंक ट्रान्सफर / QR भुक्तानी" />

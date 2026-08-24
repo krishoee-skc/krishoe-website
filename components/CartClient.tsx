@@ -18,7 +18,7 @@ export default function CartClient() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           {text("Your cart", "तपाईंको कार्ट")}
         </p>
@@ -45,7 +45,7 @@ export default function CartClient() {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-4">
         {cartItems.map((item) => (
-          <article key={item.key} className="grid gap-5 rounded-lg border border-black/10 bg-white p-4 shadow-sm sm:grid-cols-[140px_1fr]">
+          <article key={item.key} className="grid gap-5 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm sm:grid-cols-[140px_1fr]">
             <Link href={`/product/${item.productId}`} className="relative aspect-square overflow-hidden rounded-lg bg-brand-mist">
               <Image src={item.image} alt={item.name} fill sizes="140px" className="object-cover" />
             </Link>
@@ -128,7 +128,7 @@ export default function CartClient() {
         {canCheckout ? (
           <Link
             href="/checkout"
-            className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
+            className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-brand-paper"
           >
             {text("Continue checkout", "अर्डर अगाडि बढाउनुहोस्")}
           </Link>
@@ -154,7 +154,7 @@ export default function CartClient() {
         )}
         <Link
           href="/shop"
-          className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/25 px-6 text-sm font-black text-white transition hover:bg-white hover:text-brand-green-ink"
+          className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/25 px-6 text-sm font-black text-white transition hover:bg-brand-paper hover:text-brand-green-ink"
         >
           {text("Keep shopping", "किनमेल जारी राख्नुहोस्")}
         </Link>

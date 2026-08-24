@@ -113,7 +113,7 @@ export default function ShareShop({ url }: { url: string }) {
           <button
             type="button"
             onClick={copyLink}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-brand-green/30 bg-white px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-brand-green/30 bg-brand-paper px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
           >
             {copied ? text("Copied", "कपी भयो") : text("Copy link", "लिंक कपी")}
           </button>

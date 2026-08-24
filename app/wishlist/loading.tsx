@@ -7,7 +7,7 @@ export default function WishlistLoading() {
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="overflow-hidden rounded-lg border border-black/10 bg-white">
+            <div key={index} className="overflow-hidden rounded-lg border border-black/10 bg-brand-paper">
               <div className="aspect-[4/3] w-full animate-pulse bg-black/10" />
               <div className="space-y-3 p-5">
                 <div className="h-3 w-20 animate-pulse rounded-full bg-black/10" />

@@ -80,7 +80,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
 
   return (
     <>
-      <div className="rounded-lg border border-black/10 bg-white p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
         {outOfStock ? (
           <p className="mb-4 inline-flex items-center rounded-full bg-brand-clay-tint px-3 py-1 text-sm font-bold text-brand-danger">
             {text("Sold out", "बिक्री सकियो")}

@@ -32,7 +32,7 @@ export default function OfflinePage() {
             : "Check your connection, then try again. Private account, worker, admin, order, and payment data are never stored in the offline cache."}
         </p>
 
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 text-left text-sm leading-6 text-gray-600">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-brand-paper p-6 text-left text-sm leading-6 text-gray-600">
           Your cart and wishlist remain on this device. Reconnect before checking stock,
           placing an order, signing in, or verifying a payment.
         </div>

@@ -58,7 +58,7 @@ export default function WhyChoose() {
           {features.map((item) => (
             <div
               key={item.en}
-              className="rounded-lg bg-white p-8 text-center shadow-lg duration-300 hover:shadow-2xl"
+              className="rounded-lg bg-brand-paper p-8 text-center shadow-lg duration-300 hover:shadow-2xl"
             >
               <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-brand-green-mist text-brand-green">
                 <CheckIcon className="h-6 w-6" />

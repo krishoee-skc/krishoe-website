@@ -26,7 +26,7 @@ export default function NotFound() {
           </Link>
           <Link
             href="/contact"
-            className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-white"
+            className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-paper"
           >
             <T en="Contact KRISHOE" ne="KRISHOE लाई सम्पर्क" />
           </Link>

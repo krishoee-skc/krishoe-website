@@ -10,7 +10,7 @@ export default function CartLoading() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="flex gap-4 rounded-lg border border-black/10 bg-white p-4"
+                className="flex gap-4 rounded-lg border border-black/10 bg-brand-paper p-4"
               >
                 <div className="h-24 w-24 shrink-0 animate-pulse rounded bg-black/10" />
                 <div className="flex-1 space-y-3">
@@ -25,7 +25,7 @@ export default function CartLoading() {
             ))}
           </div>
 
-          <div className="h-fit rounded-lg border border-black/10 bg-white p-5">
+          <div className="h-fit rounded-lg border border-black/10 bg-brand-paper p-5">
             <div className="h-5 w-32 animate-pulse rounded bg-black/10" />
             <div className="mt-5 space-y-3">
               {Array.from({ length: 3 }).map((_, index) => (

@@ -27,7 +27,7 @@ export const metadata: Metadata = createPageMetadata({
  */
 export default function PrivacyPage() {
   return (
-    <main className="bg-white">
+    <main className="bg-brand-paper">
       <Navbar />
       <div className="mx-auto max-w-3xl px-5 py-16 md:px-8">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">

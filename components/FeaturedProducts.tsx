@@ -12,7 +12,7 @@ export default async function FeaturedProducts({ products }: FeaturedProductsPro
   const featuredProducts = (products ?? await getProducts()).filter((product) => product.featured);
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-brand-paper py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>

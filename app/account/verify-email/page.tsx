@@ -28,7 +28,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
     <main className="bg-brand-mist">
       <Navbar />
       <section className="mx-auto max-w-2xl px-5 py-16 md:px-8">
-        <div className="rounded-lg border border-black/10 bg-white p-6 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
+        <div className="rounded-lg border border-black/10 bg-brand-paper p-6 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="KRISHOE account" ne="KRISHOE खाता" />
           </p>

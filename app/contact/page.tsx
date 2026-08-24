@@ -38,7 +38,7 @@ export default function ContactPage() {
               ["Email", businessContact.email],
               ["Hours", "10:00 AM - 7:00 PM, Monday-Saturday"],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-lg border border-black/10 bg-white p-5">
+              <div key={label} className="rounded-lg border border-black/10 bg-brand-paper p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">{label}</p>
                 {label === "Email" ? (
                   <a href={`mailto:${value}`} className="mt-2 block break-all text-lg font-black text-brand-green-ink underline-offset-4 hover:underline">

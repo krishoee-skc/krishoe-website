@@ -102,7 +102,7 @@ export default async function ProductPage({ params }: Props) {
       />
       <Navbar />
       <div className="pb-24 md:pb-0">
-      <main className="bg-white">
+      <main className="bg-brand-paper">
         <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <ProductGallery name={product.name} image={product.image} gallery={product.gallery} />
@@ -212,7 +212,7 @@ export default async function ProductPage({ params }: Props) {
                   <p className="mt-4 leading-7 text-brand-muted">{product.longDescription}</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                  <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
+                  <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-sm">
                     <h4 className="font-black text-brand-green-ink">
                       <T en="Highlights" ne="मुख्य कुरा" />
                     </h4>
@@ -225,7 +225,7 @@ export default async function ProductPage({ params }: Props) {
                       ))}
                     </ul>
                   </div>
-                  <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
+                  <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-sm">
                     <h4 className="font-black text-brand-green-ink">
                       <T en="Care" ne="हेरचाह" />
                     </h4>
@@ -243,7 +243,7 @@ export default async function ProductPage({ params }: Props) {
         </section>
 
         {relatedProducts.length > 0 && (
-          <section className="bg-white py-14 md:py-20">
+          <section className="bg-brand-paper py-14 md:py-20">
             <div className="mx-auto max-w-7xl px-5 md:px-8">
               <h2 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
                 <T en="You might also like" ne="यी पनि मन पर्न सक्छ" />

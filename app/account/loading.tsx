@@ -7,7 +7,7 @@ export default function AccountLoading() {
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="rounded-lg border border-black/10 bg-white p-5">
+            <div key={index} className="rounded-lg border border-black/10 bg-brand-paper p-5">
               <div className="h-4 w-24 animate-pulse rounded bg-black/10" />
               <div className="mt-2 h-8 w-20 animate-pulse rounded bg-black/10" />
               <div className="mt-2 h-3 w-28 animate-pulse rounded-full bg-black/10" />
@@ -16,7 +16,7 @@ export default function AccountLoading() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-lg border border-black/10 bg-white p-5">
+          <div className="rounded-lg border border-black/10 bg-brand-paper p-5">
             <div className="h-5 w-32 animate-pulse rounded bg-black/10" />
             <div className="mt-5 divide-y divide-black/10">
               {Array.from({ length: 4 }).map((_, index) => (
@@ -33,7 +33,7 @@ export default function AccountLoading() {
 
           <div className="space-y-6">
             {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="rounded-lg border border-black/10 bg-white p-5">
+              <div key={index} className="rounded-lg border border-black/10 bg-brand-paper p-5">
                 <div className="h-5 w-36 animate-pulse rounded bg-black/10" />
                 <div className="mt-5 space-y-4">
                   {Array.from({ length: 3 }).map((__, fieldIndex) => (

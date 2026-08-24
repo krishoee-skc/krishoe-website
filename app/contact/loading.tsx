@@ -13,7 +13,7 @@ export default function ContactLoading() {
 
           <div className="mt-8 grid gap-4">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="rounded-lg border border-black/10 bg-white p-5">
+              <div key={index} className="rounded-lg border border-black/10 bg-brand-paper p-5">
                 <div className="h-3 w-24 animate-pulse rounded-full bg-black/10" />
                 <div className="mt-2 h-6 w-44 max-w-full animate-pulse rounded bg-black/10" />
               </div>
@@ -21,7 +21,7 @@ export default function ContactLoading() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-black/10 bg-white p-6">
+        <div className="rounded-lg border border-black/10 bg-brand-paper p-6">
           <div className="h-5 w-40 animate-pulse rounded bg-black/10" />
           <div className="mt-6 grid gap-5">
             {Array.from({ length: 4 }).map((_, index) => (

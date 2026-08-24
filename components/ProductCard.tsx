@@ -29,7 +29,7 @@ export default function ProductCard({
   return (
     <article
       id={product.id}
-      className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
+      className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-brand-paper shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
       <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-brand-mist">
         <SafeImage
@@ -43,7 +43,7 @@ export default function ProductCard({
           loading={eager ? "eager" : "lazy"}
           className="object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-green shadow-sm">
+        <div className="absolute left-4 top-4 rounded-full bg-brand-paper px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-green shadow-sm">
           {product.badge ?? product.category}
         </div>
         {outOfStock ? (

@@ -145,7 +145,7 @@ export default function ProductReviews({
     // The id is the scroll target for the "review your pairs" invitation on a
     // closed order — without it the customer lands at the top of a long product
     // page and has to hunt for the form.
-    <section id="reviews" className="scroll-mt-24 bg-white py-20">
+    <section id="reviews" className="scroll-mt-24 bg-brand-paper py-20">
       <div className="mx-auto max-w-4xl px-5 md:px-8">
         <h3 className="text-2xl font-bold text-brand-green-ink">
           {text("Customer Reviews", "ग्राहकका समीक्षा")}

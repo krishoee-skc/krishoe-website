@@ -40,7 +40,7 @@ export default async function WholesalePage() {
     .sort((left, right) => left.name.localeCompare(right.name));
 
   return (
-    <main className="bg-white">
+    <main className="bg-brand-paper">
       <Navbar />
 
       <section className="bg-brand-green-ink py-16 text-white">
@@ -116,7 +116,7 @@ export default async function WholesalePage() {
               />
             </p>
 
-            <div className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-white">
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-brand-paper">
               <table className="w-full min-w-[28rem] text-left text-sm">
                 <thead>
                   <tr className="border-b border-black/10">

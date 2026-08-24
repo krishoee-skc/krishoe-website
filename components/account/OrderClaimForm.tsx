@@ -34,7 +34,7 @@ export default function OrderClaimForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">{text("Link guest order", "पुरानो अर्डर जोड्ने")}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">
         Add a KRISHOE order reference to bring eligible guest orders into this account.

@@ -11,7 +11,7 @@ export default function CheckoutLoading() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_0.9fr]">
-          <div className="rounded-lg border border-black/10 bg-white p-6">
+          <div className="rounded-lg border border-black/10 bg-brand-paper p-6">
             <div className="h-5 w-40 animate-pulse rounded bg-black/10" />
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               {Array.from({ length: 6 }).map((_, index) => (
@@ -30,7 +30,7 @@ export default function CheckoutLoading() {
             </div>
           </div>
 
-          <div className="h-fit rounded-lg border border-black/10 bg-white p-5">
+          <div className="h-fit rounded-lg border border-black/10 bg-brand-paper p-5">
             <div className="h-5 w-32 animate-pulse rounded bg-black/10" />
             <div className="mt-5 space-y-4">
               {Array.from({ length: 2 }).map((_, index) => (

@@ -78,7 +78,7 @@ export default function FeedbackForm() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-lg border p-8">
+    <div className="max-w-2xl mx-auto bg-brand-paper rounded-lg border p-8">
       <h1 className="text-3xl font-bold mb-2">{text("Share Your Feedback", "तपाईंको सुझाव लेख्नुहोस्")}</h1>
       <p className="text-gray-600 mb-8">
         {text("Help us improve! Your feedback helps us make better decisions.", "तपाईंको सुझावले हामीलाई सुधार्न सहयोग गर्छ।")}
@@ -111,7 +111,7 @@ export default function FeedbackForm() {
                 className={`p-3 rounded-lg border-2 text-center transition ${
                   type === option.value
                     ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    : "border-gray-200 bg-brand-paper hover:border-gray-300"
                 }`}
               >
                 <div className="font-semibold text-gray-900">{option.label}</div>

@@ -58,13 +58,13 @@ export default function ShopCatalog({ products, activeCategory }: ShopCatalogPro
               customers use on the phone, and "प्रसव पछि भुक्तानी" would be a
               translation nobody asks for. */}
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.14em]">
-            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
               <T en="Stock checked" ne="स्टक जाँचिएको" />
             </span>
-            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
               <T en="COD available" ne="सामान पाएपछि पैसा" />
             </span>
-            <span className="rounded-full border border-brand-green/20 bg-white px-3 py-1 text-brand-green">
+            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
               <T en="Nepal delivery" ne="नेपालभरि डेलिभरी" />
             </span>
           </div>

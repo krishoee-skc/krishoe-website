@@ -63,7 +63,7 @@ export default function ReferralCard({
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <span className="rounded-xl border-2 border-dashed border-brand-gold bg-white px-5 py-3 font-mono text-2xl font-black tracking-[0.15em] text-brand-green-ink">
+        <span className="rounded-xl border-2 border-dashed border-brand-gold bg-brand-paper px-5 py-3 font-mono text-2xl font-black tracking-[0.15em] text-brand-green-ink">
           {summary.code}
         </span>
         <button

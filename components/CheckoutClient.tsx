@@ -72,7 +72,7 @@ function CheckoutForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
-      <div className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <input type="hidden" name="order" value={orderItemsForDb} />
         <input type="hidden" name="total" value={subtotalLabel} />
         {/* Structured items let the server recompute the total from catalog
@@ -317,7 +317,7 @@ function CheckoutSuccess({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-      <section className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
+      <section className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
         <div className="grid h-14 w-14 place-items-center rounded-full bg-brand-green-mist text-brand-green">
           <CheckIcon className="h-7 w-7" />
         </div>
@@ -381,7 +381,7 @@ function CheckoutSuccess({
         </p>
         <Link
           href="/shop"
-          className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
+          className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-brand-paper"
         >
           {text("Continue shopping", "किनमेल जारी राख्नुहोस्")}
         </Link>
@@ -469,7 +469,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
 
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-sm md:p-10">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-8 text-center shadow-sm md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           {text("Empty checkout", "कार्ट खाली छ")}
         </p>

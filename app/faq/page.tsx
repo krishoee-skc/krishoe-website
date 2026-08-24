@@ -126,7 +126,7 @@ export default function FaqPage() {
           {faqs.map((item) => (
             <details
               key={item.q.ne}
-              className="group rounded-2xl border border-black/10 bg-white p-5 shadow-sm"
+              className="group rounded-2xl border border-black/10 bg-brand-paper p-5 shadow-sm"
             >
               <summary className="cursor-pointer list-none text-lg font-black text-brand-green-ink marker:hidden">
                 <span className="flex items-start justify-between gap-4">

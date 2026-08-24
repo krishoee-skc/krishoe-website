@@ -12,7 +12,7 @@ export default function WishlistClient() {
 
   if (wishlistProducts.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-white p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Wishlist", "मन परेका")}</p>
         <h1 className="mt-3 text-4xl font-black text-brand-green-ink">{text("Save pairs you love.", "मन परेका जुत्ता बचाउनुहोस्।")}</h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">

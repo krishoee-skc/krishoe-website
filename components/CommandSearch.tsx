@@ -97,7 +97,7 @@ export default function CommandSearch() {
       >
         <SearchIcon className="h-4 w-4" />
         <span className="text-sm">{text("Search premium styles", "जुत्ता खोज्ने")}</span>
-        <kbd className="ml-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-muted-deep">
+        <kbd className="ml-1 rounded border border-black/10 bg-brand-paper px-1.5 py-0.5 text-[10px] font-semibold text-brand-muted-deep">
           Ctrl K
         </kbd>
       </button>
@@ -121,7 +121,7 @@ export default function CommandSearch() {
             onClick={closePalette}
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
           />
-          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,560px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:top-24 sm:max-h-[80vh]">
+          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,560px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper shadow-2xl sm:top-24 sm:max-h-[80vh]">
             <form onSubmit={submitSearch} className="flex items-center gap-3 border-b border-black/10 px-4">
               <SearchIcon className="h-5 w-5 shrink-0 text-brand-muted-deep" />
               <input

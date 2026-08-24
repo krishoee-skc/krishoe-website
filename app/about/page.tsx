@@ -36,7 +36,7 @@ export default async function AboutPage() {
   const products = await loadReviewedProducts();
 
   return (
-    <main className="bg-white">
+    <main className="bg-brand-paper">
       <Navbar />
 
       <section className="relative isolate overflow-hidden bg-brand-green-ink py-20 text-white">
@@ -134,7 +134,7 @@ export default async function AboutPage() {
                 body: "तपाईंको प्रतिक्रियाले नै हाम्रो अर्को design जन्माउँछ। Every review is read, and the next batch is better for it.",
               },
             ].map(({ step, title, body }) => (
-              <article key={title} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+              <article key={title} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
                 <p className="grid h-10 w-10 place-items-center rounded-full bg-brand-green text-lg font-black text-white">
                   <T en={step.en} ne={step.ne} />
                 </p>
@@ -178,7 +178,7 @@ export default async function AboutPage() {
           </div>
           <Link
             href="/shop"
-            className="inline-flex h-12 w-fit items-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
+            className="inline-flex h-12 w-fit items-center rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-brand-paper"
           >
             <T en="Shop KRISHOE" ne="पसल हेर्ने" />
           </Link>

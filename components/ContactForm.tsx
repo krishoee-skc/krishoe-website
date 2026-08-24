@@ -32,7 +32,7 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Send a request", "सोध्नुहोस्")}</p>
       <h2 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Talk to KRISHOE", "KRISHOE सँग कुरा गर्नुहोस्")}</h2>
 

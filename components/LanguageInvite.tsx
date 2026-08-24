@@ -67,7 +67,7 @@ export default function LanguageInvite() {
     <div
       role="dialog"
       aria-label="भाषा छान्नुहोस् · Choose language"
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-white p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6"
+      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6"
     >
       <div className="flex items-start gap-3">
         <span className="text-2xl leading-none" aria-hidden="true">
@@ -90,7 +90,7 @@ export default function LanguageInvite() {
             <button
               type="button"
               onClick={() => answer("en")}
-              className="min-h-11 rounded-xl border border-brand-green/30 bg-white px-3 text-sm font-black text-brand-green-ink"
+              className="min-h-11 rounded-xl border border-brand-green/30 bg-brand-paper px-3 text-sm font-black text-brand-green-ink"
             >
               English
             </button>

@@ -34,7 +34,7 @@ export default async function CheckoutPage() {
             {trustItems.map((item) => (
               <div
                 key={item.en}
-                className="flex min-h-12 items-center gap-2 rounded-full border border-brand-green/20 bg-white px-4 text-sm font-bold text-brand-green-ink"
+                className="flex min-h-12 items-center gap-2 rounded-full border border-brand-green/20 bg-brand-paper px-4 text-sm font-bold text-brand-green-ink"
               >
                 <CheckIcon className="h-4 w-4 shrink-0 text-brand-green" />
                 <T en={item.en} ne={item.ne} />

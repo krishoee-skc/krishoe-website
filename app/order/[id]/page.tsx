@@ -101,7 +101,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
     <main className="bg-brand-mist">
       <Navbar isLoggedIn={Boolean(user)} />
       <section className="mx-auto max-w-4xl px-5 py-16 md:px-8">
-        <div className="rounded-lg border border-black/10 bg-white p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
+        <div className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Order request" ne="अर्डर" />
           </p>
@@ -160,7 +160,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                 </Link>
                 <Link
                   href={registerPath}
-                  className="inline-flex h-11 items-center rounded-full border border-brand-green px-5 text-sm font-bold text-brand-green transition hover:bg-white"
+                  className="inline-flex h-11 items-center rounded-full border border-brand-green px-5 text-sm font-bold text-brand-green transition hover:bg-brand-paper"
                 >
                   <T en="Create account" ne="खाता खोल्नुहोस्" />
                 </Link>
@@ -272,7 +272,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
             </Link>
             <Link
               href="/contact"
-              className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-white"
+              className="inline-flex h-12 items-center rounded-full border border-brand-green px-6 text-sm font-bold text-brand-green transition hover:bg-brand-paper"
             >
               <T en="Contact KRISHOE" ne="KRISHOE लाई सम्पर्क" />
             </Link>

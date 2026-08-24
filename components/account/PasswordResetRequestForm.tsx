@@ -28,7 +28,7 @@ export default function PasswordResetRequestForm() {
   }
 
   return (
-    <form id="password-reset" onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6">
+    <form id="password-reset" onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6">
       <h2 className="text-xl font-black text-brand-green-ink">{text("Reset password", "पासवर्ड फेर्ने")}</h2>
       <p className="mt-2 text-sm leading-7 text-brand-muted">
         Enter your account email. Reset instructions are sent if an account exists.

@@ -27,7 +27,7 @@ export default async function Home() {
   const products = await loadHomeProducts();
 
   return (
-    <main className="bg-white">
+    <main className="bg-brand-paper">
 
       <Navbar />
 
@@ -37,7 +37,7 @@ export default async function Home() {
           sharp on every screen, and the whole banner links into the shop. A
           visually-hidden heading keeps the real text for SEO and screen
           readers. */}
-      <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
+      <section className="bg-brand-paper px-4 pt-4 md:px-8 md:pt-6">
         <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-brand-cream-hero shadow-[0_22px_70px_rgba(59,42,24,0.18)] md:hidden">
           {/* Two heroes, one shown: this portrait banner on a phone, the
               landscape one below on a desktop. Both used to be preloaded, and a

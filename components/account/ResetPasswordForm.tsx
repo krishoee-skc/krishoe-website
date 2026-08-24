@@ -24,7 +24,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border bg-brand-paper p-6 shadow-sm">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-black text-brand-green-ink">{text("Reset Your Password", "पासवर्ड फेर्नुहोस्")}</h1>
         <p className="mt-2 text-sm text-gray-500">{text("Enter a new password for your account.", "नयाँ पासवर्ड राख्नुहोस्।")}</p>

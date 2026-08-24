@@ -55,7 +55,7 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
   if (reviews.length === 0) return null;
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-brand-paper py-20">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="text-center text-4xl font-bold text-brand-green">
           <T en="What Our Customers Say" ne="ग्राहकहरूले के भन्नुहुन्छ" />

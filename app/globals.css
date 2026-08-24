@@ -3,20 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  /* Warm, because the brand is gold and a shoe is leather.
+     The greys here were borrowed from a default palette and every one of them
+     was cool — a bluish white, a slate body colour — which is what made an
+     expensive-looking green-and-gold shop read as a web page rather than as
+     something you could pick up. These are the same roles in paper and stone;
+     the brand's own green, ink and cream are untouched. */
+  --background: #faf8f3;
   --foreground: #10231d;
 
   /* Named by what they are for, not what colour they are, so the dark block
      below only has to restate values. */
-  --surface: #ffffff;        /* cards, panels, table bodies */
-  --surface-sunken: #f9fafb; /* table headers, muted strips */
-  --surface-raised: #f5f7f4; /* hover fills, quiet chips */
-  --hairline: #e5e7eb;       /* borders between rows and cards */
-  --hairline-soft: #f3f4f6;
+  --surface: #fdfbf7;        /* cards, panels, table bodies */
+  --surface-sunken: #f4f2ed; /* table headers, muted strips */
+  --surface-raised: #f7f3ea; /* hover fills, quiet chips */
+  --hairline: #e4dfd5;       /* borders between rows and cards */
+  --hairline-soft: #efebe2;
   --ink: #10231d;            /* headings */
-  --ink-body: #374151;
-  --ink-muted: #6b7280;      /* labels, captions */
-  --ink-faint: #9ca3af;
+  --ink-body: #3b3a33;
+  --ink-muted: #6b6459;      /* labels, captions */
+  --ink-faint: #9a9287;
 }
 
 .dark {

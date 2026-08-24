@@ -6,7 +6,7 @@ export default function OrderStatusLoading() {
         <div className="mt-3 h-12 w-80 max-w-full animate-pulse rounded bg-black/10" />
         <div className="mt-4 h-4 w-64 max-w-full animate-pulse rounded bg-black/10" />
 
-        <div className="mt-10 rounded-lg border border-black/10 bg-white p-6">
+        <div className="mt-10 rounded-lg border border-black/10 bg-brand-paper p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
               <div className="h-3 w-24 animate-pulse rounded-full bg-black/10" />
@@ -25,7 +25,7 @@ export default function OrderStatusLoading() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-lg border border-black/10 bg-white p-6">
+        <div className="mt-6 rounded-lg border border-black/10 bg-brand-paper p-6">
           <div className="h-5 w-32 animate-pulse rounded bg-black/10" />
           <div className="mt-5 divide-y divide-black/10">
             {Array.from({ length: 3 }).map((_, index) => (

@@ -25,7 +25,7 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Saved profile", "बचाएको विवरण")}</p>
       <h2 className="mt-3 text-xl font-black text-brand-green-ink">{text("Account details", "खाताको विवरण")}</h2>
       <div className="mt-5 grid gap-4">

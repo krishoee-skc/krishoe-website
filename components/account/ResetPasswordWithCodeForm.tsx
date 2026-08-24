@@ -31,7 +31,7 @@ export default function ResetPasswordWithCodeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border bg-brand-paper p-6 shadow-sm">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-black text-brand-green-ink">नयाँ password राख्नुहोस्</h1>
         <p className="mt-2 text-sm text-gray-500">

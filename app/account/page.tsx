@@ -58,7 +58,7 @@ function paymentStatusClass(status: PaymentStatus) {
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-sm">
       <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
@@ -70,7 +70,7 @@ function StatCard({ label, value, detail }: { label: string; value: string | num
 
 function OrderHistory({ orders }: { orders: OrderSubmission[] }) {
   return (
-    <section className="mt-6 rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+    <section className="mt-6 rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-brand-green-ink">
@@ -183,7 +183,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           <form action={logoutCustomerAction}>
             <button
               type="submit"
-              className="inline-flex h-11 items-center rounded-full border border-black/10 bg-white px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
+              className="inline-flex h-11 items-center rounded-full border border-black/10 bg-brand-paper px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
             >
               <T en="Sign out" ne="लगआउट" />
             </button>
@@ -222,7 +222,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           <div className="grid content-start gap-6">
             <EmailVerificationPanel user={user} />
             <OrderClaimForm />
-            <aside className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+            <aside className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
               <h2 className="text-lg font-black text-brand-green-ink">
                 <T en="Account status" ne="खाताको अवस्था" />
               </h2>
@@ -247,7 +247,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               <form action={logoutAllCustomerSessionsAction} className="mt-5">
                 <button
                   type="submit"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand-clay/30 bg-white px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay-mist"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand-clay/30 bg-brand-paper px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay-mist"
                 >
                   <T en="Sign out all devices" ne="सबै यन्त्रबाट लगआउट" />
                 </button>

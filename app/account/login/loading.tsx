@@ -2,7 +2,7 @@ export default function AccountLoginLoading() {
   return (
     <main className="min-h-screen bg-brand-mist">
       <div className="mx-auto max-w-md px-5 py-20 md:px-8">
-        <div className="rounded-lg border border-black/10 bg-white p-6">
+        <div className="rounded-lg border border-black/10 bg-brand-paper p-6">
           <div className="h-4 w-24 animate-pulse rounded-full bg-black/10" />
           <div className="mt-3 h-9 w-48 max-w-full animate-pulse rounded bg-black/10" />
 

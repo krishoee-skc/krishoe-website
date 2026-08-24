@@ -107,14 +107,14 @@ export default function ShopCatalogControls({
 
   return (
     <>
-      <section className="mb-8 rounded-lg border border-black/10 bg-white p-4 shadow-sm md:p-5">
+      <section className="mb-8 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm md:p-5">
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
           <Link
             href="/shop"
             className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${
               !activeCategory
                 ? "border-brand-green bg-brand-green text-white"
-                : "border-black/10 bg-white text-brand-green-ink hover:border-brand-green"
+                : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
             }`}
           >
             All
@@ -126,7 +126,7 @@ export default function ShopCatalogControls({
               className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${
                 activeCategory?.slug === item.slug
                   ? "border-brand-green bg-brand-green text-white"
-                  : "border-black/10 bg-white text-brand-green-ink hover:border-brand-green"
+                  : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
               }`}
             >
               {item.title}
@@ -148,7 +148,7 @@ export default function ShopCatalogControls({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="यीमध्ये छान्नुहोस् — नाम, रङ, SKU"
-              className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-sm font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-white"
+              className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-sm font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-brand-paper"
             />
           </label>
 
@@ -157,7 +157,7 @@ export default function ShopCatalogControls({
             <select
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value as SortMode)}
-              className="min-h-12 w-full rounded-full border border-black/10 bg-white px-4 text-sm font-bold text-brand-green-ink outline-none transition focus:border-brand-green"
+              className="min-h-12 w-full rounded-full border border-black/10 bg-brand-paper px-4 text-sm font-bold text-brand-green-ink outline-none transition focus:border-brand-green"
             >
               <option value="featured">{text("Featured first", "छानिएका पहिले")}</option>
               <option value="new">{text("New arrivals", "नयाँ आएका")}</option>
@@ -176,7 +176,7 @@ export default function ShopCatalogControls({
                 className={`min-h-12 rounded-full border px-4 text-sm font-bold capitalize transition ${
                   availability === filter
                     ? "border-brand-green bg-brand-green text-white"
-                    : "border-black/10 bg-white text-brand-green-ink hover:border-brand-green"
+                    : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
                 }`}
               >
                 {filter}
@@ -210,7 +210,7 @@ export default function ShopCatalogControls({
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-brand-green/20 bg-white p-8 text-center shadow-sm md:p-10">
+        <div className="rounded-lg border border-dashed border-brand-green/20 bg-brand-paper p-8 text-center shadow-sm md:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("No match", "भेटिएन")}</p>
           <h2 className="mt-3 text-2xl font-black text-brand-green-ink">{text("No products found.", "कुनै जुत्ता भेटिएन।")}</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-brand-muted">
