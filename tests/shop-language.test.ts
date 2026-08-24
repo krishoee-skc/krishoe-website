@@ -276,9 +276,22 @@ function unpairedNepali(source: string) {
   return clean.split("\n").filter((line) => /[\u0900-\u097F]/.test(line)).length;
 }
 
+/**
+ * The two screens whose whole job is to name the languages.
+ *
+ * A language switch has to print "ने" in Devanagari, and an invitation to read
+ * the shop in Nepali has to be written in Nepali — that is the only form either
+ * can take that works for the reader who needs it. Counting them would mean the
+ * number could never reach zero, which turns a ceiling into noise nobody acts
+ * on. Nothing else belongs on this list.
+ */
+const NAMES_THE_LANGUAGES = ["components/LanguageSwitch.tsx", "components/LanguageInvite.tsx"];
+
 describe("how much of the shop an English reader cannot read", () => {
   it("is getting shorter, not longer", async () => {
-    const files = [...(await screens("app")), ...(await screens("components"))];
+    const files = [...(await screens("app")), ...(await screens("components"))].filter(
+      (file) => !NAMES_THE_LANGUAGES.includes(file),
+    );
 
     let count = 0;
     for (const file of files) count += unpairedNepali(await readFile(file, "utf8"));
@@ -291,7 +304,7 @@ describe("how much of the shop an English reader cannot read", () => {
     // cannot tell from a line written in one.
     //
     // Lower it whenever a batch lands. Never raise it.
-    expect(count).toBeLessThanOrEqual(91);
+    expect(count).toBeLessThanOrEqual(87);
   });
 
   it("leaves nothing unreadable on the pages that earn trust", async () => {

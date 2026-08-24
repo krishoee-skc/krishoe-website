@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import LanguageSwitch from "@/components/LanguageSwitch";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -56,7 +57,8 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
           <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9" />
           KRISHOE Admin
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <LanguageSwitch />
           <ThemeToggle />
           <button
             type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import LanguageSwitch from "@/components/LanguageSwitch";
 import { usePathname } from "next/navigation";
 import {
   CreditCardIcon,
@@ -52,6 +53,8 @@ export default function FactoryNav() {
             </div>
           </div>
 
+          <div className="flex shrink-0 items-center gap-2">
+            <LanguageSwitch />
           <Link
             href="/admin/factory/add-work"
             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-maroon px-3.5 text-xs font-black text-white shadow-[0_8px_20px_rgba(104,30,35,0.18)] transition hover:-translate-y-0.5 hover:bg-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-bright"
@@ -59,6 +62,7 @@ export default function FactoryNav() {
             <PlusIcon className="h-4 w-4" />
             काम टिप्ने
           </Link>
+          </div>
         </div>
 
         <nav

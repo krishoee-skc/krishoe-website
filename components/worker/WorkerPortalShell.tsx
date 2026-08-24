@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LanguageSwitch from "@/components/LanguageSwitch";
 import { logoutWorkerAction } from "@/app/worker/actions";
 
 // No attendance tab: the factory records pairs handed over, not clock-in times.
@@ -25,6 +26,8 @@ export default function WorkerPortalShell({
             </Link>
             <p className="text-xs text-gray-500">Signed in as {workerName}</p>
           </div>
+          <div className="flex items-center gap-2.5">
+            <LanguageSwitch />
           <form action={logoutWorkerAction}>
             <button
               type="submit"
@@ -33,6 +36,7 @@ export default function WorkerPortalShell({
               Sign out
             </button>
           </form>
+          </div>
         </div>
         <nav aria-label="Worker portal" className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-4 sm:px-6">
           {navigation.map((item) => (
