@@ -39,12 +39,20 @@ export default async function Home() {
           readers. */}
       <section className="bg-white px-4 pt-4 md:px-8 md:pt-6">
         <div className="relative mx-auto min-h-[78svh] max-w-md overflow-hidden rounded-[1.75rem] bg-brand-cream-hero shadow-[0_22px_70px_rgba(59,42,24,0.18)] md:hidden">
+          {/* Two heroes, one shown: this portrait banner on a phone, the
+              landscape one below on a desktop. Both used to be preloaded, and a
+              preload link carries no idea of the CSS that hides one — so every
+              shopper on a phone in Nepal downloaded the desktop banner as well,
+              at full viewport width, racing the banner they were actually
+              waiting to see. Next's own guidance for a pair like this is to
+              leave the loading lazy, which fetches only the one that is
+              displayed, and to say which matters with fetchPriority instead. */}
           <Image
             src="/images/mobile-hero-krishoe-gold-v2.png"
             alt="Premium champagne-gold KRISHOE sandals with artisan-inspired detailing"
             fill
-            preload
-            sizes="100vw"
+            fetchPriority="high"
+            sizes="(max-width: 767px) 100vw, 1px"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,252,246,0.96)_0%,rgba(255,252,246,0.78)_25%,rgba(255,252,246,0)_48%)]" />
@@ -107,8 +115,8 @@ export default async function Home() {
             alt="KRISHOE — Your Step. Your Identity. Premium footwear crafted for Nepal."
             width={1536}
             height={1024}
-            priority
-            sizes="100vw"
+            fetchPriority="high"
+            sizes="(min-width: 768px) 100vw, 1px"
             className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,246,0.97)_0%,rgba(255,252,246,0.84)_35%,rgba(255,252,246,0.08)_62%)]" />

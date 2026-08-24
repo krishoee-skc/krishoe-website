@@ -14,11 +14,18 @@ export default async function WorkerLoginPage() {
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-brand-green-ink px-5 py-16">
+      {/* Decoration behind a form, at 30% opacity over a near-opaque gradient —
+          the same 909KB photograph the admin sign-in page was already told to
+          stop fetching first, left marked urgent on the one screen used by the
+          people with the cheapest phones. The worker waits for the fields, not
+          for a picture they can barely see, so it loads when it gets there and
+          a screen reader is not made to announce it. */}
       <Image
         src="/images/hero-banner.png"
-        alt="KRISHOE footwear factory"
+        alt=""
+        aria-hidden
         fill
-        priority
+        loading="lazy"
         sizes="100vw"
         className="object-cover opacity-30"
       />

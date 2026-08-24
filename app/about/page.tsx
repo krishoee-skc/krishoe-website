@@ -49,7 +49,7 @@ export default async function AboutPage() {
           src="/images/products/about.jpg"
           alt="The KRISHOE shop in Nepal"
           fill
-          priority
+          preload
           sizes="100vw"
           className="object-cover opacity-45"
         />

@@ -57,7 +57,7 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
                 alt="KRISHOE"
                 width={80}
                 height={80}
-                priority
+                preload
                 className="h-9 w-9 sm:h-10 sm:w-10"
               />
             </span>

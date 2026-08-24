@@ -31,7 +31,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           src={selectedImage}
           alt={name}
           fill
-          priority
+          preload
           sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover"
         />

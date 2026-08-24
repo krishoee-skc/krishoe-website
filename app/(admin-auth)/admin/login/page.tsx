@@ -60,7 +60,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           alt="KRISHOE"
           width={1200}
           height={1061}
-          priority
+          preload
           sizes="(max-width: 640px) 220px, 260px"
           className="h-auto w-[220px] sm:w-[260px]"
         />

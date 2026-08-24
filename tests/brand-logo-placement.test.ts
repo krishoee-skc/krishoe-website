@@ -30,7 +30,9 @@ describe("the full lockup", () => {
     const banner = page.slice(page.indexOf("/images/hero-banner.png"));
 
     // 150KB the owner came to see, against a 909KB photograph at 35% opacity.
-    expect(logo.slice(0, 400)).toContain("priority");
+    // Next 16 renamed this prop from priority to preload; same instruction to
+    // the browser, a name that says what it does.
+    expect(logo.slice(0, 400)).toContain("preload");
     expect(banner.slice(0, 400)).toContain('loading="lazy"');
   });
 

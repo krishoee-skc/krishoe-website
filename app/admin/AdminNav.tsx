@@ -39,7 +39,7 @@ export default function AdminNav({
               alt={isCollapsed ? "KRISHOE" : ""}
               width={80}
               height={80}
-              priority
+              preload
               className="h-10 w-10 shrink-0"
             />
             {!isCollapsed && (
