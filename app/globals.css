@@ -351,6 +351,17 @@ table th,
     text-align: right;
   }
 
+  /* A cell's contents were laid out to sit in a table column, and several
+     carry their own minimum widths — 560px for the payment panel on the orders
+     screen, 360px for the form inside it. Stacked into a card on a 390px
+     phone those minimums survive the reflow and push the whole page sideways,
+     so the owner scrubs left and right to read one order. Inside a reflowed
+     row the card decides the width, so the minimums come off. */
+  .reflow-table td > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
   .reflow-table td::before {
     content: attr(data-label);
     flex: 0 0 auto;
