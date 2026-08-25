@@ -14,6 +14,7 @@ import {
 } from "@/app/account/actions";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import ReferralCard from "@/components/ReferralCard";
+import YourOrder from "@/components/account/YourOrder";
 import { referralSummary } from "@/lib/referrals";
 import { reportingErrors } from "@/lib/report-error";
 import { absoluteUrl } from "@/lib/seo";
@@ -174,7 +175,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               <T en="My account" ne="मेरो खाता" />
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-              Namaste, {user.name}.
+              <T en={`Namaste, ${user.name}.`} ne={`नमस्ते, ${user.name} जी`} />
             </h1>
             <p className="mt-3 text-sm leading-7 text-brand-muted">
               <T en="Manage your saved checkout details for faster KRISHOE order requests." ne="ठेगाना र विवरण यहीँ राख्नुहोस् — अर्को पटक अर्डर छिटो हुन्छ।" />
@@ -199,6 +200,25 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           <p className="mb-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">
             <T en="All customer sessions have been signed out." ne="सबै यन्त्रबाट लगआउट भयो।" />
           </p>
+        ) : null}
+
+      {/* The question a customer signs in with is always the same one — where
+          are my shoes — and this page used to open with four counting tiles in
+          the shop's own bookkeeping language. The newest order leads now; the
+          counts still follow, they are just no longer the first thing a
+          shopper is asked to interpret. */}
+        {latestOrder ? (
+          <div className="mb-6">
+            <YourOrder
+              reference={latestOrder.id}
+              status={latestOrder.status}
+              total={latestOrder.total || "-"}
+              itemSummary={latestOrder.items
+                .slice(0, 2)
+                .map((item) => `${item.productName}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`)
+                .join(", ")}
+            />
+          </div>
         ) : null}
 
         <div className="mb-6 grid gap-4 md:grid-cols-4">

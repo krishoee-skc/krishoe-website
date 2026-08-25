@@ -12,7 +12,7 @@ import {
 } from "@/components/Icons";
 import QuickAdminHome from "@/components/admin/QuickAdminHome";
 import { getAdminSession } from "@/lib/admin-auth";
-import { getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
+import { canAdmin, getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getHrSnapshot } from "@/lib/hr";
@@ -34,6 +34,7 @@ import { getProductionControlSummary } from "@/lib/production-accounting";
 import { getContactMessages, getOrders, type ContactSubmission, type OrderSubmission } from "@/lib/submissions";
 import TodayBoard from "@/app/admin/TodayBoard";
 import TodaySales from "@/components/admin/TodaySales";
+import StaffToday from "@/components/admin/StaffToday";
 
 export const dynamic = "force-dynamic";
 
@@ -636,15 +637,28 @@ export default async function AdminDashboardPage() {
 
   return (
     <section className="p-6 space-y-6">
-      {/* The number the owner opens this app to see, before the work list and
-          long before the reporting. The page used to lead with pairs made,
-          which is the factory's question rather than the shop's. */}
-      <TodaySales
-        netSales={getPos("summary.todayNetSales", 0)}
-        collected={todayCollected}
-        billCount={todayBillCount}
-        pairsSold={getPos("summary.todayPairs", 0)}
-      />
+{/* Two different people open this page, and until now they met the same
+          screen. The owner wants the shop's money; a salesperson wants their
+          own counter and the button they came to press. The menu beside this
+          was already filtered by role — the page itself was not, so staff
+          looked at a room of numbers they could neither act on nor reach. */}
+      {canAdmin(adminAccess.role, "settings:write") ? (
+        <TodaySales
+          netSales={getPos("summary.todayNetSales", 0)}
+          collected={todayCollected}
+          billCount={todayBillCount}
+          pairsSold={getPos("summary.todayPairs", 0)}
+        />
+      ) : (
+        <StaffToday
+          name={session?.name ?? ""}
+          role={adminAccess.role}
+          billsToday={todayBillCount}
+          soldToday={getPos("summary.todayNetSales", 0)}
+          creditToday={Math.max(0, getPos("summary.todayNetSales", 0) - todayCollected)}
+          ordersToSend={newOrders.length}
+        />
+      )}
 
       {/* What needs doing, before any of the reporting below it. */}
       <TodayBoard
