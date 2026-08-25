@@ -1411,29 +1411,15 @@ CREATE INDEX IF NOT EXISTS sms_messages_event_type_idx ON sms_messages(event_typ
 CREATE INDEX IF NOT EXISTS sms_messages_order_id_idx ON sms_messages(order_id);
 CREATE INDEX IF NOT EXISTS sms_messages_worker_id_idx ON sms_messages(worker_id);
 
--- Admin Alert Center
-CREATE TABLE IF NOT EXISTS admin_alerts (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  alert_type TEXT NOT NULL CHECK (alert_type IN ('manual_payment', 'low_stock', 'quality_issue', 'attendance_alert', 'payroll_ready', 'system_alert')),
-  severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-  title TEXT NOT NULL,
-  message TEXT NOT NULL,
-  icon TEXT NOT NULL DEFAULT '🔔',
-  data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  is_read BOOLEAN NOT NULL DEFAULT false,
-  read_at TIMESTAMPTZ,
-  action_url TEXT,
-  action_label TEXT,
-  expires_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS admin_alerts_created_at_idx ON admin_alerts(created_at DESC);
-CREATE INDEX IF NOT EXISTS admin_alerts_is_read_idx ON admin_alerts(is_read);
-CREATE INDEX IF NOT EXISTS admin_alerts_alert_type_idx ON admin_alerts(alert_type);
-CREATE INDEX IF NOT EXISTS admin_alerts_severity_idx ON admin_alerts(severity);
-CREATE INDEX IF NOT EXISTS admin_alerts_expires_at_idx ON admin_alerts(expires_at)
-  WHERE expires_at IS NOT NULL;
+-- The admin_alerts table was defined here and never created in any live
+-- database, because nothing ever wrote to it: createAlert() was declared and
+-- called from nowhere. The screen that read it swallowed every failure and
+-- showed four zeros, so "all clear" and "I could not check" looked identical
+-- on the one screen where that must never happen.
+--
+-- The shop already computes its real warnings from orders, ledgers, stock,
+-- payments and production every time the page is opened, which is why nobody
+-- missed this store. See getOperationalAlertCenter in lib/notifications.ts.
 
 -- Production Monitoring Tables
 CREATE TABLE IF NOT EXISTS monitoring_errors (
