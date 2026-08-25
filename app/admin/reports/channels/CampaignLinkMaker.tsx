@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   campaignPlaces,
   campaignSources,
@@ -20,6 +21,7 @@ import {
  * finally learns whether printing was worth it.
  */
 export default function CampaignLinkMaker() {
+  const { text } = useLanguage();
   const [place, setPlace] = useState(campaignPlaces[0]);
   const [source, setSource] = useState(campaignSources[0]);
   const [copied, setCopied] = useState(false);
@@ -41,13 +43,18 @@ export default function CampaignLinkMaker() {
 
   return (
     <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 sm:p-6">
-      <h2 className="font-display text-xl font-black text-brand-green-ink">पोस्टको लिङ्क बनाउने</h2>
+      <h2 className="font-display text-xl font-black text-brand-green-ink">
+        {text("Build the link for your post", "पोस्टको लिङ्क बनाउने")}
+      </h2>
       <p className="mt-1.5 text-sm leading-6 text-brand-muted">
-        कुन पाना, कहाँ पोस्ट गर्ने — दुई थिचाइ, अनि लिङ्क तयार।
+        {text(
+          "Which page, and where you are posting it — two taps and the link is ready.",
+          "कुन पाना, कहाँ पोस्ट गर्ने — दुई थिचाइ, अनि लिङ्क तयार।",
+        )}
       </p>
 
       <p className="mt-5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted">
-        कहाँ लैजाने
+        {text("Where it lands", "कहाँ लैजाने")}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {campaignPlaces.map((option) => (
@@ -62,13 +69,13 @@ export default function CampaignLinkMaker() {
                 : "border border-brand-green-line text-brand-muted-deep hover:border-brand-gold"
             }`}
           >
-            {option.ne}
+            {text(option.en, option.ne)}
           </button>
         ))}
       </div>
 
       <p className="mt-5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted">
-        कहाँ पोस्ट गर्ने
+        {text("Where you are posting", "कहाँ पोस्ट गर्ने")}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {campaignSources.map((option) => (
@@ -83,7 +90,7 @@ export default function CampaignLinkMaker() {
                 : "border border-brand-green-line text-brand-muted-deep hover:border-brand-gold"
             }`}
           >
-            {option.ne}
+            {text(option.en, option.ne)}
           </button>
         ))}
       </div>
@@ -96,7 +103,7 @@ export default function CampaignLinkMaker() {
             onClick={() => void copy()}
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink"
           >
-            {copied ? "कपी भयो ✓" : "लिङ्क कपी गर्ने"}
+            {copied ? text("Copied ✓", "कपी भयो ✓") : text("Copy the link", "लिङ्क कपी गर्ने")}
           </button>
           {isFlyer ? (
             <a
@@ -105,15 +112,16 @@ export default function CampaignLinkMaker() {
               rel="noreferrer"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-green px-5 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
             >
-              QR खोल्ने · छाप्ने
+              {text("Open QR · print", "QR खोल्ने · छाप्ने")}
             </a>
           ) : null}
         </div>
       </div>
 
       <p className="mt-4 text-[13px] leading-6 text-brand-muted">
-        यही लिङ्क पोस्टमा राख्नुहोस्। एक हप्तापछि माथिको तालिकामा{" "}
-        <strong className="text-brand-green-ink">{source.showsAsNe}</strong> देखिन्छ।
+        {text("Put this link in the post. A week later the table above shows", "यही लिङ्क पोस्टमा राख्नुहोस्। एक हप्तापछि माथिको तालिकामा")}{" "}
+        <strong className="text-brand-green-ink">{text(source.showsAsEn, source.showsAsNe)}</strong>
+        {text(".", " देखिन्छ।")}
       </p>
     </section>
   );

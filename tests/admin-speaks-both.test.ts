@@ -246,3 +246,45 @@ describe("no screen left half translated", () => {
     expect(nav).not.toContain("{english}");
   });
 });
+
+/**
+ * The screens I built myself and left in one language.
+ *
+ * The owner had ENGLISH selected and got a Nepali channels report — the same
+ * fault I had diagnosed on the products screen a few hours earlier, on a page I
+ * wrote afterwards. Then I audited the app for half-finished work and did not
+ * name it, because I had just built it and assumed.
+ *
+ * Assuming is the thing this file exists to replace.
+ */
+const BUILT_THIS_WEEK = [
+  "app/admin/reports/page.tsx",
+  "app/admin/reports/channels/page.tsx",
+  "app/admin/reports/channels/CampaignLinkMaker.tsx",
+  "app/admin/alerts/page.tsx",
+];
+
+describe("the screens built during this work", () => {
+  it("speaks both languages, every one of them", async () => {
+    for (const file of BUILT_THIS_WEEK) {
+      const source = await readFile(file, "utf8");
+      const paired = /useLanguage|<T\s|<AlertText/.test(source);
+      expect(paired, file).toBe(true);
+    }
+  });
+
+  it("has nothing stranded on the channels report", async () => {
+    expect(await strandedStrings("app/admin/reports/channels/page.tsx")).toEqual([]);
+    expect(await strandedStrings("app/admin/reports/channels/CampaignLinkMaker.tsx")).toEqual([]);
+  });
+
+  it("never leaves one half of a pair empty", async () => {
+    // en="" renders as nothing for an English reader, which is a blank line
+    // rather than a translation — worse than the untranslated row it replaced.
+    for (const file of BUILT_THIS_WEEK) {
+      const source = await readFile(file, "utf8");
+      expect(source, file).not.toContain('en=""');
+      expect(source, file).not.toContain('ne=""');
+    }
+  });
+});
