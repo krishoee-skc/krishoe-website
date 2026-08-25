@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ProductText from "@/components/commerce/ProductText";
 import { productImageAlt } from "@/lib/search-words";
 import type { Product } from "@/lib/products";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
@@ -72,7 +73,7 @@ export default function ProductCard({
                   compact ? "text-base md:text-xl" : "text-xl"
                 }`}
               >
-                {product.name}
+                <ProductText en={product.name} ne={product.nameNe} />
               </h3>
             </Link>
           </div>

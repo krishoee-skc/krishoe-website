@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   sku TEXT,
   name TEXT NOT NULL,
+  -- Nullable: a shoe with no Nepali name falls back to the English one, which
+  -- is what the shop did before these existed. See
+  -- scripts/migrations/20260825_product_nepali_names.sql.
+  name_ne TEXT,
   category TEXT NOT NULL,
   category_slug TEXT NOT NULL,
   price TEXT NOT NULL,
@@ -20,7 +24,9 @@ CREATE TABLE IF NOT EXISTS products (
   badge TEXT,
   rating TEXT NOT NULL DEFAULT '4.8',
   description TEXT NOT NULL DEFAULT '',
+  description_ne TEXT,
   long_description TEXT NOT NULL DEFAULT '',
+  long_description_ne TEXT,
   material TEXT NOT NULL DEFAULT '',
   fit TEXT NOT NULL DEFAULT '',
   colors TEXT[] NOT NULL DEFAULT '{}',

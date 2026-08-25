@@ -76,6 +76,23 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           <span className="text-sm font-medium">Product Name</span>
           <input name="name" defaultValue={product?.name} required className="form-input" />
         </label>
+        {/* The half of the shop the language switch could never reach: a shoe's
+            name comes out of the database, and the database held one. Leaving
+            this blank shows the English name to a Nepali shopper, which is what
+            the shop did before the column existed — so it can be filled in one
+            shoe at a time with nothing broken in between. */}
+        <label className="grid gap-1.5">
+          <span className="text-sm font-medium">नेपालीमा नाम</span>
+          <input
+            name="nameNe"
+            defaultValue={product?.nameNe ?? ""}
+            placeholder="जस्तै: डाक्टर चप्पल"
+            className="form-input"
+          />
+          <span className="text-xs text-brand-muted">
+            नलेखे English नाम नै देखिन्छ — Left blank, the English name is shown.
+          </span>
+        </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">SKU</span>
           <input name="sku" defaultValue={product?.sku} required className="form-input" />
@@ -191,6 +208,17 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">Short Description</span>
         <textarea name="description" defaultValue={product?.description} rows={2} className="form-input" />
+      </label>
+
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium">नेपालीमा छोटो विवरण</span>
+        <textarea
+          name="descriptionNe"
+          defaultValue={product?.descriptionNe ?? ""}
+          rows={2}
+          placeholder="जस्तै: दिनभर लगाउँदा खुट्टा दुख्दैन। भिजे पनि बिग्रँदैन।"
+          className="form-input"
+        />
       </label>
 
       <label className="grid gap-1.5">

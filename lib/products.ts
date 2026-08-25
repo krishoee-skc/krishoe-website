@@ -17,6 +17,15 @@ export type Product = {
   id: string;
   sku: string;
   name: string;
+  /**
+   * The shoe's name in Nepali, when the shop has given it one.
+   *
+   * Optional, and empty for every product until somebody types it. A shopper
+   * reading the shop in Nepali falls back to the English name — which is what
+   * the shop did before this existed, so nothing regresses while the words are
+   * still being written.
+   */
+  nameNe?: string;
   category: string;
   categorySlug: string;
   price: string;
@@ -31,7 +40,9 @@ export type Product = {
   badge?: string;
   rating: string;
   description: string;
+  descriptionNe?: string;
   longDescription: string;
+  longDescriptionNe?: string;
   material: string;
   fit: string;
   colors: string[];

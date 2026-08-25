@@ -48,6 +48,7 @@ type ProductRow = {
   id: string;
   sku: string | null;
   name: string;
+  name_ne: string | null;
   category: string;
   category_slug: string;
   price: string;
@@ -59,7 +60,9 @@ type ProductRow = {
   badge: string | null;
   rating: string;
   description: string;
+  description_ne: string | null;
   long_description: string;
+  long_description_ne: string | null;
   material: string;
   fit: string;
   colors: string[] | null;
@@ -108,6 +111,9 @@ function cleanProduct(product: Product): Product {
     id: product.id.trim(),
     sku: product.sku.trim(),
     name: product.name.trim(),
+    // Trimmed to undefined rather than kept as an empty string: a blank
+    // Nepali name must fall through to the English one, and "" is a value.
+    nameNe: product.nameNe?.trim() || undefined,
     category: category.title,
     categorySlug: category.slug,
     price: formatPrice(priceValue),
@@ -119,7 +125,9 @@ function cleanProduct(product: Product): Product {
     badge: product.badge?.trim() || undefined,
     rating: product.rating.trim() || "4.8",
     description: product.description.trim(),
+    descriptionNe: product.descriptionNe?.trim() || undefined,
     longDescription: product.longDescription.trim(),
+    longDescriptionNe: product.longDescriptionNe?.trim() || undefined,
     material: product.material.trim() || "Premium synthetic finish",
     fit: product.fit.trim() || "Regular fit",
     colors: colors.length > 0 ? colors : ["Black"],
@@ -257,6 +265,7 @@ function productFromRow(row: ProductRow): Product {
     id: row.id,
     sku: row.sku ?? row.id.toUpperCase(),
     name: row.name,
+    nameNe: row.name_ne ?? undefined,
     category: row.category,
     categorySlug: row.category_slug,
     price: row.price,
@@ -268,7 +277,9 @@ function productFromRow(row: ProductRow): Product {
     badge: row.badge ?? undefined,
     rating: row.rating,
     description: row.description,
+    descriptionNe: row.description_ne ?? undefined,
     longDescription: row.long_description,
+    longDescriptionNe: row.long_description_ne ?? undefined,
     material: row.material,
     fit: row.fit,
     colors: stringArray(row.colors),
@@ -322,6 +333,7 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         id,
         sku,
         name,
+        name_ne,
         category,
         category_slug,
         price,
@@ -331,7 +343,9 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
         badge,
         rating,
         description,
+        description_ne,
         long_description,
+        long_description_ne,
         material,
         fit,
         colors,
@@ -528,6 +542,7 @@ async function upsertProductPostgres(product: Product) {
         id,
         sku,
         name,
+        name_ne,
         category,
         category_slug,
         price,
@@ -537,7 +552,9 @@ async function upsertProductPostgres(product: Product) {
         badge,
         rating,
         description,
+        description_ne,
         long_description,
+        long_description_ne,
         material,
         fit,
         colors,
@@ -557,11 +574,12 @@ async function upsertProductPostgres(product: Product) {
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21::jsonb, $22, $23, $24, $25, $26, $27, now()
+        $21, $22, $23, $24::jsonb, $25, $26, $27, $28, $29, $30, now()
       )
       ON CONFLICT (id) DO UPDATE SET
         sku = EXCLUDED.sku,
         name = EXCLUDED.name,
+        name_ne = EXCLUDED.name_ne,
         category = EXCLUDED.category,
         category_slug = EXCLUDED.category_slug,
         price = EXCLUDED.price,
@@ -571,7 +589,9 @@ async function upsertProductPostgres(product: Product) {
         badge = EXCLUDED.badge,
         rating = EXCLUDED.rating,
         description = EXCLUDED.description,
+        description_ne = EXCLUDED.description_ne,
         long_description = EXCLUDED.long_description,
+        long_description_ne = EXCLUDED.long_description_ne,
         material = EXCLUDED.material,
         fit = EXCLUDED.fit,
         colors = EXCLUDED.colors,
@@ -594,6 +614,7 @@ async function upsertProductPostgres(product: Product) {
         id,
         sku,
         name,
+        name_ne,
         category,
         category_slug,
         price,
@@ -603,7 +624,9 @@ async function upsertProductPostgres(product: Product) {
         badge,
         rating,
         description,
+        description_ne,
         long_description,
+        long_description_ne,
         material,
         fit,
         colors,
@@ -623,6 +646,7 @@ async function upsertProductPostgres(product: Product) {
       cleanedProduct.id,
       cleanedProduct.sku,
       cleanedProduct.name,
+      cleanedProduct.nameNe ?? null,
       cleanedProduct.category,
       cleanedProduct.categorySlug,
       cleanedProduct.price,
@@ -632,7 +656,9 @@ async function upsertProductPostgres(product: Product) {
       cleanedProduct.badge ?? null,
       cleanedProduct.rating,
       cleanedProduct.description,
+      cleanedProduct.descriptionNe ?? null,
       cleanedProduct.longDescription,
+      cleanedProduct.longDescriptionNe ?? null,
       cleanedProduct.material,
       cleanedProduct.fit,
       cleanedProduct.colors,

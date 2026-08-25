@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ProductText from "@/components/commerce/ProductText";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById, getProducts } from "@/lib/product-store";
@@ -128,7 +129,7 @@ export default async function ProductPage({ params }: Props) {
                 </span>
               </div>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-                {product.name}
+                <ProductText en={product.name} ne={product.nameNe} />
               </h1>
               <div className="mt-4 flex items-center gap-4">
                 <span className="text-3xl font-bold text-brand-green">{product.price}</span>
@@ -140,7 +141,9 @@ export default async function ProductPage({ params }: Props) {
               {/* The wholesale price is a trade rate, used only at the POS
                   Wholesale channel — it is deliberately not shown to shoppers
                   on the storefront. */}
-              <p className="mt-6 text-base leading-7 text-brand-muted">{product.description}</p>
+              <p className="mt-6 text-base leading-7 text-brand-muted">
+                <ProductText en={product.description} ne={product.descriptionNe} />
+              </p>
 
               <div className="mt-6 grid gap-2 sm:grid-cols-3">
                 {serviceItems.map((item) => (

@@ -392,6 +392,10 @@ export async function upsertProductAction(
     id,
     sku: textValue(formData, "sku") || id.toUpperCase(),
     name,
+    // Blank until the owner types it, and blank falls back to the English —
+    // so a half-translated catalogue reads exactly as it does today and gets
+    // better one shoe at a time.
+    nameNe: textValue(formData, "nameNe") || undefined,
     category: category.title,
     categorySlug,
     price: `Rs. ${(priceValue / 100).toLocaleString("en-IN")}`,
@@ -403,7 +407,9 @@ export async function upsertProductAction(
     badge: textValue(formData, "badge") || undefined,
     rating: textValue(formData, "rating") || "4.8",
     description: textValue(formData, "description"),
+    descriptionNe: textValue(formData, "descriptionNe") || undefined,
     longDescription: textValue(formData, "longDescription"),
+    longDescriptionNe: textValue(formData, "longDescriptionNe") || undefined,
     material: textValue(formData, "material") || "Premium synthetic finish",
     fit: textValue(formData, "fit") || "Regular fit",
     colors: listValue(formData, "colors").length > 0 ? listValue(formData, "colors") : ["Black"],
