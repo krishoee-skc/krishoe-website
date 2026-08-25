@@ -61,3 +61,8 @@ scripts/.tmp-*
 # .dc.html sources beside it — keep the sources, not the build.
 design/*.html
 !design/*.dc.html
+
+# One-off edit scripts belong in the commit they made, not in the tree.
+design/pair-*.mjs
+design/fix-*.mjs
+design/finish-*.mjs
