@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import { useLanguage } from "@/components/LanguageProvider";
 import { usePathname } from "next/navigation";
 import {
   CreditCardIcon,
@@ -34,6 +35,7 @@ const factoryLinks = [
 
 export default function FactoryNav() {
   const pathname = usePathname();
+  const { text } = useLanguage();
 
   return (
     <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-30 border-b border-brand-gold-bright/20 bg-brand-paper/95 shadow-[0_10px_35px_rgba(16,35,29,0.06)] backdrop-blur-xl lg:top-0 print:hidden">
@@ -45,10 +47,13 @@ export default function FactoryNav() {
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-black text-brand-green-ink sm:text-base">
-                कारखाना
+                {text("Factory", "कारखाना")}
               </p>
               <p className="hidden truncate text-xs text-brand-muted-deep sm:block">
-                उत्पादन, ज्याला र तलब · Production, piece wages and staff salary
+                {text(
+                  "Production, piece wages and staff salary",
+                  "उत्पादन, ज्याला र तलब",
+                )}
               </p>
             </div>
           </div>
@@ -60,7 +65,7 @@ export default function FactoryNav() {
             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-maroon px-3.5 text-xs font-black text-white shadow-[0_8px_20px_rgba(104,30,35,0.18)] transition hover:-translate-y-0.5 hover:bg-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-bright"
           >
             <PlusIcon className="h-4 w-4" />
-            काम टिप्ने
+            {text("Add work", "काम टिप्ने")}
           </Link>
           </div>
         </div>
@@ -85,14 +90,7 @@ export default function FactoryNav() {
                 }`}
               >
                 <Icon className="h-4 w-4" />
-                {label}
-                <span
-                  className={`hidden text-[11px] font-semibold lg:inline ${
-                    active ? "text-white/70" : "text-brand-muted"
-                  }`}
-                >
-                  {english}
-                </span>
+                {text(english, label)}
               </Link>
             );
           })}

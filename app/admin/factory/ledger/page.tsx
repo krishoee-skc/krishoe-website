@@ -176,11 +176,18 @@ export default function LedgerPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">ज्यालाको हिसाब</p>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+        {text("Piece-rate wages", "ज्यालाको हिसाब")}
+      </p>
       <h1 className="mt-2 text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
-        कामदारको खाता <span className="text-lg font-bold text-brand-muted">· Work and payment ledger</span>
+        {text("Work and payment ledger", "कामदारको खाता")}
       </h1>
-      <p className="mb-6 text-sm leading-6 text-brand-muted">Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.</p>
+      <p className="mb-6 text-sm leading-6 text-brand-muted">
+        {text(
+          "Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.",
+          "काम सकिँदा ज्याला थपिन्छ। शनिबारको खर्च, पेश्की वा तलब दिँदा घट्छ — सबै यही एउटै हिसाबमा देखिन्छ।",
+        )}
+      </p>
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -211,7 +218,7 @@ export default function LedgerPage() {
         </div>
 
         <div>
-          <BikramMonthPicker value={month} onChange={setMonth} label="महिना" />
+          <BikramMonthPicker value={month} onChange={setMonth} label={text("Month", "महिना")} />
         </div>
       </div>
 
@@ -226,7 +233,7 @@ export default function LedgerPage() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
-                <div className="text-xs sm:text-sm text-brand-muted">Type</div>
+                <div className="text-xs sm:text-sm text-brand-muted">{text("Type", "किसिम")}</div>
                 <div className="font-semibold text-brand-green-ink capitalize">
                   {ledgerData.worker.worker_type.replace("_", " ")}
                 </div>
@@ -270,7 +277,7 @@ export default function LedgerPage() {
             </div>
 
             <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Current Balance</div>
+              <div className="text-xs sm:text-sm text-brand-muted">{text("Current balance", "अहिलेको बाँकी")}</div>
               <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
                 Rs. {ledgerData.summary.currentBalance.toLocaleString()}
               </div>
@@ -280,17 +287,17 @@ export default function LedgerPage() {
           {/* Ledger Entries */}
           <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-bold text-brand-green-ink mb-4">Ledger Entries</h3>
+              <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
               <table className="w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
-                    <th className="text-left py-2 px-2 sm:px-4">Date</th>
-                    <th className="text-left py-2 px-2 sm:px-4">Type</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Pairs</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Earned</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Paid</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Balance</th>
-                    <th className="text-left py-2 px-2 sm:px-4">Note</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Date", "मिति")}</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Type", "के भयो")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Earned", "कमाएको")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Paid", "पाएको")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Balance", "बाँकी")}</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Note", "टिपोट")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -323,7 +330,10 @@ export default function LedgerPage() {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-brand-muted">
-                        No ledger entries for this month
+                        {text(
+                          "No ledger entries for this month",
+                          "यो महिना यस कामदारको कुनै हिसाब छैन।",
+                        )}
                       </td>
                     </tr>
                   )}
@@ -335,37 +345,44 @@ export default function LedgerPage() {
           <form onSubmit={handleRecordPayment} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-emerald-950">Record worker payment</h3>
-                <p className="mt-1 text-sm leading-6 text-emerald-800">Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.</p>
+                <h3 className="text-lg font-black text-emerald-950">{text("Record worker payment", "कामदारलाई दिएको टिप्ने")}</h3>
+                <p className="mt-1 text-sm leading-6 text-emerald-800">
+                  {text(
+                    "Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.",
+                    "पूरै बाँकी, शनिबारको खर्च वा पेश्की — जे दिए पनि हुन्छ। कमाएकोभन्दा बढी दिए, त्यो पछिको कामबाट कट्छ।",
+                  )}
+                </p>
               </div>
-              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-brand-paper px-3 py-2 text-xs font-black text-emerald-800">Use current balance</button>
+              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-brand-paper px-3 py-2 text-xs font-black text-emerald-800">{text("Use current balance", "अहिलेको बाँकी हाल्ने")}</button>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Payment type
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment type", "के बापत")}
                 <select value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
-                  <option>Saturday kharcha / advance</option>
-                  <option>Weekly wage payment</option>
-                  <option>Final wage settlement</option>
-                  <option>Other Owner-approved payment</option>
+                  <option>{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
+                  <option>{text("Weekly wage payment", "साप्ताहिक ज्याला")}</option>
+                  <option>{text("Final wage settlement", "पूरै हिसाब मिलाएको")}</option>
+                  <option>{text("Other Owner-approved payment", "मालिकले भनेर दिएको अरू")}</option>
                 </select>
               </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Payment date
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment date", "कहिले दिइयो")}
                 <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Payment amount" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
+                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
-                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Optional reason or reference" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Owner note", "मालिकको टिपोट")}
+                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
               </label>
             </div>
             <button type="submit" disabled={paymentSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-emerald-700 px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-60">
-              {paymentSaving ? "Saving payment..." : "Record cash payment"}
+              {paymentSaving
+                ? text("Saving…", "टिप्दै…")
+                : text("Record cash payment", "नगद दिएको टिप्ने")}
             </button>
           </form>
         </div>
       ) : (
-        <div className="text-center text-brand-muted">Select a worker to view ledger</div>
+        <div className="text-center text-brand-muted">{text("Select a worker to view their ledger", "खाता हेर्न कामदार छान्नुहोस्")}</div>
       )}
     </div>
   );

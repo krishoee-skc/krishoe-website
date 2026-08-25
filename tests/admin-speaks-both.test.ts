@@ -203,3 +203,46 @@ describe("the screens opened every week", () => {
     expect(ledger).toContain("जम्मा पाएको");
   });
 });
+
+/**
+ * Half a translation reads worse than none.
+ *
+ * The worker ledger was paired eight strings deep and left twenty-five short,
+ * so pressing ENGLISH gave a mostly-English page with a Nepali heading stuck on
+ * top, and pressing नेपाली gave the reverse. The reader cannot tell whether the
+ * words they cannot read are the important ones.
+ *
+ * This counts what is left rather than trusting the eye, which is the only way
+ * a half-finished screen gets noticed before the owner notices it.
+ */
+async function strandedStrings(file: string) {
+  const source = (await readFile(file, "utf8"))
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    // Anything already inside a pair is not stranded.
+    .replace(/\btext\(\s*(["'`])[\s\S]*?\1\s*,\s*(["'`])[\s\S]*?\2\s*,?\s*\)/g, "")
+    .replace(/<T\s[\s\S]*?\/>/g, "")
+    .replace(/<AlertText[\s\S]*?\/>/g, "");
+
+  const between = source.match(/>[\s]*[A-Z][A-Za-z ,.'’()/-]{3,60}[\s]*</g) ?? [];
+  const placeholders = source.match(/placeholder="[A-Z][^"]{3,60}"/g) ?? [];
+  return [...between, ...placeholders];
+}
+
+describe("no screen left half translated", () => {
+  it("has nothing stranded on the worker ledger", async () => {
+    // The screen a worker is shown when they ask what they have earned.
+    expect(await strandedStrings("app/admin/factory/ledger/page.tsx")).toEqual([]);
+  });
+
+  it("shows one language at a time in the factory menu", async () => {
+    const nav = await readFile("app/admin/factory/_components/factory-nav.tsx", "utf8");
+
+    // Every chip used to read "काम टिप्ने Add work". Two labels on one control
+    // is not bilingual — it is a menu twice as long in which neither reader can
+    // scan a column.
+    expect(nav).toContain("{text(english, label)}");
+    expect(nav).not.toContain("{english}");
+  });
+});
