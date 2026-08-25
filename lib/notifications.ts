@@ -160,13 +160,28 @@ export type NotificationDeliveryResult = {
   error: string;
 };
 
+/**
+ * One warning, carrying both languages.
+ *
+ * These are computed on the server, and the language switch lives in the
+ * reader's own browser — so the server cannot know which language to write in.
+ * Every alert therefore arrives with both halves and the screen picks, exactly
+ * as the rest of the app does with its hand-written pairs.
+ *
+ * The English fields keep their names and their old values, so the dashboard,
+ * the notification e-mails and anything else reading an alert are untouched.
+ * The Nepali is an addition; nothing had to be taken away to make room.
+ */
 export type OperationalAlert = {
   id: string;
   category: OperationalAlertCategory;
   severity: OperationalAlertSeverity;
   title: string;
+  titleNe: string;
   detail: string;
+  detailNe: string;
   action: string;
+  actionNe: string;
   href: string;
   amount?: number;
 };
@@ -1483,11 +1498,17 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "sales",
       severity,
       title: `${order.name} is waiting for a call`,
+      titleNe: `${order.name} फोन कुर्दै छन्`,
       detail:
         days >= 1
           ? `Ordered ${days} day${days === 1 ? "" : "s"} ago and still not contacted. ${order.total}.`
           : `Ordered ${hoursWaiting} hours ago and still not contacted. ${order.total}.`,
+      detailNe:
+        days >= 1
+          ? `अर्डर गरेको ${days} दिन भयो, अझै फोन गएको छैन। ${order.total}।`
+          : `अर्डर गरेको ${hoursWaiting} घण्टा भयो, अझै फोन गएको छैन। ${order.total}।`,
       action: `Call ${order.phone} and mark the order Contacted.`,
+      actionNe: `${order.phone} मा फोन गर्नुहोस्, अनि अर्डरलाई "पक्का भयो" लगाउनुहोस्।`,
       href: "/admin/orders",
     });
   }
@@ -1500,8 +1521,16 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "collection",
       severity: ledger.priority === "Urgent" || ledger.priority === "High" ? "critical" : "warning",
       title: `${ledger.customerName} collection ${ledger.priority}`,
+      titleNe: `${ledger.customerName} सँग ${money(ledger.balanceDue)} उधारो`,
       detail: `${money(ledger.balanceDue)} due, ${ledger.daysOutstanding} days outstanding.`,
+      // "0 days outstanding" reads as nonsense in either language for a debt
+      // taken this morning; said plainly, it is simply today's.
+      detailNe:
+        ledger.daysOutstanding > 0
+          ? `${ledger.daysOutstanding} दिन भयो, अझै उठेको छैन।`
+          : "आजै दिएको उधारो हो — अझै केही उठेको छैन।",
       action: ledger.nextAction,
+      actionNe: "फोन गरेर सम्झाउनुहोस्, र केही रकम आजै उठाउनुहोस्।",
       href: `/admin/operations/ledger/${ledger.id}`,
       amount: ledger.balanceDue,
     });
@@ -1515,8 +1544,11 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "supplier",
       severity: supplier.priority === "Immediate" || supplier.priority === "High" ? "critical" : "warning",
       title: `${supplier.supplierName} payable ${supplier.priority}`,
+      titleNe: `${supplier.supplierName} लाई ${money(supplier.balanceDue)} तिर्न बाँकी`,
       detail: `${money(supplier.balanceDue)} supplier due, oldest ${supplier.oldestOpenDays} days.`,
+      detailNe: `सबैभन्दा पुरानो बिल ${supplier.oldestOpenDays} दिनको भयो।`,
       action: supplier.nextAction,
+      actionNe: "साहुलाई फोन गरेर भुक्तानीको मिति मिलाउनुहोस्।",
       href: `/admin/purchasing/supplier/${supplier.supplierLedgerId}`,
       amount: supplier.balanceDue,
     });
@@ -1530,8 +1562,11 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "stock",
       severity: stock.signal === "Variance" ? "critical" : "warning",
       title: `${stock.design} stock ledger ${stock.signal}`,
+      titleNe: `${stock.design} — हिसाब र माल मिलेन`,
       detail: `${stock.channel} book ${stock.stockPairs}, movement ${stock.movementStockPairs}, variance ${stock.variancePairs}.`,
+      detailNe: `किताबमा ${stock.stockPairs} जोडी, चालअनुसार ${stock.movementStockPairs} जोडी — ${Math.abs(stock.variancePairs)} जोडीको फरक।`,
       action: stock.nextAction,
+      actionNe: "माल गनेर हेर्नुहोस्, अनि फरक कहाँबाट आयो पत्ता लगाउनुहोस्।",
       href: "/admin/operations",
       amount: Math.abs(stock.variancePairs),
     });
@@ -1545,8 +1580,17 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "catalog",
       severity: product.stock <= 0 ? "critical" : "warning",
       title: `${product.name} catalog stock low`,
+      titleNe:
+        product.stock <= 0
+          ? `${product.name} पसलमा सकियो`
+          : `${product.name} सकिन लाग्यो — ${product.stock} जोडी मात्र`,
       detail: `${product.stock} pair(s) available in online catalog.`,
+      detailNe:
+        product.stock <= 0
+          ? "ग्राहकले पसलमा देख्छन् तर किन्नै मिल्दैन।"
+          : `पसलमा ${product.stock} जोडी मात्र बाँकी छ।`,
       action: "Sync with operations stock or plan replenishment before online selling.",
+      actionNe: "स्टक हाल्नुहोस्, वा अहिलेलाई पसलबाट लुकाउनुहोस्।",
       href: "/admin/products",
       amount: product.stock,
     });
@@ -1558,8 +1602,11 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "posting",
       severity: "critical",
       title: "POS posting needs review",
+      titleNe: `${pos.summary.needsReview} वटा बिलको हिसाब मिलेन`,
       detail: `${pos.summary.needsReview} POS invoice(s) need stock or ledger posting review.`,
+      detailNe: "बिल कटेको छ तर स्टक वा खातामा चढेको छैन।",
       action: "Open POS posting health and repair or review invoices.",
+      actionNe: "बिल खोलेर हेर्नुहोस् — मिलाउने बटन त्यहीँ छ।",
       href: "/admin/pos",
       amount: pos.summary.needsReview,
     });
@@ -1571,8 +1618,11 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "posting",
       severity: "warning",
       title: "Purchase posting needs review",
+      titleNe: `${purchasing.summary.postingNeedsReview} वटा किनमेलको हिसाब मिलेन`,
       detail: `${purchasing.summary.postingNeedsReview} purchase invoice(s) need supplier/raw material posting review.`,
+      detailNe: "किनमेलको बिल छ तर साहु वा कच्चा पदार्थसँग जोडिएको छैन।",
       action: "Open purchasing posting health and fix missing supplier/material links.",
+      actionNe: "किनमेलको बिल खोलेर साहु र सामान जोड्नुहोस्।",
       href: "/admin/purchasing",
       amount: purchasing.summary.postingNeedsReview,
     });
@@ -1584,8 +1634,16 @@ export async function getOperationalAlertCenter(): Promise<OperationalAlertCente
       category: "payment",
       severity: issue.severity === "high" ? "critical" : "warning",
       title: issue.type,
+      // The reconciliation issues come from another module in English, and
+      // rewriting each of its types here would put the same sentence in two
+      // places to drift apart. The Nepali says what KIND of problem it is —
+      // which is the part a reader needs to decide whether to open it — and
+      // the English detail beneath keeps the specifics.
+      titleNe: "भुक्तानीको हिसाब मिलेन",
       detail: issue.detail,
+      detailNe: issue.detail,
       action: issue.recommendation,
+      actionNe: "भुक्तानीको पाना खोलेर बिलसँग मिलाउनुहोस्।",
       href: "/admin/payments",
     });
   }

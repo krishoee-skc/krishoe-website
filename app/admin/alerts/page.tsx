@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import AlertText from "@/components/admin/AlertText";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { ArrowRightIcon } from "@/components/Icons";
 import { requireAdminPermission } from "@/lib/admin-permissions";
@@ -86,12 +87,16 @@ function AlertRow({ alert }: { alert: OperationalAlert }) {
 
       <span className="min-w-0 flex-grow">
         <span className="block text-base font-black leading-snug text-brand-green-ink">
-          {alert.title}
+          <AlertText en={alert.title} ne={alert.titleNe} />
         </span>
-        <span className="mt-1 block text-sm leading-6 text-brand-muted">{alert.detail}</span>
+        <span className="mt-1 block text-sm leading-6 text-brand-muted">
+          <AlertText en={alert.detail} ne={alert.detailNe} />
+        </span>
         {/* What to do, not merely what is wrong. An alert with no next step is
             a worry rather than a task. */}
-        <span className="mt-2 block text-sm font-bold text-brand-green">{alert.action}</span>
+        <span className="mt-2 block text-sm font-bold text-brand-green">
+          <AlertText en={alert.action} ne={alert.actionNe} />
+        </span>
       </span>
 
       <ArrowRightIcon className="hidden h-5 w-5 shrink-0 text-brand-muted-soft transition group-hover:text-brand-gold-deep sm:mt-1 sm:block" />

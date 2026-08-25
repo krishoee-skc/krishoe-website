@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AlertText from "@/components/admin/AlertText";
 import type { ComponentType, ReactNode } from "react";
 import {
   ArrowRightIcon,
@@ -1020,14 +1021,20 @@ export default async function AdminDashboardPage() {
             {getAlert("alerts", [] as OperationalAlert[]).slice(0, 5).map((alert) => (
               <Link key={alert?.id} href={alert?.href || "#"} className="block py-3 transition hover:text-brand-green">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-brand-green-ink">{alert?.title || "Alert"}</p>
+                  <p className="font-bold text-brand-green-ink">
+                    <AlertText en={alert?.title || "Alert"} ne={alert?.titleNe || ""} />
+                  </p>
                   <StatusBadge label={alert?.severity || "info"} tone={alertTone(alert?.severity || "info")} />
                 </div>
-                <p className="mt-1 text-xs leading-5 text-brand-muted">{alert?.detail || ""}</p>
+                <p className="mt-1 text-xs leading-5 text-brand-muted">
+                  <AlertText en={alert?.detail || ""} ne={alert?.detailNe || ""} />
+                </p>
               </Link>
             ))}
             {getAlert("alerts", [] as OperationalAlert[]).length === 0 ? (
-              <p className="py-3 text-sm font-semibold text-brand-green">No operational alert is active.</p>
+              <p className="py-3 text-sm font-semibold text-brand-green">
+                कतै केही अड्किएको छैन — अर्डर, उधारो, स्टक र बिल सबै जाँचिएको।
+              </p>
             ) : null}
           </div>
         </section>

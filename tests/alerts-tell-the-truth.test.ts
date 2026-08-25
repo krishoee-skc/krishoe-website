@@ -77,3 +77,69 @@ describe("what an empty alert screen says", () => {
     expect(page).toContain("alert.action");
   });
 });
+
+/**
+ * An alert nobody at the counter can read is an alert nobody acts on.
+ *
+ * The warnings are computed on the server, where the language is unknowable —
+ * the choice lives in the reader's own browser. So each alert carries both
+ * halves and the screen picks, exactly as the storefront does with its
+ * hand-written pairs. The English keeps its old field names and old values, so
+ * the dashboard, the digest e-mail and the notification records are untouched.
+ */
+describe("the language an alert speaks", () => {
+  it("carries both halves, because the server cannot know which is wanted", async () => {
+    const notifications = await readFile("lib/notifications.ts", "utf8");
+    const shape = notifications.slice(
+      notifications.indexOf("export type OperationalAlert = {"),
+      notifications.indexOf("export type OperationalAlertCenter"),
+    );
+
+    for (const field of ["title:", "titleNe:", "detail:", "detailNe:", "action:", "actionNe:"]) {
+      expect(shape, field).toContain(field);
+    }
+  });
+
+  it("gives every alert its Nepali, with none left behind", async () => {
+    const notifications = await readFile("lib/notifications.ts", "utf8");
+    const centre = notifications.slice(notifications.indexOf("export async function getOperationalAlertCenter"));
+    const body = centre.slice(0, centre.indexOf("const sortedAlerts"));
+
+    // Eight places raise an alert. A ninth added without its Nepali half would
+    // not fail to compile — the type would catch a missing field, but not a
+    // field filled with the English string — so count them.
+    const raised = (body.match(/alerts\.push\(\{/g) ?? []).length;
+    expect(raised).toBeGreaterThanOrEqual(8);
+    expect((body.match(/titleNe:/g) ?? []).length).toBe(raised);
+    expect((body.match(/actionNe:/g) ?? []).length).toBe(raised);
+  });
+
+  it("says what the shop says, not a word-for-word translation", async () => {
+    const notifications = await readFile("lib/notifications.ts", "utf8");
+
+    // From the glossary: उधारो rather than "credit", जोडी rather than "pairs",
+    // साहु rather than "supplier". A machine rendering of "catalog stock low"
+    // is the kind of sentence a reader skims past without acting on.
+    for (const word of ["उधारो", "जोडी", "साहु", "पसलमा सकियो"]) {
+      expect(notifications, word).toContain(word);
+    }
+  });
+
+  it("does not print a debt as zero days old", async () => {
+    const notifications = await readFile("lib/notifications.ts", "utf8");
+
+    // "0 days outstanding" is nonsense for money lent this morning.
+    expect(notifications).toContain("ledger.daysOutstanding > 0");
+    expect(notifications).toContain("आजै दिएको उधारो हो");
+  });
+
+  it("picks the language in the browser, without making the page client-side", async () => {
+    const picker = await readFile("components/admin/AlertText.tsx", "utf8");
+    const page = await readFile(PAGE, "utf8");
+
+    expect(picker).toContain('"use client"');
+    expect(page).toContain("<AlertText");
+    // The page itself stays a server component; only the words are an island.
+    expect(page.slice(0, 200)).not.toContain('"use client"');
+  });
+});
