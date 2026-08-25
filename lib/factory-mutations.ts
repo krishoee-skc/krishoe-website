@@ -95,9 +95,8 @@ async function lockWorker(
     name: string;
     category: string;
     worker_type: string;
-    hr_employee_id: string | null;
   }>(
-    `SELECT id, name, category, worker_type, hr_employee_id
+    `SELECT id, name, category, worker_type
      FROM factory_workers
      WHERE id = $1${options.activeOnly === false ? "" : " AND status = 'active'"}
      FOR UPDATE`,
@@ -238,9 +237,9 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     } | null = null;
 
     if (input.workOrderId) {
-      if (!worker.hr_employee_id || !items[0].production_item_id || !stage) {
+      if (!items[0].production_item_id || !stage) {
         throw new FactoryMutationError(
-          "Link this Factory worker to HR and this item to Production Item Master before selecting a Work Order.",
+          "Link this item to the Production Item Master before selecting a Work Order.",
           409,
         );
       }
@@ -338,7 +337,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         input.itemId,
         worker.category,
         input.date,
-        worker.hr_employee_id,
+        worker.id,
         items[0].production_item_id,
         stage,
       ],
@@ -381,7 +380,6 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     let productionSynced = false;
 
     if (
-      worker.hr_employee_id &&
       items[0].production_item_id &&
       items[0].production_item_name &&
       stage
@@ -398,7 +396,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
            0, 0, $10, $11, 'Approved', 'Factory quick entry', now(), $12, $13
          )`,
         [
-          crypto.randomUUID(), input.date, worker.hr_employee_id, worker.name,
+          crypto.randomUUID(), input.date, worker.id, worker.name,
           items[0].production_item_id, items[0].production_item_name, stage,
           input.pairsCount, JSON.stringify({ [sizeLabel]: input.pairsCount }),
           rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
@@ -610,8 +608,7 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
         ...ledgerResponse(existing[0], input.submissionKey, true),
         production_payment_synced:
           input.entryType === "payment" &&
-          worker.worker_type === "piece_rate" &&
-          Boolean(worker.hr_employee_id),
+          worker.worker_type === "piece_rate",
       };
     }
 
@@ -655,8 +652,7 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
     let productionPaymentSynced = false;
     if (
       input.entryType === "payment" &&
-      worker.worker_type === "piece_rate" &&
-      worker.hr_employee_id
+      worker.worker_type === "piece_rate"
     ) {
       const paymentType = input.productionPaymentType ?? "Midweek Advance";
       await db.query(
@@ -668,7 +664,7 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
         [
           crypto.randomUUID(),
           input.date,
-          worker.hr_employee_id,
+          worker.id,
           worker.name,
           paymentType,
           input.paymentGiven,

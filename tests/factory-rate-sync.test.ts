@@ -18,23 +18,29 @@ describe("Factory and Production wage rate synchronization", () => {
     recordAdminAuditEvent.mockReset().mockResolvedValue(undefined);
   });
 
-  it("reads the rate in force for this item and stage, newest first", async () => {
-    queryPostgres.mockResolvedValue([{ rate_per_pair: 18, rate_source: "Factory rate" }]);
+  it("reads worker override, Production stage, then Factory rate in that order", async () => {
+    queryPostgres.mockResolvedValue([{ rate_per_pair: 18, rate_source: "Worker override" }]);
     const { GET } = await import("@/app/api/factory/rates/route");
     const response = await GET(new NextRequest(
-      "https://krishoe.test/api/factory/rates?itemId=factory-1&workerCategory=Fiber%20Silai",
+      "https://krishoe.test/api/factory/rates?itemId=factory-1&workerCategory=Fiber%20Silai&workerId=worker-1",
     ));
 
     expect(response.status).toBe(200);
     const sql = String(queryPostgres.mock.calls[0][1]);
+    expect(sql).toContain("production_worker_stage_rates");
+    expect(sql).toContain("production_stage_rates");
     expect(sql).toContain("factory_rates");
-
-    // A rate that has not started yet must not be quoted, and of the ones that
-    // have, the newest wins — one row, never a list the caller has to pick from.
-    expect(sql).toContain("effective_date <= CURRENT_DATE");
-    expect(sql).toContain("ORDER BY effective_date DESC");
+    expect(sql).toContain("ORDER BY priority");
     expect(sql).toContain("LIMIT 1");
-    expect(queryPostgres.mock.calls[0][2]).toEqual(["factory-1", "Fiber Silai"]);
+
+    // Keyed on the worker's own id. It used to be an hr_employee_id that was
+    // never set, so this tier could not be reached at all.
+    expect(queryPostgres.mock.calls[0][2]).toEqual([
+      "factory-1",
+      "Fiber Silai",
+      "worker-1",
+      "Fiber Silai",
+    ]);
   });
 
   it("saves a linked Factory rate and Production stage rate in one transaction", async () => {

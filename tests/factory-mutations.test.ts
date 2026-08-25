@@ -179,7 +179,6 @@ describe("Factory mutation idempotency", () => {
           name: "Ram Worker",
           category: "Upper",
           worker_type: "piece_rate",
-          hr_employee_id: "employee-1",
         },
       ])
       .mockResolvedValueOnce([
@@ -231,7 +230,7 @@ describe("Factory mutation idempotency", () => {
     expect(productionInsert?.[1]).toEqual(
       expect.arrayContaining([
         "2026-08-02",
-        "employee-1",
+        "worker-1",
         "Ram Worker",
         "production-item-1",
         "Ladies Heel",
@@ -256,7 +255,6 @@ describe("Factory mutation idempotency", () => {
           name: "Ram Worker",
           category: "Upper",
           worker_type: "piece_rate",
-          hr_employee_id: "employee-1",
         },
       ])
       .mockResolvedValueOnce([
@@ -442,7 +440,6 @@ describe("Factory mutation idempotency", () => {
           name: "Ram Worker",
           category: "Upper",
           worker_type: "piece_rate",
-          hr_employee_id: "employee-1",
         },
       ])
       .mockResolvedValueOnce([]) // no existing ledger submission
@@ -490,7 +487,7 @@ describe("Factory mutation idempotency", () => {
     expect(productionPayment?.[1]).toEqual(
       expect.arrayContaining([
         "2026-08-01",
-        "employee-1",
+        "worker-1",
         "Ram Worker",
         "Saturday Kharcha",
         100,

@@ -21,7 +21,6 @@ const backupSchemaVersion = 15;
 const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, backupSchemaVersion];
 const hashedResetTokenPrefix = "sha256:";
 const productionStations = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
-const hrDepartments = [...productionStations, "Administration", "Sales", "Marketing", "Dispatch"];
 const appTables = [
   ...[...backupExtensionTableSpecs].reverse().map(({ table }) => table),
   "rate_limit_attempts",
@@ -31,8 +30,6 @@ const appTables = [
   "purchase_invoices",
   "supplier_transactions",
   "costing_settings",
-  "hr_payroll",
-  "hr_attendance",
   "email_verification_tokens",
   "password_reset_tokens",
   "ledger_transactions",
@@ -54,7 +51,6 @@ const appTables = [
   "raw_materials",
   "customer_ledgers",
   "supplier_ledgers",
-  "hr_employees",
   "products",
   "users",
 ];
@@ -331,134 +327,6 @@ async function upsertCostingSettings(client, settings = {}) {
   );
 }
 
-async function upsertHrEmployee(client, employee) {
-  await client.query(
-    `
-      INSERT INTO hr_employees (
-        id, created_at, name, phone, role, department, employment_type,
-        salary_type, base_salary, daily_wage, piece_rate, status, joined_at,
-        fingerprint_id, note
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-      ON CONFLICT (id) DO UPDATE SET
-        created_at = EXCLUDED.created_at,
-        name = EXCLUDED.name,
-        phone = EXCLUDED.phone,
-        role = EXCLUDED.role,
-        department = EXCLUDED.department,
-        employment_type = EXCLUDED.employment_type,
-        salary_type = EXCLUDED.salary_type,
-        base_salary = EXCLUDED.base_salary,
-        daily_wage = EXCLUDED.daily_wage,
-        piece_rate = EXCLUDED.piece_rate,
-        status = EXCLUDED.status,
-        joined_at = EXCLUDED.joined_at,
-        fingerprint_id = EXCLUDED.fingerprint_id,
-        note = EXCLUDED.note
-    `,
-    [
-      requiredString(employee.id),
-      dateValue(employee.createdAt),
-      requiredString(employee.name, "Unnamed employee"),
-      requiredString(employee.phone),
-      requiredString(employee.role),
-      allowedValue(employee.department, hrDepartments, "Cutting"),
-      allowedValue(employee.employmentType, ["Full Time", "Part Time", "Contract"], "Full Time"),
-      allowedValue(employee.salaryType, ["Monthly", "Daily", "Piece Rate"], "Monthly"),
-      cleanDecimal(employee.baseSalary),
-      cleanDecimal(employee.dailyWage),
-      cleanDecimal(employee.pieceRate),
-      allowedValue(employee.status, ["Active", "Inactive"], "Active"),
-      dateOnly(employee.joinedAt),
-      requiredString(employee.fingerprintId),
-      requiredString(employee.note),
-    ],
-  );
-}
-
-async function upsertHrAttendance(client, record) {
-  await client.query(
-    `
-      INSERT INTO hr_attendance (
-        id, created_at, employee_id, employee_name, work_date, status,
-        check_in, check_out, overtime_hours, note
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (id) DO UPDATE SET
-        created_at = EXCLUDED.created_at,
-        employee_id = EXCLUDED.employee_id,
-        employee_name = EXCLUDED.employee_name,
-        work_date = EXCLUDED.work_date,
-        status = EXCLUDED.status,
-        check_in = EXCLUDED.check_in,
-        check_out = EXCLUDED.check_out,
-        overtime_hours = EXCLUDED.overtime_hours,
-        note = EXCLUDED.note
-    `,
-    [
-      requiredString(record.id),
-      dateValue(record.createdAt),
-      requiredString(record.employeeId),
-      requiredString(record.employeeName, "Unnamed employee"),
-      dateOnly(record.workDate),
-      allowedValue(record.status, ["Present", "Half Day", "Leave", "Absent"], "Present"),
-      requiredString(record.checkIn),
-      requiredString(record.checkOut),
-      cleanDecimal(record.overtimeHours),
-      requiredString(record.note),
-    ],
-  );
-}
-
-async function upsertHrPayroll(client, record) {
-  const baseAmount = cleanDecimal(record.baseAmount);
-  const attendanceBonus = cleanDecimal(record.attendanceBonus);
-  const pieceAmount = cleanDecimal(record.pieceAmount);
-  const overtimeAmount = cleanDecimal(record.overtimeAmount);
-  const deduction = cleanDecimal(record.deduction);
-  const netPay = Math.max(0, baseAmount + attendanceBonus + pieceAmount + overtimeAmount - deduction);
-
-  await client.query(
-    `
-      INSERT INTO hr_payroll (
-        id, created_at, period_label, employee_id, employee_name, base_amount,
-        attendance_bonus, piece_amount, overtime_amount, deduction, net_pay,
-        status, paid_at, note
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      ON CONFLICT (id) DO UPDATE SET
-        created_at = EXCLUDED.created_at,
-        period_label = EXCLUDED.period_label,
-        employee_id = EXCLUDED.employee_id,
-        employee_name = EXCLUDED.employee_name,
-        base_amount = EXCLUDED.base_amount,
-        attendance_bonus = EXCLUDED.attendance_bonus,
-        piece_amount = EXCLUDED.piece_amount,
-        overtime_amount = EXCLUDED.overtime_amount,
-        deduction = EXCLUDED.deduction,
-        net_pay = EXCLUDED.net_pay,
-        status = EXCLUDED.status,
-        paid_at = EXCLUDED.paid_at,
-        note = EXCLUDED.note
-    `,
-    [
-      requiredString(record.id),
-      dateValue(record.createdAt),
-      requiredString(record.periodLabel),
-      requiredString(record.employeeId),
-      requiredString(record.employeeName, "Unnamed employee"),
-      baseAmount,
-      attendanceBonus,
-      pieceAmount,
-      overtimeAmount,
-      deduction,
-      netPay,
-      allowedValue(record.status, ["Draft", "Approved", "Paid", "Locked"], "Draft"),
-      optionalDateValue(record.paidAt),
-      requiredString(record.note),
-    ],
-  );
-}
 
 function ensureBackupShape(backup) {
   if (!backup || typeof backup !== "object") {
@@ -1641,7 +1509,6 @@ async function importBackup(client, backup, replace) {
   const data = backup.data;
   const operations = data.operations ?? {};
   const purchasing = data.purchasing ?? {};
-  const hr = data.hr ?? {};
   const adminSettings = data.adminSettings ?? {};
   const imported = {
     products: 0,
@@ -1666,9 +1533,6 @@ async function importBackup(client, backup, replace) {
     purchaseInvoiceItems: 0,
     supplierTransactions: 0,
     costingSettings: 0,
-    hrEmployees: 0,
-    hrAttendance: 0,
-    hrPayroll: 0,
     companyBranches: 0,
     adminStaffAccounts: 0,
     companySettings: 0,
@@ -1738,11 +1602,6 @@ async function importBackup(client, backup, replace) {
     if (data.costingSettings) {
       await upsertCostingSettings(client, data.costingSettings);
       imported.costingSettings = 1;
-    }
-
-    for (const employee of hr.employees ?? []) {
-      await upsertHrEmployee(client, employee);
-      imported.hrEmployees += 1;
     }
 
     for (const order of data.orders ?? []) {
@@ -1825,16 +1684,6 @@ async function importBackup(client, backup, replace) {
     for (const invoice of data.posInvoices ?? []) {
       await upsertPosInvoice(client, invoice);
       imported.posInvoices += 1;
-    }
-
-    for (const record of hr.attendanceRecords ?? []) {
-      await upsertHrAttendance(client, record);
-      imported.hrAttendance += 1;
-    }
-
-    for (const record of hr.payrollRecords ?? []) {
-      await upsertHrPayroll(client, record);
-      imported.hrPayroll += 1;
     }
 
     for (const transaction of data.paymentTransactions ?? []) {

@@ -237,9 +237,8 @@ CREATE TABLE IF NOT EXISTS admin_staff_accounts (
   branch_id TEXT NOT NULL REFERENCES company_branches(id) ON DELETE RESTRICT,
   status TEXT NOT NULL CHECK (status IN ('Invited', 'Active', 'Locked', 'Disabled')),
   password_hash TEXT NOT NULL,
-  employee_id TEXT,
   -- Set for a Worker sign-in: the factory worker whose pairs and wages the
-  -- portal shows. Separate from employee_id, which points at hr_employees.
+  -- portal shows.
   factory_worker_id TEXT,
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
   mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
@@ -541,102 +540,6 @@ CREATE TABLE IF NOT EXISTS costing_settings (
   note TEXT NOT NULL DEFAULT ''
 );
 
--- HR employee, attendance, and payroll foundation
-CREATE TABLE IF NOT EXISTS hr_employees (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  name TEXT NOT NULL,
-  phone TEXT NOT NULL DEFAULT '',
-  role TEXT NOT NULL DEFAULT '',
-  department TEXT NOT NULL CHECK (department IN ('Cutting', 'Stitching', 'Sole Press', 'Finishing', 'Packing', 'QC', 'Administration', 'Sales', 'Marketing', 'Dispatch')),
-  employment_type TEXT NOT NULL CHECK (employment_type IN ('Full Time', 'Part Time', 'Contract')),
-  salary_type TEXT NOT NULL CHECK (salary_type IN ('Monthly', 'Daily', 'Piece Rate')),
-  base_salary NUMERIC NOT NULL DEFAULT 0 CHECK (base_salary >= 0),
-  daily_wage NUMERIC NOT NULL DEFAULT 0 CHECK (daily_wage >= 0),
-  piece_rate NUMERIC NOT NULL DEFAULT 0 CHECK (piece_rate >= 0),
-  status TEXT NOT NULL CHECK (status IN ('Active', 'Inactive')),
-  joined_at DATE NOT NULL DEFAULT CURRENT_DATE,
-  fingerprint_id TEXT NOT NULL DEFAULT '',
-  note TEXT NOT NULL DEFAULT ''
-);
-
-ALTER TABLE hr_employees
-  ADD COLUMN IF NOT EXISTS fingerprint_id TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE hr_employees
-  DROP CONSTRAINT IF EXISTS hr_employees_department_check;
-
-ALTER TABLE hr_employees
-  ADD CONSTRAINT hr_employees_department_check CHECK (
-    department IN (
-      'Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final',
-      'Cutting', 'Stitching', 'Sole Press', 'Finishing', 'Packing', 'QC',
-      'Administration', 'Sales', 'Marketing', 'Dispatch'
-    )
-  );
-
-CREATE INDEX IF NOT EXISTS hr_employees_department_idx ON hr_employees(department);
-CREATE INDEX IF NOT EXISTS hr_employees_status_idx ON hr_employees(status);
-CREATE INDEX IF NOT EXISTS hr_employees_fingerprint_id_idx ON hr_employees(fingerprint_id);
-
-ALTER TABLE admin_staff_accounts
-  DROP CONSTRAINT IF EXISTS admin_staff_accounts_employee_id_fkey;
-ALTER TABLE admin_staff_accounts
-  ADD CONSTRAINT admin_staff_accounts_employee_id_fkey
-  FOREIGN KEY (employee_id) REFERENCES hr_employees(id) ON DELETE SET NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS admin_staff_accounts_employee_unique_idx
-  ON admin_staff_accounts(employee_id)
-  WHERE employee_id IS NOT NULL;
-
-CREATE TABLE IF NOT EXISTS hr_attendance (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE CASCADE,
-  employee_name TEXT NOT NULL,
-  work_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  status TEXT NOT NULL CHECK (status IN ('Present', 'Half Day', 'Leave', 'Absent')),
-  check_in TEXT NOT NULL DEFAULT '',
-  check_out TEXT NOT NULL DEFAULT '',
-  overtime_hours NUMERIC NOT NULL DEFAULT 0 CHECK (overtime_hours >= 0),
-  note TEXT NOT NULL DEFAULT '',
-  UNIQUE (employee_id, work_date)
-);
-
-CREATE INDEX IF NOT EXISTS hr_attendance_work_date_idx ON hr_attendance(work_date DESC);
-CREATE INDEX IF NOT EXISTS hr_attendance_employee_id_idx ON hr_attendance(employee_id);
-
-CREATE TABLE IF NOT EXISTS hr_payroll (
-  id TEXT PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  period_label TEXT NOT NULL,
-  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE CASCADE,
-  employee_name TEXT NOT NULL,
-  base_amount NUMERIC NOT NULL DEFAULT 0 CHECK (base_amount >= 0),
-  attendance_bonus NUMERIC NOT NULL DEFAULT 0 CHECK (attendance_bonus >= 0),
-  piece_amount NUMERIC NOT NULL DEFAULT 0 CHECK (piece_amount >= 0),
-  overtime_amount NUMERIC NOT NULL DEFAULT 0 CHECK (overtime_amount >= 0),
-  deduction NUMERIC NOT NULL DEFAULT 0 CHECK (deduction >= 0),
-  net_pay NUMERIC NOT NULL DEFAULT 0 CHECK (net_pay >= 0),
-  status TEXT NOT NULL CHECK (status IN ('Draft', 'Approved', 'Paid', 'Locked')),
-  paid_at TIMESTAMPTZ,
-  note TEXT NOT NULL DEFAULT ''
-);
-
-ALTER TABLE hr_payroll
-  DROP CONSTRAINT IF EXISTS hr_payroll_status_check;
-
-ALTER TABLE hr_payroll
-  ADD CONSTRAINT hr_payroll_status_check CHECK (status IN ('Draft', 'Approved', 'Paid', 'Locked'));
-
-CREATE INDEX IF NOT EXISTS hr_payroll_period_label_idx ON hr_payroll(period_label);
-CREATE INDEX IF NOT EXISTS hr_payroll_employee_id_idx ON hr_payroll(employee_id);
-CREATE INDEX IF NOT EXISTS hr_payroll_status_idx ON hr_payroll(status);
--- Idempotency guard: one payroll per employee per month (period_label's first 7
--- chars are the YYYY-MM key), so concurrent submissions can't double-pay.
-CREATE UNIQUE INDEX IF NOT EXISTS hr_payroll_employee_month_unique_idx
-  ON hr_payroll(employee_id, substr(period_label, 1, 7));
-
 -- Factory production and worker progress
 CREATE TABLE IF NOT EXISTS production_batches (
   id TEXT PRIMARY KEY,
@@ -732,7 +635,7 @@ CREATE TABLE IF NOT EXISTS production_worker_stage_rates (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
   employee_name_snapshot TEXT NOT NULL,
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
   stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
@@ -871,9 +774,9 @@ CREATE TABLE IF NOT EXISTS production_stage_handovers (
   to_stage TEXT NOT NULL CHECK (
     to_stage IN ('Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
   ),
-  from_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  from_employee_id TEXT REFERENCES factory_workers(id) ON DELETE SET NULL,
   from_employee_name_snapshot TEXT NOT NULL DEFAULT '',
-  to_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  to_employee_id TEXT REFERENCES factory_workers(id) ON DELETE SET NULL,
   to_employee_name_snapshot TEXT NOT NULL DEFAULT '',
   sent_pairs INTEGER NOT NULL CHECK (sent_pairs > 0),
   received_pairs INTEGER NOT NULL CHECK (received_pairs >= 0),
@@ -895,7 +798,7 @@ CREATE TABLE IF NOT EXISTS production_work_entries (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   work_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
   employee_name_snapshot TEXT NOT NULL,
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
   item_name_snapshot TEXT NOT NULL,
@@ -940,7 +843,7 @@ CREATE TABLE IF NOT EXISTS worker_payments (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  employee_id TEXT NOT NULL REFERENCES hr_employees(id) ON DELETE RESTRICT,
+  employee_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
   employee_name_snapshot TEXT NOT NULL,
   payment_type TEXT NOT NULL CHECK (
     payment_type IN ('Saturday Kharcha', 'Midweek Advance', 'Final Settlement', 'Bonus', 'Deduction', 'Correction')
@@ -1018,7 +921,7 @@ CREATE TABLE IF NOT EXISTS production_qc_postings (
   item_name_snapshot TEXT NOT NULL,
   catalog_product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
   catalog_product_name_snapshot TEXT NOT NULL,
-  packing_employee_id TEXT REFERENCES hr_employees(id) ON DELETE SET NULL,
+  packing_employee_id TEXT REFERENCES factory_workers(id) ON DELETE SET NULL,
   packing_employee_name_snapshot TEXT NOT NULL DEFAULT '',
   total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
   rejected_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rejected_pairs >= 0),
@@ -1206,7 +1109,6 @@ CREATE TABLE IF NOT EXISTS uploaded_images (
 -- from cascading deletes.
 CREATE TABLE IF NOT EXISTS factory_workers (
   id TEXT PRIMARY KEY,
-  hr_employee_id TEXT UNIQUE REFERENCES hr_employees(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
   worker_type TEXT NOT NULL,
   category TEXT NOT NULL,
@@ -1327,7 +1229,6 @@ CREATE TABLE IF NOT EXISTS factory_monthly_summary (
 -- Columns below also make applying the canonical schema safe when an older
 -- standalone Factory schema already created these tables.
 ALTER TABLE factory_workers
-  ADD COLUMN IF NOT EXISTS hr_employee_id TEXT REFERENCES hr_employees(id) ON DELETE RESTRICT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE factory_items
   ADD COLUMN IF NOT EXISTS production_item_id TEXT REFERENCES production_items(id) ON DELETE RESTRICT,
