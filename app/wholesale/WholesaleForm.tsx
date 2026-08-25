@@ -5,7 +5,7 @@ import SubmitButton from "@/components/SubmitButton";
 import { useLanguage } from "@/components/LanguageProvider";
 import { submitWholesaleEnquiry, type WholesaleFormState } from "./actions";
 
-const initialState: WholesaleFormState = { ok: false, message: "" };
+const initialState: WholesaleFormState = { ok: false, message: { en: "", ne: "" } };
 const inputClass =
   "min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0";
 
@@ -19,7 +19,9 @@ export default function WholesaleForm() {
         <p className="text-2xl font-black text-brand-green-ink">
           {text("Thank you 🙏", "धन्यवाद 🙏")}
         </p>
-        <p className="mt-2 text-sm font-semibold leading-6 text-brand-green">{state.message}</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-brand-green">
+          {text(state.message.en, state.message.ne)}
+        </p>
         <p className="mt-3 font-mono text-xs text-brand-muted">{state.reference}</p>
       </div>
     );
@@ -90,9 +92,9 @@ export default function WholesaleForm() {
         />
       </label>
 
-      {state.message && !state.ok ? (
+      {state.message.en && !state.ok ? (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm font-bold text-red-800 md:col-span-2">
-          {state.message}
+          {text(state.message.en, state.message.ne)}
         </p>
       ) : null}
 

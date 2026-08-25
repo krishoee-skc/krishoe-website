@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
+import T from "@/components/T";
 import { getProductById } from "@/lib/product-store";
 import { readReviewToken } from "@/lib/review-invite";
 import { getOrderById } from "@/lib/submissions";
@@ -28,16 +29,20 @@ function Dead() {
   return (
     <main className="mx-auto max-w-md px-5 py-20 text-center">
       <p className="text-5xl">🔗</p>
-      <h1 className="mt-4 text-xl font-black text-brand-green-ink">यो लिङ्क चल्दैन</h1>
+      <h1 className="mt-4 text-xl font-black text-brand-green-ink">
+        <T en="This link does not work" ne="यो लिङ्क चल्दैन" />
+      </h1>
       <p className="mt-2 text-sm leading-6 text-gray-600">
-        लिङ्कको म्याद सकिएको हुनसक्छ। राय दिन मन भए हामीलाई सिधै भन्नुहोस् — खुशी
-        लाग्नेछ।
+        <T
+          en="The link may have expired. If you still want to tell us how they were, say so directly — we would be glad to hear it."
+          ne="लिङ्कको म्याद सकिएको हुनसक्छ। राय दिन मन भए हामीलाई सिधै भन्नुहोस् — खुशी लाग्नेछ।"
+        />
       </p>
       <Link
         href="/contact"
         className="mt-6 inline-block rounded-xl bg-brand-green-ink px-6 py-3 text-sm font-black text-white"
       >
-        सम्पर्क गर्ने
+        <T en="Contact us" ne="सम्पर्क गर्ने" />
       </Link>
     </main>
   );
@@ -77,11 +82,16 @@ export default async function ReviewInvitePage({
           />
         </div>
         <h1 className="mt-5 text-2xl font-black text-brand-green-ink">
-          नमस्कार{order.name ? ` ${order.name.split(" ")[0]}` : ""} 🙏
+          <T en="Hello" ne="नमस्कार" />
+          {order.name ? ` ${order.name.split(" ")[0]}` : ""} 🙏
         </h1>
         <p className="mt-2 text-sm leading-6 text-gray-600">
-          तपाईंले किन्नुभएको <strong>{product.name}</strong> कस्तो लाग्यो? दुई
-          शब्दले अरू ग्राहकलाई ठूलो सहयोग हुन्छ।
+          <T en="How were the" ne="तपाईंले किन्नुभएको" />{" "}
+          <strong>{product.name}</strong>{" "}
+          <T
+            en="you bought? Two words is a big help to the next shopper."
+            ne="कस्तो लाग्यो? दुई शब्दले अरू ग्राहकलाई ठूलो सहयोग हुन्छ।"
+          />
         </p>
       </div>
 

@@ -238,12 +238,18 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
               {pairsToReview.length > 0 ? (
                 <div className="mt-5 rounded-lg border border-[#F4DEAE] bg-[#FFF9EA] p-5">
                   <h2 className="text-lg font-black text-brand-green-ink">
-                    तपाईंको जोडी कस्तो लाग्यो?
+                    <T en="How were your pairs?" ne="तपाईंको जोडी कस्तो लाग्यो?" />
                   </h2>
                   <p className="mt-2 text-sm leading-7 text-brand-muted">
-                    तपाईंको अनुभव लेखिदिनुभयो भने अरू ग्राहकलाई छान्न सजिलो हुन्छ।
+                    <T
+                      en="Writing down how they worked out makes the choice easier for the next shopper."
+                      ne="तपाईंको अनुभव लेखिदिनुभयो भने अरू ग्राहकलाई छान्न सजिलो हुन्छ।"
+                    />
                     <span className="mt-1 block text-xs text-gray-500">
-                      <T en="Tell other shoppers how these pairs worked out for you." ne="यी जुत्ता कस्ता लागे? अरू ग्राहकलाई सहयोग हुन्छ।" />
+                      <T
+                        en="Two lines is plenty."
+                        ne="दुई हरफ भए पनि हुन्छ।"
+                      />
                     </span>
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">

@@ -151,10 +151,10 @@ export default function CommandSearch() {
                 {matches.length === 0 ? (
                   <div className="px-3 py-8 text-center">
                     <p className="text-sm font-semibold text-brand-green-ink">
-                      “{query.trim()}” भेटिएन
+                      {text(`"${query.trim()}" not found`, `“${query.trim()}” भेटिएन`)}
                     </p>
                     <p className="mt-1 text-sm text-brand-muted">
-                      अर्को नाम वा रङ लेखेर हेर्नुहोस्।
+                      {text("Try another name or colour.", "अर्को नाम वा रङ लेखेर हेर्नुहोस्।")}
                     </p>
                   </div>
                 ) : (
@@ -197,7 +197,9 @@ export default function CommandSearch() {
                                   soldOut ? "text-brand-clay" : "text-brand-muted"
                                 }`}
                               >
-                                {soldOut ? "सकियो" : `${product.stock} जोडी`}
+                                {soldOut
+                          ? text("Sold out", "सकियो")
+                          : text(`${product.stock} pairs`, `${product.stock} जोडी`)}
                               </span>
                             </span>
                           </Link>
@@ -215,7 +217,7 @@ export default function CommandSearch() {
                   }}
                   className="mt-2 min-h-11 w-full rounded-xl border border-brand-green/25 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
                 >
-                  पसलमा सबै हेर्ने →
+                  {text("See everything in the shop →", "पसलमा सबै हेर्ने →")}
                 </button>
               </div>
             ) : (

@@ -46,7 +46,7 @@ export default async function WholesalePage() {
       <section className="bg-brand-green-ink py-16 text-white">
         <div className="mx-auto max-w-5xl px-5 md:px-8">
           <p className="text-sm font-bold uppercase tracking-[0.28em] text-brand-gold-bright">
-            थोक बिक्री · Wholesale
+            <T en="Wholesale" ne="थोक बिक्री" />
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight text-white md:text-5xl">
             <T

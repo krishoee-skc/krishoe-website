@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 import { startAuthentication } from "@simplewebauthn/browser";
 import {
   finishPasskeyLoginAction,
@@ -22,6 +23,7 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { text } = useLanguage();
 
   if (!supported) return null;
 
@@ -35,7 +37,7 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
       const result = await finishPasskeyLoginAction(assertion);
 
       if (!result.ok) {
-        setError(result.message || "पहिचान मिलेन।");
+        setError(result.message || text("That did not match.", "पहिचान मिलेन।"));
         return;
       }
 
@@ -58,10 +60,18 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
           // a screen name the reader had to go and find; the shop now offers
           // the registration itself the moment they are inside, so the honest
           // instruction is simply to sign in and say yes.
-          "यो फोनमा अझै चालु छैन — हरेक यन्त्रमा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ।"
+          text(
+            "Not set up on this phone yet — each device needs it once. Sign in with the password below and the way to switch it on appears once you are inside.",
+            "यो फोनमा अझै चालु छैन — हरेक यन्त्रमा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ।",
+          )
         );
       } else {
-        setError("Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।");
+        setError(
+          text(
+            "Passkey could not open it. Use the password below.",
+            "Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।",
+          ),
+        );
       }
     } finally {
       setBusy(false);
@@ -76,7 +86,9 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
         disabled={busy}
         className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-brand-green bg-[#FFFFFF] px-5 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white disabled:opacity-60"
       >
-        {busy ? "खुल्दैछ…" : "🔓 यो यन्त्रले चिनेर भित्र जाने"}
+        {busy
+          ? text("Opening…", "खुल्दैछ…")
+          : text("🔓 Let this device recognise me", "🔓 यो यन्त्रले चिनेर भित्र जाने")}
       </button>
 
       {error ? (
@@ -85,7 +97,9 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
 
       <div className="mt-5 flex items-center gap-3">
         <span className="h-px flex-1 bg-black/10" />
-        <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">वा</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">
+          {text("or", "वा")}
+        </span>
         <span className="h-px flex-1 bg-black/10" />
       </div>
     </div>

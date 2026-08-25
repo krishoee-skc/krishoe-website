@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TrackOrderForm from "@/components/TrackOrderForm";
@@ -30,11 +31,13 @@ export default function TrackOrderPage() {
             KRISHOE
           </p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-            अर्डर कहाँ पुग्यो?
+            <T en="Where has your order got to?" ne="अर्डर कहाँ पुग्यो?" />
           </h1>
           <p className="mx-auto mt-4 max-w-lg leading-7 text-brand-muted">
-            अर्डर नम्बर र आफ्नो मोबाइल नम्बर हाल्नुहोस् — तपाईंको जोडी कहाँ पुग्यो
-            तुरुन्तै देखिन्छ।
+            <T
+              en="Put in the order number and your mobile number — where your pairs have got to shows straight away."
+              ne="अर्डर नम्बर र आफ्नो मोबाइल नम्बर हाल्नुहोस् — तपाईंको जोडी कहाँ पुग्यो तुरुन्तै देखिन्छ।"
+            />
           </p>
         </div>
 

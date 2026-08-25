@@ -7,7 +7,9 @@ import { reportingErrors } from "@/lib/report-error";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 import { saveWholesaleEnquiry } from "@/lib/wholesale-enquiries";
 
-export type WholesaleFormState = { ok: boolean; message: string; reference?: string };
+import type { Said } from "@/lib/words";
+
+export type WholesaleFormState = { ok: boolean; message: Said; reference?: string };
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -30,7 +32,13 @@ export async function submitWholesaleEnquiry(
   const phone = textValue(formData, "phone");
 
   if (!shopName || !contactName || !phone) {
-    return { ok: false, message: "पसलको नाम, तपाईंको नाम र फोन नम्बर चाहिन्छ।" };
+    return {
+      ok: false,
+      message: {
+        en: "The shop name, your name and a phone number are needed.",
+        ne: "पसलको नाम, तपाईंको नाम र फोन नम्बर चाहिन्छ।",
+      },
+    };
   }
 
   const headerStore = await headers();
@@ -47,7 +55,10 @@ export async function submitWholesaleEnquiry(
   if (limit.limited) {
     return {
       ok: false,
-      message: `धेरै पटक पठाइयो। ${Math.ceil(limit.retryAfterSeconds / 60)} मिनेटपछि फेरि प्रयास गर्नुहोस्।`,
+      message: {
+        en: `Sent too many times. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minutes.`,
+        ne: `धेरै पटक पठाइयो। ${Math.ceil(limit.retryAfterSeconds / 60)} मिनेटपछि फेरि प्रयास गर्नुहोस्।`,
+      },
     };
   }
 
@@ -100,7 +111,10 @@ export async function submitWholesaleEnquiry(
 
   return {
     ok: true,
-    message: "पठाइयो ✅ हामी चाँडै फोन गर्छौँ।",
+    message: {
+      en: "Sent ✅ We will call you shortly.",
+      ne: "पठाइयो ✅ हामी चाँडै फोन गर्छौँ।",
+    },
     reference: enquiry.id,
   };
 }

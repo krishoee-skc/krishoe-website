@@ -49,7 +49,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   const { cartCount, wishlistCount } = useCommerce();
   const [isOpen, setIsOpen] = useState(false);
   const { language, text } = useLanguage();
-  const mobileLabels: Record<string, string> = {
+  const mobileLabelsNe: Record<string, string> = {
     Home: "गृह",
     Shop: "पसल",
     "Our Story": "हाम्रो कथा",
@@ -192,7 +192,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                     }`}
                   >
                     <Icon className="h-5 w-5" />
-                    {language === "ne" ? mobileLabels[item.label] ?? item.label : item.label}
+                    {language === "ne" ? mobileLabelsNe[item.label] ?? item.label : item.label}
                   </Link>
                 );
               })}

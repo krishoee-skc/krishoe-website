@@ -17,9 +17,10 @@ import { join } from "node:path";
  * not leak at all — so a new screen written the old way fails here, rather
  * than being found by the owner three weeks later.
  *
- * The list is deliberately long. It is the honest size of the job: 1,017
- * lines across 100 files. Shortening it by loosening the check would be lying
- * about the work, so the only way a line comes off is by being paired.
+ * The list is deliberately long. It is the honest size of what is left: 912
+ * lines across 75 files, after the eighteen daily screens, the admin menu and
+ * the storefront were finished. Shortening it by loosening the check would be
+ * lying about the work, so the only way a line comes off is by being paired.
  */
 
 /** Any Devanagari at all. */
@@ -43,7 +44,11 @@ function unpaired(source: string) {
     .replace(/<T\s[\s\S]*?\/>/g, "")
     .replace(/<AlertText[\s\S]*?\/>/g, "")
     .replace(/\bne=\{?\s*(["'`])[\s\S]*?\1\s*\}?/g, "")
-    .replace(/\b(\w*[Nn]e|nepali)\s*:\s*(["'`])[\s\S]*?\2/g, "");
+    .replace(/\b(\w*[Nn]e|nepali)\s*:\s*(["'`])[\s\S]*?\2/g, "")
+    // A whole declaration whose name ends Ne or _NE: a lookup table of Nepali
+    // keyed by the English (`shippingLabelsNe`), or a Nepali array beside its
+    // English twin (`WORDS_NE` / `WORDS_EN`). There the pair is the name.
+    .replace(/\bconst\s+\w*(?:Ne|_NE)\b[^=]*=\s*[[{][\s\S]*?^\s*[\]}]/gm, "");
 }
 
 function sourceFiles(dir: string): string[] {
@@ -64,6 +69,68 @@ function leakCount(file: string) {
 }
 
 /**
+ * The places that say both languages at once, on purpose, and why.
+ *
+ * Every one of these is somewhere the reader's choice is genuinely unknowable
+ * or genuinely irrelevant. Nothing goes on this list because it was hard; a
+ * reason that is really "not done yet" belongs in STILL_OWED, where it is
+ * counted as work owed.
+ *
+ * The counts are held too — an exemption is for the lines named here, not a
+ * licence for the file.
+ */
+const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
+  "components/LanguageSwitch.tsx": {
+    lines: 1,
+    why: "The word नेपाली on the button that switches to Nepali. A reader looking for it must find it whichever side they are on — that is the button's whole job.",
+  },
+  "components/LanguageInvite.tsx": {
+    lines: 4,
+    why: "The offer of Nepali, shown to someone currently reading English. Written in English it would not reach the person it is for.",
+  },
+  "app/global-error.tsx": {
+    lines: 2,
+    why: "Replaces the whole app, LanguageProvider included, when everything else has failed. There is no preference left to read, and a stranded reader who cannot understand the one line offered has nowhere to go.",
+  },
+  "lib/seo.ts": {
+    lines: 3,
+    why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all.",
+  },
+  "app/faq/page.tsx": {
+    lines: 2,
+    why: "Search-result text — the page title and description Google indexes.",
+  },
+  "app/privacy/page.tsx": {
+    lines: 2,
+    why: "Search-result text — the page title and description Google indexes.",
+  },
+  "app/terms/page.tsx": {
+    lines: 2,
+    why: "Search-result text — the page title and description Google indexes.",
+  },
+  "app/track-order/page.tsx": {
+    lines: 2,
+    why: "Search-result text. A customer looking for their order searches in Nepali.",
+  },
+  "app/wholesale/page.tsx": {
+    lines: 3,
+    why: "Search-result text. A shopkeeper looking for a wholesale supplier searches in Nepali.",
+  },
+  "app/review/[token]/page.tsx": {
+    lines: 1,
+    why: "The browser tab on a per-customer link, chosen before the page runs.",
+  },
+  "app/wholesale/actions.ts": {
+    lines: 10,
+    why: "The enquiry email, which goes to the owner and nobody else. One reader, who reads Nepali, and no switch involved.",
+  },
+  "lib/coupons.ts": {
+    lines: 4,
+    why: "Thrown to whoever is typing a coupon on an admin screen. An exception carries no language context, so both sentences travel together.",
+  },
+};
+
+/**
  * What each file still owes, as of 2026-08-26.
  *
  * Only ever edit a number downwards; a file that reaches zero comes off the
@@ -74,8 +141,6 @@ const STILL_OWED: Record<string, number> = {
   "app/(admin-auth)/admin/login/link/EmailLinkSignIn.tsx": 6,
   "app/(admin-auth)/admin/login/link/page.tsx": 4,
   "app/(admin-auth)/admin/reset-password/page.tsx": 2,
-  "app/about/page.tsx": 8,
-  "app/account/reset-password/page.tsx": 1,
   "app/admin/AdminQuickDock.tsx": 6,
   "app/admin/ProductsClient.tsx": 7,
   "app/admin/TodayBoard.tsx": 9,
@@ -116,31 +181,10 @@ const STILL_OWED: Record<string, number> = {
   "app/api/admin/search/route.ts": 3,
   "app/api/cron/checkout-reminders/route.ts": 6,
   "app/api/factory/ready/route.ts": 3,
-  "app/faq/page.tsx": 2,
-  "app/global-error.tsx": 2,
-  "app/order/[id]/page.tsx": 2,
-  "app/privacy/page.tsx": 2,
-  "app/review/[token]/ReviewInviteForm.tsx": 1,
-  "app/review/[token]/actions.ts": 9,
-  "app/review/[token]/page.tsx": 8,
-  "app/shop/ShopCatalogControls.tsx": 1,
-  "app/terms/page.tsx": 2,
-  "app/track-order/page.tsx": 5,
-  "app/wholesale/actions.ts": 13,
-  "app/wholesale/page.tsx": 4,
   "app/worker/dashboard/page.tsx": 15,
   "app/worker/payslip/page.tsx": 11,
   "app/worker/production/page.tsx": 8,
-  "components/About.tsx": 1,
   "components/AdminLoginForm.tsx": 20,
-  "components/CommandSearch.tsx": 4,
-  "components/LanguageInvite.tsx": 4,
-  "components/LanguageSwitch.tsx": 1,
-  "components/NavbarControls.tsx": 4,
-  "components/PasskeySignInButton.tsx": 5,
-  "components/PwaInstallHelp.tsx": 3,
-  "components/VersionWatcher.tsx": 3,
-  "components/account/ResetPasswordWithCodeForm.tsx": 7,
   "components/admin/AdminAccessForms.tsx": 4,
   "components/admin/BikramMonthPicker.tsx": 1,
   "components/admin/GoogleAnalyticsDashboard.tsx": 13,
@@ -155,8 +199,6 @@ const STILL_OWED: Record<string, number> = {
   "components/worker/WorkerPortalShell.tsx": 3,
   "components/worker/WorkerPortalUnavailable.tsx": 9,
   "lib/admin-search.ts": 42,
-  "lib/commerce-labels.ts": 6,
-  "lib/coupons.ts": 4,
   "lib/customer-engagement-gateway.ts": 11,
   "lib/factory-worker-options.ts": 3,
   "lib/google-analytics.ts": 10,
@@ -167,7 +209,6 @@ const STILL_OWED: Record<string, number> = {
   "lib/pos.ts": 2,
   "lib/push-notifications.ts": 1,
   "lib/search-words.ts": 13,
-  "lib/seo.ts": 3,
   "lib/sms-gateway.ts": 30,
   "lib/whatsapp-gateway.ts": 3,
   "lib/worker-auth.ts": 2,
@@ -211,7 +252,7 @@ describe("the English side is English", () => {
 
   it("has nothing leaking from a file nobody recorded", () => {
     const surprises = files
-      .filter((file) => !(file in STILL_OWED))
+      .filter((file) => !(file in STILL_OWED) && !(file in BILINGUAL_ON_PURPOSE))
       .map((file) => [file, leakCount(file)] as const)
       .filter(([, count]) => count > 0)
       .map(([file, count]) => `${count}  ${file}`);
@@ -246,6 +287,24 @@ describe("the English side is English", () => {
       finished,
       `Finished — delete these lines from STILL_OWED:\n${finished.join("\n")}`,
     ).toEqual([]);
+  });
+
+  it("holds the deliberately-bilingual places to what they were given", () => {
+    const grown = Object.entries(BILINGUAL_ON_PURPOSE)
+      .map(([file, { lines }]) => [file, lines, leakCount(file)] as const)
+      .filter(([, allowed, now]) => now > allowed)
+      .map(([file, allowed, now]) => `${file}: allowed ${allowed}, found ${now}`);
+
+    expect(
+      grown,
+      "An exemption covers the lines it was written for, not the file:\n" + grown.join("\n"),
+    ).toEqual([]);
+  });
+
+  it("gives every exemption a reason", () => {
+    for (const [file, { why }] of Object.entries(BILINGUAL_ON_PURPOSE)) {
+      expect(why.length, file).toBeGreaterThan(40);
+    }
   });
 
   it.each(DAILY)("%s stays at zero", (file) => {

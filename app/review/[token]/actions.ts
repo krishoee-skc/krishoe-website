@@ -7,8 +7,9 @@ import { getProductById } from "@/lib/product-store";
 import { readReviewToken } from "@/lib/review-invite";
 import { getOrderById } from "@/lib/submissions";
 import { reportError } from "@/lib/report-error";
+import type { Said } from "@/lib/words";
 
-export type ReviewFormState = { ok: boolean; message: string };
+export type ReviewFormState = { ok: boolean; message: Said };
 
 /**
  * A review written from an emailed link, with no account behind it.
@@ -28,7 +29,13 @@ export async function submitInvitedReview(
   if (!invite) {
     // One message for every kind of wrong. A link that failed should not tell
     // whoever sent it which part it failed on.
-    return { ok: false, message: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।" };
+    return {
+      ok: false,
+      message: {
+        en: "This link does not work, or it has expired.",
+        ne: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।",
+      },
+    };
   }
 
   const rating = Number(formData.get("rating"));
@@ -36,13 +43,25 @@ export async function submitInvitedReview(
   const name = String(formData.get("name") ?? "").trim().slice(0, 80);
 
   if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return { ok: false, message: "कति तारा दिने, छान्नुहोस्।" };
+    return {
+      ok: false,
+      message: { en: "Pick how many stars.", ne: "कति तारा दिने, छान्नुहोस्।" },
+    };
   }
   if (comment.length < 5) {
-    return { ok: false, message: "दुई शब्द भए पनि लेख्नुहोस् — अरू ग्राहकलाई त्यही काम लाग्छ।" };
+    return {
+      ok: false,
+      message: {
+        en: "Write a couple of words — that is the part other shoppers use.",
+        ne: "दुई शब्द भए पनि लेख्नुहोस् — अरू ग्राहकलाई त्यही काम लाग्छ।",
+      },
+    };
   }
   if (comment.length > 1200) {
-    return { ok: false, message: "अलि छोटो लेख्नुहोस्।" };
+    return {
+      ok: false,
+      message: { en: "A little shorter, please.", ne: "अलि छोटो लेख्नुहोस्।" },
+    };
   }
 
   try {
@@ -52,7 +71,13 @@ export async function submitInvitedReview(
     ]);
 
     if (!order || !product) {
-      return { ok: false, message: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।" };
+      return {
+      ok: false,
+      message: {
+        en: "This link does not work, or it has expired.",
+        ne: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।",
+      },
+    };
     }
 
     // The token says which pair; the order says whether it was ever bought.
@@ -60,7 +85,13 @@ export async function submitInvitedReview(
       (item) => item.productId === invite.productId && item.quantity > 0,
     );
     if (!bought) {
-      return { ok: false, message: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।" };
+      return {
+      ok: false,
+      message: {
+        en: "This link does not work, or it has expired.",
+        ne: "यो लिङ्क चल्दैन वा म्याद सकिएको छ।",
+      },
+    };
     }
 
     await saveCustomerVoice({
@@ -80,16 +111,31 @@ export async function submitInvitedReview(
     // than writing twice. Saying "already received" is both true and the least
     // alarming thing a customer can be told.
     if (String((error as { code?: string })?.code) === "23505") {
-      return { ok: true, message: "तपाईंको राय पहिल्यै आइसकेको छ — धन्यवाद 🙏" };
+      return {
+        ok: true,
+        message: {
+          en: "Your review already reached us — thank you 🙏",
+          ne: "तपाईंको राय पहिल्यै आइसकेको छ — धन्यवाद 🙏",
+        },
+      };
     }
     reportError("save invited review", error);
-    return { ok: false, message: "पठाउन सकिएन। एकैछिनपछि फेरि प्रयास गर्नुहोस्।" };
+    return {
+      ok: false,
+      message: {
+        en: "It could not be sent. Please try again in a moment.",
+        ne: "पठाउन सकिएन। एकैछिनपछि फेरि प्रयास गर्नुहोस्।",
+      },
+    };
   }
 
   revalidatePath(`/product/${invite.productId}`);
   return {
     ok: true,
-    message: "धन्यवाद 🙏 तपाईंको राय पुग्यो। KRISHOE ले हेरेर पसलमा राख्नेछ।",
+    message: {
+      en: "Thank you 🙏 Your review reached us. KRISHOE will read it and put it on the shop.",
+      ne: "धन्यवाद 🙏 तपाईंको राय पुग्यो। KRISHOE ले हेरेर पसलमा राख्नेछ।",
+    },
   };
 }
 

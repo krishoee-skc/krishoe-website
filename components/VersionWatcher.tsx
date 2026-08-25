@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { shouldOfferReload } from "@/lib/version-check";
 
 // Watches for a newer deployment and offers a reload — it never reloads on its
@@ -11,16 +12,9 @@ import { shouldOfferReload } from "@/lib/version-check";
 // what /api/version reports now. The check runs on a gentle timer and whenever
 // the app is brought back to the front, which is when a phone most often finds
 // itself on yesterday's page.
-/*
- * Both languages at once, and no useLanguage here.
- *
- * This sits outside LanguageProvider in the layout, deliberately: it watches
- * for a new deployment on the shop and the admin alike, and the admin tree has
- * no language context. Calling the hook here threw during prerender and took
- * the whole build down — the same reason global-error carries both languages.
- */
 export default function VersionWatcher({ version }: { version: string }) {
   const [updateReady, setUpdateReady] = useState(false);
+  const { text } = useLanguage();
 
   useEffect(() => {
     // No deployment id (local dev, or system env vars off) — nothing to compare,
@@ -78,19 +72,19 @@ export default function VersionWatcher({ version }: { version: string }) {
       className="fixed inset-x-3 bottom-20 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-brand-gold-bright/40 bg-brand-green-ink px-4 py-3 text-sm text-white shadow-[0_18px_50px_rgba(16,35,29,0.35)] lg:bottom-4"
     >
       <span className="flex-1 font-semibold">
-        KRISHOE को नयाँ संस्करण तयार छ। · A new version is ready.
+        {text("A new version of KRISHOE is ready.", "KRISHOE को नयाँ संस्करण तयार छ।")}
       </span>
       <button
         type="button"
         onClick={() => window.location.reload()}
         className="h-9 shrink-0 rounded-full bg-brand-gold-bright px-4 text-xs font-black text-brand-green-ink transition hover:brightness-105"
       >
-        फेरि खोल्ने · Reload
+        {text("Reload", "फेरि खोल्ने")}
       </button>
       <button
         type="button"
         onClick={() => setUpdateReady(false)}
-        aria-label="हटाउने · Dismiss"
+        aria-label={text("Dismiss", "हटाउने")}
         className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
       >
         ✕

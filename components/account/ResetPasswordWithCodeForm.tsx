@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 import { resetPasswordWithCodeAction, type AccountActionState } from "@/app/account/actions";
 
 const initialState: AccountActionState = { ok: false, message: "" };
@@ -18,6 +19,7 @@ const inputClass = "h-12 rounded-lg border border-black/10 px-4 outline-none foc
 export default function ResetPasswordWithCodeForm() {
   const [state, setState] = useState<AccountActionState>(initialState);
   const [isPending, setIsPending] = useState(false);
+  const { text } = useLanguage();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,9 +35,14 @@ export default function ResetPasswordWithCodeForm() {
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border bg-brand-paper p-6 shadow-sm">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black text-brand-green-ink">नयाँ password राख्नुहोस्</h1>
+        <h1 className="text-3xl font-black text-brand-green-ink">
+        {text("Set a new password", "नयाँ password राख्नुहोस्")}
+      </h1>
         <p className="mt-2 text-sm text-gray-500">
-          Email मा आएको ६ अंकको कोड हाल्नुहोस्। कोड १ घण्टा चल्छ।
+          {text(
+          "Put in the six-digit code from the email. The code works for one hour.",
+          "Email मा आएको ६ अंकको कोड हाल्नुहोस्। कोड १ घण्टा चल्छ।",
+        )}
         </p>
       </div>
 
@@ -45,7 +52,7 @@ export default function ResetPasswordWithCodeForm() {
           <input name="email" type="email" required autoComplete="email" className={inputClass} />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">६ अंकको कोड</span>
+          <span className="text-sm font-medium">{text("Six-digit code", "६ अंकको कोड")}</span>
           <input
             name="code"
             inputMode="numeric"
@@ -58,7 +65,7 @@ export default function ResetPasswordWithCodeForm() {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">नयाँ password</span>
+          <span className="text-sm font-medium">{text("New password", "नयाँ password")}</span>
           <input
             name="password"
             type="password"
@@ -69,7 +76,7 @@ export default function ResetPasswordWithCodeForm() {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">फेरि लेख्नुहोस्</span>
+          <span className="text-sm font-medium">{text("Type it again", "फेरि लेख्नुहोस्")}</span>
           <input
             name="confirmPassword"
             type="password"
@@ -83,7 +90,7 @@ export default function ResetPasswordWithCodeForm() {
 
       <div className="mt-6 grid gap-2">
         <SubmitButton
-          idleLabel={isPending ? "Resetting..." : "Password बदल्ने"}
+          idleLabel={isPending ? "Resetting..." : text("Change password", "Password बदल्ने")}
           pendingLabel="Resetting..."
           disabled={isPending}
         />
@@ -93,7 +100,7 @@ export default function ResetPasswordWithCodeForm() {
           </p>
         )}
         <Link href="/account/login" className="text-center text-sm font-bold text-brand-green hover:underline">
-          नयाँ कोड पठाउने · Send a new code
+          {text("Send a new code", "नयाँ कोड पठाउने")}
         </Link>
       </div>
     </form>

@@ -171,7 +171,7 @@ export default function ShopCatalogControls({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="यीमध्ये छान्नुहोस् — नाम, रङ, SKU"
+              placeholder={text("Narrow these — name, colour, SKU", "यीमध्ये छान्नुहोस् — नाम, रङ, SKU")}
               className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-sm font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-brand-paper"
             />
           </label>

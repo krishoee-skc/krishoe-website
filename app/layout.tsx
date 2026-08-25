@@ -175,11 +175,13 @@ export default async function RootLayout({
             <LanguageInvite />
             <BottomTabBar />
           </CommerceProvider>
+          {/* Passed the deployment that served this page, so a tab left open
+              across a deploy can offer a reload instead of silently running old
+              code. Covers the shop and the admin alike — both hang off this
+              layout, which is also why it can sit inside the language context
+              and say one thing rather than two. */}
+          <VersionWatcher version={process.env.VERCEL_GIT_COMMIT_SHA ?? ""} />
         </LanguageProvider>
-        {/* Passed the deployment that served this page, so a tab left open
-            across a deploy can offer a reload instead of silently running old
-            code. Covers the shop and the admin alike. */}
-        <VersionWatcher version={process.env.VERCEL_GIT_COMMIT_SHA ?? ""} />
       </body>
     </html>
   );

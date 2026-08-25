@@ -1,4 +1,5 @@
 import type { StockMovement } from "@/lib/operations";
+import type { Said } from "@/lib/words";
 
 /**
  * How long the stock on hand will last, when that can honestly be said.
@@ -46,9 +47,6 @@ export type StockOutlook = {
    */
   waitingFor: Said;
 };
-
-/** One sentence the shop can read in whichever language it is running in. */
-export type Said = { en: string; ne: string };
 
 const dayKey = (iso: string) => iso.slice(0, 10);
 

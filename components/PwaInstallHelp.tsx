@@ -189,11 +189,16 @@ export default function PwaInstallHelp() {
               heading rendered in dark body ink on a dark green card and could
               not be read. */}
           <p className="font-black text-white">
-            {platform === "desktop" ? "KRISHOE computer मा राख्नुहोस्" : "KRISHOE फोनमा राख्नुहोस्"}
+            {platform === "desktop"
+              ? text("Put KRISHOE on this computer", "KRISHOE computer मा राख्नुहोस्")
+              : text("Put KRISHOE on your phone", "KRISHOE फोनमा राख्नुहोस्")}
           </p>
           <p className="mt-1 text-sm leading-5 text-white/80">
             {installer
-              ? "एक थिचाइमा — app जस्तै खुल्छ, छिटो चल्छ।"
+              ? text(
+                "One tap — it opens like an app and runs faster.",
+                "एक थिचाइमा — app जस्तै खुल्छ, छिटो चल्छ।",
+              )
               : platform === "ios"
                 ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
                 : platform === "desktop"
@@ -220,7 +225,7 @@ export default function PwaInstallHelp() {
           disabled={busy}
           className="mt-3 min-h-12 w-full rounded-xl bg-brand-gold px-4 text-sm font-black text-brand-green-ink disabled:opacity-60"
         >
-          {busy ? "राख्दैछौँ…" : "📲 अहिले नै राख्नुहोस्"}
+          {busy ? text("Adding…", "राख्दैछौँ…") : text("📲 Add it now", "📲 अहिले नै राख्नुहोस्")}
         </button>
       ) : null}
     </aside>

@@ -94,7 +94,7 @@ export default function About() {
               en="Comfortable everyday silhouettes, dependable finishing, honest factory-direct value, and people you can talk to when you need help."
               ne="दिनहुँ लगाउन मिल्ने, टिक्ने, कारखानाकै मूल्यमा — अनि अल्झिँदा कुरा गर्न मान्छे भेटिन्छ।"
             />{" "}
-            जुत्ता मात्र होइन, भरोसा।
+            <T en="Not just shoes — trust." ne="जुत्ता मात्र होइन, भरोसा।" />
           </p>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">

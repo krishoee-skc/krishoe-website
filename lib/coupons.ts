@@ -196,14 +196,18 @@ export async function saveCoupon(input: {
   note: string;
 }) {
   const code = normalizeCouponCode(input.code);
-  if (!code) throw new Error("कोड चाहिन्छ।");
+  if (!code) throw new Error("A code is needed. कोड चाहिन्छ।");
   if (!/^[A-Z0-9]{3,24}$/.test(code)) {
-    throw new Error("कोडमा अंग्रेजी अक्षर र अंक मात्र, ३ देखि २४ अक्षर।");
+    throw new Error(
+      "A code is English letters and digits only, 3 to 24 characters. कोडमा अंग्रेजी अक्षर र अंक मात्र, ३ देखि २४ अक्षर।",
+    );
   }
   if (input.kind === "percent" && (input.value < 1 || input.value > 100)) {
-    throw new Error("प्रतिशत १ देखि १०० बीच हुनुपर्छ।");
+    throw new Error("A percentage has to be between 1 and 100. प्रतिशत १ देखि १०० बीच हुनुपर्छ।");
   }
-  if (input.value <= 0) throw new Error("छुटको मात्रा ० भन्दा बढी हुनुपर्छ।");
+  if (input.value <= 0) {
+    throw new Error("The discount has to be more than zero. छुटको मात्रा ० भन्दा बढी हुनुपर्छ।");
+  }
 
   const rows = await queryPostgres<CouponRow>(
     STORE,

@@ -56,7 +56,7 @@ export default async function AboutPage() {
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,35,29,0.95),rgba(16,35,29,0.68))]" />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8">
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand-gold-bright">
-            हाम्रो कथा — Our Story
+            <T en="Our Story" ne="हाम्रो कथा" />
           </p>
           {/* text-white is spelled out rather than inherited from the section:
               globals.css sets `h1..h6 { color: var(--ink) }`, and a rule that
@@ -78,29 +78,41 @@ export default async function AboutPage() {
 
       <section className="py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-3 md:px-8">
+          {/* The heading is the shop's own name for the thing, in the reader's
+              script; the line under it is the same thing said plainly. The
+              English side used to get the Nepali heading with the English
+              underneath, which is a caption, not a translation. */}
           {[
-            [
-              "हाम्रै कारखाना",
-              "Our own factory",
-              "Every pair is cut, stitched, and finished by Nepali hands in our own workshop. When you buy KRISHOE, you stand with Nepali craft.",
-            ],
-            [
-              "इमानदार मूल्य",
-              "Honest factory price",
-              "No middlemen. Shoes travel from our factory floor straight to your feet — so the price you pay is the fair one.",
-            ],
-            [
-              "सजिलो सेवा",
-              "Easy, human service",
-              "Order on WhatsApp or Viber, get a clear bill, and exchange easily if something isn't right. Buying shoes should feel simple.",
-            ],
-          ].map(([nepali, english, text]) => (
-            <article key={english} className="rounded-lg border border-black/10 bg-brand-mist p-6">
-              <p className="text-2xl font-black text-brand-green-ink">{nepali}</p>
-              <p className="mt-1 text-sm font-bold uppercase tracking-[0.18em] text-brand-gold-deep">
-                {english}
+            {
+              headingNe: "हाम्रै कारखाना",
+              headingEn: "Our own factory",
+              kickerNe: "Our own factory",
+              kickerEn: "Made where we work",
+              body: "Every pair is cut, stitched, and finished by Nepali hands in our own workshop. When you buy KRISHOE, you stand with Nepali craft.",
+            },
+            {
+              headingNe: "इमानदार मूल्य",
+              headingEn: "Honest factory price",
+              kickerNe: "Honest factory price",
+              kickerEn: "Straight from the floor",
+              body: "No middlemen. Shoes travel from our factory floor straight to your feet — so the price you pay is the fair one.",
+            },
+            {
+              headingNe: "सजिलो सेवा",
+              headingEn: "Easy, human service",
+              kickerNe: "Easy, human service",
+              kickerEn: "A person, not a form",
+              body: "Order on WhatsApp or Viber, get a clear bill, and exchange easily if something isn't right. Buying shoes should feel simple.",
+            },
+          ].map(({ headingNe, headingEn, kickerNe, kickerEn, body }) => (
+            <article key={headingEn} className="rounded-lg border border-black/10 bg-brand-mist p-6">
+              <p className="text-2xl font-black text-brand-green-ink">
+                <T en={headingEn} ne={headingNe} />
               </p>
-              <p className="mt-3 text-sm leading-7 text-brand-muted">{text}</p>
+              <p className="mt-1 text-sm font-bold uppercase tracking-[0.18em] text-brand-gold-deep">
+                <T en={kickerEn} ne={kickerNe} />
+              </p>
+              <p className="mt-3 text-sm leading-7 text-brand-muted">{body}</p>
             </article>
           ))}
         </div>
@@ -109,7 +121,7 @@ export default async function AboutPage() {
       <section className="bg-brand-mist py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            हाम्रो वाचा — Our Promise
+            <T en="Our Promise" ne="हाम्रो वाचा" />
           </p>
           <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-brand-green-ink md:text-5xl">
             <T en="Not just shoes — trust." ne="जुत्ता मात्र होइन, भरोसा।" />
@@ -120,26 +132,38 @@ export default async function AboutPage() {
             {[
               {
                 step: { en: "1", ne: "१" },
-                title: "Checked before it leaves",
-                body: "हरेक जोडी कारखानाबाट निस्कनु अघि जाँचिन्छ। A pair that isn't good enough for our own family doesn't leave the workshop.",
+                titleEn: "Checked before it leaves",
+                titleNe: "निस्कनु अघि जाँचिन्छ",
+                bodyEn:
+                  "A pair that isn't good enough for our own family doesn't leave the workshop.",
+                bodyNe:
+                  "हरेक जोडी कारखानाबाट निस्कनु अघि जाँचिन्छ — आफ्नै परिवारलाई नदिने जुत्ता कारखानाबाट निस्कँदैन।",
               },
               {
                 step: { en: "2", ne: "२" },
-                title: "Easy exchange",
-                body: "मिलेन भने सजिलै साट्नुहोस्। Our return policy is written for customers, not against them.",
+                titleEn: "Easy exchange",
+                titleNe: "सजिलै साट्न मिल्ने",
+                bodyEn: "Our return policy is written for customers, not against them.",
+                bodyNe: "मिलेन भने सजिलै साट्नुहोस् — नियम ग्राहकको पक्षमा लेखिएको छ।",
               },
               {
                 step: { en: "3", ne: "३" },
-                title: "We listen, then we make",
-                body: "तपाईंको प्रतिक्रियाले नै हाम्रो अर्को design जन्माउँछ। Every review is read, and the next batch is better for it.",
+                titleEn: "We listen, then we make",
+                titleNe: "सुन्छौँ, अनि बनाउँछौँ",
+                bodyEn: "Every review is read, and the next batch is better for it.",
+                bodyNe: "तपाईंको प्रतिक्रियाले नै हाम्रो अर्को design जन्माउँछ।",
               },
-            ].map(({ step, title, body }) => (
-              <article key={title} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
+            ].map(({ step, titleEn, titleNe, bodyEn, bodyNe }) => (
+              <article key={titleEn} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-sm">
                 <p className="grid h-10 w-10 place-items-center rounded-full bg-brand-green text-lg font-black text-white">
                   <T en={step.en} ne={step.ne} />
                 </p>
-                <p className="mt-4 text-xl font-black text-brand-green-ink">{title}</p>
-                <p className="mt-3 text-sm leading-7 text-brand-muted">{body}</p>
+                <p className="mt-4 text-xl font-black text-brand-green-ink">
+                  <T en={titleEn} ne={titleNe} />
+                </p>
+                <p className="mt-3 text-sm leading-7 text-brand-muted">
+                  <T en={bodyEn} ne={bodyNe} />
+                </p>
               </article>
             ))}
           </div>

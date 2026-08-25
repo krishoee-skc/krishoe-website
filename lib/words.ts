@@ -30,6 +30,18 @@
 
 export type Word = { en: string; ne: string };
 
+/**
+ * A whole sentence the app says, in both languages.
+ *
+ * Same shape as a Word, a different thing: a Word is what the shop calls
+ * something and lives in this file; a Said is a sentence built at runtime —
+ * "3 more sales and we can say", "your review already reached us" — and lives
+ * wherever it is worked out. It travels in both halves because the code that
+ * builds it (a server action, a forecast) cannot know which language the
+ * reader chose; only the browser can.
+ */
+export type Said = { en: string; ne: string };
+
 /** What the shop sells, and how it is counted. */
 export const goods = {
   pair: { en: "pair", ne: "जोडी" },

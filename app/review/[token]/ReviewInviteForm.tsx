@@ -14,7 +14,7 @@ import { submitInvitedReview, type ReviewFormState } from "./actions";
  * an unsigned review than none.
  */
 
-const START: ReviewFormState = { ok: false, message: "" };
+const START: ReviewFormState = { ok: false, message: { en: "", ne: "" } };
 
 const WORDS_NE = ["नराम्रो", "ठीकै छैन", "ठीकै", "राम्रो", "धेरै राम्रो"];
 const WORDS_EN = ["Poor", "Not quite", "All right", "Good", "Very good"];
@@ -40,7 +40,9 @@ export default function ReviewInviteForm({
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <p className="text-5xl">🙏</p>
-        <p className="mt-4 text-lg font-black text-emerald-900">{state.message}</p>
+        <p className="mt-4 text-lg font-black text-emerald-900">
+          {text(state.message.en, state.message.ne)}
+        </p>
         <Link
           href="/shop"
           className="mt-6 inline-block rounded-xl bg-brand-green-ink px-6 py-3 text-sm font-black text-white"
@@ -118,9 +120,9 @@ export default function ReviewInviteForm({
         />
       </label>
 
-      {state.message ? (
+      {state.message.en ? (
         <p className="rounded-xl bg-brand-clay-tint px-4 py-3 text-sm font-bold text-brand-clay">
-          {state.message}
+          {text(state.message.en, state.message.ne)}
         </p>
       ) : null}
 
