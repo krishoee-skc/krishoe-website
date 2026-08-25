@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/products";
 import type { Product, Category } from "@/lib/products";
 import { upsertProductAction, type ActionState } from "./actions";
 import ActionMessage from "@/components/admin/ActionMessage";
+import { useLanguage } from "@/components/LanguageProvider";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 
 type ProductFormProps = {
@@ -23,6 +24,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
+  const { text } = useLanguage();
   const [pricePreview, setPricePreview] = useState(
     product ? String(product.priceValue / 100) : "",
   );
@@ -55,10 +57,12 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">
-            {isEditing ? "Edit product" : "Create product"}
+            {isEditing ? text("Edit product", "जुत्ता सच्याउने") : text("Create product", "नयाँ जुत्ता थप्ने")}
           </h2>
           <p className="mt-1 text-sm text-brand-muted">
-            {isEditing ? `Updating ${product?.name}` : "Add a new item to the KRISHOE catalog."}
+            {isEditing
+              ? text(`Updating ${product?.name}`, `${product?.name} सच्याउँदै`)
+              : text("Add a new item to the KRISHOE catalog.", "पसलमा नयाँ जुत्ता थप्नुहोस्।")}
           </p>
         </div>
         {isEditing ? (
@@ -66,14 +70,14 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             href="/admin/products"
             className="inline-flex h-10 items-center rounded-full border border-black/10 px-4 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
           >
-            Cancel edit
+            {text("Cancel edit", "रद्द गर्ने")}
           </Link>
         ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Product Name</span>
+          <span className="text-sm font-medium">{text("Product name", "जुत्ताको नाम")}</span>
           <input name="name" defaultValue={product?.name} required className="form-input" />
         </label>
         {/* The half of the shop the language switch could never reach: a shoe's
@@ -82,7 +86,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             the shop did before the column existed — so it can be filled in one
             shoe at a time with nothing broken in between. */}
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">नेपालीमा नाम</span>
+          <span className="text-sm font-medium">{text("Name in Nepali", "नेपालीमा नाम")}</span>
           <input
             name="nameNe"
             defaultValue={product?.nameNe ?? ""}
@@ -90,18 +94,21 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             className="form-input"
           />
           <span className="text-xs text-brand-muted">
-            नलेखे English नाम नै देखिन्छ — Left blank, the English name is shown.
+            {text(
+              "Left blank, the English name is shown to Nepali readers too.",
+              "नलेखे English नाम नै देखिन्छ।",
+            )}
           </span>
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">SKU</span>
+          <span className="text-sm font-medium">{text("SKU", "SKU — सामानको कोड")}</span>
           <input name="sku" defaultValue={product?.sku} required className="form-input" />
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Category</span>
+          <span className="text-sm font-medium">{text("Category", "कुन किसिम")}</span>
           <select name="categorySlug" defaultValue={product?.categorySlug} className="form-input">
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -124,9 +131,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             is: a rupee held as a decimal loses a paisa to rounding, and fifty
             bills a day is fifty chances for the books not to balance. */}
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">
-            मूल्य — रुपैयाँमा <span className="font-normal text-brand-muted">Price (Rs.)</span>
-          </span>
+          <span className="text-sm font-medium">{text("Price (Rs.)", "मूल्य — रुपैयाँमा")}</span>
           <input
             name="priceRupees"
             defaultValue={product ? product.priceValue / 100 : ""}
@@ -140,8 +145,11 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           />
           <span className="text-xs text-brand-muted">
             {pricePreview.trim() === "" || Number.isNaN(Number(pricePreview))
-              ? "ग्राहकले देख्नेछन्: —"
-              : `ग्राहकले देख्नेछन्: ${rupeeLabel(Number(pricePreview))}`}
+              ? text("The customer will see: —", "ग्राहकले देख्नेछन्: —")
+              : text(
+                  `The customer will see: ${rupeeLabel(Number(pricePreview))}`,
+                  `ग्राहकले देख्नेछन्: ${rupeeLabel(Number(pricePreview))}`,
+                )}
           </span>
         </label>
         {/* Not an input any more. Stock has one door — Operations — and a box
@@ -150,27 +158,33 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             worth seeing while editing a product; it is changed where the pairs
             actually move. */}
         <div className="grid gap-1.5">
-          <span className="text-sm font-medium">Stock</span>
+          <span className="text-sm font-medium">{text("Stock", "कति जोडी छ")}</span>
           <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-dashed border-brand-green-line bg-brand-paper-deep px-4">
             <span className="text-lg font-black text-brand-green-ink">
-              {product ? `${product.stock} जोडी` : "0 जोडी"}
+              {text(
+                `${product?.stock ?? 0} pair${(product?.stock ?? 0) === 1 ? "" : "s"}`,
+                `${product?.stock ?? 0} जोडी`,
+              )}
             </span>
             <Link
               href="/admin/operations"
               className="shrink-0 text-xs font-black text-brand-green underline"
             >
-              Operations बाट बदल्ने
+              {text("Change in Operations", "Operations बाट बदल्ने")}
             </Link>
           </div>
           <span className="text-xs leading-5 text-brand-muted">
-            बनाएको · किनेको · सुरुको बाँकी — सबै Operations बाट। यहाँबाट बदलिँदैन।
+            {text(
+              "Made, bought or opening stock — all of it through Operations. It cannot be changed here.",
+              "बनाएको · किनेको · सुरुको बाँकी — सबै Operations बाट। यहाँबाट बदलिँदैन।",
+            )}
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Wholesale Price (Rs.)</span>
+          <span className="text-sm font-medium">{text("Wholesale price (Rs.)", "थोकको मूल्य (रु.)")}</span>
           <input
             name="wholesalePriceRupees"
             defaultValue={product?.wholesalePriceValue ? product.wholesalePriceValue / 100 : ""}
@@ -182,7 +196,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Min Wholesale Qty (pairs)</span>
+          <span className="text-sm font-medium">{text("Minimum wholesale order (pairs)", "थोकमा कम्तीमा कति जोडी")}</span>
           <input
             name="minWholesaleQty"
             defaultValue={product?.minWholesaleQty ?? 1}
@@ -196,22 +210,22 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Badge</span>
+          <span className="text-sm font-medium">{text("Badge", "चिनो")}</span>
           <input name="badge" defaultValue={product?.badge ?? ""} className="form-input" placeholder="New, Limited, Premium" />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Rating</span>
+          <span className="text-sm font-medium">{text("Rating", "तारा")}</span>
           <input name="rating" defaultValue={product?.rating ?? "4.8"} className="form-input" />
         </label>
       </div>
 
       <label className="grid gap-1.5">
-        <span className="text-sm font-medium">Short Description</span>
+        <span className="text-sm font-medium">{text("Short description", "छोटो विवरण")}</span>
         <textarea name="description" defaultValue={product?.description} rows={2} className="form-input" />
       </label>
 
       <label className="grid gap-1.5">
-        <span className="text-sm font-medium">नेपालीमा छोटो विवरण</span>
+        <span className="text-sm font-medium">{text("Short description in Nepali", "नेपालीमा छोटो विवरण")}</span>
         <textarea
           name="descriptionNe"
           defaultValue={product?.descriptionNe ?? ""}
@@ -222,7 +236,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       </label>
 
       <label className="grid gap-1.5">
-        <span className="text-sm font-medium">Long Description</span>
+        <span className="text-sm font-medium">{text("Long description", "लामो विवरण")}</span>
         <textarea name="longDescription" defaultValue={product?.longDescription} rows={4} className="form-input" />
       </label>
 
@@ -244,54 +258,65 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Colors (comma-separated)</span>
+          <span className="text-sm font-medium">{text("Colours (comma-separated)", "रङ — कमाले छुट्याउने")}</span>
           <input name="colors" defaultValue={product?.colors.join(", ")} className="form-input" />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Sizes (comma-separated)</span>
+          <span className="text-sm font-medium">{text("Sizes (comma-separated)", "साइज — कमाले छुट्याउने")}</span>
           <input name="sizes" defaultValue={product?.sizes.join(", ")} className="form-input" />
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Material</span>
+          <span className="text-sm font-medium">{text("Material", "केबाट बनेको")}</span>
           <input name="material" defaultValue={product?.material} className="form-input" />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Fit</span>
+          <span className="text-sm font-medium">{text("Fit", "खुट्टामा कस्तो")}</span>
           <input name="fit" defaultValue={product?.fit} className="form-input" />
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Highlights (comma-separated)</span>
+          <span className="text-sm font-medium">{text("Highlights (comma-separated)", "मुख्य कुरा — कमाले छुट्याउने")}</span>
           <textarea name="highlights" defaultValue={product?.highlights.join(", ")} rows={3} className="form-input" />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Care Instructions (comma-separated)</span>
+          <span className="text-sm font-medium">{text("Care instructions (comma-separated)", "कसरी सम्हाल्ने — कमाले छुट्याउने")}</span>
           <textarea name="care" defaultValue={product?.care.join(", ")} rows={3} className="form-input" />
         </label>
       </div>
 
       <div className="flex flex-wrap items-center gap-8">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium">Status</span>
+          <span className="text-sm font-medium">{text("Status", "पसलमा देखाउने कि नदेखाउने")}</span>
           <select name="status" defaultValue={product?.status ?? "Active"} className="form-input">
-            <option value="Active">Active</option>
-            <option value="Draft">Draft</option>
+            {/* The values are what the database stores and must not move;
+                only what the reader sees does. */}
+            <option value="Active">{text("Active — in the shop", "पसलमा देखिने")}</option>
+            <option value="Draft">{text("Draft — hidden", "लुकाइएको")}</option>
           </select>
         </label>
         <div className="flex items-center gap-8 pt-5">
-          <label className="flex items-center gap-2"><input type="checkbox" name="featured" defaultChecked={product?.featured} /> Featured</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="bestSeller" defaultChecked={product?.bestSeller} /> Best Seller</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="newArrival" defaultChecked={product?.newArrival} /> New Arrival</label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="featured" defaultChecked={product?.featured} />
+            {text("Featured", "मुख्य पानामा")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="bestSeller" defaultChecked={product?.bestSeller} />
+            {text("Best seller", "धेरै बिक्ने")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="newArrival" defaultChecked={product?.newArrival} />
+            {text("New arrival", "नयाँ आएको")}
+          </label>
         </div>
       </div>
 
       <div className="space-y-4 border-t pt-6">
-        <ActionMessage state={state} linkLabel="View all products" />
+        <ActionMessage state={state} linkLabel={text("View all products", "सबै जुत्ता हेर्ने")} />
         <button
           type="submit"
           disabled={isSaving}
@@ -299,11 +324,11 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         >
           {isSaving
             ? isEditing
-              ? "Saving..."
-              : "Creating..."
+              ? text("Saving…", "सुरक्षित गर्दै…")
+              : text("Creating…", "थप्दै…")
             : isEditing
-              ? "Save Changes"
-              : "Create Product"}
+              ? text("Save changes", "सच्याइएको राख्ने")
+              : text("Create product", "जुत्ता थप्ने")}
         </button>
       </div>
     </form>

@@ -22,7 +22,9 @@ describe("product form", () => {
 
   it("shows the count and points at where it changes", async () => {
     const form = await readFile("app/admin/ProductForm.tsx", "utf8");
-    expect(form).toContain("product.stock");
+    // The count is read from the product, however it is spelled — the point is
+    // that this screen displays it and sends the reader elsewhere to change it.
+    expect(form).toMatch(/product\??\.stock/);
     expect(form).toContain("/admin/operations");
   });
 });

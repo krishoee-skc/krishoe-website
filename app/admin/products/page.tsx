@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import ProductForm from "@/app/admin/ProductForm";
 import ProductsClient from "@/app/admin/ProductsClient";
 import { syncProductCatalogStockAction } from "@/app/admin/products/actions";
@@ -58,9 +59,14 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Products</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">
+            <T en="Products" ne="सामान" />
+          </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
-            Create, edit, publish, draft, delete, and sync catalog stock with finished goods.
+            <T
+              en="Create, edit, publish, draft, delete, and sync catalog stock with finished goods."
+              ne="जुत्ता थप्ने, सच्याउने, पसलमा देखाउने वा लुकाउने, र स्टक मिलाउने।"
+            />
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -68,26 +74,26 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             href="/admin/products/photos"
             className="inline-flex h-10 items-center rounded-full bg-brand-green px-4 text-sm font-black text-white transition hover:bg-brand-green-ink"
           >
-            📷 फोटो हाल्ने
+            📷 <T en="Add photos" ne="फोटो हाल्ने" />
           </Link>
           <Link
             href="/admin/products/photo-guide"
             className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
-            📸 Photo guide
+            📸 <T en="Photo guide" ne="फोटो कसरी खिच्ने" />
           </Link>
           <Link
             href="/admin/products/labels"
             className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
-            Barcode labels
+            <T en="Barcode labels" ne="बारकोडको स्टिकर" />
           </Link>
           <form action={syncProductCatalogStockAction}>
             <FormSubmitButton
               className="h-10 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
               pendingLabel="Syncing…"
             >
-              Sync stock
+              <T en="Sync stock" ne="स्टक मिलाउने" />
             </FormSubmitButton>
           </form>
         </div>
