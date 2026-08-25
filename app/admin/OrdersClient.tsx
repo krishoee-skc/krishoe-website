@@ -58,7 +58,7 @@ function OrderStatusSelector({ order }: { order: OrderSubmission }) {
       defaultValue={order.status}
       onChange={handleStatusChange}
       disabled={isPending}
-      className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+      className="rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
     >
       {ORDER_STATUSES.map((status) => (
         <option key={status} value={status}>
@@ -102,10 +102,10 @@ function ConversionStatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
-      <p className="mt-1 text-xs font-semibold text-gray-500">{detail}</p>
+      <p className="mt-1 text-xs font-semibold text-brand-muted">{detail}</p>
     </div>
   );
 }
@@ -148,7 +148,7 @@ function OrderPaymentForm({
             name="paymentStatus"
             defaultValue={order.paymentStatus}
             disabled={isPending}
-            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           >
             {PAYMENT_STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -160,7 +160,7 @@ function OrderPaymentForm({
             name="paymentProvider"
             defaultValue={order.paymentProvider}
             disabled={isPending}
-            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           >
             {PAYMENT_PROVIDERS.map((provider) => (
               <option key={provider} value={provider}>
@@ -175,7 +175,7 @@ function OrderPaymentForm({
             defaultValue={latestTransaction?.amount ?? amountFromOrderTotal(order.total)}
             disabled={isPending}
             placeholder="Amount"
-            className="min-w-0 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
         <div className="grid grid-cols-4 gap-2">
@@ -183,7 +183,7 @@ function OrderPaymentForm({
             name="ledgerId"
             defaultValue={order.paymentLedgerId ?? latestTransaction?.ledgerId ?? ""}
             disabled={isPending}
-            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           >
             <option value="">No ledger</option>
             {customerLedgers.map((ledger) => (
@@ -197,21 +197,21 @@ function OrderPaymentForm({
             defaultValue={order.paymentReference ?? ""}
             placeholder="Reference"
             disabled={isPending}
-            className="min-w-0 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
           <input
             name="paymentTransactionId"
             defaultValue={order.paymentTransactionId ?? ""}
             placeholder="Transaction ID"
             disabled={isPending}
-            className="min-w-0 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
           <input
             name="paymentCallbackId"
             defaultValue={order.paymentCallbackId ?? ""}
             placeholder="Callback ID"
             disabled={isPending}
-            className="min-w-0 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
         <input
@@ -219,10 +219,10 @@ function OrderPaymentForm({
           defaultValue=""
           placeholder="Payment note"
           disabled={isPending}
-          className="min-w-0 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
         <div className="flex items-center justify-between gap-3">
-          <p className={`text-xs ${state.ok ? "text-gray-500" : "text-red-600"}`}>
+          <p className={`text-xs ${state.ok ? "text-brand-muted" : "text-red-600"}`}>
             {state.message ||
               (order.paymentVerifiedAt
                 ? "Verified"
@@ -238,12 +238,12 @@ function OrderPaymentForm({
         </div>
       </form>
 
-      <div className="grid gap-1 text-xs text-gray-600">
+      <div className="grid gap-1 text-xs text-brand-muted">
         {transactions.slice(0, 3).map((transaction) => {
           const ledger = customerLedgers.find((item) => item.id === transaction.ledgerId);
 
           return (
-            <div key={transaction.id} className="rounded-md bg-gray-50 px-2 py-1.5">
+            <div key={transaction.id} className="rounded-md bg-brand-paper-deep px-2 py-1.5">
               <span className="font-bold text-brand-green-ink">{transaction.paymentStatus}</span>
               <span> - {transaction.paymentProvider.toUpperCase()}</span>
               <span> - {money(transaction.amount)}</span>
@@ -283,7 +283,7 @@ function CustomerTrustForm({ order }: { order: OrderSubmission }) {
         {isPending ? "Verifying" : "Verify phone"}
       </button>
       {state.message ? (
-        <p className={`max-w-[220px] text-[11px] font-semibold ${state.ok ? "text-gray-500" : "text-red-600"}`}>
+        <p className={`max-w-[220px] text-[11px] font-semibold ${state.ok ? "text-brand-muted" : "text-red-600"}`}>
           {state.message}
         </p>
       ) : null}
@@ -314,7 +314,7 @@ function OrderToPosForm({
         >
           {posInvoice.invoiceNumber}
         </Link>
-        <p className="text-xs font-semibold text-gray-500">{conversionRow.pairCount} pairs posted</p>
+        <p className="text-xs font-semibold text-brand-muted">{conversionRow.pairCount} pairs posted</p>
       </div>
     );
   }
@@ -336,7 +336,7 @@ function OrderToPosForm({
           name="posPaymentMethod"
           defaultValue={defaultPosPaymentMethod(order)}
           disabled={isPending}
-          className="rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         >
           {POS_PAYMENT_METHODS.map((method) => (
             <option key={method} value={method}>
@@ -351,14 +351,14 @@ function OrderToPosForm({
           defaultValue={order.paymentStatus === "Paid" ? amountFromOrderTotal(order.total) : 0}
           disabled={isPending}
           placeholder="Paid"
-          className="min-w-0 rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="min-w-0 rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
         <input
           name="cashier"
           defaultValue="Online"
           disabled={isPending}
           placeholder="Cashier"
-          className="min-w-0 rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="min-w-0 rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -366,7 +366,7 @@ function OrderToPosForm({
           name="ledgerId"
           defaultValue={order.paymentLedgerId ?? ""}
           disabled={isPending}
-          className="rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         >
           <option value="">No ledger</option>
           {customerLedgers.map((ledger) => (
@@ -380,11 +380,11 @@ function OrderToPosForm({
           defaultValue={order.paymentReference ?? ""}
           disabled={isPending}
           placeholder="Payment ref"
-          className="min-w-0 rounded-md border-gray-300 text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          className="min-w-0 rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
       </div>
       <div className="flex items-center justify-between gap-2">
-        <p className={`text-xs ${state.ok ? "text-gray-500" : "text-red-600"}`}>
+        <p className={`text-xs ${state.ok ? "text-brand-muted" : "text-red-600"}`}>
           {state.message || conversionRow.detail}
         </p>
         {state.href ? (
@@ -444,7 +444,7 @@ export default function OrdersClient({
             className={`h-9 rounded-full border px-3 text-xs font-black transition ${
               conversionFilter === filter
                 ? "border-brand-green bg-brand-green text-white"
-                : "border-gray-200 bg-white text-brand-green-ink hover:border-brand-green"
+                : "border-brand-green-line bg-brand-paper text-brand-green-ink hover:border-brand-green"
             }`}
           >
             {filter}
@@ -452,23 +452,23 @@ export default function OrdersClient({
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-      <table className="reflow-table min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
+      <table className="reflow-table min-w-full divide-y divide-brand-green-line text-sm">
+        <thead className="bg-brand-paper-deep">
           <tr>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Order ID</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Date</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Customer</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Items</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Total</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Signal</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Payment</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">POS</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Status</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Order ID</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Date</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Customer</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Items</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Total</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Signal</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Payment</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">POS</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Status</th>
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-brand-green-line">
           {visibleOrders.map((order) => {
             const conversionRow =
               conversionByOrderId.get(order.id) ??
@@ -491,33 +491,33 @@ export default function OrdersClient({
 
             return (
               <tr key={order.id}>
-                <td className="reflow-primary whitespace-nowrap px-4 py-3 font-mono text-gray-700">{order.id}</td>
-                <td data-label="Date" className="whitespace-nowrap px-4 py-3 text-gray-700">
+                <td className="reflow-primary whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{order.id}</td>
+                <td data-label="Date" className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">
                   <DateDisplayAdmin date={order.createdAt} />
                 </td>
                 <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
-                  <p className="font-medium text-gray-900">{order.name}</p>
-                  <p className="text-xs text-gray-500">{order.phone}</p>
-                  {order.email ? <p className="text-xs text-gray-500">{order.email}</p> : null}
+                  <p className="font-medium text-brand-green-ink">{order.name}</p>
+                  <p className="text-xs text-brand-muted">{order.phone}</p>
+                  {order.email ? <p className="text-xs text-brand-muted">{order.email}</p> : null}
                   <CustomerTrustForm order={order} />
                 </td>
-                <td data-label="Items" className="px-4 py-3 text-gray-700">
-                  <p className="max-h-32 min-w-[260px] max-w-[360px] overflow-y-auto whitespace-pre-line rounded-md bg-gray-50 p-3 text-xs leading-6">
+                <td data-label="Items" className="px-4 py-3 text-brand-muted-deep">
+                  <p className="max-h-32 min-w-[260px] max-w-[360px] overflow-y-auto whitespace-pre-line rounded-md bg-brand-paper-deep p-3 text-xs leading-6">
                     {order.order}
                   </p>
                 </td>
-                <td data-label="Total" className="whitespace-nowrap px-4 py-3 text-gray-700">{order.total}</td>
-                <td data-label="Signal" className="px-4 py-3 text-gray-700">
+                <td data-label="Total" className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{order.total}</td>
+                <td data-label="Signal" className="px-4 py-3 text-brand-muted-deep">
                   <div className="grid min-w-[220px] gap-2">
                     <ConversionPill signal={conversionRow.signal} />
-                    <p className="text-xs font-semibold leading-5 text-gray-500">{conversionRow.detail}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs font-semibold leading-5 text-brand-muted">{conversionRow.detail}</p>
+                    <p className="text-xs text-brand-muted">
                       {conversionRow.itemCount} items, {conversionRow.pairCount} pairs
                     </p>
                   </div>
                 </td>
-                <td data-label="Payment" className="px-4 py-3 text-gray-700">
-                  <p className="mb-2 max-w-[420px] text-xs font-semibold text-gray-500">
+                <td data-label="Payment" className="px-4 py-3 text-brand-muted-deep">
+                  <p className="mb-2 max-w-[420px] text-xs font-semibold text-brand-muted">
                     {order.payment}
                   </p>
                   <OrderPaymentForm
@@ -528,7 +528,7 @@ export default function OrdersClient({
                     )}
                   />
                 </td>
-                <td data-label="POS" className="px-4 py-3 text-gray-700">
+                <td data-label="POS" className="px-4 py-3 text-brand-muted-deep">
                   <OrderToPosForm
                     order={order}
                     customerLedgers={customerLedgers}
@@ -544,7 +544,7 @@ export default function OrdersClient({
           })}
           {visibleOrders.length === 0 ? (
             <tr>
-              <td className="px-4 py-8 text-center text-sm text-gray-500" colSpan={9}>
+              <td className="px-4 py-8 text-center text-sm text-brand-muted" colSpan={9}>
                 No orders match this conversion filter.
               </td>
             </tr>

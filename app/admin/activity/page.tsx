@@ -29,7 +29,7 @@ function categoryClass(category: AdminAuditCategory) {
   if (category === "Messages") return "bg-[#EFF6FF] text-[#1D4ED8]";
   if (category === "Settings") return "bg-[#F3E8FF] text-[#6B21A8]";
   if (category === "Backup") return "bg-[#ECFDF5] text-[#047857]";
-  return "bg-gray-100 text-gray-700";
+  return "bg-brand-mist text-brand-muted-deep";
 }
 
 function statusClass(status: AdminAuditEvent["status"]) {
@@ -61,8 +61,8 @@ function actorDetail(event: AdminAuditEvent) {
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -95,14 +95,14 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">Admin activity log</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Login, backup, product, order, payment, and operations changes in one protected trail.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <a
             href={exportHref}
-            className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+            className="inline-flex h-9 items-center rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Export CSV
           </a>
@@ -128,12 +128,12 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Activity mix</h2>
-          <p className="mt-1 text-sm text-gray-500">Where admin work is happening most.</p>
+          <p className="mt-1 text-sm text-brand-muted">Where admin work is happening most.</p>
           <div className="mt-4 grid gap-3">
             {categoryCounts.map(({ category, count }) => (
-              <div key={category} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <div key={category} className="flex items-center justify-between rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
                 <span className={`rounded-full px-3 py-1 text-xs font-bold ${categoryClass(category)}`}>
                   {category}
                 </span>
@@ -143,10 +143,10 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Warning signals</h2>
-          <p className="mt-1 text-sm text-gray-500">Failed login, blocked login, or other warning-level audit events.</p>
-          <div className="mt-4 divide-y divide-gray-100">
+          <p className="mt-1 text-sm text-brand-muted">Failed login, blocked login, or other warning-level audit events.</p>
+          <div className="mt-4 divide-y divide-brand-green-line">
             {warningEvents.slice(0, 6).map((event) => (
               <div key={event.id} className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -155,11 +155,11 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                     {event.status}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600">{event.detail}</p>
-                <p className="mt-1 text-xs font-semibold text-gray-500">
+                <p className="mt-1 text-sm text-brand-muted">{event.detail}</p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">
                   Actor: {actorLabel(event)}{actorDetail(event) ? ` | ${actorDetail(event)}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-gray-400"><DateDisplayAdmin date={event.createdAt} time={true} /></p>
+                <p className="mt-1 text-xs text-brand-muted-soft"><DateDisplayAdmin date={event.createdAt} time={true} /></p>
               </div>
             ))}
             {warningEvents.length === 0 ? (
@@ -171,11 +171,11 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         </section>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Recent trail</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               {filtersActive ? "Filtered admin activity, newest first." : "Latest admin activity, newest first."}
             </p>
           </div>
@@ -184,23 +184,23 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           </Link>
         </div>
 
-        <form action="/admin/activity" className="mb-5 grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4 lg:grid-cols-[1.3fr_1fr_0.8fr_1fr_0.8fr_0.8fr_auto]">
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+        <form action="/admin/activity" className="mb-5 grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 lg:grid-cols-[1.3fr_1fr_0.8fr_1fr_0.8fr_0.8fr_auto]">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             Search
             <input
               type="search"
               name="q"
               defaultValue={filters.q}
               placeholder="Action, detail, audit ID"
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             Category
             <select
               name="category"
               defaultValue={filters.category}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             >
               <option value="all">All categories</option>
               {adminAuditCategories.map((category) => (
@@ -210,44 +210,44 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
               ))}
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             Status
             <select
               name="status"
               defaultValue={filters.status}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             >
               <option value="all">All status</option>
               <option value="success">Success</option>
               <option value="warning">Warning</option>
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             Actor
             <input
               type="search"
               name="actor"
               defaultValue={filters.actor}
               placeholder="Name, email, role"
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             From
             <input
               type="date"
               name="from"
               defaultValue={filters.from}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
-          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             To
             <input
               type="date"
               name="to"
               defaultValue={filters.to}
-              className="h-10 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
+              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
             />
           </label>
           <div className="flex items-end gap-2">
@@ -260,7 +260,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
             {filtersActive ? (
               <Link
                 href="/admin/activity"
-                className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+                className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
               >
                 Reset
               </Link>
@@ -269,13 +269,13 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         </form>
 
         {events.length === 0 ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             {filtersActive ? "No admin activity matched these filters." : "No admin activity recorded yet."}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Time</th>
                   <th className="py-2 pr-3">Category</th>
@@ -292,7 +292,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
 
                   return (
                     <tr key={event.id}>
-                      <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-gray-500">
+                      <td className="reflow-primary whitespace-nowrap py-3 pr-3 text-xs text-brand-muted">
                         <DateDisplayAdmin date={event.createdAt} time={true} />
                       </td>
                       <td data-label="Category" className="py-3 pr-3">
@@ -306,16 +306,16 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
                       <td data-label="Actor" className="min-w-52 py-3 pr-3">
                         <p className="font-bold text-brand-green-ink">{actorLabel(event)}</p>
                         {actorDetail(event) ? (
-                          <p className="mt-1 text-xs text-gray-500">{actorDetail(event)}</p>
+                          <p className="mt-1 text-xs text-brand-muted">{actorDetail(event)}</p>
                         ) : null}
                       </td>
-                      <td data-label="Detail" className="min-w-80 py-3 pr-3 text-gray-600">{event.detail}</td>
+                      <td data-label="Detail" className="min-w-80 py-3 pr-3 text-brand-muted">{event.detail}</td>
                       <td data-label="Status" className="py-3 pr-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(event.status)}`}>
                           {event.status}
                         </span>
                       </td>
-                      <td data-label="Audit ID" className="py-3 pr-3 font-mono text-xs text-gray-400">{event.id}</td>
+                      <td data-label="Audit ID" className="py-3 pr-3 font-mono text-xs text-brand-muted-soft">{event.id}</td>
                     </tr>
                   );
                 })}

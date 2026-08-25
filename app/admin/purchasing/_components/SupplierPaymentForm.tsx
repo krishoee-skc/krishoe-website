@@ -7,9 +7,9 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 type SupplierOption = { id: string; name: string; due: number };
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 const money = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
 
@@ -30,7 +30,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
   }
 
   return (
-    <form action={createSupplierTransactionAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+    <form action={createSupplierTransactionAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
       <div className="mt-4 grid gap-3">
         <select

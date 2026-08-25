@@ -18,8 +18,8 @@ function StatCard({ label, value, detail, tone = "plain" }: {
 }) {
   const valueTone = tone === "warn" ? "text-brand-clay" : tone === "good" ? "text-brand-green" : "text-brand-green-ink";
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-gray-500">{label}</p>
+    <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">{label}</p>
       <p className={`mt-2 text-3xl font-black ${valueTone}`}>{value}</p>
       <p className="mt-2 text-xs font-semibold leading-5 text-brand-muted-soft">{detail}</p>
     </div>
@@ -33,8 +33,8 @@ const originStyle: Record<ReadyStockOrigin, { badge: string; panel: string; desc
     description: "Pairs completed by KRISHOE production and posted through Production In.",
   },
   Purchased: {
-    badge: "bg-blue-100 text-blue-800",
-    panel: "border-blue-200 bg-blue-50/40",
+    badge: "bg-brand-green-wash text-brand-green",
+    panel: "border-brand-green-line bg-brand-green-wash/40",
     description: "Ready-made pairs purchased from suppliers for resale.",
   },
   Mixed: {
@@ -43,8 +43,8 @@ const originStyle: Record<ReadyStockOrigin, { badge: string; panel: string; desc
     description: "This design has both factory-made and purchased inflow history.",
   },
   "Opening / Adjustment": {
-    badge: "bg-gray-200 text-gray-800",
-    panel: "border-gray-200 bg-gray-50",
+    badge: "bg-brand-green-line text-brand-green-ink",
+    panel: "border-brand-green-line bg-brand-paper-deep",
     description: "Opening or adjusted stock without a Production In or Purchase In source movement.",
   },
 };
@@ -61,25 +61,25 @@ function ReadyStockSection({ title, origin, rows }: { title: string; origin: Rea
             <h2 className="text-lg font-black text-brand-green-ink">{title}</h2>
             <span className={`rounded-full px-2.5 py-1 text-xs font-black ${style.badge}`}>{total} pairs</span>
           </div>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">{style.description}</p>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">{style.description}</p>
         </div>
-        <span className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{rows.length} stock rows</span>
+        <span className="text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">{rows.length} stock rows</span>
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-gray-300 bg-white/70 p-4 text-sm font-semibold text-gray-500">No stock in this group.</p>
+        <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper/70 p-4 text-sm font-semibold text-brand-muted">No stock in this group.</p>
       ) : (
         <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => (
-            <div key={row.id} className="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
+            <div key={row.id} className="rounded-xl border border-white/80 bg-brand-paper p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-black text-brand-green-ink">{row.design}</p>
-                  <p className="mt-1 text-xs font-semibold text-gray-500">{row.channel} · Size {row.sizeRun}</p>
+                  <p className="mt-1 text-xs font-semibold text-brand-muted">{row.channel} · Size {row.sizeRun}</p>
                 </div>
                 <strong className="shrink-0 text-xl text-brand-green">{row.stockPairs}</strong>
               </div>
-              <div className="mt-3 flex gap-4 border-t border-gray-100 pt-3 text-xs font-semibold text-gray-500">
+              <div className="mt-3 flex gap-4 border-t border-brand-green-line pt-3 text-xs font-semibold text-brand-muted">
                 <span>Sold {row.soldPairs}</span>
                 <span>Returned {row.returnedPairs}</span>
               </div>
@@ -93,9 +93,9 @@ function ReadyStockSection({ title, origin, rows }: { title: string; origin: Rea
 
 function movementTone(type: StockMovement["type"]) {
   if (type === "Production In") return "bg-emerald-100 text-emerald-800";
-  if (type === "Purchase In") return "bg-blue-100 text-blue-800";
+  if (type === "Purchase In") return "bg-brand-green-wash text-brand-green";
   if (type === "Sale Out" || type === "Dispatch Out") return "bg-rose-100 text-rose-800";
-  return "bg-gray-100 text-gray-700";
+  return "bg-brand-mist text-brand-muted-deep";
 }
 
 /**
@@ -117,13 +117,13 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
     urgent: "bg-brand-clay-mist text-brand-clay",
     soon: "bg-amber-100 text-amber-900",
     healthy: "bg-emerald-100 text-emerald-900",
-    unknown: "bg-gray-100 text-gray-600",
+    unknown: "bg-brand-mist text-brand-muted",
   };
 
   return (
-    <section className="mt-6 rounded-2xl border border-brand-green/20 bg-white p-4 shadow-sm sm:p-5">
+    <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-paper p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-black text-brand-green-ink">कति दिन पुग्छ</h2>
-      <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
         बिक्रीको गतिबाट गनिएको। <strong className="text-brand-green-ink">पुग्दो बिक्री
         नभएसम्म अनुमान गर्दैन</strong> — गलत अंकले नचाहिने माल बनाउन लगाउँछ।
       </p>
@@ -133,11 +133,11 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
           {known.map((row) => (
             <div
               key={row.design}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-paper-deep px-4 py-3"
             >
               <div className="min-w-0">
                 <p className="truncate font-black text-brand-green-ink">{row.design}</p>
-                <p className="mt-0.5 text-xs font-semibold text-gray-500">
+                <p className="mt-0.5 text-xs font-semibold text-brand-muted">
                   {row.onHand} जोडी बाँकी · {row.historyDays} दिनमा {row.soldInWindow} बिक्री
                   {row.dailyRate ? ` · दिनको ${row.dailyRate}` : ""}
                 </p>
@@ -149,19 +149,19 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+        <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
           अझै कुनै design को गति नापिएको छैन — बिक्री बढेपछि यहीँ देखिन थाल्छ।
         </p>
       )}
 
       {waiting.length > 0 ? (
-        <details className="mt-3 rounded-xl bg-gray-50 px-4 py-3">
+        <details className="mt-3 rounded-xl bg-brand-paper-deep px-4 py-3">
           <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
             {waiting.length} design — अझै भन्न सकिँदैन
           </summary>
           <div className="mt-3 grid gap-1.5">
             {waiting.map((row) => (
-              <p key={row.design} className="text-sm text-gray-600">
+              <p key={row.design} className="text-sm text-brand-muted">
                 <strong className="text-brand-green-ink">{row.design}</strong> · {row.onHand} जोडी ·{" "}
                 {row.waitingFor}
               </p>
@@ -213,12 +213,12 @@ export default async function AdminStockPage() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">One stock control</p>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">Raw materials and ready goods</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Factory materials, KRISHOE-made pairs and supplier-purchased resale pairs are shown separately. Wholesale, retail and online remain sales channels—not extra stock.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/purchasing" className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-black text-brand-green">Receive purchase</Link>
+          <Link href="/admin/purchasing" className="rounded-full border border-brand-green bg-brand-paper px-4 py-2 text-sm font-black text-brand-green">Receive purchase</Link>
           <Link href="/admin/operations" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white">Factory operations</Link>
         </div>
       </div>
@@ -237,44 +237,44 @@ export default async function AdminStockPage() {
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+        <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Raw material store</h2>
-              <p className="mt-1 text-sm text-gray-600">On hand = opening + received − used.</p>
+              <p className="mt-1 text-sm text-brand-muted">On hand = opening + received − used.</p>
             </div>
             <Link href="/admin/operations" className="text-sm font-black text-brand-green underline">Manage materials</Link>
           </div>
           {rawMaterials.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm font-semibold text-gray-500">No raw materials recorded.</p>
+            <p className="mt-4 rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">No raw materials recorded.</p>
           ) : (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {rawMaterials.map((material) => (
-                <div key={material.id} className={`rounded-xl border p-4 ${material.needsReorder ? "border-rose-200 bg-rose-50" : "border-gray-100 bg-gray-50"}`}>
+                <div key={material.id} className={`rounded-xl border p-4 ${material.needsReorder ? "border-rose-200 bg-rose-50" : "border-brand-green-line bg-brand-paper-deep"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-black text-brand-green-ink">{material.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-gray-500">Reorder at {material.reorderLevel} {material.unit}</p>
+                      <p className="mt-1 text-xs font-semibold text-brand-muted">Reorder at {material.reorderLevel} {material.unit}</p>
                     </div>
                     <p className={`text-lg font-black ${material.needsReorder ? "text-rose-700" : "text-brand-green"}`}>{material.onHand} <span className="text-xs">{material.unit}</span></p>
                   </div>
-                  <p className="mt-3 text-xs font-semibold text-gray-500">Received {material.received} · Used {material.used}</p>
+                  <p className="mt-3 text-xs font-semibold text-brand-muted">Received {material.received} · Used {material.used}</p>
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+        <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
           <h2 className="text-lg font-black text-brand-green-ink">Recent stock movement</h2>
-          <p className="mt-1 text-sm text-gray-600">The audit trail behind every ready-stock change.</p>
+          <p className="mt-1 text-sm text-brand-muted">The audit trail behind every ready-stock change.</p>
           <div className="mt-4 grid max-h-[420px] gap-2 overflow-auto pr-1">
-            {recentMovements.length === 0 ? <p className="rounded-xl bg-gray-50 p-4 text-sm font-semibold text-gray-500">No stock movement recorded.</p> : recentMovements.map((movement) => (
-              <div key={movement.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            {recentMovements.length === 0 ? <p className="rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">No stock movement recorded.</p> : recentMovements.map((movement) => (
+              <div key={movement.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-bold text-brand-green-ink">{movement.design}</p>
-                    <p className="mt-1 text-xs text-gray-500">{movement.channel} · Size {movement.sizeRun}</p>
+                    <p className="mt-1 text-xs text-brand-muted">{movement.channel} · Size {movement.sizeRun}</p>
                   </div>
                   <div className="text-right">
                     <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-black ${movementTone(movement.type)}`}>{movement.type}</span>

@@ -49,7 +49,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-brand-paper p-6 shadow-sm">
       <input type="hidden" name="id" defaultValue={product?.id ?? ""} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -57,7 +57,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           <h2 className="text-lg font-black text-brand-green-ink">
             {isEditing ? "Edit product" : "Create product"}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             {isEditing ? `Updating ${product?.name}` : "Add a new item to the KRISHOE catalog."}
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             bills a day is fifty chances for the books not to balance. */}
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">
-            मूल्य — रुपैयाँमा <span className="font-normal text-gray-500">Price (Rs.)</span>
+            मूल्य — रुपैयाँमा <span className="font-normal text-brand-muted">Price (Rs.)</span>
           </span>
           <input
             name="priceRupees"
@@ -138,7 +138,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             placeholder="1799"
             onChange={(event) => setPricePreview(event.target.value)}
           />
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-brand-muted">
             {pricePreview.trim() === "" || Number.isNaN(Number(pricePreview))
               ? "ग्राहकले देख्नेछन्: —"
               : `ग्राहकले देख्नेछन्: ${rupeeLabel(Number(pricePreview))}`}
@@ -151,7 +151,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             actually move. */}
         <div className="grid gap-1.5">
           <span className="text-sm font-medium">Stock</span>
-          <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4">
+          <div className="flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-dashed border-brand-green-line bg-brand-paper-deep px-4">
             <span className="text-lg font-black text-brand-green-ink">
               {product ? `${product.stock} जोडी` : "0 जोडी"}
             </span>
@@ -162,7 +162,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
               Operations बाट बदल्ने
             </Link>
           </div>
-          <span className="text-xs leading-5 text-gray-500">
+          <span className="text-xs leading-5 text-brand-muted">
             बनाएको · किनेको · सुरुको बाँकी — सबै Operations बाट। यहाँबाट बदलिँदैन।
           </span>
         </div>

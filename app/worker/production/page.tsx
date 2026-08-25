@@ -30,16 +30,16 @@ export default async function WorkerProductionPage() {
         </p>
       </section>
 
-      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper p-5">
         {detail.work.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-brand-muted">
             अझै कुनै काम टिपिएको छैन। काम टिपिएपछि यहाँ देखिन्छ।
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
+                <tr className="border-b border-brand-green-line text-brand-muted">
                   <th className="py-2 font-semibold">मिति</th>
                   <th className="py-2 font-semibold">सामान</th>
                   <th className="py-2 text-right font-semibold">जोडी</th>
@@ -48,12 +48,12 @@ export default async function WorkerProductionPage() {
               </thead>
               <tbody>
                 {detail.work.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-100">
+                  <tr key={entry.id} className="border-b border-brand-green-line">
                     <td className="py-3 font-mono text-xs">{entry.date}</td>
                     <td className="py-3">
                       <span className="font-bold text-brand-green-ink">{entry.itemName}</span>
                       {entry.color || entry.size ? (
-                        <span className="ml-2 text-xs text-gray-500">
+                        <span className="ml-2 text-xs text-brand-muted">
                           {[entry.color, entry.size].filter(Boolean).join(" · ")}
                         </span>
                       ) : null}

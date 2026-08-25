@@ -18,8 +18,8 @@ function ReportLine({
     tone === "good" ? "text-brand-green" : tone === "warn" ? "text-brand-clay" : "text-brand-green-ink";
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-gray-100 py-2 last:border-b-0">
-      <dt className="text-sm font-semibold text-gray-500">{label}</dt>
+    <div className="flex items-center justify-between gap-4 border-b border-brand-green-line py-2 last:border-b-0">
+      <dt className="text-sm font-semibold text-brand-muted">{label}</dt>
       <dd className={`text-sm font-black ${valueClass}`}>{value}</dd>
     </div>
   );
@@ -110,24 +110,24 @@ export default function OperationsOverview({
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-3">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle
             title="Production control"
             detail="Batch output, wastage, raw material link, and worker progress."
           />
           <div className="grid gap-3">
             {reports.productionInsights.slice(0, 4).map((batch) => (
-              <div key={batch.id} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
+              <div key={batch.id} className="border-b border-brand-green-line pb-3 last:border-b-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-bold text-brand-green-ink">{batch.design}</p>
                   <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
                     {batch.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-gray-600">
+                <p className="mt-2 text-sm text-brand-muted">
                   Production {batch.productionCompletionRate}% | Worker {batch.workerProgressRate}% | Reject {batch.rejectRate}%
                 </p>
-                <p className="mt-1 text-xs font-semibold text-gray-500">
+                <p className="mt-1 text-xs font-semibold text-brand-muted">
                   {batch.linkedTaskCount} tasks, {batch.materialCount} materials, {batch.consumptionCount} usage records, wastage {batch.materialWastageRate}%
                   {batch.missingRawMaterials.length > 0
                     ? `, missing: ${batch.missingRawMaterials.join(", ")}`
@@ -136,12 +136,12 @@ export default function OperationsOverview({
               </div>
             ))}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
               Station progress
             </p>
             {reports.workerProgressByStation.slice(0, 3).map((station) => (
-              <p key={station.station} className="mt-2 text-xs font-semibold text-gray-600">
+              <p key={station.station} className="mt-2 text-xs font-semibold text-brand-muted">
                 {station.station}: {station.completedPairs}/{station.targetPairs} pairs ({station.progressRate}%)
               </p>
             ))}
@@ -153,7 +153,7 @@ export default function OperationsOverview({
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Stock flow" detail="Movement totals and channel stock signal." />
           <dl>
             <ReportLine label="Production in" value={reports.stockMovementTotals["Production In"]} tone="good" />
@@ -164,9 +164,9 @@ export default function OperationsOverview({
             <ReportLine label="Return in" value={reports.stockMovementTotals["Return In"]} tone="warn" />
             <ReportLine label="Adjustment" value={reports.stockMovementTotals.Adjustment} />
           </dl>
-          <div className="mt-4 grid gap-2 text-xs font-semibold text-gray-600">
+          <div className="mt-4 grid gap-2 text-xs font-semibold text-brand-muted">
             {(["Factory", "Wholesale", "Retail", "Online"] as const).map((channel) => (
-              <div key={channel} className="grid grid-cols-[5.5rem_1fr] gap-2 border-b border-gray-100 py-1 last:border-b-0">
+              <div key={channel} className="grid grid-cols-[5.5rem_1fr] gap-2 border-b border-brand-green-line py-1 last:border-b-0">
                 <p className="font-black text-brand-green-ink">{channel}</p>
                 <p>
                   Stock {reports.stockByChannel[channel].stockPairs} | Sold{" "}
@@ -176,13 +176,13 @@ export default function OperationsOverview({
               </div>
             ))}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green-ink">
               Active stock flow
             </p>
             {topStockFlows.length > 0 ? (
               topStockFlows.map((flow) => (
-                <div key={flow.key} className="mt-2 text-xs font-semibold text-gray-600">
+                <div key={flow.key} className="mt-2 text-xs font-semibold text-brand-muted">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-bold text-brand-green-ink">{flow.design}</p>
                     <p>{flow.channel}</p>
@@ -193,10 +193,10 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">No movement summary yet.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">No movement summary yet.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
               Stock ledger accuracy
             </p>
@@ -205,7 +205,7 @@ export default function OperationsOverview({
                 <div key={stock.id} className="mt-2 flex items-center justify-between gap-3 text-xs">
                   <div>
                     <p className="font-bold text-brand-green-ink">{stock.design}</p>
-                    <p className="font-semibold text-gray-500">
+                    <p className="font-semibold text-brand-muted">
                       {stock.channel} | book {stock.stockPairs} | movement {stock.movementStockPairs} | variance{" "}
                       {stock.variancePairs}
                     </p>
@@ -216,10 +216,10 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">Stock ledger rows are balanced.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">Stock ledger rows are balanced.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
               Stock watch
             </p>
@@ -228,7 +228,7 @@ export default function OperationsOverview({
                 <div key={stock.id} className="mt-2 flex items-center justify-between gap-3 text-xs">
                   <div>
                     <p className="font-bold text-brand-green-ink">{stock.design}</p>
-                    <p className="font-semibold text-gray-500">
+                    <p className="font-semibold text-brand-muted">
                       {stock.channel} | {stock.stockPairs} pairs | return {stock.returnRate}%
                     </p>
                   </div>
@@ -238,10 +238,10 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">No stock alerts.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">No stock alerts.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green-ink">
                 Finished value
@@ -250,7 +250,7 @@ export default function OperationsOverview({
                 Costing
               </Link>
             </div>
-            <p className="mt-2 text-xs font-semibold text-gray-600">
+            <p className="mt-2 text-xs font-semibold text-brand-muted">
               Value {money(costing.summary.finishedStockValue)} | profit potential{" "}
               {money(costing.summary.finishedStockPotentialProfit)}
             </p>
@@ -259,7 +259,7 @@ export default function OperationsOverview({
                 <div key={stock.stockId} className="mt-2 flex items-center justify-between gap-3 text-xs">
                   <div>
                     <p className="font-bold text-brand-green-ink">{stock.design}</p>
-                    <p className="font-semibold text-gray-500">
+                    <p className="font-semibold text-brand-muted">
                       {stock.channel} | {stock.stockPairs} pairs | value {money(stock.stockValue)}
                     </p>
                   </div>
@@ -269,10 +269,10 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">Finished stock is profit ready.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">Finished stock is profit ready.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
                 Catalog sync
@@ -281,7 +281,7 @@ export default function OperationsOverview({
                 Review
               </Link>
             </div>
-            <p className="mt-2 text-xs font-semibold text-gray-600">
+            <p className="mt-2 text-xs font-semibold text-brand-muted">
               {costing.summary.catalogStockMismatchCount} mismatch rows,{" "}
               {costing.summary.catalogStockDeltaPairs} pair delta
             </p>
@@ -292,7 +292,7 @@ export default function OperationsOverview({
                     <p className="font-bold text-brand-green-ink">
                       {stock.productName || stock.operationsDesign || "Unmatched stock"}
                     </p>
-                    <p className="font-semibold text-gray-500">
+                    <p className="font-semibold text-brand-muted">
                       Catalog {stock.catalogStock} | operations {stock.operationsStockPairs} | delta{" "}
                       {stock.stockDelta}
                     </p>
@@ -303,20 +303,20 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">Catalog and operations stock match.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">Catalog and operations stock match.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
               Raw material usage
             </p>
             {reports.materialUsage.slice(0, 3).map((material) => (
-              <p key={material.id} className="mt-2 text-xs font-semibold text-gray-600">
+              <p key={material.id} className="mt-2 text-xs font-semibold text-brand-muted">
                 {material.name}: {material.recordedTotal} {material.unit}, wastage {material.wastageRate}%
               </p>
             ))}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green-ink">
                 Raw stock value
@@ -325,7 +325,7 @@ export default function OperationsOverview({
                 Costing
               </Link>
             </div>
-            <p className="mt-2 text-xs font-semibold text-gray-600">
+            <p className="mt-2 text-xs font-semibold text-brand-muted">
               Value {money(costing.summary.rawMaterialStockValue)} | Reorder need{" "}
               {money(costing.summary.lowStockMaterialValue)}
             </p>
@@ -334,7 +334,7 @@ export default function OperationsOverview({
                 <div key={material.materialId} className="mt-2 flex items-center justify-between gap-3 text-xs">
                   <div>
                     <p className="font-bold text-brand-green-ink">{material.materialName}</p>
-                    <p className="font-semibold text-gray-500">
+                    <p className="font-semibold text-brand-muted">
                       Balance {material.balance} {material.unit} | value {money(material.stockValue)}
                     </p>
                   </div>
@@ -346,20 +346,20 @@ export default function OperationsOverview({
                 </div>
               ))
             ) : (
-              <p className="mt-2 text-xs font-semibold text-gray-500">Raw stock value is covered.</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">Raw stock value is covered.</p>
             )}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
               Vehicle item totals
             </p>
-            <p className="mt-2 text-xs font-semibold text-gray-600">
+            <p className="mt-2 text-xs font-semibold text-brand-muted">
               Loaded {reports.dispatchItemTotals.loadedPairs}, sold {reports.dispatchItemTotals.soldPairs}, return {reports.dispatchItemTotals.returnedPairs}
             </p>
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Ledger health" detail="Receivable aging, collection, and credit movement." />
           <dl>
             <ReportLine label="0-30 days" value={money(reports.ledgerAging.due0To30)} />
@@ -370,7 +370,7 @@ export default function OperationsOverview({
             <ReportLine label="Txn collection" value={money(reports.collectionFromLedgerTransactions)} tone="good" />
             <ReportLine label="Net credit" value={money(reports.netLedgerCredit)} />
           </dl>
-          <div className="mt-4 grid gap-2 border-t border-gray-100 pt-3">
+          <div className="mt-4 grid gap-2 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">
               Collection priority
             </p>
@@ -378,7 +378,7 @@ export default function OperationsOverview({
               <Link
                 key={ledger.id}
                 href={`/admin/operations/ledger/${ledger.id}`}
-                className="grid gap-2 rounded-md border border-gray-100 p-3 text-xs transition hover:border-brand-green"
+                className="grid gap-2 rounded-md border border-brand-green-line p-3 text-xs transition hover:border-brand-green"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-bold text-brand-green-ink">{ledger.customerName}</span>
@@ -386,34 +386,34 @@ export default function OperationsOverview({
                     {ledger.priority}
                   </span>
                 </div>
-                <p className="font-semibold text-gray-500">
+                <p className="font-semibold text-brand-muted">
                   {money(ledger.balanceDue)} | {ledger.daysOutstanding} days | due {ledger.followUpDueDate || "-"}
                 </p>
               </Link>
             ))}
             {riskyLedgerRows.length === 0 ? (
-              <p className="text-xs font-semibold text-gray-500">No collection follow-up is due.</p>
+              <p className="text-xs font-semibold text-brand-muted">No collection follow-up is due.</p>
             ) : null}
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green-ink">
               Ledger transaction mix
             </p>
-            <p className="mt-2 text-xs font-semibold text-gray-600">
+            <p className="mt-2 text-xs font-semibold text-brand-muted">
               Cash {money(reports.ledgerTransactionTotals["Cash Payment"])}, cheque{" "}
               {money(reports.ledgerTransactionTotals["Cheque Payment"])}
             </p>
-            <p className="mt-1 text-xs font-semibold text-gray-600">
+            <p className="mt-1 text-xs font-semibold text-brand-muted">
               Credit {money(reports.ledgerTransactionTotals["Credit Sale"])}, return adj{" "}
               {money(reports.ledgerTransactionTotals["Return Adjustment"])}
             </p>
           </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
               Top vehicle collection
             </p>
             {reports.dispatchPerformance.slice(0, 2).map((dispatch) => (
-              <p key={dispatch.id} className="mt-2 text-xs font-semibold text-gray-600">
+              <p key={dispatch.id} className="mt-2 text-xs font-semibold text-brand-muted">
                 {dispatch.vehicleNumber}: {money(dispatch.totalCollection)} collection, return {dispatch.returnRate}%
               </p>
             ))}
@@ -421,11 +421,11 @@ export default function OperationsOverview({
         </section>
       </div>
 
-      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Report exports</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Download admin-only CSV reports for factory, stock, and customer ledger review.
             </p>
           </div>
@@ -434,7 +434,7 @@ export default function OperationsOverview({
               <a
                 key={report.href}
                 href={report.href}
-                className="inline-flex h-9 items-center rounded-full border border-gray-200 px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+                className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
               >
                 {report.label}
               </a>

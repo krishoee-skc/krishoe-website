@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           adminEmail={session?.email}
           branchId={session?.branchId}
         />
-        <main className="admin-canvas min-w-0 overflow-x-clip bg-gray-50">
+        <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
           <AdminMobileNav adminRole={adminRole} />
           {children}
           <AdminQuickDock adminRole={adminRole} />

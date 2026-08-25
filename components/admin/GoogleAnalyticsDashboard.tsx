@@ -82,12 +82,12 @@ export default function GoogleAnalyticsDashboard() {
   }
 
   return (
-    <section className="rounded-2xl border border-brand-green/15 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-2xl border border-brand-green/15 bg-brand-paper p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Google Analytics 4</p>
           <h2 className="mt-1 text-xl font-black text-brand-green-ink">Website मा आएका ग्राहक</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-brand-muted">
             कुन पाना हेरे र कहाँबाट आए भन्ने live website data।
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function GoogleAnalyticsDashboard() {
       </div>
 
       {dashboard.state === "loading" ? (
-        <p className="mt-6 text-sm text-gray-500">Google को data पढिँदैछ…</p>
+        <p className="mt-6 text-sm text-brand-muted">Google को data पढिँदैछ…</p>
       ) : null}
 
       {dashboard.state === "error" ? (
@@ -159,11 +159,11 @@ function AnalyticsList({ title, rows }: { title: string; rows: { label: string; 
     <div>
       <h3 className="font-black text-brand-green-ink">{title}</h3>
       <div className="mt-3 space-y-3">
-        {rows.length === 0 ? <p className="text-sm text-gray-500">अहिलेसम्म data छैन।</p> : null}
+        {rows.length === 0 ? <p className="text-sm text-brand-muted">अहिलेसम्म data छैन।</p> : null}
         {rows.map((row) => (
           <div key={row.label}>
-            <div className="flex justify-between gap-3 text-sm"><span className="truncate text-gray-700">{row.label}</span><strong>{row.count.toLocaleString()}</strong></div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-brand-gold-bright" style={{ width: `${(row.count / maximum) * 100}%` }} /></div>
+            <div className="flex justify-between gap-3 text-sm"><span className="truncate text-brand-muted-deep">{row.label}</span><strong>{row.count.toLocaleString()}</strong></div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-brand-mist"><div className="h-full rounded-full bg-brand-gold-bright" style={{ width: `${(row.count / maximum) * 100}%` }} /></div>
           </div>
         ))}
       </div>

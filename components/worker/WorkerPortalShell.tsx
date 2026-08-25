@@ -17,21 +17,21 @@ export default function WorkerPortalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="border-b border-gray-200 bg-white print:hidden">
+    <div className="min-h-screen bg-brand-paper-deep text-brand-green-ink">
+      <header className="border-b border-brand-green-line bg-brand-paper print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div>
             <Link href="/worker/dashboard" className="text-lg font-black text-brand-green-ink">
               KRISHOE Worker Portal
             </Link>
-            <p className="text-xs text-gray-500">Signed in as {workerName}</p>
+            <p className="text-xs text-brand-muted">Signed in as {workerName}</p>
           </div>
           <div className="flex items-center gap-2.5">
             <LanguageSwitch />
           <form action={logoutWorkerAction}>
             <button
               type="submit"
-              className="inline-flex h-10 items-center rounded-full border border-gray-200 px-4 text-sm font-bold text-brand-green-ink"
+              className="inline-flex h-10 items-center rounded-full border border-brand-green-line px-4 text-sm font-bold text-brand-green-ink"
             >
               Sign out
             </button>

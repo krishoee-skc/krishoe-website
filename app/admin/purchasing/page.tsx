@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -51,7 +51,7 @@ function agingTone(risk: SupplierAgingRisk) {
   if (risk === "High") return "border-orange-200 bg-orange-50 text-orange-800";
   if (risk === "Watch") return "border-amber-200 bg-amber-50 text-amber-800";
   if (risk === "Current") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function paymentPriorityTone(priority: string) {
@@ -59,7 +59,7 @@ function paymentPriorityTone(priority: string) {
   if (priority === "High") return "border-orange-200 bg-orange-50 text-orange-800";
   if (priority === "Scheduled") return "border-amber-200 bg-amber-50 text-amber-800";
   if (priority === "Normal") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function StatCard({
@@ -72,8 +72,8 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -132,7 +132,7 @@ export default async function AdminPurchasingPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">Purchasing and supplier ledger</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Raw material purchase, supplier due, payment history, and purchase-basis profit signal.
           </p>
         </div>
@@ -145,25 +145,25 @@ export default async function AdminPurchasingPage() {
           </ExportButton>
           <ExportButton
             href="/api/admin/purchasing/export?type=suppliers"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export suppliers
           </ExportButton>
           <ExportButton
             href="/api/admin/purchasing/export?type=supplier-aging"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Aging report
           </ExportButton>
           <ExportButton
             href="/api/admin/purchasing/export?type=supplier-payables"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Payment queue
           </ExportButton>
           <ExportButton
             href="/api/admin/purchasing/export?type=posting-review"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Posting review
           </ExportButton>
@@ -188,7 +188,7 @@ export default async function AdminPurchasingPage() {
         />
 
         <div className="grid gap-6">
-          <form action={createSupplierLedgerAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <form action={createSupplierLedgerAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
             <h2 className="text-lg font-black text-brand-green-ink">New supplier</h2>
             <div className="mt-4 grid gap-3">
               <input name="supplierName" required className={inputClass} placeholder="Supplier name" />
@@ -214,43 +214,43 @@ export default async function AdminPurchasingPage() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-4">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Profit signal</h2>
           <div className="mt-4 grid gap-3">
-            <div className="rounded-md bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-500">Today</p>
+            <div className="rounded-md bg-brand-paper-deep p-3">
+              <p className="text-xs font-semibold text-brand-muted">Today</p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.todayProfitEstimate)}</p>
             </div>
-            <div className="rounded-md bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-500">Month</p>
+            <div className="rounded-md bg-brand-paper-deep p-3">
+              <p className="text-xs font-semibold text-brand-muted">Month</p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.monthProfitEstimate)}</p>
             </div>
-            <div className="rounded-md bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-500">Year</p>
+            <div className="rounded-md bg-brand-paper-deep p-3">
+              <p className="text-xs font-semibold text-brand-muted">Year</p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.yearProfitEstimate)}</p>
             </div>
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Material purchase</h2>
-          <div className="mt-4 divide-y divide-gray-100">
+          <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.materialTotals.slice(0, 6).map((row) => (
               <div key={row.materialName} className="grid grid-cols-3 gap-3 py-3 text-sm">
                 <p className="font-bold text-brand-green-ink">{row.materialName}</p>
-                <p className="text-gray-500">{row.quantity}</p>
+                <p className="text-brand-muted">{row.quantity}</p>
                 <p className="text-right font-bold">{money(row.total)}</p>
               </div>
             ))}
             {purchasing.reports.materialTotals.length === 0 ? (
-              <p className="py-3 text-sm text-gray-500">No material purchase recorded yet.</p>
+              <p className="py-3 text-sm text-brand-muted">No material purchase recorded yet.</p>
             ) : null}
           </div>
         </section>
 
-        <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Supplier ledgers</h2>
-          <div className="mt-4 divide-y divide-gray-100">
+          <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
               const aging = supplierAgingById.get(supplier.id);
 
@@ -265,7 +265,7 @@ export default async function AdminPurchasingPage() {
                     </Link>
                     <p className="font-black text-brand-clay">{money(supplier.balanceDue)}</p>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-brand-muted">
                     Paid {money(supplier.paidAmount)} / Purchase {money(supplier.totalPurchase)}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#8A5A15]">
@@ -277,10 +277,10 @@ export default async function AdminPurchasingPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
-          <p className="mt-1 text-sm text-gray-500">Supplier ledger, raw material link, and payment posting check.</p>
-          <div className="mt-4 divide-y divide-gray-100">
+          <p className="mt-1 text-sm text-brand-muted">Supplier ledger, raw material link, and payment posting check.</p>
+          <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.postingReviewRows.slice(0, 6).map((row) => (
               <div key={row.id} className="py-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
@@ -289,57 +289,57 @@ export default async function AdminPurchasingPage() {
                     {row.signal}
                   </span>
                 </div>
-                <p className="mt-1 font-semibold text-gray-700">{row.materialName}</p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 font-semibold text-brand-muted-deep">{row.materialName}</p>
+                <p className="mt-1 text-xs text-brand-muted">
                   Txn {row.linkedTransactionCount}/{row.expectedTransactionCount}
                   {row.issues ? ` - ${row.issues}` : ""}
                 </p>
               </div>
             ))}
             {purchasing.reports.postingReviewRows.length === 0 ? (
-              <p className="py-3 text-sm text-gray-500">No purchase posting to review yet.</p>
+              <p className="py-3 text-sm text-brand-muted">No purchase posting to review yet.</p>
             ) : null}
           </div>
         </section>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Supplier payment queue</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Payable priority, due date, and next action for supplier relationship control.
             </p>
           </div>
           <ExportButton
             href="/api/admin/purchasing/export?type=supplier-payables"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export payment queue
           </ExportButton>
         </div>
 
         <div className="mb-4 grid gap-3 md:grid-cols-4">
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs font-semibold text-gray-500">Immediate</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
+            <p className="text-xs font-semibold text-brand-muted">Immediate</p>
             <p className="mt-1 text-xl font-black text-brand-clay">
               {purchasing.reports.supplierPaymentSummary.immediateCount}
             </p>
           </div>
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs font-semibold text-gray-500">High</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
+            <p className="text-xs font-semibold text-brand-muted">High</p>
             <p className="mt-1 text-xl font-black text-brand-gold-ink">
               {purchasing.reports.supplierPaymentSummary.highCount}
             </p>
           </div>
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs font-semibold text-gray-500">Payment run</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
+            <p className="text-xs font-semibold text-brand-muted">Payment run</p>
             <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.paymentRunDue)}
             </p>
           </div>
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs font-semibold text-gray-500">Supplier due</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
+            <p className="text-xs font-semibold text-brand-muted">Supplier due</p>
             <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.totalDue)}
             </p>
@@ -347,13 +347,13 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {supplierPaymentRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
             No supplier payment follow-up is due right now.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
                   <th className="py-2 pr-3">Priority</th>
@@ -373,7 +373,7 @@ export default async function AdminPurchasingPage() {
                       >
                         {row.supplierName}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-brand-muted">
                         {row.materialFocus || "General supply"} | {row.phone || "No phone"}
                       </p>
                     </td>
@@ -385,10 +385,10 @@ export default async function AdminPurchasingPage() {
                     <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.balanceDue)}</td>
                     <td className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days oldest</p>
-                      <p className="text-xs text-gray-500">90+ {money(row.over90)}</p>
+                      <p className="text-xs text-brand-muted">90+ {money(row.over90)}</p>
                     </td>
                     <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.paymentDueDate || "-"}</td>
-                    <td className="max-w-80 py-3 pr-3 text-xs font-semibold leading-5 text-gray-600">
+                    <td className="max-w-80 py-3 pr-3 text-xs font-semibold leading-5 text-brand-muted">
                       {row.nextAction}
                     </td>
                   </tr>
@@ -399,11 +399,11 @@ export default async function AdminPurchasingPage() {
         )}
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Supplier aging report</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Due amount grouped by age so old supplier payable is visible before it becomes risky.
             </p>
           </div>
@@ -413,13 +413,13 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {dueAgingRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
             No supplier due is open right now.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
                   <th className="py-2 pr-3">0-30</th>
@@ -441,7 +441,7 @@ export default async function AdminPurchasingPage() {
                       >
                         {row.supplierName}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-500">{row.materialFocus || "General supply"}</p>
+                      <p className="mt-1 text-xs text-brand-muted">{row.materialFocus || "General supply"}</p>
                     </td>
                     <td className="py-3 pr-3">{money(row.current)}</td>
                     <td className="py-3 pr-3">{money(row.days31To60)}</td>
@@ -449,7 +449,7 @@ export default async function AdminPurchasingPage() {
                     <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.over90)}</td>
                     <td className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days</p>
-                      <p className="text-xs text-gray-500">{row.oldestOpenDate || "-"}</p>
+                      <p className="text-xs text-brand-muted">{row.oldestOpenDate || "-"}</p>
                     </td>
                     <td className="py-3 pr-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${agingTone(row.risk)}`}>
@@ -465,11 +465,11 @@ export default async function AdminPurchasingPage() {
         )}
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Recent purchase invoices</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Raw material stock receipt, supplier due, and payment trail.
             </p>
           </div>
@@ -477,13 +477,13 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {purchasing.reports.recentInvoices.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
             Purchase history is empty. Record the first raw material purchase above.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Purchase</th>
                   <th className="py-2 pr-3">Supplier</th>
@@ -510,7 +510,7 @@ export default async function AdminPurchasingPage() {
                         >
                           {invoice.purchaseNumber}
                         </Link>
-                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
+                        <p className="mt-1 text-xs text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Supplier" className="py-3 pr-3">
                         <Link
@@ -522,13 +522,13 @@ export default async function AdminPurchasingPage() {
                       </td>
                       <td data-label="Material" className="py-3 pr-3">
                         <p className="font-semibold">{invoice.materialName}</p>
-                        <p className="text-xs text-gray-500">{invoice.unit}</p>
+                        <p className="text-xs text-brand-muted">{invoice.unit}</p>
                       </td>
                       <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
                       <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
                       <td data-label="Paid / Due" className="py-3 pr-3">
                         <p>Paid {money(invoice.paidAmount)}</p>
-                        <p className="text-xs text-gray-500">Due {money(invoice.creditAmount)}</p>
+                        <p className="text-xs text-brand-muted">Due {money(invoice.creditAmount)}</p>
                       </td>
                       <td data-label="Status" className="py-3 pr-3">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${invoiceTone(invoice)}`}>
@@ -539,7 +539,7 @@ export default async function AdminPurchasingPage() {
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${postingTone(posting?.signal ?? "Needs Review")}`}>
                           {posting?.signal ?? "Needs Review"}
                         </span>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-brand-muted">
                           {posting?.issues || `Txn ${posting?.linkedTransactionCount ?? 0}/${posting?.expectedTransactionCount ?? 0}`}
                         </p>
                       </td>

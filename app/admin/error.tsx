@@ -24,31 +24,31 @@ export default function AdminErrorPage({
 }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-16">
-      <section className="w-full max-w-2xl rounded-2xl border border-black/10 bg-white p-8 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+      <section className="w-full max-w-2xl rounded-2xl border border-black/10 bg-brand-paper p-8 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           KRISHOE Admin
         </p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
           This page did not load.
         </h1>
-        <p className="mt-3 text-sm leading-7 text-gray-600">
+        <p className="mt-3 text-sm leading-7 text-brand-muted">
           Nothing was saved or changed. Press Try again — a dropped database
           connection clears on the next attempt.
         </p>
 
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">
+        <div className="mt-6 rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-brand-muted">
             What failed
           </p>
-          <p className="mt-2 break-words font-mono text-xs leading-5 text-gray-700">
+          <p className="mt-2 break-words font-mono text-xs leading-5 text-brand-muted-deep">
             {error.message || "No message was reported."}
           </p>
           {error.digest ? (
-            <p className="mt-3 break-all font-mono text-xs text-gray-500">
+            <p className="mt-3 break-all font-mono text-xs text-brand-muted">
               Reference: {error.digest}
             </p>
           ) : null}
-          <p className="mt-3 text-xs leading-5 text-gray-500">
+          <p className="mt-3 text-xs leading-5 text-brand-muted">
             If this keeps happening, send the lines above — they say exactly
             which part failed.
           </p>

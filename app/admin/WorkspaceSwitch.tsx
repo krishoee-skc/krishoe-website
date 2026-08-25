@@ -34,8 +34,8 @@ export default function WorkspaceSwitch({
             title={option.english}
             className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-black transition ${
               isActive
-                ? "bg-white text-admin-primary shadow-sm dark:bg-admin-sidebar-dark dark:text-admin-primary-light"
-                : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                ? "bg-brand-paper text-admin-primary shadow-sm dark:bg-admin-sidebar-dark dark:text-admin-primary-light"
+                : "text-brand-muted hover:text-brand-green-ink dark:text-white/60 dark:hover:text-white"
             }`}
           >
             <span aria-hidden>{option.emoji}</span>

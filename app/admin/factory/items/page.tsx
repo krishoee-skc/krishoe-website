@@ -20,7 +20,7 @@ type ProductionItem = {
   size_group: string;
 };
 
-const inputClass = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900";
+const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-brand-green-ink";
 
 export default function FactoryItemsPage() {
   const [items, setItems] = useState<FactoryItem[]>([]);
@@ -153,10 +153,10 @@ export default function FactoryItemsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका item</p>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
-            item र दर <span className="text-lg font-bold text-slate-500">· Item Master linkage</span>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+            item र दर <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, Work Orders, costing and finished-stock identity. Link them once so both systems refer to the same product.
           </p>
         </div>
@@ -166,27 +166,27 @@ export default function FactoryItemsPage() {
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{linkedCount} linked</span>
         <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">{items.length - linkedCount} need linking</span>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-700">{productionItems.length} active Production Items</span>
+        <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted-deep">{productionItems.length} active Production Items</span>
       </div>
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900">{error}</p> : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-slate-500">Loading Factory Items...</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">Loading Factory Items...</p> : null}
         {!loading && items.length === 0 ? (
-          <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+          <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">
             No Factory Item exists yet. Add the product while entering factory work, then return here to link it.
           </p>
         ) : null}
         {items.map((item) => (
-          <article key={item.id} className={`rounded-3xl border p-5 shadow-sm ${item.status !== "active" ? "border-slate-200 bg-slate-50" : item.production_item_id ? "border-emerald-200 bg-white" : "border-amber-200 bg-white"}`}>
+          <article key={item.id} className={`rounded-3xl border p-5 shadow-sm ${item.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : item.production_item_id ? "border-emerald-200 bg-brand-paper" : "border-amber-200 bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className={`text-lg font-black ${item.status !== "active" ? "text-slate-500 line-through" : "text-slate-950"}`}>{item.name}</h2>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Factory code: {item.code || "Not set"}</p>
+                <h2 className={`text-lg font-black ${item.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{item.name}</h2>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">Factory code: {item.code || "Not set"}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-slate-200 text-slate-700" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? "बन्द" : item.production_item_id ? "Master linked" : "Link needed"}</span>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-brand-green-line text-brand-muted-deep" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? "बन्द" : item.production_item_id ? "Master linked" : "Link needed"}</span>
             </div>
 
             {/* Nothing to link while an item is out of use. Offering it would
@@ -199,7 +199,7 @@ export default function FactoryItemsPage() {
                   <option key={productionItem.id} value={productionItem.id}>{productionItem.name} · {productionItem.category} · {productionItem.size_group}</option>
                 ))}
               </select>
-              <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-slate-200 disabled:text-slate-400">{saving === item.id ? "Saving..." : "Save item link"}</button>
+              <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft">{saving === item.id ? "Saving..." : "Save item link"}</button>
             </div>
             ) : null}
 
@@ -222,7 +222,7 @@ export default function FactoryItemsPage() {
                 type="button"
                 onClick={() => void setItemStatus(item.id, "inactive")}
                 disabled={saving === item.id}
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-600 disabled:opacity-60"
+                className="mt-2 min-h-12 w-full rounded-xl border border-brand-green-line px-4 text-sm font-bold text-brand-muted disabled:opacity-60"
               >
                 {saving === item.id ? "गर्दैछौँ…" : "बन्द गर्ने — काम भर्ने फारमबाट हटाउने"}
               </button>
@@ -242,7 +242,7 @@ export default function FactoryItemsPage() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+      <div className="mt-6 rounded-2xl border border-brand-green-line bg-brand-green-wash p-4 text-sm leading-6 text-brand-green">
         Linking does not automatically increase stock. Finished stock still increases only after Packing/QC approval, which prevents wage entries from creating duplicate stock.
       </div>
     </section>

@@ -82,7 +82,7 @@ export default function PhotoGuidePage() {
             ← Products
           </Link>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink">📸 Product Photography Guide — फोटोले जुत्ता बेच्छ</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Online मा फोटो नै तपाईंको सेल्सम्यान हो। राम्रो फोटो = ग्राहकको भरोसा = अधिक बिक्री। <span className="font-semibold">Phone मात्र काफी छ —</span> तपाईंलाई महँगो camera चाहिँदैन। सिर्फ सही techniques पालना गर्नु पर्छ।
           </p>
         </div>
@@ -93,7 +93,7 @@ export default function PhotoGuidePage() {
         <h2 className="text-lg font-black text-brand-green-ink mb-4">🎯 छ मुख्य नियम (6 Core Rules)</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rules.map(([emoji, title, text], index) => (
-            <article key={title} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+            <article key={title} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm hover:shadow-md transition">
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-brand-green-wash text-xl">
                   {emoji}
@@ -102,7 +102,7 @@ export default function PhotoGuidePage() {
                   <p className="font-black text-brand-green-ink text-sm">
                     {index + 1}. {title}
                   </p>
-                  <p className="mt-2 text-xs leading-5 text-gray-600">{text}</p>
+                  <p className="mt-2 text-xs leading-5 text-brand-muted">{text}</p>
                 </div>
               </div>
             </article>
@@ -114,25 +114,25 @@ export default function PhotoGuidePage() {
       <section className="mt-8 rounded-2xl border border-brand-green/30 bg-brand-green-wash/40 p-6">
         <h2 className="text-lg font-black text-brand-green-ink">⬆️ फोटो हाल्ने — ३ पाइला</h2>
         <ol className="mt-4 grid gap-3 text-sm leading-6">
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+          <li className="rounded-lg border border-brand-green/20 bg-brand-paper p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">१.</span>
             <div>
               <Link href="/admin/products/photos" className="font-bold text-brand-green underline underline-offset-4">फोटो हाल्ने पेज खोल्नुहोस्</Link>
-              <p className="text-xs text-gray-600 mt-1">फोटो नभएका सामान माथि, रातो चिन्हसहित देखिन्छन् — खोज्नु पर्दैन।</p>
+              <p className="text-xs text-brand-muted mt-1">फोटो नभएका सामान माथि, रातो चिन्हसहित देखिन्छन् — खोज्नु पर्दैन।</p>
             </div>
           </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+          <li className="rounded-lg border border-brand-green/20 bg-brand-paper p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">२.</span>
             <div>
               <p className="font-bold">📷 खिच्ने वा 🖼️ फाइलबाट थिच्नुहोस्</p>
-              <p className="text-xs text-gray-600 mt-1">खिच्ने थिच्दा फोनको camera सिधै खुल्छ। पहिले खिचेको फोटो भए फाइलबाट छान्नुहोस्।</p>
+              <p className="text-xs text-brand-muted mt-1">खिच्ने थिच्दा फोनको camera सिधै खुल्छ। पहिले खिचेको फोटो भए फाइलबाट छान्नुहोस्।</p>
             </div>
           </li>
-          <li className="rounded-lg border border-brand-green/20 bg-white p-3 flex gap-3">
+          <li className="rounded-lg border border-brand-green/20 bg-brand-paper p-3 flex gap-3">
             <span className="font-black text-brand-green-ink flex-shrink-0">३.</span>
             <div>
               <p className="font-bold">सकियो</p>
-              <p className="text-xs text-gray-600 mt-1">Save थिच्नु पर्दैन — चढ्नेबित्तिकै पसलमा देखिन्छ। धमिलो आयो भने फेरि खिच्नुहोस्, पुरानो आफैँ हट्छ।</p>
+              <p className="text-xs text-brand-muted mt-1">Save थिच्नु पर्दैन — चढ्नेबित्तिकै पसलमा देखिन्छ। धमिलो आयो भने फेरि खिच्नुहोस्, पुरानो आफैँ हट्छ।</p>
             </div>
           </li>
         </ol>
@@ -143,11 +143,11 @@ export default function PhotoGuidePage() {
         <h2 className="text-lg font-black text-brand-green-ink mb-4">💡 Best Practices</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {bestPractices.map(({ title, tips }) => (
-            <div key={title} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={title} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <h3 className="font-bold text-brand-green-ink">{title}</h3>
               <ul className="mt-3 space-y-2">
                 {tips.map((tip) => (
-                  <li key={tip} className="text-xs text-gray-600 flex gap-2">
+                  <li key={tip} className="text-xs text-brand-muted flex gap-2">
                     <span className="text-brand-green flex-shrink-0">✓</span>
                     <span>{tip}</span>
                   </li>
@@ -159,7 +159,7 @@ export default function PhotoGuidePage() {
       </div>
 
       {/* Pre-shoot Checklist */}
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm">
         <h2 className="text-lg font-black text-brand-green-ink">✅ Shooting को अघि यो चेक गर्नुहोस्</h2>
         <div className="mt-4 grid gap-2 text-sm md:grid-cols-2">
           {[
@@ -181,19 +181,19 @@ export default function PhotoGuidePage() {
       <section className="mt-8 rounded-lg border border-brand-gold/30 bg-brand-gold-wash/20 p-6">
         <h2 className="text-lg font-black text-brand-gold-ink">🌟 Pro Tips (अनुभवी फोटोग्राफरको तरिका)</h2>
         <ul className="mt-4 space-y-3">
-          <li className="text-sm text-gray-700 flex gap-3">
+          <li className="text-sm text-brand-muted-deep flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
             <span><span className="font-bold">Tripod आवश्यक छैन।</span> Table मा फोन राखेर खिच्न सक्नुहुन्छ। हात नकाँपोस्, अन्यथा blur हुन्छ।</span>
           </li>
-          <li className="text-sm text-gray-700 flex gap-3">
+          <li className="text-sm text-brand-muted-deep flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
             <span><span className="font-bold">एउटै जोडीका ५-६ फोटो खिच्नुहोस्।</span> छानेर सबैभन्दा राम्रो (Clear, Sharp, Well-lit) मात्र राख्नुहोस्।</span>
           </li>
-          <li className="text-sm text-gray-700 flex gap-3">
+          <li className="text-sm text-brand-muted-deep flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
             <span><span className="font-bold">सबै designs को फोटो एकै दिनमा खिच्नुहोस्।</span> यसले consistency सुनिश्चित गर्छ।</span>
           </li>
-          <li className="text-sm text-gray-700 flex gap-3">
+          <li className="text-sm text-brand-muted-deep flex gap-3">
             <span className="font-black text-brand-gold-ink flex-shrink-0">→</span>
             <span><span className="font-bold">Phone settings check गर्नुहोस्।</span> HDR on, Portrait mode off, Maximum quality selected भएको आवश्यक छ।</span>
           </li>

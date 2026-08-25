@@ -42,18 +42,21 @@ module.exports = {
           "muted-deep": "#7A7263",
           danger: "#B3261E",
         },
+        // The admin used to be a different company: a stock indigo primary and
+        // an amber accent that appear nowhere else in KRISHOE, on neutral
+        // greys. Same role names, the brand's own colours.
         admin: {
-          primary: "#1E40AF",
-          "primary-light": "#3B82F6",
-          "primary-dark": "#1E3A8A",
-          accent: "#F59E0B",
-          "accent-light": "#FBBF24",
-          sidebar: "#FFFFFF",
-          "sidebar-dark": "#1F2937",
-          hover: "#F3F4F6",
-          "hover-dark": "#374151",
-          border: "#E5E7EB",
-          "border-dark": "#4B5563",
+          primary: "#0B4D3B",
+          "primary-light": "#12654E",
+          "primary-dark": "#10231D",
+          accent: "#C8A04D",
+          "accent-light": "#D4AF37",
+          sidebar: "#FDFBF7",
+          "sidebar-dark": "#13221D",
+          hover: "#F4F2ED",
+          "hover-dark": "#1B2F28",
+          border: "#E4DFD5",
+          "border-dark": "#2A4139",
         },
       },
       fontFamily: {

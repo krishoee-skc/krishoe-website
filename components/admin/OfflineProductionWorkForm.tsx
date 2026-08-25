@@ -5,7 +5,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type Option = { id: string; label: string };
 const storageKey = "krishoe-production-work-draft-v1";
-const input = "min-h-12 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-brand-green-ink outline-none focus:border-brand-green";
+const input = "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm text-brand-green-ink outline-none focus:border-brand-green";
 const button = "min-h-12 rounded-xl bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink";
 
 function newSubmissionKey() {
@@ -82,7 +82,7 @@ export default function OfflineProductionWorkForm({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">6. Completed work</h2>
-          <p className="mt-1 text-sm text-gray-500">After handover, enter it here. Weak internet keeps the draft on this device.</p>
+          <p className="mt-1 text-sm text-brand-muted">After handover, enter it here. Weak internet keeps the draft on this device.</p>
         </div>
         <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${online ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
           {online ? "Online" : "Offline"}
@@ -110,12 +110,12 @@ export default function OfflineProductionWorkForm({
         <input name="reworkPairs" type="number" min="0" className={input} placeholder="Rework pairs" defaultValue="0" />
         <input name="note" className={`${input} sm:col-span-2`} placeholder="Remark (optional)" />
       </div>
-      {message ? <p className="mt-3 text-xs font-bold text-gray-600" aria-live="polite">{message}</p> : null}
+      {message ? <p className="mt-3 text-xs font-bold text-brand-muted" aria-live="polite">{message}</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
         <FormSubmitButton className={button} pendingLabel="Approving work…">
           {online ? "Approve completed work" : "Save offline draft"}
         </FormSubmitButton>
-        <button type="button" onClick={() => saveDraft()} className="min-h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-brand-green-ink">
+        <button type="button" onClick={() => saveDraft()} className="min-h-12 rounded-xl border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink">
           Save draft
         </button>
       </div>

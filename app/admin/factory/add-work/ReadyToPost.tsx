@@ -74,16 +74,16 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
 
   if (items === null) {
     return (
-      <section className="mt-8 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
-        <p className="text-sm text-slate-500">हेर्दैछौँ…</p>
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-6">
+        <p className="text-sm text-brand-muted">हेर्दैछौँ…</p>
       </section>
     );
   }
 
   return (
-    <section className="mt-8 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
-      <h2 className="text-xl font-bold text-slate-900">📦 कति तयार भयो — स्टकमा चढाउने</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-600">
+    <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-6">
+      <h2 className="text-xl font-bold text-brand-green-ink">📦 कति तयार भयो — स्टकमा चढाउने</h2>
+      <p className="mt-1 text-sm leading-6 text-brand-muted">
         काम टिप्दा ज्याला मात्र चढ्छ, स्टक चढ्दैन — नत्र Upper ६० र Fibermen ६० जोडिएर
         १२० जोडी देखिन्थ्यो। यहाँ <strong>गोदाममा गनेको सङ्ख्या</strong> हाल्नुहोस्।
       </p>
@@ -100,7 +100,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
       ) : null}
 
       {items.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 text-sm text-brand-muted">
           अझै कुनै काम टिपिएको छैन। माथिको फारमबाट टिप्नुहोस्।
         </p>
       ) : (
@@ -109,19 +109,19 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
             <article
               key={item.itemId}
               className={`rounded-xl border p-4 ${
-                item.pendingPairs > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
+                item.pendingPairs > 0 ? "border-amber-300 bg-amber-50" : "border-brand-green-line bg-brand-paper"
               }`}
             >
-              <h3 className="text-base font-black text-slate-900">{item.name}</h3>
+              <h3 className="text-base font-black text-brand-green-ink">{item.name}</h3>
 
-              <dl className="mt-2 grid gap-1 text-sm text-slate-700">
+              <dl className="mt-2 grid gap-1 text-sm text-brand-muted-deep">
                 {item.stages.map((stage) => (
                   <div key={stage.category} className="flex justify-between">
                     <dt>{stage.category}</dt>
                     <dd className="font-bold tabular-nums">{stage.pairs} जोडी बनेको</dd>
                   </div>
                 ))}
-                <div className="mt-1 flex justify-between border-t border-slate-200 pt-1">
+                <div className="mt-1 flex justify-between border-t border-brand-green-line pt-1">
                   {/* The smallest stage total, never the sum. Sixty uppers and
                       sixty bottoms are sixty finished pairs. */}
                   <dt>तयार हुनसक्ने</dt>
@@ -148,7 +148,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                         setDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))
                       }
                       aria-label={`${item.name} को कति जोडी तयार भयो`}
-                      className="min-h-12 w-28 rounded-xl border border-slate-300 px-3 text-slate-900"
+                      className="min-h-12 w-28 rounded-xl border border-brand-green-line px-3 text-brand-green-ink"
                     />
                     <button
                       type="button"
@@ -159,7 +159,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       {busy === item.itemId ? "चढाउँदैछौँ…" : "स्टकमा चढाउने"}
                     </button>
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-600">
+                  <p className="mt-2 text-xs leading-5 text-brand-muted">
                     गोदाममा गनेको सङ्ख्या हाल्नुहोस् — माथिको अङ्क अनुमान मात्र हो।
                   </p>
                 </>
@@ -170,7 +170,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
               {/* Where these pairs land. A factory name no product carries makes
                   a Draft product, which never reaches a shopper — worth saying
                   before the pairs are posted, not after. */}
-              <p className="mt-3 border-t border-slate-200 pt-2 text-xs leading-5 text-slate-600">
+              <p className="mt-3 border-t border-brand-green-line pt-2 text-xs leading-5 text-brand-muted">
                 {item.productName === null ? (
                   <>⚠️ पसलमा “{item.name}” नामको जुत्ता छैन — चढाउँदा नयाँ Draft बन्नेछ, र Draft पसलमा देखिँदैन।</>
                 ) : item.productStatus !== "Active" ? (

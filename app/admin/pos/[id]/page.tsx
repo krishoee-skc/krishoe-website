@@ -54,7 +54,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/pos"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to POS
         </Link>
@@ -64,7 +64,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
               href={whatsappToUrl(invoice.phone, whatsappMessage)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500 bg-white px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500 bg-brand-paper px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
             >
               WhatsApp bill
             </a>
@@ -82,7 +82,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         </div>
       </div>
 
-      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
+      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:shadow-none">
         {/* The crest, not the full lockup, and small.
             This sheet is printed on white, and the full artwork is set on
             black — a slab of it at the top of every bill would drink ink and
@@ -109,48 +109,48 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             </h1>
             {/* DateDisplayAdmin shows the Bikram Sambat date after the English one,
                 so the bill reads naturally to a Nepali reader. */}
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-brand-muted">
               {invoice.channel} - <DateDisplayAdmin date={invoice.createdAt} time={true} />
             </p>
             </div>
           </div>
           <div className="text-right">
             <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.invoiceNumber}</p>
-            <p className="mt-2 rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-gray-600">
+            <p className="mt-2 rounded-full border border-brand-green-line px-3 py-1 text-xs font-black text-brand-muted">
               {invoice.status} / {invoice.postingStatus}
             </p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Customer</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Customer</p>
             <p className="mt-2 font-black text-brand-green-ink">{invoice.customerName}</p>
-            <p className="mt-1 text-sm text-gray-500">{invoice.phone || "No phone"}</p>
+            <p className="mt-1 text-sm text-brand-muted">{invoice.phone || "No phone"}</p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Payment</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Payment</p>
             <p className="mt-2 font-black text-brand-green-ink">{invoice.paymentMethod}</p>
-            <p className="mt-1 text-sm text-gray-500">{invoice.paymentReference || "No reference"}</p>
+            <p className="mt-1 text-sm text-brand-muted">{invoice.paymentReference || "No reference"}</p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Cashier</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Cashier</p>
             <p className="mt-2 font-black text-brand-green-ink">{invoice.cashier}</p>
-            <p className="mt-1 text-sm text-gray-500">{invoice.note || "No note"}</p>
+            <p className="mt-1 text-sm text-brand-muted">{invoice.note || "No note"}</p>
           </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-[1fr_180px]">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Invoice barcode</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Invoice barcode</p>
             <img
               src={`/api/admin/pos/${invoice.id}/barcode`}
               alt={`Barcode for ${invoice.invoiceNumber}`}
               className="mt-3 h-24 w-full object-contain print:mt-1 print:h-12"
             />
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Invoice QR</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Invoice QR</p>
             <img
               src={`/api/admin/pos/${invoice.id}/qr`}
               alt={`QR code for ${invoice.invoiceNumber}`}
@@ -161,7 +161,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
 
         <div className="mt-6 overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">SKU</th>
                 <th className="py-2 pr-3">Design</th>
@@ -192,9 +192,9 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           {/* Internal reconciliation ids — useful on screen, but not something a
               customer's printed bill needs, and it was pushing the receipt onto
               a second sheet. Hidden on paper. */}
-          <div className="rounded-lg border border-dashed border-gray-200 p-4 print:hidden">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Billing IDs</p>
-            <div className="mt-3 grid gap-2 text-sm text-gray-600">
+          <div className="rounded-lg border border-dashed border-brand-green-line p-4 print:hidden">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Billing IDs</p>
+            <div className="mt-3 grid gap-2 text-sm text-brand-muted">
               <p>
                 Barcode value: <span className="font-mono font-bold text-brand-green-ink">{invoice.barcodeValue}</span>
               </p>
@@ -218,35 +218,35 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
 
           <div className="rounded-lg bg-brand-mist p-4">
             <div className="flex justify-between gap-3 text-sm">
-              <span className="text-gray-600">Subtotal</span>
+              <span className="text-brand-muted">Subtotal</span>
               <span className="font-bold">{money(invoice.subtotal)}</span>
             </div>
             <div className="mt-2 flex justify-between gap-3 text-sm">
-              <span className="text-gray-600">Discount</span>
+              <span className="text-brand-muted">Discount</span>
               <span className="font-bold">{money(invoice.discount)}</span>
             </div>
             <div className="mt-2 flex justify-between gap-3 text-sm">
-              <span className="text-gray-600">Tax / VAT</span>
+              <span className="text-brand-muted">Tax / VAT</span>
               <span className="font-bold">{money(invoice.tax)}</span>
             </div>
-            <div className="mt-4 border-t border-gray-200 pt-4">
+            <div className="mt-4 border-t border-brand-green-line pt-4">
               <div className="flex justify-between gap-3">
                 <span className="font-black text-brand-green-ink">Total</span>
                 <span className="text-xl font-black text-brand-green-ink">{money(invoice.total)}</span>
               </div>
               <div className="mt-3 flex justify-between gap-3 text-sm">
-                <span className="text-gray-600">Paid</span>
+                <span className="text-brand-muted">Paid</span>
                 <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span>
               </div>
               <div className="mt-2 flex justify-between gap-3 text-sm">
-                <span className="text-gray-600">Credit</span>
+                <span className="text-brand-muted">Credit</span>
                 <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
           Thank you for choosing KRISHOE
         </p>
       </div>

@@ -20,9 +20,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -61,7 +61,7 @@ function StatCard({
   tone?: "default" | "good" | "warn" | "danger";
 }) {
   const toneClass = {
-    default: "border-gray-200 bg-white text-brand-green-ink",
+    default: "border-brand-green-line bg-brand-paper text-brand-green-ink",
     good: "border-emerald-200 bg-emerald-50 text-emerald-800",
     warn: "border-amber-200 bg-amber-50 text-amber-800",
     danger: "border-red-200 bg-red-50 text-red-800",
@@ -108,7 +108,7 @@ function CostSourcePill({ source }: { source: DesignCostSource }) {
   }
 
   return (
-    <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-600">
+    <span className="inline-flex rounded-full border border-brand-green-line bg-brand-paper-deep px-2.5 py-1 text-xs font-black text-brand-muted">
       Sold only
     </span>
   );
@@ -179,7 +179,7 @@ function BatchStatusPill({ row }: { row: BatchCostingRow }) {
 
   if (row.consumptionCount === 0) {
     return (
-      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">
+      <span className="inline-flex rounded-full border border-brand-green-line bg-brand-paper-deep px-2.5 py-1 text-xs font-black text-brand-muted-deep">
         No usage
       </span>
     );
@@ -219,7 +219,7 @@ function FinishedStockSignalPill({ row }: { row: FinishedStockValuationRow }) {
 
   if (row.signal === "No stock") {
     return (
-      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-gray-700">
+      <span className="inline-flex rounded-full border border-brand-green-line bg-brand-paper-deep px-2.5 py-1 text-xs font-black text-brand-muted-deep">
         No stock
       </span>
     );
@@ -264,7 +264,7 @@ export default async function AdminCostingPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">COGS and design profit</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Material, labor, factory overhead, production batch COGS, and POS design margin in one control view.
           </p>
         </div>
@@ -277,37 +277,37 @@ export default async function AdminCostingPage() {
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=materials"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export materials
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=stock-valuation"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Raw stock value
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=finished-stock-value"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Finished value
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=catalog-stock-sync"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Catalog sync
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=batches"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export batches
           </ExportButton>
           <ExportButton
             href="/api/admin/costing/export?type=periods"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Export periods
           </ExportButton>
@@ -406,15 +406,15 @@ export default async function AdminCostingPage() {
         </div>
       ) : null}
 
-      <details className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <details className="mt-8 overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper shadow-sm">
         <summary className="cursor-pointer list-none px-5 py-4 font-black text-brand-green-ink marker:hidden">
           Advanced legacy batch rates — open only for old Cutting/Stitching/Sole Press records
         </summary>
-      <form action={updateCostingSettingsAction} className="border-t border-gray-100 p-5">
+      <form action={updateCostingSettingsAction} className="border-t border-brand-green-line p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Legacy batch cost model</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Kept only for old history. For current KRISHOE work, use item BOM + Upper, Fiber Preparation, Fiber Silai and Bottom Final wage rates. Rent, electricity and salary can remain zero as per the current factory rule.
             </p>
           </div>
@@ -450,7 +450,7 @@ export default async function AdminCostingPage() {
               <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
                 Factory overhead allocation
               </p>
-              <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-brand-green-ink">
+              <span className="rounded-full border border-brand-green-line px-3 py-1 text-xs font-black text-brand-green-ink">
                 Effective {money(overheadPerPair(costing.settings))}/pair
               </span>
             </div>
@@ -533,22 +533,22 @@ export default async function AdminCostingPage() {
       </form>
       </details>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">Profit periods</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Daily, monthly, and yearly sales profit after estimated full COGS.
           </p>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {costing.periodReports.map((row) => (
-            <div key={row.label} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <div key={row.label} className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
               <p className="text-sm font-black text-brand-green-ink">{row.label}</p>
               <p className="mt-2 text-2xl font-black text-brand-green">{money(row.grossProfit)}</p>
-              <p className="mt-1 text-xs font-semibold text-gray-500">
+              <p className="mt-1 text-xs font-semibold text-brand-muted">
                 Revenue {money(row.revenue)} | COGS {money(row.estimatedCogs)} | {row.grossMarginRate}%
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-brand-muted">
                 {row.netPairs} net pairs, {row.returnedPairs} returned
               </p>
             </div>
@@ -556,11 +556,11 @@ export default async function AdminCostingPage() {
         </div>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Catalog stock reconciliation</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Online product catalog stock compared with operations finished stock by design, SKU, and product id.
             </p>
           </div>
@@ -571,7 +571,7 @@ export default async function AdminCostingPage() {
 
         <div className="mt-5 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Catalog product</th>
                 <th className="py-2 pr-3">Operations design</th>
@@ -587,7 +587,7 @@ export default async function AdminCostingPage() {
                 <tr key={row.key}>
                   <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.productName || "-"}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-brand-muted">
                       {row.sku || "-"} | {row.productStatus} | {money(row.catalogPrice)}
                     </p>
                   </td>
@@ -595,7 +595,7 @@ export default async function AdminCostingPage() {
                   <td data-label="Catalog stock" className="py-3 pr-3">{row.catalogStock}</td>
                   <td data-label="Operations stock" className="py-3 pr-3">{row.operationsStockPairs}</td>
                   <td data-label="Delta" className="py-3 pr-3 font-black text-brand-clay">{row.stockDelta}</td>
-                  <td data-label="Channels" className="max-w-64 py-3 pr-3 text-gray-600">{row.channelBreakdown}</td>
+                  <td data-label="Channels" className="max-w-64 py-3 pr-3 text-brand-muted">{row.channelBreakdown}</td>
                   <td data-label="Signal" className="py-3 pr-3">
                     <CatalogSyncPill row={row} />
                   </td>
@@ -603,7 +603,7 @@ export default async function AdminCostingPage() {
               ))}
               {costing.catalogStockReconciliation.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={7}>
+                  <td className="py-6 text-center text-brand-muted" colSpan={7}>
                     No catalog stock reconciliation rows yet.
                   </td>
                 </tr>
@@ -613,11 +613,11 @@ export default async function AdminCostingPage() {
         </div>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Design profitability</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Sales revenue minus estimated COGS from production unit cost.
             </p>
           </div>
@@ -628,7 +628,7 @@ export default async function AdminCostingPage() {
 
         <div className="mt-5 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Design</th>
                 <th className="py-2 pr-3">Source</th>
@@ -646,7 +646,7 @@ export default async function AdminCostingPage() {
                 <tr key={row.design}>
                   <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.design}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-brand-muted">
                       <DesignPairsDetail row={row} />
                     </p>
                   </td>
@@ -656,13 +656,13 @@ export default async function AdminCostingPage() {
                   <td data-label="Sold" className="py-3 pr-3 text-brand-green-ink">
                     {row.netPairs}
                     {row.returnedPairs > 0 ? (
-                      <span className="block text-xs text-gray-500">{row.returnedPairs} returned</span>
+                      <span className="block text-xs text-brand-muted">{row.returnedPairs} returned</span>
                     ) : null}
                   </td>
                   <td data-label="Revenue" className="py-3 pr-3 font-semibold">{money(row.netRevenue)}</td>
                   <td data-label="Unit COGS" className="py-3 pr-3">
                     {money(row.unitCostPerPair)}
-                    <span className="block text-xs text-gray-500">
+                    <span className="block text-xs text-brand-muted">
                       <DesignCostBreakdown row={row} />
                     </span>
                   </td>
@@ -676,7 +676,7 @@ export default async function AdminCostingPage() {
               ))}
               {costing.designCosting.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={9}>
+                  <td className="py-6 text-center text-brand-muted" colSpan={9}>
                     No design costing data yet.
                   </td>
                 </tr>
@@ -686,11 +686,11 @@ export default async function AdminCostingPage() {
         </div>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Finished stock valuation</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Ready stock valued with design unit COGS and recent POS average selling price.
             </p>
           </div>
@@ -701,7 +701,7 @@ export default async function AdminCostingPage() {
 
         <div className="mt-5 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Design</th>
                 <th className="py-2 pr-3">Channel</th>
@@ -718,24 +718,24 @@ export default async function AdminCostingPage() {
                 <tr key={row.stockId}>
                   <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.design}</p>
-                    <p className="text-xs text-gray-500">{row.sizeRun}</p>
+                    <p className="text-xs text-brand-muted">{row.sizeRun}</p>
                   </td>
                   <td data-label="Channel" className="py-3 pr-3">{row.channel}</td>
                   <td data-label="Stock" className="py-3 pr-3">
                     {row.stockPairs}
-                    <span className="block text-xs text-gray-500">
+                    <span className="block text-xs text-brand-muted">
                       Sold {row.soldPairs}, return {row.returnedPairs}
                     </span>
                   </td>
                   <td data-label="Unit COGS" className="py-3 pr-3">{money(row.unitCostPerPair)}</td>
                   <td data-label="Avg sale" className="py-3 pr-3">
                     {money(row.averageSalePrice)}
-                    <span className="block text-xs text-gray-500">{row.priceSource}</span>
+                    <span className="block text-xs text-brand-muted">{row.priceSource}</span>
                   </td>
                   <td data-label="Stock value" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
                   <td data-label="Profit potential" className="py-3 pr-3">
                     <p className="font-bold text-brand-green">{money(row.potentialGrossProfit)}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-brand-muted">
                       Revenue {money(row.potentialRevenue)} | {row.potentialMarginRate}%
                     </p>
                   </td>
@@ -746,7 +746,7 @@ export default async function AdminCostingPage() {
               ))}
               {costing.finishedStockValuation.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={8}>
+                  <td className="py-6 text-center text-brand-muted" colSpan={8}>
                     No finished stock valuation data yet.
                   </td>
                 </tr>
@@ -757,11 +757,11 @@ export default async function AdminCostingPage() {
       </section>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Material cost rates</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-brand-muted">
                 Weighted average from purchase invoices.
               </p>
             </div>
@@ -772,7 +772,7 @@ export default async function AdminCostingPage() {
 
           <div className="mt-5 overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Material</th>
                   <th className="py-2 pr-3">Qty</th>
@@ -785,7 +785,7 @@ export default async function AdminCostingPage() {
                   <tr key={row.materialId || row.materialName}>
                     <td className="reflow-primary py-3 pr-3">
                       <p className="font-bold text-brand-green-ink">{row.materialName}</p>
-                      <p className="text-xs text-gray-500">{row.invoiceCount} invoices, {row.unit}</p>
+                      <p className="text-xs text-brand-muted">{row.invoiceCount} invoices, {row.unit}</p>
                     </td>
                     <td data-label="Qty" className="py-3 pr-3">{rate(row.purchasedQuantity)}</td>
                     <td data-label="Total" className="py-3 pr-3 font-semibold">{money(row.purchaseTotal)}</td>
@@ -794,7 +794,7 @@ export default async function AdminCostingPage() {
                 ))}
                 {costing.materialCostRates.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-center text-gray-500" colSpan={4}>
+                    <td className="py-6 text-center text-brand-muted" colSpan={4}>
                       No purchase rates yet.
                     </td>
                   </tr>
@@ -804,11 +804,11 @@ export default async function AdminCostingPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Batch costing</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-brand-muted">
                 Raw material usage and wastage converted into batch COGS.
               </p>
             </div>
@@ -819,7 +819,7 @@ export default async function AdminCostingPage() {
 
           <div className="mt-5 overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Batch</th>
                   <th className="py-2 pr-3">Status</th>
@@ -837,7 +837,7 @@ export default async function AdminCostingPage() {
                   <tr key={row.batchId}>
                     <td className="reflow-primary py-3 pr-3">
                       <p className="font-mono text-xs font-bold text-brand-green-ink">{row.batchId}</p>
-                      <p className="text-xs text-gray-500">{row.design}</p>
+                      <p className="text-xs text-brand-muted">{row.design}</p>
                     </td>
                     <td data-label="Status" className="py-3 pr-3">{row.status}</td>
                     <td data-label="Finished" className="py-3 pr-3">
@@ -854,22 +854,22 @@ export default async function AdminCostingPage() {
                     <td data-label="Signal" className="py-3 pr-3">
                       <BatchStatusPill row={row} />
                       {row.missingCostMaterials.length > 0 ? (
-                        <p className="mt-1 text-xs text-gray-500">{row.missingCostMaterials.join(", ")}</p>
+                        <p className="mt-1 text-xs text-brand-muted">{row.missingCostMaterials.join(", ")}</p>
                       ) : null}
                       {row.missingLaborStations.length > 0 ? (
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-brand-muted">
                           Labor: {row.missingLaborStations.join(", ")}
                         </p>
                       ) : null}
                       {row.missingOverheadRate ? (
-                        <p className="mt-1 text-xs text-gray-500">Overhead rate missing</p>
+                        <p className="mt-1 text-xs text-brand-muted">Overhead rate missing</p>
                       ) : null}
                     </td>
                   </tr>
                 ))}
                 {costing.batchCosting.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-center text-gray-500" colSpan={9}>
+                    <td className="py-6 text-center text-brand-muted" colSpan={9}>
                       No production batches yet.
                     </td>
                   </tr>
@@ -880,11 +880,11 @@ export default async function AdminCostingPage() {
         </section>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Raw material stock valuation</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Current raw material balance valued with weighted purchase cost from supplier invoices.
             </p>
           </div>
@@ -895,7 +895,7 @@ export default async function AdminCostingPage() {
 
         <div className="mt-5 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Material</th>
                 <th className="py-2 pr-3">Balance</th>
@@ -910,19 +910,19 @@ export default async function AdminCostingPage() {
                 <tr key={row.materialId}>
                   <td className="reflow-primary py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.materialName}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-brand-muted">
                       {row.invoiceCount} purchase invoices, {row.unit}
                     </p>
                   </td>
                   <td data-label="Balance" className="py-3 pr-3">
                     {rate(row.balance)}
-                    <span className="block text-xs text-gray-500">Reorder {rate(row.reorderLevel)}</span>
+                    <span className="block text-xs text-brand-muted">Reorder {rate(row.reorderLevel)}</span>
                   </td>
                   <td data-label="Avg cost" className="py-3 pr-3">{money(row.averageUnitCost)}</td>
                   <td data-label="Stock value" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.stockValue)}</td>
                   <td data-label="Reorder need" className="py-3 pr-3">
                     {rate(row.reorderShortage)}
-                    <span className="block text-xs text-gray-500">{money(row.reorderValue)}</span>
+                    <span className="block text-xs text-brand-muted">{money(row.reorderValue)}</span>
                   </td>
                   <td data-label="Signal" className="py-3 pr-3">
                     {!row.hasPurchaseRate ? (
@@ -943,7 +943,7 @@ export default async function AdminCostingPage() {
               ))}
               {costing.rawMaterialStockValuation.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={6}>
+                  <td className="py-6 text-center text-brand-muted" colSpan={6}>
                     No raw material stock to value yet.
                   </td>
                 </tr>

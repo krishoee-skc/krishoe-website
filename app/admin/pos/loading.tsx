@@ -11,7 +11,7 @@ export default function AdminPosLoading() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <div key={index} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
             <div className="h-4 w-24 animate-pulse rounded bg-black/10" />
             <div className="mt-2 h-7 w-28 animate-pulse rounded bg-black/10" />
             <div className="mt-2 h-3 w-20 animate-pulse rounded-full bg-black/10" />
@@ -23,7 +23,7 @@ export default function AdminPosLoading() {
         <div className="h-5 w-40 animate-pulse rounded bg-black/10" />
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={index} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <div className="h-4 w-20 animate-pulse rounded bg-black/10" />
               <div className="mt-2 h-7 w-24 animate-pulse rounded bg-black/10" />
               <div className="mt-2 h-3 w-16 animate-pulse rounded-full bg-black/10" />
@@ -33,7 +33,7 @@ export default function AdminPosLoading() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="h-5 w-36 animate-pulse rounded bg-black/10" />
           <div className="mt-1 h-3 w-56 max-w-full animate-pulse rounded-full bg-black/10" />
           <div className="mt-5 divide-y">
@@ -48,11 +48,11 @@ export default function AdminPosLoading() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="h-5 w-40 animate-pulse rounded bg-black/10" />
           <div className="mt-4 grid gap-3">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <div key={index} className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
                 <div className="h-3 w-24 animate-pulse rounded-full bg-black/10" />
                 <div className="mt-1 h-5 w-20 animate-pulse rounded bg-black/10" />
               </div>

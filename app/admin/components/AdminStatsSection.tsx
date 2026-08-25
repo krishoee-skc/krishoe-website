@@ -30,8 +30,8 @@ export default function AdminStatsSection({
     <div className={`space-y-6 ${className}`}>
       {(title || subtitle) && (
         <div>
-          {title && <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>}
-          {subtitle && <p className="mt-1 text-gray-600 dark:text-gray-400">{subtitle}</p>}
+          {title && <h2 className="text-2xl font-bold text-brand-green-ink dark:text-white">{title}</h2>}
+          {subtitle && <p className="mt-1 text-brand-muted dark:text-white/60">{subtitle}</p>}
         </div>
       )}
 

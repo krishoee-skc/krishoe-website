@@ -43,10 +43,10 @@ function buttonClass(tone: "primary" | "quiet" | "danger" = "quiet") {
   }
 
   if (tone === "danger") {
-    return "inline-flex min-h-9 items-center justify-center rounded-full border border-brand-clay/30 bg-white px-3 text-xs font-black text-brand-clay transition hover:bg-brand-clay-mist";
+    return "inline-flex min-h-9 items-center justify-center rounded-full border border-brand-clay/30 bg-brand-paper px-3 text-xs font-black text-brand-clay transition hover:bg-brand-clay-mist";
   }
 
-  return "inline-flex min-h-9 items-center justify-center rounded-full border border-gray-200 bg-white px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green";
+  return "inline-flex min-h-9 items-center justify-center rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green";
 }
 
 function buildCustomerRows(users: SafeUser[], orders: OrderSubmission[]): CustomerRow[] {
@@ -73,8 +73,8 @@ function buildCustomerRows(users: SafeUser[], orders: OrderSubmission[]): Custom
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -100,13 +100,13 @@ export default async function AdminCustomersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">Customers</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Customer account trust, order links, verification emails, and manual phone checks.
           </p>
         </div>
         <Link
           href="/admin/notifications"
-          className="inline-flex h-9 items-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+          className="inline-flex h-9 items-center rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Notification queue
         </Link>
@@ -119,11 +119,11 @@ export default async function AdminCustomersPage() {
         <StatCard label="With orders" value={customersWithOrders} detail="linked history" />
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Account email delivery</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
               Verification and password reset messages use the Email HTTP channel.
             </p>
           </div>
@@ -137,16 +137,16 @@ export default async function AdminCustomersPage() {
             {emailChannel?.configured ? "Ready" : "Missing"}
           </span>
         </div>
-        <p className="mt-3 text-sm leading-6 text-gray-600">
+        <p className="mt-3 text-sm leading-6 text-brand-muted">
           {emailChannel?.detail ?? "Set EMAIL_PROVIDER_URL for customer account emails."}
         </p>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Customer list</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Newest accounts first. Actions create audit and notification history.
             </p>
           </div>
@@ -156,13 +156,13 @@ export default async function AdminCustomersPage() {
         </div>
 
         {rows.length === 0 ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             No customer accounts yet.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Customer</th>
                   <th className="py-2 pr-3">Trust</th>
@@ -178,8 +178,8 @@ export default async function AdminCustomersPage() {
                   <tr key={row.user.id}>
                     <td className="reflow-primary py-3 pr-3">
                       <p className="font-black text-brand-green-ink">{row.user.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-gray-500">{row.user.email}</p>
-                      <p className="mt-1 text-xs text-gray-500">{row.user.phone || "No phone saved"}</p>
+                      <p className="mt-1 text-xs font-semibold text-brand-muted">{row.user.email}</p>
+                      <p className="mt-1 text-xs text-brand-muted">{row.user.phone || "No phone saved"}</p>
                     </td>
                     <td data-label="Trust" className="py-3 pr-3">
                       <div className="grid gap-1.5">
@@ -191,7 +191,7 @@ export default async function AdminCustomersPage() {
                         </span>
                       </div>
                     </td>
-                    <td data-label="Orders" className="py-3 pr-3 text-gray-600">
+                    <td data-label="Orders" className="py-3 pr-3 text-brand-muted">
                       <p className="font-black text-brand-green-ink">{row.linkedOrders.length}</p>
                       <p className="mt-1 text-xs">
                         {row.directOrders.length} direct / {row.guestMatches.length} trusted guest
@@ -203,7 +203,7 @@ export default async function AdminCustomersPage() {
                     <td data-label="Payment" className="py-3 pr-3 font-bold text-brand-green-ink">
                       {row.pendingPayments.length}
                     </td>
-                    <td data-label="Latest" className="py-3 pr-3 text-xs text-gray-500">
+                    <td data-label="Latest" className="py-3 pr-3 text-xs text-brand-muted">
                       {row.latestOrder ? (
                         <Link
                           href={`/admin/orders#${row.latestOrder.id}`}

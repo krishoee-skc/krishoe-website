@@ -110,7 +110,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
   const previewable = image.startsWith("/") || image.startsWith("http");
 
   return (
-    <article className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <article className="grid gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
       {/* Tap to see it big. On the card a photo is 220px wide and a blurred one
           looks fine there; the shop shows it far larger, which is where the
           blur appears. Judging it needs the same size the customer gets. */}
@@ -135,7 +135,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           </span>
         ) : null}
         {busy ? (
-          <span className="absolute inset-0 grid place-items-center bg-white/75 text-sm font-black text-brand-green-ink">
+          <span className="absolute inset-0 grid place-items-center bg-brand-paper/75 text-sm font-black text-brand-green-ink">
             चढ्दै…
           </span>
         ) : null}
@@ -143,7 +143,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
       <div>
         <h3 className="truncate font-black text-brand-green-ink">{product.name}</h3>
-        <p className="truncate font-mono text-[11px] text-gray-400">
+        <p className="truncate font-mono text-[11px] text-brand-muted-soft">
           {product.sku} · {product.galleryCount} फोटो
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           type="button"
           disabled={busy}
           onClick={() => galleryRef.current?.click()}
-          className="min-h-11 rounded-xl border border-gray-200 px-2 text-sm font-black text-brand-green-ink transition hover:border-brand-green disabled:opacity-60"
+          className="min-h-11 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-green-ink transition hover:border-brand-green disabled:opacity-60"
         >
           🖼️ फाइलबाट
         </button>
@@ -209,7 +209,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
         onClick={(event) => {
           if (event.target === viewRef.current) viewRef.current?.close();
         }}
-        className="max-h-[90dvh] max-w-[92vw] rounded-2xl bg-white p-3 backdrop:bg-black/70"
+        className="max-h-[90dvh] max-w-[92vw] rounded-2xl bg-brand-paper p-3 backdrop:bg-black/70"
       >
         {previewable ? (
           // Plain img, not next/image: this is a one-off full-size look at the

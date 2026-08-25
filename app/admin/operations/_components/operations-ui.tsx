@@ -4,11 +4,11 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { OperationRecordKind } from "@/lib/operations";
 
 export const inputClass =
-  "h-10 rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line px-3 text-sm outline-none focus:border-brand-green";
 export const textareaClass =
-  "min-h-20 rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-20 rounded-md border border-brand-green-line px-3 py-2 text-sm outline-none focus:border-brand-green";
 export const compactInputClass =
-  "h-9 rounded-md border border-gray-200 px-2 text-xs outline-none focus:border-brand-green";
+  "h-9 rounded-md border border-brand-green-line px-2 text-xs outline-none focus:border-brand-green";
 
 export const workerStationOptions = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
 export const workerStatusOptions = ["Not Started", "In Progress", "Paused", "Done"];
@@ -27,8 +27,8 @@ export function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -41,7 +41,7 @@ export function SectionTitle({ title, detail }: { title: string; detail: string 
   return (
     <div className="mb-4">
       <h2 className="text-lg font-black text-brand-green-ink">{title}</h2>
-      <p className="mt-1 text-sm text-gray-500">{detail}</p>
+      <p className="mt-1 text-sm text-brand-muted">{detail}</p>
     </div>
   );
 }

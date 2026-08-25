@@ -139,9 +139,9 @@ export default function PushNotificationSetup({ publicKey }: { publicKey: string
   }
 
   return (
-    <section className="rounded-2xl border border-brand-green/15 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-brand-green/15 bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">फोनमा तुरुन्तै खबर</h2>
-      <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
+      <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
         अर्डर आउने बित्तिकै यो यन्त्र बज्छ — app नखोली। राति आएको अर्डर बिहानसम्म
         थाहा नहुने समस्या यसैले हट्छ।
       </p>
@@ -171,7 +171,7 @@ export default function PushNotificationSetup({ publicKey }: { publicKey: string
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full px-3 py-1 text-xs font-black ${
-              status === "on" ? "bg-emerald-100 text-emerald-900" : "bg-gray-100 text-gray-700"
+              status === "on" ? "bg-emerald-100 text-emerald-900" : "bg-brand-mist text-brand-muted-deep"
             }`}
           >
             {status === "on" ? "चालु" : "बन्द"}
@@ -209,7 +209,7 @@ export default function PushNotificationSetup({ publicKey }: { publicKey: string
 
       {message ? <p className="mt-3 text-sm font-semibold text-brand-green">{message}</p> : null}
 
-      <p className="mt-4 text-xs leading-5 text-gray-500">
+      <p className="mt-4 text-xs leading-5 text-brand-muted">
         ⚠️ यो <strong>यन्त्र-यन्त्रको</strong> सेटिङ हो। फोनमा चालु गर्दा computer मा आफैँ
         चालु हुँदैन — दुवैमा छुट्टाछुट्टै गर्नुपर्छ।
       </p>

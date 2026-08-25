@@ -147,7 +147,7 @@ export default function WorkerAnalyticsPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 text-center">
-        <div className="animate-pulse text-gray-500">
+        <div className="animate-pulse text-brand-muted">
           Loading worker analytics...
         </div>
       </div>

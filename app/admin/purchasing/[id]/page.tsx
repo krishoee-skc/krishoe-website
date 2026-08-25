@@ -36,7 +36,7 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/purchasing"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to Purchasing
         </Link>
@@ -45,43 +45,43 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
         </PrintButton>
       </div>
 
-      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-green-line pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Purchase bill</h1>
-            <p className="mt-2 text-sm text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
+            <p className="mt-2 text-sm text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
           </div>
           <div className="text-right">
             <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.purchaseNumber}</p>
-            <p className="mt-2 rounded-full border border-gray-200 px-3 py-1 text-xs font-black text-gray-600">
+            <p className="mt-2 rounded-full border border-brand-green-line px-3 py-1 text-xs font-black text-brand-muted">
               {invoice.status} / {invoice.postingStatus}
             </p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Supplier</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Supplier</p>
             <p className="mt-2 font-black text-brand-green-ink">{invoice.supplierName}</p>
-            <p className="mt-1 text-sm text-gray-500">{invoice.kind}</p>
+            <p className="mt-1 text-sm text-brand-muted">{invoice.kind}</p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Payment</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Payment</p>
             <p className="mt-2 font-black text-brand-green-ink">{invoice.paymentMethod}</p>
-            <p className="mt-1 text-sm text-gray-500">{invoice.paymentReference || "No reference"}</p>
+            <p className="mt-1 text-sm text-brand-muted">{invoice.paymentReference || "No reference"}</p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Note</p>
+          <div className="rounded-lg bg-brand-paper-deep p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Note</p>
             <p className="mt-2 text-sm text-brand-green-ink">{invoice.note || "-"}</p>
           </div>
         </div>
 
         <div className="mt-6 overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Item</th>
                 <th className="py-2 pr-3">Kind</th>
@@ -97,7 +97,7 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
                     <td className="py-3 pr-3 font-semibold text-brand-green-ink">
                       {item.itemName || item.design || "-"}
                     </td>
-                    <td className="py-3 pr-3 text-gray-600">{item.kind}</td>
+                    <td className="py-3 pr-3 text-brand-muted">{item.kind}</td>
                     <td className="py-3 pr-3 text-right">
                       {item.quantity} {item.unit}
                     </td>
@@ -110,7 +110,7 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
                   <td className="py-3 pr-3 font-semibold text-brand-green-ink">
                     {invoice.materialName || invoice.design || "-"}
                   </td>
-                  <td className="py-3 pr-3 text-gray-600">{invoice.kind}</td>
+                  <td className="py-3 pr-3 text-brand-muted">{invoice.kind}</td>
                   <td className="py-3 pr-3 text-right">
                     {invoice.quantity} {invoice.unit}
                   </td>
@@ -126,32 +126,32 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
           <div className="w-full max-w-xs rounded-lg bg-brand-mist p-4">
             {invoice.discount > 0 ? (
               <div className="flex justify-between gap-3 text-sm">
-                <span className="text-gray-600">Discount</span>
+                <span className="text-brand-muted">Discount</span>
                 <span className="font-bold">{money(invoice.discount)}</span>
               </div>
             ) : null}
             {invoice.tax > 0 ? (
               <div className="mt-2 flex justify-between gap-3 text-sm">
-                <span className="text-gray-600">Tax / VAT</span>
+                <span className="text-brand-muted">Tax / VAT</span>
                 <span className="font-bold">{money(invoice.tax)}</span>
               </div>
             ) : null}
-            <div className="flex justify-between gap-3 border-t border-gray-200 pt-3">
+            <div className="flex justify-between gap-3 border-t border-brand-green-line pt-3">
               <span className="font-black text-brand-green-ink">Total</span>
               <span className="text-xl font-black text-brand-green-ink">{money(invoice.total)}</span>
             </div>
             <div className="mt-3 flex justify-between gap-3 text-sm">
-              <span className="text-gray-600">Paid</span>
+              <span className="text-brand-muted">Paid</span>
               <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span>
             </div>
             <div className="mt-2 flex justify-between gap-3 text-sm">
-              <span className="text-gray-600">Due</span>
+              <span className="text-brand-muted">Due</span>
               <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span>
             </div>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
           KRISHOE purchase record
         </p>
       </div>

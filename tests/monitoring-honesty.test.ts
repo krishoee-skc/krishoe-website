@@ -32,8 +32,10 @@ describe("what red means", () => {
 
     expect(dashboard).toContain('status === "off"');
     expect(dashboard).toContain("Not set up");
-    // Grey, so the eye stops reading it as a fault.
-    expect(dashboard).toContain('"bg-gray-100 text-gray-600"');
+    // Quiet, so the eye stops reading it as a fault — and quiet in the
+    // brand's own neutrals now, not in a borrowed grey.
+    expect(dashboard).toContain('"bg-brand-mist text-brand-muted"');
+    expect(dashboard).toContain('"bg-red-100 text-red-700"');
   });
 
   it("checks the variable that actually sends email", async () => {

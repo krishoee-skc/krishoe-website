@@ -22,7 +22,7 @@ function customerAgingTone(bucket: string) {
   if (bucket === "60+ days") return "border-red-200 bg-red-50 text-red-800";
   if (bucket === "31-60 days") return "border-amber-200 bg-amber-50 text-amber-800";
   if (bucket === "0-30 days") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function supplierAgingTone(risk: SupplierAgingRisk) {
@@ -30,7 +30,7 @@ function supplierAgingTone(risk: SupplierAgingRisk) {
   if (risk === "High") return "border-orange-200 bg-orange-50 text-orange-800";
   if (risk === "Watch") return "border-amber-200 bg-amber-50 text-amber-800";
   if (risk === "Current") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function DueCard({
@@ -106,12 +106,12 @@ export default async function AdminDuesPage() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Credit control</p>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">Customer and supplier ledgers</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Customer receivable means money KRISHOE must collect. Supplier payable means money KRISHOE must pay.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/operations#customer-ledgers" className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-black text-brand-green">All customer ledgers</Link>
+          <Link href="/admin/operations#customer-ledgers" className="rounded-full border border-brand-green bg-brand-paper px-4 py-2 text-sm font-black text-brand-green">All customer ledgers</Link>
           <Link href="/admin/purchasing#supplier-ledgers" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white">All supplier ledgers</Link>
         </div>
       </div>
@@ -133,22 +133,22 @@ export default async function AdminDuesPage() {
         />
       </div>
 
-      <section id="customer-receivables" className="mt-8 scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section id="customer-receivables" className="mt-8 scroll-mt-24 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4">
           <h2 className="text-lg font-black text-brand-green-ink">To collect from customers</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Tap a customer name to record cash/cheque collection and view the complete running statement.
           </p>
         </div>
 
         {customerRows.length === 0 ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             कसैबाट पैसा उठाउन बाँकी छैन। No customer dues right now.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Customer</th>
                   <th className="py-2 pr-3">Phone</th>
@@ -166,9 +166,9 @@ export default async function AdminDuesPage() {
                       >
                         {row.customerName}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-400">{row.channel}</p>
+                      <p className="mt-1 text-xs text-brand-muted-soft">{row.channel}</p>
                     </td>
-                    <td data-label="Phone" className="py-3 pr-3 text-gray-600">
+                    <td data-label="Phone" className="py-3 pr-3 text-brand-muted">
                       {row.phone || "-"}
                     </td>
                     <td data-label="Aging" className="py-3 pr-3">
@@ -195,22 +195,22 @@ export default async function AdminDuesPage() {
         )}
       </section>
 
-      <section id="supplier-payables" className="mt-8 scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section id="supplier-payables" className="mt-8 scroll-mt-24 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4">
           <h2 className="text-lg font-black text-brand-green-ink">To pay suppliers</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Tap a supplier name to record payment and view purchase bills with the running payable balance.
           </p>
         </div>
 
         {supplierRows.length === 0 ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             कसैलाई पैसा तिर्न बाँकी छैन। No supplier dues right now.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
                   <th className="py-2 pr-3">Phone</th>
@@ -228,9 +228,9 @@ export default async function AdminDuesPage() {
                       >
                         {row.supplierName}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-400">{row.materialFocus || "-"}</p>
+                      <p className="mt-1 text-xs text-brand-muted-soft">{row.materialFocus || "-"}</p>
                     </td>
-                    <td data-label="Phone" className="py-3 pr-3 text-gray-600">
+                    <td data-label="Phone" className="py-3 pr-3 text-brand-muted">
                       {row.phone || "-"}
                     </td>
                     <td data-label="Aging" className="py-3 pr-3">

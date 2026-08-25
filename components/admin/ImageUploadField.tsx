@@ -157,7 +157,7 @@ export default function ImageUploadField({
           hidden
           onChange={(event) => uploadFiles(event.target.files)}
         />
-        <span className="text-xs text-gray-500">or paste a URL above</span>
+        <span className="text-xs text-brand-muted">or paste a URL above</span>
       </div>
 
       {status === "blob" || status === "database" ? (

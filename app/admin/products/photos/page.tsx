@@ -38,14 +38,14 @@ export default async function ProductPhotosPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">फोटो हाल्ने</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
             जुत्ताको फोटो यहीँबाट खिच्नुहोस् वा फाइलबाट छान्नुहोस्। चढ्नेबित्तिकै
             पसलमा देखिन्छ — Save थिच्नु पर्दैन।
           </p>
         </div>
         <Link
           href="/admin/products/photo-guide"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           📸 फोटो कसरी खिच्ने
         </Link>
@@ -55,13 +55,13 @@ export default async function ProductPhotosPage() {
         <span className={`rounded-full px-3 py-1.5 ${missing > 0 ? "bg-brand-clay text-white" : "bg-emerald-100 text-emerald-900"}`}>
           {missing > 0 ? `${missing} सामानको फोटो छैन` : "सबैको फोटो छ ✅"}
         </span>
-        <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-600">
+        <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">
           जम्मा {products.length} सामान
         </span>
       </div>
 
       {missing > 0 ? (
-        <p className="mt-4 rounded-xl bg-brand-mist px-4 py-3 text-sm leading-6 text-gray-600">
+        <p className="mt-4 rounded-xl bg-brand-mist px-4 py-3 text-sm leading-6 text-brand-muted">
           <strong className="text-brand-green-ink">फोटो नभएको जुत्ता कसैले किन्दैन।</strong>{" "}
           ग्राहकले पहिले फोटो हेर्छन्, अनि मूल्य। तल रातो चिन्ह भएका पहिले सिध्याउनुहोस्।
         </p>

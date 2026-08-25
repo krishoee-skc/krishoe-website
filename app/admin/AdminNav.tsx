@@ -44,7 +44,7 @@ export default function AdminNav({
               className="h-10 w-10 shrink-0"
             />
             {!isCollapsed && (
-              <span className="truncate text-xl font-black tracking-wide text-gray-900 dark:text-white">
+              <span className="truncate text-xl font-black tracking-wide text-brand-green-ink dark:text-white">
                 KRISHOE
               </span>
             )}
@@ -70,12 +70,12 @@ export default function AdminNav({
               <p className="text-xs font-bold uppercase tracking-wider text-admin-primary dark:text-admin-primary-light">
                 Admin Role
               </p>
-              <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{adminRole}</p>
+              <p className="mt-2 text-base font-bold text-brand-green-ink dark:text-white">{adminRole}</p>
               {adminName ? (
-                <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">{adminName}</p>
+                <p className="mt-2 text-sm font-semibold text-brand-muted-deep dark:text-brand-muted-soft">{adminName}</p>
               ) : null}
               {adminEmail ? (
-                <p className="truncate text-xs text-gray-600 dark:text-gray-400">{adminEmail}</p>
+                <p className="truncate text-xs text-brand-muted dark:text-white/60">{adminEmail}</p>
               ) : null}
               {branchId ? (
                 <p className="mt-2 truncate text-xs font-semibold uppercase tracking-wider text-admin-accent dark:text-admin-accent-light">
@@ -101,7 +101,7 @@ export default function AdminNav({
             {groups.map((group) => (
               <div key={group.id} className="grid gap-1">
                 {!isCollapsed && (
-                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
                     {group.title}
                   </p>
                 )}
@@ -115,7 +115,7 @@ export default function AdminNav({
                       className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                         isActive
                           ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-admin-hover dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-admin-hover-dark"
+                          : "text-brand-muted hover:text-brand-green-ink hover:bg-admin-hover dark:text-white/60 dark:hover:text-white dark:hover:bg-admin-hover-dark"
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
@@ -126,7 +126,7 @@ export default function AdminNav({
                       {!isCollapsed && (
                         <span className="grid leading-tight">
                           <span className="text-sm">{label}</span>
-                          <span className="text-[11px] text-gray-400 dark:text-gray-500">{nepali}</span>
+                          <span className="text-[11px] text-brand-muted-soft dark:text-white/60">{nepali}</span>
                         </span>
                       )}
                     </Link>
@@ -152,7 +152,7 @@ export default function AdminNav({
             <button
               type="submit"
               title={isCollapsed ? "Sign out" : undefined}
-              className={`w-full flex items-center justify-center gap-2 rounded-md border border-admin-border bg-white px-3 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-50 hover:border-red-200 dark:border-admin-border-dark dark:bg-admin-sidebar-dark dark:text-red-400 dark:hover:bg-red-950/20 ${
+              className={`w-full flex items-center justify-center gap-2 rounded-md border border-admin-border bg-brand-paper px-3 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-50 hover:border-red-200 dark:border-admin-border-dark dark:bg-admin-sidebar-dark dark:text-red-400 dark:hover:bg-red-950/20 ${
                 isCollapsed ? "p-2" : ""
               }`}
             >

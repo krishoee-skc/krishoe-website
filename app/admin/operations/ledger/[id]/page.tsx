@@ -18,9 +18,9 @@ type LedgerDetailPageProps = {
 };
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-24 rounded-md border border-brand-green-line px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -42,8 +42,8 @@ function collectionPriorityClass(priority: string) {
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -79,21 +79,21 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/operations"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to operations
         </Link>
         <PrintLedgerButton />
       </div>
 
-      <div className="receipt-print rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="receipt-print rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-green-line pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Customer ledger
             </p>
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.customerName}</h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-brand-muted">
               {ledger.channel} - {ledger.phone || "No phone"} - Last transaction {ledger.lastTransaction}
             </p>
           </div>
@@ -129,7 +129,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr] print:hidden">
-          <form action={updateCustomerLedgerAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={updateCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h2 className="font-black text-brand-green-ink">Customer details</h2>
             <input type="hidden" name="id" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -154,7 +154,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             </FormSubmitButton>
           </form>
 
-          <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h2 className="font-black text-brand-green-ink">New transaction</h2>
             <input type="hidden" name="ledgerId" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -173,7 +173,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Transaction history</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-brand-muted">
                 Customer-wise cash, cheque, credit, return, and balance adjustment trail.
               </p>
             </div>
@@ -181,13 +181,13 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
           </div>
 
           {transactions.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+            <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
               No transaction has been recorded for this customer yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="reflow-table min-w-full text-sm">
-                <thead className="border-b text-left text-gray-500">
+                <thead className="border-b text-left text-brand-muted">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
                     <th className="py-2 pr-3">Type</th>
@@ -200,7 +200,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {transactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
+                      <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
                       <td data-label="Type" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.type}</td>
                       <td data-label="Effect" className="py-3 pr-3">
                         <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
@@ -208,7 +208,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                         </span>
                       </td>
                       <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                      <td data-label="Note" className="max-w-80 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
+                      <td data-label="Note" className="max-w-80 py-3 pr-3 text-brand-muted">{transaction.note || "-"}</td>
                       <td data-label="Manage" className="py-3 pr-3 print:hidden">
                         <form action={deleteOperationRecordAction}>
                           <input type="hidden" name="kind" value="ledgerTransaction" />
@@ -228,19 +228,19 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
         <div className="mt-8">
           <div className="mb-4">
             <h2 className="text-lg font-black text-brand-green-ink">Linked order payments</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Order payment records connected to this ledger.
             </p>
           </div>
 
           {paymentTransactions.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+            <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
               No order payment has been linked to this ledger yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="reflow-table min-w-full text-sm">
-                <thead className="border-b text-left text-gray-500">
+                <thead className="border-b text-left text-brand-muted">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
                     <th className="py-2 pr-3">Order</th>
@@ -254,15 +254,15 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
                 <tbody className="divide-y">
                   {paymentTransactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
+                      <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted"><DateDisplayAdmin date={transaction.createdAt} time={true} /></td>
                       <td data-label="Order" className="py-3 pr-3 font-mono text-xs text-brand-green-ink">{transaction.orderId}</td>
                       <td data-label="Status" className="py-3 pr-3 font-semibold text-brand-green-ink">{transaction.paymentStatus}</td>
                       <td data-label="Provider" className="py-3 pr-3">{transaction.paymentProvider.toUpperCase()}</td>
                       <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                      <td data-label="Reference" className="max-w-56 py-3 pr-3 text-gray-600">
+                      <td data-label="Reference" className="max-w-56 py-3 pr-3 text-brand-muted">
                         {transaction.paymentTransactionId || transaction.paymentReference || "-"}
                       </td>
-                      <td data-label="Note" className="max-w-72 py-3 pr-3 text-gray-600">{transaction.note || "-"}</td>
+                      <td data-label="Note" className="max-w-72 py-3 pr-3 text-brand-muted">{transaction.note || "-"}</td>
                     </tr>
                   ))}
                 </tbody>

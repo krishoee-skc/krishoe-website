@@ -38,7 +38,7 @@ function QuickCard({
     good: "border-emerald-200 bg-emerald-50 hover:border-emerald-300",
     warn: "border-amber-200 bg-amber-50 hover:border-amber-300",
     danger: "border-red-200 bg-red-50 hover:border-red-300",
-    default: "border-gray-200 bg-white hover:border-gray-300",
+    default: "border-brand-green-line bg-brand-paper hover:border-brand-green-line",
   };
 
   const valueColor = {
@@ -59,7 +59,7 @@ function QuickCard({
       <div className="relative">
         {/* Header with icon and arrow */}
         <div className="mb-4 flex items-start justify-between">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-white/50 shadow-sm">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-brand-paper/50 shadow-sm">
             {icon || <PackageIcon className="h-6 w-6" />}
           </div>
           <ArrowRightIcon className="h-5 w-5 opacity-40 transition group-hover:translate-x-1 group-hover:opacity-100" />
@@ -68,18 +68,18 @@ function QuickCard({
         {/* Labels */}
         <div className="mb-3">
           <p className="text-xs font-semibold uppercase tracking-wide opacity-60">{title}</p>
-          <p className="text-xs font-semibold text-gray-500">{titleNepali}</p>
+          <p className="text-xs font-semibold text-brand-muted">{titleNepali}</p>
         </div>
 
         {/* Main value */}
         <p className={`text-3xl font-black leading-none ${valueColor[tone]} mb-3`}>{value}</p>
 
         {/* Details */}
-        <p className="mb-2 text-xs font-medium text-gray-600">{detail}</p>
-        <p className="text-xs font-medium text-gray-500">{detailNepali}</p>
+        <p className="mb-2 text-xs font-medium text-brand-muted">{detail}</p>
+        <p className="text-xs font-medium text-brand-muted">{detailNepali}</p>
 
         {/* Action label */}
-        <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-1 text-xs font-bold text-brand-green-ink shadow-sm">
+        <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-paper/70 px-3 py-1 text-xs font-bold text-brand-green-ink shadow-sm">
           {action}
           <ArrowRightIcon className="h-3 w-3" />
         </p>
@@ -125,10 +125,10 @@ export default function QuickAdminHome({
   return (
     <section className="space-y-6">
       {/* Header */}
-      <div className="rounded-lg border border-brand-green/20 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-gold-ink">तुरुन्त अवलोकन</p>
         <h1 className="mt-2 text-2xl font-black text-brand-green-ink md:text-3xl">KRISHOE आज को नियन्त्रण कक्ष</h1>
-        <p className="mt-2 text-sm text-gray-600">कारखाना, बिक्रय र बुकिङ - सबै एक नजरमा</p>
+        <p className="mt-2 text-sm text-brand-muted">कारखाना, बिक्रय र बुकिङ - सबै एक नजरमा</p>
       </div>
 
       {/* Main Cards Grid */}
@@ -214,8 +214,8 @@ export default function QuickAdminHome({
           same screen looked different on every device and never in the brand's
           colour. These inherit currentColor and match every other icon in
           admin. */}
-      <div className="flex flex-wrap gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <p className="w-full text-xs font-black uppercase tracking-wide text-gray-500">
+      <div className="flex flex-wrap gap-3 rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+        <p className="w-full text-xs font-black uppercase tracking-wide text-brand-muted">
           Quick actions
         </p>
         <Link
@@ -227,28 +227,28 @@ export default function QuickAdminHome({
         </Link>
         <Link
           href="/admin/factory/ledger"
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-brand-paper px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
           <CreditCardIcon className="h-4 w-4" />
           Payments
         </Link>
         <Link
           href="/admin/orders"
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-brand-paper px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
           <PackageIcon className="h-4 w-4" />
           Orders
         </Link>
         <Link
           href="/admin/pos"
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-brand-paper px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
           <ShoppingCartIcon className="h-4 w-4" />
           Billing
         </Link>
         <Link
           href="/admin/stock"
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-white px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/30 bg-brand-paper px-4 py-2 font-bold text-brand-green-ink shadow-sm transition hover:border-brand-green"
         >
           <ShoppingBagIcon className="h-4 w-4" />
           Stock

@@ -52,41 +52,41 @@ export default async function WorkerDashboardPage() {
           ["यो महिना पाएको", money(thisMonth?.totalPaid ?? 0)],
           ["जम्मा बाँकी", money(detail.balance)],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-gray-500">{label}</p>
+          <div key={label} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <p className="text-sm font-semibold text-brand-muted">{label}</p>
             <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
           </div>
         ))}
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-6">
           <h2 className="text-xl font-black text-brand-green-ink">यो महिना · This month</h2>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-gray-500">काम गरेको दिन</dt>
+              <dt className="text-brand-muted">काम गरेको दिन</dt>
               <dd className="font-bold">{daysWorked}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">काम टिपिएको पटक</dt>
+              <dt className="text-brand-muted">काम टिपिएको पटक</dt>
               <dd className="font-bold">{monthWork.length}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">श्रेणी</dt>
+              <dt className="text-brand-muted">श्रेणी</dt>
               <dd className="font-bold">{detail.worker.category}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">अवस्था</dt>
+              <dt className="text-brand-muted">अवस्था</dt>
               <dd className="font-bold">{detail.worker.status}</dd>
             </div>
           </dl>
-          <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-gray-600">
+          <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-brand-muted">
             हिसाब नमिलेको लागे मालिक वा HR लाई भन्नुहोस्। यहाँ देखिने रकम कारखानाको
             आधिकारिक हिसाब हो।
           </p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-6">
           <h2 className="text-xl font-black text-brand-green-ink">छिटो जानुहोस्</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[

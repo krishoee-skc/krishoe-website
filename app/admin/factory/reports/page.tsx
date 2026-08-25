@@ -106,14 +106,14 @@ export default function ReportsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">📊 मासिक रिपोर्ट</h1>
-        <p className="mb-4 mt-1 text-sm text-slate-500">Monthly reports</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-ink">📊 मासिक रिपोर्ट</h1>
+        <p className="mb-4 mt-1 text-sm text-brand-muted">Monthly reports</p>
 
         <div className="flex gap-3 mb-6">
           <BikramMonthPicker value={month} onChange={setMonth} label="महिना" className="min-w-[180px]" />
           <button
             onClick={() => generateSummaries(month)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"
+            className="bg-brand-green hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"
           >
             🔄 Regenerate
           </button>
@@ -127,32 +127,32 @@ export default function ReportsPage() {
       )}
 
       {loading ? (
-        <div className="text-center text-slate-500">Loading reports...</div>
+        <div className="text-center text-brand-muted">Loading reports...</div>
       ) : (
         <div className="space-y-6">
           {/* Monthly Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Pairs</div>
-              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mt-2">{totalPairs}</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Pairs</div>
+              <div className="text-2xl sm:text-3xl font-bold text-brand-green mt-2">{totalPairs}</div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Earned</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Earned</div>
               <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
                 Rs. {totalEarned.toLocaleString()}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Paid</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Paid</div>
               <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
                 Rs. {totalPaid.toLocaleString()}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Balance Due</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Balance Due</div>
               <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
                 Rs. {totalBalance.toLocaleString()}
               </div>
@@ -160,12 +160,12 @@ export default function ReportsPage() {
           </div>
 
           {/* Payroll Table */}
-          <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
+          <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">💰 Payroll Summary</h2>
+              <h2 className="text-lg font-bold text-brand-green-ink mb-4">💰 Payroll Summary</h2>
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-200">
-                  <tr className="text-xs sm:text-sm text-slate-600 font-semibold">
+                <thead className="border-b border-brand-green-line">
+                  <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
                     <th className="text-left py-2 px-2 sm:px-4">Worker Name</th>
                     <th className="text-left py-2 px-2 sm:px-4">Category</th>
                     <th className="text-center py-2 px-2 sm:px-4">Pairs</th>
@@ -179,14 +179,14 @@ export default function ReportsPage() {
                     summaries
                       .sort((a, b) => b.total_earned - a.total_earned)
                       .map((summary, idx) => (
-                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-2 sm:px-4 font-medium text-slate-900">
+                        <tr key={idx} className="border-b border-brand-green-line hover:bg-brand-paper-deep">
+                          <td className="py-3 px-2 sm:px-4 font-medium text-brand-green-ink">
                             {summary.worker_name}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-slate-600">
+                          <td className="py-3 px-2 sm:px-4 text-brand-muted">
                             {summary.category}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-center text-slate-900">
+                          <td className="py-3 px-2 sm:px-4 text-center text-brand-green-ink">
                             {summary.total_pairs}
                           </td>
                           <td className="py-3 px-2 sm:px-4 text-right text-green-600 font-semibold">
@@ -200,7 +200,7 @@ export default function ReportsPage() {
                               className={`${
                                 summary.final_balance > 0
                                   ? "text-amber-600"
-                                  : "text-slate-500"
+                                  : "text-brand-muted"
                               }`}
                             >
                               Rs. {summary.final_balance.toLocaleString()}
@@ -210,7 +210,7 @@ export default function ReportsPage() {
                       ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                      <td colSpan={6} className="py-8 text-center text-brand-muted">
                         No data for this month
                       </td>
                     </tr>
@@ -245,13 +245,13 @@ export default function ReportsPage() {
                 a.download = `payroll-${month}.csv`;
                 a.click();
               }}
-              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="flex-1 bg-brand-muted-deep hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
               📥 Export CSV
             </button>
             <button
               onClick={() => window.print()}
-              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="flex-1 bg-brand-muted-deep hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
               🖨️ Print Report
             </button>

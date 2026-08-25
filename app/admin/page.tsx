@@ -118,7 +118,7 @@ function toneClass(tone: Tone) {
   if (tone === "danger") {
     return "border-[#F1C4BE] bg-[#FFF4F2] text-brand-clay";
   }
-  return "border-gray-200 bg-white text-brand-green-ink";
+  return "border-brand-green-line bg-brand-paper text-brand-green-ink";
 }
 
 function StatCard({
@@ -156,7 +156,7 @@ function SectionTitle({
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-lg font-black text-brand-green-ink">{title}</h2>
-        <p className="mt-1 text-sm text-gray-500">{detail}</p>
+        <p className="mt-1 text-sm text-brand-muted">{detail}</p>
       </div>
       {action}
     </div>
@@ -221,7 +221,7 @@ function CommandLine({ value }: { value: string }) {
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="h-2 rounded-full bg-gray-100">
+    <div className="h-2 rounded-full bg-brand-mist">
       <div
         className="h-2 rounded-full bg-brand-green"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -232,8 +232,8 @@ function ProgressBar({ value }: { value: number }) {
 
 function MiniMetric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-      <p className="text-xs font-semibold text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
+      <p className="text-xs font-semibold text-brand-muted">{label}</p>
       <p className="mt-1 text-lg font-black text-brand-green-ink">{value}</p>
     </div>
   );
@@ -260,7 +260,7 @@ function ControlTile({
       className={`group grid min-h-[150px] grid-rows-[auto_1fr_auto] rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass(tone)}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white/75 text-current shadow-sm ring-1 ring-black/5 dark:bg-white/10">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-paper/75 text-current shadow-sm ring-1 ring-black/5 dark:bg-white/10">
           <Icon className="h-5 w-5" />
         </span>
         <ArrowRightIcon className="h-4 w-4 opacity-45 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
@@ -286,7 +286,7 @@ function QuickCommand({
   return (
     <Link
       href={href}
-      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/20 bg-white px-3 text-sm font-black text-brand-green-ink shadow-sm transition hover:border-brand-green hover:text-brand-green"
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand-green/20 bg-brand-paper px-3 text-sm font-black text-brand-green-ink shadow-sm transition hover:border-brand-green hover:text-brand-green"
     >
       <Icon className="h-4 w-4" />
       {label}
@@ -694,7 +694,7 @@ export default async function AdminDashboardPage() {
         topWorker={topWorkerData}
       />
 
-      <section className="rounded-lg border border-brand-green/15 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-brand-green/15 bg-brand-paper p-5 shadow-sm">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto]">
           <div>
             <p className="admin-wide-label text-xs font-black uppercase text-brand-gold-ink">
@@ -703,7 +703,7 @@ export default async function AdminDashboardPage() {
             <h1 className="admin-wide-title mt-2 text-3xl font-black leading-tight text-brand-green-ink md:text-4xl">
               KRISHOE Daily Control
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
               Today operating numbers from factory, purchasing, sales, ledger, payment, and customer queues.
             </p>
           </div>
@@ -777,7 +777,7 @@ export default async function AdminDashboardPage() {
               <>
                 <p className="admin-wide-label text-xs font-black uppercase text-brand-muted">{cell.label}</p>
                 <p className="admin-wide-value mt-2 text-xl font-black text-brand-green-ink">{cell.value}</p>
-                <p className="mt-2 text-xs font-semibold leading-5 text-gray-500">{cell.detail}</p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-brand-muted">{cell.detail}</p>
               </>
             );
 
@@ -798,7 +798,7 @@ export default async function AdminDashboardPage() {
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="admin-wide-title text-xl font-black text-brand-green-ink">Today action board</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Live work areas from orders, material, production, collection, and customer care.
             </p>
           </div>
@@ -817,7 +817,7 @@ export default async function AdminDashboardPage() {
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="admin-wide-title text-xl font-black text-brand-green-ink">Business operating flow</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Purchase, material, worker output, QC stock, sales, and payment close status.
             </p>
           </div>
@@ -841,7 +841,7 @@ export default async function AdminDashboardPage() {
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {getCost("periodReports", [] as CostingPeriodRow[]).map((period) => (
-            <div key={period?.label} className="rounded-lg border border-brand-green/10 bg-white p-4">
+            <div key={period?.label} className="rounded-lg border border-brand-green/10 bg-brand-paper p-4">
               <p className="admin-wide-label text-xs font-semibold uppercase text-brand-muted">{period?.label}</p>
               <p
                 className={`admin-wide-value mt-1 text-xl font-black ${
@@ -863,7 +863,7 @@ export default async function AdminDashboardPage() {
               {topEarners.map((row) => (
                 <span
                   key={row?.design}
-                  className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-white px-3 py-1 text-xs font-bold text-brand-green-ink"
+                  className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-xs font-bold text-brand-green-ink"
                 >
                   {row?.design}
                   <span className="text-brand-green">{money(row?.grossProfit || 0)}</span>
@@ -900,11 +900,11 @@ export default async function AdminDashboardPage() {
         <StatCard label="Launch readiness" value={`${readinessSummary.ready}/${readinessSummary.total}`} detail={`${readinessSummary.blocked} blocked, ${readinessSummary.warnings} warning`} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Stock at a glance</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Every design with the pairs on hand and its price. What is out of stock shows first.
             </p>
           </div>
@@ -917,7 +917,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         {stockOverview.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             No products yet. Buy or make some from Purchasing.
           </p>
         ) : (
@@ -925,11 +925,11 @@ export default async function AdminDashboardPage() {
             {stockOverview.map((product) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep px-3 py-2"
               >
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-brand-green-ink">{product.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-brand-muted">
                     {product.price}
                     {product.status === "Draft" ? " · Draft" : ""}
                   </p>
@@ -950,7 +950,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle
             title="Today control room"
             detail="Orders, payment risk, messages, and low-stock action queue."
@@ -969,7 +969,7 @@ export default async function AdminDashboardPage() {
 
           <div className="mt-5 overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Order</th>
                   <th className="py-2 pr-3">Customer</th>
@@ -984,7 +984,7 @@ export default async function AdminDashboardPage() {
                     <td className="reflow-primary py-3 pr-3 font-mono text-xs text-brand-green-ink">{order.id}</td>
                     <td data-label="Customer" className="py-3 pr-3">
                       <p className="font-semibold text-brand-green-ink">{order.name}</p>
-                      <p className="text-xs text-gray-500">{order.phone}</p>
+                      <p className="text-xs text-brand-muted">{order.phone}</p>
                     </td>
                     <td data-label="Payment" className="py-3 pr-3">
                       <StatusBadge
@@ -993,7 +993,7 @@ export default async function AdminDashboardPage() {
                       />
                     </td>
                     <td data-label="Total" className="py-3 pr-3 font-bold">{order.total}</td>
-                    <td data-label="Status" className="py-3 pr-3 text-gray-600">{order.status}</td>
+                    <td data-label="Status" className="py-3 pr-3 text-brand-muted">{order.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1001,7 +1001,7 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle
             title="Operational alert center"
             detail="Highest priority actions from payment, stock, collection, supplier, POS, and purchasing."
@@ -1016,14 +1016,14 @@ export default async function AdminDashboardPage() {
             <MiniMetric label="Warning" value={getAlert("summary.warning", 0)} />
             <MiniMetric label="Total" value={getAlert("summary.total", 0)} />
           </div>
-          <div className="mt-4 divide-y divide-gray-100">
+          <div className="mt-4 divide-y divide-brand-green-line">
             {getAlert("alerts", [] as OperationalAlert[]).slice(0, 5).map((alert) => (
               <Link key={alert?.id} href={alert?.href || "#"} className="block py-3 transition hover:text-brand-green">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-bold text-brand-green-ink">{alert?.title || "Alert"}</p>
                   <StatusBadge label={alert?.severity || "info"} tone={alertTone(alert?.severity || "info")} />
                 </div>
-                <p className="mt-1 text-xs leading-5 text-gray-500">{alert?.detail || ""}</p>
+                <p className="mt-1 text-xs leading-5 text-brand-muted">{alert?.detail || ""}</p>
               </Link>
             ))}
             {getAlert("alerts", [] as OperationalAlert[]).length === 0 ? (
@@ -1034,7 +1034,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-3">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Factory signal" detail="Production, dispatch, material, and worker progress." />
           <div className="grid gap-3">
             <div>
@@ -1051,12 +1051,12 @@ export default async function AdminDashboardPage() {
               <MiniMetric label="Dispatch sold" value={getOp("reports.dispatchItemTotals.soldPairs", 0)} />
             </div>
             {getOp("reports.productionInsights", [] as ProductionInsight[]).slice(0, 3).map((batch) => (
-              <div key={batch?.id} className="rounded-lg border border-gray-100 p-3">
+              <div key={batch?.id} className="rounded-lg border border-brand-green-line p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-bold text-brand-green-ink">{batch?.design}</p>
-                  <span className="text-xs font-bold text-gray-500">{batch?.status}</span>
+                  <span className="text-xs font-bold text-brand-muted">{batch?.status}</span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-brand-muted">
                   Production {batch?.productionCompletionRate}% | Worker {batch?.workerProgressRate}% | Reject {batch?.rejectRate}%
                 </p>
               </div>
@@ -1064,13 +1064,13 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Stock and demand" detail="Fast movers, slow movers, low product stock." />
           <div className="grid gap-4">
             <div>
               <p className="admin-wide-label text-xs font-black uppercase text-brand-green">Fast moving</p>
               {getOp("fastMovingStock", [] as FastMovingStock[]).slice(0, 3).map((stock) => (
-                <p key={stock?.id} className="mt-2 text-sm text-gray-700">
+                <p key={stock?.id} className="mt-2 text-sm text-brand-muted-deep">
                   {stock?.design}: <span className="font-bold">{stock?.soldPairs}</span> sold
                 </p>
               ))}
@@ -1078,7 +1078,7 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="admin-wide-label text-xs font-black uppercase text-brand-clay">Low catalog stock</p>
               {lowStockProducts.slice(0, 4).map((product) => (
-                <p key={product.id} className="mt-2 text-sm text-gray-700">
+                <p key={product.id} className="mt-2 text-sm text-brand-muted-deep">
                   {product.name}: <span className="font-bold">{product.stock}</span> pairs
                 </p>
               ))}
@@ -1089,7 +1089,7 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Ledger and collection" detail="Receivable aging and market collection quality." />
           <div className="grid gap-3">
             <MiniMetric label="Cash collected" value={money(getOp("summary.cash", 0))} />
@@ -1097,7 +1097,7 @@ export default async function AdminDashboardPage() {
             <MiniMetric label="Credit in market" value={money(getOp("summary.credit", 0))} />
             <MiniMetric label="This week due" value={money(getOp("reports.ledgerCollectionSummary.dueThisWeek", 0))} />
           </div>
-          <div className="mt-4 divide-y divide-gray-100">
+          <div className="mt-4 divide-y divide-brand-green-line">
             {collectionQueue.slice(0, 4).map((ledger) => (
               <Link
                 key={ledger?.id}
@@ -1108,7 +1108,7 @@ export default async function AdminDashboardPage() {
                   <span className="font-bold text-brand-green-ink">{ledger?.customerName}</span>
                   <StatusBadge label={ledger?.priority} tone={collectionPriorityTone(ledger?.priority)} />
                 </div>
-                <span className="text-xs font-semibold text-gray-500">
+                <span className="text-xs font-semibold text-brand-muted">
                   {money(ledger?.balanceDue || 0)} | {ledger?.daysOutstanding} days | due {ledger?.followUpDueDate || "-"}
                 </span>
               </Link>
@@ -1121,13 +1121,13 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle
             title="Production readiness"
             detail={`${readinessSummary.ready}/${readinessSummary.total} ready, ${readinessSummary.warnings} warning, ${readinessSummary.blocked} blocked.`}
             action={<ReadinessPill status={launchStatus} />}
           />
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-brand-green-line">
             {readiness.map((check) => (
               <div key={check.id} className="grid gap-3 py-3 md:grid-cols-[170px_100px_1fr]">
                 <p className="text-sm font-black text-brand-green-ink">{check.label}</p>
@@ -1135,9 +1135,9 @@ export default async function AdminDashboardPage() {
                   <ReadinessPill status={check.status} />
                 </div>
                 <div>
-                  <p className="text-sm leading-6 text-gray-600">{check.detail}</p>
+                  <p className="text-sm leading-6 text-brand-muted">{check.detail}</p>
                   {check.envKeys.length > 0 ? (
-                    <p className="mt-1 text-xs font-semibold text-gray-400">{check.envKeys.join(", ")}</p>
+                    <p className="mt-1 text-xs font-semibold text-brand-muted-soft">{check.envKeys.join(", ")}</p>
                   ) : null}
                 </div>
               </div>
@@ -1145,27 +1145,27 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle title="Database and launch actions" detail="Migration commands and key environment status." />
           <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-              <span className="font-semibold text-gray-500">Backend</span>
+            <div className="flex items-center justify-between gap-3 border-b border-brand-green-line pb-3">
+              <span className="font-semibold text-brand-muted">Backend</span>
               <span className="font-black text-brand-green-ink">{backendStatus.backend}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-              <span className="font-semibold text-gray-500">Postgres adapters</span>
+            <div className="flex items-center justify-between gap-3 border-b border-brand-green-line pb-3">
+              <span className="font-semibold text-brand-muted">Postgres adapters</span>
               <span className="font-black text-brand-green-ink">{backendStatus.postgresAdapterStatus}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-              <span className="font-semibold text-gray-500">DATABASE_URL</span>
+            <div className="flex items-center justify-between gap-3 border-b border-brand-green-line pb-3">
+              <span className="font-semibold text-brand-muted">DATABASE_URL</span>
               <ReadinessPill status={backendStatus.databaseUrlConfigured ? "ready" : "warning"} />
             </div>
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-              <span className="font-semibold text-gray-500">Payment mode</span>
+            <div className="flex items-center justify-between gap-3 border-b border-brand-green-line pb-3">
+              <span className="font-semibold text-brand-muted">Payment mode</span>
               <ReadinessPill status={paymentCheck?.status ?? "warning"} />
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold text-gray-500">Pending reviews</span>
+              <span className="font-semibold text-brand-muted">Pending reviews</span>
               <span className="font-black text-brand-green-ink">{pendingReviews.length}</span>
             </div>
           </div>
@@ -1177,7 +1177,7 @@ export default async function AdminDashboardPage() {
           </div>
 
           {databaseCheck ? (
-            <p className="mt-4 text-sm leading-6 text-gray-600">{databaseCheck.detail}</p>
+            <p className="mt-4 text-sm leading-6 text-brand-muted">{databaseCheck.detail}</p>
           ) : null}
         </section>
       </div>
@@ -1201,10 +1201,10 @@ export default async function AdminDashboardPage() {
           <Link
             key={href}
             href={href}
-            className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand-green"
+            className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm transition hover:border-brand-green"
           >
             <h2 className="font-black text-brand-green-ink">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-500">{detail}</p>
+            <p className="mt-2 text-sm leading-6 text-brand-muted">{detail}</p>
           </Link>
         ))}
       </div>

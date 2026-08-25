@@ -69,14 +69,14 @@ export default function SearchAsYouType() {
           spellCheck={false}
           placeholder="कामदार, सामान, ग्राहक, बिल, वा पानाको नाम…"
           aria-label="खोज्नुहोस्"
-          className="min-h-14 w-full rounded-xl border-2 border-brand-gold/60 bg-white px-4 pr-12 text-lg font-semibold text-brand-green-ink outline-none focus:border-brand-green"
+          className="min-h-14 w-full rounded-xl border-2 border-brand-gold/60 bg-brand-paper px-4 pr-12 text-lg font-semibold text-brand-green-ink outline-none focus:border-brand-green"
         />
         {trimmed ? (
           <button
             type="button"
             onClick={() => setQuery("")}
             aria-label="मेट्ने"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl leading-none text-slate-400 hover:text-slate-700"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl leading-none text-brand-muted-soft hover:text-brand-muted-deep"
           >
             ×
           </button>
@@ -88,14 +88,14 @@ export default function SearchAsYouType() {
           खोज्न सकिएन। फेरि टाइप गर्नुहोस्।
         </p>
       ) : hits.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <p className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper px-4 py-3 text-sm text-brand-muted">
           {/* "" भन्ने केही भेटिएन would flash in the moment before the first
               answer arrives, which reads as a broken box on the screen someone
               just opened. */}
           {busy || !trimmed ? "हेर्दैछौँ…" : `“${trimmed}” भन्ने केही भेटिएन।`}
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <ul className="mt-4 divide-y divide-brand-green-line overflow-hidden rounded-xl border border-brand-green-line bg-brand-paper">
           {hits.map((hit) => {
             const mark = ADMIN_SEARCH_LABELS[hit.kind];
             return (
@@ -109,9 +109,9 @@ export default function SearchAsYouType() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold text-brand-green-ink">{hit.title}</span>
-                    <span className="block truncate text-xs text-slate-500">{hit.detail}</span>
+                    <span className="block truncate text-xs text-brand-muted">{hit.detail}</span>
                   </span>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">
+                  <span className="shrink-0 rounded-full bg-brand-mist px-2 py-1 text-[11px] font-black text-brand-muted">
                     {mark.label}
                   </span>
                 </Link>

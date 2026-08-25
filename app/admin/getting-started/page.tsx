@@ -176,7 +176,7 @@ export default async function GettingStartedPage() {
     <section className="p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-brand-green-ink">KRISHOE Admin</h1>
-        <p className="mt-2 max-w-3xl text-gray-600">
+        <p className="mt-2 max-w-3xl text-brand-muted">
           {remaining.length === 0
             ? "सबै तयार छ। पसल बेच्न तयार छ।"
             : `पसल बेच्न तयार हुन ${remaining.length} काम बाँकी छ।`}
@@ -192,7 +192,7 @@ export default async function GettingStartedPage() {
               key={step.title}
               href={step.href}
               className={`group flex items-start gap-4 rounded-lg border p-4 transition hover:shadow-md ${
-                step.done ? "border-gray-200 bg-white" : "border-amber-300 bg-amber-50"
+                step.done ? "border-brand-green-line bg-brand-paper" : "border-amber-300 bg-amber-50"
               }`}
             >
               <div
@@ -204,12 +204,12 @@ export default async function GettingStartedPage() {
               </div>
               <div className="flex-1">
                 <p className="font-bold text-brand-green-ink group-hover:text-brand-green">{step.title}</p>
-                <p className="text-sm text-gray-600">{step.detail}</p>
+                <p className="text-sm text-brand-muted">{step.detail}</p>
                 <p className={`mt-1 text-xs font-bold ${step.done ? "text-brand-green" : "text-amber-700"}`}>
                   {step.status}
                 </p>
               </div>
-              <span className="text-gray-400 group-hover:text-brand-green">→</span>
+              <span className="text-brand-muted-soft group-hover:text-brand-green">→</span>
             </Link>
           ))}
         </div>
@@ -222,12 +222,12 @@ export default async function GettingStartedPage() {
             <Link
               key={guide.href}
               href={guide.href}
-              className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-brand-green hover:shadow-md"
+              className="group rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm transition hover:border-brand-green hover:shadow-md"
             >
               <div className="mb-2 text-3xl">{guide.icon}</div>
               <h3 className="font-bold text-brand-green-ink group-hover:text-brand-green">{guide.title}</h3>
-              <p className="mt-1 text-xs text-gray-600">{guide.description}</p>
-              <p className="mt-2 text-xs font-semibold text-gray-500">{guide.time}</p>
+              <p className="mt-1 text-xs text-brand-muted">{guide.description}</p>
+              <p className="mt-2 text-xs font-semibold text-brand-muted">{guide.time}</p>
             </Link>
           ))}
         </div>
@@ -237,7 +237,7 @@ export default async function GettingStartedPage() {
         <h2 className="mb-4 text-xl font-black text-brand-green-ink">कुन काम कहाँ छ</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {features.map((category) => (
-            <div key={category.category} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={category.category} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-brand-green-ink">
                 <span className="text-xl">{category.icon}</span>
                 {category.category}
@@ -248,7 +248,7 @@ export default async function GettingStartedPage() {
                     <Link href={item.href} className="text-xs font-bold text-brand-green-ink hover:text-brand-green">
                       {item.name}
                     </Link>
-                    <p className="text-xs text-gray-600">{item.desc}</p>
+                    <p className="text-xs text-brand-muted">{item.desc}</p>
                   </li>
                 ))}
               </ul>

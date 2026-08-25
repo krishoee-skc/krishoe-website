@@ -19,9 +19,9 @@ type EmployeeHrPageProps = {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-20 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -37,10 +37,10 @@ function StatBox({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
       </p>
     </div>
@@ -56,7 +56,7 @@ function statusClass(status: string) {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
 
-  return "border-gray-200 bg-gray-50 text-gray-700";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted-deep";
 }
 
 function nextPayrollStatus(status: string) {
@@ -98,7 +98,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
             Back to HR
           </Link>
           <h1 className="mt-3 text-2xl font-black text-brand-green-ink">{employee.name}</h1>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
+          <p className="mt-1 text-sm leading-6 text-brand-muted">
             {employee.department} | {employee.role || "No role"} | {employee.salaryType}
             {employee.fingerprintId ? ` | Device ${employee.fingerprintId}` : ""}
           </p>
@@ -132,11 +132,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         <StatBox label="Overtime" value={detail.summary.overtimeHours} detail={`${detail.summary.absentDays} absent`} />
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Auto salary draft</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               {suggestion.periodLabel} calculation from attendance, worker output, and overtime.
             </p>
           </div>
@@ -146,20 +146,20 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-5">
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Base</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Base</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.baseAmount)}</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Piece</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Piece</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.pieceAmount)}</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Overtime</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Overtime</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(suggestion.overtimeAmount)}</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Deduction</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Deduction</p>
             <p className="mt-2 font-black text-brand-clay">{money(suggestion.deduction)}</p>
           </div>
           <div className="rounded-md bg-emerald-50 p-3">
@@ -169,7 +169,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-brand-muted">
             {suggestion.presentDays} days | {suggestion.completedPairs} pairs | {suggestion.overtimeHours} OT | {suggestion.absentDays} absent
           </p>
           <form action={createPayrollAction}>
@@ -187,7 +187,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               disabled={suggestion.hasPayroll || suggestion.netPay <= 0}
               className={`h-10 rounded-full px-4 text-sm font-bold ${
                 suggestion.hasPayroll || suggestion.netPay <= 0
-                  ? "bg-gray-100 text-gray-400"
+                  ? "bg-brand-mist text-brand-muted-soft"
                   : "bg-brand-green-ink text-white"
               }`}
             >
@@ -198,11 +198,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
       </section>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Attendance history</h2>
           <div className="mt-4 grid gap-3">
             {detail.attendanceRecords.slice(0, 5).map((record) => (
-              <form key={`edit-${record.id}`} action={createAttendanceAction} className="rounded-md bg-gray-50 p-3">
+              <form key={`edit-${record.id}`} action={createAttendanceAction} className="rounded-md bg-brand-paper-deep p-3">
                 <input type="hidden" name="nextPath" value={nextPath} />
                 <input type="hidden" name="employeeId" value={employee.id} />
                 <div className="grid gap-3 md:grid-cols-4">
@@ -226,12 +226,12 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               </form>
             ))}
             {detail.attendanceRecords.length === 0 ? (
-              <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-500">No attendance record yet.</p>
+              <p className="rounded-md bg-brand-paper-deep p-3 text-sm text-brand-muted">No attendance record yet.</p>
             ) : null}
           </div>
           <div className="mt-4 overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Date</th>
                   <th className="py-2 pr-3">Status</th>
@@ -262,7 +262,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                 ))}
                 {detail.attendanceRecords.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-center text-gray-500" colSpan={5}>
+                    <td className="py-6 text-center text-brand-muted" colSpan={5}>
                       No attendance record yet.
                     </td>
                   </tr>
@@ -272,11 +272,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">Payroll history</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Period</th>
                   <th className="py-2 pr-3">Net</th>
@@ -326,7 +326,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
                 ))}
                 {detail.payrollRecords.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-center text-gray-500" colSpan={4}>
+                    <td className="py-6 text-center text-brand-muted" colSpan={4}>
                       No payroll record yet.
                     </td>
                   </tr>
@@ -337,11 +337,11 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </section>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Worker tasks</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Production task link by employee name from operations.
             </p>
           </div>
@@ -351,7 +351,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
         </div>
         <div className="mt-5 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Design</th>
                 <th className="py-2 pr-3">Station</th>
@@ -372,7 +372,7 @@ export default async function EmployeeHrPage({ params }: EmployeeHrPageProps) {
               ))}
               {detail.workerTasks.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500" colSpan={5}>
+                  <td className="py-6 text-center text-brand-muted" colSpan={5}>
                     No worker task linked to this employee yet.
                   </td>
                 </tr>

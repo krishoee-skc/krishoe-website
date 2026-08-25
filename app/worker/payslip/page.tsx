@@ -24,17 +24,17 @@ export default async function WorkerPayslipPage() {
         <p className="mt-2 text-sm text-white/70">अहिलेसम्म पाउन बाँकी</p>
       </section>
 
-      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper p-5">
         <h2 className="text-xl font-black text-brand-green-ink">महिना अनुसार</h2>
         {detail.months.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-brand-muted">
             अझै कुनै महिनाको हिसाब बनेको छैन।
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
+                <tr className="border-b border-brand-green-line text-brand-muted">
                   <th className="py-2 font-semibold">महिना</th>
                   <th className="py-2 text-right font-semibold">जोडी</th>
                   <th className="py-2 text-right font-semibold">कमाइ</th>
@@ -44,7 +44,7 @@ export default async function WorkerPayslipPage() {
               </thead>
               <tbody>
                 {detail.months.map((month) => (
-                  <tr key={month.month} className="border-b border-gray-100">
+                  <tr key={month.month} className="border-b border-brand-green-line">
                     <td className="py-3 font-mono text-xs">{month.month}</td>
                     <td className="py-3 text-right font-bold">{month.totalPairs}</td>
                     <td className="py-3 text-right font-bold text-brand-green">
@@ -60,7 +60,7 @@ export default async function WorkerPayslipPage() {
             </table>
           </div>
         )}
-        <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-gray-600">
+        <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-brand-muted">
           &quot;बाँकी&quot; भनेको त्यो महिनासम्मको जम्मा हिसाब हो। रकम नमिलेको लागे
           मालिक वा HR लाई देखाउनुहोस्।
         </p>

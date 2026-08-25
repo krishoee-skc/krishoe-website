@@ -43,10 +43,10 @@ export default function TodayBoard({
   ].filter(Boolean) as { tone: "urgent" | "warn"; text: string; href: string }[];
 
   return (
-    <section className="rounded-2xl border-2 border-brand-green/25 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border-2 border-brand-green/25 bg-brand-paper p-5 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-2xl font-black text-brand-green-ink">आजको काम</h2>
-        <p className="text-sm font-bold text-gray-500">
+        <p className="text-sm font-bold text-brand-muted">
           आज बनेको: <span className="text-brand-green">{todayPairs} जोडी</span>
         </p>
       </div>

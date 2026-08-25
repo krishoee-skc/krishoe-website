@@ -93,7 +93,7 @@ export default function MonitoringDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-brand-muted">
         Loading monitoring data...
       </div>
     );
@@ -112,26 +112,26 @@ export default function MonitoringDashboard() {
     status === "up"
       ? "bg-green-100 text-green-700"
       : status === "off"
-        ? "bg-gray-100 text-gray-600"
+        ? "bg-brand-mist text-brand-muted"
         : "bg-red-100 text-red-700";
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-brand-green-ink mb-2">
               🔍 Production Monitoring
             </h1>
-            <p className="text-gray-600">
+            <p className="text-brand-muted">
               Real-time system health, performance, and error tracking
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={loadMonitoring}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-brand-green-ink text-sm font-medium"
             >
               🔄 Refresh Now
             </button>
@@ -140,7 +140,7 @@ export default function MonitoringDashboard() {
               className={`px-4 py-2 rounded-lg text-sm font-medium ${
                 autoRefresh
                   ? "bg-green-600 text-white"
-                  : "bg-gray-200 text-gray-900"
+                  : "bg-brand-green-line text-brand-green-ink"
               }`}
             >
               {autoRefresh ? "✓ Auto-Refresh" : "○ Manual"}
@@ -150,8 +150,8 @@ export default function MonitoringDashboard() {
       </div>
 
       {/* System Health */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+        <h2 className="text-lg font-semibold text-brand-green-ink">
           💚 System Health
         </h2>
         {/* Storage, Email and SMS are read off environment variables, which
@@ -166,7 +166,7 @@ export default function MonitoringDashboard() {
             पसलमा चालु हुन सक्छन्। पसलको साँचो हालत हेर्न live साइटबाट खोल्नुहोस्।
           </p>
         ) : (
-          <p className="mb-4 mt-1 text-sm leading-6 text-gray-600">
+          <p className="mb-4 mt-1 text-sm leading-6 text-brand-muted">
             live पसलको हालत
           </p>
         )}
@@ -207,17 +207,17 @@ export default function MonitoringDashboard() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
           {/* Nothing records uptime yet — the tables this would read were never
               created — so the figure is zero for want of measurement, not
               because the shop was down. It was being shown as 0.00% under a
               badge reading "Good", which is worse than showing nothing: the
               same screen would say "Good" on the day the shop really was down.
               Until there is something to count, it says so. */}
-          <div className="text-sm text-gray-600">Uptime (30 days)</div>
+          <div className="text-sm text-brand-muted">Uptime (30 days)</div>
           {monitoring.uptime > 0 ? (
             <>
-              <div className="text-3xl font-bold text-gray-900 mt-2">
+              <div className="text-3xl font-bold text-brand-green-ink mt-2">
                 {monitoring.uptime.toFixed(2)}%
               </div>
               <div
@@ -232,20 +232,20 @@ export default function MonitoringDashboard() {
             </>
           ) : (
             <>
-              <div className="mt-2 text-3xl font-bold text-gray-400">—</div>
-              <div className="mt-2 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+              <div className="mt-2 text-3xl font-bold text-brand-muted-soft">—</div>
+              <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
                 अझै नापिएको छैन
               </div>
             </>
           )}
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
           {/* Largest Contentful Paint, taken on the shopper's own phone —
               how long until the main thing is on screen. A server timing would
               read a few milliseconds for a prerendered page while the shopper
               on a Nepali mobile connection waited seconds for it. */}
-          <div className="text-sm text-gray-600">पाना देखिन लाग्ने समय</div>
+          <div className="text-sm text-brand-muted">पाना देखिन लाग्ने समय</div>
           {monitoring.performance.avgResponseTime > 0 ? (
             <>
               <div
@@ -259,7 +259,7 @@ export default function MonitoringDashboard() {
               >
                 {(monitoring.performance.avgResponseTime / 1000).toFixed(1)}s
               </div>
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-brand-muted">
                 {/* The slowest quarter is what people leave over, so the
                     average alone is not the whole answer. */}
                 सुस्त ५%: {(monitoring.performance.p95ResponseTime / 1000).toFixed(1)}s
@@ -268,16 +268,16 @@ export default function MonitoringDashboard() {
             </>
           ) : (
             <>
-              <div className="mt-2 text-3xl font-bold text-gray-400">—</div>
-              <div className="mt-2 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+              <div className="mt-2 text-3xl font-bold text-brand-muted-soft">—</div>
+              <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
                 अझै कुनै ग्राहक आएका छैनन्
               </div>
             </>
           )}
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Error Rate</div>
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
+          <div className="text-sm text-brand-muted">Error Rate</div>
           <div
             className={`text-3xl font-bold mt-2 ${
               monitoring.performance.errorRate > 1
@@ -289,24 +289,24 @@ export default function MonitoringDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">Total Errors</div>
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
+          <div className="text-sm text-brand-muted">Total Errors</div>
           <div
             className={`text-3xl font-bold mt-2 ${
-              monitoring.errors.totalErrors > 10 ? "text-red-600" : "text-blue-600"
+              monitoring.errors.totalErrors > 10 ? "text-red-600" : "text-brand-green"
             }`}
           >
             {monitoring.errors.totalErrors}
           </div>
-          <div className="text-xs text-gray-500 mt-2">
+          <div className="text-xs text-brand-muted mt-2">
             Last 24 hours
           </div>
         </div>
       </div>
 
       {/* Top Errors */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+        <h2 className="text-lg font-semibold text-brand-green-ink mb-4">
           🚨 Top Errors
         </h2>
         {monitoring.errors.topErrors.length === 0 ? (
@@ -321,7 +321,7 @@ export default function MonitoringDashboard() {
                 className="flex justify-between items-center p-3 bg-red-50 border border-red-200 rounded-lg"
               >
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-sm">
+                  <p className="font-medium text-brand-green-ink text-sm">
                     {error.message}
                   </p>
                 </div>
@@ -340,19 +340,19 @@ export default function MonitoringDashboard() {
           them. Top Errors above answers "what keeps breaking"; only this
           answers "what broke just now, and during what" — which is the one a
           shop needs at four in the afternoon with an order half-placed. */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+        <h2 className="text-lg font-semibold text-brand-green-ink mb-4">
           🕐 Recent Errors
         </h2>
         {monitoring.errors.recentErrors.length === 0 ? (
           <div className="py-8 text-center">
             <p className="text-green-600">✨ केही बिग्रेको छैन।</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-brand-muted">
               पछिल्लो २४ घण्टामा एउटै गल्ती रेकर्ड भएको छैन।
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-brand-green-line">
             {monitoring.errors.recentErrors.map((entry) => (
               <li key={entry.id} className="py-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -362,21 +362,21 @@ export default function MonitoringDashboard() {
                         ? "bg-red-100 text-red-700"
                         : entry.level === "warning"
                           ? "bg-amber-100 text-amber-700"
-                          : "bg-gray-100 text-gray-600"
+                          : "bg-brand-mist text-brand-muted"
                     }`}
                   >
                     {entry.level}
                   </span>
-                  <span className="text-xs tabular-nums text-gray-500">
+                  <span className="text-xs tabular-nums text-brand-muted">
                     {formatWhen(entry.created_at ?? entry.timestamp)}
                   </span>
                   {entry.context ? (
-                    <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-600">
+                    <span className="rounded bg-brand-mist px-2 py-0.5 font-mono text-xs text-brand-muted">
                       {entry.context}
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 break-words text-sm text-gray-900">
+                <p className="mt-1 break-words text-sm text-brand-green-ink">
                   {entry.message}
                 </p>
               </li>
@@ -386,8 +386,8 @@ export default function MonitoringDashboard() {
       </div>
 
       {/* How fast the shop felt, ordered slowest first. */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+        <h2 className="text-lg font-semibold text-brand-green-ink">
           ⚡ पाना कति छिटो खुल्छ
         </h2>
         {/* Two readings of one page were being ranked as "the slowest page",
@@ -399,7 +399,7 @@ export default function MonitoringDashboard() {
             The thresholds are Google's own for Largest Contentful Paint — 2.5s
             good, 4s needs work — because that is the bar the shop is judged
             against by the search that sends it customers. */}
-        <p className="mt-1 text-sm leading-6 text-gray-600">
+        <p className="mt-1 text-sm leading-6 text-brand-muted">
           ग्राहकको फोनमा नापिएको — पछिल्लो २४ घण्टा
           {monitoring.performance.samples > 0
             ? ` · जम्मा ${monitoring.performance.samples} नाप`
@@ -413,14 +413,14 @@ export default function MonitoringDashboard() {
             answered in 1.1s. They are set aside now — and the screen says so,
             because a number quietly removed is its own kind of dishonesty. */}
         {monitoring.performance.setAside > 0 ? (
-          <p className="mt-1 text-xs leading-5 text-gray-500">
+          <p className="mt-1 text-xs leading-5 text-brand-muted">
             ℹ️ {monitoring.performance.setAside} नाप परीक्षणका (आफ्नै कम्प्युटर वा
             preview) — माथिको हिसाबमा गनिएको छैन।
           </p>
         ) : null}
 
         {monitoring.performance.slowestEndpoints.length === 0 ? (
-          <p className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <p className="mt-4 rounded-lg bg-brand-paper-deep px-4 py-3 text-sm text-brand-muted">
             अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि यहीँ देखिन्छ।
           </p>
         ) : (
@@ -428,7 +428,7 @@ export default function MonitoringDashboard() {
             {/* A ranking has to say how much of one it is. Under ten readings
                 the order is chance, and the first row looks like a finding. */}
             {monitoring.performance.samples < 10 ? (
-              <p className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">
+              <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-semibold leading-6 text-brand-green">
                 🔵 अझै थोरै नाप — भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ। तल क्रम
                 होइन, भएको जति देखाइएको हो।
               </p>
@@ -436,15 +436,15 @@ export default function MonitoringDashboard() {
 
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-200">
+                <thead className="border-b border-brand-green-line">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-900">पाना</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-900">समय</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-900">कस्तो</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-900">नाप</th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">पाना</th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">समय</th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">कस्तो</th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">नाप</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-brand-green-line">
                   {monitoring.performance.slowestEndpoints.map((endpoint) => {
                     const verdict =
                       endpoint.avgTime <= 2500
@@ -453,12 +453,12 @@ export default function MonitoringDashboard() {
                           ? { label: "🟡 सुधार चाहिन्छ", tone: "text-yellow-700" }
                           : { label: "🔴 सुस्त", tone: "text-red-700" };
                     return (
-                      <tr key={`${endpoint.path}-${endpoint.rating}`} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-900">
+                      <tr key={`${endpoint.path}-${endpoint.rating}`} className="hover:bg-brand-paper-deep">
+                        <td className="px-4 py-2 text-brand-green-ink">
                           {/* The rating used to be printed against the path —
                               "good /account/reset-password" — where it read as
                               part of the address. */}
-                          <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs">
+                          <span className="rounded bg-brand-mist px-2 py-1 font-mono text-xs">
                             {endpoint.path}
                           </span>
                         </td>
@@ -468,7 +468,7 @@ export default function MonitoringDashboard() {
                         <td className={`px-4 py-2 text-xs font-bold ${verdict.tone}`}>
                           {verdict.label}
                         </td>
-                        <td className="px-4 py-2 tabular-nums text-gray-600">{endpoint.count}</td>
+                        <td className="px-4 py-2 tabular-nums text-brand-muted">{endpoint.count}</td>
                       </tr>
                     );
                   })}
@@ -480,9 +480,9 @@ export default function MonitoringDashboard() {
       </div>
 
       {/* Recommendations */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">💡 Recommendations</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
+        <h3 className="font-semibold text-brand-green mb-2">💡 Recommendations</h3>
+        <ul className="text-sm text-brand-green space-y-1">
           {monitoring.performance.errorRate > 1 && (
             <li>✓ Error rate is high - check recent deployments</li>
           )}

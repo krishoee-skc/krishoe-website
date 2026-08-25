@@ -48,7 +48,7 @@ export default async function AdminOrdersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">Orders</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Manage customer order requests, POS conversion, payment, and stock readiness.
           </p>
         </div>

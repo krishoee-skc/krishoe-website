@@ -32,8 +32,8 @@ export const metadata: Metadata = { title: "Production Accounts | KRISHOE Admin"
 export const dynamic = "force-dynamic";
 
 const input =
-  "min-h-12 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-brand-green-ink outline-none focus:border-brand-green";
-const card = "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5";
+  "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm text-brand-green-ink outline-none focus:border-brand-green";
+const card = "rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5";
 const button =
   "min-h-12 rounded-xl bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink";
 
@@ -77,7 +77,7 @@ export default async function ProductionAccountsPage({
         <div>
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory accounts</p>
         <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Production, wages & kharcha</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
           Owner-approved work, item/stage wage, midweek advance and Saturday kharcha—without mixing work earned with cash paid.
         </p>
         </div>
@@ -95,7 +95,7 @@ export default async function ProductionAccountsPage({
               href={`/api/admin/operations/production-export?type=${type}`}
               className={index === 0
                 ? "min-h-10 rounded-full bg-brand-green px-4 text-xs font-black text-white"
-                : "min-h-10 rounded-full border border-gray-200 bg-white px-4 text-xs font-black text-brand-green-ink"}
+                : "min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink"}
             >
               {label} CSV
             </ExportButton>
@@ -103,9 +103,9 @@ export default async function ProductionAccountsPage({
         </div>
       </header>
 
-      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-        <p className="font-black text-blue-950">Friday statement workflow</p>
-        <p className="mt-1 text-sm leading-6 text-blue-800">
+      <div className="rounded-2xl border border-brand-green-line bg-brand-green-wash p-4">
+        <p className="font-black text-brand-green">Friday statement workflow</p>
+        <p className="mt-1 text-sm leading-6 text-brand-green">
           Download <strong>Work & wage</strong> and <strong>Kharcha</strong>. Filter dates from Saturday to Friday,
           then compare earned wage, cash paid and remaining worker balance before Saturday payment.
         </p>
@@ -119,9 +119,9 @@ export default async function ProductionAccountsPage({
           ["Worker balance due", money(control.workerBalanceDue), `${money(control.todayEarnedWage)} earned today`],
         ].map(([label, value, detail]) => (
           <div key={label} className={card}>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">{label}</p>
             <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
-            <p className="mt-2 text-xs font-bold text-gray-500">{detail}</p>
+            <p className="mt-2 text-xs font-bold text-brand-muted">{detail}</p>
           </div>
         ))}
       </div>
@@ -152,7 +152,7 @@ export default async function ProductionAccountsPage({
             <h2 className="mt-1 text-lg font-black text-brand-green-ink">
               {acceptance.integrityIssues === 0 ? "Core data integrity passed" : `${acceptance.integrityIssues} integrity issue(s)`}
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-brand-muted">
               Read-only check; it never creates, changes or deletes factory transactions.
             </p>
           </div>
@@ -170,16 +170,16 @@ export default async function ProductionAccountsPage({
             ["Active order links", acceptance.activeOrderItemMismatch],
             ["Duplicate submissions", acceptance.duplicateSubmissionKeys],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-xl bg-white p-3 text-sm">
-              <p className="text-xs font-bold text-gray-500">{label}</p>
+            <div key={label} className="rounded-xl bg-brand-paper p-3 text-sm">
+              <p className="text-xs font-bold text-brand-muted">{label}</p>
               <p className={`mt-1 text-xl font-black ${Number(value) === 0 ? "text-emerald-700" : "text-red-700"}`}>{value}</p>
             </div>
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
-          <span className="rounded-full bg-white px-3 py-1">Items needing 4 wage rates: {acceptance.itemsMissingRates}</span>
-          <span className="rounded-full bg-white px-3 py-1">Items needing BOM: {acceptance.itemsMissingBom}</span>
-          <span className="rounded-full bg-white px-3 py-1">Items needing stock link: {acceptance.itemsMissingCatalog}</span>
+          <span className="rounded-full bg-brand-paper px-3 py-1">Items needing 4 wage rates: {acceptance.itemsMissingRates}</span>
+          <span className="rounded-full bg-brand-paper px-3 py-1">Items needing BOM: {acceptance.itemsMissingBom}</span>
+          <span className="rounded-full bg-brand-paper px-3 py-1">Items needing stock link: {acceptance.itemsMissingCatalog}</span>
         </div>
       </div>
 
@@ -187,8 +187,8 @@ export default async function ProductionAccountsPage({
         <h2 className="text-lg font-black text-brand-green-ink">Stage-wise pending Work Orders</h2>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
-            <div key={stage} className="rounded-xl bg-gray-50 p-3">
-              <p className="text-xs font-bold text-gray-500">{stage}</p>
+            <div key={stage} className="rounded-xl bg-brand-paper-deep p-3">
+              <p className="text-xs font-bold text-brand-muted">{stage}</p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{control.stagePending[stage] ?? 0}</p>
             </div>
           ))}
@@ -198,7 +198,7 @@ export default async function ProductionAccountsPage({
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={createProductionItemAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">1. Production item</h2>
-          <p className="mt-1 text-sm text-gray-500">Create the factory item once; wages can then vary by stage.</p>
+          <p className="mt-1 text-sm text-brand-muted">Create the factory item once; wages can then vary by stage.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <input name="name" className={input} placeholder="Item name, e.g. Ladies Sandal" required />
             <input name="category" className={input} placeholder="Category, e.g. Sandal" />
@@ -222,7 +222,7 @@ export default async function ProductionAccountsPage({
 
         <form action={saveStageRateAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">2. Item-stage wage</h2>
-          <p className="mt-1 text-sm text-gray-500">Old entries keep their saved rate even after a future rate change.</p>
+          <p className="mt-1 text-sm text-brand-muted">Old entries keep their saved rate even after a future rate change.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select item</option>
@@ -240,7 +240,7 @@ export default async function ProductionAccountsPage({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Special worker wage override</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Use only when one worker has a different item-stage rate. Otherwise the normal rate above applies.
             </p>
           </div>
@@ -274,9 +274,9 @@ export default async function ProductionAccountsPage({
               return (
                 <div key={rate.id} className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-sm">
                   <p className="font-black text-brand-green-ink">{rate.employeeName} · {item?.name ?? "Item"}</p>
-                  <p className="mt-1 text-gray-600">{rate.stage} · from {rate.effectiveFrom}</p>
+                  <p className="mt-1 text-brand-muted">{rate.stage} · from {rate.effectiveFrom}</p>
                   <p className="mt-1 font-black text-amber-800">{money(rate.ratePerPair)}/pair</p>
-                  {rate.note ? <p className="mt-1 text-xs text-gray-500">{rate.note}</p> : null}
+                  {rate.note ? <p className="mt-1 text-xs text-brand-muted">{rate.note}</p> : null}
                 </div>
               );
             })}
@@ -286,7 +286,7 @@ export default async function ProductionAccountsPage({
 
       <form action={mapProductionItemAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">Stock catalog mapping</h2>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-brand-muted">
           Link a factory item to the exact shop/POS product. This prepares safe QC-approved stock posting; it does not change stock yet.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
@@ -323,7 +323,7 @@ export default async function ProductionAccountsPage({
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Final gate</p>
             <h2 className="mt-1 text-lg font-black text-brand-green-ink">Packing/QC → Finished stock</h2>
-            <p className="mt-1 max-w-3xl text-sm text-gray-500">
+            <p className="mt-1 max-w-3xl text-sm text-brand-muted">
               Only good packed pairs are posted. Saving creates one Production In movement and updates the linked shop/POS stock.
             </p>
           </div>
@@ -371,7 +371,7 @@ export default async function ProductionAccountsPage({
                   <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
                   <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
                   {posting.workOrderId ? <p className="mt-1 text-xs font-bold text-emerald-800">Work Order linked</p> : null}
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-brand-muted">
                     Packing/QC: {posting.packingEmployeeName || "Owner verified"} · Approved by {posting.approvedBy}
                   </p>
                 </div>
@@ -383,7 +383,7 @@ export default async function ProductionAccountsPage({
             </article>
           ))}
           {data.qcPostings.length === 0 ? (
-            <p className="text-sm text-gray-500">No Packing/QC stock posting yet.</p>
+            <p className="text-sm text-brand-muted">No Packing/QC stock posting yet.</p>
           ) : null}
         </div>
       </div>
@@ -391,7 +391,7 @@ export default async function ProductionAccountsPage({
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={saveItemMaterialAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">3. Material recipe per pair</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Quantity uses the material&apos;s purchase unit. Example: Rexine 0.40 meter or Buckle 2 pieces per pair.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -418,7 +418,7 @@ export default async function ProductionAccountsPage({
 
         <form action={approveCostCardAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">4. Owner-approved price card</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Material cost + four stage wages + direct cost. Rent, electricity and salary are excluded.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -442,30 +442,30 @@ export default async function ProductionAccountsPage({
         <h2 className="text-lg font-black text-brand-green-ink">Current product cost sheets</h2>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {data.costCards.map((cost) => (
-            <article key={cost.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <article key={cost.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-black text-brand-green-ink">{cost.itemName}</p>
-                  <p className="mt-1 text-xs text-gray-500">Effective {cost.effectiveFrom} · Owner {cost.approvedBy}</p>
+                  <p className="mt-1 text-xs text-brand-muted">Effective {cost.effectiveFrom} · Owner {cost.approvedBy}</p>
                 </div>
                 <p className="text-lg font-black text-brand-green">{money(cost.makingCostPerPair)}</p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <div><span className="text-gray-500">Material</span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
-                <div><span className="text-gray-500">Wages</span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
-                <div><span className="text-gray-500">Wholesale</span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
-                <div><span className="text-gray-500">Retail</span><p className="font-black">{money(cost.retailPrice)}</p></div>
+                <div><span className="text-brand-muted">Material</span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
+                <div><span className="text-brand-muted">Wages</span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
+                <div><span className="text-brand-muted">Wholesale</span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
+                <div><span className="text-brand-muted">Retail</span><p className="font-black">{money(cost.retailPrice)}</p></div>
               </div>
             </article>
           ))}
-          {data.costCards.length === 0 ? <p className="text-sm text-gray-500">No approved product cost sheet yet.</p> : null}
+          {data.costCards.length === 0 ? <p className="text-sm text-brand-muted">No approved product cost sheet yet.</p> : null}
         </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={createWorkOrderAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">5. New Work Order / Lot</h2>
-          <p className="mt-1 text-sm text-gray-500">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
+          <p className="mt-1 text-sm text-brand-muted">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
@@ -492,26 +492,26 @@ export default async function ProductionAccountsPage({
               <Link
                 key={order.id}
                 href={`/admin/operations/production-accounts/work-order/${encodeURIComponent(order.id)}`}
-                className="block rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm transition hover:border-brand-green"
+                className="block rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm transition hover:border-brand-green"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-black text-brand-green-ink">{order.workOrderNumber} · {order.itemName}</p>
-                    <p className="mt-1 text-gray-500">{order.colour} · {order.plannedPairs} pairs · due {order.dueDate || "not set"}</p>
+                    <p className="mt-1 text-brand-muted">{order.colour} · {order.plannedPairs} pairs · due {order.dueDate || "not set"}</p>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
                     order.priority === "Urgent" ? "bg-red-50 text-red-800" :
-                    order.priority === "High" ? "bg-amber-50 text-amber-800" : "bg-white text-gray-700"
+                    order.priority === "High" ? "bg-amber-50 text-amber-800" : "bg-brand-paper text-brand-muted-deep"
                   }`}>{order.priority}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <p className="font-bold text-brand-green">Current: {order.currentStage}</p>
-                  <p className="text-xs font-bold text-gray-500">{order.status}</p>
+                  <p className="text-xs font-bold text-brand-muted">{order.status}</p>
                 </div>
                 <p className="mt-3 text-xs font-black text-brand-green">Open lot history & QR →</p>
               </Link>
             ))}
-            {data.workOrders.length === 0 ? <p className="text-sm text-gray-500">No Work Order yet.</p> : null}
+            {data.workOrders.length === 0 ? <p className="text-sm text-brand-muted">No Work Order yet.</p> : null}
           </div>
         </div>
       </div>
@@ -519,7 +519,7 @@ export default async function ProductionAccountsPage({
       <div className="grid gap-5 xl:grid-cols-2">
         <form action={createHandoverAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
-          <p className="mt-1 text-sm text-gray-500">Record who sent, who received and any quantity difference.</p>
+          <p className="mt-1 text-sm text-brand-muted">Record who sent, who received and any quantity difference.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
               <option value="" disabled>Select active Work Order</option>
@@ -555,16 +555,16 @@ export default async function ProductionAccountsPage({
           <h2 className="text-lg font-black text-brand-green-ink">Recent handovers</h2>
           <div className="mt-4 space-y-3">
             {data.handovers.map((handover) => (
-              <article key={handover.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+              <article key={handover.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-black text-brand-green-ink">{handover.workOrderNumber}</p>
-                    <p className="mt-1 text-gray-500">{handover.fromStage} → {handover.toStage}</p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-brand-muted">{handover.fromStage} → {handover.toStage}</p>
+                    <p className="mt-1 text-xs text-brand-muted">
                       {handover.fromEmployeeName || "Sender"} → {handover.toEmployeeName || "Receiver"} · {handover.handoverDate}
                     </p>
                     {Object.keys(handover.receivedSizeBreakdown).length ? (
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-brand-muted">
                         Sizes: {Object.entries(handover.receivedSizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
                       </p>
                     ) : null}
@@ -578,7 +578,7 @@ export default async function ProductionAccountsPage({
                 </div>
               </article>
             ))}
-            {data.handovers.length === 0 ? <p className="text-sm text-gray-500">No stage handover yet.</p> : null}
+            {data.handovers.length === 0 ? <p className="text-sm text-brand-muted">No stage handover yet.</p> : null}
           </div>
         </div>
       </div>
@@ -606,7 +606,7 @@ export default async function ProductionAccountsPage({
 
         <form action={createWorkerPaymentAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>
-          <p className="mt-1 text-sm text-gray-500">Cash paid is separate from work earned and automatically reduces the balance.</p>
+          <p className="mt-1 text-sm text-brand-muted">Cash paid is separate from work earned and automatically reduces the balance.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <select name="employeeId" className={input} required defaultValue="">
               <option value="" disabled>Select worker/staff</option>
@@ -630,7 +630,7 @@ export default async function ProductionAccountsPage({
             <h2 className="mt-1 text-lg font-black text-brand-green-ink">
               {weeklyPeriod.start} to {weeklyPeriod.end}
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Total suggested payable: <strong className="text-brand-green-ink">{money(weeklyPayable)}</strong>
             </p>
           </div>
@@ -640,7 +640,7 @@ export default async function ProductionAccountsPage({
                 name="settlementDate"
                 type="date"
                 defaultValue={reportDate}
-                className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold"
+                className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-xs font-bold"
               />
               <button className="min-h-11 rounded-xl border border-brand-green px-3 text-xs font-black text-brand-green">
                 View week
@@ -657,21 +657,21 @@ export default async function ProductionAccountsPage({
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={`?settlementDate=${shiftDate(reportDate, -7)}`}
-            className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-2 text-xs font-black text-brand-green-ink"
           >
             ← Previous week
           </Link>
           {reportDate !== date ? (
             <Link
               href={`?settlementDate=${date}`}
-              className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
+              className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-2 text-xs font-black text-brand-green-ink"
             >
               Current week
             </Link>
           ) : null}
           <Link
             href={`?settlementDate=${shiftDate(reportDate, 7)}`}
-            className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-black text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-2 text-xs font-black text-brand-green-ink"
           >
             Next week →
           </Link>
@@ -681,7 +681,7 @@ export default async function ProductionAccountsPage({
             <Link
               key={row.employeeId}
               href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}?date=${reportDate}`}
-              className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-brand-green"
+              className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="font-black text-brand-green-ink">{row.employeeName}</p>
@@ -690,17 +690,17 @@ export default async function ProductionAccountsPage({
                 </p>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                <div><span className="text-gray-500">Opening</span><p className="mt-1 font-black">{money(row.openingBalance)}</p></div>
-                <div><span className="text-gray-500">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
-                <div><span className="text-gray-500">Cash</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
+                <div><span className="text-brand-muted">Opening</span><p className="mt-1 font-black">{money(row.openingBalance)}</p></div>
+                <div><span className="text-brand-muted">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
+                <div><span className="text-brand-muted">Cash</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
               </div>
-              <p className="mt-3 text-xs font-bold text-gray-500">
+              <p className="mt-3 text-xs font-bold text-brand-muted">
                 {row.completedPairs} pairs · {row.rejectedPairs} rejected
               </p>
             </Link>
           ))}
           {weeklySettlements.length === 0 ? (
-            <p className="text-sm text-gray-500">No piece worker or production ledger yet.</p>
+            <p className="text-sm text-brand-muted">No piece worker or production ledger yet.</p>
           ) : null}
         </div>
       </div>
@@ -712,18 +712,18 @@ export default async function ProductionAccountsPage({
             <Link
               key={row.employeeId}
               href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}`}
-              className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-brand-green"
+              className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
             >
               <p className="font-black text-brand-green-ink">{row.employeeName}</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                <div><span className="text-gray-500">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
-                <div><span className="text-gray-500">Cash/adjustment</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
-                <div><span className="text-gray-500">Balance</span><p className={`mt-1 font-black ${row.balance < 0 ? "text-brand-clay" : "text-brand-green"}`}>{money(row.balance)}</p></div>
+                <div><span className="text-brand-muted">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
+                <div><span className="text-brand-muted">Cash/adjustment</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
+                <div><span className="text-brand-muted">Balance</span><p className={`mt-1 font-black ${row.balance < 0 ? "text-brand-clay" : "text-brand-green"}`}>{money(row.balance)}</p></div>
               </div>
               <p className="mt-3 text-xs font-black text-brand-green">Open full ledger →</p>
             </Link>
           ))}
-          {data.balances.length === 0 ? <p className="text-sm text-gray-500">No worker ledger yet. The clean start begins at zero.</p> : null}
+          {data.balances.length === 0 ? <p className="text-sm text-brand-muted">No worker ledger yet. The clean start begins at zero.</p> : null}
         </div>
       </div>
 
@@ -734,16 +734,16 @@ export default async function ProductionAccountsPage({
             {data.rates.map((rate) => {
               const item = data.items.find((row) => row.id === rate.itemId);
               return (
-                <div key={rate.id} className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm">
+                <div key={rate.id} className="flex items-center justify-between gap-3 rounded-xl bg-brand-paper-deep p-3 text-sm">
                   <div>
                     <p className="font-black text-brand-green-ink">{item?.name ?? "Unknown item"}</p>
-                    <p className="text-gray-500">{rate.stage} · from {rate.effectiveFrom}</p>
+                    <p className="text-brand-muted">{rate.stage} · from {rate.effectiveFrom}</p>
                   </div>
                   <p className="font-black text-brand-green">{money(rate.ratePerPair)}/pair</p>
                 </div>
               );
             })}
-            {data.rates.length === 0 ? <p className="text-sm text-gray-500">No stage wage rate yet.</p> : null}
+            {data.rates.length === 0 ? <p className="text-sm text-brand-muted">No stage wage rate yet.</p> : null}
           </div>
         </div>
 
@@ -754,18 +754,18 @@ export default async function ProductionAccountsPage({
               <Link
                 key={payment.id}
                 href={`/admin/operations/production-accounts/worker/${encodeURIComponent(payment.employeeId)}`}
-                className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm transition hover:bg-brand-green-wash"
+                className="flex items-center justify-between gap-3 rounded-xl bg-brand-paper-deep p-3 text-sm transition hover:bg-brand-green-wash"
               >
                 <div>
                   <p className="font-black text-brand-green-ink">{payment.employeeName} · {payment.paymentType}</p>
-                  <p className="text-gray-500">{payment.paymentDate} · {payment.receiptNumber}</p>
+                  <p className="text-brand-muted">{payment.paymentDate} · {payment.receiptNumber}</p>
                 </div>
                 <p className={payment.direction === "Added" ? "font-black text-brand-green" : "font-black text-brand-clay"}>
                   {payment.direction === "Added" ? "+" : "−"}{money(payment.amount)}
                 </p>
               </Link>
             ))}
-            {data.payments.length === 0 ? <p className="text-sm text-gray-500">No cash entry yet.</p> : null}
+            {data.payments.length === 0 ? <p className="text-sm text-brand-muted">No cash entry yet.</p> : null}
           </div>
         </div>
       </div>
@@ -774,15 +774,15 @@ export default async function ProductionAccountsPage({
         <h2 className="text-lg font-black text-brand-green-ink">Recent approved work</h2>
         <div className="mt-4 space-y-3">
           {data.workEntries.map((row) => (
-            <article key={row.id} className="grid gap-2 rounded-xl border border-gray-100 p-3 text-sm sm:grid-cols-[1fr_auto]">
+            <article key={row.id} className="grid gap-2 rounded-xl border border-brand-green-line p-3 text-sm sm:grid-cols-[1fr_auto]">
               <div>
                 <p className="font-black text-brand-green-ink">{row.employeeName} · {row.itemName}</p>
-                <p className="mt-1 text-gray-500">{row.workDate} · {row.stage} · {row.totalPairs} pairs · Reject {row.rejectedPairs}</p>
+                <p className="mt-1 text-brand-muted">{row.workDate} · {row.stage} · {row.totalPairs} pairs · Reject {row.rejectedPairs}</p>
               </div>
               <p className="font-black text-brand-green">{money(row.earnedWage)}</p>
             </article>
           ))}
-          {data.workEntries.length === 0 ? <p className="text-sm text-gray-500">No completed work entered yet.</p> : null}
+          {data.workEntries.length === 0 ? <p className="text-sm text-brand-muted">No completed work entered yet.</p> : null}
         </div>
       </div>
     </section>

@@ -16,7 +16,7 @@ function StatusBadge({ status }: { status: string }) {
     case "active":
       return <span className={`${baseClasses} bg-green-100 text-green-800`}>Active</span>;
     case "draft":
-      return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Draft</span>;
+      return <span className={`${baseClasses} bg-brand-mist text-brand-green-ink`}>Draft</span>;
     default:
       return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>{status}</span>;
   }
@@ -54,9 +54,9 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
 
   if (products.length === 0) {
     return (
-      <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
+      <div className="mt-6 rounded-lg border border-dashed border-brand-green-line bg-brand-paper p-8 text-center">
         <h2 className="text-lg font-black text-brand-green-ink">No products yet</h2>
-        <p className="mt-2 text-sm text-gray-500">Create your first product from the form above.</p>
+        <p className="mt-2 text-sm text-brand-muted">Create your first product from the form above.</p>
       </div>
     );
   }
@@ -91,31 +91,31 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
           </ul>
         </div>
       ) : null}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
+      <table className="min-w-full divide-y divide-brand-green-line text-sm">
+        <thead className="bg-brand-paper-deep">
           <tr>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900"></th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Product</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">SKU</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Price</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Stock</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-900">Status</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink"></th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Product</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">SKU</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Price</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Stock</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Status</th>
             <th className="px-4 py-3">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-brand-green-line">
           {products.map((product) => (
             <tr key={product.id} className={editingId === product.id ? "bg-brand-mist" : undefined}>
               <td className="whitespace-nowrap px-4 py-3">
-                <div className="relative h-12 w-12 overflow-hidden rounded-md bg-gray-100">
+                <div className="relative h-12 w-12 overflow-hidden rounded-md bg-brand-mist">
                   <SafeImage src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
                 </div>
               </td>
-              <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+              <td className="whitespace-nowrap px-4 py-3 font-medium text-brand-green-ink">
                 {product.name}
                 {/* Stock repeated here, under the name, so it is in view on a
                     phone without scrolling the wide table sideways to the Stock
@@ -142,8 +142,8 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                   </span>
                 ) : null}
               </td>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-gray-700">{product.sku}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-gray-700">{product.price}</td>
+              <td className="whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{product.sku}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{product.price}</td>
               <td className="whitespace-nowrap px-4 py-3">
                 <span
                   className={`inline-flex min-w-9 justify-center rounded-full px-2.5 py-1 text-xs font-black ${

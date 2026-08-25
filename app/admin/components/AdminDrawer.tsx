@@ -45,7 +45,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                 height={80}
                 className="h-10 w-10 shrink-0"
               />
-              <span className="text-xl font-black tracking-wide text-gray-900 dark:text-white">KRISHOE</span>
+              <span className="text-xl font-black tracking-wide text-brand-green-ink dark:text-white">KRISHOE</span>
             </Link>
             <button
               onClick={onClose}
@@ -61,7 +61,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
             <div className="mt-4 grid items-start gap-4 font-medium">
               {groups.map((group) => (
                 <div key={group.id} className="grid gap-1">
-                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
                     {group.title}
                   </p>
                   {group.links.map(({ href, label, nepali, icon: Icon }) => {
@@ -74,13 +74,13 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                         className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                           isActive
                             ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-admin-hover dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-admin-hover-dark"
+                            : "text-brand-muted hover:text-brand-green-ink hover:bg-admin-hover dark:text-white/60 dark:hover:text-white dark:hover:bg-admin-hover-dark"
                         }`}
                       >
                         <Icon className="h-5 w-5 shrink-0" />
                         <span className="grid leading-tight">
                           <span className="text-sm">{label}</span>
-                          <span className="text-[11px] text-gray-400 dark:text-gray-500">{nepali}</span>
+                          <span className="text-[11px] text-brand-muted-soft dark:text-white/60">{nepali}</span>
                         </span>
                       </Link>
                     );

@@ -18,9 +18,9 @@ type SupplierLedgerPageProps = {
 };
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -51,7 +51,7 @@ function agingTone(risk: SupplierAgingRisk) {
   if (risk === "High") return "border-orange-200 bg-orange-50 text-orange-800";
   if (risk === "Watch") return "border-amber-200 bg-amber-50 text-amber-800";
   if (risk === "Current") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function paymentPriorityTone(priority: string) {
@@ -59,13 +59,13 @@ function paymentPriorityTone(priority: string) {
   if (priority === "High") return "border-orange-200 bg-orange-50 text-orange-800";
   if (priority === "Scheduled") return "border-amber-200 bg-amber-50 text-amber-800";
   if (priority === "Normal") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
 function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -85,14 +85,14 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 function StatementRow({ row }: { row: SupplierLedgerStatementRow }) {
   return (
     <tr>
-      <td className="reflow-primary py-3 pr-3 text-xs text-gray-500"><DateDisplayAdmin date={row.createdAt} time={true} /></td>
+      <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted"><DateDisplayAdmin date={row.createdAt} time={true} /></td>
       <td data-label="Type" className="py-3 pr-3">
         <Badge className={transactionTone(row.type)}>{row.type}</Badge>
       </td>
       <td data-label="Effect" className="py-3 pr-3">{row.effect}</td>
       <td data-label="Amount" className="py-3 pr-3 font-bold">{money(row.amount)}</td>
       <td data-label="Balance after" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceAfter)}</td>
-      <td data-label="Note" className="max-w-96 py-3 pr-3 text-gray-600">{row.note || "-"}</td>
+      <td data-label="Note" className="max-w-96 py-3 pr-3 text-brand-muted">{row.note || "-"}</td>
     </tr>
   );
 }
@@ -124,21 +124,21 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/purchasing"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to purchasing
         </Link>
         <PrintSupplierLedgerButton />
       </div>
 
-      <div className="receipt-print rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="receipt-print rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-green-line pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Supplier ledger statement
             </p>
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.supplierName}</h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-brand-muted">
               {ledger.phone || "No phone"} - {ledger.materialFocus || "General supply"} - Last transaction {ledger.lastTransaction}
             </p>
           </div>
@@ -159,8 +159,8 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <StatCard label="Return adjustment" value={money(summary.returnAdjustmentTotal)} detail="due reduced" />
           <StatCard label="Average bill" value={money(summary.averagePurchaseValue)} detail={`${summary.transactionCount} transactions`} />
           <StatCard label="Payment due" value={summary.paymentDueDate || "-"} detail={summary.paymentPriority} />
-          <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-gray-500">Aging risk</p>
+          <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <p className="text-sm font-medium text-brand-muted">Aging risk</p>
             <div className="mt-3">
               <Badge className={agingTone(aging?.risk ?? "Clear")}>{aging?.risk ?? "Clear"}</Badge>
             </div>
@@ -180,10 +180,10 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <p className="mt-2 text-sm font-semibold">{summary.nextPaymentAction}</p>
         </div>
 
-        <form action={createSupplierTransactionAction} className="mt-6 grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4 print:hidden">
+        <form action={createSupplierTransactionAction} className="mt-6 grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
           <div>
             <h2 className="font-black text-brand-green-ink">Record supplier payment / adjustment</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Payment decreases supplier due. Manual adjustment increases due.
             </p>
           </div>
@@ -209,7 +209,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Statement trail</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-brand-muted">
                 Purchase bill, supplier payment, return adjustment, and running due balance.
               </p>
             </div>
@@ -217,13 +217,13 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           </div>
 
           {statementRows.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+            <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
               No supplier transaction has been recorded yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="reflow-table min-w-full text-sm">
-                <thead className="border-b text-left text-gray-500">
+                <thead className="border-b text-left text-brand-muted">
                   <tr>
                     <th className="py-2 pr-3">Date</th>
                     <th className="py-2 pr-3">Type</th>
@@ -246,19 +246,19 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
         <div className="mt-8">
           <div className="mb-4">
             <h2 className="text-lg font-black text-brand-green-ink">Purchase invoices</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Raw material purchase bills linked to this supplier.
             </p>
           </div>
 
           {invoices.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+            <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
               No purchase invoice has been linked to this supplier yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="reflow-table min-w-full text-sm">
-                <thead className="border-b text-left text-gray-500">
+                <thead className="border-b text-left text-brand-muted">
                   <tr>
                     <th className="py-2 pr-3">Purchase</th>
                     <th className="py-2 pr-3">Material</th>
@@ -275,23 +275,23 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                     <tr key={invoice.id}>
                       <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
-                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
+                        <p className="mt-1 text-xs text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Material" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.materialName}</p>
-                        <p className="text-xs text-gray-500">{invoice.unit}</p>
+                        <p className="text-xs text-brand-muted">{invoice.unit}</p>
                       </td>
                       <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
                       <td data-label="Rate" className="py-3 pr-3">{money(invoice.rate)}</td>
                       <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
                       <td data-label="Paid / Due" className="py-3 pr-3">
                         <p>Paid {money(invoice.paidAmount)}</p>
-                        <p className="text-xs text-gray-500">Due {money(invoice.creditAmount)}</p>
+                        <p className="text-xs text-brand-muted">Due {money(invoice.creditAmount)}</p>
                       </td>
                       <td data-label="Status" className="py-3 pr-3">
                         <Badge className={invoiceTone(invoice)}>{invoice.status}</Badge>
                       </td>
-                      <td data-label="Reference" className="max-w-64 py-3 pr-3 text-gray-600">
+                      <td data-label="Reference" className="max-w-64 py-3 pr-3 text-brand-muted">
                         {invoice.paymentReference || invoice.note || "-"}
                       </td>
                     </tr>

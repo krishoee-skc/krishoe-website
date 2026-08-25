@@ -44,7 +44,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
       <div className="h-[calc(5.25rem+env(safe-area-inset-bottom))] lg:hidden print:hidden" aria-hidden />
       <nav
         aria-label="Admin quick actions"
-        className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-white/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl lg:hidden print:hidden"
+        className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-brand-paper/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl lg:hidden print:hidden"
       >
         <div
           className="mx-auto grid max-w-md gap-1"

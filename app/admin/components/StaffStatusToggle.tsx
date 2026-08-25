@@ -43,7 +43,7 @@ export default function StaffStatusToggle({
         className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors ${
           isActive
             ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
-            : "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+            : "bg-brand-mist text-brand-green-ink hover:bg-brand-green-line dark:bg-brand-muted-deep dark:text-white/60"
         }`}
       >
         {isActive ? "Active" : "Inactive"}
@@ -52,11 +52,11 @@ export default function StaffStatusToggle({
       {/* Confirmation Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          <div className="w-full max-w-sm rounded-lg bg-brand-paper p-6 shadow-lg dark:bg-brand-green-ink">
+            <h3 className="text-lg font-bold text-brand-green-ink dark:text-white">
               Change Staff Status
             </h3>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-brand-muted dark:text-white/60">
               Are you sure you want to mark <strong>{staffName}</strong> as{" "}
               <strong>{currentStatus === "active" ? "inactive" : "active"}</strong>?
             </p>
@@ -70,7 +70,7 @@ export default function StaffStatusToggle({
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex-1 rounded-lg border border-brand-green-line px-4 py-2 text-sm font-medium text-brand-muted-deep hover:bg-brand-paper-deep dark:border-white/10 dark:text-brand-muted-soft dark:hover:bg-brand-green-ink"
               >
                 Cancel
               </button>

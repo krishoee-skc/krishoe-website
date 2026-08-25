@@ -126,7 +126,7 @@ export default function PasskeyInvite() {
   if (stage === "hidden") return null;
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-white p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6">
+    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6">
       {stage === "done" ? (
         <div className="flex items-start gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">
@@ -183,13 +183,13 @@ export default function PasskeyInvite() {
                   remember();
                   setStage("hidden");
                 }}
-                className="min-h-11 rounded-xl border border-brand-green/30 bg-white px-3 text-sm font-black text-brand-green-ink"
+                className="min-h-11 rounded-xl border border-brand-green/30 bg-brand-paper px-3 text-sm font-black text-brand-green-ink"
               >
                 पछि
               </button>
             </div>
 
-            <p className="mt-2 text-xs leading-5 text-gray-500">
+            <p className="mt-2 text-xs leading-5 text-brand-muted">
               password पहिलेकै जस्तै चल्छ — यो थपिने सुविधा हो।
             </p>
           </div>

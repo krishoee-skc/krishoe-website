@@ -37,7 +37,7 @@ export default async function EmailSignInLinkPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-brand-green-ink px-5 py-16">
-      <section className="w-full max-w-md rounded-2xl border border-white/15 bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
+      <section className="w-full max-w-md rounded-2xl border border-white/15 bg-brand-paper p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           KRISHOE · Admin
         </p>

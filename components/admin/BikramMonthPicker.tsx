@@ -34,11 +34,11 @@ export default function BikramMonthPicker({
 
   return (
     <label className={`grid gap-1 ${className}`}>
-      <span className="text-sm font-medium text-slate-900">{label}</span>
+      <span className="text-sm font-medium text-brand-green-ink">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+        className="min-h-12 w-full rounded-lg border border-brand-green-line bg-brand-paper px-3 py-2 text-brand-green-ink"
       >
         {/* A month with no option would render blank and read as broken; this
             only happens if the conversion fails, which it does not in practice. */}

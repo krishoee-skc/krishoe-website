@@ -25,7 +25,7 @@ export default function PageSkeleton({ cards = 4, rows = 6 }: PageSkeletonProps)
       {cards > 0 ? (
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           {Array.from({ length: cards }).map((_, index) => (
-            <div key={index} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div key={index} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <div className={`h-4 w-24 ${bar}`} />
               <div className={`mt-2 h-7 w-28 ${bar}`} />
               <div className={`mt-2 h-3 w-20 ${pill}`} />
@@ -34,7 +34,7 @@ export default function PageSkeleton({ cards = 4, rows = 6 }: PageSkeletonProps)
         </div>
       ) : null}
 
-      <div className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className={`h-5 w-40 ${bar}`} />
         <div className={`mt-1 h-3 w-56 max-w-full ${pill}`} />
         <div className="mt-5 divide-y">

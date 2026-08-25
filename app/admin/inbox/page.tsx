@@ -55,7 +55,7 @@ function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-amber-500" aria-label={`${rating} तारा`}>
       {"★".repeat(rating)}
-      <span className="text-gray-300">{"★".repeat(5 - rating)}</span>
+      <span className="text-brand-muted-soft">{"★".repeat(5 - rating)}</span>
     </span>
   );
 }
@@ -87,7 +87,7 @@ function StatusBadge({ voice }: { voice: CustomerVoice }) {
     );
   }
   return (
-    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">
+    <span className="rounded-full bg-brand-mist px-2.5 py-1 text-xs font-bold text-brand-muted">
       सकियो
     </span>
   );
@@ -98,22 +98,22 @@ function Row({ voice }: { voice: CustomerVoice }) {
   const phone = dialable(voice.phone);
 
   return (
-    <article className="border-b border-gray-200 px-4 py-4 last:border-b-0 hover:bg-gray-50">
+    <article className="border-b border-brand-green-line px-4 py-4 last:border-b-0 hover:bg-brand-paper-deep">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="text-sm font-bold text-brand-green-ink">
           {kind.emoji} {kind.label}
         </span>
-        <span className="text-sm font-semibold text-gray-900">
+        <span className="text-sm font-semibold text-brand-green-ink">
           {voice.customerName || "नाम छैन"}
         </span>
-        {voice.phone ? <span className="text-xs text-gray-500">{voice.phone}</span> : null}
+        {voice.phone ? <span className="text-xs text-brand-muted">{voice.phone}</span> : null}
         <span className="ml-auto">
           <StatusBadge voice={voice} />
         </span>
       </div>
 
       {voice.productName ? (
-        <p className="mt-1 text-xs text-gray-600">
+        <p className="mt-1 text-xs text-brand-muted">
           {voice.productName} <Stars rating={voice.rating} />
         </p>
       ) : (
@@ -121,12 +121,12 @@ function Row({ voice }: { voice: CustomerVoice }) {
       )}
 
       {voice.message ? (
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-brand-green-ink">
           {voice.message}
         </p>
       ) : null}
 
-      <p className="mt-2 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-brand-muted">
         <DateDisplayAdmin date={voice.createdAt} />
         {voice.repliedAt ? (
           <>
@@ -141,7 +141,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
           <>
             <a
               href={`tel:${phone}`}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-800 hover:bg-white"
+              className="rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-green-ink hover:bg-brand-paper"
             >
               📞 फोन
             </a>
@@ -149,7 +149,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
               href={`https://wa.me/${whatsappNumber(phone)}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-800 hover:bg-white"
+              className="rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-green-ink hover:bg-brand-paper"
             >
               💬 WhatsApp
             </a>
@@ -168,7 +168,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
           <form action={setStatusAction}>
             <input type="hidden" name="id" value={voice.id} />
             <input type="hidden" name="status" value="closed" />
-            <button className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-white">
+            <button className="rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-muted-deep hover:bg-brand-paper">
               सकियो भन्ने
             </button>
           </form>
@@ -182,7 +182,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
               className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
                 voice.published
                   ? "bg-emerald-100 text-emerald-900"
-                  : "border border-gray-300 text-gray-700 hover:bg-white"
+                  : "border border-brand-green-line text-brand-muted-deep hover:bg-brand-paper"
               }`}
             >
               {voice.published ? "👁 पसलमा देखिँदैछ" : "पसलमा राख्ने"}
@@ -217,7 +217,7 @@ export default async function InboxPage({
       className={`rounded-full px-3.5 py-1.5 text-sm font-bold ${
         active
           ? "bg-brand-green-ink text-white"
-          : "border border-gray-300 text-gray-700 hover:bg-white"
+          : "border border-brand-green-line text-brand-muted-deep hover:bg-brand-paper"
       }`}
     >
       {label}
@@ -228,7 +228,7 @@ export default async function InboxPage({
     <section className="p-6 pb-24">
       <div>
         <h1 className="text-2xl font-black text-brand-green-ink">📬 ग्राहकको आवाज</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           राय, सोधपुछ र गुनासो — ग्राहकले भनेको सबै कुरा एउटै ठाउँमा।
           {counts.waiting > 0 ? (
             <strong className="text-brand-clay"> {counts.waiting} वटा जवाफ बाँकी छ।</strong>
@@ -248,9 +248,9 @@ export default async function InboxPage({
         )}
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="mt-5 overflow-hidden rounded-lg border border-brand-green-line bg-brand-paper">
         {voices.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-gray-500">
+          <p className="px-4 py-10 text-center text-sm text-brand-muted">
             {counts.total === 0
               ? "अझै कुनै ग्राहकले केही भनेका छैनन् — आएपछि यहीँ देखिन्छ।"
               : "यो छनोटमा केही छैन।"}

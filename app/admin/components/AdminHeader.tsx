@@ -27,7 +27,7 @@ export default function AdminHeader({
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-admin-border bg-white shadow-xs dark:border-admin-border-dark dark:bg-admin-sidebar-dark">
+    <header className="sticky top-0 z-40 border-b border-admin-border bg-brand-paper shadow-xs dark:border-admin-border-dark dark:bg-admin-sidebar-dark">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left: Breadcrumb & Search */}
         <div className="flex flex-1 items-center gap-4">
@@ -37,14 +37,14 @@ export default function AdminHeader({
           >
             <MenuIcon className="h-5 w-5" />
           </button>
-          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="hidden sm:flex items-center gap-2 text-sm text-brand-muted dark:text-white/60">
             <Link href="/admin" className="hover:text-admin-primary dark:hover:text-admin-primary-light">
               Admin
             </Link>
             {breadcrumbs.map((crumb) => (
               <div key={crumb} className="flex items-center gap-2">
                 <span>/</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">{crumb}</span>
+                <span className="font-medium text-brand-green-ink dark:text-white/85">{crumb}</span>
               </div>
             ))}
           </div>
@@ -54,7 +54,7 @@ export default function AdminHeader({
         <div className="flex items-center gap-4">
           {/* Notifications */}
           <button className="relative rounded-lg p-2 hover:bg-admin-hover dark:hover:bg-admin-hover-dark transition-colors">
-            <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <BellIcon className="h-5 w-5 text-brand-muted dark:text-white/60" />
             <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
 
@@ -68,18 +68,18 @@ export default function AdminHeader({
               className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-admin-hover dark:hover:bg-admin-hover-dark transition-colors"
             >
               <div className="hidden sm:flex flex-col items-end">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{adminName || "Admin"}</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{adminRole}</p>
+                <p className="text-sm font-semibold text-brand-green-ink dark:text-white/85">{adminName || "Admin"}</p>
+                <p className="text-xs text-brand-muted dark:text-white/60">{adminRole}</p>
               </div>
-              <ChevronDownIcon className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform ${showProfileMenu ? "rotate-180" : ""}`} />
+              <ChevronDownIcon className={`h-4 w-4 text-brand-muted dark:text-white/60 transition-transform ${showProfileMenu ? "rotate-180" : ""}`} />
             </button>
 
             {/* Dropdown Menu */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-admin-border bg-white shadow-lg dark:border-admin-border-dark dark:bg-admin-sidebar-dark animate-slide-in">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-admin-border bg-brand-paper shadow-lg dark:border-admin-border-dark dark:bg-admin-sidebar-dark animate-slide-in">
                 <div className="border-b border-admin-border px-4 py-3 dark:border-admin-border-dark">
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">{adminName || "Admin"}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{adminEmail}</p>
+                  <p className="font-semibold text-brand-green-ink dark:text-white/85">{adminName || "Admin"}</p>
+                  <p className="text-xs text-brand-muted dark:text-white/60">{adminEmail}</p>
                   <p className="mt-1 inline-block rounded-full bg-admin-primary/10 px-2 py-1 text-xs font-semibold text-admin-primary dark:text-admin-primary-light">
                     {adminRole}
                   </p>
@@ -87,7 +87,7 @@ export default function AdminHeader({
                 <nav className="p-2">
                   <Link
                     href="/admin/settings"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-admin-hover dark:text-gray-300 dark:hover:bg-admin-hover-dark transition-colors"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted-deep hover:bg-admin-hover dark:text-brand-muted-soft dark:hover:bg-admin-hover-dark transition-colors"
                     onClick={() => setShowProfileMenu(false)}
                   >
                     <SettingsIcon className="h-4 w-4" />

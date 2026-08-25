@@ -72,7 +72,7 @@ export default function TodaySales({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/pos"
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-white"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-brand-paper"
           >
             <PlusIcon className="h-4 w-4" />
             बिल काट्ने

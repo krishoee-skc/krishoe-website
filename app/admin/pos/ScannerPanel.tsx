@@ -135,11 +135,11 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
   useEffect(() => stopScanner, []);
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-lg font-black text-brand-green-ink">Scan invoice</h2>
-          <p className="mt-1 break-words text-sm leading-5 text-gray-500" aria-live="polite">{status}</p>
+          <p className="mt-1 break-words text-sm leading-5 text-brand-muted" aria-live="polite">{status}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <button
@@ -153,14 +153,14 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
           <button
             type="button"
             onClick={stopScanner}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-gray-200 px-5 text-sm font-bold text-brand-green-ink"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-brand-green-line px-5 text-sm font-bold text-brand-green-ink"
           >
             Stop
           </button>
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-gray-100 bg-black">
+      <div className="mt-4 overflow-hidden rounded-lg border border-brand-green-line bg-black">
         <video
           ref={videoRef}
           muted
@@ -190,7 +190,7 @@ export default function ScannerPanel({ knownInvoices }: { knownInvoices: KnownIn
         <input
           value={scanValue}
           onChange={(event) => setScanValue(event.target.value)}
-          className="h-12 rounded-md border border-gray-200 px-3 font-mono outline-none focus:border-brand-green"
+          className="h-12 rounded-md border border-brand-green-line px-3 font-mono outline-none focus:border-brand-green"
           inputMode="text"
           aria-label="Scanned invoice number"
           placeholder="Scan result or invoice number"

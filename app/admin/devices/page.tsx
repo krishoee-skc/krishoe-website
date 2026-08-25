@@ -28,7 +28,7 @@ export default async function AdminDevicesPage({
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Account security</p>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Login devices</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
             Review active phones and computers. Password, role, branch, MFA, disable, and lock changes automatically close old sessions; the Owner can also sign out any device manually.
           </p>
         </div>
@@ -53,7 +53,7 @@ export default async function AdminDevicesPage({
       </div>
 
       {role === "Owner" && activeStaffIds.length ? (
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
           <h2 className="font-black text-brand-green-ink">Owner controls</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {activeStaffIds.map((staffId) => {
@@ -77,17 +77,17 @@ export default async function AdminDevicesPage({
           const active = entry.active;
           const current = entry.id === session.sessionId;
           return (
-            <article key={entry.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <article key={entry.id} className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="font-black text-brand-green-ink">{entry.deviceLabel}</h2>
-                  <p className="mt-1 text-xs font-semibold text-gray-500">{staff?.name ?? entry.staffId}</p>
+                  <p className="mt-1 text-xs font-semibold text-brand-muted">{staff?.name ?? entry.staffId}</p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-black ${active ? "bg-emerald-50 text-emerald-800" : "bg-gray-100 text-gray-600"}`}>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-black ${active ? "bg-emerald-50 text-emerald-800" : "bg-brand-mist text-brand-muted"}`}>
                   {current && active ? "Current" : active ? "Active" : entry.revokedAt ? "Logged out" : "Expired"}
                 </span>
               </div>
-              <dl className="mt-4 grid gap-2 text-xs text-gray-600">
+              <dl className="mt-4 grid gap-2 text-xs text-brand-muted">
                 <div className="flex justify-between gap-3"><dt className="font-bold">Last active</dt><dd><DateDisplayAdmin date={entry.lastSeenAt} time={true} /></dd></div>
                 <div className="flex justify-between gap-3"><dt className="font-bold">Signed in</dt><dd><DateDisplayAdmin date={entry.createdAt} time={true} /></dd></div>
                 <div className="flex justify-between gap-3"><dt className="font-bold">IP</dt><dd className="font-mono">{entry.ipAddress || "Not available"}</dd></div>
@@ -105,7 +105,7 @@ export default async function AdminDevicesPage({
           );
         })}
         {sessions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm font-semibold text-gray-500 md:col-span-2">
+          <div className="rounded-2xl border border-dashed border-brand-green-line bg-brand-paper p-8 text-center text-sm font-semibold text-brand-muted md:col-span-2">
             No registered staff login devices yet.
           </div>
         ) : null}

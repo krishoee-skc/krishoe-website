@@ -71,8 +71,8 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <p className="text-sm font-medium text-brand-muted">{label}</p>
       <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
       <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
         {detail}
@@ -101,7 +101,7 @@ function DesignProfitRow({ row }: { row: DesignCostingRow }) {
     <tr>
       <td className="reflow-primary py-2 pr-3">
         <p className="font-bold text-brand-green-ink">{row.design}</p>
-        <p className="text-xs text-gray-500">{row.netPairs} net pairs</p>
+        <p className="text-xs text-brand-muted">{row.netPairs} net pairs</p>
       </td>
       <td data-label="Revenue" className="py-2 pr-3">{money(row.netRevenue)}</td>
       <td data-label="COGS" className="py-2 pr-3">{money(row.estimatedCogs)}</td>
@@ -239,7 +239,7 @@ export default async function AdminPosPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">POS and e-billing control</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Retail, wholesale, and online billing with stock movement, credit ledger,
             printable barcode, QR code, and scanner-ready invoice lookup.
           </p>
@@ -253,25 +253,25 @@ export default async function AdminPosPage() {
           </ExportButton>
           <ExportButton
             href="/api/admin/pos/export?type=posting-review"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Posting review
           </ExportButton>
           <ExportButton
             href="/api/admin/pos/export?type=day-close"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Day close
           </ExportButton>
           <ExportButton
             href="/api/admin/pos/export?type=day-close-detail"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Close detail
           </ExportButton>
           <ExportButton
             href="/api/admin/pos/export?type=profit-close"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Profit close
           </ExportButton>
@@ -289,7 +289,7 @@ export default async function AdminPosPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Today day close</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Cash, cheque, QR, wallet, bank, credit, return, and posting review for today.
             </p>
           </div>
@@ -312,7 +312,7 @@ export default async function AdminPosPage() {
           <div className="overflow-x-auto">
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Payment close</h3>
             <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Method</th>
                   <th className="py-2 pr-3">Paid</th>
@@ -336,7 +336,7 @@ export default async function AdminPosPage() {
           <div className="overflow-x-auto">
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Channel close</h3>
             <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Channel</th>
                   <th className="py-2 pr-3">Bills</th>
@@ -360,10 +360,10 @@ export default async function AdminPosPage() {
           <div className="overflow-x-auto">
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Cashier close</h3>
             {pos.todayDayClose.cashierRows.length === 0 ? (
-              <p className="mt-3 text-sm text-gray-500">No bills today.</p>
+              <p className="mt-3 text-sm text-brand-muted">No bills today.</p>
             ) : (
               <table className="reflow-table mt-3 min-w-full text-sm">
-                <thead className="border-b text-left text-gray-500">
+                <thead className="border-b text-left text-brand-muted">
                   <tr>
                     <th className="py-2 pr-3">Cashier</th>
                     <th className="py-2 pr-3">Bills</th>
@@ -389,17 +389,17 @@ export default async function AdminPosPage() {
         </div>
       </section>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Profit close</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Daily, monthly, and yearly POS revenue after estimated material, labor, and overhead COGS.
             </p>
           </div>
           <Link
             href="/admin/costing"
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-brand-green-ink"
+            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
           >
             Cost model
           </Link>
@@ -422,10 +422,10 @@ export default async function AdminPosPage() {
             Top design profit signal
           </h3>
           {topDesignProfit.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">No POS design profit data yet.</p>
+            <p className="mt-3 text-sm text-brand-muted">No POS design profit data yet.</p>
           ) : (
             <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Design</th>
                   <th className="py-2 pr-3">Revenue</th>
@@ -465,42 +465,42 @@ export default async function AdminPosPage() {
             }))}
           />
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
             <h2 className="text-lg font-black text-brand-green-ink">Channel report</h2>
-            <div className="mt-4 divide-y divide-gray-100">
+            <div className="mt-4 divide-y divide-brand-green-line">
               {pos.channelTotals.map((row) => (
                 <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
                   <p className="font-black text-brand-green-ink">{row.channel}</p>
-                  <p className="text-gray-500">{row.invoiceCount} bills</p>
+                  <p className="text-brand-muted">{row.invoiceCount} bills</p>
                   <p className="text-right font-bold text-brand-green">{money(row.netSales)}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
             <h2 className="text-lg font-black text-brand-green-ink">Payment summary</h2>
             <div className="mt-4 grid gap-2">
               {pos.paymentTotals
                 .filter((row) => row.invoiceCount > 0 || row.paid > 0)
                 .map((row) => (
-                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm">
+                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-brand-paper-deep px-3 py-2 text-sm">
                     <span className="font-bold text-brand-green-ink">{row.paymentMethod}</span>
-                    <span className="text-gray-600">{money(row.paid)}</span>
+                    <span className="text-brand-muted">{money(row.paid)}</span>
                   </div>
                 ))}
               {pos.paymentTotals.every((row) => row.invoiceCount === 0) ? (
-                <p className="text-sm text-gray-500">No POS payment recorded yet.</p>
+                <p className="text-sm text-brand-muted">No POS payment recorded yet.</p>
               ) : null}
             </div>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
             <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Stock movement, customer ledger, and payment reference check.
             </p>
-            <div className="mt-4 divide-y divide-gray-100">
+            <div className="mt-4 divide-y divide-brand-green-line">
               {pos.postingReviewRows.slice(0, 5).map((row) => (
                 <div key={row.id} className="py-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
@@ -510,7 +510,7 @@ export default async function AdminPosPage() {
                       {row.signal !== "Posted" ? <RepairPostingButton invoiceId={row.id} /> : null}
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-brand-muted">
                     Stock {row.linkedStockMovementCount}/{row.expectedStockMovementCount}
                     {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
                   </p>
@@ -518,18 +518,18 @@ export default async function AdminPosPage() {
                 </div>
               ))}
               {pos.postingReviewRows.length === 0 ? (
-                <p className="py-3 text-sm text-gray-500">No POS posting to review yet.</p>
+                <p className="py-3 text-sm text-brand-muted">No POS posting to review yet.</p>
               ) : null}
             </div>
           </section>
         </div>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Recent bills</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-brand-muted">
               Invoice, stock movement, payment, and ledger posting trail.
             </p>
           </div>
@@ -537,13 +537,13 @@ export default async function AdminPosPage() {
         </div>
 
         {pos.recentInvoices.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
             POS bill history is empty. Create the first bill from the form above.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
-              <thead className="border-b text-left text-gray-500">
+              <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Invoice</th>
                   <th className="py-2 pr-3">Customer</th>
@@ -563,16 +563,16 @@ export default async function AdminPosPage() {
                     <tr key={invoice.id}>
                       <td className="reflow-primary py-3 pr-3">
                         <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.invoiceNumber}</p>
-                        <p className="mt-1 text-xs text-gray-500"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
+                        <p className="mt-1 text-xs text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Customer" className="py-3 pr-3">
                         <p className="font-semibold text-brand-green-ink">{invoice.customerName}</p>
-                        <p className="text-xs text-gray-500">{invoice.phone || "-"}</p>
+                        <p className="text-xs text-brand-muted">{invoice.phone || "-"}</p>
                       </td>
                       <td data-label="Channel" className="py-3 pr-3">{invoice.channel}</td>
                       <td data-label="Payment" className="py-3 pr-3">
                         <p className="font-semibold">{invoice.paymentMethod}</p>
-                        <p className="text-xs text-gray-500">Paid {money(invoice.paidAmount)}</p>
+                        <p className="text-xs text-brand-muted">Paid {money(invoice.paidAmount)}</p>
                       </td>
                       <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
                       <td data-label="Status" className="py-3 pr-3">
@@ -587,7 +587,7 @@ export default async function AdminPosPage() {
                             <RepairPostingButton invoiceId={invoice.id} />
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-brand-muted">
                           {posting?.issues || `Stock ${posting?.linkedStockMovementCount ?? 0}/${posting?.expectedStockMovementCount ?? 0}`}
                         </p>
                       </td>

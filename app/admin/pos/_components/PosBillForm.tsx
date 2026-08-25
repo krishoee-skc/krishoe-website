@@ -74,12 +74,12 @@ function rateForChannel(channel: string, item: SellableItem) {
 }
 
 const inputBase = "h-10 rounded-md border px-3 text-sm outline-none focus:border-brand-green";
-const inputClass = `${inputBase} border-gray-200 bg-white`;
+const inputClass = `${inputBase} border-brand-green-line bg-brand-paper`;
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 function fieldClass(hasError: boolean) {
-  return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-gray-200 bg-white"}`;
+  return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"}`;
 }
 
 export default function PosBillForm({
@@ -393,14 +393,14 @@ export default function PosBillForm({
   }, [catalog, scanCode]);
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <input type="hidden" name="itemCount" value={rows.length} />
       <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-brand-muted">
             Pick an item and its price fills in. Bill save posts stock automatically.
           </p>
         </div>
@@ -408,7 +408,7 @@ export default function PosBillForm({
           <button
             type="button"
             onClick={repeatLastBill}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
           >
             ↻ Repeat last bill
             <span className="font-mono text-xs opacity-70">{lastBill.invoiceNumber}</span>
@@ -568,7 +568,7 @@ export default function PosBillForm({
             >
               Add
             </button>
-            <label className="inline-flex h-12 cursor-pointer items-center justify-center rounded-full border border-brand-green bg-white px-4 text-sm font-black text-brand-green">
+            <label className="inline-flex h-12 cursor-pointer items-center justify-center rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-black text-brand-green">
               {isReadingProductPhoto ? "Reading..." : "Camera / photo"}
               <input
                 type="file"
@@ -588,7 +588,7 @@ export default function PosBillForm({
               id="pos-product-picker"
               role="listbox"
               aria-label="Available products"
-              className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-80 overflow-y-auto rounded-xl border border-brand-green/20 bg-white p-2 shadow-[0_18px_50px_rgba(11,77,59,0.2)]"
+              className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-80 overflow-y-auto rounded-xl border border-brand-green/20 bg-brand-paper p-2 shadow-[0_18px_50px_rgba(11,77,59,0.2)]"
             >
               <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1 text-xs font-bold text-brand-muted">
                 <span>{scanCode.trim() ? "Matching items" : "Items ready to sell"}</span>
@@ -632,7 +632,7 @@ export default function PosBillForm({
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-sm font-semibold text-brand-muted">
+                <p className="rounded-lg bg-brand-paper-deep px-3 py-4 text-center text-sm font-semibold text-brand-muted">
                   No matching item. Try another name, SKU or size.
                 </p>
               )}
@@ -653,7 +653,7 @@ export default function PosBillForm({
 
       <div className="mt-5 overflow-x-auto">
         <table className="reflow-table min-w-full text-sm">
-          <thead className="border-b text-left text-gray-500">
+          <thead className="border-b text-left text-brand-muted">
             <tr>
               <th className="py-2 pr-3">SKU</th>
               <th className="py-2 pr-3">Design / item</th>

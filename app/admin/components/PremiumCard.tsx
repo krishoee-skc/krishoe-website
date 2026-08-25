@@ -23,7 +23,7 @@ const colorMap = {
 const trendColorMap = {
   up: "text-emerald-600 dark:text-emerald-400",
   down: "text-red-600 dark:text-red-400",
-  neutral: "text-gray-600 dark:text-gray-400",
+  neutral: "text-brand-muted dark:text-white/60",
 };
 
 export default function PremiumCard({
@@ -42,20 +42,20 @@ export default function PremiumCard({
       onClick={onClick}
       className={`group relative rounded-lg border bg-gradient-to-br p-6 transition-all duration-300 ${
         onClick ? "cursor-pointer" : ""
-      } ${colorMap[bgColor]} dark:from-gray-800 dark:to-gray-750 dark:border-gray-700 ${className}`}
+      } ${colorMap[bgColor]} dark:from-brand-green-ink dark:to-[#13221d] dark:border-white/10 ${className}`}
     >
       {/* Decorative corner */}
       <div className="absolute right-0 top-0 h-12 w-12 opacity-5 rounded-bl-lg bg-gradient-to-l from-current"></div>
 
       {/* Icon */}
-      {icon && <div className="mb-4 inline-block rounded-lg bg-white/50 p-2 dark:bg-gray-700/50">{icon}</div>}
+      {icon && <div className="mb-4 inline-block rounded-lg bg-brand-paper/50 p-2 dark:bg-brand-muted-deep/50">{icon}</div>}
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{title}</h3>
+      <h3 className="text-sm font-semibold text-brand-muted dark:text-white/60 uppercase tracking-wider">{title}</h3>
 
       {/* Value */}
       <div className="mt-3 flex items-baseline gap-2">
-        <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-3xl font-bold text-brand-green-ink dark:text-white">{value}</p>
         {trend && trendValue && (
           <span className={`text-sm font-semibold ${trendColorMap[trend]}`}>
             {trend === "up" ? "↑" : trend === "down" ? "↓" : ""} {trendValue}
@@ -64,7 +64,7 @@ export default function PremiumCard({
       </div>
 
       {/* Subtitle */}
-      {subtitle && <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">{subtitle}</p>}
+      {subtitle && <p className="mt-2 text-xs text-brand-muted dark:text-white/60">{subtitle}</p>}
 
       {/* Hover effect */}
       {onClick && (

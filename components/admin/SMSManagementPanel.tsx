@@ -74,7 +74,7 @@ export default function SMSManagementPanel() {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-brand-mist text-brand-green-ink";
     }
   };
 
@@ -112,16 +112,16 @@ export default function SMSManagementPanel() {
 
   if (loading && !messages.length) {
     return (
-      <div className="p-6 text-center text-gray-500">Loading SMS data...</div>
+      <div className="p-6 text-center text-brand-muted">Loading SMS data...</div>
     );
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">📱 SMS Management</h1>
-        <p className="text-gray-600">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+        <h1 className="text-2xl font-bold text-brand-green-ink mb-2">📱 SMS Management</h1>
+        <p className="text-brand-muted">
           Manage and monitor all SMS notifications sent to customers and workers
         </p>
       </div>
@@ -129,9 +129,9 @@ export default function SMSManagementPanel() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-sm text-blue-600 font-medium">Total Sent</div>
-            <div className="text-2xl font-bold text-blue-900">
+          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
+            <div className="text-sm text-brand-green font-medium">Total Sent</div>
+            <div className="text-2xl font-bold text-brand-green">
               {stats.total_sent}
             </div>
           </div>
@@ -158,15 +158,15 @@ export default function SMSManagementPanel() {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-brand-green-line">
         {(["all", "customer", "worker", "admin"] as const).map((type) => (
           <button
             key={type}
             onClick={() => setFilter(type)}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               filter === type
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                ? "border-brand-green text-brand-green"
+                : "border-transparent text-brand-muted hover:text-brand-green-ink"
             }`}
           >
             {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -177,7 +177,7 @@ export default function SMSManagementPanel() {
       {/* Messages List */}
       <div className="space-y-2 max-h-[600px] overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-brand-muted">
             No SMS messages found
           </div>
         ) : (
@@ -185,14 +185,14 @@ export default function SMSManagementPanel() {
             <div
               key={msg.id}
               onClick={() => setSelectedMessage(msg)}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-brand-paper border border-brand-green-line rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span>{getTypeIcon(msg.message_type)}</span>
                     <span>{getEventEmoji(msg.event_type)}</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-brand-green-ink">
                       {msg.phone_number}
                     </span>
                     <span
@@ -204,12 +204,12 @@ export default function SMSManagementPanel() {
                     </span>
                   </div>
 
-                  <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded mb-2">
+                  <div className="text-sm text-brand-muted-deep bg-brand-paper-deep p-2 rounded mb-2">
                     {msg.message_text.substring(0, 150)}
                     {msg.message_text.length > 150 ? "..." : ""}
                   </div>
 
-                  <div className="flex gap-3 text-xs text-gray-500">
+                  <div className="flex gap-3 text-xs text-brand-muted">
                     <span>📍 {msg.event_type}</span>
                     {msg.order_id && <span>📦 Order: {msg.order_id}</span>}
                     {msg.worker_id && <span>👤 Worker: {msg.worker_id}</span>}
@@ -225,15 +225,15 @@ export default function SMSManagementPanel() {
       {/* Detail Modal */}
       {selectedMessage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-brand-paper rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-brand-green-ink">
                   📱 SMS Details
                 </h2>
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-brand-muted hover:text-brand-muted-deep text-2xl"
                 >
                   ×
                 </button>
@@ -242,16 +242,16 @@ export default function SMSManagementPanel() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       To Number
                     </label>
-                    <div className="text-lg font-mono text-gray-900">
+                    <div className="text-lg font-mono text-brand-green-ink">
                       {selectedMessage.phone_number}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Status
                     </label>
                     <div
@@ -264,57 +264,57 @@ export default function SMSManagementPanel() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Type
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedMessage.message_type}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Event
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedMessage.event_type}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Message ID
                     </label>
-                    <div className="text-xs font-mono text-gray-600 break-all">
+                    <div className="text-xs font-mono text-brand-muted break-all">
                       {selectedMessage.id}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Sent At
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {formatDate(selectedMessage.created_at)}
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-600">
+                  <label className="text-sm font-medium text-brand-muted">
                     Message
                   </label>
-                  <div className="bg-gray-50 p-4 rounded-lg text-gray-900 whitespace-pre-wrap">
+                  <div className="bg-brand-paper-deep p-4 rounded-lg text-brand-green-ink whitespace-pre-wrap">
                     {selectedMessage.message_text}
                   </div>
                 </div>
 
                 {selectedMessage.order_id && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Associated Order
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedMessage.order_id}
                     </div>
                   </div>
@@ -322,10 +322,10 @@ export default function SMSManagementPanel() {
 
                 {selectedMessage.worker_id && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Associated Worker
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedMessage.worker_id}
                     </div>
                   </div>

@@ -155,10 +155,10 @@ export default function StaffSalaryPage() {
     <div className="p-6">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">मासिक तलब</p>
       <h1 className="mt-2 text-3xl font-black text-brand-green-ink mb-2">
-        तलब, पेश्की र भुक्तानी <span className="text-lg font-bold text-slate-500">· Staff salary</span>
+        तलब, पेश्की र भुक्तानी <span className="text-lg font-bold text-brand-muted">· Staff salary</span>
       </h1>
 
-      <p className="mb-6 text-sm text-slate-600">
+      <p className="mb-6 text-sm text-brand-muted">
         Monthly factory staff are managed here. Daily staff attendance, wages,
         deductions, and payroll remain in the HR section.
       </p>
@@ -172,13 +172,13 @@ export default function StaffSalaryPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-semibold text-slate-900 mb-2">
+          <label className="block text-sm font-semibold text-brand-green-ink mb-2">
             Select Staff Member
           </label>
           <select
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            className="w-full px-4 py-2 border border-brand-green-line rounded-lg"
           >
             <option value="">-- Choose staff --</option>
             {workers.map((worker) => (
@@ -197,8 +197,8 @@ export default function StaffSalaryPage() {
       {summary ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <p className="text-xs text-slate-600 font-semibold">
+            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
+              <p className="text-xs text-brand-muted font-semibold">
                 Monthly Salary
               </p>
               <p className="text-2xl font-black text-brand-green mt-2">
@@ -206,15 +206,15 @@ export default function StaffSalaryPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <p className="text-xs text-slate-600 font-semibold">Total Paid</p>
-              <p className="text-2xl font-black text-blue-600 mt-2">
+            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
+              <p className="text-xs text-brand-muted font-semibold">Total Paid</p>
+              <p className="text-2xl font-black text-brand-green mt-2">
                 Rs. {summary.total_paid.toLocaleString()}
               </p>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <p className="text-xs text-slate-600 font-semibold">
+            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
+              <p className="text-xs text-brand-muted font-semibold">
                 Total Advance
               </p>
               <p className="text-2xl font-black text-amber-600 mt-2">
@@ -245,23 +245,23 @@ export default function StaffSalaryPage() {
           <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">Record cash transaction</h2>
-              <p className="mt-1 text-sm leading-6 text-gray-600">Advance and salary payment are stored separately and both reduce the remaining salary balance for the selected month.</p>
+              <p className="mt-1 text-sm leading-6 text-brand-muted">Advance and salary payment are stored separately and both reduce the remaining salary balance for the selected month.</p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-gray-800">Transaction type
-                <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-gray-300 bg-white px-3">
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Transaction type
+                <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
                   <option value="advance">Saturday kharcha / advance</option>
                   <option value="payment">Salary payment</option>
                 </select>
               </label>
-              <label className="grid gap-1 text-sm font-bold text-gray-800">Date
-                <input type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Date
+                <input type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-gray-800">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" placeholder="Cash amount" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
+                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Cash amount" />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-gray-800">Owner note
-                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-gray-300 bg-white px-3" placeholder="Optional reason or reference" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
+                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Optional reason or reference" />
               </label>
             </div>
             <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
@@ -269,25 +269,25 @@ export default function StaffSalaryPage() {
             </button>
           </form>
 
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">
+          <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+            <h2 className="text-lg font-bold text-brand-green-ink mb-4">
               Salary Breakdown
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-slate-600">Base Salary:</span>
+                <span className="text-brand-muted">Base Salary:</span>
                 <span className="font-semibold">
                   Rs. {summary.total_salary.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-3">
-                <span className="text-slate-600">Paid:</span>
-                <span className="font-semibold text-blue-600">
+                <span className="text-brand-muted">Paid:</span>
+                <span className="font-semibold text-brand-green">
                   -Rs. {summary.total_paid.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Advances:</span>
+                <span className="text-brand-muted">Advances:</span>
                 <span className="font-semibold text-amber-600">
                   -Rs. {summary.total_advance.toLocaleString()}
                 </span>
@@ -308,7 +308,7 @@ export default function StaffSalaryPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-slate-50 rounded-lg p-6 text-center text-slate-600">
+        <div className="bg-brand-paper-deep rounded-lg p-6 text-center text-brand-muted">
           Select a staff member to view salary details
         </div>
       )}

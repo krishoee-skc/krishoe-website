@@ -31,7 +31,7 @@ function statusClass(status: string) {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
 
-  return "border-gray-200 bg-gray-50 text-gray-700";
+  return "border-brand-green-line bg-brand-paper-deep text-brand-muted-deep";
 }
 
 export default async function SalaryClosingReportPage() {
@@ -54,35 +54,35 @@ export default async function SalaryClosingReportPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/admin/hr"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           Back to HR
         </Link>
         <PrintSalaryClosingButton />
       </div>
 
-      <div className="mx-auto max-w-6xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="mx-auto max-w-6xl rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-green-line pb-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
             <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Salary closing report</h1>
-            <p className="mt-2 text-sm text-gray-500">{periodLabel}</p>
+            <p className="mt-2 text-sm text-brand-muted">{periodLabel}</p>
           </div>
-          <div className="text-right text-sm text-gray-500">
+          <div className="text-right text-sm text-brand-muted">
             <p className="font-bold text-brand-green-ink">{formatAdminDate(new Date())}</p>
             <p>{rows.length} employee row(s)</p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-5">
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Suggested</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Suggested</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(totals.suggested)}</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Recorded</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Recorded</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(totals.recorded)}</p>
           </div>
           <div className="rounded-md bg-emerald-50 p-3">
@@ -93,15 +93,15 @@ export default async function SalaryClosingReportPage() {
             <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">Pending</p>
             <p className="mt-2 font-black text-amber-900">{money(totals.pending)}</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-500">Variance</p>
+          <div className="rounded-md bg-brand-paper-deep p-3">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Variance</p>
             <p className="mt-2 font-black text-brand-green-ink">{money(totals.variance)}</p>
           </div>
         </div>
 
         <div className="mt-6 overflow-x-auto">
           <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-gray-500">
+            <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Employee</th>
                 <th className="py-2 pr-3">Department</th>
@@ -121,7 +121,7 @@ export default async function SalaryClosingReportPage() {
                   <td data-label="Department" className="py-3 pr-3">{row.department}</td>
                   <td data-label="Work" className="py-3 pr-3">
                     <span className="font-semibold text-brand-green-ink">{row.attendanceDays} days</span>
-                    <span className="block text-xs text-gray-500">{row.completedPairs} pairs</span>
+                    <span className="block text-xs text-brand-muted">{row.completedPairs} pairs</span>
                   </td>
                   <td data-label="Suggested" className="py-3 pr-3">{money(row.suggestedNetPay)}</td>
                   <td data-label="Recorded" className="py-3 pr-3">{money(row.recordedNetPay)}</td>
@@ -137,7 +137,7 @@ export default async function SalaryClosingReportPage() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td className="py-8 text-center text-gray-500" colSpan={9}>
+                  <td className="py-8 text-center text-brand-muted" colSpan={9}>
                     No salary closing data.
                   </td>
                 </tr>
@@ -147,9 +147,9 @@ export default async function SalaryClosingReportPage() {
         </div>
 
         <div className="mt-10 grid gap-6 text-sm md:grid-cols-3">
-          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Prepared by</div>
-          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Checked by</div>
-          <div className="border-t border-gray-300 pt-3 font-bold text-brand-green-ink">Approved by</div>
+          <div className="border-t border-brand-green-line pt-3 font-bold text-brand-green-ink">Prepared by</div>
+          <div className="border-t border-brand-green-line pt-3 font-bold text-brand-green-ink">Checked by</div>
+          <div className="border-t border-brand-green-line pt-3 font-bold text-brand-green-ink">Approved by</div>
         </div>
       </div>
     </section>

@@ -49,7 +49,7 @@ function Field({
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}
-        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-brand-green"
+        className="h-11 rounded-lg border border-brand-green-line px-3 text-sm font-normal outline-none focus:border-brand-green"
       />
     </label>
   );
@@ -76,7 +76,7 @@ function SelectField({
       <select
         name={name}
         defaultValue={value}
-        className="h-11 rounded-lg border border-gray-200 px-3 text-sm font-normal outline-none focus:border-brand-green"
+        className="h-11 rounded-lg border border-brand-green-line px-3 text-sm font-normal outline-none focus:border-brand-green"
       >
         {normalizedOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -134,7 +134,7 @@ export default async function AdminSettingsPage({
             Access control
           </p>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Company and staff settings</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Manage branch identity, staff login accounts, and role-based admin access for the
             factory, shop, POS, inventory, HR, and reports modules.
           </p>
@@ -153,13 +153,13 @@ export default async function AdminSettingsPage({
           they are here, and Search finds them by name. */}
       <div className="mt-8">
         <h2 className="text-lg font-black text-brand-green-ink">⚙️ सेटअप र प्रणाली</h2>
-        <p className="mt-1 text-sm leading-6 text-gray-500">
+        <p className="mt-1 text-sm leading-6 text-brand-muted">
           एकपटक मिलाएपछि फेरि खोल्नु नपर्ने पानाहरू — यहीँ भेटिन्छन्।
         </p>
 
         <div className="mt-4 grid gap-5 md:grid-cols-3">
           {adminSetupGroups.map((group) => (
-            <div key={group.title} className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div key={group.title} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
                 {group.title}
               </p>
@@ -173,7 +173,7 @@ export default async function AdminSettingsPage({
                       <span className="block text-sm font-bold text-brand-green-ink">
                         {link.label}
                       </span>
-                      <span className="block text-xs text-gray-500">{link.nepali}</span>
+                      <span className="block text-xs text-brand-muted">{link.nepali}</span>
                     </Link>
                   </li>
                 ))}
@@ -195,34 +195,34 @@ export default async function AdminSettingsPage({
       ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-gray-500">Company</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-semibold text-brand-muted">Company</p>
           <p className="mt-2 text-2xl font-black text-brand-green-ink">{settings.company.companyName}</p>
-          <p className="mt-1 text-xs font-semibold text-gray-500">
+          <p className="mt-1 text-xs font-semibold text-brand-muted">
             Updated {settings.company.updatedAt ? <DateDisplayAdmin date={settings.company.updatedAt} time={true} /> : "Never"}
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-gray-500">Active branches</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-semibold text-brand-muted">Active branches</p>
           <p className="mt-2 text-2xl font-black text-brand-green-ink">{activeBranches.length}</p>
-          <p className="mt-1 text-xs font-semibold text-gray-500">
+          <p className="mt-1 text-xs font-semibold text-brand-muted">
             {settings.branches.length} total branch records
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-gray-500">Active staff</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-semibold text-brand-muted">Active staff</p>
           <p className="mt-2 text-2xl font-black text-brand-green-ink">{activeStaff.length}</p>
-          <p className="mt-1 text-xs font-semibold text-gray-500">
+          <p className="mt-1 text-xs font-semibold text-brand-muted">
             {settings.staff.length} staff login accounts
           </p>
         </div>
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-        <form action={saveCompanySettingsAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <form action={saveCompanySettingsAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="mb-5">
             <h2 className="text-lg font-black text-brand-green-ink">Company profile</h2>
-            <p className="mt-1 text-sm text-gray-500">Used for billing identity, SEO, reports, and branch defaults.</p>
+            <p className="mt-1 text-sm text-brand-muted">Used for billing identity, SEO, reports, and branch defaults.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Company name" name="companyName" defaultValue={settings.company.companyName} required />
@@ -244,7 +244,7 @@ export default async function AdminSettingsPage({
                 name="address"
                 defaultValue={settings.company.address}
                 rows={3}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
@@ -253,10 +253,10 @@ export default async function AdminSettingsPage({
           </div>
         </form>
 
-        <form action={createBranchAction} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <form action={createBranchAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="mb-5">
             <h2 className="text-lg font-black text-brand-green-ink">Add branch</h2>
-            <p className="mt-1 text-sm text-gray-500">Create factory, wholesale, retail, online, or office branch records.</p>
+            <p className="mt-1 text-sm text-brand-muted">Create factory, wholesale, retail, online, or office branch records.</p>
           </div>
           <div className="grid gap-4">
             <Field label="Branch name" name="name" placeholder="Main Factory" required />
@@ -269,7 +269,7 @@ export default async function AdminSettingsPage({
               <textarea
                 name="address"
                 rows={3}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
@@ -288,35 +288,35 @@ export default async function AdminSettingsPage({
         defaultBranchId={settings.company.defaultBranchId}
       />
 
-      <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Immutable security trail</p>
           <h2 className="mt-2 text-xl font-black text-brand-green-ink">Recent staff access changes</h2>
-          <p className="mt-1 text-sm text-gray-600">Every sensitive change records the actor, time, device and safe before/after values.</p>
+          <p className="mt-1 text-sm text-brand-muted">Every sensitive change records the actor, time, device and safe before/after values.</p>
         </div>
         <div className="mt-5 grid gap-3">
           {accessHistory.map((entry) => {
             const member = settings.staff.find((staff) => staff.id === entry.staffId);
             return (
-              <details key={entry.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+              <details key={entry.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep/50 p-4">
                 <summary className="cursor-pointer list-none">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-black text-brand-green-ink">{entry.action.replaceAll("_", " ")}</p>
-                      <p className="mt-1 text-xs text-gray-500">{member?.name ?? entry.staffId} · by {entry.actorEmail || entry.actorRole || "System"}</p>
+                      <p className="mt-1 text-xs text-brand-muted">{member?.name ?? entry.staffId} · by {entry.actorEmail || entry.actorRole || "System"}</p>
                     </div>
-                    <time className="text-xs font-semibold text-gray-500">{entry.createdAt ? <DateDisplayAdmin date={entry.createdAt} time={true} /> : "Never"}</time>
+                    <time className="text-xs font-semibold text-brand-muted">{entry.createdAt ? <DateDisplayAdmin date={entry.createdAt} time={true} /> : "Never"}</time>
                   </div>
                 </summary>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg border border-gray-200 bg-white p-3"><p className="text-xs font-black uppercase text-gray-500">Before</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-gray-700">{JSON.stringify(entry.beforeState, null, 2)}</pre></div>
+                  <div className="rounded-lg border border-brand-green-line bg-brand-paper p-3"><p className="text-xs font-black uppercase text-brand-muted">Before</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-brand-muted-deep">{JSON.stringify(entry.beforeState, null, 2)}</pre></div>
                   <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3"><p className="text-xs font-black uppercase text-emerald-700">After</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-emerald-900">{JSON.stringify(entry.afterState, null, 2)}</pre></div>
                 </div>
-                <p className="mt-3 text-[11px] text-gray-500">IP {entry.ipAddress || "not available"} · {entry.userAgent ? entry.userAgent.slice(0, 100) : "device not available"}</p>
+                <p className="mt-3 text-[11px] text-brand-muted">IP {entry.ipAddress || "not available"} · {entry.userAgent ? entry.userAgent.slice(0, 100) : "device not available"}</p>
               </details>
             );
           })}
-          {accessHistory.length === 0 ? <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm font-semibold text-gray-500">No staff access changes recorded yet.</p> : null}
+          {accessHistory.length === 0 ? <p className="rounded-xl border border-dashed border-brand-green-line p-6 text-center text-sm font-semibold text-brand-muted">No staff access changes recorded yet.</p> : null}
         </div>
       </section>
     </section>

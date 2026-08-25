@@ -32,7 +32,7 @@ export default function OperationsQuickEntry({
   ).sort((left, right) => left.localeCompare(right));
 
   return (
-    <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
         title="Quick entry"
         // Left over from the local-json era. The live shop runs on Postgres, so
@@ -46,12 +46,12 @@ export default function OperationsQuickEntry({
         ))}
       </datalist>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <form action={createStockMovementAction} className="grid gap-3 rounded-lg border-2 border-brand-green/30 bg-white p-4">
+        <form action={createStockMovementAction} className="grid gap-3 rounded-lg border-2 border-brand-green/30 bg-brand-paper p-4">
           <h3 className="font-black text-brand-green-ink">Stock movement</h3>
           {/* This is now the only way pairs enter the count — the product form
               no longer takes a number — so the three ways in are spelled out
               rather than left to be guessed from the dropdown. */}
-          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-gray-600">
+          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
             स्टक भित्र्याउने <strong className="text-brand-green-ink">एउटै ठाउँ</strong>:
             <br />
             <strong>Production In</strong> — आफ्नै कारखानाले बनाएको
@@ -83,7 +83,7 @@ export default function OperationsQuickEntry({
           <SubmitActionButton label="Record movement" />
         </form>
 
-        <form action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+        <form action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
           <h3 className="font-black text-brand-green-ink">Finished stock</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
@@ -103,7 +103,7 @@ export default function OperationsQuickEntry({
           <SubmitActionButton label="Add stock" />
         </form>
 
-        <form action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+        <form action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
           <h3 className="font-black text-brand-green-ink">Production batch</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
@@ -130,15 +130,15 @@ export default function OperationsQuickEntry({
           that get used every day. Native <details>, so this stays a server
           component and the forms are still in the page for anyone who needs
           them. */}
-      <details className="mt-6 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+      <details className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper-deep/60 p-4">
         <summary className="cursor-pointer text-sm font-black text-brand-green-ink">
           अरू विकल्प (7) — कच्चा पदार्थ · कामदार · गाडी · उधारो
         </summary>
-        <p className="mt-2 text-xs leading-5 text-gray-500">
+        <p className="mt-2 text-xs leading-5 text-brand-muted">
           यी अहिले चलाइएका छैनन्। चाहिँदा यहीँ भेटिन्छन्।
         </p>
         <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Raw material</h3>
             <input name="name" required className={inputClass} placeholder="Material name" />
             <select name="unit" className={inputClass} defaultValue="kg">
@@ -154,7 +154,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add material" />
           </form>
 
-          <form action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Material consumption</h3>
             <input type="hidden" name="sourceSubmissionKey" value={`ops-use:${crypto.randomUUID()}`} />
             <select name="batchId" required className={inputClass} defaultValue="">
@@ -185,7 +185,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Record usage" />
           </form>
 
-          <form action={createWorkerTaskAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createWorkerTaskAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Worker task</h3>
             {/* Pick a registered worker from the list, or type one — the same
                 ease the counter has when choosing a design. */}
@@ -238,7 +238,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add worker task" />
           </form>
 
-          <form action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Vehicle dispatch</h3>
             <input name="vehicleNumber" required className={inputClass} placeholder="Vehicle number" />
             <input name="driverName" required className={inputClass} placeholder="Driver name" />
@@ -259,7 +259,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add dispatch" />
           </form>
 
-          <form action={createVehicleDispatchItemAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createVehicleDispatchItemAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Dispatch item</h3>
             <select name="dispatchId" required className={inputClass} defaultValue="">
               <option value="" disabled>
@@ -294,7 +294,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add dispatch item" />
           </form>
 
-          <form action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Customer ledger</h3>
             <input name="customerName" required className={inputClass} placeholder="Customer/shop name" />
             <input name="phone" className={inputClass} placeholder="Phone" />
@@ -313,7 +313,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add ledger" />
           </form>
 
-          <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Ledger transaction</h3>
             <select name="ledgerId" required className={inputClass} defaultValue="">
               <option value="" disabled>

@@ -148,7 +148,7 @@ export function AdminResetWithCodeForm() {
         {[1, 2, 3, 4, 5].map((level) => (
           <span
             key={level}
-            className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-gray-200"}`}
+            className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-brand-green-line"}`}
           />
         ))}
         <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
@@ -238,7 +238,7 @@ export function AdminSetPasswordForm({
         {[1, 2, 3, 4, 5].map((level) => (
           <span
             key={level}
-            className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-gray-200"}`}
+            className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-brand-green-line"}`}
           />
         ))}
         <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
@@ -316,7 +316,7 @@ export function AdminChangePasswordForm() {
       </label>
       <div className="flex items-center gap-2">
         {[1, 2, 3, 4, 5].map((level) => (
-          <span key={level} className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-gray-200"}`} />
+          <span key={level} className={`h-1.5 flex-1 rounded-full ${level <= strength.score ? "bg-brand-green" : "bg-brand-green-line"}`} />
         ))}
         <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
       </div>

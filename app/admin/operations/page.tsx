@@ -57,7 +57,7 @@ export default async function AdminOperationsPage({
         <h1 className="text-2xl font-black text-brand-green-ink">
           Factory, wholesale, retail and online operations
         </h1>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
           Raw material, production progress, worker tasks, QC, finished stock,
           vehicle dispatch, sales return, and customer ledger control.
         </p>
@@ -76,10 +76,10 @@ export default async function AdminOperationsPage({
           ["Ready for QC", productionControl.readyForQc, `${productionControl.todayStockPairs} pairs stocked today`],
           ["Worker balance due", `Rs. ${productionControl.workerBalanceDue.toLocaleString("en-IN")}`, `${productionControl.handoverMismatches} handover mismatch`],
         ].map(([label, value, detail]) => (
-          <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-gray-500">{label}</p>
+          <div key={label} className="rounded-xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-brand-muted">{label}</p>
             <p className="mt-2 text-xl font-black text-brand-green-ink">{value}</p>
-            <p className="mt-2 text-xs font-bold text-gray-500">{detail}</p>
+            <p className="mt-2 text-xs font-bold text-brand-muted">{detail}</p>
           </div>
         ))}
       </div>

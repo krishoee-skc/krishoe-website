@@ -127,9 +127,9 @@ export default function AdminAlertCenter() {
       case "medium":
         return "bg-yellow-100 border-yellow-300 text-yellow-900";
       case "low":
-        return "bg-blue-100 border-blue-300 text-blue-900";
+        return "bg-brand-green-wash border-brand-green-line text-brand-green";
       default:
-        return "bg-gray-100 border-gray-300 text-gray-900";
+        return "bg-brand-mist border-brand-green-line text-brand-green-ink";
     }
   };
 
@@ -138,9 +138,9 @@ export default function AdminAlertCenter() {
       critical: "bg-red-500 text-white",
       high: "bg-orange-500 text-white",
       medium: "bg-yellow-500 text-white",
-      low: "bg-blue-500 text-white",
+      low: "bg-brand-green text-white",
     };
-    return colors[severity] || "bg-gray-500 text-white";
+    return colors[severity] || "bg-brand-muted-deep text-white";
   };
 
   const formatTime = (dateStr: string) => {
@@ -172,20 +172,20 @@ export default function AdminAlertCenter() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-brand-green-ink mb-2">
               🔔 Alert Center
             </h1>
-            <p className="text-gray-600">
+            <p className="text-brand-muted">
               Manage and monitor all system alerts and notifications
             </p>
           </div>
           {stats && stats.unread_count > 0 && (
             <button
               onClick={handleMarkAllAsRead}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              className="px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-brand-green-ink text-sm font-medium"
             >
               Mark all read
             </button>
@@ -203,9 +203,9 @@ export default function AdminAlertCenter() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-sm text-blue-600 font-medium">📊 Today</div>
-            <div className="text-3xl font-bold text-blue-900">
+          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
+            <div className="text-sm text-brand-green font-medium">📊 Today</div>
+            <div className="text-3xl font-bold text-brand-green">
               {stats.total_today}
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function AdminAlertCenter() {
       )}
 
       {/* Filter Tabs */}
-      <div className="overflow-x-auto border-b border-gray-200">
+      <div className="overflow-x-auto border-b border-brand-green-line">
         <div className="flex gap-1">
           {filterOptions.map((option) => (
             <button
@@ -235,8 +235,8 @@ export default function AdminAlertCenter() {
               onClick={() => setFilter(option.key)}
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
                 filter === option.key
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
+                  ? "border-brand-green text-brand-green"
+                  : "border-transparent text-brand-muted hover:text-brand-green-ink"
               }`}
             >
               {option.label}
@@ -248,13 +248,13 @@ export default function AdminAlertCenter() {
       {/* Alerts List */}
       <div className="space-y-3">
         {loading && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-brand-muted">
             Loading alerts...
           </div>
         )}
 
         {!loading && alerts.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-brand-muted">
             <div className="text-4xl mb-2">✨</div>
             No alerts found
           </div>
@@ -267,7 +267,7 @@ export default function AdminAlertCenter() {
               onClick={() => setSelectedAlert(alert)}
               className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
                 alert.read
-                  ? "bg-gray-50 border-gray-200"
+                  ? "bg-brand-paper-deep border-brand-green-line"
                   : getSeverityColor(alert.severity)
               }`}
             >
@@ -276,10 +276,10 @@ export default function AdminAlertCenter() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{alert.icon}</span>
                     <div>
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-brand-green-ink">
                         {alert.title}
                       </h3>
-                      <p className="text-sm text-gray-700 mt-1">
+                      <p className="text-sm text-brand-muted-deep mt-1">
                         {alert.message}
                       </p>
                     </div>
@@ -298,7 +298,7 @@ export default function AdminAlertCenter() {
                         UNREAD
                       </span>
                     )}
-                    <span className="px-2 py-1 rounded text-xs font-medium bg-gray-500 text-white">
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-brand-muted-deep text-white">
                       {formatTime(alert.created_at)}
                     </span>
                   </div>
@@ -306,7 +306,7 @@ export default function AdminAlertCenter() {
                   {alert.action_url && (
                     <Link
                       href={alert.action_url}
-                      className="inline-block mt-3 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      className="inline-block mt-3 px-3 py-1 bg-brand-green text-white text-sm rounded hover:bg-brand-green-ink"
                     >
                       {alert.action_label || "View"}
                     </Link>
@@ -343,15 +343,15 @@ export default function AdminAlertCenter() {
       {/* Detail Modal */}
       {selectedAlert && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-brand-paper rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-brand-green-ink">
                   {selectedAlert.icon} {selectedAlert.title}
                 </h2>
                 <button
                   onClick={() => setSelectedAlert(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-brand-muted hover:text-brand-muted-deep text-2xl"
                 >
                   ×
                 </button>
@@ -359,26 +359,26 @@ export default function AdminAlertCenter() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">
+                  <label className="text-sm font-medium text-brand-muted">
                     Message
                   </label>
-                  <div className="text-gray-900 mt-1">
+                  <div className="text-brand-green-ink mt-1">
                     {selectedAlert.message}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Type
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedAlert.type.replace(/_/g, " ")}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Severity
                     </label>
                     <div>
@@ -393,19 +393,19 @@ export default function AdminAlertCenter() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Status
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {selectedAlert.read ? "Read" : "Unread"}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Created
                     </label>
-                    <div className="text-gray-900">
+                    <div className="text-brand-green-ink">
                       {formatAdminDate(selectedAlert.created_at, { time: true })}
                     </div>
                   </div>
@@ -413,10 +413,10 @@ export default function AdminAlertCenter() {
 
                 {Object.keys(selectedAlert.data || {}).length > 0 && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
+                    <label className="text-sm font-medium text-brand-muted">
                       Details
                     </label>
-                    <pre className="bg-gray-50 p-3 rounded text-xs overflow-x-auto mt-1">
+                    <pre className="bg-brand-paper-deep p-3 rounded text-xs overflow-x-auto mt-1">
                       {JSON.stringify(selectedAlert.data, null, 2)}
                     </pre>
                   </div>
@@ -425,7 +425,7 @@ export default function AdminAlertCenter() {
                 {selectedAlert.action_url && (
                   <Link
                     href={selectedAlert.action_url}
-                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="inline-block px-4 py-2 bg-brand-green text-white rounded hover:bg-brand-green-ink"
                   >
                     {selectedAlert.action_label || "Take Action"}
                   </Link>

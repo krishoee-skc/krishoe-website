@@ -99,16 +99,16 @@ export default function WorkerAnalyticsDashboard({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-lg border border-brand-green/20 bg-white p-6">
+      <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
               Worker Analytics
             </p>
             <h1 className="text-2xl font-black text-brand-green-ink">
               🏆 Performance Dashboard
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-brand-muted">
               {month} {year} • {teamStats.totalWorkers} workers
             </p>
           </div>
@@ -117,50 +117,50 @@ export default function WorkerAnalyticsDashboard({
 
       {/* Team Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+          <p className="text-xs font-semibold uppercase text-brand-muted mb-2">
             📊 Total Pairs
           </p>
           <p className="text-2xl font-black text-brand-green-ink">
             {formatNumber(teamStats.totalMonthlyPairs)}
           </p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-brand-muted mt-1">
             Avg: {Math.round(teamStats.avgPairs)} pairs/worker
           </p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+          <p className="text-xs font-semibold uppercase text-brand-muted mb-2">
             💰 Total Earnings
           </p>
           <p className="text-2xl font-black text-brand-green-ink">
             {formatCurrency(teamStats.totalMonthlyEarnings)}
           </p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-brand-muted mt-1">
             Avg: {formatCurrency(teamStats.avgEarnings)}/worker
           </p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+          <p className="text-xs font-semibold uppercase text-brand-muted mb-2">
             ✅ Quality Rate
           </p>
           <p className="text-2xl font-black text-brand-green-ink">
             {(100 - teamStats.avgDefect).toFixed(1)}%
           </p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-brand-muted mt-1">
             Defect rate: {teamStats.avgDefect.toFixed(2)}%
           </p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase text-gray-500 mb-2">
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+          <p className="text-xs font-semibold uppercase text-brand-muted mb-2">
              📅 Attendance
           </p>
           <p className="text-2xl font-black text-brand-green-ink">
             {teamStats.avgAttendance.toFixed(0)}%
           </p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-brand-muted mt-1">
             Avg attendance rate
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function WorkerAnalyticsDashboard({
       {/* Top Performers */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Top 5 Earners */}
-        <div className="rounded-lg border border-brand-green/20 bg-white p-6">
+        <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6">
           <div className="mb-4 flex items-center gap-2">
             <h2 className="font-bold text-brand-green-ink">📈 🥇 Top Earners</h2>
           </div>
@@ -181,7 +181,7 @@ export default function WorkerAnalyticsDashboard({
                 className={`w-full rounded-lg border p-3 text-left transition ${
                   selectedWorker === worker.workerId
                     ? "border-brand-green bg-brand-green/10"
-                    : "border-gray-200 hover:border-brand-green"
+                    : "border-brand-green-line hover:border-brand-green"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -190,11 +190,11 @@ export default function WorkerAnalyticsDashboard({
                       <span className="text-lg font-black text-brand-green">
                         #{idx + 1}
                       </span>
-                      <span className="font-bold text-gray-700">
+                      <span className="font-bold text-brand-muted-deep">
                         {worker.workerName}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-brand-muted mt-1">
                       {worker.category}
                     </p>
                   </div>
@@ -202,7 +202,7 @@ export default function WorkerAnalyticsDashboard({
                     <p className="font-bold text-brand-green-ink">
                       {formatCurrency(worker.monthlyEarnings)}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-brand-muted">
                       {worker.monthlyPairs} pairs
                     </p>
                   </div>
@@ -213,7 +213,7 @@ export default function WorkerAnalyticsDashboard({
         </div>
 
         {/* Quality Champions */}
-        <div className="rounded-lg border border-brand-green/20 bg-white p-6">
+        <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6">
           <div className="mb-4 flex items-center gap-2">
             <CheckIcon className="h-5 w-5 text-brand-green" />
             <h2 className="font-bold text-brand-green-ink">✨ Quality Leaders</h2>
@@ -250,7 +250,7 @@ export default function WorkerAnalyticsDashboard({
         </div>
 
         {/* Attendance Champions */}
-        <div className="rounded-lg border border-brand-green/20 bg-white p-6">
+        <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6">
           <div className="mb-4 flex items-center gap-2">
             <UserIcon className="h-5 w-5 text-brand-green" />
             <h2 className="font-bold text-brand-green-ink">📅 Attendance Champs</h2>
@@ -259,24 +259,24 @@ export default function WorkerAnalyticsDashboard({
             {attendanceChampions.map((worker, idx) => (
               <div
                 key={worker.workerId}
-                className="rounded-lg border border-blue-200 bg-blue-50 p-3"
+                className="rounded-lg border border-brand-green-line bg-brand-green-wash p-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg font-black text-blue-600">
+                      <span className="text-lg font-black text-brand-green">
                         {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}
                       </span>
-                      <span className="font-bold text-blue-900">
+                      <span className="font-bold text-brand-green">
                         {worker.workerName}
                       </span>
                     </div>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-brand-green mt-1">
                       {worker.presentDays} days present
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-blue-700">
+                    <p className="font-bold text-brand-green">
                       {worker.attendanceRate.toFixed(0)}%
                     </p>
                   </div>
@@ -292,19 +292,19 @@ export default function WorkerAnalyticsDashboard({
         <div className="rounded-lg border border-brand-green/30 bg-brand-green/5 p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-500">
+              <p className="text-sm font-semibold text-brand-muted">
                 Detailed View
               </p>
               <h2 className="text-2xl font-black text-brand-green-ink">
                 {selectedWorkerData.workerName}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-brand-muted">
                 {selectedWorkerData.category} • Piece-Rate Worker
               </p>
             </div>
             <button
               onClick={() => setSelectedWorker(null)}
-              className="rounded-lg border border-gray-300 px-4 py-2 font-bold text-gray-700 hover:bg-gray-50"
+              className="rounded-lg border border-brand-green-line px-4 py-2 font-bold text-brand-muted-deep hover:bg-brand-paper-deep"
             >
               Close
             </button>
@@ -312,19 +312,19 @@ export default function WorkerAnalyticsDashboard({
 
           <div className="grid gap-4 sm:grid-cols-3">
             {/* Today */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 📊 TODAY
               </p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-sm text-gray-600">Pairs</p>
+                  <p className="text-sm text-brand-muted">Pairs</p>
                   <p className="text-xl font-black text-brand-green-ink">
                     {selectedWorkerData.todayPairs}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Earnings</p>
+                  <p className="text-sm text-brand-muted">Earnings</p>
                   <p className="font-bold text-brand-green-ink">
                     {formatCurrency(selectedWorkerData.todayEarnings)}
                   </p>
@@ -333,22 +333,22 @@ export default function WorkerAnalyticsDashboard({
             </div>
 
             {/* Weekly */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 📈 THIS WEEK
               </p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-sm text-gray-600">Pairs</p>
+                  <p className="text-sm text-brand-muted">Pairs</p>
                   <p className="text-xl font-black text-brand-green-ink">
                     {selectedWorkerData.weeklyPairs}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-brand-muted">
                     {selectedWorkerData.weeklyDays} days
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Earnings</p>
+                  <p className="text-sm text-brand-muted">Earnings</p>
                   <p className="font-bold text-brand-green-ink">
                     {formatCurrency(selectedWorkerData.weeklyEarnings)}
                   </p>
@@ -357,22 +357,22 @@ export default function WorkerAnalyticsDashboard({
             </div>
 
             {/* Monthly */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 📊 THIS MONTH
               </p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-sm text-gray-600">Pairs</p>
+                  <p className="text-sm text-brand-muted">Pairs</p>
                   <p className="text-xl font-black text-brand-green-ink">
                     {selectedWorkerData.monthlyPairs}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-brand-muted">
                     {selectedWorkerData.monthlyDays} days
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Earnings</p>
+                  <p className="text-sm text-brand-muted">Earnings</p>
                   <p className="font-bold text-brand-green-ink">
                     {formatCurrency(selectedWorkerData.monthlyEarnings)}
                   </p>
@@ -381,19 +381,19 @@ export default function WorkerAnalyticsDashboard({
             </div>
 
             {/* Quality Metrics */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 ✅ QUALITY
               </p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-sm text-gray-600">Completed</p>
+                  <p className="text-sm text-brand-muted">Completed</p>
                   <p className="text-xl font-black text-emerald-600">
                     {selectedWorkerData.completedPairs}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Rework</p>
+                  <p className="text-sm text-brand-muted">Rework</p>
                   <p className="text-lg font-bold text-orange-600">
                     {selectedWorkerData.reworkPairs}
                   </p>
@@ -402,8 +402,8 @@ export default function WorkerAnalyticsDashboard({
             </div>
 
             {/* Defect Rate */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 🎯 DEFECT RATE
               </p>
               <div className="space-y-3">
@@ -412,11 +412,11 @@ export default function WorkerAnalyticsDashboard({
                     <p className="text-3xl font-black text-brand-green-ink">
                       {(100 - selectedWorkerData.defectRate).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-gray-500">quality</p>
+                    <p className="text-xs text-brand-muted">quality</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-brand-muted">
                     Defect: {selectedWorkerData.defectRate.toFixed(2)}%
                   </p>
                 </div>
@@ -424,20 +424,20 @@ export default function WorkerAnalyticsDashboard({
             </div>
 
             {/* Attendance */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase text-gray-500 mb-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <p className="text-xs font-bold uppercase text-brand-muted mb-2">
                 📅 ATTENDANCE
               </p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-sm text-gray-600">Present</p>
-                  <p className="text-xl font-black text-blue-600">
+                  <p className="text-sm text-brand-muted">Present</p>
+                  <p className="text-xl font-black text-brand-green">
                     {selectedWorkerData.presentDays}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Rate</p>
-                  <p className="font-bold text-blue-600">
+                  <p className="text-sm text-brand-muted">Rate</p>
+                  <p className="font-bold text-brand-green">
                     {selectedWorkerData.attendanceRate.toFixed(0)}%
                   </p>
                 </div>
@@ -446,17 +446,17 @@ export default function WorkerAnalyticsDashboard({
           </div>
 
           {/* Performance Gauge */}
-          <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+          <div className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper p-4">
             <p className="mb-4 font-bold text-brand-green-ink">
               📊 Monthly Performance vs Team Average
             </p>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between gap-2 mb-2">
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-semibold text-brand-muted-deep">
                     Earnings
                   </span>
-                  <span className="text-sm font-bold text-gray-600">
+                  <span className="text-sm font-bold text-brand-muted">
                     {(
                       (selectedWorkerData.monthlyEarnings /
                         teamStats.avgEarnings) *
@@ -464,7 +464,7 @@ export default function WorkerAnalyticsDashboard({
                     ).toFixed(0)}% of avg
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-gray-200">
+                <div className="h-2 rounded-full bg-brand-green-line">
                   <div
                     className="h-2 rounded-full bg-brand-green transition-all"
                     style={{
@@ -481,10 +481,10 @@ export default function WorkerAnalyticsDashboard({
 
               <div>
                 <div className="flex justify-between gap-2 mb-2">
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-semibold text-brand-muted-deep">
                     Production
                   </span>
-                  <span className="text-sm font-bold text-gray-600">
+                  <span className="text-sm font-bold text-brand-muted">
                     {(
                       (selectedWorkerData.monthlyPairs /
                         teamStats.avgPairs) *
@@ -492,9 +492,9 @@ export default function WorkerAnalyticsDashboard({
                     ).toFixed(0)}% of avg
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-gray-200">
+                <div className="h-2 rounded-full bg-brand-green-line">
                   <div
-                    className="h-2 rounded-full bg-blue-500 transition-all"
+                    className="h-2 rounded-full bg-brand-green transition-all"
                     style={{
                       width: `${Math.min(
                         100,
@@ -509,10 +509,10 @@ export default function WorkerAnalyticsDashboard({
 
               <div>
                 <div className="flex justify-between gap-2 mb-2">
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-semibold text-brand-muted-deep">
                     Quality Rate
                   </span>
-                  <span className="text-sm font-bold text-gray-600">
+                  <span className="text-sm font-bold text-brand-muted">
                     {(
                       ((100 - selectedWorkerData.defectRate) /
                         (100 - teamStats.avgDefect)) *
@@ -520,7 +520,7 @@ export default function WorkerAnalyticsDashboard({
                     ).toFixed(0)}% of avg
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-gray-200">
+                <div className="h-2 rounded-full bg-brand-green-line">
                   <div
                     className="h-2 rounded-full bg-emerald-500 transition-all"
                     style={{
@@ -544,7 +544,7 @@ export default function WorkerAnalyticsDashboard({
       {/* Summary Insights */}
       <div className="rounded-lg border border-brand-gold/30 bg-brand-cream-soft p-6">
         <p className="mb-3 font-bold text-brand-gold-ink">📌 Key Insights</p>
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-brand-muted-deep">
           <li>
             ✅ Top earner <span className="font-bold">{topPerformers[0]?.workerName}</span> made{" "}
             <span className="font-bold">

@@ -99,7 +99,7 @@ export default async function MeasurementPage() {
     <section className="p-6 pb-24">
       <div>
         <h1 className="text-2xl font-black text-brand-green-ink">मापन सेटअप</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           कति मान्छे आए, के हेरे, किन नकिनी गए — यी नराखेसम्म केही थाहा हुँदैन।
           कोड तयारै छ।{" "}
           {missing.length === 0
@@ -135,12 +135,12 @@ export default async function MeasurementPage() {
         </p>
 
         {live.length === 0 ? (
-          <p className="mt-2 text-sm leading-6 text-gray-700">
+          <p className="mt-2 text-sm leading-6 text-brand-muted-deep">
             <strong className="text-brand-green-ink">खर्च रु ०। समय ~३० मिनेट।</strong>{" "}
             यो नगरी विज्ञापनमा एक रुपैयाँ पनि नहाल्नुहोस् — कुन काम लाग्यो थाहै हुँदैन।
           </p>
         ) : missing.length > 0 ? (
-          <p className="mt-2 text-sm leading-6 text-gray-700">
+          <p className="mt-2 text-sm leading-6 text-brand-muted-deep">
             <strong className="text-brand-green-ink">
               {live.map((tracker) => tracker.nepali).join(" र ")} मा विज्ञापन चलाउन ढुक्क हुनुहोस्
             </strong>{" "}
@@ -157,16 +157,16 @@ export default async function MeasurementPage() {
           return (
             <article
               key={tracker.key}
-              className={`rounded-2xl border bg-white p-5 shadow-sm ${
-                on ? "border-emerald-200" : "border-gray-200"
+              className={`rounded-2xl border bg-brand-paper p-5 shadow-sm ${
+                on ? "border-emerald-200" : "border-brand-green-line"
               }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-brand-green-ink">
-                    {tracker.name} <span className="font-bold text-gray-500">· {tracker.nepali}</span>
+                    {tracker.name} <span className="font-bold text-brand-muted">· {tracker.nepali}</span>
                   </h2>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">{tracker.why}</p>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">{tracker.why}</p>
                 </div>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-black ${
@@ -186,9 +186,9 @@ export default async function MeasurementPage() {
                 </p>
               ) : (
                 <>
-                  <ol className="mt-4 grid gap-2 text-sm leading-6 text-gray-700">
+                  <ol className="mt-4 grid gap-2 text-sm leading-6 text-brand-muted-deep">
                     {tracker.steps.map((step, index) => (
-                      <li key={step} className="flex gap-3 rounded-xl bg-gray-50 px-3 py-2">
+                      <li key={step} className="flex gap-3 rounded-xl bg-brand-paper-deep px-3 py-2">
                         <span className="font-black text-brand-green">{index + 1}.</span>
                         <span>{step}</span>
                       </li>
@@ -201,7 +201,7 @@ export default async function MeasurementPage() {
                     </p>
                   ) : null}
 
-                  <p className="mt-3 text-xs leading-5 text-gray-500">
+                  <p className="mt-3 text-xs leading-5 text-brand-muted">
                     कस्तो देखिन्छ: <span className="font-mono text-brand-green-ink">{tracker.looksLike}</span>
                   </p>
 
@@ -227,8 +227,8 @@ export default async function MeasurementPage() {
 
       <section className="mt-8 rounded-2xl border-2 border-brand-green/25 bg-brand-green-wash/40 p-5">
         <h2 className="text-lg font-black text-brand-green-ink">ID पाएपछि कहाँ हाल्ने</h2>
-        <ol className="mt-3 grid gap-2 text-sm leading-6 text-gray-700">
-          <li className="rounded-xl bg-white px-3 py-2">
+        <ol className="mt-3 grid gap-2 text-sm leading-6 text-brand-muted-deep">
+          <li className="rounded-xl bg-brand-paper px-3 py-2">
             <strong className="text-brand-green-ink">१.</strong> तलको बटनले सिधै{" "}
             <strong>Environment Variables</strong> मै पुर्‍याउँछ
             {/* Straight to the Environment Variables screen. The account slug
@@ -246,7 +246,7 @@ export default async function MeasurementPage() {
           {/* Only the missing ones. Listing a key that is already live invites
               it being pasted a second time, and a duplicate there overwrites a
               working value with whatever was on the clipboard. */}
-          <li className="rounded-xl bg-white px-3 py-2">
+          <li className="rounded-xl bg-brand-paper px-3 py-2">
             <strong className="text-brand-green-ink">२.</strong> Key र Value हालेर{" "}
             <strong>Save</strong> — यी{" "}
             {missing.length === trackers.length ? "तीन" : `${missing.length}`} वटा बाँकी छन्:
@@ -256,7 +256,7 @@ export default async function MeasurementPage() {
               ))}
             </div>
           </li>
-          <li className="rounded-xl bg-white px-3 py-2">
+          <li className="rounded-xl bg-brand-paper px-3 py-2">
             <strong className="text-brand-green-ink">३.</strong> माथि{" "}
             <strong>Deployments</strong> → पछिल्लोमा <strong>⋯</strong> →{" "}
             <strong>Redeploy</strong>
@@ -264,12 +264,12 @@ export default async function MeasurementPage() {
               ⚠️ यो नथिचेसम्म ID हालेको काम लाग्दैन — सबैले यहीँ चुक्छन्।
             </span>
           </li>
-          <li className="rounded-xl bg-white px-3 py-2">
+          <li className="rounded-xl bg-brand-paper px-3 py-2">
             <strong className="text-brand-green-ink">४.</strong> यही पाना फेरि खोल्नुहोस् —
             हरियो <strong>चालु</strong> देखियो भने भयो
           </li>
         </ol>
-        <p className="mt-3 text-xs leading-5 text-gray-600">
+        <p className="mt-3 text-xs leading-5 text-brand-muted">
           ⚠️ नाम ठ्याक्कै माथिकै जस्तो हुनुपर्छ — एउटा अक्षर फरक परे चल्दैन।
         </p>
       </section>

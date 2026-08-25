@@ -98,7 +98,7 @@ export default async function OpenOnPhonePage() {
       <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">फोनमा खोल्ने</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
             फोनको camera यी QR मा तेर्साउनुहोस् — ठेगाना टाइप गर्नु पर्दैन।
             छापेर भित्तामा पनि टाँस्न मिल्छ।
           </p>
@@ -110,11 +110,11 @@ export default async function OpenOnPhonePage() {
 
       {/* Said once, at the top, because it is the question the owner asked:
           what happens if someone else scans this. */}
-      <section className="mt-5 rounded-2xl border-2 border-brand-green/25 bg-brand-green-wash/40 p-5 print:border print:bg-white">
+      <section className="mt-5 rounded-2xl border-2 border-brand-green/25 bg-brand-green-wash/40 p-5 print:border print:bg-brand-paper">
         <h2 className="text-lg font-black text-brand-green-ink">
           🔑 QR भनेको ठेगाना हो — साँचो होइन
         </h2>
-        <div className="mt-3 grid gap-2 text-sm leading-6 text-gray-700">
+        <div className="mt-3 grid gap-2 text-sm leading-6 text-brand-muted-deep">
           <p>
             <strong className="text-brand-green-ink">यी QR मा password छैन, token छैन, कसैको नाम छैन।</strong>{" "}
             कसैले खिच्यो भने उसले पाउने भनेको login पाना मात्र हो — जुन पहिले नै
@@ -125,10 +125,10 @@ export default async function OpenOnPhonePage() {
             मालिक-staff लाई <strong className="text-brand-green-ink">Gmail मा आउने कोड</strong> पनि।
             ती QR मा हुँदैनन्, त्यसैले QR हराए पनि केही जाँदैन।
           </p>
-          <p className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-brand-clay print:bg-white">
+          <p className="rounded-lg bg-brand-paper px-3 py-2 text-xs font-bold text-brand-clay print:bg-brand-paper">
             ⚠️ QR सँगै password चाहिँ कहिल्यै नलेख्नुहोस्। कागज हराए खाता जान्छ।
           </p>
-          <p className="rounded-lg bg-white px-3 py-2 text-xs leading-5 text-gray-600 print:bg-white">
+          <p className="rounded-lg bg-brand-paper px-3 py-2 text-xs leading-5 text-brand-muted print:bg-brand-paper">
             <strong className="text-brand-green-ink">ढोका दुई मात्र छन्।</strong> मालिक, Manager र
             Accountant — तीनै जना <strong>एउटै</strong> ढोकाबाट पस्छन् (पहिलो QR)। कामदारको ढोका
             अर्को हो (दोस्रो QR)। यसबाहेक अरू कुनै login छैन।
@@ -140,16 +140,16 @@ export default async function OpenOnPhonePage() {
         {codes.map((code) => (
           <article
             key={code.key}
-            className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm print:border print:shadow-none"
+            className="rounded-2xl border border-brand-green-line bg-brand-paper p-6 text-center shadow-sm print:border print:shadow-none"
           >
             <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold-deep">
               {code.english}
             </p>
             <h2 className="mt-2 text-2xl font-black text-brand-green-ink">{code.title}</h2>
             {code.print ? (
-              <p className="text-sm font-semibold text-gray-500">छापेर भित्तामा टाँस्नुहोस्</p>
+              <p className="text-sm font-semibold text-brand-muted">छापेर भित्तामा टाँस्नुहोस्</p>
             ) : (
-              <p className="text-sm font-semibold text-gray-500">आफ्नै फोनमा राख्नुहोस्</p>
+              <p className="text-sm font-semibold text-brand-muted">आफ्नै फोनमा राख्नुहोस्</p>
             )}
 
             <img
@@ -158,7 +158,7 @@ export default async function OpenOnPhonePage() {
               className="mx-auto mt-5 h-56 w-56"
             />
 
-            <p className="mt-3 break-all font-mono text-xs text-gray-500">
+            <p className="mt-3 break-all font-mono text-xs text-brand-muted">
               {absoluteUrl(code.path)}
             </p>
 
@@ -166,18 +166,18 @@ export default async function OpenOnPhonePage() {
               {/* The heading printed on the page this opens. Scan it, look at
                   the top of the phone, and it either matches or it does not —
                   which is the check the owner had no way to make. */}
-              <div className="rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-white">
+              <div className="rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-brand-paper">
                 <dt className="text-xs font-black uppercase tracking-wider text-brand-green">
                   फोनमा यही लेखेको आउनुपर्छ
                 </dt>
                 <dd className="mt-0.5 font-black text-brand-green-ink">“{code.opens}”</dd>
               </div>
-              <div className="rounded-xl bg-gray-50 p-3 print:bg-white">
-                <dt className="text-xs font-black uppercase tracking-wider text-gray-400">कसका लागि</dt>
+              <div className="rounded-xl bg-brand-paper-deep p-3 print:bg-brand-paper">
+                <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft">कसका लागि</dt>
                 <dd className="mt-0.5 font-semibold text-brand-green-ink">{code.who}</dd>
               </div>
-              <div className="rounded-xl bg-gray-50 p-3 print:bg-white">
-                <dt className="text-xs font-black uppercase tracking-wider text-gray-400">भित्र पस्न चाहिने</dt>
+              <div className="rounded-xl bg-brand-paper-deep p-3 print:bg-brand-paper">
+                <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft">भित्र पस्न चाहिने</dt>
                 <dd className="mt-0.5 font-semibold text-brand-green-ink">{code.guard}</dd>
               </div>
             </dl>
@@ -189,7 +189,7 @@ export default async function OpenOnPhonePage() {
         <h2 className="text-xl font-black text-brand-green-ink">
           हरेक जनाको आफ्नै QR
         </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
           माथिकै ढोका हो — तर खिच्ने मान्छे भित्र पसेपछि{" "}
           <strong className="text-brand-green-ink">सिधै आफ्नो कामको पानामा</strong> पुग्छ।
           हरेक पटक मेनु खोज्नु पर्दैन।
@@ -204,7 +204,7 @@ export default async function OpenOnPhonePage() {
           {roleCodes.map((code) => (
             <article
               key={code.key}
-              className="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm print:border print:shadow-none"
+              className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-center shadow-sm print:border print:shadow-none"
             >
               <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
                 {code.role}
@@ -216,23 +216,23 @@ export default async function OpenOnPhonePage() {
                 className="mx-auto mt-4 h-40 w-40"
               />
 
-              <div className="mt-4 rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-white">
+              <div className="mt-4 rounded-xl border border-brand-green/25 bg-brand-green-wash/50 p-3 print:border print:bg-brand-paper">
                 <p className="text-xs font-black uppercase tracking-wider text-brand-green">
                   पुग्ने ठाउँ
                 </p>
                 <p className="mt-0.5 font-black text-brand-green-ink">{code.lands}</p>
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-gray-600">{code.why}</p>
-              <p className="mt-2 break-all font-mono text-[11px] text-gray-400">{code.path}</p>
+              <p className="mt-3 text-sm leading-6 text-brand-muted">{code.why}</p>
+              <p className="mt-2 break-all font-mono text-[11px] text-brand-muted-soft">{code.path}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 print:hidden">
+      <section className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-5 print:hidden">
         <h2 className="text-lg font-black text-brand-green-ink">फोनमा app जस्तै बनाउने</h2>
-        <ol className="mt-3 grid gap-2 text-sm leading-6 text-gray-700">
+        <ol className="mt-3 grid gap-2 text-sm leading-6 text-brand-muted-deep">
           <li>
             <strong className="text-brand-green-ink">१.</strong> QR स्क्यान गरेपछि{" "}
             <strong>Chrome</strong> मा खुल्छ (Facebook वा WhatsApp भित्रको browser मा होइन)।
@@ -249,7 +249,7 @@ export default async function OpenOnPhonePage() {
         </ol>
         <Link
           href="/admin/settings"
-          className="mt-4 inline-flex h-11 items-center rounded-full border border-gray-200 px-5 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          className="mt-4 inline-flex h-11 items-center rounded-full border border-brand-green-line px-5 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
           कामदारको खाता खोल्ने → Settings
         </Link>

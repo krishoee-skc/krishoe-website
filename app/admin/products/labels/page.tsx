@@ -44,7 +44,7 @@ export default async function ProductLabelsPage() {
             ← Products
           </Link>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Barcode labels</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
             हरेक design को SKU barcode — sticker paper मा print गरी बट्टा/rack मा टाँस्नुहोस्। POS मा scan गर्नासाथ
             सामान बिलमा झर्छ।
           </p>
@@ -55,7 +55,7 @@ export default async function ProductLabelsPage() {
       </div>
 
       {products.length === 0 ? (
-        <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+        <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
           No products yet. Buy or make some from Purchasing.
         </p>
       ) : (
@@ -63,7 +63,7 @@ export default async function ProductLabelsPage() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex flex-col items-center gap-1 rounded-lg border border-gray-200 bg-white p-3 text-center print:break-inside-avoid"
+              className="flex flex-col items-center gap-1 rounded-lg border border-brand-green-line bg-brand-paper p-3 text-center print:break-inside-avoid"
             >
               <p className="line-clamp-2 text-xs font-black text-brand-green-ink">{product.name}</p>
               <img

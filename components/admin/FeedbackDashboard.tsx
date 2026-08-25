@@ -86,7 +86,7 @@ export default function FeedbackDashboard() {
   const statusColors: Record<string, string> = {
     new: "bg-red-100 text-red-900",
     acknowledged: "bg-yellow-100 text-yellow-900",
-    in_progress: "bg-blue-100 text-blue-900",
+    in_progress: "bg-brand-green-wash text-brand-green",
     resolved: "bg-green-100 text-green-900",
   };
 
@@ -94,33 +94,33 @@ export default function FeedbackDashboard() {
     <div className="space-y-8">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-brand-paper p-4 rounded-lg border">
           <div className="text-2xl font-bold">{stats.total}</div>
-          <div className="text-gray-600 text-sm">Total Feedback</div>
+          <div className="text-brand-muted text-sm">Total Feedback</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-brand-paper p-4 rounded-lg border">
           <div className="text-2xl font-bold text-red-600">
             {stats.byStatus["new"] || 0}
           </div>
-          <div className="text-gray-600 text-sm">New</div>
+          <div className="text-brand-muted text-sm">New</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-brand-paper p-4 rounded-lg border">
           <div className="text-2xl font-bold text-yellow-600">
             {stats.unresolved}
           </div>
-          <div className="text-gray-600 text-sm">Unresolved</div>
+          <div className="text-brand-muted text-sm">Unresolved</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-brand-paper p-4 rounded-lg border">
           <div className="text-2xl font-bold text-green-600">
             {stats.byStatus["resolved"] || 0}
           </div>
-          <div className="text-gray-600 text-sm">Resolved</div>
+          <div className="text-brand-muted text-sm">Resolved</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-brand-paper p-4 rounded-lg border">
           <div className="text-2xl font-bold text-orange-600">
             ⭐ {stats.averageRating.toFixed(1)}
           </div>
-          <div className="text-gray-600 text-sm">Avg Rating</div>
+          <div className="text-brand-muted text-sm">Avg Rating</div>
         </div>
       </div>
 
@@ -157,9 +157,9 @@ export default function FeedbackDashboard() {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           {loading ? (
-            <div className="text-gray-500">Loading feedback...</div>
+            <div className="text-brand-muted">Loading feedback...</div>
           ) : feedback.length === 0 ? (
-            <div className="text-gray-500">No feedback found</div>
+            <div className="text-brand-muted">No feedback found</div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {feedback.map((f) => (
@@ -168,14 +168,14 @@ export default function FeedbackDashboard() {
                   onClick={() => setSelectedFeedback(f)}
                   className={`p-4 border rounded-lg cursor-pointer transition ${
                     selectedFeedback?.id === f.id
-                      ? "border-blue-500 bg-blue-50"
-                      : "hover:border-gray-400 bg-white"
+                      ? "border-brand-green bg-brand-green-wash"
+                      : "hover:border-brand-green bg-brand-paper"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{typeIcons[f.type]}</span>
-                      <span className="font-semibold capitalize text-gray-900">
+                      <span className="font-semibold capitalize text-brand-green-ink">
                         {f.type}
                       </span>
                     </div>
@@ -183,13 +183,13 @@ export default function FeedbackDashboard() {
                       {f.status.replace("_", " ")}
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-sm font-semibold text-brand-green-ink">
                     {f.title}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-brand-muted mt-1">
                     From: {f.userName} ({f.userType})
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-brand-muted">
                     {formatAdminDate(f.createdAt)} -{" "}
                     {new Date(f.createdAt).toLocaleTimeString()}
                   </div>
@@ -200,30 +200,30 @@ export default function FeedbackDashboard() {
         </div>
 
         {/* Detail Pane */}
-        <div className="bg-white border rounded-lg p-4 h-fit">
+        <div className="bg-brand-paper border rounded-lg p-4 h-fit">
           {selectedFeedback ? (
             <div className="space-y-4">
               <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                <div className="text-xs text-brand-muted uppercase tracking-wide">
                   ID
                 </div>
-                <div className="text-sm font-mono text-gray-900">
+                <div className="text-sm font-mono text-brand-green-ink">
                   {selectedFeedback.id}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                <div className="text-xs text-brand-muted uppercase tracking-wide">
                   Title
                 </div>
-                <div className="text-sm font-semibold text-gray-900">
+                <div className="text-sm font-semibold text-brand-green-ink">
                   {selectedFeedback.title}
                 </div>
               </div>
 
               {selectedFeedback.rating && (
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  <div className="text-xs text-brand-muted uppercase tracking-wide">
                     Rating
                   </div>
                   <div className="text-lg">
@@ -233,38 +233,38 @@ export default function FeedbackDashboard() {
               )}
 
               <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                <div className="text-xs text-brand-muted uppercase tracking-wide">
                   From
                 </div>
-                <div className="text-sm text-gray-900">
+                <div className="text-sm text-brand-green-ink">
                   {selectedFeedback.userName}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-brand-muted">
                   ({selectedFeedback.userType})
                 </div>
                 {selectedFeedback.userEmail && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-brand-muted">
                     {selectedFeedback.userEmail}
                   </div>
                 )}
                 {selectedFeedback.userPhone && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-brand-muted">
                     {selectedFeedback.userPhone}
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                <div className="text-xs text-brand-muted uppercase tracking-wide">
                   Message
                 </div>
-                <div className="text-sm text-gray-700 mt-1">
+                <div className="text-sm text-brand-muted-deep mt-1">
                   {selectedFeedback.message}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">
+                <div className="text-xs text-brand-muted uppercase tracking-wide mb-2">
                   Status
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -277,7 +277,7 @@ export default function FeedbackDashboard() {
                         className={`text-xs px-2 py-1 rounded transition ${
                           selectedFeedback.status === s
                             ? `${statusColors[s]} font-semibold`
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : "bg-brand-mist text-brand-muted-deep hover:bg-brand-green-line"
                         }`}
                       >
                         {s.replace("_", " ")}
@@ -287,12 +287,12 @@ export default function FeedbackDashboard() {
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-brand-muted">
                 Created: {formatAdminDate(selectedFeedback.createdAt, { time: true })}
               </div>
             </div>
           ) : (
-            <div className="text-gray-500 text-sm">
+            <div className="text-brand-muted text-sm">
               Select feedback to view details
             </div>
           )}

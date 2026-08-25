@@ -31,7 +31,7 @@ type HrEmployee = {
 
 const categories = FACTORY_WORKER_CATEGORIES;
 
-const inputClass = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900";
+const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-brand-green-ink";
 
 function factoryTypeForSalary(salaryType: string) {
   if (salaryType === "Piece Rate") return "piece_rate";
@@ -208,10 +208,10 @@ export default function WorkersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका मान्छे</p>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
-            कामदार <span className="text-lg font-bold text-slate-500">· Workers and HR linkage</span>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+            कामदार <span className="text-lg font-bold text-brand-muted">· Workers and HR linkage</span>
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
           </p>
         </div>
@@ -222,15 +222,15 @@ export default function WorkersPage() {
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{workers.filter((worker) => worker.hr_employee_id).length} linked</span>
-        <span className="rounded-full bg-gray-100 px-3 py-1.5 text-gray-600">{workers.filter((worker) => !worker.hr_employee_id).length} without an HR link (fine)</span>
-        <Link href="/admin/hr" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-brand-green underline">Open HR employees</Link>
+        <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">{workers.filter((worker) => !worker.hr_employee_id).length} without an HR link (fine)</span>
+        <Link href="/admin/hr" className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-1.5 text-brand-green underline">Open HR employees</Link>
       </div>
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900">{error}</p> : null}
 
       {showForm ? (
-        <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+        <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="mb-2 block text-sm font-bold">Existing HR employee (recommended)</label>
             <select value={formData.hr_employee_id} onChange={(event) => chooseHrEmployee(event.target.value)} className={inputClass}>
@@ -250,23 +250,23 @@ export default function WorkersPage() {
       ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-slate-500">Loading workers...</p> : null}
-        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">No factory workers yet.</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">Loading workers...</p> : null}
+        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">No factory workers yet.</p> : null}
         {workers.map((worker) => (
-          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-slate-200 bg-slate-50" : worker.hr_employee_id ? "border-emerald-200 bg-white" : "border-gray-200 bg-white"}`}>
+          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : worker.hr_employee_id ? "border-emerald-200 bg-brand-paper" : "border-brand-green-line bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-slate-500 line-through" : "text-slate-950"}`}>{worker.name}</h2>
-                <p className="mt-1 text-xs font-semibold text-slate-500">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
+                <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{worker.name}</h2>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
               </div>
               {worker.status !== "active" ? (
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-black text-slate-700">बन्द</span>
+                <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">बन्द</span>
               ) : null}
               {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
                   rates and the worker portal all read this list directly, and
                   the HR link only matters for Work Orders. Amber read as "fix
                   me" and pointed at a module holding no attendance or payroll. */}
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-gray-100 text-gray-500"}`}>{worker.hr_employee_id ? "HR linked" : "HR link optional"}</span>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-brand-mist text-brand-muted"}`}>{worker.hr_employee_id ? "HR linked" : "HR link optional"}</span>
             </div>
 
             {/* What was typed can be typed again. The stage list comes from
@@ -275,7 +275,7 @@ export default function WorkersPage() {
                 where five of this shop's eight workers work, so their stage
                 could not have been saved back. */}
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
                 नाम
                 <input
                   value={edits[worker.id]?.name ?? worker.name}
@@ -289,7 +289,7 @@ export default function WorkersPage() {
                   aria-label={`Name for ${worker.name}`}
                 />
               </label>
-              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
                 कारखानाको चरण
                 <select
                   value={edits[worker.id]?.category ?? worker.category}
@@ -307,7 +307,7 @@ export default function WorkersPage() {
                   ))}
                 </select>
               </label>
-              <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
                 ज्यालाको किसिम
                 <select
                   value={edits[worker.id]?.worker_type ?? worker.worker_type}
@@ -334,7 +334,7 @@ export default function WorkersPage() {
                     (edits[worker.id]?.category ?? worker.category) === worker.category &&
                     (edits[worker.id]?.worker_type ?? worker.worker_type) === worker.worker_type)
                 }
-                className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-slate-200 disabled:text-slate-400"
+                className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-brand-green-line disabled:text-brand-muted-soft"
               >
                 {saving === worker.id ? "गर्दैछौँ…" : "सच्याउने"}
               </button>
@@ -344,7 +344,7 @@ export default function WorkersPage() {
               type="button"
               onClick={() => void saveWorker(worker.id, { status: worker.status === "active" ? "inactive" : "active" })}
               disabled={saving === worker.id}
-              className={`mt-3 min-h-12 w-full rounded-xl border px-4 text-sm font-bold disabled:opacity-60 ${worker.status === "active" ? "border-slate-300 text-slate-600" : "border-brand-green font-black text-brand-green"}`}
+              className={`mt-3 min-h-12 w-full rounded-xl border px-4 text-sm font-bold disabled:opacity-60 ${worker.status === "active" ? "border-brand-green-line text-brand-muted" : "border-brand-green font-black text-brand-green"}`}
             >
               {saving === worker.id
                 ? "गर्दैछौँ…"
@@ -360,18 +360,18 @@ export default function WorkersPage() {
                   <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
                 ))}
               </select>
-              <button type="button" onClick={() => void saveHrLink(worker.id)} disabled={saving === worker.id || (linkDrafts[worker.id] || "") === (worker.hr_employee_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-slate-200 disabled:text-slate-400">{saving === worker.id ? "Saving..." : "Save HR link"}</button>
+              <button type="button" onClick={() => void saveHrLink(worker.id)} disabled={saving === worker.id || (linkDrafts[worker.id] || "") === (worker.hr_employee_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft">{saving === worker.id ? "Saving..." : "Save HR link"}</button>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
               <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>
-              {worker.hr_employee_id ? <Link href={`/admin/hr/employee/${worker.hr_employee_id}`} className="text-slate-600 underline underline-offset-4">HR profile</Link> : null}
+              {worker.hr_employee_id ? <Link href={`/admin/hr/employee/${worker.hr_employee_id}`} className="text-brand-muted underline underline-offset-4">HR profile</Link> : null}
             </div>
           </article>
         ))}
       </div>
 
-      <p className="mt-5 text-xs leading-5 text-slate-500">Only the Owner can create workers or change HR links. Linking does not delete or merge any historical record.</p>
+      <p className="mt-5 text-xs leading-5 text-brand-muted">Only the Owner can create workers or change HR links. Linking does not delete or merge any historical record.</p>
     </section>
   );
 }

@@ -59,7 +59,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">Products</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Create, edit, publish, draft, delete, and sync catalog stock with finished goods.
           </p>
         </div>
@@ -72,19 +72,19 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           </Link>
           <Link
             href="/admin/products/photo-guide"
-            className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             📸 Photo guide
           </Link>
           <Link
             href="/admin/products/labels"
-            className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >
             Barcode labels
           </Link>
           <form action={syncProductCatalogStockAction}>
             <FormSubmitButton
-              className="h-10 rounded-full border border-brand-green bg-white px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+              className="h-10 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
               pendingLabel="Syncing…"
             >
               Sync stock

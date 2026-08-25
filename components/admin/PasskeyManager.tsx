@@ -91,11 +91,11 @@ export default function PasskeyManager() {
   }
 
   return (
-    <section className="rounded-2xl border border-brand-green/15 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-brand-green/15 bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">
         Passkey — password बिनाको login
       </h2>
-      <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
+      <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
         {/* Which of the three it uses is the device's decision, not ours, and
             naming only the fingerprint is what made an owner on a Face ID phone
             look for a sensor that is not there and conclude the app does not
@@ -108,7 +108,7 @@ export default function PasskeyManager() {
           difference between a shortcut and a trap: if the phone is lost or
           reset, the password and the emailed code are still the way in, and
           that path is never taken away. */}
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
         यो यन्त्रमा मात्र बस्छ — अर्को फोन वा computer मा छुट्टै दर्ता गर्नुपर्छ।
         फोन हरायो वा reset भयो भने password र email को कोडले सधैँ पस्न मिल्छ।
       </p>
@@ -134,9 +134,9 @@ export default function PasskeyManager() {
 
       <div className="mt-5">
         {keys === null ? (
-          <p className="text-sm text-gray-500">हेर्दैछौँ…</p>
+          <p className="text-sm text-brand-muted">हेर्दैछौँ…</p>
         ) : keys.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-brand-muted">
             अहिलेसम्म कुनै यन्त्र दर्ता छैन — password बाटै चलिरहेको छ।
           </p>
         ) : (
@@ -144,7 +144,7 @@ export default function PasskeyManager() {
             {keys.map((key) => (
               <li
                 key={key.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-paper-deep px-4 py-3"
               >
                 <div>
                   <p className="font-black text-brand-green-ink">
@@ -155,7 +155,7 @@ export default function PasskeyManager() {
                       </span>
                     ) : null}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-brand-muted">
                     {key.lastUsedAt
                       ? `पछिल्लो पटक: ${formatAdminDate(key.lastUsedAt)}`
                       : "अझै प्रयोग भएको छैन"}
@@ -175,7 +175,7 @@ export default function PasskeyManager() {
         )}
       </div>
 
-      <p className="mt-4 text-xs leading-5 text-gray-500">
+      <p className="mt-4 text-xs leading-5 text-brand-muted">
         ⚠️ Password हट्दैन — passkey थपिने मात्र हो। फोन हराए password बाटै भित्र
         जान सकिन्छ, अनि यहाँबाट त्यो यन्त्र हटाइदिनुहोस्।
       </p>

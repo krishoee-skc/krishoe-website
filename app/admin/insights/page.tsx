@@ -39,8 +39,8 @@ function Stars({ value }: { value: number }) {
   return (
     <span className="font-black text-brand-gold-ink">
       {"★".repeat(Math.round(value))}
-      <span className="text-gray-300">{"★".repeat(Math.max(0, 5 - Math.round(value)))}</span>
-      <span className="ml-1 text-xs font-bold text-gray-500">{value.toFixed(1)}</span>
+      <span className="text-brand-muted-soft">{"★".repeat(Math.max(0, 5 - Math.round(value)))}</span>
+      <span className="ml-1 text-xs font-bold text-brand-muted">{value.toFixed(1)}</span>
     </span>
   );
 }
@@ -135,22 +135,22 @@ export default async function CustomerVoicePage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-brand-green-ink">कुन जुत्ता राम्रो — राय र फिर्ता</h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             ग्राहकले शब्दले (review) र खुट्टाले (return) के भन्छन् — दुवै एकै ठाउँमा। यसैबाट अर्को design
             र सुधारको दिशा निस्कन्छ।
           </p>
         </div>
         <Link
           href="/admin/reviews"
-          className="inline-flex h-10 items-center rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Review moderation
         </Link>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Average rating</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-medium text-brand-muted">Average rating</p>
           <p className="mt-2 text-3xl font-black text-brand-green-ink">
             {totalReviews > 0 ? `${overallAverage.toFixed(1)}/5` : "-"}
           </p>
@@ -158,8 +158,8 @@ export default async function CustomerVoicePage() {
             {totalReviews} reviews
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Return rate</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-medium text-brand-muted">Return rate</p>
           <p className={`mt-2 text-3xl font-black ${overallReturnRate >= HIGH_RETURN_RATE ? "text-brand-clay" : "text-brand-green"}`}>
             {totalSold > 0 ? `${overallReturnRate}%` : "-"}
           </p>
@@ -167,15 +167,15 @@ export default async function CustomerVoicePage() {
             {totalReturned} of {totalSold} pairs returned
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Designs praised</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-medium text-brand-muted">Designs praised</p>
           <p className="mt-2 text-3xl font-black text-brand-green">{topRated.length}</p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
             with customer reviews
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Needs attention</p>
+        <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <p className="text-sm font-medium text-brand-muted">Needs attention</p>
           <p className={`mt-2 text-3xl font-black ${attentionRows.length > 0 ? "text-brand-clay" : "text-brand-green"}`}>
             {attentionRows.length}
           </p>
@@ -193,7 +193,7 @@ export default async function CustomerVoicePage() {
           </p>
           <div className="mt-4 grid gap-3">
             {attentionRows.map((row) => (
-              <div key={row.design} className="rounded-lg border border-brand-clay/30 bg-white p-4">
+              <div key={row.design} className="rounded-lg border border-brand-clay/30 bg-brand-paper p-4">
                 <p className="font-black text-brand-green-ink">{row.design}</p>
                 <p className="mt-1 text-sm text-brand-clay">{row.reasons.join(" · ")}</p>
               </div>
@@ -201,17 +201,17 @@ export default async function CustomerVoicePage() {
           </div>
         </section>
       ) : (
-        <p className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-brand-green">
+        <p className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-green">
           अहिलेसम्म कुनै design मा चिन्ताको संकेत छैन। 👍
         </p>
       )}
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">⭐ मनपरेका design</h2>
-          <p className="mt-1 text-sm text-gray-500">ग्राहकले उच्च rating दिएका — यस्तै अरू बनाउने संकेत।</p>
+          <p className="mt-1 text-sm text-brand-muted">ग्राहकले उच्च rating दिएका — यस्तै अरू बनाउने संकेत।</p>
           {topRated.length === 0 ? (
-            <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+            <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
               अहिलेसम्म review छैन। बिल WhatsApp मा पठाउँदा &ldquo;राम्रो लागे review लेखिदिनुस्&rdquo;
               भन्न सकिन्छ — आवाज आउन थाल्छ।
             </p>
@@ -226,7 +226,7 @@ export default async function CustomerVoicePage() {
                     >
                       {row.name}
                     </Link>
-                    <p className="text-xs text-gray-500">{row.count} reviews</p>
+                    <p className="text-xs text-brand-muted">{row.count} reviews</p>
                   </div>
                   <Stars value={row.average} />
                 </div>
@@ -235,11 +235,11 @@ export default async function CustomerVoicePage() {
           )}
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">📦 Return को हिसाब (design-अनुसार)</h2>
-          <p className="mt-1 text-sm text-gray-500">फर्किएका जोडी — साइज, आराम, वा गुणस्तरको संकेत।</p>
+          <p className="mt-1 text-sm text-brand-muted">फर्किएका जोडी — साइज, आराम, वा गुणस्तरको संकेत।</p>
           {returnRows.length === 0 ? (
-            <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+            <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
               बिक्री/return को data अझै छैन।
             </p>
           ) : (
@@ -251,7 +251,7 @@ export default async function CustomerVoicePage() {
                   <div key={row.design} className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
                       <p className="font-bold text-brand-green-ink">{row.design}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-brand-muted">
                         {row.returned} returned / {row.sold} sold
                       </p>
                     </div>
@@ -271,10 +271,10 @@ export default async function CustomerVoicePage() {
         </section>
       </div>
 
-      <section className="mt-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <h2 className="text-lg font-black text-brand-green-ink">🗣️ पछिल्ला प्रतिक्रिया</h2>
         {recentReviews.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+          <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
             अहिलेसम्म कुनै प्रतिक्रिया छैन।
           </p>
         ) : (
@@ -284,14 +284,14 @@ export default async function CustomerVoicePage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-bold text-brand-green-ink">
                     {product}
-                    <span className="ml-2 text-xs font-semibold text-gray-500">— {review.name}</span>
+                    <span className="ml-2 text-xs font-semibold text-brand-muted">— {review.name}</span>
                   </p>
                   <div className="flex items-center gap-2">
                     <Stars value={review.rating} />
-                    <DateDisplayAdmin date={review.createdAt} className="text-xs text-gray-400" />
+                    <DateDisplayAdmin date={review.createdAt} className="text-xs text-brand-muted-soft" />
                   </div>
                 </div>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{review.comment}</p>
+                <p className="mt-1 text-sm leading-6 text-brand-muted">{review.comment}</p>
               </div>
             ))}
           </div>

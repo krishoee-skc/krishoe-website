@@ -11,7 +11,7 @@ import { logoutWorkerAction } from "@/app/worker/actions";
 export default function WorkerPortalUnavailable({ reason }: { reason: string }) {
   return (
     <main className="grid min-h-screen place-items-center bg-brand-mist px-5 py-10">
-      <div className="w-full max-w-lg rounded-lg border border-black/10 bg-white p-7 text-center shadow-sm">
+      <div className="w-full max-w-lg rounded-lg border border-black/10 bg-brand-paper p-7 text-center shadow-sm">
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-gold-deep">
           Worker portal
         </p>

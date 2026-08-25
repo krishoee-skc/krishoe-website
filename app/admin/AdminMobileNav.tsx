@@ -49,7 +49,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
   }, [open]);
 
   return (
-    <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
+    <div className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
           {/* A generic house icon stood where the shop's own mark belongs,
@@ -65,7 +65,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid h-11 w-11 place-items-center rounded-lg border border-gray-200 text-brand-green-ink transition hover:border-brand-green"
+            className="grid h-11 w-11 place-items-center rounded-lg border border-brand-green-line text-brand-green-ink transition hover:border-brand-green"
           >
             {open ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
@@ -82,13 +82,13 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
           />
           <nav
             aria-label="Admin"
-            className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-gray-100 bg-white px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
+            className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-brand-green-line bg-brand-paper px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
           >
           <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
 
           {groups.map((group) => (
             <div key={group.id} className="mt-4">
-              <p className="px-1 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">
+              <p className="px-1 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft">
                 {group.title}
               </p>
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
@@ -101,13 +101,13 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
                       className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-bold transition ${
                         active
                           ? "border-brand-green bg-brand-green-wash text-brand-green"
-                          : "border-gray-200 text-brand-green-ink hover:border-brand-green"
+                          : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
                       }`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
                       <span className="grid leading-tight">
                         <span>{label}</span>
-                        <span className="text-[11px] font-semibold text-gray-400">{nepali}</span>
+                        <span className="text-[11px] font-semibold text-brand-muted-soft">{nepali}</span>
                       </span>
                     </Link>
                   );
@@ -119,7 +119,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
           <form action={logoutAdminAction} className="mt-3">
             <button
               type="submit"
-              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-gray-200 px-3 text-sm font-bold text-brand-clay transition hover:border-brand-clay hover:bg-red-50"
+              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-green-line px-3 text-sm font-bold text-brand-clay transition hover:border-brand-clay hover:bg-red-50"
             >
               Sign out
             </button>

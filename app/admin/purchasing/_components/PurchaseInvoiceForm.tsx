@@ -11,9 +11,9 @@ import type { PurchaseKind, SupplierLedger } from "@/lib/purchasing";
 import type { RawMaterial } from "@/lib/operations";
 
 const inputClass =
-  "h-10 rounded-md border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-green";
+  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 const textareaClass =
-  "min-h-24 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green";
+  "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
 type PurchaseInvoiceFormProps = {
   supplierLedgers: SupplierLedger[];
@@ -74,7 +74,7 @@ const inputBase = "h-10 rounded-md border px-3 text-sm outline-none focus:border
 // The same box, red when the field is what is holding the bill back.
 function fieldClass(hasError: boolean) {
   return `${inputBase} ${
-    hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-gray-200 bg-white"
+    hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"
   }`;
 }
 
@@ -191,7 +191,7 @@ export default function PurchaseInvoiceForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-5"
+      className="rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm md:p-5"
     >
       {/* The server reads item0..itemN-1, so it has to know how many rows were
           rendered rather than guessing a maximum. */}
@@ -199,7 +199,7 @@ export default function PurchaseInvoiceForm({
 
       <div className="mb-5">
         <h2 className="text-lg font-black text-brand-green-ink">Purchase</h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-brand-muted">
           One supplier bill, however many items it lists. Pick what each line is: raw material goes
           to the factory store, trading goods are ready-made pairs that go straight to finished
           stock for their channel and on to the shop. A bill can carry both.
@@ -247,13 +247,13 @@ export default function PurchaseInvoiceForm({
             <div
               key={row.key}
               className={`rounded-md border p-3 ${
-                issue ? "border-brand-clay/50 bg-brand-clay-tint/20" : "border-gray-200 bg-brand-mist/40"
+                issue ? "border-brand-clay/50 bg-brand-clay-tint/20" : "border-brand-green-line bg-brand-mist/40"
               }`}
             >
               <input type="hidden" name={`item${index}Kind`} value={row.kind} />
 
               <div className="flex items-center justify-between gap-3">
-                <div className="inline-flex rounded-full border border-gray-200 bg-white p-1">
+                <div className="inline-flex rounded-full border border-brand-green-line bg-brand-paper p-1">
                   {(["Raw Material", "Trading Goods"] as PurchaseKind[]).map((kind) => (
                     <button
                       key={kind}
@@ -278,7 +278,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       onClick={() => removeRow(row.key)}
                       aria-label={`Remove item ${index + 1}`}
-                      className="h-10 rounded-full border border-gray-200 bg-white px-4 text-xs font-semibold text-brand-clay transition hover:border-brand-clay"
+                      className="h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-semibold text-brand-clay transition hover:border-brand-clay"
                     >
                       Remove
                     </button>

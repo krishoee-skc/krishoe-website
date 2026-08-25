@@ -61,7 +61,7 @@ export default function StaffToday({
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-brand-green-line bg-white/60 p-4">
+        <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
           <p className="text-sm font-semibold text-brand-muted">आज काटेको</p>
           <p className="mt-2 font-display text-2xl font-black text-brand-green-ink">
             {money(soldToday)}
@@ -70,7 +70,7 @@ export default function StaffToday({
         {/* Credit gets its own tile and the clay colour rather than being
             folded into the total: it is money the shop has not got yet, and a
             counter that cannot see it will keep giving it. */}
-        <div className="rounded-xl border border-brand-green-line bg-white/60 p-4">
+        <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
           <p className="text-sm font-semibold text-brand-muted">उधारो बाँकी</p>
           <p
             className={`mt-2 font-display text-2xl font-black ${
@@ -80,7 +80,7 @@ export default function StaffToday({
             {money(creditToday)}
           </p>
         </div>
-        <div className="rounded-xl border border-brand-green-line bg-white/60 p-4">
+        <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
           <p className="text-sm font-semibold text-brand-muted">पठाउन बाँकी अर्डर</p>
           <p className="mt-2 font-display text-2xl font-black text-brand-green-ink">
             {ordersToSend}

@@ -308,17 +308,17 @@ export default function AddWorkPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 text-center">
-        <div className="animate-pulse text-slate-500">Loading...</div>
+        <div className="animate-pulse text-brand-muted">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">➕ काम टिप्ने</h1>
-      <p className="mb-6 mt-1 text-sm text-slate-500">Add daily work entry</p>
+      <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-ink">➕ काम टिप्ने</h1>
+      <p className="mb-6 mt-1 text-sm text-brand-muted">Add daily work entry</p>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
             {error}
@@ -333,23 +333,23 @@ export default function AddWorkPage() {
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">📅 Date</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">📅 Date</label>
           <input
             type="date"
             value={formData.date}
             onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           />
         </div>
 
         {/* Worker */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">👤 Worker</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 Worker</label>
           <select
             value={formData.worker_id}
             onChange={handleWorkerChange}
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           >
             <option value="">Select a worker...</option>
@@ -364,7 +364,7 @@ export default function AddWorkPage() {
         {/* Item/Product */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium text-slate-900">🛞 Product</label>
+            <label className="block text-sm font-medium text-brand-green-ink">🛞 Product</label>
             <div className="flex gap-2">
               <Link
                 href="/admin/factory/items"
@@ -375,7 +375,7 @@ export default function AddWorkPage() {
               <button
                 type="button"
                 onClick={() => setShowAddProduct(true)}
-                className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"
+                className="text-xs bg-brand-green-wash text-brand-green hover:bg-brand-green-tint px-2 py-1 rounded"
               >
                 ➕ Add New
               </button>
@@ -393,7 +393,7 @@ export default function AddWorkPage() {
           <select
             value={formData.item_id}
             onChange={handleItemChange}
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           >
             <option value="">Select a product...</option>
@@ -414,7 +414,7 @@ export default function AddWorkPage() {
             <select
               value={formData.work_order_id}
               onChange={handleWorkOrderChange}
-              className="w-full min-h-12 rounded-lg border border-emerald-300 bg-white px-3 py-2"
+              className="w-full min-h-12 rounded-lg border border-emerald-300 bg-brand-paper px-3 py-2"
             >
               <option value="">No Work Order — wage history only</option>
               {availableWorkOrders.map((order) => (
@@ -438,25 +438,25 @@ export default function AddWorkPage() {
 
         {/* Color */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">🎨 Color (Optional)</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">🎨 Color (Optional)</label>
           <input
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
             readOnly={Boolean(selectedWorkOrder)}
             placeholder="e.g., Black, Blue, Red"
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
         </div>
 
         {/* Size */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">📏 Size (Optional)</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">📏 Size (Optional)</label>
           {selectedWorkOrder ? (
             <select
               value={formData.size}
               onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
               required
             >
               <option value="">Select a planned size...</option>
@@ -470,21 +470,21 @@ export default function AddWorkPage() {
               value={formData.size}
               onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
               placeholder="e.g., 7, 8, 9"
-              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             />
           )}
         </div>
 
         {/* Pairs */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">🔢 Number of Pairs</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">🔢 Number of Pairs</label>
           <input
             type="number"
             value={formData.pairs_count}
             onChange={handlePairsChange}
             placeholder="Enter number of pairs"
             min="1"
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           />
         </div>
@@ -496,14 +496,14 @@ export default function AddWorkPage() {
 
         {/* Rate Display */}
         {selectedRate !== null && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-sm text-blue-900">
+          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
+            <div className="text-sm text-brand-green">
               <strong>💰 Rate:</strong> Rs. {selectedRate} per pair
             </div>
             {selectedRateSource ? (
-              <div className="mt-1 text-xs font-semibold text-blue-700">Source: {selectedRateSource}</div>
+              <div className="mt-1 text-xs font-semibold text-brand-green">Source: {selectedRateSource}</div>
             ) : null}
-            <div className="text-sm text-blue-900 mt-2">
+            <div className="text-sm text-brand-green mt-2">
               <strong>💵 Total Amount:</strong> {formData.pairs_count} pairs × Rs. {selectedRate} = <span className="text-lg font-bold">Rs. {calculatedAmount.toLocaleString()}</span>
             </div>
           </div>
@@ -514,14 +514,14 @@ export default function AddWorkPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
+            className="flex-1 bg-brand-green hover:bg-brand-green-ink disabled:bg-brand-muted-soft text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
           >
             {submitting ? "Saving..." : "✅ Save Work Entry"}
           </button>
           <button
             type="button"
             onClick={() => router.push("/admin/factory")}
-            className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
+            className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
           >
             Cancel
           </button>
@@ -533,20 +533,20 @@ export default function AddWorkPage() {
       {/* Add Product Modal */}
       {showAddProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">➕ Add New Product</h2>
+          <div className="bg-brand-paper rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-bold text-brand-green-ink mb-4">➕ Add New Product</h2>
             <input
               type="text"
               value={newProductName}
               onChange={(e) => setNewProductName(e.target.value)}
               placeholder="Product name (e.g., Flatpatta, Sendil)"
-              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
               onKeyPress={(e) => e.key === "Enter" && handleAddProduct()}
             />
             <div className="flex gap-2">
               <button
                 onClick={handleAddProduct}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-brand-green hover:bg-brand-green-ink text-white font-semibold py-2 px-4 rounded-lg transition-colors"
               >
                 ✅ Add Product
               </button>
@@ -555,7 +555,7 @@ export default function AddWorkPage() {
                   setShowAddProduct(false);
                   setNewProductName("");
                 }}
-                className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-2 px-4 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -567,9 +567,9 @@ export default function AddWorkPage() {
       {/* Set Rate Modal */}
       {showSetRate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">⚙️ Set Rate</h2>
-            <p className="text-sm text-slate-600 mb-4">
+          <div className="bg-brand-paper rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-bold text-brand-green-ink mb-2">⚙️ Set Rate</h2>
+            <p className="text-sm text-brand-muted mb-4">
               Rate not found for this product. Please enter the rate per pair.
             </p>
             <input
@@ -577,10 +577,10 @@ export default function AddWorkPage() {
               value={newRate}
               onChange={(e) => setNewRate(e.target.value)}
               placeholder="Rate per pair (e.g., 10, 12, 15)"
-              className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
               onKeyPress={(e) => e.key === "Enter" && handleSetRate()}
             />
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-brand-muted mb-4">
               Category: <strong>{workers.find((w) => w.id === formData.worker_id)?.category}</strong>
             </p>
             <div className="flex gap-2">
@@ -595,7 +595,7 @@ export default function AddWorkPage() {
                   setShowSetRate(false);
                   setNewRate("");
                 }}
-                className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-2 px-4 rounded-lg transition-colors"
               >
                 Cancel
               </button>

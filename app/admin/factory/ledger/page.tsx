@@ -174,10 +174,10 @@ export default function LedgerPage() {
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">ज्यालाको हिसाब</p>
-      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 mb-2">
-        कामदारको खाता <span className="text-lg font-bold text-slate-500">· Work and payment ledger</span>
+      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
+        कामदारको खाता <span className="text-lg font-bold text-brand-muted">· Work and payment ledger</span>
       </h1>
-      <p className="mb-6 text-sm leading-6 text-slate-600">Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.</p>
+      <p className="mb-6 text-sm leading-6 text-brand-muted">Completed work adds earned wages. Saturday kharcha, advance or final wage payment reduces the balance and remains in the same statement.</p>
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -192,11 +192,11 @@ export default function LedgerPage() {
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">Select Worker</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">Select Worker</label>
           <select
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
-            className="w-full min-h-12 px-3 py-2 border border-slate-300 rounded-lg"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg"
           >
             <option value="">Select a worker...</option>
             {workers.map((w) => (
@@ -213,29 +213,29 @@ export default function LedgerPage() {
       </div>
 
       {loading ? (
-        <div className="text-center text-slate-500">Loading ledger...</div>
+        <div className="text-center text-brand-muted">Loading ledger...</div>
       ) : ledgerData ? (
         <div className="space-y-6">
           {/* Worker Info */}
-          <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4">
+          <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-brand-green-ink mb-4">
               {ledgerData.worker.name}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
-                <div className="text-xs sm:text-sm text-slate-600">Type</div>
-                <div className="font-semibold text-slate-900 capitalize">
+                <div className="text-xs sm:text-sm text-brand-muted">Type</div>
+                <div className="font-semibold text-brand-green-ink capitalize">
                   {ledgerData.worker.worker_type.replace("_", " ")}
                 </div>
               </div>
               <div>
-                <div className="text-xs sm:text-sm text-slate-600">Category</div>
-                <div className="font-semibold text-slate-900">{ledgerData.worker.category}</div>
+                <div className="text-xs sm:text-sm text-brand-muted">Category</div>
+                <div className="font-semibold text-brand-green-ink">{ledgerData.worker.category}</div>
               </div>
               {ledgerData.worker.monthly_salary && (
                 <div>
-                  <div className="text-xs sm:text-sm text-slate-600">Monthly Salary</div>
-                  <div className="font-semibold text-slate-900">
+                  <div className="text-xs sm:text-sm text-brand-muted">Monthly Salary</div>
+                  <div className="font-semibold text-brand-green-ink">
                     Rs. {ledgerData.worker.monthly_salary.toLocaleString()}
                   </div>
                 </div>
@@ -245,29 +245,29 @@ export default function LedgerPage() {
 
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Pairs</div>
-              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mt-2">
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Pairs</div>
+              <div className="text-2xl sm:text-3xl font-bold text-brand-green mt-2">
                 {ledgerData.summary.totalPairs}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Earned</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Earned</div>
               <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
                 Rs. {ledgerData.summary.totalEarned.toLocaleString()}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Total Paid</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Total Paid</div>
               <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
                 Rs. {ledgerData.summary.totalPaid.toLocaleString()}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 sm:p-6 border border-slate-200">
-              <div className="text-xs sm:text-sm text-slate-600">Current Balance</div>
+            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
+              <div className="text-xs sm:text-sm text-brand-muted">Current Balance</div>
               <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
                 Rs. {ledgerData.summary.currentBalance.toLocaleString()}
               </div>
@@ -275,12 +275,12 @@ export default function LedgerPage() {
           </div>
 
           {/* Ledger Entries */}
-          <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
+          <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4">Ledger Entries</h3>
+              <h3 className="text-lg font-bold text-brand-green-ink mb-4">Ledger Entries</h3>
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-200">
-                  <tr className="text-xs sm:text-sm text-slate-600 font-semibold">
+                <thead className="border-b border-brand-green-line">
+                  <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
                     <th className="text-left py-2 px-2 sm:px-4">Date</th>
                     <th className="text-left py-2 px-2 sm:px-4">Type</th>
                     <th className="text-right py-2 px-2 sm:px-4">Pairs</th>
@@ -293,16 +293,16 @@ export default function LedgerPage() {
                 <tbody>
                   {ledgerData.ledger.length > 0 ? (
                     ledgerData.ledger.map((entry, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-2 sm:px-4 text-slate-900">
+                      <tr key={idx} className="border-b border-brand-green-line hover:bg-brand-paper-deep">
+                        <td className="py-3 px-2 sm:px-4 text-brand-green-ink">
                           <DateDisplayAdmin date={entry.date} />
                         </td>
                         <td className="py-3 px-2 sm:px-4">
-                          <span className="text-xs sm:text-sm capitalize bg-slate-100 px-2 py-1 rounded">
+                          <span className="text-xs sm:text-sm capitalize bg-brand-mist px-2 py-1 rounded">
                             {entry.entry_type}
                           </span>
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right text-slate-900">
+                        <td className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
                           {entry.work_pairs || "-"}
                         </td>
                         <td className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
@@ -311,15 +311,15 @@ export default function LedgerPage() {
                         <td className="py-3 px-2 sm:px-4 text-right text-red-600 font-medium">
                           {entry.payment_given ? `-${entry.payment_given}` : "-"}
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right font-semibold text-slate-900">
+                        <td className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink">
                           Rs. {entry.running_balance.toLocaleString()}
                         </td>
-                        <td className="min-w-48 py-3 px-2 sm:px-4 text-xs text-slate-600">{entry.notes || "-"}</td>
+                        <td className="min-w-48 py-3 px-2 sm:px-4 text-xs text-brand-muted">{entry.notes || "-"}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                      <td colSpan={7} className="py-8 text-center text-brand-muted">
                         No ledger entries for this month
                       </td>
                     </tr>
@@ -335,25 +335,25 @@ export default function LedgerPage() {
                 <h3 className="text-lg font-black text-emerald-950">Record worker payment</h3>
                 <p className="mt-1 text-sm leading-6 text-emerald-800">Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.</p>
               </div>
-              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">Use current balance</button>
+              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-brand-paper px-3 py-2 text-xs font-black text-emerald-800">Use current balance</button>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-slate-800">Payment type
-                <select value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3">
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Payment type
+                <select value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
                   <option>Saturday kharcha / advance</option>
                   <option>Weekly wage payment</option>
                   <option>Final wage settlement</option>
                   <option>Other Owner-approved payment</option>
                 </select>
               </label>
-              <label className="grid gap-1 text-sm font-bold text-slate-800">Payment date
-                <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Payment date
+                <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-slate-800">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" placeholder="Payment amount" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
+                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Payment amount" />
               </label>
-              <label className="grid gap-1 text-sm font-bold text-slate-800">Owner note
-                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3" placeholder="Optional reason or reference" />
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
+                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Optional reason or reference" />
               </label>
             </div>
             <button type="submit" disabled={paymentSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-emerald-700 px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-60">
@@ -362,7 +362,7 @@ export default function LedgerPage() {
           </form>
         </div>
       ) : (
-        <div className="text-center text-slate-500">Select a worker to view ledger</div>
+        <div className="text-center text-brand-muted">Select a worker to view ledger</div>
       )}
     </div>
   );
