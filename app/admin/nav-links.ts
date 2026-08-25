@@ -114,7 +114,12 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
       { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
-      { href: "/admin/analytics", label: "Analytics", nepali: "हिसाब र नाफा", icon: StarIcon },
+      // One door to all eleven ways the shop can look at itself. Six of them
+      // were hard to find: four were in no menu at all, and monitoring and the
+      // activity log lived only inside Settings — which is the right place for
+      // a screen opened once on the first afternoon, and the wrong place for a
+      // report meant to be read every week.
+      { href: "/admin/reports", label: "Report", nepali: "हिसाब", icon: StarIcon },
       { href: "/admin/settings", label: "Settings", nepali: "सेटिङ · सेटअप", icon: ShieldCheckIcon },
     ],
   },

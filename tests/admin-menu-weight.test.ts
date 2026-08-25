@@ -120,12 +120,13 @@ describe("what stayed in the menu", () => {
   it("keeps the four things reached from anywhere", () => {
     const everywhere = adminNavGroups.find((group) => group.id === "everywhere");
 
-    // Analytics is here rather than in a records group of its own: money is
-    // read from both sides of the business.
+    // The report hub sits here rather than analytics itself: eleven ways to
+    // read the shop, one door, and money is read from both sides of the
+    // business. Analytics is the first report inside it.
     expect(everywhere?.links.map((link) => link.href)).toEqual([
       "/admin",
       "/admin/search",
-      "/admin/analytics",
+      "/admin/reports",
       "/admin/settings",
     ]);
   });

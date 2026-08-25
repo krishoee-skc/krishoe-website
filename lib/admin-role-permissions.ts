@@ -159,6 +159,10 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/factory", "production:entry"],
   ["/admin/alerts", "notifications:read"],
   ["/admin/analytics", "insights:read"],
+  // The report hub gathers eleven screens the reader may or may not be allowed
+  // into; each one still checks its own permission when opened. Seeing that a
+  // report exists is not the same as reading it.
+  ["/admin/reports", "insights:read"],
   ["/admin/feedback", "feedback:read"],
   ["/admin/monitoring", "security:read"],
   ["/admin/sms", "notifications:read"],
