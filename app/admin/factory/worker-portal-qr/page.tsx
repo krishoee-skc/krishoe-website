@@ -49,10 +49,10 @@ export default async function WorkerPortalQrPage() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/admin/hr"
+            href="/admin/factory/workers"
             className="inline-flex h-11 items-center rounded-full border border-brand-green-line px-5 text-sm font-bold text-brand-green-ink"
           >
-            Back to HR
+            Back to workers
           </Link>
           <PrintButton className="inline-flex h-11 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white">
             Print poster
@@ -71,7 +71,7 @@ export default async function WorkerPortalQrPage() {
         </p>
 
         <img
-          src="/api/admin/hr/worker-portal-qr"
+          src="/api/admin/factory/worker-portal-qr"
           alt={`QR code that opens ${loginUrl}`}
           className="mx-auto mt-7 h-64 w-64"
         />

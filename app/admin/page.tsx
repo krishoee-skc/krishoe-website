@@ -16,7 +16,6 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { canAdmin, getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getSafeDataBackendStatus } from "@/lib/data-backend";
-import { getHrSnapshot } from "@/lib/hr";
 import { getOperationalAlertCenter, type OperationalAlertSeverity } from "@/lib/notifications";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
@@ -45,7 +44,6 @@ type PaymentReconciliationSnapshot = Awaited<ReturnType<typeof getPaymentReconci
 type PosSnapshot = Awaited<ReturnType<typeof getPosSnapshot>>;
 type PurchasingSnapshot = Awaited<ReturnType<typeof getPurchasingSnapshot>>;
 type CostingSnapshot = Awaited<ReturnType<typeof getCostingSnapshot>>;
-type HrSnapshot = Awaited<ReturnType<typeof getHrSnapshot>>;
 type OperationalAlertCenter = Awaited<ReturnType<typeof getOperationalAlertCenter>>;
 type ProductionControlSummary = Awaited<ReturnType<typeof getProductionControlSummary>>;
 type DesignCostingRow = CostingSnapshot["designCosting"][number];
@@ -57,7 +55,6 @@ type WorkerTaskRow = OperationsSnapshot["workerTasks"][number];
 type ProductionBatchRow = OperationsSnapshot["productionBatches"][number];
 type MaterialConsumptionRow = OperationsSnapshot["materialConsumptions"][number];
 type SupplierPaymentFollowup = PurchasingSnapshot["reports"]["supplierPaymentFollowups"][number];
-type PayrollSuggestionRow = HrSnapshot["reports"]["payrollSuggestions"][number];
 type ProductionInsight = {
   id: string;
   design: string;
@@ -352,7 +349,6 @@ async function safeGetData() {
     posResult,
     purchasingResult,
     costingResult,
-    hrResult,
     productionControlResult,
   ] = await Promise.allSettled([
     getProducts({ includeDrafts: true }),
@@ -363,7 +359,6 @@ async function safeGetData() {
     getPosSnapshot(),
     getPurchasingSnapshot(),
     getCostingSnapshot(),
-    getHrSnapshot(),
     getProductionControlSummary(),
   ]);
 
@@ -380,7 +375,6 @@ async function safeGetData() {
     pos: settledValue(posResult, {} as PosSnapshot),
     purchasing: settledValue(purchasingResult, {} as PurchasingSnapshot),
     costing: settledValue(costingResult, {} as CostingSnapshot),
-    hr: settledValue(hrResult, {} as HrSnapshot),
     productionControl: settledValue(productionControlResult, emptyProductionControlSummary()),
     alertCenter: (alertCenter ?? { summary: {}, alerts: [] }) as OperationalAlertCenter,
     readiness,
@@ -399,7 +393,6 @@ export default async function AdminDashboardPage() {
     pos,
     purchasing,
     costing,
-    hr,
     productionControl,
     alertCenter,
     readiness,
@@ -410,7 +403,6 @@ export default async function AdminDashboardPage() {
   const getPos = <T,>(path: string, defaultVal: T) => readPath(pos, path, defaultVal);
   const getPur = <T,>(path: string, defaultVal: T) => readPath(purchasing, path, defaultVal);
   const getCost = <T,>(path: string, defaultVal: T) => readPath(costing, path, defaultVal);
-  const getHr = <T,>(path: string, defaultVal: T) => readPath(hr, path, defaultVal);
   const getAlert = <T,>(path: string, defaultVal: T) => readPath(alertCenter, path, defaultVal);
 
   // Derived data
@@ -484,8 +476,6 @@ export default async function AdminDashboardPage() {
   const supplierPaymentQueue = getPur("reports.supplierPaymentFollowups", [] as SupplierPaymentFollowup[]).filter(
     (supplier) => supplier.priority !== "Clear",
   );
-  const payrollSuggestions = getHr("reports.payrollSuggestions", [] as PayrollSuggestionRow[]);
-  const payrollActionCount = payrollSuggestions.filter((suggestion) => suggestion.statusSignal !== "Recorded").length;
   const todayCollected =
     getPos("todayDayClose.cashAmount", 0) +
     getPos("todayDayClose.chequeAmount", 0) +
@@ -681,7 +671,7 @@ export default async function AdminDashboardPage() {
         }}
         pendingPayments={{
           // Was hardcoded to 3, for the same reason and with the same cost.
-          count: payrollActionCount,
+          count: productionControl.workerBalanceDue > 0 ? 1 : 0,
           totalAmount: productionControl.workerBalanceDue || 0,
         }}
         newOrders={{
@@ -761,10 +751,10 @@ export default async function AdminDashboardPage() {
             },
             {
               label: "Worker pay action",
-              value: payrollActionCount,
-              detail: `${money(productionControl.workerBalanceDue)} balance`,
-              href: "/admin/hr",
-              tone: payrollActionCount > 0 || productionControl.workerBalanceDue > 0 ? ("warn" as Tone) : ("good" as Tone),
+              value: money(productionControl.workerBalanceDue),
+              detail: `${productionControl.activeWorkerCount} working`,
+              href: "/admin/factory/workers",
+              tone: productionControl.workerBalanceDue > 0 ? ("warn" as Tone) : ("good" as Tone),
             },
             {
               label: "Supplier due",
@@ -895,7 +885,6 @@ export default async function AdminDashboardPage() {
         <StatCard label="Finished stock" value={getOp("summary.stockPairs", 0)} detail={`${getOp("summary.soldPairs", 0)} sold pairs`} />
         <StatCard label="Profit signal" value={money(getPur("summary.monthProfitEstimate", 0))} detail="POS minus purchases" tone={getPur("summary.monthProfitEstimate", 0) >= 0 ? "good" : "danger"} />
         <StatCard label="Design gross profit" value={money(getCost("summary.grossProfit", 0))} detail={`${getCost("summary.grossMarginRate", 0)}% full COGS margin`} tone={getCost("summary.grossProfit", 0) >= 0 ? "good" : "danger"} />
-        <StatCard label="HR payroll" value={money(getHr("summary.monthPayroll", 0))} detail={`${getHr("summary.activeEmployees", 0)} active staff`} tone={getHr("summary.draftPayroll", 0) > 0 ? "warn" : "good"} />
         <StatCard label="Open queue" value={newOrders.length + openMessages.length} detail={`${newOrders.length} orders, ${openMessages.length} messages`} tone={newOrders.length + openMessages.length > 0 ? "warn" : "good"} />
         <StatCard label="Admin role" value={adminAccess.role} detail={`${allowedPermissionCount}/${adminAccess.permissions.length} permissions`} tone={adminAccess.role === "Owner" ? "good" : "warn"} />
         <StatCard label="Launch readiness" value={`${readinessSummary.ready}/${readinessSummary.total}`} detail={`${readinessSummary.blocked} blocked, ${readinessSummary.warnings} warning`} tone={launchStatus === "ready" ? "good" : launchStatus === "blocked" ? "danger" : "warn"} />
@@ -1194,7 +1183,7 @@ export default async function AdminDashboardPage() {
           ["/admin/pos", "POS billing", "Create retail, wholesale, online bills with stock and ledger posting."],
           ["/admin/purchasing", "Purchasing", "Track raw material purchases, supplier due, and profit signal."],
           ["/admin/costing", "COGS and design profit", "Review material rates, batch cost, and design gross margin."],
-          ["/admin/hr", "HR and worker performance", "Track staff, attendance, payroll, and production-task output."],
+          ["/admin/factory/workers", "Workers", "The people on the floor, their stage, their pay type and their ledger."],
           ["/admin/operations", "Factory operations", "Track production, raw material, vehicles, and ledger."],
           ["/admin/products", "Manage products", "Review the local product catalog."],
           ["/admin/orders", "View orders", "Track submitted customer order requests."],

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FACTORY_WORKER_CATEGORIES,
   FACTORY_WORKER_TYPES,
@@ -18,42 +18,15 @@ type Worker = {
   monthly_salary: number | null;
   weekly_advance: number | null;
   status: string;
-  hr_employee_id: string | null;
-  hr_employee_name: string | null;
-};
-
-type HrEmployee = {
-  id: string;
-  name: string;
-  phone: string;
-  department: string;
-  salary_type: string;
 };
 
 const categories = FACTORY_WORKER_CATEGORIES;
 
 const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-brand-green-ink";
 
-function factoryTypeForSalary(salaryType: string) {
-  if (salaryType === "Piece Rate") return "piece_rate";
-  if (salaryType === "Daily") return "daily_staff";
-  return "monthly_staff";
-}
-
-function factoryCategoryForDepartment(department: string) {
-  if (department === "Upper") return "Upper";
-  if (department === "Fiber Preparation") return "Fiber Preparation";
-  if (department === "Fiber Silai") return "Fiber Silai";
-  if (department === "Bottom Final") return "Bottom Final";
-  if (department === "Packing" || department === "QC") return "Packing / QC";
-  return "Staff";
-}
-
 export default function WorkersPage() {
   const { text } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [hrEmployees, setHrEmployees] = useState<HrEmployee[]>([]);
-  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
   const [edits, setEdits] = useState<Record<string, { name: string; category: string; worker_type: string }>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -66,7 +39,6 @@ export default function WorkersPage() {
     category: "Upper",
     monthly_salary: "",
     weekly_advance: "",
-    hr_employee_id: "",
   });
 
   const loadWorkers = useCallback(async () => {
@@ -79,8 +51,6 @@ export default function WorkersPage() {
       if (!response.ok) throw new Error(data.error || "Workers could not be loaded.");
       const nextWorkers = (data.workers || []) as Worker[];
       setWorkers(nextWorkers);
-      setHrEmployees((data.hrEmployees || []) as HrEmployee[]);
-      setLinkDrafts(Object.fromEntries(nextWorkers.map((worker) => [worker.id, worker.hr_employee_id || ""])));
       setEdits(
         Object.fromEntries(
           nextWorkers.map((worker) => [
@@ -101,22 +71,6 @@ export default function WorkersPage() {
     return () => window.clearTimeout(loadId);
   }, [loadWorkers]);
 
-  const linkedEmployeeIds = useMemo(
-    () => new Set(workers.map((worker) => worker.hr_employee_id).filter(Boolean)),
-    [workers],
-  );
-
-  function chooseHrEmployee(id: string) {
-    const employee = hrEmployees.find((item) => item.id === id);
-    setFormData((current) => ({
-      ...current,
-      hr_employee_id: id,
-      name: employee?.name || current.name,
-      worker_type: employee ? factoryTypeForSalary(employee.salary_type) : current.worker_type,
-      category: employee ? factoryCategoryForDepartment(employee.department) : current.category,
-    }));
-  }
-
   async function createWorker(event: React.FormEvent) {
     event.preventDefault();
     setSaving("new");
@@ -134,7 +88,7 @@ export default function WorkersPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Worker could not be created.");
-      setFormData({ name: "", worker_type: "piece_rate", category: "Upper", monthly_salary: "", weekly_advance: "", hr_employee_id: "" });
+      setFormData({ name: "", worker_type: "piece_rate", category: "Upper", monthly_salary: "", weekly_advance: "" });
       setShowForm(false);
       setMessage("Worker created and HR link saved.");
       await loadWorkers();
@@ -193,27 +147,6 @@ export default function WorkersPage() {
     }
   }
 
-  async function saveHrLink(workerId: string) {
-    setSaving(workerId);
-    setError("");
-    setMessage("");
-    try {
-      const response = await fetch("/api/factory/workers", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ worker_id: workerId, hr_employee_id: linkDrafts[workerId] || null }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "HR link could not be saved.");
-      setMessage("Factory worker and HR employee are now linked.");
-      await loadWorkers();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "HR link could not be saved.");
-    } finally {
-      setSaving("");
-    }
-  }
-
   return (
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -234,9 +167,12 @@ export default function WorkersPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
-        <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{workers.filter((worker) => worker.hr_employee_id).length} linked</span>
-        <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">{workers.filter((worker) => !worker.hr_employee_id).length} without an HR link (fine)</span>
-        <Link href="/admin/hr" className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-1.5 text-brand-green underline">{text("Open HR employees", "कर्मचारीको सूची खोल्ने")}</Link>
+        <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">
+          {text(
+            `${workers.filter((worker) => worker.status === "active").length} working`,
+            `${workers.filter((worker) => worker.status === "active").length} जना काममा`,
+          )}
+        </span>
       </div>
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}
@@ -244,17 +180,6 @@ export default function WorkersPage() {
 
       {showForm ? (
         <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-bold">
-              {text("Existing HR employee (recommended)", "पहिल्यै भएको कर्मचारी छान्नुहोस्")}
-            </label>
-            <select value={formData.hr_employee_id} onChange={(event) => chooseHrEmployee(event.target.value)} className={inputClass}>
-              <option value="">{text("Create without HR link", "नजोडी नयाँ बनाउने")}</option>
-              {hrEmployees.filter((employee) => !linkedEmployeeIds.has(employee.id)).map((employee) => (
-                <option key={employee.id} value={employee.id}>{employee.name} · {employee.department} · {employee.phone || "No phone"}</option>
-              ))}
-            </select>
-          </div>
           <label className="text-sm font-bold">Name<input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
           <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
           <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
@@ -268,7 +193,7 @@ export default function WorkersPage() {
         {loading ? <p className="text-sm text-brand-muted">{text("Loading workers…", "कामदार खुल्दैछन्…")}</p> : null}
         {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No factory workers yet.", "कारखानामा अझै कामदार थपिएको छैन।")}</p> : null}
         {workers.map((worker) => (
-          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : worker.hr_employee_id ? "border-emerald-200 bg-brand-paper" : "border-brand-green-line bg-brand-paper"}`}>
+          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : "border-brand-green-line bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{worker.name}</h2>
@@ -283,7 +208,6 @@ export default function WorkersPage() {
                   rates and the worker portal all read this list directly, and
                   the HR link only matters for Work Orders. Amber read as "fix
                   me" and pointed at a module holding no attendance or payroll. */}
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${worker.hr_employee_id ? "bg-emerald-100 text-emerald-900" : "bg-brand-mist text-brand-muted"}`}>{worker.hr_employee_id ? "HR linked" : "HR link optional"}</span>
             </div>
 
             {/* What was typed can be typed again. The stage list comes from
@@ -373,19 +297,8 @@ export default function WorkersPage() {
                   : text("Make active again", "फेरि चालु गर्ने")}
             </button>
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-              <select value={linkDrafts[worker.id] || ""} onChange={(event) => setLinkDrafts((current) => ({ ...current, [worker.id]: event.target.value }))} className={inputClass} aria-label={`HR employee for ${worker.name}`}>
-                <option value="">{text("Not linked", "जोडिएको छैन")}</option>
-                {hrEmployees.filter((employee) => !linkedEmployeeIds.has(employee.id) || employee.id === worker.hr_employee_id).map((employee) => (
-                  <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
-                ))}
-              </select>
-              <button type="button" onClick={() => void saveHrLink(worker.id)} disabled={saving === worker.id || (linkDrafts[worker.id] || "") === (worker.hr_employee_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft">{saving === worker.id ? "Saving..." : "Save HR link"}</button>
-            </div>
-
             <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
               <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>
-              {worker.hr_employee_id ? <Link href={`/admin/hr/employee/${worker.hr_employee_id}`} className="text-brand-muted underline underline-offset-4">HR profile</Link> : null}
             </div>
           </article>
         ))}

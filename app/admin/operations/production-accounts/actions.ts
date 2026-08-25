@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getHrData } from "@/lib/hr";
+import { queryPostgres } from "@/lib/postgres/client";
+
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
@@ -88,10 +89,14 @@ async function factoryEntryContext() {
 }
 
 async function activeEmployee(employeeId: string) {
-  const hr = await getHrData();
-  const employee = hr.employees.find((row) => row.id === employeeId && row.status === "Active");
-  if (!employee) throw new Error("Active worker/staff not found.");
-  return employee;
+  const rows = await queryPostgres<{ id: string; name: string; category: string }>(
+    "active factory worker",
+    `SELECT id, name, category FROM factory_workers WHERE id = $1 AND status = 'active'`,
+    [employeeId],
+  );
+  const worker = rows[0];
+  if (!worker) throw new Error("Active worker/staff not found.");
+  return { id: worker.id, name: worker.name, department: worker.category, status: "Active" as const };
 }
 
 function refresh() {

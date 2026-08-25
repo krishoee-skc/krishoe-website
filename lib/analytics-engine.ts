@@ -190,9 +190,9 @@ export async function getKeyMetrics(): Promise<AnalyticsMetric[]> {
       UNION ALL
       SELECT
         'Workers',
-        COUNT(DISTINCT CASE WHEN status = 'Active' THEN id END)::integer,
-        COUNT(DISTINCT CASE WHEN status = 'Active' THEN id END)::integer
-      FROM hr_employees`,
+        COUNT(DISTINCT CASE WHEN status = 'active' THEN id END)::integer,
+        COUNT(DISTINCT CASE WHEN status = 'active' THEN id END)::integer
+      FROM factory_workers`,
       [lastMonth]
     );
 
@@ -375,17 +375,14 @@ export async function getWorkerPerformanceMetrics(): Promise<WorkerPerformanceMe
         SUM(pwe.total_pairs)::integer as pairs_count,
         SUM(pwe.earned_wage)::numeric as earnings,
         (100 - AVG(CASE WHEN pwe.rejected_pairs > 0 THEN (pwe.rejected_pairs::float / pwe.total_pairs::float) * 100 ELSE 0 END))::numeric as quality_rate,
-        (COUNT(DISTINCT ha.id)::float / COUNT(DISTINCT d)::float * 100)::numeric as attendance_rate
+        -- Days this worker actually posted work in the window, out of the days
+        -- anybody did. The shop keeps no attendance register, so this counts
+        -- turning up by the work that arrived rather than inventing a figure.
+        (COUNT(DISTINCT pwe.work_date)::float
+          / NULLIF((SELECT COUNT(DISTINCT work_date)::float
+                    FROM production_work_entries
+                    WHERE work_date >= $1), 0) * 100)::numeric as attendance_rate
       FROM production_work_entries pwe
-      LEFT JOIN hr_attendance ha ON ha.employee_id = pwe.employee_id
-        AND ha.status IN ('Present', 'Half Day')
-        AND ha.work_date >= $1
-      LEFT JOIN LATERAL (
-        SELECT DISTINCT work_date::date as d
-        FROM hr_attendance
-        WHERE employee_id = pwe.employee_id
-        AND work_date >= $1
-      ) dates ON true
       WHERE pwe.work_date >= $1
       GROUP BY pwe.employee_id, pwe.employee_name_snapshot
       ORDER BY earnings DESC`,

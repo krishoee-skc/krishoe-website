@@ -47,7 +47,7 @@ export default async function WorkerProductionLedgerPage({
         </Link>
         <h1 className="mt-3 text-2xl font-black text-brand-green-ink">{account.employee.name}</h1>
         <p className="mt-1 text-sm text-brand-muted">
-          {account.employee.id} · {account.employee.department} · {account.employee.salaryType}
+          {account.employee.id} · {account.employee.department}
         </p>
       </header>
 

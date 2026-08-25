@@ -24,8 +24,6 @@ export const adminPermissions = [
   "exports:read",
   "feedback:read",
   "feedback:write",
-  "hr:read",
-  "hr:write",
   "insights:read",
   "messages:write",
   "messages:read",
@@ -51,6 +49,7 @@ export const adminPermissions = [
   "security:read",
   "stock:read",
   "settings:write",
+  "wages:write",
 ] as const;
 
 export type AdminPermission = (typeof adminPermissions)[number];
@@ -89,9 +88,9 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "dashboard:read",
     "devices:read",
     "exports:read",
-    "hr:read",
-    "hr:write",
+    "production:entry",
     "readiness:read",
+    "wages:write",
     "search:read",
     "security:read",
   ]),
@@ -181,7 +180,6 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/dues", "dues:read"],
   ["/admin/purchasing", "purchasing:read"],
   ["/admin/costing", "costing:read"],
-  ["/admin/hr", "hr:read"],
   ["/admin/operations", "operations:read"],
   ["/admin/orders", "orders:read"],
   ["/admin/customers", "customers:read"],

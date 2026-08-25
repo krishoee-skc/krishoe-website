@@ -1,5 +1,31 @@
 import { createHash } from "node:crypto";
-import { getHrData, type Employee } from "@/lib/hr";
+/**
+ * One worker, as the production screens need them.
+ *
+ * `department` is the factory stage they work in — the field kept its old name
+ * so the screens reading it did not all have to change on the same day.
+ */
+export type ProductionWorker = {
+  id: string;
+  name: string;
+  department: string;
+  status: "Active" | "Inactive";
+};
+
+/** The shop's people, from the table their wages are actually paid out of. */
+async function listProductionWorkers(): Promise<ProductionWorker[]> {
+  const rows = await queryPostgres<{ id: string; name: string; category: string; status: string }>(
+    "production workers",
+    `SELECT id, name, category, status FROM factory_workers ORDER BY status, name`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    department: row.category,
+    status: row.status === "active" ? "Active" : "Inactive",
+  }));
+}
 import { getProducts } from "@/lib/product-store";
 import { insertStockMovement } from "@/lib/operations-postgres";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
@@ -472,8 +498,8 @@ export async function getProductionAcceptanceAudit() {
     "production acceptance audit",
     `SELECT
        (SELECT count(*) FROM production_work_entries entries
-        LEFT JOIN hr_employees employees ON employees.id = entries.employee_id
-        WHERE employees.id IS NULL) AS orphan_work_entries,
+        LEFT JOIN factory_workers workers ON workers.id = entries.employee_id
+        WHERE workers.id IS NULL) AS orphan_work_entries,
        (SELECT count(*) FROM production_work_orders orders
         WHERE orders.status = 'Completed'
           AND NOT EXISTS (
@@ -646,10 +672,10 @@ export async function getWeeklyWorkerSettlements(period: { start: string; end: s
          WHERE payments.employee_id = employees.id AND payments.reversed_at IS NULL
            AND payments.payment_date BETWEEN $1::date AND $2::date
        ), 0) AS paid
-     FROM hr_employees employees
-     WHERE employees.status = 'Active'
+     FROM factory_workers employees
+     WHERE employees.status = 'active'
        AND (
-         employees.salary_type = 'Piece Rate'
+         employees.worker_type = 'piece_rate'
          OR EXISTS (SELECT 1 FROM production_work_entries entry WHERE entry.employee_id = employees.id)
          OR EXISTS (SELECT 1 FROM worker_payments payment WHERE payment.employee_id = employees.id)
        )
@@ -689,7 +715,7 @@ function idFromSubmissionKey(prefix: string, sourceSubmissionKey: string) {
 export async function getProductionAccountingSnapshot() {
   const [
     items, rates, workerRates, workOrders, handovers, workEntries, payments, qcPostings, balances,
-    materials, itemMaterials, costCards, hr, products,
+    materials, itemMaterials, costCards, workers, products,
   ] = await Promise.all([
     queryPostgres<ItemRow>(
       "production items",
@@ -815,7 +841,7 @@ export async function getProductionAccountingSnapshot() {
        WHERE effective_from <= CURRENT_DATE
        ORDER BY item_id, effective_from DESC, created_at DESC`,
     ),
-    getHrData(),
+    listProductionWorkers(),
     getProducts({ includeDrafts: true }),
   ]);
 
@@ -924,13 +950,13 @@ export async function getProductionAccountingSnapshot() {
       };
     }),
     costCards: costCards.map(costCardFromRow),
-    employees: hr.employees.filter((employee) => employee.status === "Active"),
+    employees: workers.filter((worker) => worker.status === "Active"),
     products,
   };
 }
 
 export async function getProductionFactoryEntrySnapshot() {
-  const [items, workOrders, hr] = await Promise.all([
+  const [items, workOrders, workers] = await Promise.all([
     queryPostgres<ItemRow>(
       "factory entry production items",
       `SELECT id, name, category, production_type, size_group, catalog_product_id, status
@@ -948,7 +974,7 @@ export async function getProductionFactoryEntrySnapshot() {
        ORDER BY due_date NULLS LAST, created_at DESC
        LIMIT 100`,
     ),
-    getHrData(),
+    listProductionWorkers(),
   ]);
   return {
     items: items.map((row) => ({
@@ -957,9 +983,9 @@ export async function getProductionFactoryEntrySnapshot() {
       sizeGroup: row.size_group,
     })),
     workOrders: workOrders.map(workOrderFromRow),
-    employees: hr.employees
-      .filter((employee) => employee.status === "Active")
-      .map((employee) => ({ id: employee.id, name: employee.name, department: employee.department })),
+    employees: workers
+      .filter((worker) => worker.status === "Active")
+      .map((worker) => ({ id: worker.id, name: worker.name, department: worker.department })),
   };
 }
 
@@ -1064,8 +1090,8 @@ export async function getWorkerProductionAccount(
   employeeId: string,
   period: { start: string; end: string },
 ) {
-  const hr = await getHrData();
-  const employee = hr.employees.find((row) => row.id === employeeId);
+  const workers = await listProductionWorkers();
+  const employee = workers.find((row) => row.id === employeeId);
   if (!employee) return null;
 
   const [allWork, allPayments, periodWork, periodPayments, totalsRows] = await Promise.all([
@@ -1768,8 +1794,8 @@ export async function createProductionHandover(input: {
   workOrderId: string;
   handoverDate: string;
   fromStage: ProductionStage;
-  fromEmployee?: Employee;
-  toEmployee?: Employee;
+  fromEmployee?: ProductionWorker;
+  toEmployee?: ProductionWorker;
   sentPairs: number;
   receivedPairs: number;
   receivedSizeBreakdown: SizeBreakdown;
@@ -1975,7 +2001,7 @@ export async function setProductionStageRate(input: {
 }
 
 export async function setProductionWorkerStageRate(input: {
-  employee: Employee;
+  employee: ProductionWorker;
   itemId: string;
   stage: ProductionStage;
   ratePerPair: number;
@@ -2005,7 +2031,7 @@ export async function setProductionWorkerStageRate(input: {
 }
 
 export async function addApprovedWorkEntry(input: {
-  employee: Employee;
+  employee: ProductionWorker;
   workOrderId: string;
   itemId: string;
   stage: ProductionStage;
@@ -2220,7 +2246,7 @@ export async function reverseProductionWorkEntry(input: {
 }
 
 export async function addWorkerPayment(input: {
-  employee: Employee;
+  employee: ProductionWorker;
   paymentDate: string;
   paymentType: WorkerPaymentType;
   direction: WorkerPaymentDirection;
@@ -2276,7 +2302,7 @@ export async function reverseWorkerPayment(input: {
 export async function approvePackingQcAndPostStock(input: {
   itemId: string;
   workOrderId: string;
-  packingEmployee?: Employee;
+  packingEmployee?: ProductionWorker;
   qcDate: string;
   totalPairs: number;
   rejectedPairs: number;

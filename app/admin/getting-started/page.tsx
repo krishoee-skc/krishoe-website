@@ -147,7 +147,7 @@ export default async function GettingStartedPage() {
       category: "मान्छे",
       icon: "👥",
       items: [
-        { name: "HR", href: "/admin/hr", desc: "कर्मचारीको रेकर्ड र तलब" },
+        { name: "Workers", href: "/admin/factory/workers", desc: "कामदारको सूची र ज्याला" },
         { name: "Customers", href: "/admin/customers", desc: "ग्राहक र उनीहरूको किनमेल" },
         { name: "Devices", href: "/admin/devices", desc: "कुन फोन/computer बाट पस्यो" },
       ],

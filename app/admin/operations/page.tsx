@@ -6,7 +6,7 @@ import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQ
 import OperationsRecords from "@/app/admin/operations/_components/OperationsRecords";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
-import { getHrData } from "@/lib/hr";
+import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
 import { reportError } from "@/lib/report-error";
 import { getProductionControlSummary } from "@/lib/production-accounting";
 
@@ -29,16 +29,16 @@ export default async function AdminOperationsPage({
   ]);
 
   // The worker-task form picks a name from here instead of typing it. Loaded on
-  // its own and guarded, so an HR hiccup leaves the field typeable rather than
+  // its own and guarded, so a hiccup leaves the field typeable rather than
   // taking the operations page down with it.
   let workerNames: string[] = [];
   try {
-    const hr = await getHrData();
-    workerNames = [...new Set(hr.employees.filter((employee) => employee.status === "Active").map((employee) => employee.name))].sort(
-      (left, right) => left.localeCompare(right),
+    const workers = await listFactoryWorkerOptions();
+    workerNames = [...new Set(workers.map((worker) => worker.name))].sort((left, right) =>
+      left.localeCompare(right),
     );
   } catch (error) {
-    reportError("load employee names for the worker task form", error);
+    reportError("load worker names for the worker task form", error);
   }
 
   return (

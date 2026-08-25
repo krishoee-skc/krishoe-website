@@ -20,7 +20,7 @@ describe("admin page and action access", () => {
       "/admin/dues",
       "/admin/purchasing",
       "/admin/costing",
-      "/admin/hr",
+      "/admin/factory",
       "/admin/operations",
       "/admin/orders",
       "/admin/customers",
@@ -48,11 +48,12 @@ describe("admin page and action access", () => {
     expect(canAccessAdminPath("Factory", "/admin/settings")).toBe(false);
   });
 
-  it("lets Sales read and operate sales without HR or settings access", () => {
+  it("lets Sales read and operate sales without wage or settings access", () => {
     expect(canAccessAdminPath("Sales", "/admin/pos")).toBe(true);
     expect(canAccessAdminPath("Sales", "/admin/orders")).toBe(true);
     expect(canAdmin("Sales", "pos:write")).toBe(true);
-    expect(canAccessAdminPath("Sales", "/admin/hr")).toBe(false);
+    expect(canAccessAdminPath("Sales", "/admin/factory")).toBe(false);
+    expect(canAdmin("Sales", "wages:write")).toBe(false);
     expect(canAdmin("Sales", "settings:write")).toBe(false);
   });
 
@@ -67,7 +68,6 @@ describe("admin page and action access", () => {
 
   it("keeps Worker accounts out of every admin page and action", () => {
     expect(canAccessAdminPath("Worker", "/admin")).toBe(false);
-    expect(canAccessAdminPath("Worker", "/admin/hr")).toBe(false);
     expect(canAccessAdminPath("Worker", "/admin/factory")).toBe(false);
     expect(canAdmin("Worker", "dashboard:read")).toBe(false);
     expect(canAdmin("Worker", "production:entry")).toBe(false);

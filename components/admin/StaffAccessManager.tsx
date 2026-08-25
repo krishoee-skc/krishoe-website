@@ -18,7 +18,6 @@ import { formatStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
 import { formatAdminDate } from "@/lib/format-date";
 
 type BranchOption = { id: string; name: string; code: string };
-type EmployeeOption = { id: string; name: string; department: string; status: string };
 /** A factory worker a Worker sign-in can be attached to. */
 type FactoryWorkerOption = { id: string; name: string; category: string };
 
@@ -48,14 +47,12 @@ function statusTone(status: SafeAdminStaffAccount["status"]) {
 export default function StaffAccessManager({
   staff,
   branches,
-  employees,
   factoryWorkers,
   permissionMap,
   defaultBranchId,
 }: {
   staff: SafeAdminStaffAccount[];
   branches: BranchOption[];
-  employees: EmployeeOption[];
   factoryWorkers: FactoryWorkerOption[];
   permissionMap: Record<AdminRole, string[]>;
   defaultBranchId: string;
@@ -121,13 +118,6 @@ export default function StaffAccessManager({
             />
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            HR employee link
-            <select name="employeeId" defaultValue="" className={inputClass}>
-              <option value="">No HR employee link</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.department} ({employee.id})</option>)}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             Factory worker (for a Worker sign-in)
             <select name="factoryWorkerId" defaultValue="" className={inputClass}>
               <option value="">Not a factory worker</option>
@@ -154,7 +144,7 @@ export default function StaffAccessManager({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-black text-brand-green-ink">Staff accounts</h2>
-            <p className="mt-1 text-sm text-brand-muted">Role, branch, employee, device security and account status in one place.</p>
+            <p className="mt-1 text-sm text-brand-muted">Role, branch, worker, device security and account status in one place.</p>
           </div>
           <div className="grid w-full gap-2 sm:grid-cols-3 lg:w-auto">
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or ID" className={inputClass} aria-label="Search staff" />
@@ -166,7 +156,6 @@ export default function StaffAccessManager({
         <div className="mt-5 grid gap-4 xl:grid-cols-2">
           {filteredStaff.map((member) => {
             const branch = branches.find((item) => item.id === member.branchId);
-            const employee = employees.find((item) => item.id === member.employeeId);
             const permissions = permissionMap[member.role] ?? [];
             return (
               <article key={member.id} className="rounded-2xl border border-brand-green-line bg-brand-paper-deep/40 p-4 sm:p-5">
@@ -184,7 +173,6 @@ export default function StaffAccessManager({
 
                 <div className="mt-4 grid gap-2 rounded-xl border border-brand-green-line bg-brand-paper p-3 text-xs text-brand-muted sm:grid-cols-2">
                   <p><span className="font-black text-brand-green-ink">Branch:</span> {branch?.name ?? member.branchId}</p>
-                  <p><span className="font-black text-brand-green-ink">HR:</span> {employee ? `${employee.name} (${employee.id})` : "Not linked"}</p>
                   <p><span className="font-black text-brand-green-ink">Last login:</span> {displayDate(member.lastLoginAt)}</p>
                   <p><span className="font-black text-brand-green-ink">Password changed:</span> {displayDate(member.passwordChangedAt)}</p>
                   <p><span className="font-black text-brand-green-ink">Last device:</span> {member.lastLoginUserAgent ? member.lastLoginUserAgent.slice(0, 45) : "Never"}</p>
@@ -195,7 +183,6 @@ export default function StaffAccessManager({
                   <input type="hidden" name="id" value={member.id} />
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Role<select name="role" defaultValue={member.role} className={inputClass}>{adminRoles.map((role) => <option key={role}>{role}</option>)}</select></label>
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Branch<select name="branchId" defaultValue={member.branchId} className={inputClass}>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-                  <label className="grid gap-1 text-xs font-black text-brand-green-ink">HR employee<select name="employeeId" defaultValue={member.employeeId ?? ""} className={inputClass}><option value="">Not linked</option>{employees.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}</select></label>
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">
                     Factory worker
                     <select name="factoryWorkerId" defaultValue={member.factoryWorkerId ?? ""} className={inputClass}>

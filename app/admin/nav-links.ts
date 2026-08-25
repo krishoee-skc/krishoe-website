@@ -69,7 +69,6 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CreditCardIcon },
       { href: "/admin/purchasing", label: "Purchasing", nepali: "किनमेल", icon: PackageIcon },
-      { href: "/admin/hr", label: "HR", nepali: "कर्मचारी", icon: ShieldCheckIcon },
     ],
   },
   {

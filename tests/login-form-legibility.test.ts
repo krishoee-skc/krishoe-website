@@ -64,7 +64,7 @@ describe("what the sign-in page asks for", () => {
 
   it("does not tell a worker whose password they are holding", async () => {
     const form = await readFile("components/AdminLoginForm.tsx", "utf8");
-    const qr = await readFile("app/admin/hr/worker-portal-qr/page.tsx", "utf8");
+    const qr = await readFile("app/admin/factory/worker-portal-qr/page.tsx", "utf8");
 
     // Same fix, same reason. A worker signing in does not need to be told the
     // owner handed the password over — they were there. What they need is to

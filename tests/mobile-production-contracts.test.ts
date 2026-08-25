@@ -91,13 +91,18 @@ describe("mobile production contracts", () => {
     expect(scanner).toContain('accept="image/*"');
   });
 
-  it("keeps the worker worksheet fast on mobile", () => {
-    const hr = source("app/admin/hr/page.tsx");
-    expect(hr).toContain("Daily worker worksheet");
-    expect(hr).toContain('name="checkIn" type="time"');
-    expect(hr).toContain('name="checkOut" type="time"');
-    expect(hr).toContain("Monthly attendance report");
-    expect(hr).toContain("Monthly payroll report");
+  it("keeps the daily work entry fast on a phone", () => {
+    const addWork = source("app/admin/factory/add-work/page.tsx");
+
+    expect(addWork).toContain('type="date"');
+    expect(addWork).toContain('type="number"');
+    expect(addWork).toContain('text("Worker", "कामदार")');
+    expect(addWork).toContain('text("Add daily work entry", "आजको काम टिप्नुहोस्")');
+
+    // Every control on this form is thumb-height. A wage entry made standing
+    // on a factory floor cannot need a fingertip.
+    expect(addWork).not.toContain("h-8 px-2");
+    expect((addWork.match(/min-h-12/g) ?? []).length).toBeGreaterThan(5);
   });
 
   it("serves dedicated premium hero artwork for desktop and mobile", () => {

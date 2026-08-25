@@ -147,7 +147,7 @@ describe("nothing fell out of the app", () => {
 
     const before = [
       "/admin", "/admin/factory", "/admin/search", "/admin/stock", "/admin/pos",
-      "/admin/dues", "/admin/purchasing", "/admin/costing", "/admin/hr",
+      "/admin/dues", "/admin/purchasing", "/admin/costing",
       "/admin/operations", "/admin/orders", "/admin/customers", "/admin/payments",
       "/admin/notifications", "/admin/alerts", "/admin/sms", "/admin/analytics",
       "/admin/activity", "/admin/security", "/admin/monitoring", "/admin/devices",

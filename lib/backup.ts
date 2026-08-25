@@ -7,7 +7,6 @@ import {
 import { getCostingSettings } from "@/lib/costing-settings";
 import { getDataBackendConfig, getSafeDataBackendStatus } from "@/lib/data-backend";
 import { getEmailVerificationTokensForBackup } from "@/lib/email-verification-store";
-import { getHrData, type HrData } from "@/lib/hr";
 import { getNotificationEvents } from "@/lib/notifications";
 import {
   type OperationsData,
@@ -172,14 +171,6 @@ function purchasingCounts(purchasing: Awaited<ReturnType<typeof getPurchasingDat
   };
 }
 
-function hrCounts(hr: HrData) {
-  return {
-    employees: hr.employees.length,
-    attendanceRecords: hr.attendanceRecords.length,
-    payrollRecords: hr.payrollRecords.length,
-  };
-}
-
 function operationsIntegrity(operations: OperationsData) {
   const ledgerIds = new Set(operations.customerLedgers.map((ledger) => ledger.id));
   const batchIds = new Set(operations.productionBatches.map((batch) => batch.id));
@@ -236,28 +227,6 @@ function operationsIntegrity(operations: OperationsData) {
   };
 }
 
-function hrIntegrity(hr: HrData) {
-  const employeeIds = new Set(hr.employees.map((employee) => employee.id));
-
-  return {
-    employees: {
-      duplicateIds: findDuplicateIds(hr.employees),
-    },
-    attendanceRecords: {
-      duplicateIds: findDuplicateIds(hr.attendanceRecords),
-      orphanEmployees: hr.attendanceRecords
-        .filter((record) => !employeeIds.has(record.employeeId))
-        .map((record) => record.id),
-    },
-    payrollRecords: {
-      duplicateIds: findDuplicateIds(hr.payrollRecords),
-      orphanEmployees: hr.payrollRecords
-        .filter((record) => !employeeIds.has(record.employeeId))
-        .map((record) => record.id),
-    },
-  };
-}
-
 function adminSettingsIntegrity(settings: Awaited<ReturnType<typeof getAdminSettingsForBackup>>) {
   const branchIds = new Set(settings.branches.map((branch) => branch.id));
 
@@ -292,7 +261,6 @@ export async function buildAdminBackup() {
     posInvoices,
     purchasing,
     costingSettings,
-    hr,
     adminSettings,
     audit,
     notifications,
@@ -309,7 +277,6 @@ export async function buildAdminBackup() {
     getPosInvoices(),
     getPurchasingData(),
     getCostingSettings(),
-    getHrData(),
     getAdminSettingsForBackup(),
     getAdminAuditEvents(500),
     getNotificationEvents(300),
@@ -338,7 +305,6 @@ export async function buildAdminBackup() {
       posInvoices: posInvoices.length,
       purchasing: purchasingCounts(purchasing),
       costingSettings: 1,
-      hr: hrCounts(hr),
       adminSettings: {
         company: 1,
         branches: adminSettings.branches.length,
@@ -544,7 +510,6 @@ export async function buildAdminBackup() {
             .map((transaction) => transaction.id),
         },
       },
-      hr: hrIntegrity(hr),
       adminSettings: adminSettingsIntegrity(adminSettings),
       ...backupExtensionIntegrity(backupExtensions),
     },
@@ -578,7 +543,6 @@ export async function buildAdminBackup() {
       posInvoices,
       purchasing,
       costingSettings,
-      hr,
       adminSettings,
       audit,
       notifications,

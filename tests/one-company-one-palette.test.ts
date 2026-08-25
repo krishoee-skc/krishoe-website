@@ -51,7 +51,11 @@ describe("one company, one palette", () => {
 
     // A due date is red because it is late, not because of a palette. If this
     // ever collapses toward zero, somebody has repainted a warning.
-    expect(count).toBeGreaterThan(700);
+    //
+    // Measured per file, not in total: deleting a screen lowers the total
+    // without repainting anything, and a guard that cannot tell removal from
+    // repainting fires on the wrong day.
+    expect(count / files.length).toBeGreaterThan(3.5);
   });
 
   it("gives the admin tokens the brand's own colours", async () => {

@@ -21,7 +21,7 @@ describe("admin navigation", () => {
     const before = [
       "/admin", "/admin/factory", "/admin/search",
       "/admin/stock", "/admin/pos", "/admin/dues", "/admin/purchasing",
-      "/admin/costing", "/admin/hr", "/admin/operations", "/admin/orders",
+      "/admin/costing", "/admin/operations", "/admin/orders",
       "/admin/customers", "/admin/payments", "/admin/analytics",
       "/admin/settings", "/admin/products",
       // Ten destinations moved to the Settings screen: Getting Started,
