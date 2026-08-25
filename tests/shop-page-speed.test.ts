@@ -43,27 +43,39 @@ describe("the shop page", () => {
   });
 });
 
+/**
+ * The three tests that used to live here held the wrong half of the fix.
+ *
+ * They required useSearchParams inside a Suspense boundary, because that is
+ * what stopped /shop being rebuilt for every visitor — and it did, taking TTFB
+ * from over two seconds to under one. What nobody measured was what it did to
+ * the other end: a Suspense boundary around a component that cannot prerender
+ * bakes the FALLBACK into the page, so /shop shipped as an empty 60vh box with
+ * no product and no photograph in it. The server got fast and the shopper got
+ * slower — one LCP reading came in at 5.5 seconds.
+ *
+ * The goal was always "the page stays prerendered". That goal is unchanged and
+ * still guarded above. The mechanism moved: the URL is read after mounting
+ * instead of during render, which costs no prerendering and empties nothing.
+ * The shape is held in tests/pages-ship-their-content.test.ts.
+ */
 describe("the search box", () => {
-  it("reads /shop?query= in the browser", async () => {
+  it("still reads a search arriving at /shop?query=", async () => {
     const controls = await readFile("app/shop/ShopCatalogControls.tsx", "utf8");
 
-    // CommandSearch navigates to /shop?query=…; that has to keep working.
-    expect(controls).toContain("useSearchParams");
-    expect(controls).toContain('searchParams.get("query")');
+    // CommandSearch navigates to /shop?query=…; that has to keep working
+    // whichever way the URL is read.
+    expect(controls).toContain("window.location.search");
+    expect(controls).toContain('get("query")');
   });
 
   it("seeds the box once instead of following the address bar", async () => {
     const controls = await readFile("app/shop/ShopCatalogControls.tsx", "utf8");
-    // A lazy useState initialiser, not an effect that re-syncs: a shopper
+
+    // An empty dependency array: read on arrival, never re-synced. A shopper
     // editing the box should not be fighting the URL.
-    expect(controls).toContain('useState(() => searchParams.get("query")');
-  });
-
-  it("is wrapped in Suspense, which is what keeps the page prerendered", async () => {
-    const catalog = await readFile("app/shop/ShopCatalog.tsx", "utf8");
-
-    expect(catalog).toContain("Suspense");
-    expect(catalog).toContain("ShopCatalogControls");
+    const effect = controls.slice(controls.indexOf("useIsomorphicLayoutEffect(() => {"));
+    expect(effect.slice(0, 300)).toContain("}, []);");
   });
 });
 

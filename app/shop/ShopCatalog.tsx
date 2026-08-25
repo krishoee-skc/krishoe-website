@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShopCatalogControls from "@/app/shop/ShopCatalogControls";
@@ -70,13 +69,17 @@ export default function ShopCatalog({ products, activeCategory }: ShopCatalogPro
           </div>
         </div>
 
-        {/* Suspense is what lets the page stay prerendered while the controls
-            read the search term from the URL in the browser. Without it, one
-            client component reading searchParams drags the whole route back
-            into being built per request. */}
-        <Suspense fallback={<div className="min-h-[60vh]" aria-hidden />}>
-          <ShopCatalogControls products={products} activeCategory={activeCategory} />
-        </Suspense>
+        {/* No Suspense boundary any more, and that is the point.
+            It was here to keep the route prerendered while the controls read
+            the search term with useSearchParams — but a boundary around a
+            component that opts out of prerendering means the FALLBACK is what
+            gets baked into the page. What shipped as /shop was an empty 60vh
+            box: no product, no photograph, nothing for the browser's preload
+            scanner to find, and every image fetched only once the JavaScript
+            had arrived and hydrated. One shopper waited 5.5 seconds to see a
+            shoe. The controls read the URL after mounting now, so the whole
+            grid prerenders and the photographs are in the page itself. */}
+        <ShopCatalogControls products={products} activeCategory={activeCategory} />
       </section>
       <Footer />
     </main>

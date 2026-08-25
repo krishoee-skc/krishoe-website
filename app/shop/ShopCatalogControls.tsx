@@ -1,13 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { SearchIcon, XIcon } from "@/components/Icons";
 import { categories, type Category, type Product } from "@/lib/products";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
+
+/**
+  * Reads the URL after mounting, never during render.
+  *
+  * useSearchParams() is what made this whole grid disappear from the page.
+  * Calling it opts the component out of prerendering, so what Next baked into
+  * /shop was the Suspense fallback — an empty 60vh box — and every product
+  * photograph was fetched only after the JavaScript arrived, parsed and
+  * hydrated. The browser's preload scanner never saw a single image, and one
+  * shopper's LCP came in at 5.5 seconds.
+  *
+  * The URL is still read; it is read where reading it costs nothing. On the
+  * server this is undefined and the state starts empty, which is exactly what
+  * the prerendered HTML shows — so the markup matches, the grid ships in the
+  * page, and a shopper arriving from the search box has their query applied
+  * before the browser paints.
+  */
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 type AvailabilityFilter = "all" | "ready" | "low";
 type SortMode = "featured" | "new" | "price-asc" | "price-desc" | "rating-desc";
@@ -78,10 +95,17 @@ export default function ShopCatalogControls({
   activeCategory,
 }: ShopCatalogControlsProps) {
   const { text } = useLanguage();
-  const searchParams = useSearchParams();
-  const [query, setQuery] = useState(() => searchParams.get("query") ?? "");
+  const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("featured");
+
+  // Once, on arrival. A shopper who then edits the box is not fighting the
+  // address bar, which is what the previous seed-from-URL was protecting.
+  useIsomorphicLayoutEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("query");
+    if (fromUrl) setQuery(fromUrl);
+  }, []);
+
   const cleanQuery = query.trim().toLowerCase();
   const visibleProducts = useMemo(() => {
     const filtered = products.filter((product) => {

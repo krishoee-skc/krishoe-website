@@ -492,7 +492,13 @@ export default function MonitoringDashboard() {
           {monitoring.errors.totalErrors > 50 && (
             <li>✓ Many errors in last 24h - urgent investigation needed</li>
           )}
-          {monitoring.uptime < 99.9 && (
+          {/* The same trap as the line below, one card apart. Nothing has ever
+              written an uptime check, so this value is 0 — and 0 is below 99.9,
+              so the screen told the owner to review the stability of a shop
+              whose stability it had never measured. The card above it says
+              "अझै नापिएको छैन" in the same breath. Advice from a number that
+              does not exist is how a person learns to stop reading advice. */}
+          {monitoring.uptime > 0 && monitoring.uptime < 99.9 && (
             <li>✓ Uptime below 99.9% - review system stability</li>
           )}
           {/* This read `!v`, left over from when these were booleans. Every value
