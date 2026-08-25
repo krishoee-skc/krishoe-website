@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
@@ -36,6 +37,7 @@ interface WorkOrder {
 
 export default function AddWorkPage() {
   const router = useRouter();
+  const { text } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -308,7 +310,7 @@ export default function AddWorkPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 text-center">
-        <div className="animate-pulse text-brand-muted">Loading...</div>
+        <div className="animate-pulse text-brand-muted">{text("Loading…", "खुल्दैछ…")}</div>
       </div>
     );
   }
@@ -316,7 +318,9 @@ export default function AddWorkPage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-ink">➕ काम टिप्ने</h1>
-      <p className="mb-6 mt-1 text-sm text-brand-muted">Add daily work entry</p>
+      <p className="mb-6 mt-1 text-sm text-brand-muted">
+        {text("Add daily work entry", "आजको काम टिप्नुहोस्")}
+      </p>
 
       <form onSubmit={handleSubmit} className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6">
         {error && (
@@ -333,7 +337,7 @@ export default function AddWorkPage() {
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">📅 Date</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">📅 {text("Date", "मिति")}</label>
           <input
             type="date"
             value={formData.date}
@@ -345,14 +349,14 @@ export default function AddWorkPage() {
 
         {/* Worker */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 Worker</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Worker", "कामदार")}</label>
           <select
             value={formData.worker_id}
             onChange={handleWorkerChange}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           >
-            <option value="">Select a worker...</option>
+            <option value="">{text("Select a worker…", "कामदार छान्नुहोस्…")}</option>
             {workers.map((worker) => (
               <option key={worker.id} value={worker.id}>
                 {worker.name} ({worker.category})
@@ -364,7 +368,7 @@ export default function AddWorkPage() {
         {/* Item/Product */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium text-brand-green-ink">🛞 Product</label>
+            <label className="block text-sm font-medium text-brand-green-ink">🛞 {text("Product", "कुन जुत्ता")}</label>
             <div className="flex gap-2">
               <Link
                 href="/admin/factory/items"
@@ -396,7 +400,7 @@ export default function AddWorkPage() {
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           >
-            <option value="">Select a product...</option>
+            <option value="">{text("Select a product…", "जुत्ता छान्नुहोस्…")}</option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -416,7 +420,9 @@ export default function AddWorkPage() {
               onChange={handleWorkOrderChange}
               className="w-full min-h-12 rounded-lg border border-emerald-300 bg-brand-paper px-3 py-2"
             >
-              <option value="">No Work Order — wage history only</option>
+              <option value="">
+                {text("No work order — wage history only", "Work Order बिना — ज्यालाको हिसाब मात्र")}
+              </option>
               {availableWorkOrders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.work_order_number} · {order.current_stage} · {order.planned_pairs} pairs
@@ -438,20 +444,24 @@ export default function AddWorkPage() {
 
         {/* Color */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">🎨 Color (Optional)</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            🎨 {text("Colour (optional)", "रङ — नलेखे पनि हुन्छ")}
+          </label>
           <input
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
             readOnly={Boolean(selectedWorkOrder)}
-            placeholder="e.g., Black, Blue, Red"
+            placeholder={text("e.g. Black, Blue, Red", "जस्तै: कालो, निलो, रातो")}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
         </div>
 
         {/* Size */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">📏 Size (Optional)</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            📏 {text("Size (optional)", "साइज — नलेखे पनि हुन्छ")}
+          </label>
           {selectedWorkOrder ? (
             <select
               value={formData.size}
@@ -459,7 +469,7 @@ export default function AddWorkPage() {
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
               required
             >
-              <option value="">Select a planned size...</option>
+              <option value="">{text("Select a planned size…", "तय भएको साइज छान्नुहोस्…")}</option>
               {plannedSizes.map(([size, pairs]) => (
                 <option key={size} value={size}>{size} · planned {pairs} pairs</option>
               ))}
@@ -469,7 +479,7 @@ export default function AddWorkPage() {
               type="text"
               value={formData.size}
               onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-              placeholder="e.g., 7, 8, 9"
+              placeholder={text("e.g. 7, 8, 9", "जस्तै: ७, ८, ९")}
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             />
           )}
@@ -477,12 +487,14 @@ export default function AddWorkPage() {
 
         {/* Pairs */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">🔢 Number of Pairs</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            🔢 {text("Number of pairs", "कति जोडी")}
+          </label>
           <input
             type="number"
             value={formData.pairs_count}
             onChange={handlePairsChange}
-            placeholder="Enter number of pairs"
+            placeholder={text("Enter number of pairs", "कति जोडी बनायो")}
             min="1"
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
@@ -539,7 +551,7 @@ export default function AddWorkPage() {
               type="text"
               value={newProductName}
               onChange={(e) => setNewProductName(e.target.value)}
-              placeholder="Product name (e.g., Flatpatta, Sendil)"
+              placeholder={text("Product name (e.g. Flatpatta, Sendil)", "जुत्ताको नाम (जस्तै: फ्ल्याटपट्टा, सेन्डिल)")}
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
               onKeyPress={(e) => e.key === "Enter" && handleAddProduct()}
             />
@@ -576,7 +588,7 @@ export default function AddWorkPage() {
               type="number"
               value={newRate}
               onChange={(e) => setNewRate(e.target.value)}
-              placeholder="Rate per pair (e.g., 10, 12, 15)"
+              placeholder={text("Rate per pair (e.g. 10, 12, 15)", "प्रति जोडी दर (जस्तै: १०, १२, १५)")}
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
               onKeyPress={(e) => e.key === "Enter" && handleSetRate()}
             />

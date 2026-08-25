@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsData, type StockMovement } from "@/lib/operations";
 import { getProducts } from "@/lib/product-store";
@@ -67,7 +68,9 @@ function ReadyStockSection({ title, origin, rows }: { title: string; origin: Rea
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper/70 p-4 text-sm font-semibold text-brand-muted">No stock in this group.</p>
+        <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper/70 p-4 text-sm font-semibold text-brand-muted">
+          <T en="No stock in this group." ne="यो समूहमा माल छैन।" />
+        </p>
       ) : (
         <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => (
@@ -211,15 +214,19 @@ export default async function AdminStockPage() {
     <section className="p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">One stock control</p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">Raw materials and ready goods</h1>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+            <T en="One stock control" ne="मालको एउटै हिसाब" />
+          </p>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+            <T en="Raw materials and ready goods" ne="कच्चा पदार्थ र बनिसकेको माल" />
+          </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Factory materials, KRISHOE-made pairs and supplier-purchased resale pairs are shown separately. Wholesale, retail and online remain sales channels—not extra stock.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/purchasing" className="rounded-full border border-brand-green bg-brand-paper px-4 py-2 text-sm font-black text-brand-green">Receive purchase</Link>
-          <Link href="/admin/operations" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white">Factory operations</Link>
+          <Link href="/admin/purchasing" className="rounded-full border border-brand-green bg-brand-paper px-4 py-2 text-sm font-black text-brand-green"><T en="Receive purchase" ne="किनेको माल भित्र्याउने" /></Link>
+          <Link href="/admin/operations" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white"><T en="Factory operations" ne="कारखानाको काम" /></Link>
         </div>
       </div>
 
@@ -240,13 +247,22 @@ export default async function AdminStockPage() {
         <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="text-lg font-black text-brand-green-ink">Raw material store</h2>
-              <p className="mt-1 text-sm text-brand-muted">On hand = opening + received − used.</p>
+              <h2 className="text-lg font-black text-brand-green-ink">
+                <T en="Raw material store" ne="कच्चा पदार्थको भण्डार" />
+              </h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                <T
+                  en="On hand = opening + received − used."
+                  ne="बाँकी = सुरुको + भित्रिएको − खर्च भएको।"
+                />
+              </p>
             </div>
-            <Link href="/admin/operations" className="text-sm font-black text-brand-green underline">Manage materials</Link>
+            <Link href="/admin/operations" className="text-sm font-black text-brand-green underline"><T en="Manage materials" ne="कच्चा पदार्थ मिलाउने" /></Link>
           </div>
           {rawMaterials.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">No raw materials recorded.</p>
+            <p className="mt-4 rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
+              <T en="No raw materials recorded yet." ne="कच्चा पदार्थ अझै टिपिएको छैन।" />
+            </p>
           ) : (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {rawMaterials.map((material) => (

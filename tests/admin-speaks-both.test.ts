@@ -23,6 +23,12 @@ import { describe, expect, it } from "vitest";
 const DAILY = [
   "app/admin/ProductForm.tsx",
   "app/admin/products/page.tsx",
+  "app/admin/pos/_components/PosBillForm.tsx",
+  "app/admin/factory/add-work/page.tsx",
+  "app/admin/orders/page.tsx",
+  "app/admin/stock/page.tsx",
+  "app/admin/factory/workers/page.tsx",
+  "app/admin/factory/salary/page.tsx",
 ];
 
 describe("the screens opened every day", () => {
@@ -81,5 +87,70 @@ describe("the screens opened every day", () => {
     // The status column has a CHECK constraint on exactly these two strings.
     expect(form).toContain('<option value="Active">');
     expect(form).toContain('<option value="Draft">');
+  });
+});
+
+/**
+ * The line between a label and a value.
+ *
+ * A select's option carries both: what the reader sees, and what the server
+ * stores. Turning the first is translation; turning the second silently writes
+ * a word the database has never heard of — and on these screens that word
+ * decides whether a bill is credit or cash, and whether a worker is paid by the
+ * pair or by the month.
+ */
+describe("what must not move while the words do", () => {
+  it("keeps the values the POS library matches bills on", async () => {
+    const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
+
+    for (const value of [
+      'value="Sale"',
+      'value="Return"',
+      'value="Retail"',
+      'value="Wholesale"',
+      'value="Online"',
+      'value="Cash"',
+      'value="Credit"',
+      'value="Bank"',
+    ]) {
+      expect(form, value).toContain(value);
+    }
+  });
+
+  it("keeps the values that decide how a worker is paid", async () => {
+    const workers = await readFile("app/admin/factory/workers/page.tsx", "utf8");
+    const salary = await readFile("app/admin/factory/salary/page.tsx", "utf8");
+
+    for (const value of ['value="piece_rate"', 'value="daily_staff"', 'value="monthly_staff"']) {
+      expect(workers, value).toContain(value);
+    }
+    for (const value of ['value="advance"', 'value="payment"']) {
+      expect(salary, value).toContain(value);
+    }
+  });
+
+  it("keeps every field name the bill form submits", async () => {
+    const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
+
+    for (const field of [
+      'name="kind"',
+      'name="channel"',
+      'name="paymentMethod"',
+      'name="cashier"',
+      'name="customerName"',
+      'name="ledgerId"',
+      'name="paidAmount"',
+    ]) {
+      expect(form, field).toContain(field);
+    }
+  });
+
+  it("says शनिबारको खर्च where English had to borrow the word anyway", async () => {
+    const workers = await readFile("app/admin/factory/workers/page.tsx", "utf8");
+
+    // "Usual Saturday kharcha" was an English label built around a Nepali word,
+    // because English has none for it. That is the clearest sign the screen was
+    // written for the wrong reader.
+    expect(workers).toContain("शनिबारको खर्च");
   });
 });

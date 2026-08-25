@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
@@ -30,6 +31,7 @@ interface SalarySummary {
 export default function StaffSalaryPage() {
   const searchParams = useSearchParams();
   const requestedWorkerId = searchParams.get("workerId");
+  const { text } = useLanguage();
   const [workers, setWorkers] = useState<StaffWorker[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
   // The Bikram Sambat month, because that is the month wages are agreed in.
@@ -148,7 +150,7 @@ export default function StaffSalaryPage() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading staff workers...</div>;
+    return <div className="p-6">{text("Loading staff…", "कर्मचारी खुल्दैछन्…")}</div>;
   }
 
   return (
@@ -207,7 +209,7 @@ export default function StaffSalaryPage() {
             </div>
 
             <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <p className="text-xs text-brand-muted font-semibold">Total Paid</p>
+              <p className="text-xs text-brand-muted font-semibold">{text("Total paid", "जम्मा तिरेको")}</p>
               <p className="text-2xl font-black text-brand-green mt-2">
                 Rs. {summary.total_paid.toLocaleString()}
               </p>
@@ -229,7 +231,7 @@ export default function StaffSalaryPage() {
                   : "bg-red-50 border-red-200"
               }`}
             >
-              <p className="text-xs font-semibold">Balance</p>
+              <p className="text-xs font-semibold">{text("Balance", "बाँकी")}</p>
               <p
                 className={`text-2xl font-black mt-2 ${
                   summary.remaining_balance >= 0
@@ -244,24 +246,26 @@ export default function StaffSalaryPage() {
 
           <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
             <div>
-              <h2 className="text-lg font-black text-brand-green-ink">Record cash transaction</h2>
+              <h2 className="text-lg font-black text-brand-green-ink">
+                {text("Record cash transaction", "पैसाको लेनदेन टिप्ने")}
+              </h2>
               <p className="mt-1 text-sm leading-6 text-brand-muted">Advance and salary payment are stored separately and both reduce the remaining salary balance for the selected month.</p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Transaction type
                 <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
-                  <option value="advance">Saturday kharcha / advance</option>
-                  <option value="payment">Salary payment</option>
+                  <option value="advance">{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
+                  <option value="payment">{text("Salary payment", "तलब भुक्तानी")}</option>
                 </select>
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Date
                 <input type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Cash amount" />
+                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Cash amount", "कति रुपैयाँ")} />
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
-                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder="Optional reason or reference" />
+                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
               </label>
             </div>
             <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
@@ -275,13 +279,13 @@ export default function StaffSalaryPage() {
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-brand-muted">Base Salary:</span>
+                <span className="text-brand-muted">{text("Base salary", "तय भएको तलब")}:</span>
                 <span className="font-semibold">
                   Rs. {summary.total_salary.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-3">
-                <span className="text-brand-muted">Paid:</span>
+                <span className="text-brand-muted">{text("Paid", "तिरेको")}:</span>
                 <span className="font-semibold text-brand-green">
                   -Rs. {summary.total_paid.toLocaleString()}
                 </span>

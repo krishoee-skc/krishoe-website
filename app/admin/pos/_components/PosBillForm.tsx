@@ -7,6 +7,7 @@ import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { posLineIssue } from "@/lib/pos-line-check";
 import { autoPaidAmount, posBillCreditDue, posBillTotal } from "@/lib/pos-bill";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type LedgerOption = { id: string; label: string };
 
@@ -88,6 +89,7 @@ export default function PosBillForm({
   lastBill,
   canOpenLedger = false,
 }: PosBillFormProps) {
+  const { text } = useLanguage();
   const [submissionKey] = useState(
     () => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
   );
@@ -332,7 +334,13 @@ export default function PosBillForm({
     const firstBadIndex = started.findIndex((row) => posLineIssue(row));
 
     if (started.length === 0) {
-      setState({ ok: false, message: "Add at least one item — a design, with quantity and rate." });
+      setState({
+        ok: false,
+        message: text(
+          "Add at least one item — a design, with quantity and rate.",
+          "कम्तीमा एउटा जुत्ता हाल्नुहोस् — नाम, कति जोडी र दरसहित।",
+        ),
+      });
       return;
     }
 
@@ -399,7 +407,7 @@ export default function PosBillForm({
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-brand-green-ink">New bill</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">{text("New bill", "नयाँ बिल")}</h2>
           <p className="mt-1 text-sm text-brand-muted">
             Pick an item and its price fills in. Bill save posts stock automatically.
           </p>
@@ -410,7 +418,7 @@ export default function PosBillForm({
             onClick={repeatLastBill}
             className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
           >
-            ↻ Repeat last bill
+            ↻ {text("Repeat last bill", "अघिल्लो बिल दोहोर्‍याउने")}
             <span className="font-mono text-xs opacity-70">{lastBill.invoiceNumber}</span>
           </button>
         ) : null}
@@ -424,8 +432,8 @@ export default function PosBillForm({
           onChange={(event) => setKind(event.target.value)}
           aria-label="Bill type"
         >
-          <option>Sale</option>
-          <option>Return</option>
+          <option value="Sale">{text("Sale", "बिक्री")}</option>
+          <option value="Return">{text("Return", "फिर्ता")}</option>
         </select>
         <select
           name="channel"
@@ -434,9 +442,9 @@ export default function PosBillForm({
           onChange={(event) => changeChannel(event.target.value)}
           aria-label="Sales channel"
         >
-          <option>Retail</option>
-          <option>Wholesale</option>
-          <option>Online</option>
+          <option value="Retail">{text("Retail", "खुद्रा")}</option>
+          <option value="Wholesale">{text("Wholesale", "थोक")}</option>
+          <option value="Online">{text("Online", "अनलाइन")}</option>
         </select>
         <select
           name="paymentMethod"
@@ -445,29 +453,29 @@ export default function PosBillForm({
           onChange={(event) => setPaymentMethod(event.target.value)}
           aria-label="Payment method"
         >
-          <option>Cash</option>
-          <option>Cheque</option>
-          <option>Credit</option>
+          <option value="Cash">{text("Cash", "नगद")}</option>
+          <option value="Cheque">{text("Cheque", "चेक")}</option>
+          <option value="Credit">{text("Credit", "उधारो")}</option>
           <option>QR</option>
           <option>eSewa</option>
           <option>Khalti</option>
-          <option>Bank</option>
+          <option value="Bank">{text("Bank", "बैंक")}</option>
         </select>
-        <input name="cashier" className={inputClass} placeholder="Cashier / counter" />
+        <input name="cashier" className={inputClass} placeholder={text("Cashier / counter", "कसले बेच्यो")} />
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-4">
         <input
           name="customerName"
           className={inputClass}
-          placeholder="Customer name"
+          placeholder={text("Customer name", "ग्राहकको नाम")}
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
         />
         <input
           name="phone"
           className={inputClass}
-          placeholder="Phone"
+          placeholder={text("Phone", "फोन नम्बर")}
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
         />
@@ -485,7 +493,7 @@ export default function PosBillForm({
             </option>
           ))}
         </select>
-        <input name="paymentReference" className={inputClass} placeholder="Cheque/QR/ref no." />
+        <input name="paymentReference" className={inputClass} placeholder={text("Cheque/QR/ref no.", "चेक/QR को नम्बर")} />
       </div>
 
       {/* The bill is not yet paid in full, so it owes somebody. Said here, while
@@ -529,7 +537,7 @@ export default function PosBillForm({
           the counter never keys the design, price, or size. */}
       <div className="mt-5 rounded-lg border border-brand-green/30 bg-brand-green-wash/40 p-3">
         <label className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
-          Scan or type code
+          {text("Scan or type code", "बारकोड स्क्यान वा कोड लेख्ने")}
         </label>
         <div className="relative mt-2">
           <div className="flex flex-wrap gap-2">
@@ -553,7 +561,7 @@ export default function PosBillForm({
                   }
                 }
               }}
-              placeholder="Search item, SKU, size or scan barcode"
+              placeholder={text("Search item, SKU, size or scan barcode", "जुत्ता, कोड वा साइज खोज्ने — वा बारकोड स्क्यान")}
               aria-label="Search or scan a product"
               role="combobox"
               aria-autocomplete="list"
@@ -656,11 +664,11 @@ export default function PosBillForm({
           <thead className="border-b text-left text-brand-muted">
             <tr>
               <th className="py-2 pr-3">SKU</th>
-              <th className="py-2 pr-3">Design / item</th>
-              <th className="py-2 pr-3">Size</th>
-              <th className="py-2 pr-3">Pairs</th>
-              <th className="py-2 pr-3">Rate</th>
-              <th className="py-2 pr-3">Discount</th>
+              <th className="py-2 pr-3">{text("Design / item", "कुन जुत्ता")}</th>
+              <th className="py-2 pr-3">{text("Size", "साइज")}</th>
+              <th className="py-2 pr-3">{text("Pairs", "जोडी")}</th>
+              <th className="py-2 pr-3">{text("Rate", "दर")}</th>
+              <th className="py-2 pr-3">{text("Discount", "छुट")}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -676,7 +684,7 @@ export default function PosBillForm({
                     <input
                       name={`item${index}Sku`}
                       className={`${inputClass} w-28`}
-                      placeholder="SKU"
+                      placeholder={text("SKU", "कोड")}
                       value={row.sku}
                       onChange={(event) => updateRow(row.key, { sku: event.target.value })}
                       aria-label={`Item ${index + 1} SKU`}
@@ -687,7 +695,7 @@ export default function PosBillForm({
                       name={`item${index}Design`}
                       className={`${fieldClass(Boolean(issue?.design))} min-w-56`}
                       list="pos-design-options"
-                      placeholder="Type or pick a design"
+                      placeholder={text("Type or pick a design", "जुत्ताको नाम लेख्ने वा छान्ने")}
                       value={row.design}
                       onChange={(event) => updateRow(row.key, { design: event.target.value })}
                       aria-label={`Item ${index + 1} design`}
@@ -702,7 +710,7 @@ export default function PosBillForm({
                     <input
                       name={`item${index}SizeRun`}
                       className={`${inputClass} w-24`}
-                      placeholder="Mixed"
+                      placeholder={text("Mixed", "मिसिएको")}
                       value={row.sizeRun}
                       onChange={(event) => updateRow(row.key, { sizeRun: event.target.value })}
                       aria-label={`Item ${index + 1} size run`}
@@ -754,10 +762,15 @@ export default function PosBillForm({
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-brand-muted">
           {inStockCount > 0
-            ? `${inStockCount} design${inStockCount === 1 ? "" : "s"} in stock. Pick one and its price fills in.`
-            : "A new row appears as you fill the last one."}
+            ? text(
+                `${inStockCount} design${inStockCount === 1 ? "" : "s"} in stock. Pick one and its price fills in.`,
+                `${inStockCount} जुत्ता स्टकमा छ। छान्नुहोस्, दर आफैँ भरिन्छ।`,
+              )
+            : text("A new row appears as you fill the last one.", "अन्तिम हार भर्दा नयाँ हार आफैँ आउँछ।")}
         </p>
-        <p className="text-sm font-semibold text-brand-green-ink">Items {money(subtotal)}</p>
+        <p className="text-sm font-semibold text-brand-green-ink">
+          {text("Items", "सामान")} {money(subtotal)}
+        </p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-4">
@@ -766,7 +779,7 @@ export default function PosBillForm({
           type="number"
           min="0"
           className={inputClass}
-          placeholder="Bill discount"
+          placeholder={text("Bill discount", "बिलमा छुट")}
           value={invoiceDiscount}
           onChange={(event) => setInvoiceDiscount(event.target.value)}
         />
@@ -775,7 +788,7 @@ export default function PosBillForm({
           type="number"
           min="0"
           className={inputClass}
-          placeholder="Tax / VAT"
+          placeholder={text("Tax / VAT", "कर / VAT")}
           value={tax}
           onChange={(event) => setTax(event.target.value)}
         />
@@ -785,7 +798,7 @@ export default function PosBillForm({
             type="number"
             min="0"
             className={inputClass}
-            placeholder="Paid amount"
+            placeholder={text("Paid amount", "कति तिर्‍यो")}
             value={isCredit ? "" : paidValue}
             disabled={isCredit}
             onChange={(event) => {
@@ -794,10 +807,12 @@ export default function PosBillForm({
             }}
           />
           {!isCredit && !paidTouched && billTotal > 0 ? (
-            <p className="text-xs text-brand-muted">Full amount — edit if paid in part.</p>
+            <p className="text-xs text-brand-muted">
+              {text("Full amount — edit if paid in part.", "पूरै रकम — आधा तिरेको भए यहाँ सच्याउनुहोस्।")}
+            </p>
           ) : null}
         </div>
-        <textarea name="note" className={textareaClass} placeholder="Delivery, return, QR, or counter note" />
+        <textarea name="note" className={textareaClass} placeholder={text("Delivery, return, QR, or counter note", "डेलिभरी, फिर्ता वा अरू कुनै कुरा")} />
       </div>
 
       <div className="mt-4 space-y-3">
@@ -813,7 +828,7 @@ export default function PosBillForm({
             ? "खाता खोल्दैछौँ…"
             : isSaving || saveLocked
               ? "Saving..."
-              : "Save bill and open receipt"}
+              : text("Save bill and open receipt", "बिल राख्ने र रसिद खोल्ने")}
         </button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FACTORY_WORKER_CATEGORIES,
@@ -49,6 +50,7 @@ function factoryCategoryForDepartment(department: string) {
 }
 
 export default function WorkersPage() {
+  const { text } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [hrEmployees, setHrEmployees] = useState<HrEmployee[]>([]);
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
@@ -223,7 +225,7 @@ export default function WorkersPage() {
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{workers.filter((worker) => worker.hr_employee_id).length} linked</span>
         <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">{workers.filter((worker) => !worker.hr_employee_id).length} without an HR link (fine)</span>
-        <Link href="/admin/hr" className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-1.5 text-brand-green underline">Open HR employees</Link>
+        <Link href="/admin/hr" className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-1.5 text-brand-green underline">{text("Open HR employees", "कर्मचारीको सूची खोल्ने")}</Link>
       </div>
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}
@@ -232,26 +234,28 @@ export default function WorkersPage() {
       {showForm ? (
         <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-bold">Existing HR employee (recommended)</label>
+            <label className="mb-2 block text-sm font-bold">
+              {text("Existing HR employee (recommended)", "पहिल्यै भएको कर्मचारी छान्नुहोस्")}
+            </label>
             <select value={formData.hr_employee_id} onChange={(event) => chooseHrEmployee(event.target.value)} className={inputClass}>
-              <option value="">Create without HR link</option>
+              <option value="">{text("Create without HR link", "नजोडी नयाँ बनाउने")}</option>
               {hrEmployees.filter((employee) => !linkedEmployeeIds.has(employee.id)).map((employee) => (
                 <option key={employee.id} value={employee.id}>{employee.name} · {employee.department} · {employee.phone || "No phone"}</option>
               ))}
             </select>
           </div>
           <label className="text-sm font-bold">Name<input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
-          <label className="text-sm font-bold">Worker type<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">Piece rate</option><option value="daily_staff">Daily staff</option><option value="monthly_staff">Monthly staff</option></select></label>
-          <label className="text-sm font-bold">Factory stage<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
-          <label className="text-sm font-bold">Monthly salary<input type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => setFormData((current) => ({ ...current, monthly_salary: event.target.value }))} className={`${inputClass} mt-2`} /></label>
-          <label className="text-sm font-bold">Usual Saturday kharcha<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
+          <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
+          <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+          <label className="text-sm font-bold">{text("Monthly salary", "मासिक तलब")}<input type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => setFormData((current) => ({ ...current, monthly_salary: event.target.value }))} className={`${inputClass} mt-2`} /></label>
+          <label className="text-sm font-bold">{text("Usual Saturday kharcha", "शनिबारको खर्च")}<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
           <button disabled={saving === "new"} className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white disabled:opacity-60 sm:col-span-2">{saving === "new" ? "Saving..." : "Save worker"}</button>
         </form>
       ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-brand-muted">Loading workers...</p> : null}
-        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">No factory workers yet.</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">{text("Loading workers…", "कामदार खुल्दैछन्…")}</p> : null}
+        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No factory workers yet.", "कारखानामा अझै कामदार थपिएको छैन।")}</p> : null}
         {workers.map((worker) => (
           <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : worker.hr_employee_id ? "border-emerald-200 bg-brand-paper" : "border-brand-green-line bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -355,7 +359,7 @@ export default function WorkersPage() {
 
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select value={linkDrafts[worker.id] || ""} onChange={(event) => setLinkDrafts((current) => ({ ...current, [worker.id]: event.target.value }))} className={inputClass} aria-label={`HR employee for ${worker.name}`}>
-                <option value="">Not linked</option>
+                <option value="">{text("Not linked", "जोडिएको छैन")}</option>
                 {hrEmployees.filter((employee) => !linkedEmployeeIds.has(employee.id) || employee.id === worker.hr_employee_id).map((employee) => (
                   <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
                 ))}

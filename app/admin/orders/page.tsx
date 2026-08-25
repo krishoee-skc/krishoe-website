@@ -1,4 +1,5 @@
 import OrdersClient from "@/app/admin/OrdersClient";
+import T from "@/components/T";
 import { buildOnlineOrderConversionReport, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
 import { getOperationsDataForReports } from "@/lib/operations";
 import { getPaymentTransactionsByOrderIds } from "@/lib/payment-transactions";
@@ -47,7 +48,9 @@ export default async function AdminOrdersPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Orders</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink">
+            <T en="Orders" ne="अर्डर" />
+          </h1>
           <p className="mt-1 text-sm text-brand-muted">
             Manage customer order requests, POS conversion, payment, and stock readiness.
           </p>
