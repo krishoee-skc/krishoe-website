@@ -32,10 +32,36 @@ describe("the colours the brand is set on", () => {
   it("keeps the three the brand is actually made of", async () => {
     const tailwind = await readFile(TAILWIND, "utf8");
 
-    // Not up for redecoration. These are on the box and the signboard.
-    expect(tailwind).toContain('green: "#0B4D3B"');
-    expect(tailwind).toContain('"green-ink": "#10231D"');
+    // Still green, gold and cream. The two greens were lightened once, on the
+    // owner's eye — "हरियो बढी गाढा भयो, अलि फिक्का गरौँ" — because the
+    // near-black ink covered whole rails and hero cards and was being read as
+    // weight rather than as colour. A deep green you can see is greener than a
+    // green you read as black.
+    expect(tailwind).toContain('green: "#12634A"');
+    expect(tailwind).toContain('"green-ink": "#1A4238"');
     expect(tailwind).toContain('"cream-hero": "#F7EFE2"');
+  });
+
+  it("did not trade readability for the lighter green", () => {
+    // Measured before moving, because a paler brand nobody can read is a worse
+    // deal than a dark one. WCAG asks 4.5:1 for body text.
+    const luminance = (hex: string) => {
+      const channels = [1, 3, 5]
+        .map((index) => parseInt(hex.slice(index, index + 2), 16) / 255)
+        .map((value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const contrast = (a: string, b: string) => {
+      const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (lighter + 0.05) / (darker + 0.05);
+    };
+
+    // White on the dark rails, white on a green button, and headings on paper.
+    expect(contrast("#1A4238", "#FFFFFF")).toBeGreaterThan(7);
+    expect(contrast("#12634A", "#FFFFFF")).toBeGreaterThan(4.5);
+    expect(contrast("#1A4238", "#FDFBF7")).toBeGreaterThan(7);
+    // Gold has to stay findable on the rail, where it marks the one action.
+    expect(contrast("#D4AF37", "#1A4238")).toBeGreaterThan(4.5);
   });
 
   it("has warm paper for the sheets, not screen white", async () => {

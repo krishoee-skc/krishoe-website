@@ -14,8 +14,17 @@ module.exports = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         brand: {
-          green: "#0B4D3B",
-          "green-ink": "#10231D",
+          // Lightened on the owner's eye, not by taste: "हरियो बढी गाढा भयो, अलि
+          // फिक्का गरौँ". The near-black ink covered whole rails and hero cards
+          // and read as weight rather than as colour — a deep green you can see
+          // is greener than a green you read as black.
+          //
+          // Measured before moving, because a paler brand that cannot be read
+          // is a worse trade than a dark one: white on green-ink is 11.2:1
+          // (was 16.4), white on green 7.2:1 (was 9.8), and the heading colour
+          // on paper 10.8:1. WCAG asks 4.5:1.
+          green: "#12634A",
+          "green-ink": "#1A4238",
           "green-tint": "#EAF5EF",
           "green-mist": "#E9F2EE",
           "green-wash": "#F4FBF6",

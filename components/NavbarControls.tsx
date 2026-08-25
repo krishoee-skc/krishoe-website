@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import LanguageSwitch from "@/components/LanguageSwitch";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { HeartIcon, MenuIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
@@ -47,7 +48,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
   const pathname = usePathname();
   const { cartCount, wishlistCount } = useCommerce();
   const [isOpen, setIsOpen] = useState(false);
-  const { language, setLanguage, text } = useLanguage();
+  const { language, text } = useLanguage();
   const mobileLabels: Record<string, string> = {
     Home: "गृह",
     Shop: "पसल",
@@ -83,16 +84,13 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
           fourth crowded it — the note above had already said so, and the shop
           looked worse for a day. On a phone the switch is the first thing in
           the menu drawer instead, one tap from here, and a first-time visitor
-          is asked outright by LanguageInvite before they ever go looking. */}
-      <button
-        type="button"
-        onClick={() => setLanguage(language === "ne" ? "en" : "ne")}
-        aria-label={text("Read in Nepali", "नेपालीमा पढ्ने")}
-        title={text("Read in Nepali", "नेपालीमा पढ्ने")}
-        className="hidden h-10 shrink-0 rounded-full border border-black/[0.09] px-2.5 text-xs font-black text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green lg:block"
-      >
-        {language === "ne" ? "EN" : "ने"}
-      </button>
+          is asked outright by LanguageInvite before they ever go looking.
+
+          The same component the admin, factory and worker screens use, so one
+          control cannot end up spelled five ways across the app. It used to be
+          a single "ने" here — two letters, and the reader who needs them most
+          is the one who cannot read them. */}
+      <LanguageSwitch className="hidden lg:inline-flex" compact />
 
       <span className="hidden lg:block">
         <ThemeToggle />
@@ -173,25 +171,8 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
             {/* First, not last. It used to sit below the wishlist and cart
                 tiles, off the bottom of a phone screen, which is how a shop
                 with a Nepali translation looked like a shop without one. */}
-            <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-black/[0.07] bg-brand-mist p-1.5">
-              <button
-                type="button"
-                onClick={() => setLanguage("ne")}
-                className={`min-h-11 rounded-xl text-sm font-black transition ${
-                  language === "ne" ? "bg-brand-green text-white shadow-sm" : "text-brand-green-ink"
-                }`}
-              >
-                नेपाली
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage("en")}
-                className={`min-h-11 rounded-xl text-sm font-black transition ${
-                  language === "en" ? "bg-brand-green text-white shadow-sm" : "text-brand-green-ink"
-                }`}
-              >
-                English
-              </button>
+            <div className="mt-6">
+              <LanguageSwitch className="w-full [&>button]:min-h-12 [&>button]:flex-1 [&>button]:justify-center" />
             </div>
 
             <nav className="mt-6 grid gap-1">

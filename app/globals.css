@@ -10,7 +10,7 @@
      something you could pick up. These are the same roles in paper and stone;
      the brand's own green, ink and cream are untouched. */
   --background: #faf8f3;
-  --foreground: #10231d;
+  --foreground: #1a4238;
 
   /* Named by what they are for, not what colour they are, so the dark block
      below only has to restate values. */
@@ -19,7 +19,7 @@
   --surface-raised: #f7f3ea; /* hover fills, quiet chips */
   --hairline: #e4dfd5;       /* borders between rows and cards */
   --hairline-soft: #efebe2;
-  --ink: #10231d;            /* headings */
+  --ink: #1a4238;            /* headings */
   --ink-body: #3b3a33;
   --ink-muted: #6b6459;      /* labels, captions */
   --ink-faint: #9a9287;

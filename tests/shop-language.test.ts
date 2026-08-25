@@ -80,9 +80,13 @@ describe("the switch itself", () => {
 
   it("is reachable from the navbar", async () => {
     const controls = await readFile("components/NavbarControls.tsx", "utf8");
+    const shared = await readFile("components/LanguageSwitch.tsx", "utf8");
 
-    expect(controls).toContain('setLanguage("ne")');
-    expect(controls).toContain('setLanguage("en")');
+    // The shop uses the same control as the admin, factory and worker screens,
+    // so one switch cannot end up spelled five ways across the app.
+    expect(controls).toContain("LanguageSwitch");
+    expect(shared).toContain('setLanguage("ne")');
+    expect(shared).toContain('setLanguage("en")');
   });
 
   it("can translate a server-rendered page without making it dynamic", async () => {
@@ -182,10 +186,23 @@ describe("finding the Nepali", () => {
     const controls = await readFile("components/NavbarControls.tsx", "utf8");
     const bar = controls.slice(0, controls.indexOf("Premium menu"));
 
-    // Two characters wide, on every screen size — no lg: guard hiding it from
-    // the phones most shoppers arrive on.
-    expect(bar).toContain('setLanguage(language === "ne" ? "en" : "ne")');
-    expect(bar).toContain('{language === "ne" ? "EN" : "ने"}');
+    expect(bar).toContain("<LanguageSwitch");
+  });
+
+  it("says the language rather than abbreviating it to two letters", async () => {
+    const shared = await readFile("components/LanguageSwitch.tsx", "utf8");
+
+    // "ने" asks a reader who does not read Devanagari to work out that it is a
+    // button and then guess what it does — and that reader is the whole reason
+    // the button exists. Both languages are named, and a tick marks the one
+    // that is running, so neither half has to be guessed at.
+    // The comment above the component names the old label, so read the code.
+    const code = shared.replace(/\/\*[\s\S]*?\*\//g, "");
+
+    expect(code).toContain("नेपाली");
+    expect(code).toContain("ENGLISH");
+    expect(code).not.toContain('"ने"');
+    expect(code).toContain("aria-pressed");
   });
 
   it("asks once rather than guessing", async () => {

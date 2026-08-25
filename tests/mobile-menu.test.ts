@@ -34,8 +34,7 @@ describe("what sits on the phone bar", () => {
 
     // Taken off the bar, not taken away. It is the first thing in the drawer,
     // and LanguageInvite asks a first-time visitor outright.
-    expect(drawer).toContain('onClick={() => setLanguage("ne")}');
-    expect(drawer).toContain('onClick={() => setLanguage("en")}');
+    expect(drawer).toContain("<LanguageSwitch");
   });
 
   it("puts the language switch above the fold, not below the tiles", async () => {

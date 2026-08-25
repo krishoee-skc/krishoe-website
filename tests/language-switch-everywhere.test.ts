@@ -61,7 +61,8 @@ describe("the language switch", () => {
     const controls = await readFile("components/NavbarControls.tsx", "utf8");
 
     // The storefront keeps the switch it already had — on the bar for a
-    // computer, and first in the menu drawer on a phone.
-    expect(controls).toContain('setLanguage(language === "ne" ? "en" : "ne")');
+    // computer, and first in the menu drawer on a phone — and it is now the
+    // same component as the other three doors rather than its own spelling.
+    expect(controls.match(/<LanguageSwitch/g) ?? []).toHaveLength(2);
   });
 });
