@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&family=Tiro+Devanagari+Hindi&family=Mukta:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #FDFBF7; }
+    a { color: #B98A2E; } a:hover { color: #9A6B08; }
+    .devdisp { font-family: "Tiro Devanagari Hindi", "Fraunces", Georgia, serif; }
+    .disp { font-family: "Fraunces", Georgia, serif; }
+    .body { font-family: "Inter", "Mukta", "Segoe UI", Arial, sans-serif; }
+    .dev { font-family: "Mukta", "Inter", "Segoe UI", Arial, sans-serif; }
+  </style>
+</helmet>
+
+<div class="body" style="width: 390px; height: 844px; display: flex; flex-direction: column; box-sizing: border-box; background: #FDFBF7; color: #10231D; letter-spacing: 0.3px; overflow: hidden;">
+
+  <header>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #10231D; padding: 6px 14px;">
+      <span class="dev" style="font-size: 9.5px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: #C8A04D;">नेपालमै बनेको</span>
+      <span style="opacity: 0.45; color: #C8A04D;">·</span>
+      <span class="dev" style="font-size: 9.5px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: #C8A04D;">१ हप्ताभित्र साट्ने</span>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #E4DFD5;">
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <span style="width: 32px; height: 32px; border-radius: 999px; border: 1px solid rgba(200,160,77,0.6); display: inline-flex; align-items: center; justify-content: center; color: #B98A2E; font-weight: 700; font-size: 13px;">K</span>
+        <span class="body" style="font-size: 15px; font-weight: 700; letter-spacing: 3.2px;">KRISHOE</span>
+      </div>
+      <!-- On the bar, not buried in the menu — the owner asked for it on the
+           phone as well as the computer. -->
+      <div style="display: inline-flex; align-items: stretch; height: 34px; border: 1px solid #C8A04D; border-radius: 999px; overflow: hidden;">
+        <span class="dev" style="display: inline-flex; align-items: center; padding: 0 12px; font-size: 12.5px; font-weight: 700; background: #0B4D3B; color: #FFFFFF;">नेपाली</span>
+        <span class="body" style="display: inline-flex; align-items: center; padding: 0 12px; font-size: 12.5px; font-weight: 700; color: #6B6459;">ENG</span>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex-grow: 1; overflow: hidden;">
+    <!-- The banner: one image, no overlaid text, links into the shop -->
+    <div style="margin: 14px 16px 0; height: 240px; border-radius: 20px; background: #F7EFE2; position: relative; overflow: hidden;">
+      <div style="position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 18px;">
+        <svg width="230" height="140" viewBox="0 0 300 180" fill="none">
+          <path d="M40 132c0-16 12-24 30-30 22-7 34-22 46-38 8-11 20-16 32-12 14 5 18 18 16 32-2 12 4 18 16 22l52 16c12 4 18 10 18 18 0 6-6 10-16 10H56c-10 0-16-6-16-18z" fill="#C8A04D" opacity="0.3"/>
+          <path d="M40 132c0-16 12-24 30-30 22-7 34-22 46-38 8-11 20-16 32-12 14 5 18 18 16 32-2 12 4 18 16 22l52 16c12 4 18 10 18 18 0 6-6 10-16 10H56c-10 0-16-6-16-18z" stroke="#B98A2E" stroke-width="1.4"/>
+        </svg>
+      </div>
+      <div style="position: absolute; inset-inline: 0; top: 0; padding: 20px 22px;">
+        <p class="body" style="margin: 0; font-size: 9px; font-weight: 700; letter-spacing: 2.4px; text-transform: uppercase; color: #B98A2E;">हाम्रै कारखानाबाट</p>
+        <h1 class="devdisp" style="margin: 10px 0 0; font-size: 27px; font-weight: 700; line-height: 1.15;">नेपाली पाइला,<br>नेपाली जुत्तामा।</h1>
+      </div>
+    </div>
+
+    <div style="padding: 14px 16px 0;">
+      <span class="dev" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 999px; background: #D4AF37; color: #10231D; font-size: 15.5px; font-weight: 700;">जुत्ता हेर्ने</span>
+    </div>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 22px 16px 12px;">
+      <h2 class="devdisp" style="margin: 0; font-size: 19px; font-weight: 700;">नयाँ आएका</h2>
+      <span class="dev" style="font-size: 12.5px; font-weight: 600; color: #B98A2E;">सबै</span>
+    </div>
+
+    <!-- Two per row on a phone, and the first four load eagerly -->
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 16px;">
+      <div>
+        <div style="height: 128px; border-radius: 12px; background: #F7EFE2;"></div>
+        <p class="devdisp" style="margin: 9px 0 0; font-size: 14px; font-weight: 700; line-height: 1.35;">डाक्टर चप्पल</p>
+        <p class="disp" style="margin: 4px 0 0; font-size: 15px; font-weight: 700;">रु. १,२५०</p>
+      </div>
+      <div>
+        <div style="height: 128px; border-radius: 12px; background: #F4F2ED;"></div>
+        <p class="devdisp" style="margin: 9px 0 0; font-size: 14px; font-weight: 700; line-height: 1.35;">बच्चाको रबर</p>
+        <p class="disp" style="margin: 4px 0 0; font-size: 15px; font-weight: 700;">रु. ५५०</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Thumb bar: four things, 56px tall -->
+  <nav style="display: flex; align-items: stretch; background: #FDFBF7; border-top: 1px solid #E4DFD5; padding: 7px 5px 20px;">
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B4D3B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span class="dev" style="font-size: 10.5px; font-weight: 700; color: #0B4D3B;">गृह</span>
+    </span>
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="dev" style="font-size: 10.5px; font-weight: 600; color: #6B6459;">खोज्ने</span>
+    </span>
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.6c0 5-8.8 10.4-8.8 10.4S3.2 13.6 3.2 8.6a4.4 4.4 0 0 1 8.8-1 4.4 4.4 0 0 1 8.8 1z"/></svg>
+      <span class="dev" style="font-size: 10.5px; font-weight: 600; color: #6B6459;">मन परेका</span>
+    </span>
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#938C80" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 12H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+      <span class="dev" style="font-size: 10.5px; font-weight: 600; color: #6B6459;">झोला</span>
+    </span>
+  </nav>
+</div>
+</x-dc>
+</body>
+</html>
