@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { paymentOptions, shippingOptions, whatsappOrderUrl } from "@/lib/commerce";
 import { paymentOptionLabel, shippingOptionLabel } from "@/lib/commerce-labels";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -15,6 +15,7 @@ import PaymentInstructions from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
+import { previewCouponAction, type CouponPreview } from "@/app/coupon-actions";
 import { trackCommerceEvent } from "@/lib/analytics-events";
 
 const initialState: FormState = {
@@ -53,6 +54,40 @@ function CheckoutForm({
 }: CheckoutFormProps) {
   const { text, language } = useLanguage();
   const nepali = language === "ne";
+
+  /**
+   * What the typed code is worth, checked as it is typed.
+   *
+   * Half a second after the last keystroke, not on every one: a code is eight
+   * characters and asking the server eight times to answer about seven
+   * unfinished ones is noise. `stale` guards the reply — a slow answer for
+   * "DASHAI" must not overwrite a fast one for "DASHAIN10".
+   */
+  const [couponCode, setCouponCode] = useState("");
+  const [coupon, setCoupon] = useState<CouponPreview>({ status: "empty" });
+  const couponTimer = useRef(0);
+  const couponAsked = useRef("");
+
+  // Only the newest question is allowed to answer. A slow reply about "DASHAI"
+  // must not overwrite a fast one about "DASHAIN10".
+  function askAboutCoupon(typed: string) {
+    window.clearTimeout(couponTimer.current);
+    const code = typed.trim();
+    couponAsked.current = code;
+
+    if (!code) {
+      setCoupon({ status: "empty" });
+      return;
+    }
+
+    couponTimer.current = window.setTimeout(() => {
+      void previewCouponAction(code, itemsJson).then((answer) => {
+        if (couponAsked.current === code) setCoupon(answer);
+      });
+    }, 500);
+  }
+
+  useEffect(() => () => window.clearTimeout(couponTimer.current), []);
   const steps = [
     text("Details", "विवरण"),
     text("Delivery", "डेलिभरी"),
@@ -186,12 +221,38 @@ function CheckoutForm({
             {text("Discount code (if you have one)", "छुटको कोड (भए मात्र)")}
             <input
               name="couponCode"
+              value={couponCode}
+              onChange={(event) => {
+                setCouponCode(event.target.value);
+                askAboutCoupon(event.target.value);
+              }}
               maxLength={24}
               autoComplete="off"
               autoCapitalize="characters"
-              className="rounded-lg border border-black/10 px-4 py-3 font-normal uppercase tracking-[0.12em] outline-none focus:border-brand-green"
+              className={`rounded-lg border px-4 py-3 font-normal uppercase tracking-[0.12em] outline-none ${
+                coupon.status === "ok"
+                  ? "border-brand-green bg-brand-green-mist"
+                  : coupon.status === "no"
+                    ? "border-brand-clay"
+                    : "border-black/10 focus:border-brand-green"
+              }`}
               placeholder={text("e.g. DASHAIN10", "जस्तै DASHAIN10")}
             />
+            {/* aria-live, because a shopper using a screen reader has no other
+                way to learn the box changed its mind about their code. */}
+            <span aria-live="polite" className="text-sm font-bold normal-case tracking-normal">
+              {coupon.status === "ok" ? (
+                <span className="text-brand-green">
+                  {text(
+                    `${coupon.discountLabel} off — you pay ${coupon.payableLabel}`,
+                    `${coupon.discountLabel} छुट — तिर्नुपर्ने ${coupon.payableLabel}`,
+                  )}
+                </span>
+              ) : null}
+              {coupon.status === "no" ? (
+                <span className="text-brand-clay">{coupon.reason}</span>
+              ) : null}
+            </span>
           </label>
         </div>
 
@@ -265,6 +326,12 @@ function CheckoutForm({
                 {text("Update your cart", "कार्ट मिलाउनुहोस्")}
               </Link>{" "}
               {text("to continue.", "अनि अगाडि बढ्नुहोस्।")}
+            </p>
+          ) : null}
+          {coupon.status === "ok" ? (
+            <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-green-mist px-4 py-3 text-sm font-black text-brand-green">
+              <span>{text("With your discount code", "छुटको कोड लागेपछि")}</span>
+              <span className="text-base">{coupon.payableLabel}</span>
             </p>
           ) : null}
           <SubmitButton
