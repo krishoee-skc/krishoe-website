@@ -5,6 +5,40 @@ import NepaliDate from "nepali-date-converter";
 // hand-typed month table, which drifts a day the moment one month's length is
 // wrong.
 
+/** The only clock this shop keeps. */
+export const NEPAL_TIME_ZONE = "Asia/Kathmandu";
+
+/**
+ * The same instant, re-expressed so a Date's local getters read Kathmandu.
+ *
+ * NepaliDate converts using getFullYear/getMonth/getDate, which answer in
+ * whatever zone the machine is set to. On Vercel that is UTC, and Nepal is
+ * UTC+5:45 — so every moment between midnight and a quarter to six in the
+ * morning fell on the PREVIOUS Bikram Sambat day on the server, in a shop that
+ * closes its books by the day. A bill written at one in the morning was filed
+ * against yesterday.
+ *
+ * Shifting the instant is a lie about the moment and the truth about the day,
+ * which is what a calendar date is. Nothing here is ever stored or compared —
+ * it exists only long enough to be read as a date.
+ */
+function inNepal(date: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: NEPAL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  // hour comes back as 24 at midnight in some engines; 24 % 24 is 0.
+  return new Date(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+}
+
 // Devanagari — "०५ श्रावण २०८३". This is how BS dates are written and read.
 export function toBikramSambatNepali(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
@@ -12,7 +46,7 @@ export function toBikramSambatNepali(value: string | Date): string {
     return "";
   }
   try {
-    return new NepaliDate(date).format("DD MMMM YYYY", "np");
+    return new NepaliDate(inNepal(date)).format("DD MMMM YYYY", "np");
   } catch {
     return "";
   }
@@ -27,7 +61,7 @@ export function toBikramSambatNumeric(value: string | Date): string {
     return "";
   }
   try {
-    const bs = new NepaliDate(date);
+    const bs = new NepaliDate(inNepal(date));
     const month = String(bs.getMonth() + 1).padStart(2, "0");
     const day = String(bs.getDate()).padStart(2, "0");
     return `${bs.getYear()}/${month}/${day}`;
@@ -77,7 +111,7 @@ export function bikramYearMonth(value: string | Date): { year: number; monthInde
     return null;
   }
   try {
-    const bs = new NepaliDate(date);
+    const bs = new NepaliDate(inNepal(date));
     return { year: bs.getYear(), monthIndex: bs.getMonth() };
   } catch {
     return null;
@@ -93,7 +127,7 @@ export function isBikramMonthStart(value: string | Date): boolean {
     return false;
   }
   try {
-    return new NepaliDate(date).getDate() === 1;
+    return new NepaliDate(inNepal(date)).getDate() === 1;
   } catch {
     return false;
   }
@@ -107,7 +141,7 @@ export function bikramMonthLabel(value: string | Date, language: "en" | "np" = "
     return "";
   }
   try {
-    return new NepaliDate(date).format("MMMM YYYY", language);
+    return new NepaliDate(inNepal(date)).format("MMMM YYYY", language);
   } catch {
     return "";
   }
@@ -120,7 +154,7 @@ export function toBikramSambatRoman(value: string | Date): string {
     return "";
   }
   try {
-    return new NepaliDate(date).format("DD MMMM YYYY");
+    return new NepaliDate(inNepal(date)).format("DD MMMM YYYY");
   } catch {
     return "";
   }

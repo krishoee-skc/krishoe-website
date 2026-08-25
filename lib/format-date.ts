@@ -1,4 +1,4 @@
-import { toBikramSambatNumeric } from "@/lib/bikram-sambat";
+import { NEPAL_TIME_ZONE, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 
 // One date format for the whole admin: the English date, then the Bikram Sambat
 // date after it, so every bill, list and record reads the way a Nepali reader
@@ -12,7 +12,19 @@ export function formatAdminDate(value: string | Date, options?: { time?: boolean
     return "";
   }
 
+  // Kathmandu, always — not the clock of whatever machine happens to be
+  // formatting. Without this the server and the browser disagreed about the
+  // same moment by 5 hours 45 minutes: a bill saved at 10:46 in the morning
+  // rendered "5:01 am" into the page, and the owner's browser quietly
+  // corrected it to 10:46 a moment later. Two answers, and the wrong one
+  // arrives first.
+  //
+  // The date is worse than the time. Nepal is UTC+5:45, so anything recorded
+  // between midnight and a quarter to six in the morning is still YESTERDAY in
+  // UTC — a bill written at one in the morning was dated the previous day on
+  // the server, in a shop that closes its books by the day.
   const ad = new Intl.DateTimeFormat("en-IN", {
+    timeZone: NEPAL_TIME_ZONE,
     dateStyle: "medium",
     ...(options?.time ? { timeStyle: "short" as const } : {}),
   }).format(date);
