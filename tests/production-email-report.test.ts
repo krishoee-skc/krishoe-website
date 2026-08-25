@@ -20,6 +20,7 @@ describe("production email report", () => {
         todayGoodPairs: 20,
         todayRejectedPairs: 1,
         todayEarnedWage: 360,
+        activeWorkerCount: 3,
         todayStockPairs: 18,
         handoverMismatches: 1,
         workerBalanceDue: 7600,

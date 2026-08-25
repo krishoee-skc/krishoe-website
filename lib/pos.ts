@@ -1076,6 +1076,13 @@ export async function getPosSnapshot() {
     invoices,
     summary: {
       invoiceCount: active.length,
+      // Pairs, not rupees. The owner reads the money first and then wants to
+      // know what it was — five hundred rupees is a good afternoon for kids'
+      // slippers and a poor one for jeans shoes.
+      todayPairs: sum(
+        today.filter((invoice) => invoice.kind === "Sale"),
+        (invoice) => sum(invoice.items, (item) => cleanNumber(item.quantity)),
+      ),
       todaySales: salesTotal(today),
       todayReturns: returnsTotal(today),
       todayNetSales: salesTotal(today) - returnsTotal(today),

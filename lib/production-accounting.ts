@@ -360,6 +360,7 @@ type ProductionControlRow = {
   today_good_pairs: number | string;
   today_rejected_pairs: number | string;
   today_earned_wage: number | string;
+  active_worker_count: number | string;
   today_stock_pairs: number | string;
   handover_mismatches: number | string;
   worker_balance_due: number | string;
@@ -415,6 +416,11 @@ export async function getProductionControlSummary() {
          (SELECT coalesce(sum(earned_wage), 0)
           FROM production_work_entries
           WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_earned_wage,
+         -- People who actually did work today, not people on the payroll. The
+         -- dashboard showed a hardcoded 12 in this place.
+         (SELECT count(DISTINCT employee_id)
+          FROM production_work_entries
+          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS active_worker_count,
          (SELECT coalesce(sum(total_pairs), 0)
           FROM production_qc_postings
           WHERE qc_date = CURRENT_DATE AND reversed_at IS NULL) AS today_stock_pairs,
@@ -444,6 +450,7 @@ export async function getProductionControlSummary() {
     todayGoodPairs: count(row?.today_good_pairs),
     todayRejectedPairs: count(row?.today_rejected_pairs),
     todayEarnedWage: numeric(row?.today_earned_wage ?? 0),
+    activeWorkerCount: count(row?.active_worker_count),
     todayStockPairs: count(row?.today_stock_pairs),
     handoverMismatches: count(row?.handover_mismatches),
     workerBalanceDue: numeric(row?.worker_balance_due ?? 0),

@@ -33,6 +33,7 @@ import {
 import { getProductionControlSummary } from "@/lib/production-accounting";
 import { getContactMessages, getOrders, type ContactSubmission, type OrderSubmission } from "@/lib/submissions";
 import TodayBoard from "@/app/admin/TodayBoard";
+import TodaySales from "@/components/admin/TodaySales";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,7 @@ function emptyProductionControlSummary(): ProductionControlSummary {
     todayGoodPairs: 0,
     todayRejectedPairs: 0,
     todayEarnedWage: 0,
+    activeWorkerCount: 0,
     todayStockPairs: 0,
     handoverMismatches: 0,
     workerBalanceDue: 0,
@@ -634,6 +636,16 @@ export default async function AdminDashboardPage() {
 
   return (
     <section className="p-6 space-y-6">
+      {/* The number the owner opens this app to see, before the work list and
+          long before the reporting. The page used to lead with pairs made,
+          which is the factory's question rather than the shop's. */}
+      <TodaySales
+        netSales={getPos("summary.todayNetSales", 0)}
+        collected={todayCollected}
+        billCount={todayBillCount}
+        pairsSold={getPos("summary.todayPairs", 0)}
+      />
+
       {/* What needs doing, before any of the reporting below it. */}
       <TodayBoard
         todayPairs={productionControl.todayGoodPairs}
@@ -647,10 +659,14 @@ export default async function AdminDashboardPage() {
         todayProduction={{
           pairs: productionControl.todayGoodPairs,
           amount: productionControl.todayEarnedWage || 0,
-          activeWorkers: 12, // Placeholder - can be calculated
+          // Was hardcoded to 12, on the owner's own dashboard. A made-up
+          // figure on a screen full of real ones is worse than a blank: it
+          // teaches the reader to distrust the numbers beside it.
+          activeWorkers: productionControl.activeWorkerCount || 0,
         }}
         pendingPayments={{
-          count: 3, // Placeholder - should count pending payments
+          // Was hardcoded to 3, for the same reason and with the same cost.
+          count: payrollActionCount,
           totalAmount: productionControl.workerBalanceDue || 0,
         }}
         newOrders={{
