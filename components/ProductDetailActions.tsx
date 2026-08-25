@@ -9,6 +9,7 @@ import ProductOptionSelector from "@/components/ProductOptionSelector";
 import QuantitySelector from "@/components/QuantitySelector";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
+import { goods } from "@/lib/words";
 import SizeGuide from "@/components/SizeGuide";
 import { trackCommerceEvent, trackContact } from "@/lib/analytics-events";
 
@@ -182,7 +183,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock
-              ? text("Sold out", "सकियो")
+              ? text("Sold out", `बिक्री ${goods.soldOut.ne}`)
               : added
                 ? text("Added", "थपियो")
                 : text("Add", "थप्नुहोस्")}
