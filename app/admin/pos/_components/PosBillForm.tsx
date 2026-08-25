@@ -225,7 +225,12 @@ export default function PosBillForm({
     );
 
     if (!item) {
-      setScanNote(`"${rawCode.trim()}" — भेटिएन। SKU वा design हेरेर फेरि गर्नुहोस्।`);
+      setScanNote(
+        text(
+          `"${rawCode.trim()}" not found. Check the SKU or the design name and try again.`,
+          `"${rawCode.trim()}" — भेटिएन। SKU वा design हेरेर फेरि गर्नुहोस्।`,
+        ),
+      );
       return;
     }
 
@@ -242,7 +247,7 @@ export default function PosBillForm({
       }
     }
 
-    setScanNote(`${item.design} थपियो।`);
+    setScanNote(text(`${item.design} added.`, `${item.design} थपियो।`));
     setScanCode("");
   }
 
@@ -357,8 +362,14 @@ export default function PosBillForm({
         ok: false,
         message:
           kind === "Return"
-            ? "फिर्ता कसको खातामा जान्छ, माथि Customer account छान्नुहोस्। Pick the customer's account above."
-            : `उधारो रु. ${creditAmount.toLocaleString("en-IN")} बाँकी छ — कसको खातामा चढाउने, माथि छान्नुहोस् वा नयाँ खोल्नुहोस्।`,
+            ? text(
+                "Pick the customer's account above — a return has to land in one.",
+                "फिर्ता कसको खातामा जान्छ, माथि Customer account छान्नुहोस्।",
+              )
+            : text(
+                `Rs. ${creditAmount.toLocaleString("en-IN")} is unpaid — pick an account above, or open a new one.`,
+                `उधारो रु. ${creditAmount.toLocaleString("en-IN")} बाँकी छ — कसको खातामा चढाउने, माथि छान्नुहोस् वा नयाँ खोल्नुहोस्।`,
+              ),
       });
       return;
     }
@@ -486,7 +497,11 @@ export default function PosBillForm({
           onChange={(event) => setLedgerId(event.target.value)}
           aria-label="Customer account"
         >
-          <option value="">{needsLedger ? "खाता छान्नुहोस् — pick an account" : "No account / walk-in"}</option>
+          <option value="">
+            {needsLedger
+              ? text("Pick an account", "खाता छान्नुहोस्")
+              : text("No account / walk-in", "खाता छैन / बटुवा ग्राहक")}
+          </option>
           {ledgerOptions.map((ledger) => (
             <option key={ledger.id} value={ledger.id}>
               {ledger.label}
@@ -502,13 +517,19 @@ export default function PosBillForm({
         <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
           <p className="text-sm font-bold text-amber-900">
             {kind === "Return"
-              ? "फिर्ता कसको खातामा जान्छ?"
-              : `उधारो रु. ${creditAmount.toLocaleString("en-IN")} — कसको खातामा चढाउने?`}
+              ? text("Whose account does the return go to?", "फिर्ता कसको खातामा जान्छ?")
+              : text(
+                  `Rs. ${creditAmount.toLocaleString("en-IN")} on credit — whose account?`,
+                  `उधारो रु. ${creditAmount.toLocaleString("en-IN")} — कसको खातामा चढाउने?`,
+                )}
           </p>
           <p className="mt-1 text-xs text-amber-800">
             {kind === "Return"
               ? "A return has to land in a customer's account."
-              : "पैसा पूरै नआएको बिल कसैको नाममा चढ्नुपर्छ, नत्र कसले तिर्न बाँकी छ थाहा हुँदैन। An unpaid amount needs an account."}
+              : text(
+                  "An unpaid amount has to sit against a name, or nobody knows who still owes it.",
+                  "पैसा पूरै नआएको बिल कसैको नाममा चढ्नुपर्छ, नत्र कसले तिर्न बाँकी छ थाहा हुँदैन।",
+                )}
           </p>
           {canOpenLedger ? (
             <button
@@ -518,14 +539,20 @@ export default function PosBillForm({
               className="mt-2 inline-flex h-10 items-center rounded-full bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isOpeningLedger
-                ? "खोल्दैछौँ…"
+                ? text("Opening…", "खोल्दैछौँ…")
                 : customerName.trim()
-                  ? `+ ${customerName.trim()} को नयाँ खाता खोल्ने`
-                  : "+ नयाँ खाता — पहिले नाम लेख्नुहोस्"}
+                  ? text(
+                      `+ Open an account for ${customerName.trim()}`,
+                      `+ ${customerName.trim()} को नयाँ खाता खोल्ने`,
+                    )
+                  : text("+ New account — type the name first", "+ नयाँ खाता — पहिले नाम लेख्नुहोस्")}
             </button>
           ) : (
             <p className="mt-2 text-xs font-semibold text-amber-900">
-              नयाँ खाता खोल्न मालिक वा Manager लाई भन्नुहोस् — /admin/operations मा।
+              {text(
+                "Ask the Owner or a Manager to open the account, in /admin/operations.",
+                "नयाँ खाता खोल्न मालिक वा Manager लाई भन्नुहोस् — /admin/operations मा।",
+              )}
             </p>
           )}
           {ledgerNote ? <p className="mt-2 text-xs font-semibold text-amber-900">{ledgerNote}</p> : null}
@@ -825,7 +852,7 @@ export default function PosBillForm({
           className="h-14 w-full rounded-full bg-brand-green-ink px-6 text-base font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
           {isOpeningLedger
-            ? "खाता खोल्दैछौँ…"
+            ? text("Opening the account…", "खाता खोल्दैछौँ…")
             : isSaving || saveLocked
               ? "Saving..."
               : text("Save bill and open receipt", "बिल राख्ने र रसिद खोल्ने")}

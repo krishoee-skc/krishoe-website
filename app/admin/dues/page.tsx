@@ -1,5 +1,6 @@
 import Link from "next/link";
 import T from "@/components/T";
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsSnapshot } from "@/lib/operations";
@@ -41,8 +42,8 @@ function DueCard({
   count,
   tone,
 }: {
-  label: string;
-  nepali: string;
+  label: ReactNode;
+  nepali: ReactNode;
   value: string;
   count: number;
   tone: "collect" | "pay";
@@ -119,15 +120,15 @@ export default async function AdminDuesPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <DueCard
-          label="To collect"
-          nepali="ग्राहकबाट उठाउनुपर्ने रकम"
+          label={<T en="To collect" ne="उठाउन बाँकी" />}
+          nepali={<T en="Owed to the shop by customers" ne="ग्राहकबाट उठाउनुपर्ने रकम" />}
           value={money(receivable)}
           count={customerRows.length}
           tone="collect"
         />
         <DueCard
-          label="To pay"
-          nepali="सप्लायरलाई तिर्नुपर्ने रकम"
+          label={<T en="To pay" ne="तिर्न बाँकी" />}
+          nepali={<T en="Owed by the shop to suppliers" ne="सप्लायरलाई तिर्नुपर्ने रकम" />}
           value={money(payable)}
           count={supplierRows.length}
           tone="pay"
@@ -144,7 +145,7 @@ export default async function AdminDuesPage() {
 
         {customerRows.length === 0 ? (
           <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-            कसैबाट पैसा उठाउन बाँकी छैन। No customer dues right now.
+            <T en="No customer dues right now." ne="कसैबाट पैसा उठाउन बाँकी छैन।" />
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -206,7 +207,7 @@ export default async function AdminDuesPage() {
 
         {supplierRows.length === 0 ? (
           <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-            कसैलाई पैसा तिर्न बाँकी छैन। No supplier dues right now.
+            <T en="No supplier dues right now." ne="कसैलाई पैसा तिर्न बाँकी छैन।" />
           </p>
         ) : (
           <div className="overflow-x-auto">

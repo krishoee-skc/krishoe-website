@@ -40,9 +40,15 @@ export type StockOutlook = {
   /** Days until it runs out at that rate. Null when not yet knowable. */
   daysOfCover: number | null;
   status: "out" | "urgent" | "soon" | "healthy" | "unknown";
-  /** Why there is no forecast, in the owner's terms. Empty when there is one. */
-  waitingFor: string;
+  /**
+   * Why there is no forecast, in the owner's terms, in both languages. Both
+   * halves are empty when there IS a forecast.
+   */
+  waitingFor: Said;
 };
+
+/** One sentence the shop can read in whichever language it is running in. */
+export type Said = { en: string; ne: string };
 
 const dayKey = (iso: string) => iso.slice(0, 10);
 
@@ -88,7 +94,7 @@ export function outlookForDesign(
     dailyRate: null,
     daysOfCover: null,
     status: onHand <= 0 ? "out" : "unknown",
-    waitingFor: "",
+    waitingFor: { en: "", ne: "" },
   };
 
   if (saleEvents < MIN_SALE_EVENTS) {
@@ -96,15 +102,21 @@ export function outlookForDesign(
       ...base,
       waitingFor:
         saleEvents === 0
-          ? "अझै एउटै बिक्री भएको छैन"
-          : `${MIN_SALE_EVENTS - saleEvents} पटक थप बिक्री भएपछि भन्न सकिन्छ`,
+          ? { en: "Not sold even once yet", ne: "अझै एउटै बिक्री भएको छैन" }
+          : {
+              en: `${MIN_SALE_EVENTS - saleEvents} more sales and we can say`,
+              ne: `${MIN_SALE_EVENTS - saleEvents} पटक थप बिक्री भएपछि भन्न सकिन्छ`,
+            },
     };
   }
 
   if (historyDays < MIN_HISTORY_DAYS || saleDays < 2) {
     return {
       ...base,
-      waitingFor: `बिक्री एकै समयमा भएको — केही दिन थप चाहिन्छ`,
+      waitingFor: {
+        en: "The sales all came at once — a few more days are needed",
+        ne: "बिक्री एकै समयमा भएको — केही दिन थप चाहिन्छ",
+      },
     };
   }
 
@@ -114,7 +126,10 @@ export function outlookForDesign(
   const dailyRate = Math.round((soldInWindow / historyDays) * 100) / 100;
 
   if (dailyRate <= 0) {
-    return { ...base, waitingFor: "बिक्रीको गति नापिन सकिएन" };
+    return {
+      ...base,
+      waitingFor: { en: "The rate of sale could not be measured", ne: "बिक्रीको गति नापिन सकिएन" },
+    };
   }
 
   const daysOfCover = Math.floor(onHand / dailyRate);
@@ -125,7 +140,7 @@ export function outlookForDesign(
     daysOfCover,
     status:
       onHand <= 0 ? "out" : daysOfCover <= 7 ? "urgent" : daysOfCover <= 21 ? "soon" : "healthy",
-    waitingFor: "",
+    waitingFor: { en: "", ne: "" },
   };
 }
 
@@ -160,10 +175,24 @@ export function stockOutlook(
 }
 
 /** One line the owner can act on, or an honest blank. */
-export function outlookAdvice(outlook: StockOutlook) {
-  if (outlook.status === "out") return "सकियो — बनाउने वा किन्ने";
-  if (outlook.status === "urgent") return `${outlook.daysOfCover} दिनमा सकिन्छ — अहिले नै बनाउन थाल्नुहोस्`;
-  if (outlook.status === "soon") return `${outlook.daysOfCover} दिन पुग्छ — योजना बनाउनुहोस्`;
-  if (outlook.status === "healthy") return `${outlook.daysOfCover} दिन पुग्छ`;
+export function outlookAdvice(outlook: StockOutlook): Said {
+  if (outlook.status === "out") {
+    return { en: "Sold out — make or buy", ne: "सकियो — बनाउने वा किन्ने" };
+  }
+  if (outlook.status === "urgent") {
+    return {
+      en: `Runs out in ${outlook.daysOfCover} days — start making them now`,
+      ne: `${outlook.daysOfCover} दिनमा सकिन्छ — अहिले नै बनाउन थाल्नुहोस्`,
+    };
+  }
+  if (outlook.status === "soon") {
+    return {
+      en: `Lasts ${outlook.daysOfCover} days — plan for it`,
+      ne: `${outlook.daysOfCover} दिन पुग्छ — योजना बनाउनुहोस्`,
+    };
+  }
+  if (outlook.status === "healthy") {
+    return { en: `Lasts ${outlook.daysOfCover} days`, ne: `${outlook.daysOfCover} दिन पुग्छ` };
+  }
   return outlook.waitingFor;
 }

@@ -34,7 +34,7 @@ describe("how much menu a shopkeeper has to read", () => {
 
   it("has no group long enough to need scrolling past", () => {
     for (const group of adminNavGroups) {
-      expect(group.links.length, group.title).toBeLessThanOrEqual(5);
+      expect(group.links.length, group.titleEn).toBeLessThanOrEqual(5);
     }
   });
 });

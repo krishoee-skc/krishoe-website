@@ -38,20 +38,22 @@ export type AdminNavLink = {
 
 export type AdminNavGroup = {
   id: string;
-  title: string;
+  titleEn: string;
+  titleNe: string;
   workspace: AdminWorkspace;
   links: AdminNavLink[];
 };
 
 export const adminWorkspaces = [
-  { id: "factory", label: "कारखाना", english: "Factory", emoji: "🏭" },
-  { id: "shop", label: "पसल", english: "Shop", emoji: "🛒" },
+  { id: "factory", labelEn: "Factory", labelNe: "कारखाना", emoji: "🏭" },
+  { id: "shop", labelEn: "Shop", labelNe: "पसल", emoji: "🛒" },
 ] as const;
 
 export const adminNavGroups: AdminNavGroup[] = [
   {
     id: "factory-work",
-    title: "काम",
+    titleEn: "Work",
+    titleNe: "काम",
     workspace: "factory",
     links: [
       { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: PackageIcon },
@@ -61,7 +63,8 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     id: "factory-cost",
-    title: "लागत र किनमेल",
+    titleEn: "Cost and buying",
+    titleNe: "लागत र किनमेल",
     workspace: "factory",
     links: [
       { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CreditCardIcon },
@@ -71,7 +74,8 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     id: "shop-sell",
-    title: "बिक्री",
+    titleEn: "Selling",
+    titleNe: "बिक्री",
     workspace: "shop",
     links: [
       { href: "/admin/orders", label: "Orders", nepali: "अर्डर", icon: ShoppingCartIcon },
@@ -85,7 +89,8 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     id: "shop-customers",
-    title: "ग्राहक",
+    titleEn: "Customers",
+    titleNe: "ग्राहक",
     workspace: "shop",
     links: [
       { href: "/admin/customers", label: "Customers", nepali: "ग्राहक", icon: UserIcon },
@@ -99,7 +104,8 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     id: "shop-money",
-    title: "पैसा",
+    titleEn: "Money",
+    titleNe: "पैसा",
     workspace: "shop",
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
@@ -109,7 +115,8 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     id: "everywhere",
-    title: "सबैतिर",
+    titleEn: "Everywhere",
+    titleNe: "सबैतिर",
     workspace: "both",
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
@@ -136,9 +143,14 @@ export const adminNavGroups: AdminNavGroup[] = [
  * Nothing is deleted or made unreachable: every one is listed on the Settings
  * screen, and Search finds them by name. They are simply not in the way.
  */
-export const adminSetupGroups: Array<{ title: string; links: AdminNavLink[] }> = [
+export const adminSetupGroups: Array<{
+  titleEn: string;
+  titleNe: string;
+  links: AdminNavLink[];
+}> = [
   {
-    title: "सुरु गर्ने",
+    titleEn: "Getting started",
+    titleNe: "सुरु गर्ने",
     links: [
       { href: "/admin/getting-started", label: "Getting Started", nepali: "सुरु गर्ने", icon: HomeIcon },
       { href: "/admin/measurement", label: "Measurement setup", nepali: "मापन सेटअप", icon: StarIcon },
@@ -146,7 +158,8 @@ export const adminSetupGroups: Array<{ title: string; links: AdminNavLink[] }> =
     ],
   },
   {
-    title: "सुरक्षा",
+    titleEn: "Security",
+    titleNe: "सुरक्षा",
     links: [
       { href: "/admin/devices", label: "Login devices", nepali: "कुन फोन/computer", icon: ShieldCheckIcon },
       { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
@@ -154,7 +167,8 @@ export const adminSetupGroups: Array<{ title: string; links: AdminNavLink[] }> =
     ],
   },
   {
-    title: "प्रणाली",
+    titleEn: "System",
+    titleNe: "प्रणाली",
     links: [
       { href: "/admin/monitoring", label: "Monitoring", nepali: "निगरानी", icon: ShieldCheckIcon },
       { href: "/admin/notifications", label: "Notifications", nepali: "सूचना", icon: BellIcon },

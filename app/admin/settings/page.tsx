@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import T from "@/components/T";
 import { adminSetupGroups } from "@/app/admin/nav-links";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { adminRoles, getAdminPermissionSummary, requireAdminPermission } from "@/lib/admin-permissions";
@@ -152,16 +153,21 @@ export default async function AdminSettingsPage({
           and the daily work had to be found among them. Nothing is unreachable:
           they are here, and Search finds them by name. */}
       <div className="mt-8">
-        <h2 className="text-lg font-black text-brand-green-ink">⚙️ सेटअप र प्रणाली</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          ⚙️ <T en="Setup and system" ne="सेटअप र प्रणाली" />
+        </h2>
         <p className="mt-1 text-sm leading-6 text-brand-muted">
-          एकपटक मिलाएपछि फेरि खोल्नु नपर्ने पानाहरू — यहीँ भेटिन्छन्।
+          <T
+            en="The screens you set up once and then never open again — they all live here."
+            ne="एकपटक मिलाएपछि फेरि खोल्नु नपर्ने पानाहरू — यहीँ भेटिन्छन्।"
+          />
         </p>
 
         <div className="mt-4 grid gap-5 md:grid-cols-3">
           {adminSetupGroups.map((group) => (
-            <div key={group.title} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4">
+            <div key={group.titleEn} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
-                {group.title}
+                <T en={group.titleEn} ne={group.titleNe} />
               </p>
               <ul className="mt-3 grid gap-1">
                 {group.links.map((link) => (
@@ -171,9 +177,11 @@ export default async function AdminSettingsPage({
                       className="block rounded-lg px-3 py-2 hover:bg-brand-mist"
                     >
                       <span className="block text-sm font-bold text-brand-green-ink">
-                        {link.label}
+                        <T en={link.label} ne={link.nepali} />
                       </span>
-                      <span className="block text-xs text-brand-muted">{link.nepali}</span>
+                      <span className="block text-xs text-brand-muted">
+                        <T en="" ne={link.label} />
+                      </span>
                     </Link>
                   </li>
                 ))}

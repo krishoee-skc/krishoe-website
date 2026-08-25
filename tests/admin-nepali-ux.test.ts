@@ -22,14 +22,19 @@ describe("menu names", () => {
     }
   });
 
-  it("are drawn in all three menus", async () => {
+  // The menus used to print both names stacked, always. That put Devanagari on
+  // every screen for a reader who had pressed ENGLISH, so each menu now asks
+  // the language first — what matters is that the Nepali name still reaches the
+  // Nepali reader, not the exact shape of the expression that draws it.
+  it("are drawn in all three menus, on the Nepali side", async () => {
     for (const file of [
       "app/admin/AdminNav.tsx",
       "app/admin/AdminMobileNav.tsx",
       "app/admin/components/AdminDrawer.tsx",
     ]) {
       const source = await readFile(file, "utf8");
-      expect(source, file).toContain("{nepali}");
+      expect(source, file).toContain("nepali");
+      expect(source, file).toContain(`language === "ne" ? nepali : label`);
     }
   });
 });

@@ -90,7 +90,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           <input
             name="nameNe"
             defaultValue={product?.nameNe ?? ""}
-            placeholder="जस्तै: डाक्टर चप्पल"
+            placeholder={text("e.g. Doctor Chappal", "जस्तै: डाक्टर चप्पल")}
             className="form-input"
           />
           <span className="text-xs text-brand-muted">
@@ -230,7 +230,10 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           name="descriptionNe"
           defaultValue={product?.descriptionNe ?? ""}
           rows={2}
-          placeholder="जस्तै: दिनभर लगाउँदा खुट्टा दुख्दैन। भिजे पनि बिग्रँदैन।"
+          placeholder={text(
+            "e.g. Comfortable all day. Rain does not spoil them.",
+            "जस्तै: दिनभर लगाउँदा खुट्टा दुख्दैन। भिजे पनि बिग्रँदैन।",
+          )}
           className="form-input"
         />
       </label>

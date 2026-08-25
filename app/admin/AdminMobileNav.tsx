@@ -10,6 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { MenuIcon, XIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 
 // Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
@@ -22,6 +23,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
+  const { language, text } = useLanguage();
 
   // Close the menu whenever the route changes, so tapping a link doesn't leave
   // the sheet hanging open over the new page. Done as a render-time state
@@ -89,7 +91,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
           {groups.map((group) => (
             <div key={group.id} className="mt-4">
               <p className="px-1 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft">
-                {group.title}
+                {text(group.titleEn, group.titleNe)}
               </p>
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                 {group.links.map(({ href, label, nepali, icon: Icon }) => {
@@ -106,8 +108,12 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
                     >
                       <Icon className="h-5 w-5 shrink-0" />
                       <span className="grid leading-tight">
-                        <span>{label}</span>
-                        <span className="text-[11px] font-semibold text-brand-muted-soft">{nepali}</span>
+                        <span>{language === "ne" ? nepali : label}</span>
+                        {language === "ne" ? (
+                          <span className="text-[11px] font-semibold text-brand-muted-soft">
+                            {label}
+                          </span>
+                        ) : null}
                       </span>
                     </Link>
                   );

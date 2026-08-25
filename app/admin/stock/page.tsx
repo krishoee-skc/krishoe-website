@@ -125,10 +125,24 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
 
   return (
     <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-paper p-4 shadow-sm sm:p-5">
-      <h2 className="text-lg font-black text-brand-green-ink">कति दिन पुग्छ</h2>
+      <h2 className="text-lg font-black text-brand-green-ink">
+        <T en="How many days will it last" ne="कति दिन पुग्छ" />
+      </h2>
       <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
-        बिक्रीको गतिबाट गनिएको। <strong className="text-brand-green-ink">पुग्दो बिक्री
-        नभएसम्म अनुमान गर्दैन</strong> — गलत अंकले नचाहिने माल बनाउन लगाउँछ।
+        <T
+          en="Worked out from the rate of sale."
+          ne="बिक्रीको गतिबाट गनिएको।"
+        />{" "}
+        <strong className="text-brand-green-ink">
+          <T
+            en="It refuses to guess until there are enough sales"
+            ne="पुग्दो बिक्री नभएसम्म अनुमान गर्दैन"
+          />
+        </strong>{" "}
+        <T
+          en="— a wrong number makes the workshop cut leather nobody ordered."
+          ne="— गलत अंकले नचाहिने माल बनाउन लगाउँछ।"
+        />
       </p>
 
       {known.length > 0 ? (
@@ -141,32 +155,47 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
               <div className="min-w-0">
                 <p className="truncate font-black text-brand-green-ink">{row.design}</p>
                 <p className="mt-0.5 text-xs font-semibold text-brand-muted">
-                  {row.onHand} जोडी बाँकी · {row.historyDays} दिनमा {row.soldInWindow} बिक्री
-                  {row.dailyRate ? ` · दिनको ${row.dailyRate}` : ""}
+                  <T
+                    en={`${row.onHand} pairs left · ${row.soldInWindow} sold in ${row.historyDays} days${
+                      row.dailyRate ? ` · ${row.dailyRate} a day` : ""
+                    }`}
+                    ne={`${row.onHand} जोडी बाँकी · ${row.historyDays} दिनमा ${row.soldInWindow} बिक्री${
+                      row.dailyRate ? ` · दिनको ${row.dailyRate}` : ""
+                    }`}
+                  />
                 </p>
               </div>
               <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${tone[row.status]}`}>
-                {outlookAdvice(row)}
+                <T en={outlookAdvice(row).en} ne={outlookAdvice(row).ne} />
               </span>
             </div>
           ))}
         </div>
       ) : (
         <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-          अझै कुनै design को गति नापिएको छैन — बिक्री बढेपछि यहीँ देखिन थाल्छ।
+          <T
+            en="No design has a measured rate yet — they start showing up here as sales build."
+            ne="अझै कुनै design को गति नापिएको छैन — बिक्री बढेपछि यहीँ देखिन थाल्छ।"
+          />
         </p>
       )}
 
       {waiting.length > 0 ? (
         <details className="mt-3 rounded-xl bg-brand-paper-deep px-4 py-3">
           <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
-            {waiting.length} design — अझै भन्न सकिँदैन
+            <T
+              en={`${waiting.length} designs — cannot be said yet`}
+              ne={`${waiting.length} design — अझै भन्न सकिँदैन`}
+            />
           </summary>
           <div className="mt-3 grid gap-1.5">
             {waiting.map((row) => (
               <p key={row.design} className="text-sm text-brand-muted">
-                <strong className="text-brand-green-ink">{row.design}</strong> · {row.onHand} जोडी ·{" "}
-                {row.waitingFor}
+                <strong className="text-brand-green-ink">{row.design}</strong> ·{" "}
+                <T
+                  en={`${row.onHand} pairs · ${row.waitingFor.en}`}
+                  ne={`${row.onHand} जोडी · ${row.waitingFor.ne}`}
+                />
               </p>
             ))}
           </div>

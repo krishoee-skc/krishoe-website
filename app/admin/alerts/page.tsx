@@ -12,7 +12,7 @@ import {
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
-export const metadata: Metadata = { title: "चेतावनी | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Alerts | KRISHOE Admin" };
 
 export const dynamic = "force-dynamic";
 
@@ -116,8 +116,11 @@ export default async function AlertsPage() {
     reportError("load the alert centre", error);
     return (
       <LoadFailure
-        what="चेतावनी"
-        message={saveFailureMessage(error, "चेतावनी जाँच्न सकिएन — यसको मतलब सबै ठीक छ भन्ने होइन।")}
+        what="the alerts"
+        message={saveFailureMessage(
+          error,
+          "The alerts could not be checked. That is not the same as all clear.",
+        )}
         retryHref="/admin/alerts"
       />
     );
@@ -130,10 +133,14 @@ export default async function AlertsPage() {
   return (
     <section className="p-4 sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-gold-deep">
-        चेतावनी · Alerts
+        <AlertText en="Alerts" ne="चेतावनी" />
       </p>
       <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
-        {summary.total === 0 ? "अहिले केही अड्किएको छैन" : "यी कुरा हेर्नुपर्‍यो"}
+        {summary.total === 0 ? (
+          <AlertText en="Nothing is stuck" ne="अहिले केही अड्किएको छैन" />
+        ) : (
+          <AlertText en="These need looking at" ne="यी कुरा हेर्नुपर्‍यो" />
+        )}
       </h1>
 
       {summary.total === 0 ? (
@@ -141,19 +148,23 @@ export default async function AlertsPage() {
            what was checked, so an empty page is evidence rather than silence. */
         <div className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-6 sm:p-8">
           <p className="text-base leading-7 text-brand-green-ink">
-            अर्डर, उधारो, साहु, स्टक, भुक्तानी, हिसाब र उत्पादन — सातै ठाउँ जाँचियो, कतै केही
-            अड्किएको भेटिएन।
+            <AlertText
+              en="Orders, credit, suppliers, stock, payments, posting and production — all seven were checked and nothing was found stuck."
+              ne="अर्डर, उधारो, साहु, स्टक, भुक्तानी, हिसाब र उत्पादन — सातै ठाउँ जाँचियो, कतै केही अड्किएको भेटिएन।"
+            />
           </p>
           <p className="mt-3 text-sm leading-6 text-brand-muted">
-            यो पाना खाली हुनु राम्रो कुरा हो। केही अड्कियो भने आफैँ यहाँ देखिन्छ — कसैले टिप्नु
-            पर्दैन।
+            <AlertText
+              en="An empty page here is good news. Anything that gets stuck shows up on its own — nobody has to record it."
+              ne="यो पाना खाली हुनु राम्रो कुरा हो। केही अड्कियो भने आफैँ यहाँ देखिन्छ — कसैले टिप्नु पर्दैन।"
+            />
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               href="/admin/reports"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-green px-5 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
             >
-              हिसाब हेर्ने
+              <AlertText en="Open the reports" ne="हिसाब हेर्ने" />
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
           </div>
@@ -161,9 +172,14 @@ export default async function AlertsPage() {
       ) : (
         <>
           <p className="mt-2 text-sm text-brand-muted">
-            {summary.critical > 0 ? `${summary.critical} अहिल्यै · ` : ""}
-            {summary.warning > 0 ? `${summary.warning} चाँडै · ` : ""}
-            {summary.total} जम्मा। हरेकमा के गर्ने लेखिएको छ।
+            <AlertText
+              en={`${summary.critical > 0 ? `${summary.critical} now · ` : ""}${
+                summary.warning > 0 ? `${summary.warning} soon · ` : ""
+              }${summary.total} in all. Each one says what to do.`}
+              ne={`${summary.critical > 0 ? `${summary.critical} अहिल्यै · ` : ""}${
+                summary.warning > 0 ? `${summary.warning} चाँडै · ` : ""
+              }${summary.total} जम्मा। हरेकमा के गर्ने लेखिएको छ।`}
+            />
           </p>
 
           {critical.length > 0 ? (
@@ -185,7 +201,10 @@ export default async function AlertsPage() {
       )}
 
       <p className="mt-6 text-xs leading-6 text-brand-muted">
-        यी चेतावनी कहीँ टिपिएका होइनन् — अर्डर, खाता, स्टक र बिलबाट हरेक पटक आफैँ गनिन्छन्।
+        <AlertText
+          en="These are not recorded anywhere — they are worked out from orders, ledgers, stock and bills every time this page opens."
+          ne="यी चेतावनी कहीँ टिपिएका होइनन् — अर्डर, खाता, स्टक र बिलबाट हरेक पटक आफैँ गनिन्छन्।"
+        />
       </p>
     </section>
   );

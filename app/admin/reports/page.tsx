@@ -7,7 +7,7 @@ import { buildInsight, getReportIndex, type ReportCard } from "@/lib/reports";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
-export const metadata: Metadata = { title: "हिसाब · Report | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Report | KRISHOE Admin" };
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
  * the next thing to do rather than a dead end.
  */
 function money(value: number) {
-  return `रु. ${Math.round(value).toLocaleString("en-IN")}`;
+  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
 }
 
 function Card({ card }: { card: ReportCard }) {
@@ -85,8 +85,8 @@ export default async function ReportsPage() {
     reportError("load the report index", error);
     return (
       <LoadFailure
-        what="हिसाब"
-        message={saveFailureMessage(error, "हिसाब लोड गर्न सकिएन।")}
+        what="the report index"
+        message={saveFailureMessage(error, "Could not load the reports.")}
         retryHref="/admin/reports"
       />
     );
@@ -100,7 +100,7 @@ export default async function ReportsPage() {
   return (
     <section className="p-4 sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-gold-deep">
-        हिसाब · Report
+        <AlertText en="Report" ne="हिसाब" />
       </p>
       <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
         <AlertText en="What the shop is saying" ne="पसलले के भन्दैछ" />

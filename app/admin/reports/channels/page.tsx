@@ -6,7 +6,7 @@ import { ArrowRightIcon } from "@/components/Icons";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { fetchAnalyticsSnapshot, type NamedCount } from "@/lib/google-analytics";
 
-export const metadata: Metadata = { title: "कहाँबाट आयो | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Channels | KRISHOE Admin" };
 
 export const dynamic = "force-dynamic";
 

@@ -9,6 +9,7 @@ import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "@/components/Icon
 import { useSidebar } from "@/components/admin/SidebarProvider";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 
 export default function AdminNav({
@@ -25,6 +26,7 @@ export default function AdminNav({
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
+  const { language, text } = useLanguage();
 
   return (
     <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 lg:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "lg:w-20" : "lg:w-[280px]"}`}>
@@ -102,7 +104,7 @@ export default function AdminNav({
               <div key={group.id} className="grid gap-1">
                 {!isCollapsed && (
                   <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
-                    {group.title}
+                    {text(group.titleEn, group.titleNe)}
                   </p>
                 )}
                 {group.links.map(({ href, label, nepali, icon: Icon }) => {
@@ -111,7 +113,7 @@ export default function AdminNav({
                     <Link
                       key={`${group.id}-${href}`}
                       href={href}
-                      title={isCollapsed ? `${label} · ${nepali}` : undefined}
+                      title={isCollapsed ? text(label, `${nepali} · ${label}`) : undefined}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                         isActive
                           ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
@@ -119,14 +121,19 @@ export default function AdminNav({
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {/* English name kept as the heading — it is what the owner
-                          has already learned to look for — with the Nepali
-                          underneath for anyone reading the menu for the first
-                          time. */}
+                      {/* On the Nepali side the Nepali name leads and the
+                          English stays small underneath — the owner has learned
+                          to look for "Factory Entry" and losing it would be a
+                          downgrade. On the English side there is no Nepali at
+                          all, which is the whole point of the switch. */}
                       {!isCollapsed && (
                         <span className="grid leading-tight">
-                          <span className="text-sm">{label}</span>
-                          <span className="text-[11px] text-brand-muted-soft dark:text-white/60">{nepali}</span>
+                          <span className="text-sm">{language === "ne" ? nepali : label}</span>
+                          {language === "ne" ? (
+                            <span className="text-[11px] text-brand-muted-soft dark:text-white/60">
+                              {label}
+                            </span>
+                          ) : null}
                         </span>
                       )}
                     </Link>

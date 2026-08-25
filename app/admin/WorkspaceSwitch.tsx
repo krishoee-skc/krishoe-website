@@ -1,6 +1,7 @@
 "use client";
 
 import { adminWorkspaces, type AdminWorkspace } from "@/app/admin/nav-links";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * The one control that decides which half of the business the menu shows.
@@ -17,6 +18,8 @@ export default function WorkspaceSwitch({
   onChoose: (workspace: AdminWorkspace) => void;
   compact?: boolean;
 }) {
+  const { text } = useLanguage();
+
   return (
     <div
       role="group"
@@ -31,7 +34,7 @@ export default function WorkspaceSwitch({
             type="button"
             onClick={() => onChoose(option.id)}
             aria-pressed={isActive}
-            title={option.english}
+            title={option.labelEn}
             className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-black transition ${
               isActive
                 ? "bg-brand-paper text-admin-primary shadow-sm dark:bg-admin-sidebar-dark dark:text-admin-primary-light"
@@ -39,7 +42,7 @@ export default function WorkspaceSwitch({
             }`}
           >
             <span aria-hidden>{option.emoji}</span>
-            {!compact && <span>{option.label}</span>}
+            {!compact && <span>{text(option.labelEn, option.labelNe)}</span>}
           </button>
         );
       })}

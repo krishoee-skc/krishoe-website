@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { XIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 
 interface AdminDrawerProps {
@@ -17,6 +18,7 @@ interface AdminDrawerProps {
 export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerProps) {
   const pathname = usePathname();
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
+  const { language, text } = useLanguage();
 
   return (
     <>
@@ -62,7 +64,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
               {groups.map((group) => (
                 <div key={group.id} className="grid gap-1">
                   <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
-                    {group.title}
+                    {text(group.titleEn, group.titleNe)}
                   </p>
                   {group.links.map(({ href, label, nepali, icon: Icon }) => {
                     const isActive = pathname === href;
@@ -79,8 +81,12 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                       >
                         <Icon className="h-5 w-5 shrink-0" />
                         <span className="grid leading-tight">
-                          <span className="text-sm">{label}</span>
-                          <span className="text-[11px] text-brand-muted-soft dark:text-white/60">{nepali}</span>
+                          <span className="text-sm">{language === "ne" ? nepali : label}</span>
+                          {language === "ne" ? (
+                            <span className="text-[11px] text-brand-muted-soft dark:text-white/60">
+                              {label}
+                            </span>
+                          ) : null}
                         </span>
                       </Link>
                     );

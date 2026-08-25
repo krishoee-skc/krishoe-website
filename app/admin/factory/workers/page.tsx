@@ -171,10 +171,19 @@ export default function WorkersPage() {
       if (!response.ok) throw new Error(data.error || "Worker could not be saved.");
       setMessage(
         patch.status === "inactive"
-          ? "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। पुरानो ज्याला जस्ताको तस्तै छ।"
+          ? text(
+              "Closed — they no longer appear on the work form. Past wages are untouched.",
+              "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। पुरानो ज्याला जस्ताको तस्तै छ।",
+            )
           : patch.status === "active"
-            ? "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।"
-            : "सच्चियो — पुरानो ज्याला जस्ताको तस्तै छ।",
+            ? text(
+                "Active again — they appear on the work form.",
+                "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।",
+              )
+            : text(
+                "Saved — past wages are untouched.",
+                "सच्चियो — पुरानो ज्याला जस्ताको तस्तै छ।",
+              ),
       );
       await loadWorkers();
     } catch (reason) {
@@ -209,9 +218,11 @@ export default function WorkersPage() {
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका मान्छे</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
+            {text("Factory people", "कारखानाका मान्छे")}
+          </p>
           <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
-            कामदार <span className="text-lg font-bold text-brand-muted">· Workers and HR linkage</span>
+            {text("Workers and HR linkage", "कामदार")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
@@ -264,7 +275,9 @@ export default function WorkersPage() {
                 <p className="mt-1 text-xs font-semibold text-brand-muted">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
               </div>
               {worker.status !== "active" ? (
-                <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">बन्द</span>
+                <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
+                  {text("Closed", "बन्द")}
+                </span>
               ) : null}
               {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
                   rates and the worker portal all read this list directly, and
@@ -280,7 +293,7 @@ export default function WorkersPage() {
                 could not have been saved back. */}
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                नाम
+                {text("Name", "नाम")}
                 <input
                   value={edits[worker.id]?.name ?? worker.name}
                   onChange={(event) =>
@@ -294,7 +307,7 @@ export default function WorkersPage() {
                 />
               </label>
               <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                कारखानाको चरण
+                {text("Factory stage", "कारखानाको चरण")}
                 <select
                   value={edits[worker.id]?.category ?? worker.category}
                   onChange={(event) =>
@@ -312,7 +325,7 @@ export default function WorkersPage() {
                 </select>
               </label>
               <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                ज्यालाको किसिम
+                {text("Wage type", "ज्यालाको किसिम")}
                 <select
                   value={edits[worker.id]?.worker_type ?? worker.worker_type}
                   onChange={(event) =>
@@ -340,7 +353,7 @@ export default function WorkersPage() {
                 }
                 className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-brand-green-line disabled:text-brand-muted-soft"
               >
-                {saving === worker.id ? "गर्दैछौँ…" : "सच्याउने"}
+                {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Save", "सच्याउने")}
               </button>
             </div>
 
@@ -351,10 +364,13 @@ export default function WorkersPage() {
               className={`mt-3 min-h-12 w-full rounded-xl border px-4 text-sm font-bold disabled:opacity-60 ${worker.status === "active" ? "border-brand-green-line text-brand-muted" : "border-brand-green font-black text-brand-green"}`}
             >
               {saving === worker.id
-                ? "गर्दैछौँ…"
+                ? text("Saving…", "गर्दैछौँ…")
                 : worker.status === "active"
-                  ? "बन्द गर्ने — काम भर्ने फारमबाट हटाउने"
-                  : "फेरि चालु गर्ने"}
+                  ? text(
+                      "Close — remove from the work form",
+                      "बन्द गर्ने — काम भर्ने फारमबाट हटाउने",
+                    )
+                  : text("Make active again", "फेरि चालु गर्ने")}
             </button>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">

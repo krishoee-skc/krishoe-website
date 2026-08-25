@@ -39,7 +39,8 @@ describe("when it refuses to guess", () => {
 
     expect(outlook.daysOfCover).toBeNull();
     expect(outlook.status).toBe("unknown");
-    expect(outlook.waitingFor).toContain("एउटै बिक्री भएको छैन");
+    expect(outlook.waitingFor.ne).toContain("एउटै बिक्री भएको छैन");
+    expect(outlook.waitingFor.en).toContain("Not sold even once");
   });
 
   it("names how many more sales it needs", () => {
@@ -47,7 +48,8 @@ describe("when it refuses to guess", () => {
 
     expect(outlook.daysOfCover).toBeNull();
     // Actionable rather than mysterious: the owner can see what it waits for.
-    expect(outlook.waitingFor).toContain("2 पटक");
+    expect(outlook.waitingFor.ne).toContain("2 पटक");
+    expect(outlook.waitingFor.en).toContain("2 more sales");
   });
 
   it("will not build a rate from one busy afternoon", () => {
@@ -61,7 +63,8 @@ describe("when it refuses to guess", () => {
     );
 
     expect(outlook.daysOfCover).toBeNull();
-    expect(outlook.waitingFor).toContain("केही दिन थप");
+    expect(outlook.waitingFor.ne).toContain("केही दिन थप");
+    expect(outlook.waitingFor.en).toContain("a few more days");
   });
 });
 
@@ -82,7 +85,8 @@ describe("when it does answer", () => {
 
     expect(outlook.daysOfCover).toBe(5);
     expect(outlook.status).toBe("urgent");
-    expect(outlookAdvice(outlook)).toContain("अहिले नै बनाउन");
+    expect(outlookAdvice(outlook).ne).toContain("अहिले नै बनाउन");
+    expect(outlookAdvice(outlook).en).toContain("start making them now");
   });
 
   it("counts only sales as demand", () => {
