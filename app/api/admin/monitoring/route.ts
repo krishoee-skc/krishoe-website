@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getErrorStats,
   getPerformanceStats,
-  getUptimePercentage,
+  getUptimeEvidence,
   checkSystemHealth,
 } from "@/lib/monitoring";
 import { requireAdminPermission } from "@/lib/admin-permissions";
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (section === "uptime") {
-      const uptime = await getUptimePercentage(30);
+      const uptime = await getUptimeEvidence();
       return NextResponse.json({ success: true, uptime });
     }
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const [errors, performance, uptime, health] = await Promise.all([
       getErrorStats(hours),
       getPerformanceStats(hours),
-      getUptimePercentage(30),
+      getUptimeEvidence(),
       checkSystemHealth(),
     ]);
 

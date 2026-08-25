@@ -97,14 +97,82 @@ describe("what red means", () => {
 });
 
 describe("uptime", () => {
-  it("says it is unmeasured rather than calling zero percent Good", async () => {
+  it("never grades a shop whose uptime it has not measured", async () => {
     const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
 
-    // Nothing records uptime — the tables were never created — so the figure
-    // was zero for want of measurement. Shown as "0.00% · Good", the same
-    // screen would have said Good on the day the shop really was down.
-    expect(dashboard).toContain("monitoring.uptime > 0");
-    expect(dashboard).toContain("अझै नापिएको छैन");
+    // This first said "0.00% · Good" — the same screen would have read Good on
+    // the day the shop was actually down. Then it said "अझै नापिएको छैन", which
+    // was honest but useless. There is no grade on it at all now: the card
+    // reports when a browser last got an answer, and the tests below hold that
+    // shape. What must never come back is a verdict on an unmeasured number.
     expect(dashboard).not.toContain('? "Excellent" : "Good"');
+    expect(dashboard).not.toContain('"Excellent" : "Needs attention"');
+  });
+});
+
+/**
+ * The uptime figure was a lie of a particular kind: not wrong, unmeasured.
+ *
+ * The screen said "Uptime (30 days)" and a percentage. `recordUptimeCheck`
+ * exists and is called from nowhere, and `monitoring_uptime` holds zero rows —
+ * so the number was 0 for want of measurement, and 0% under a badge is the
+ * worst possible reading of "we never looked".
+ *
+ * The obvious fix is worse than the problem, which is why it is worth a test.
+ * A cron pinging the site from inside Vercel cannot observe Vercel being down:
+ * when the site is down the cron does not run either. It would record a wall of
+ * "up" and miss every outage — a second lie, this time wearing a measurement's
+ * clothes.
+ */
+describe("what the shop can honestly say about being up", () => {
+  it("reports evidence rather than a percentage nobody measured", async () => {
+    const monitoring = await readFile("lib/monitoring.ts", "utf8");
+    const route = await readFile("app/api/admin/monitoring/route.ts", "utf8");
+
+    expect(monitoring).toContain("export async function getUptimeEvidence");
+    expect(route).toContain("getUptimeEvidence");
+    // The percentage reader is not wired to anything any more.
+    expect(route).not.toContain("getUptimePercentage");
+  });
+
+  it("counts a real browser answering, not a machine pinging itself", async () => {
+    const monitoring = await readFile("lib/monitoring.ts", "utf8");
+    const evidence = monitoring.slice(monitoring.indexOf("export async function getUptimeEvidence"));
+
+    // Every performance reading is a shopper's own browser confirming the site
+    // answered at that moment. That is the only "up" this shop can prove.
+    expect(evidence).toContain("FROM monitoring_performance");
+    expect(evidence).toContain("monitoring_errors");
+  });
+
+  it("never invents a percentage from what it holds", async () => {
+    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
+    const card = dashboard.slice(
+      dashboard.indexOf("जवाफ दिइरहेको छ?"),
+      dashboard.indexOf("जवाफ दिइरहेको छ?") + 2000,
+    );
+
+    // A share of readings is not a share of minutes: there is no counting the
+    // minutes nobody was looking.
+    expect(card).not.toContain("toFixed(2)");
+    expect(card).not.toContain("99.9");
+  });
+
+  it("says plainly what it cannot know", async () => {
+    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
+
+    // The recommendation used to advise on the invented number. It now names
+    // the gap instead, and points at the only thing that closes it.
+    expect(dashboard).toContain("बाहिरबाट जाँच्ने कोही छैन");
+    expect(dashboard).toContain("UptimeRobot");
+  });
+
+  it("shows the age of the answer, not a timestamp to subtract", async () => {
+    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
+
+    // "6 मिनेटअघि" answers the question. A clock time makes the reader do
+    // arithmetic across the 5h45m between Kathmandu and the server.
+    expect(dashboard).toContain("function minutesAgo");
+    expect(dashboard).toContain("मिनेटअघि");
   });
 });

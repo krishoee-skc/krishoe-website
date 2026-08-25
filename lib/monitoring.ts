@@ -598,3 +598,75 @@ export async function getUptimePercentage(days: number = 30): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * What the shop can honestly say about being up.
+ *
+ * The screen showed "Uptime (30 days)" and a percentage. Nothing has ever
+ * written an uptime check — `recordUptimeCheck` exists and is called from
+ * nowhere — so the figure was zero for want of measurement, and 0% under a
+ * badge is the worst possible reading of "we never looked".
+ *
+ * The obvious fix, a cron that pings the site, is close to worthless here and
+ * worth saying out loud: a checker running inside Vercel cannot observe Vercel
+ * being down, because when the site is down the checker does not run either. It
+ * would record a wall of "up" and miss every outage — a second lie, dressed as
+ * a measurement.
+ *
+ * So this reports the evidence the shop actually holds. Every performance
+ * reading is a shopper's own browser saying the site answered at that moment,
+ * and every logged error is a moment it failed. That cannot produce a
+ * percentage — there is no way to count the minutes nobody was looking — and it
+ * does not pretend to. It answers the question a percentage was standing in
+ * for: is it answering, and has anything broken lately.
+ *
+ * A real percentage needs a checker OUTSIDE this platform. Until there is one,
+ * this is the whole truth.
+ */
+export type UptimeEvidence = {
+  /** When a real browser last confirmed the site answered. */
+  lastAnsweredAt: string | null;
+  /** Minutes since that, or null when nothing has ever been recorded. */
+  minutesSinceAnswer: number | null;
+  /** Readings taken, and how many separate days they cover. */
+  readings: number;
+  daysObserved: number;
+  /** Errors filed in the last seven days, and when the newest was. */
+  recentErrors: number;
+  lastErrorAt: string | null;
+};
+
+export async function getUptimeEvidence(): Promise<UptimeEvidence> {
+  const rows = await queryPostgres<{
+    last_answer: Date | string | null;
+    readings: number;
+    days_observed: number;
+    recent_errors: number;
+    last_error: Date | string | null;
+  }>(
+    STORE,
+    `SELECT
+       (SELECT max(created_at) FROM monitoring_performance WHERE environment = 'production') AS last_answer,
+       (SELECT count(*)::int FROM monitoring_performance WHERE environment = 'production') AS readings,
+       (SELECT count(DISTINCT date_trunc('day', created_at))::int
+          FROM monitoring_performance WHERE environment = 'production') AS days_observed,
+       (SELECT count(*)::int FROM monitoring_errors
+          WHERE level = 'error' AND created_at > now() - INTERVAL '7 days') AS recent_errors,
+       (SELECT max(created_at) FROM monitoring_errors WHERE level = 'error') AS last_error`,
+  );
+
+  const row = rows[0];
+  const lastAnswer = row?.last_answer ? new Date(row.last_answer) : null;
+  const lastError = row?.last_error ? new Date(row.last_error) : null;
+
+  return {
+    lastAnsweredAt: lastAnswer ? lastAnswer.toISOString() : null,
+    minutesSinceAnswer: lastAnswer
+      ? Math.max(0, Math.round((Date.now() - lastAnswer.getTime()) / 60_000))
+      : null,
+    readings: Number(row?.readings ?? 0),
+    daysObserved: Number(row?.days_observed ?? 0),
+    recentErrors: Number(row?.recent_errors ?? 0),
+    lastErrorAt: lastError ? lastError.toISOString() : null,
+  };
+}

@@ -3,6 +3,25 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ServiceStatus } from "@/lib/monitoring";
 
+
+/**
+ * "6 मिनेटअघि" rather than a timestamp.
+ *
+ * The question this answers is "is it answering right now", and a reader should
+ * not have to subtract two clock times to find out — least of all across the
+ * five-and-three-quarter hours between Kathmandu and the server.
+ */
+function minutesAgo(minutes: number | null) {
+  if (minutes === null) return "—";
+  if (minutes < 2) return "अहिल्यै";
+  if (minutes < 60) return `${minutes} मिनेटअघि`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} घण्टाअघि`;
+
+  return `${Math.round(hours / 24)} दिनअघि`;
+}
+
 interface MonitoringData {
   errors: {
     totalErrors: number;
@@ -31,7 +50,14 @@ interface MonitoringData {
     samples: number;
     setAside: number;
   };
-  uptime: number;
+  uptime: {
+    lastAnsweredAt: string | null;
+    minutesSinceAnswer: number | null;
+    readings: number;
+    daysObserved: number;
+    recentErrors: number;
+    lastErrorAt: string | null;
+  };
   health: {
     scope: "live" | "local";
     database: ServiceStatus;
@@ -208,33 +234,48 @@ export default function MonitoringDashboard() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-          {/* Nothing records uptime yet — the tables this would read were never
-              created — so the figure is zero for want of measurement, not
-              because the shop was down. It was being shown as 0.00% under a
-              badge reading "Good", which is worse than showing nothing: the
-              same screen would say "Good" on the day the shop really was down.
-              Until there is something to count, it says so. */}
-          <div className="text-sm text-brand-muted">Uptime (30 days)</div>
-          {monitoring.uptime > 0 ? (
+          {/* This said "Uptime (30 days)" and a percentage. Nothing had ever
+              written an uptime check, so the figure was zero for want of
+              measurement — and 0% under a badge is the worst possible reading
+              of "we never looked".
+
+              A cron pinging the site would not fix it and is worth saying out
+              loud: a checker running inside Vercel cannot observe Vercel being
+              down, because when the site is down the checker does not run
+              either. It would record a wall of "up" and miss every outage.
+
+              So this shows the evidence the shop actually holds. Every
+              performance reading is a shopper's own browser confirming the site
+              answered; every logged error is a moment it failed. That cannot
+              make a percentage — there is no counting the minutes nobody
+              looked — and it does not pretend to. */}
+          <div className="text-sm text-brand-muted">जवाफ दिइरहेको छ? · Answering?</div>
+          {monitoring.uptime.lastAnsweredAt ? (
             <>
-              <div className="text-3xl font-bold text-brand-green-ink mt-2">
-                {monitoring.uptime.toFixed(2)}%
+              <div className="mt-2 text-3xl font-bold text-brand-green-ink">
+                {minutesAgo(monitoring.uptime.minutesSinceAnswer)}
+              </div>
+              <div className="mt-2 text-xs leading-5 text-brand-muted">
+                पछिल्लो पटक ग्राहकको फोनले जवाफ पायो · {monitoring.uptime.readings} नाप,{" "}
+                {monitoring.uptime.daysObserved} दिनमा
               </div>
               <div
-                className={`mt-2 text-xs font-medium px-2 py-1 rounded ${
-                  monitoring.uptime >= 99.9
-                    ? "bg-green-100 text-green-700"
-                    : "bg-yellow-100 text-yellow-700"
+                className={`mt-2 rounded px-2 py-1 text-xs font-medium ${
+                  monitoring.uptime.recentErrors > 0
+                    ? "bg-brand-cream-soft text-brand-gold-ink"
+                    : "bg-brand-green-tint text-brand-green"
                 }`}
               >
-                {monitoring.uptime >= 99.9 ? "Excellent" : "Needs attention"}
+                {monitoring.uptime.recentErrors > 0
+                  ? `७ दिनमा ${monitoring.uptime.recentErrors} गल्ती`
+                  : "७ दिनमा कुनै गल्ती छैन"}
               </div>
             </>
           ) : (
             <>
               <div className="mt-2 text-3xl font-bold text-brand-muted-soft">—</div>
               <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
-                अझै नापिएको छैन
+                कसैले पसल खोलेकै छैन
               </div>
             </>
           )}
@@ -492,15 +533,17 @@ export default function MonitoringDashboard() {
           {monitoring.errors.totalErrors > 50 && (
             <li>✓ Many errors in last 24h - urgent investigation needed</li>
           )}
-          {/* The same trap as the line below, one card apart. Nothing has ever
-              written an uptime check, so this value is 0 — and 0 is below 99.9,
-              so the screen told the owner to review the stability of a shop
-              whose stability it had never measured. The card above it says
-              "अझै नापिएको छैन" in the same breath. Advice from a number that
-              does not exist is how a person learns to stop reading advice. */}
-          {monitoring.uptime > 0 && monitoring.uptime < 99.9 && (
-            <li>✓ Uptime below 99.9% - review system stability</li>
-          )}
+          {/* This used to advise reviewing stability whenever uptime was
+              below 99.9%, on a value that was always 0 because nothing had
+              measured it. There is no percentage any more, so there is nothing
+              to compare — and the one thing worth saying is what the shop
+              cannot know rather than what it has decided. */}
+          {monitoring.uptime.readings > 0 ? (
+            <li>
+              ✓ बाहिरबाट जाँच्ने कोही छैन — साइट डाउन भएको बेला कसैले टिप्दैन। साँचो uptime
+              चाहिए UptimeRobot जस्तो निःशुल्क सेवा जोड्नुहोस्।
+            </li>
+          ) : null}
           {/* This read `!v`, left over from when these were booleans. Every value
               here is now a non-empty string, so the test was false for "down"
               exactly as often as for "up" — the line could never appear, on any
