@@ -1,20 +1,113 @@
 {
   "pages": [
-    { "id": "page-1", "name": "रङ र अक्षर · System" },
-    { "id": "page-2", "name": "PC मा · Desktop" },
-    { "id": "page-3", "name": "फोनमा · Mobile" }
+    {
+      "id": "page-1",
+      "name": "रङ र अक्षर · System"
+    },
+    {
+      "id": "page-2",
+      "name": "PC मा · Desktop"
+    },
+    {
+      "id": "page-3",
+      "name": "फोनमा · Mobile"
+    },
+    {
+      "id": "page-4",
+      "name": "हिसाब · Analysis"
+    }
   ],
   "artboards": [
-    { "file": "Palette.dc.html", "page": "page-1", "x": 0, "y": 0, "w": 1080, "h": 1180, "title": "अझ premium — रङ · Refined palette" },
-    { "file": "Main.dc.html", "page": "page-1", "x": 1200, "y": 0, "w": 1080, "h": 1560, "title": "अक्षर, बटन, शब्दकोश · Type & words" },
-
-    { "file": "ShopDesktop.dc.html", "page": "page-2", "x": 0, "y": 0, "w": 1240, "h": 860, "title": "पसल — PC · Shop on desktop" },
-    { "file": "Owner.dc.html", "page": "page-2", "x": 1360, "y": 0, "w": 1240, "h": 880, "title": "मालिकको — PC · Owner" },
-    { "file": "Staff.dc.html", "page": "page-2", "x": 2720, "y": 0, "w": 1240, "h": 700, "title": "Staff को — PC · Counter" },
-
-    { "file": "OwnerPhone.dc.html", "page": "page-3", "x": 0, "y": 0, "w": 390, "h": 844, "title": "मालिकको — फोन · Owner" },
-    { "file": "Factory.dc.html", "page": "page-3", "x": 510, "y": 0, "w": 390, "h": 844, "title": "कारखाना — फोन · Factory" },
-    { "file": "Customer.dc.html", "page": "page-3", "x": 1020, "y": 0, "w": 390, "h": 844, "title": "ग्राहकको — फोन · Customer" }
+    {
+      "file": "Palette.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 0,
+      "w": 1080,
+      "h": 1180,
+      "title": "अझ premium — रङ · Refined palette"
+    },
+    {
+      "file": "Main.dc.html",
+      "page": "page-1",
+      "x": 1200,
+      "y": 0,
+      "w": 1080,
+      "h": 1560,
+      "title": "अक्षर, बटन, शब्दकोश · Type & words"
+    },
+    {
+      "file": "ShopDesktop.dc.html",
+      "page": "page-2",
+      "x": 0,
+      "y": 0,
+      "w": 1240,
+      "h": 860,
+      "title": "पसल — PC · Shop on desktop"
+    },
+    {
+      "file": "Owner.dc.html",
+      "page": "page-2",
+      "x": 1360,
+      "y": 0,
+      "w": 1240,
+      "h": 880,
+      "title": "मालिकको — PC · Owner"
+    },
+    {
+      "file": "Staff.dc.html",
+      "page": "page-2",
+      "x": 2720,
+      "y": 0,
+      "w": 1240,
+      "h": 700,
+      "title": "Staff को — PC · Counter"
+    },
+    {
+      "file": "OwnerPhone.dc.html",
+      "page": "page-3",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "मालिकको — फोन · Owner"
+    },
+    {
+      "file": "Factory.dc.html",
+      "page": "page-3",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "कारखाना — फोन · Factory"
+    },
+    {
+      "file": "Customer.dc.html",
+      "page": "page-3",
+      "x": 1020,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "ग्राहकको — फोन · Customer"
+    },
+    {
+      "file": "Analysis.dc.html",
+      "page": "page-4",
+      "x": 0,
+      "y": 0,
+      "w": 1240,
+      "h": 1000,
+      "title": "हिसाबको मुख्य पाना · Analysis hub"
+    },
+    {
+      "file": "Channels.dc.html",
+      "page": "page-4",
+      "x": 1360,
+      "y": 0,
+      "w": 1000,
+      "h": 1120,
+      "title": "कहाँबाट आयो + लिङ्क बनाउने · Channels"
+    }
   ],
   "annotations": [
     {
@@ -40,7 +133,18 @@
       "y": -170,
       "w": 480,
       "text": "फोनमा तीनै ठाउँ\n\nमालिकको admin अब फोनमा पनि — तलको बारबाट औँलाले भ्याउने ठाउँमा।\n\nहरेक बटन ५६px भन्दा ठूलो — गाडा हातले पनि थिच्न मिल्ने।\n\nने/EN तीनै पानाको माथिल्लो कुनामा, एउटै ठाउँ।"
+    },
+    {
+      "id": "analysis-note",
+      "page": "page-4",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "प्रस्ताव — बनाउनुअघि हेर्नुहोस्\n\n११ मध्ये ६ हिसाब लुकेका छन्: ४ menu मै छैनन्, २ Settings भित्र।\n\nएउटै \"हिसाब\" menu मा सबै ल्याउने। खाली हिसाबले \"डाटा छैन\" होइन, \"के गरे भरिन्छ\" भन्ने।\n\nअहिले कुनै code फेरिएको छैन।"
     }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-4"
+  }
 }
