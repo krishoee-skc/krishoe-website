@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsSnapshot } from "@/lib/operations";
@@ -105,7 +106,7 @@ export default async function AdminDuesPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Credit control</p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">Customer and supplier ledgers</h1>
+          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl"><T en="Customer and supplier ledgers" ne="ग्राहक र साहुको खाता" /></h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Customer receivable means money KRISHOE must collect. Supplier payable means money KRISHOE must pay.
           </p>
@@ -135,7 +136,7 @@ export default async function AdminDuesPage() {
 
       <section id="customer-receivables" className="mt-8 scroll-mt-24 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4">
-          <h2 className="text-lg font-black text-brand-green-ink">To collect from customers</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="To collect from customers" ne="ग्राहकबाट उठाउन बाँकी" /></h2>
           <p className="mt-1 text-sm text-brand-muted">
             Tap a customer name to record cash/cheque collection and view the complete running statement.
           </p>
@@ -197,7 +198,7 @@ export default async function AdminDuesPage() {
 
       <section id="supplier-payables" className="mt-8 scroll-mt-24 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4">
-          <h2 className="text-lg font-black text-brand-green-ink">To pay suppliers</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="To pay suppliers" ne="साहुलाई तिर्न बाँकी" /></h2>
           <p className="mt-1 text-sm text-brand-muted">
             Tap a supplier name to record payment and view purchase bills with the running payable balance.
           </p>

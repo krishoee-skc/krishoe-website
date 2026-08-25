@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AlertText from "@/components/admin/AlertText";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { ArrowRightIcon } from "@/components/Icons";
@@ -33,13 +34,17 @@ function Card({ card }: { card: ReportCard }) {
   if (!card.ready) {
     return (
       <div className="flex flex-col rounded-2xl border border-dashed border-brand-gold bg-brand-mist p-5">
-        <p className="text-sm font-black text-brand-muted-deep">{card.titleNe}</p>
-        <p className="mt-2 flex-grow text-[13px] leading-6 text-brand-muted">{card.emptyNe}</p>
+        <p className="text-sm font-black text-brand-muted-deep">
+          <AlertText en={card.titleEn} ne={card.titleNe} />
+        </p>
+        <p className="mt-2 flex-grow text-[13px] leading-6 text-brand-muted">
+          <AlertText en={card.emptyEn} ne={card.emptyNe} />
+        </p>
         <Link
           href={card.actionHref}
           className="mt-4 inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-brand-green px-4 text-[13px] font-black text-white transition hover:bg-brand-green-ink"
         >
-          {card.actionNe}
+          <AlertText en={card.actionEn} ne={card.actionNe} />
           <ArrowRightIcon className="h-4 w-4" />
         </Link>
       </div>
@@ -52,16 +57,22 @@ function Card({ card }: { card: ReportCard }) {
       className="group flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-5 transition hover:border-brand-gold"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-black text-brand-green-ink">{card.titleNe}</p>
+        <p className="text-sm font-black text-brand-green-ink">
+          <AlertText en={card.titleEn} ne={card.titleNe} />
+        </p>
         <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-muted-soft transition group-hover:text-brand-gold-deep" />
       </div>
       <p className="mt-3 font-display text-3xl font-black leading-none text-brand-green-ink">
         {shown}
         {card.id === "dues" ? null : (
-          <span className="ml-1.5 text-sm font-bold text-brand-muted">{card.unitNe}</span>
+          <span className="ml-1.5 text-sm font-bold text-brand-muted">
+            <AlertText en={card.unitEn} ne={card.unitNe} />
+          </span>
         )}
       </p>
-      <p className="mt-2 text-[13px] leading-5 text-brand-muted">{card.detailNe}</p>
+      <p className="mt-2 text-[13px] leading-5 text-brand-muted">
+        <AlertText en={card.detailEn} ne={card.detailNe} />
+      </p>
     </Link>
   );
 }
@@ -92,10 +103,13 @@ export default async function ReportsPage() {
         हिसाब · Report
       </p>
       <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
-        पसलले के भन्दैछ
+        <AlertText en="What the shop is saying" ne="पसलले के भन्दैछ" />
       </h1>
       <p className="mt-2 text-sm text-brand-muted">
-        {cards.length} वटा हिसाब, एउटै ठाउँमा। भरिएको कुन, खाली कुन — छर्लङ्ग।
+        <AlertText
+          en={`${cards.length} reports in one place — which are full and which are waiting.`}
+          ne={`${cards.length} वटा हिसाब, एउटै ठाउँमा। भरिएको कुन, खाली कुन — छर्लङ्ग।`}
+        />
       </p>
 
       {/* What the app worked out by joining two things the owner would
@@ -108,17 +122,19 @@ export default async function ReportsPage() {
             <SparkIcon />
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#5B3A6E]">
-                app ले भेटेको
+                <AlertText en="The app noticed" ne="app ले भेटेको" />
               </p>
               <p className="mt-2 text-lg font-black leading-snug text-[#3F2750]">
-                {insight.titleNe}
+                <AlertText en={insight.titleEn} ne={insight.titleNe} />
               </p>
-              <p className="mt-2 text-sm leading-6 text-brand-green-ink">{insight.detailNe}</p>
+              <p className="mt-2 text-sm leading-6 text-brand-green-ink">
+                <AlertText en={insight.detailEn} ne={insight.detailNe} />
+              </p>
               <Link
                 href={insight.href}
                 className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#5B3A6E] px-5 text-sm font-black text-white transition hover:bg-[#3F2750]"
               >
-                {insight.actionNe}
+                <AlertText en={insight.actionEn} ne={insight.actionNe} />
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>
             </div>
@@ -127,7 +143,7 @@ export default async function ReportsPage() {
       ) : null}
 
       <p className="mt-8 text-xs font-black uppercase tracking-[0.14em] text-brand-muted">
-        अहिले पढ्न मिल्ने
+        <AlertText en="Ready to read" ne="अहिले पढ्न मिल्ने" />
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {ready.map((card) => (
@@ -138,7 +154,10 @@ export default async function ReportsPage() {
       {waiting.length > 0 ? (
         <>
           <p className="mt-8 text-xs font-black uppercase tracking-[0.14em] text-brand-muted">
-            डाटा पर्खिरहेका — के चाहिन्छ भनेर भन्छन्
+            <AlertText
+              en="Waiting for data — each says what would fill it"
+              ne="डाटा पर्खिरहेका — के चाहिन्छ भनेर भन्छन्"
+            />
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {waiting.map((card) => (

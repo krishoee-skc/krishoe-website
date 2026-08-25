@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
@@ -44,6 +45,8 @@ interface LedgerData {
 export default function LedgerPage() {
   const searchParams = useSearchParams();
   const workerId = searchParams.get("workerId");
+
+  const { text } = useLanguage();
 
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>(workerId || "");
@@ -192,13 +195,13 @@ export default function LedgerPage() {
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">Select Worker</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select worker", "कामदार छान्नुहोस्")}</label>
           <select
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg"
           >
-            <option value="">Select a worker...</option>
+            <option value="">{text("Select a worker…", "कामदार छान्नुहोस्…")}</option>
             {workers.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.category})
@@ -213,7 +216,7 @@ export default function LedgerPage() {
       </div>
 
       {loading ? (
-        <div className="text-center text-brand-muted">Loading ledger...</div>
+        <div className="text-center text-brand-muted">{text("Loading ledger…", "खाता खुल्दैछ…")}</div>
       ) : ledgerData ? (
         <div className="space-y-6">
           {/* Worker Info */}
@@ -229,12 +232,12 @@ export default function LedgerPage() {
                 </div>
               </div>
               <div>
-                <div className="text-xs sm:text-sm text-brand-muted">Category</div>
+                <div className="text-xs sm:text-sm text-brand-muted">{text("Category", "कुन चरण")}</div>
                 <div className="font-semibold text-brand-green-ink">{ledgerData.worker.category}</div>
               </div>
               {ledgerData.worker.monthly_salary && (
                 <div>
-                  <div className="text-xs sm:text-sm text-brand-muted">Monthly Salary</div>
+                  <div className="text-xs sm:text-sm text-brand-muted">{text("Monthly salary", "मासिक तलब")}</div>
                   <div className="font-semibold text-brand-green-ink">
                     Rs. {ledgerData.worker.monthly_salary.toLocaleString()}
                   </div>
@@ -246,21 +249,21 @@ export default function LedgerPage() {
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Pairs</div>
+              <div className="text-xs sm:text-sm text-brand-muted">{text("Total pairs", "जम्मा जोडी")}</div>
               <div className="text-2xl sm:text-3xl font-bold text-brand-green mt-2">
                 {ledgerData.summary.totalPairs}
               </div>
             </div>
 
             <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Earned</div>
+              <div className="text-xs sm:text-sm text-brand-muted">{text("Total earned", "जम्मा कमाएको")}</div>
               <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
                 Rs. {ledgerData.summary.totalEarned.toLocaleString()}
               </div>
             </div>
 
             <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Paid</div>
+              <div className="text-xs sm:text-sm text-brand-muted">{text("Total paid", "जम्मा पाएको")}</div>
               <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
                 Rs. {ledgerData.summary.totalPaid.toLocaleString()}
               </div>

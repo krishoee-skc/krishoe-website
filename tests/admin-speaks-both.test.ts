@@ -154,3 +154,52 @@ describe("what must not move while the words do", () => {
     expect(workers).toContain("शनिबारको खर्च");
   });
 });
+
+/**
+ * The second batch: the screens opened weekly rather than hourly.
+ *
+ * The report hub had the opposite fault to the rest — written Nepali-first,
+ * with an English half already sitting unused in lib/reports.ts. titleEn,
+ * detailEn, emptyEn, actionEn were all present and none of them rendered, so a
+ * reader who pressed ENGLISH got a Nepali page. Same failure, mirrored.
+ */
+const WEEKLY = [
+  "app/admin/dues/page.tsx",
+  "app/admin/payments/page.tsx",
+  "app/admin/customers/page.tsx",
+  "app/admin/purchasing/page.tsx",
+  "app/admin/operations/page.tsx",
+  "app/admin/factory/ledger/page.tsx",
+  "app/admin/reports/page.tsx",
+];
+
+describe("the screens opened every week", () => {
+  it("writes its words as pairs too", async () => {
+    for (const file of WEEKLY) {
+      const source = await readFile(file, "utf8");
+      const paired = /useLanguage|<T\s|<AlertText/.test(source);
+      expect(paired, file).toBe(true);
+    }
+  });
+
+  it("renders the English the report hub had been carrying unused", async () => {
+    const hub = await readFile("app/admin/reports/page.tsx", "utf8");
+
+    // Every English field that lib/reports.ts computes is now asked for.
+    for (const field of ["card.titleEn", "card.detailEn", "card.emptyEn", "card.actionEn", "card.unitEn"]) {
+      expect(hub, field).toContain(field);
+    }
+    for (const field of ["insight.titleEn", "insight.detailEn", "insight.actionEn"]) {
+      expect(hub, field).toContain(field);
+    }
+  });
+
+  it("gives a worker's ledger its Nepali, of all the screens", async () => {
+    const ledger = await readFile("app/admin/factory/ledger/page.tsx", "utf8");
+
+    // "How much have I earned, how much have I taken" — if one screen in this
+    // app had to be readable by the person it is about, it was this one.
+    expect(ledger).toContain("जम्मा कमाएको");
+    expect(ledger).toContain("जम्मा पाएको");
+  });
+});

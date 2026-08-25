@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -131,7 +132,7 @@ export default async function AdminPurchasingPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Purchasing and supplier ledger</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink"><T en="Purchasing and supplier ledger" ne="किनमेल र साहुको खाता" /></h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Raw material purchase, supplier due, payment history, and purchase-basis profit signal.
           </p>
@@ -189,7 +190,7 @@ export default async function AdminPurchasingPage() {
 
         <div className="grid gap-6">
           <form action={createSupplierLedgerAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">New supplier</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="New supplier" ne="नयाँ साहु" /></h2>
             <div className="mt-4 grid gap-3">
               <input name="supplierName" required className={inputClass} placeholder="Supplier name" />
               <input name="phone" className={inputClass} placeholder="Phone" />
@@ -215,7 +216,7 @@ export default async function AdminPurchasingPage() {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-4">
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Profit signal</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Profit signal" ne="नाफाको सङ्केत" /></h2>
           <div className="mt-4 grid gap-3">
             <div className="rounded-md bg-brand-paper-deep p-3">
               <p className="text-xs font-semibold text-brand-muted">Today</p>

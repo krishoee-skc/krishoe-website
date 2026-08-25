@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
 import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQuickEntry";
@@ -71,12 +72,32 @@ export default async function AdminOperationsPage({
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Active factory lots", productionControl.activeWorkOrders, `${productionControl.overdueWorkOrders} overdue`],
-          ["Today good output", `${productionControl.todayGoodPairs} pairs`, `${productionControl.todayRejectedPairs} rejected`],
-          ["Ready for QC", productionControl.readyForQc, `${productionControl.todayStockPairs} pairs stocked today`],
-          ["Worker balance due", `Rs. ${productionControl.workerBalanceDue.toLocaleString("en-IN")}`, `${productionControl.handoverMismatches} handover mismatch`],
-        ].map(([label, value, detail]) => (
-          <div key={label} className="rounded-xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+          {
+            id: "lots",
+            label: <T en="Active factory lots" ne="चलिरहेका lot" />,
+            value: productionControl.activeWorkOrders,
+            detail: <T en={`${productionControl.overdueWorkOrders} overdue`} ne={`${productionControl.overdueWorkOrders} ढिलो भएको`} />,
+          },
+          {
+            id: "output",
+            label: <T en="Today good output" ne="आज बनेको राम्रो माल" />,
+            value: <T en={`${productionControl.todayGoodPairs} pairs`} ne={`${productionControl.todayGoodPairs} जोडी`} />,
+            detail: <T en={`${productionControl.todayRejectedPairs} rejected`} ne={`${productionControl.todayRejectedPairs} बिग्रेको`} />,
+          },
+          {
+            id: "qc",
+            label: <T en="Ready for QC" ne="जाँच्न तयार" />,
+            value: productionControl.readyForQc,
+            detail: <T en={`${productionControl.todayStockPairs} pairs stocked today`} ne={`आज ${productionControl.todayStockPairs} जोडी स्टकमा चढ्यो`} />,
+          },
+          {
+            id: "wages",
+            label: <T en="Worker balance due" ne="कामदारलाई तिर्न बाँकी" />,
+            value: `Rs. ${productionControl.workerBalanceDue.toLocaleString("en-IN")}`,
+            detail: <T en={`${productionControl.handoverMismatches} handover mismatch`} ne={`${productionControl.handoverMismatches} हस्तान्तरण मिलेन`} />,
+          },
+        ].map(({ id, label, value, detail }) => (
+          <div key={id} className="rounded-xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
             <p className="text-xs font-black uppercase tracking-wider text-brand-muted">{label}</p>
             <p className="mt-2 text-xl font-black text-brand-green-ink">{value}</p>
             <p className="mt-2 text-xs font-bold text-brand-muted">{detail}</p>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import { getPaymentReconciliation, type PaymentReconciliationIssueSeverity } from "@/lib/payment-reconciliation";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
@@ -66,7 +67,7 @@ export default async function AdminPaymentsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Payment reconciliation</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink"><T en="Payment reconciliation" ne="भुक्तानी मिलाउने" /></h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Match orders, payment transactions, gateway callbacks, and ledger links before dispatch or monthly closing.
           </p>
@@ -95,7 +96,7 @@ export default async function AdminPaymentsPage() {
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-brand-green-ink">Needs review</h2>
+              <h2 className="text-lg font-black text-brand-green-ink"><T en="Needs review" ne="हेर्नुपर्ने" /></h2>
               <p className="mt-1 text-sm text-brand-muted">High and medium risk mismatch signals.</p>
             </div>
             <Link
@@ -146,7 +147,7 @@ export default async function AdminPaymentsPage() {
         </section>
 
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Provider summary</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Provider summary" ne="कुन बाटोबाट कति" /></h2>
           <p className="mt-1 text-sm text-brand-muted">Order vs transaction totals by payment channel.</p>
           <div className="mt-4 grid gap-3">
             {reconciliation.providers.map((provider) => (

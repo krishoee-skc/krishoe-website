@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   invalidateCustomerSessionsAction,
@@ -99,7 +100,7 @@ export default async function AdminCustomersPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Customers</h1>
+          <h1 className="text-2xl font-black text-brand-green-ink"><T en="Customers" ne="ग्राहक" /></h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Customer account trust, order links, verification emails, and manual phone checks.
           </p>
@@ -122,7 +123,7 @@ export default async function AdminCustomersPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Account email delivery</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Account email delivery" ne="खाताको email पुग्यो कि पुगेन" /></h2>
             <p className="mt-1 text-sm leading-6 text-brand-muted">
               Verification and password reset messages use the Email HTTP channel.
             </p>
@@ -145,7 +146,7 @@ export default async function AdminCustomersPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Customer list</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Customer list" ne="ग्राहकको सूची" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Newest accounts first. Actions create audit and notification history.
             </p>
