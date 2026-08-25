@@ -191,7 +191,7 @@ export default function FeedbackDashboard() {
                   </div>
                   <div className="text-xs text-brand-muted">
                     {formatAdminDate(f.createdAt)} -{" "}
-                    {new Date(f.createdAt).toLocaleTimeString()}
+                    {new Date(f.createdAt).toLocaleTimeString("en-IN", { timeZone: "Asia/Kathmandu" })}
                   </div>
                 </div>
               ))}

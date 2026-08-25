@@ -200,6 +200,7 @@ export default function ProductReviews({
                   {language === "ne"
                     ? toBikramSambatNepali(review.createdAt)
                     : new Date(review.createdAt).toLocaleDateString("en-US", {
+      timeZone: "Asia/Kathmandu",
                         month: "long",
                         day: "numeric",
                         year: "numeric",

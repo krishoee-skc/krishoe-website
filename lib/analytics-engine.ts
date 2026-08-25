@@ -73,6 +73,7 @@ export async function getSalesTrend(): Promise<TrendDataPoint[]> {
     return results.map((r) => ({
       date: r.date,
       label: new Date(r.date).toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
         month: "short",
         day: "numeric",
       }),
@@ -111,6 +112,7 @@ export async function getProductionTrend(): Promise<TrendDataPoint[]> {
     return results.map((r) => ({
       date: r.date,
       label: new Date(r.date).toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
         month: "short",
         day: "numeric",
       }),
@@ -150,6 +152,7 @@ export async function getRevenueTrend(): Promise<TrendDataPoint[]> {
     return results.map((r) => ({
       date: r.date,
       label: new Date(r.date).toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
         month: "short",
         day: "numeric",
       }),
@@ -230,6 +233,7 @@ export async function getProductionForecast(): Promise<ForcastData[]> {
       date.setDate(date.getDate() + i);
       forecast.push({
         period: date.toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
           month: "short",
           day: "numeric",
         }),
@@ -267,6 +271,7 @@ export async function getRevenueForecast(): Promise<ForcastData[]> {
       date.setDate(date.getDate() + i);
       forecast.push({
         period: date.toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
           month: "short",
           day: "numeric",
         }),
@@ -439,6 +444,7 @@ export async function getInventoryTrend(): Promise<TrendDataPoint[]> {
     return results.map((r) => ({
       date: r.date,
       label: new Date(r.date).toLocaleDateString("default", {
+        timeZone: "Asia/Kathmandu",
         month: "short",
         day: "numeric",
       }),

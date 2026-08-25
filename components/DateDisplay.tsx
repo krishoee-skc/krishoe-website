@@ -1,6 +1,7 @@
 "use client";
 
 import { formatAdminDate } from "@/lib/format-date";
+import { nepalDate } from "@/lib/format-date";
 import { toBikramSambatNumeric, toBikramSambatNepali, toBikramSambatRoman } from "@/lib/bikram-sambat";
 
 export type DateFormat = "short" | "verbose" | "nepali" | "roman" | "admin";
@@ -48,20 +49,20 @@ export default function DateDisplay({
       break;
 
     case "verbose":
-      const ad = new Intl.DateTimeFormat("en-IN", {
+      const ad = nepalDate(dateObj, {
         dateStyle: "medium",
         timeStyle: time ? "short" : undefined,
-      }).format(dateObj);
+      });
       const bs = toBikramSambatRoman(dateObj);
       displayText = `${ad}${separator}${bs}`;
       break;
 
     case "short":
-      const adShort = new Intl.DateTimeFormat("en-IN", {
+      const adShort = nepalDate(dateObj, {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-      }).format(dateObj);
+      });
       const bsShort = toBikramSambatNumeric(dateObj);
       displayText = `${adShort}${separator}${bsShort}`;
       break;

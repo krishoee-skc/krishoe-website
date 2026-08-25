@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { nepalDate } from "@/lib/format-date";
 import { getSiteUrl } from "@/lib/seo";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
@@ -1061,11 +1062,7 @@ export async function notifyDailySalesSummary() {
   ]);
 
   const money = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
-  const dateLabel = today.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const dateLabel = nepalDate(today, { day: "2-digit", month: "short", year: "numeric" }, "en-GB");
 
   const detail = [
     `आजको बिक्री (Today sales): ${money(pos.summary.todayNetSales)}`,

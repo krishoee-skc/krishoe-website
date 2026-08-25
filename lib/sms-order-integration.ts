@@ -12,6 +12,7 @@ function estimateDeliveryDate(delivery: string): string {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date.toLocaleDateString("default", {
+    timeZone: "Asia/Kathmandu",
     weekday: "short",
     month: "short",
     day: "numeric",

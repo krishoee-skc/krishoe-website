@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { nepalDate } from "@/lib/format-date";
 import T from "@/components/T";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,10 +26,8 @@ export const metadata: Metadata = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  // The shop's clock, not the reader's: this is when KRISHOE took the order.
+  return nepalDate(value, { dateStyle: "medium", timeStyle: "short" }, "en");
 }
 
 /**

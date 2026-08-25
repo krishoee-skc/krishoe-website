@@ -32,3 +32,27 @@ export function formatAdminDate(value: string | Date, options?: { time?: boolean
   const bs = toBikramSambatNumeric(date);
   return bs ? `${ad} · B.S ${bs}` : ad;
 }
+
+/**
+ * Any date, in Kathmandu, whatever the machine thinks the time is.
+ *
+ * There were fourteen other places formatting a date with no timezone named,
+ * each one answering in the zone of whichever machine ran it — Nepal in the
+ * owner's browser, UTC on the server, and a shopper's own zone on the order
+ * page, where a customer in Qatar was shown a Qatari timestamp for a Nepali
+ * shop's bill. One helper so a fifteenth place cannot quietly disagree.
+ *
+ * Takes the same options as Intl.DateTimeFormat; the zone is not one of them.
+ */
+export function nepalDate(
+  value: string | Date,
+  options: Omit<Intl.DateTimeFormatOptions, "timeZone"> = { dateStyle: "medium" },
+  locale = "en-IN",
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: NEPAL_TIME_ZONE }).format(date);
+}

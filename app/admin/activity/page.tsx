@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nepalDate } from "@/lib/format-date";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import {
   adminAuditCategories,
@@ -124,7 +125,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         <StatCard label="Today" value={todayEvents.length} detail="activity this day" />
         <StatCard label="Warnings" value={warningEvents.length} detail="failed/blocked signals" />
         <StatCard label="Actors" value={actorCount} detail="staff/session identities" />
-        <StatCard label="Latest event" value={latestEvent ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(latestEvent.createdAt)) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
+        <StatCard label="Latest event" value={latestEvent ? nepalDate(latestEvent.createdAt, { dateStyle: "medium", timeStyle: "short" }) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">

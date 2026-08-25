@@ -62,3 +62,52 @@ describe("what time the shop says it is", () => {
     expect(toBikramSambatNumeric("2026-08-25")).toBe("2083/05/09");
   });
 });
+
+/**
+ * The fifteenth place.
+ *
+ * Fixing the admin formatter and the Nepali calendar left fourteen other date
+ * formatters answering in whatever zone the machine was set to — the customer's
+ * own order page among them, where a shopper in Qatar was shown a Qatari
+ * timestamp for a Nepali shop's bill, and the nightly digest the owner reads at
+ * eight. Every one is now pinned, and this counts them so a fifteenth cannot be
+ * added quietly.
+ *
+ * Money formatting is deliberately not counted: `toLocaleString("en-IN")` on a
+ * number is how rupees are written and has nothing to do with a clock.
+ */
+describe("every place that writes a date", () => {
+  it("names Kathmandu, without exception", async () => {
+    const { readdir, readFile } = await import("node:fs/promises");
+
+    async function walk(dir: string, out: string[] = []): Promise<string[]> {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) await walk(path, out);
+        else if (/\.tsx?$/.test(entry.name)) out.push(path);
+      }
+      return out;
+    }
+
+    const files = [...(await walk("lib")), ...(await walk("app")), ...(await walk("components"))];
+    const unpinned: string[] = [];
+
+    for (const file of files) {
+      const source = await readFile(file, "utf8");
+      // Calls that certainly format a date, rather than a rupee amount.
+      const calls = /(new Intl\.DateTimeFormat\(|\.toLocaleDateString\(|\.toLocaleTimeString\()/g;
+      let match: RegExpExecArray | null;
+
+      while ((match = calls.exec(source))) {
+        const window = source.slice(match.index, match.index + 420);
+        const close = Math.max(window.indexOf("});"), window.indexOf("})"), window.indexOf(");"));
+        const call = window.slice(0, close > 0 ? close + 3 : 120);
+        if (!call.includes("timeZone")) {
+          unpinned.push(`${file}:${source.slice(0, match.index).split("\n").length}`);
+        }
+      }
+    }
+
+    expect(unpinned).toEqual([]);
+  });
+});
