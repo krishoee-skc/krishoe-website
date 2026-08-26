@@ -1,4 +1,5 @@
 import { notifyReviewRequested } from "@/lib/notifications";
+import { getCustomerEmailChoice, mayEmailCustomer } from "@/lib/customer-email-choice";
 import { queryPostgres } from "@/lib/postgres/client";
 import { reportError } from "@/lib/report-error";
 import { ASK_AFTER_DAYS, createReviewToken, reviewInviteUrl } from "@/lib/review-invite";
@@ -28,6 +29,8 @@ type PendingRow = {
   name: string;
   email: string;
   order_text: string;
+  /** Null for a guest order — nobody to hold a preference. */
+  customer_user_id: string | null;
 };
 
 export type ReviewRequestResult = {
@@ -46,7 +49,7 @@ export type ReviewRequestResult = {
 async function pendingOrders(): Promise<PendingRow[]> {
   return queryPostgres<PendingRow>(
     STORE,
-    `SELECT id, name, email, order_text
+    `SELECT id, name, email, order_text, customer_user_id
      FROM orders
      WHERE status = 'Closed'
        AND review_invite_sent_at IS NULL
@@ -79,6 +82,26 @@ function pickProduct(items: OrderItemLike[]): OrderItemLike | null {
   return items.find((item) => item.productId && item.quantity > 0) ?? null;
 }
 
+/**
+ * The unsubscribe link for one customer, or an empty string for a guest.
+ *
+ * A guest order has no account, so there is nothing to remember a choice
+ * against and nothing for the link to change. The letter simply goes without
+ * one rather than carrying a link that would do nothing when pressed.
+ */
+async function unsubscribeUrlFor(userId: string | undefined, siteUrl: string) {
+  if (!userId) return "";
+
+  try {
+    const choice = await getCustomerEmailChoice(userId);
+    return `${siteUrl}/account/email-choice?stop=${encodeURIComponent(choice.unsubscribeToken)}`;
+  } catch (error) {
+    // A letter without an unsubscribe link is worse than one with it, but a
+    // letter that never arrives is worse than both.
+    reportError("build an unsubscribe link", error);
+    return "";
+  }
+}
 export async function sendReviewRequests(
   loadItems: (orderId: string) => Promise<OrderItemLike[]>,
 ): Promise<ReviewRequestResult> {
@@ -107,12 +130,23 @@ export async function sendReviewRequests(
         continue;
       }
 
+      // Asked before writing. This is the letter nobody ordered — a shopper
+      // who has said "no more of these" must not get one, and the marker below
+      // is set either way so a refusal is not reconsidered every morning.
+      const allowed = await mayEmailCustomer(order.customer_user_id ?? undefined, "reviewInvites");
+      if (!allowed) {
+        await markAsked(order.id);
+        result.skipped += 1;
+        continue;
+      }
+
       await notifyReviewRequested({
         email: order.email,
         customerName: order.name ?? "",
         productName: product.name,
         reviewUrl: reviewInviteUrl(siteUrl, token),
         orderId: order.id,
+        unsubscribeUrl: await unsubscribeUrlFor(order.customer_user_id ?? undefined, siteUrl),
       });
 
       await markAsked(order.id);

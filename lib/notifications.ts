@@ -109,6 +109,11 @@ export type ReviewRequestNotificationPayload = {
   productName: string;
   reviewUrl: string;
   orderId: string;
+  /**
+   * Where to press to stop these. Empty for a guest order, which has no
+   * account to remember the choice against.
+   */
+  unsubscribeUrl?: string;
 };
 
 export type StaffSecurityNotificationPayload = {
@@ -388,6 +393,33 @@ export function textSummary(event: NotificationEvent) {
       reset.resetCode ? `Your 6-digit reset code is ${reset.resetCode}` : "",
       `Reset link: ${reset.resetUrl}`,
       `Expires: ${reset.expiresAt}`,
+    ].filter(Boolean).join("\n");
+  }
+
+  if (event.type === "review-request") {
+    const invite = event.payload as ReviewRequestNotificationPayload;
+    const first = (invite.customerName || "").trim().split(" ")[0];
+
+    // The link is the letter. Everything above it is there to explain why a
+    // stranger is writing, and everything below it is how to stop them.
+    return [
+      `नमस्कार${first ? " " + first : ""} 🙏`,
+      "",
+      `तपाईंले किन्नुभएको ${invite.productName} कस्तो लाग्यो?`,
+      "दुई शब्दले अरू ग्राहकलाई ठूलो सहयोग हुन्छ।",
+      "",
+      `⭐ राय लेख्ने: ${invite.reviewUrl}`,
+      "",
+      `Hello${first ? " " + first : ""} — how were your ${invite.productName}?`,
+      "Two words is a big help to the next shopper.",
+      "",
+      "— KRISHOE, Kamalnagar, Narayangadh, Chitwan",
+      // Not decoration. Without a way to stop, the only lever a reader has is
+      // the spam button, and that one silences the shop's order confirmations
+      // for everybody, not just for them.
+      invite.unsubscribeUrl
+        ? `\nयस्तो चिठी नचाहिए यहाँ बन्द गर्नुहोस् · To stop these: ${invite.unsubscribeUrl}`
+        : "",
     ].filter(Boolean).join("\n");
   }
 

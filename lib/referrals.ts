@@ -1,4 +1,5 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { getSafeUserById } from "@/lib/user-store";
 import { normalizeCouponCode, saveCoupon, type Coupon } from "@/lib/coupons";
 
 /**
@@ -115,6 +116,46 @@ export async function findReferralCode(rawCode: string): Promise<ReferralLookup>
   return rows[0] ? { code: rows[0].code, referrerUserId: rows[0].customer_user_id } : null;
 }
 
+/** Who is buying, as much of it as the checkout knows. */
+export type ReferralBuyer = {
+  /** Set only when signed in. */
+  userId?: string;
+  /** From the checkout form. Present whether signed in or not. */
+  email?: string;
+  phone?: string;
+};
+
+const sameEmail = (left?: string | null, right?: string | null) =>
+  Boolean(left?.trim()) && left!.trim().toLowerCase() === (right ?? "").trim().toLowerCase();
+
+/** Digits only, so 98-1234-5678 and 9812345678 are one number. */
+const samePhone = (left?: string | null, right?: string | null) => {
+  const digits = (value?: string | null) => (value ?? "").replace(/\D/g, "");
+  return digits(left).length >= 7 && digits(left) === digits(right);
+};
+
+/**
+ * Is this the referrer using their own code?
+ *
+ * Signed in, the user id settles it. Signed out it does not, and signing out
+ * was the whole loophole — so the referrer's account is read and its email and
+ * phone compared with what the checkout was given. A shopper who has an account
+ * and orders without logging in is the case this catches, and it is the case
+ * that actually happens.
+ */
+export async function referralIsSelfUse(
+  lookup: NonNullable<ReferralLookup>,
+  buyer: ReferralBuyer,
+): Promise<boolean> {
+  if (buyer.userId) return buyer.userId === lookup.referrerUserId;
+  if (!buyer.email?.trim() && !buyer.phone?.trim()) return false;
+
+  const referrer = await getSafeUserById(lookup.referrerUserId);
+  if (!referrer) return false;
+
+  return sameEmail(referrer.email, buyer.email) || samePhone(referrer.phone, buyer.phone);
+}
+
 /**
  * A referral code, expressed as the coupon the checkout already knows how to
  * evaluate.
@@ -124,7 +165,8 @@ export async function findReferralCode(rawCode: string): Promise<ReferralLookup>
  * unchanged — and there is only one place where a price can be reduced.
  *
  * Refused for the referrer's own code. Without that check the cheapest referral
- * in the shop is to yourself, forever.
+ * in the shop is to yourself, forever. Callers that can wait should ask
+ * `referralIsSelfUse` first — it catches the signed-out case this cannot.
  */
 export function referralAsCoupon(lookup: NonNullable<ReferralLookup>, buyerUserId?: string): Coupon | null {
   if (buyerUserId && buyerUserId === lookup.referrerUserId) return null;
