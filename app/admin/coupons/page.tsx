@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import { saveCouponAction } from "./actions";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listCoupons } from "@/lib/coupons";
 import { formatAdminDate } from "@/lib/format-date";
 
-export const metadata: Metadata = { title: "छुटको कोड | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Discount codes | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 const inputClass =
@@ -32,10 +33,14 @@ export default async function CouponsPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">छुटको कोड</h1>
+        <h1 className="text-2xl font-black text-brand-green-ink">
+          <T en="Discount codes" ne="छुटको कोड" />
+        </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-          अभियान चलाउन कोड बनाउनुहोस् — TikTok को भिडियोमा, पर्चामा, वा ग्राहकलाई
-          सिधै। ग्राहकले checkout मा हाल्छन्।
+          <T
+            en="Make a code for a campaign — in a TikTok video, on a flyer, or handed to a customer. They type it in at checkout."
+            ne="अभियान चलाउन कोड बनाउनुहोस् — TikTok को भिडियोमा, पर्चामा, वा ग्राहकलाई सिधै। ग्राहकले checkout मा हाल्छन्।"
+          />
         </p>
       </div>
 
@@ -51,99 +56,122 @@ export default async function CouponsPage({
       ) : null}
 
       <form action={saveCouponAction} className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">नयाँ कोड बनाउने</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="Make a new code" ne="नयाँ कोड बनाउने" />
+        </h2>
         <p className="mt-1 text-sm text-brand-muted">
-          उही कोड फेरि हाल्दा पुरानै बदलिन्छ — नयाँ बन्दैन।
+          <T
+            en="Entering a code that already exists changes that one — it does not make a second."
+            ne="उही कोड फेरि हाल्दा पुरानै बदलिन्छ — नयाँ बन्दैन।"
+          />
         </p>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            कोड
+            <T en="Code" ne="कोड" />
             <input name="code" required placeholder="DASHAIN10" className={`${inputClass} uppercase tracking-[0.14em]`} />
             <span className="text-xs font-normal text-brand-muted">
-              अंग्रेजी अक्षर र अंक मात्र। सानो-ठूलो अक्षरले फरक पर्दैन।
+              <T
+                en="English letters and digits only. Capitals make no difference."
+                ne="अंग्रेजी अक्षर र अंक मात्र। सानो-ठूलो अक्षरले फरक पर्दैन।"
+              />
             </span>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            कस्तो छुट
+            <T en="What kind of discount" ne="कस्तो छुट" />
             <select name="kind" defaultValue="percent" className={inputClass}>
-              <option value="percent">प्रतिशत (%)</option>
-              <option value="amount">तोकिएको रकम (Rs)</option>
+              <option value="percent">{"%"}</option>
+              <option value="amount">Rs.</option>
             </select>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            प्रतिशत भए — कति %
+            <T en="If a percentage — how much %" ne="प्रतिशत भए — कति %" />
             <input name="percent" type="number" min="1" max="100" placeholder="10" className={inputClass} />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            रकम भए — कति रुपैयाँ
+            <T en="If an amount — how many rupees" ne="रकम भए — कति रुपैयाँ" />
             <input name="amountRupees" type="number" min="1" placeholder="200" className={inputClass} />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            कम्तीमा कतिको किनमेल
+            <T en="Smallest order it works on" ne="कम्तीमा कतिको किनमेल" />
             <input name="minOrderRupees" type="number" min="0" placeholder="1000" className={inputClass} />
-            <span className="text-xs font-normal text-brand-muted">खाली भए कुनै सीमा छैन।</span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            प्रतिशतमा बढीमा कति छुट
-            <input name="maxDiscountRupees" type="number" min="1" placeholder="500" className={inputClass} />
             <span className="text-xs font-normal text-brand-muted">
-              ठूलो अर्डरमा धेरै नजाओस् भनेर। खाली भए सीमा छैन।
+              <T en="Leave empty for no minimum." ne="खाली भए कुनै सीमा छैन।" />
             </span>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            कहिलेदेखि
+            <T en="Most a percentage may take off" ne="प्रतिशतमा बढीमा कति छुट" />
+            <input name="maxDiscountRupees" type="number" min="1" placeholder="500" className={inputClass} />
+            <span className="text-xs font-normal text-brand-muted">
+              <T
+                en="So a large order does not give away too much. Leave empty for no ceiling."
+                ne="ठूलो अर्डरमा धेरै नजाओस् भनेर। खाली भए सीमा छैन।"
+              />
+            </span>
+          </label>
+
+          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            <T en="Starts" ne="कहिलेदेखि" />
             <input name="startsAt" type="date" className={inputClass} />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            कहिलेसम्म
+            <T en="Ends" ne="कहिलेसम्म" />
             <input name="expiresAt" type="date" className={inputClass} />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            बढीमा कति पटक चल्ने
+            <T en="Most times it may be used" ne="बढीमा कति पटक चल्ने" />
             <input name="maxUses" type="number" min="1" placeholder="100" className={inputClass} />
             <span className="text-xs font-normal text-brand-muted">
-              खाली भए असीमित। TikTok मा हाल्ने भए सीमा राख्नुहोस्।
+              <T
+                en="Leave empty for unlimited. Put a limit on anything going into a TikTok."
+                ne="खाली भए असीमित। TikTok मा हाल्ने भए सीमा राख्नुहोस्।"
+              />
             </span>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            अवस्था
+            <T en="Status" ne="अवस्था" />
             <select name="status" defaultValue="Active" className={inputClass}>
-              <option value="Active">चालु</option>
-              <option value="Disabled">बन्द</option>
+              <option value="Active">Active</option>
+              <option value="Disabled">Disabled</option>
             </select>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
-            टिप्पणी (आफ्नो सम्झनाका लागि)
-            <input name="note" maxLength={240} placeholder="दशैँ अभियान — TikTok" className={inputClass} />
+            <T en="Note (for your own memory)" ne="टिप्पणी (आफ्नो सम्झनाका लागि)" />
+            <input
+              name="note"
+              maxLength={240}
+              placeholder="Dashain campaign — TikTok"
+              className={inputClass}
+            />
           </label>
         </div>
 
         <div className="mt-5">
           <FormSubmitButton
             className="min-h-12 rounded-xl bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
-            pendingLabel="सुरक्षित हुँदै…"
+            pendingLabel="Saving…"
           >
-            कोड सुरक्षित गर्ने
+            <T en="Save the code" ne="कोड सुरक्षित गर्ने" />
           </FormSubmitButton>
         </div>
       </form>
 
       <section className="mt-8">
-        <h2 className="text-lg font-black text-brand-green-ink">बनेका कोड</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="Codes you have made" ne="बनेका कोड" />
+        </h2>
         {coupons.length === 0 ? (
           <p className="mt-3 rounded-xl border border-dashed border-brand-green-line p-8 text-center text-sm font-semibold text-brand-muted">
-            अझै कुनै कोड बनेको छैन।
+            <T en="No code has been made yet." ne="अझै कुनै कोड बनेको छैन।" />
           </p>
         ) : (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -160,12 +188,14 @@ export default async function CouponsPage({
                         {coupon.code}
                       </p>
                       <p className="text-sm font-bold text-brand-green">
-                        {coupon.kind === "percent"
-                          ? `${coupon.value}% छुट`
-                          : `${rupees(coupon.value)} छुट`}
-                        {coupon.maxDiscountPaisa
-                          ? ` · बढीमा ${rupees(coupon.maxDiscountPaisa)}`
-                          : ""}
+                        <T
+                          en={`${coupon.kind === "percent" ? `${coupon.value}%` : rupees(coupon.value)} off${
+                            coupon.maxDiscountPaisa ? ` · at most ${rupees(coupon.maxDiscountPaisa)}` : ""
+                          }`}
+                          ne={`${coupon.kind === "percent" ? `${coupon.value}%` : rupees(coupon.value)} छुट${
+                            coupon.maxDiscountPaisa ? ` · बढीमा ${rupees(coupon.maxDiscountPaisa)}` : ""
+                          }`}
+                        />
                       </p>
                     </div>
                     <span
@@ -173,30 +203,45 @@ export default async function CouponsPage({
                         live ? "bg-emerald-100 text-emerald-900" : "bg-brand-mist text-brand-muted"
                       }`}
                     >
-                      {live ? "चालु" : expired ? "म्याद सकियो" : exhausted ? "सकियो" : "बन्द"}
+                      <T
+                        en={live ? "Active" : expired ? "Expired" : exhausted ? "Used up" : "Disabled"}
+                        ne={live ? "चालु" : expired ? "म्याद सकियो" : exhausted ? "सकियो" : "बन्द"}
+                      />
                     </span>
                   </div>
 
                   <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-brand-muted">
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">कति पटक चल्यो</dt>
+                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">
+                        <T en="Times used" ne="कति पटक चल्यो" />
+                      </dt>
                       <dd className="mt-0.5 font-bold text-brand-green-ink">
                         {coupon.usedCount}
                         {coupon.maxUses !== null ? ` / ${coupon.maxUses}` : ""}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">कम्तीमा किनमेल</dt>
+                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">
+                        <T en="Smallest order" ne="कम्तीमा किनमेल" />
+                      </dt>
                       <dd className="mt-0.5 font-bold text-brand-green-ink">
-                        {coupon.minOrderPaisa > 0 ? rupees(coupon.minOrderPaisa) : "सीमा छैन"}
+                        {coupon.minOrderPaisa > 0 ? (
+                          rupees(coupon.minOrderPaisa)
+                        ) : (
+                          <T en="No minimum" ne="सीमा छैन" />
+                        )}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">कहिलेदेखि</dt>
+                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">
+                        <T en="Starts" ne="कहिलेदेखि" />
+                      </dt>
                       <dd className="mt-0.5 font-bold text-brand-green-ink">{nepaliDate(coupon.startsAt)}</dd>
                     </div>
                     <div>
-                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">कहिलेसम्म</dt>
+                      <dt className="font-black uppercase tracking-wider text-brand-muted-soft">
+                        <T en="Ends" ne="कहिलेसम्म" />
+                      </dt>
                       <dd className="mt-0.5 font-bold text-brand-green-ink">{nepaliDate(coupon.expiresAt)}</dd>
                     </div>
                   </dl>
