@@ -98,10 +98,37 @@
   input.fld[readonly] { background: var(--mist); font-weight: 700; }
   input.fld[readonly]:focus { box-shadow: none; border-color: var(--line); background: var(--mist); }
 
+  /* On a phone the five columns stop being a row and become a small card:
+     the serial number on top, the item under it, and the three numbers along
+     the bottom. Five boxes across a 390px screen would leave every one of them
+     too narrow to read, and the heading strip too narrow to keep. */
   @media (max-width: 620px) {
-    .line { grid-template-columns: 38px 1fr 1fr; }
     .head-line { display: none; }
-    .line > .sn { grid-row: span 2; }
+    .lines { gap: 12px; }
+    .line {
+      grid-template-columns: 0.8fr 1fr 1.1fr;
+      grid-template-areas:
+        "sn   sn   sn"
+        "name name name"
+        "qty  rate amt";
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px;
+      background: var(--ground);
+    }
+    .line.empty { border-style: dashed; background: transparent; }
+    .line .sn {
+      grid-area: sn; min-height: 0; justify-content: flex-start;
+      background: transparent; padding: 0 2px 2px;
+      font-size: 11px; font-weight: 800; letter-spacing: 1.3px; color: var(--soft);
+    }
+    .line .sn::before { content: "क्र.सं. "; }
+    .line.empty .sn { border: 0; }
+    .line .c-name { grid-area: name; }
+    .line .c-qty { grid-area: qty; }
+    .line .c-rate { grid-area: rate; }
+    .line .c-amt { grid-area: amt; }
   }
 
   .pays { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -366,8 +393,17 @@
   var FIELDS = ["name", "qty", "rate"];
   var rows = [
     { name: "bag open", qty: "45", rate: "1516.67" },
-    { name: "buckal",   qty: "45", rate: "361.67" },
+    { name: "hill",     qty: "20", rate: "850" },
+    { name: "flat",     qty: "30", rate: "620" },
     { name: "",         qty: "",   rate: "" }
+  ];
+
+  /* The shop's own items, offered as you type. Nobody should have to spell
+     "Doctor Chappal moto" the same way twice, and a name typed a second way is
+     a second item in the stock ledger. */
+  var CATALOG = [
+    "bag open", "T bag open", "hill", "flat", "buckal", "halka fom",
+    "jeans shoes", "close shoes", "Doctor Chappal moto", "Bachha Rubber (Kids)"
   ];
 
   var linesEl = document.getElementById("lines");
@@ -395,20 +431,23 @@
 
       FIELDS.forEach(function (key) {
         var input = document.createElement("input");
-        input.className = "fld" + (key === "name" ? "" : " right");
+        input.className = "fld c-" + key + (key === "name" ? "" : " right");
         input.value = r[key];
         input.dataset.row = String(i);
         input.dataset.key = key;
-        if (key === "name") input.placeholder = i === 0 ? "सामानको नाम" : "";
+        /* Named on every line, not only the first. The heading strip is gone
+           on a phone, so a blank box has nothing else to say what it wants. */
+        if (key === "name") { input.placeholder = "सामानको नाम"; input.setAttribute("list", "catalog"); }
         if (key === "qty") { input.placeholder = "थान"; input.inputMode = "numeric"; }
         if (key === "rate") { input.placeholder = "दर"; input.inputMode = "numeric"; }
         line.appendChild(input);
       });
 
       var amount = document.createElement("input");
-      amount.className = "fld right";
+      amount.className = "fld c-amt right";
       amount.readOnly = true;
       amount.tabIndex = -1;
+      amount.placeholder = "रकम";
       amount.value = filled(r) ? Math.round(amountOf(r)).toLocaleString("en-IN") : "";
       line.appendChild(amount);
 
@@ -531,6 +570,16 @@
   });
 
   paidBox.addEventListener("input", total);
+
+  /* Fills the browser suggestion list from the same array the form knows. */
+  var dl = document.createElement("datalist");
+  dl.id = "catalog";
+  CATALOG.forEach(function (name) {
+    var o = document.createElement("option");
+    o.value = name;
+    dl.appendChild(o);
+  });
+  document.body.appendChild(dl);
 
   draw();
 })();
