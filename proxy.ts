@@ -63,7 +63,13 @@ function isCustomerAuthPage(pathname: string) {
   return (
     pathname.startsWith("/account/login") ||
     pathname.startsWith("/account/register") ||
-    pathname.startsWith("/account/reset-password")
+    pathname.startsWith("/account/reset-password") ||
+    // Reached from a link at the bottom of an email, by somebody who has not
+    // signed in and is not going to. A login screen here does not protect
+    // anything — the page shows no order, no address and no name — and it
+    // sends the reader to the spam button instead, which silences the shop's
+    // order confirmations for every other customer too.
+    pathname.startsWith("/account/email-choice")
   );
 }
 

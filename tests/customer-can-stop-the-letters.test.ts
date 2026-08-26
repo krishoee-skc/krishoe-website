@@ -125,4 +125,16 @@ describe("a customer can stop the letters", () => {
     // worse than none at all.
     expect(branch).toContain(".filter(Boolean)");
   });
+
+  it("opens from an emailed link without a sign-in", () => {
+    // Every other page under /account is somebody own record and belongs
+    // behind a login. This one is reached on a phone by somebody who wants the
+    // letters to stop and is not going to sign in to say so — a login screen
+    // here protects nothing (no order, no address, no name is shown) and sends
+    // them to the spam button, which silences the shop for everybody else.
+    const proxy = readFileSync("proxy.ts", "utf8");
+    const open = proxy.slice(proxy.indexOf("function isCustomerAuthPage"));
+
+    expect(open).toContain("/account/email-choice");
+  });
 });
