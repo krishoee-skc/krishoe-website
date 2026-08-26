@@ -41,7 +41,7 @@
  * cannot corrupt a correct secret — no URL, API key, email address or phone
  * number legitimately begins and ends with the same quote mark.
  */
-const env = (key) => {
+export const env = (key) => {
   const raw = (process.env[key] || "").trim();
   const withoutName = raw.startsWith(`${key}=`) ? raw.slice(key.length + 1).trim() : raw;
 

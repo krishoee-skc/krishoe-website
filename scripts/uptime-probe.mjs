@@ -29,12 +29,17 @@
  * answer and the alert is for when it does not.
  */
 
-import { sendUptimeAlert } from "./uptime-alert.mjs";
+import { env, sendUptimeAlert } from "./uptime-alert.mjs";
 
-const PROBE_URL = process.env.PROBE_URL || "https://krishoe-website.vercel.app/api/health";
+// env(), not process.env: these are pasted into GitHub by hand out of a file
+// where every value is quoted, and the quotes come with them. A write token
+// carrying them is a token that does not match — the reading is refused 401 and
+// the outage it described is lost, quietly, which is the failure this whole
+// file exists to prevent. See scripts/uptime-alert.mjs.
+const PROBE_URL = env("PROBE_URL") || "https://krishoe-website.vercel.app/api/health";
 const WRITE_URL =
-  process.env.UPTIME_WRITE_URL || new URL("/api/monitoring/uptime", PROBE_URL).toString();
-const TOKEN = (process.env.UPTIME_WRITE_TOKEN || "").trim();
+  env("UPTIME_WRITE_URL") || new URL("/api/monitoring/uptime", PROBE_URL).toString();
+const TOKEN = env("UPTIME_WRITE_TOKEN");
 
 /**
  * Long enough that a slow cold start is not called an outage, short enough that
@@ -129,7 +134,7 @@ async function main() {
    * works would put a false outage into the uptime figure the owner is meant to
    * trust, which is a strange price to pay for a test.
    */
-  if ((process.env.UPTIME_TEST_ALERT || "").trim().toLowerCase() === "true") {
+  if (env("UPTIME_TEST_ALERT").toLowerCase() === "true") {
     console.log("Test alert requested — sending, and filing nothing.");
     const results = await sendUptimeAlert({
       state: "down",

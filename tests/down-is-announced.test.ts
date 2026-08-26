@@ -396,3 +396,16 @@ describe("a secret pasted the way people paste secrets", () => {
     expect(email?.reason).toContain("quotes");
   });
 });
+
+describe("the write token is pasted the same way", () => {
+  it("is cleaned like every other secret", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    // A token carrying .env.local's quotes is a token that does not match: the
+    // reading is refused 401 and the outage it described is lost, quietly —
+    // which is the failure this whole file exists to prevent.
+    expect(probe).toContain('const TOKEN = env("UPTIME_WRITE_TOKEN")');
+    expect(probe).not.toMatch(/process\.env\.UPTIME_WRITE_TOKEN/);
+    expect(probe).not.toMatch(/^\s*(const|if).*process\.env/m);
+  });
+});
