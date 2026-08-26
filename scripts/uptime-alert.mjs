@@ -116,7 +116,15 @@ export function alertMessage({ state, url, statusCode, error, downSince }) {
 async function sendEmail({ subject, body }) {
   const url = env("EMAIL_PROVIDER_URL");
   const to = env("ALERT_EMAIL_TO") || env("ADMIN_NOTIFICATION_EMAIL");
-  if (!url || !to) {
+  const token = env("EMAIL_PROVIDER_TOKEN");
+  // Brevo authenticates with the api-key header and refuses without it, so an
+  // absent token there is a missing setting, not a send that happened to fail.
+  // Left unchecked, it reached the owner as a bare "HTTP 401" — a number that
+  // does not name the field to go and fill in. The generic contract may
+  // legitimately have no token, so the requirement follows the provider.
+  const tokenRequired = url.includes("api.brevo.com");
+
+  if (!url || !to || (tokenRequired && !token)) {
     return {
       channel: "email",
       sent: false,
@@ -124,11 +132,14 @@ async function sendEmail({ subject, body }) {
       // Which ones, by name. "Not configured" on its own sends the reader back
       // to a settings page with eight fields and no idea which is wrong — the
       // same shape as an outage alert that says only "KRISHOE is down".
-      missing: [!url && "EMAIL_PROVIDER_URL", !to && "ALERT_EMAIL_TO"].filter(Boolean),
+      missing: [
+        !url && "EMAIL_PROVIDER_URL",
+        tokenRequired && !token && "EMAIL_PROVIDER_TOKEN",
+        !to && "ALERT_EMAIL_TO",
+      ].filter(Boolean),
     };
   }
 
-  const token = env("EMAIL_PROVIDER_TOKEN");
   const headers = { "Content-Type": "application/json" };
   let payload;
 

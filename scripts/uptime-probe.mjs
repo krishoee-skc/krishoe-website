@@ -148,10 +148,27 @@ async function main() {
       // empty string. Saying which name came through empty is what separates
       // them.
       const missing = results.flatMap((result) => result.missing ?? []);
-      console.log(`::error::No test alert was sent. Empty in this job: ${missing.join(", ")}`);
-      console.log(
-        "::error::Add them as repository SECRETS (not Variables) at Settings → Secrets and variables → Actions → New repository secret. The names must match exactly.",
-      );
+
+      // A channel that was configured and still did not send failed for a
+      // reason of its own — a rejected key, an unverified sender, a provider
+      // that was itself down. That reason was going to console.error, which is
+      // an ordinary log line: the owner reads the Annotations box at the top of
+      // the run and never saw it. Raised to an annotation, because a diagnosis
+      // nobody is shown is not a diagnosis.
+      for (const failure of results.filter(
+        (result) => !result.sent && result.reason !== "not configured",
+      )) {
+        console.log(`::error::${failure.channel} was configured but refused: ${failure.reason}`);
+      }
+
+      if (missing.length > 0) {
+        console.log(`::error::Empty in this job: ${missing.join(", ")}`);
+        console.log(
+          "::error::Add them as repository SECRETS (not Variables) at Settings → Secrets and variables → Actions → New repository secret. The names must match exactly.",
+        );
+      }
+
+      console.log("::error::No test alert was sent.");
       return 1;
     }
 
@@ -172,12 +189,21 @@ async function main() {
   // told about.
   if (reading.status === "down") {
     console.log("::warning::KRISHOE did not answer this check.");
-    await sendUptimeAlert({
+    const alerts = await sendUptimeAlert({
       state: "down",
       url: PROBE_URL,
       statusCode: reading.statusCode,
       error: reading.note,
     });
+
+    // The shop is down and the owner was not told. Said loudly, because the
+    // quiet version of this is the whole failure the alert exists to prevent,
+    // wearing a different hat: nobody knows, and nothing says so.
+    if (!alerts.some((alert) => alert.sent)) {
+      console.log(
+        "::error::KRISHOE is DOWN and no alert could be sent. Run this workflow with 'Send a test alert' to see which setting is wrong.",
+      );
+    }
   }
 
   if (!TOKEN) {

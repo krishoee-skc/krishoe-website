@@ -277,3 +277,58 @@ describe("when a secret has not arrived", () => {
     expect(probe).toContain("Empty in this job:");
   });
 });
+
+/**
+ * The second test run said the email secrets had arrived and still sent
+ * nothing. The reason — Brevo refusing a request with no api-key — went to
+ * console.error, which is an ordinary log line, while the owner was reading the
+ * Annotations box at the top of the run. A diagnosis nobody is shown is not a
+ * diagnosis.
+ */
+describe("a channel that was configured and still did not send", () => {
+  const KEYS = ["EMAIL_PROVIDER_URL", "EMAIL_PROVIDER_TOKEN", "ALERT_EMAIL_TO", "ADMIN_NOTIFICATION_EMAIL"];
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it("counts a Brevo URL with no key as a missing setting, not a failed send", async () => {
+    process.env.EMAIL_PROVIDER_URL = "https://api.brevo.com/v3/smtp/email";
+    process.env.ALERT_EMAIL_TO = "owner@example.test";
+
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const email = results.find((result) => result.channel === "email");
+
+    // Brevo refuses without the api-key header, so this would otherwise reach
+    // the owner as "HTTP 401" — a number that does not name a field to fill in.
+    expect(email?.reason).toBe("not configured");
+    expect(email?.missing).toContain("EMAIL_PROVIDER_TOKEN");
+    expect(email?.missing).not.toContain("ALERT_EMAIL_TO");
+  });
+
+  it("raises a real refusal to an annotation the owner sees", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    expect(probe).toContain("was configured but refused:");
+    expect(probe).toMatch(/::error::\$\{failure\.channel\}/);
+  });
+
+  it("shouts when the shop is down and nothing could be sent", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    // The quiet version of this is the failure the whole feature exists to
+    // prevent, wearing a different hat.
+    expect(probe).toContain("::error::KRISHOE is DOWN and no alert could be sent.");
+  });
+});
