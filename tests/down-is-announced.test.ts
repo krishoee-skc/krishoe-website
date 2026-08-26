@@ -332,3 +332,67 @@ describe("a channel that was configured and still did not send", () => {
     expect(probe).toContain("::error::KRISHOE is DOWN and no alert could be sent.");
   });
 });
+
+/**
+ * `email was configured but refused: Failed to parse URL from ***`
+ *
+ * The value had been copied out of .env.local with its quotes still on it.
+ * GitHub masks the value, so neither end of the paste showed the mistake, and
+ * fetch's complaint named neither the setting nor what was wrong with it.
+ */
+describe("a secret pasted the way people paste secrets", () => {
+  const KEYS = ["EMAIL_PROVIDER_URL", "EMAIL_PROVIDER_TOKEN", "ALERT_EMAIL_TO", "ADMIN_NOTIFICATION_EMAIL"];
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it("survives the quotes .env.local wraps every value in", async () => {
+    process.env.EMAIL_PROVIDER_URL = '"https://api.brevo.com/v3/smtp/email"';
+    process.env.EMAIL_PROVIDER_TOKEN = '"a-key"';
+    process.env.ALERT_EMAIL_TO = '"owner@example.test"';
+
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const email = results.find((result) => result.channel === "email");
+
+    // Reaches the provider and is refused there, rather than never being a URL.
+    expect(email?.reason).not.toContain("not a web address");
+    expect(email?.reason).not.toBe("not configured");
+  });
+
+  it("survives the whole line, name and equals sign included", async () => {
+    process.env.EMAIL_PROVIDER_URL = "EMAIL_PROVIDER_URL=https://api.brevo.com/v3/smtp/email";
+    process.env.EMAIL_PROVIDER_TOKEN = "a-key";
+    process.env.ALERT_EMAIL_TO = "owner@example.test";
+
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const email = results.find((result) => result.channel === "email");
+
+    expect(email?.reason).not.toContain("not a web address");
+  });
+
+  it("names the setting when the value is still not an address", async () => {
+    process.env.EMAIL_PROVIDER_URL = "api.brevo.com/v3/smtp/email";
+    process.env.EMAIL_PROVIDER_TOKEN = "a-key";
+    process.env.ALERT_EMAIL_TO = "owner@example.test";
+
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const email = results.find((result) => result.channel === "email");
+
+    // Not "Failed to parse URL from ***", which names neither the setting nor
+    // the mistake.
+    expect(email?.reason).toContain("EMAIL_PROVIDER_URL");
+    expect(email?.reason).toContain("quotes");
+  });
+});

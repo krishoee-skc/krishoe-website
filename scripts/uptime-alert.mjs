@@ -27,7 +27,30 @@
  * was there to file.
  */
 
-const env = (key) => (process.env[key] || "").trim();
+/**
+ * A secret as a person actually pastes it.
+ *
+ * These values are copied out of .env.local, where every one of them is
+ * written EMAIL_PROVIDER_URL="https://…" — so the quotes come along, and
+ * sometimes the name and the equals sign as well. GitHub stores whatever it is
+ * given and masks it in the logs, so the mistake is invisible from both ends:
+ * the first sign of it here was fetch reporting `Failed to parse URL from ***`,
+ * which names neither the setting nor the problem.
+ *
+ * A .env file's own quoting is not part of the value, so it is taken off. This
+ * cannot corrupt a correct secret — no URL, API key, email address or phone
+ * number legitimately begins and ends with the same quote mark.
+ */
+const env = (key) => {
+  const raw = (process.env[key] || "").trim();
+  const withoutName = raw.startsWith(`${key}=`) ? raw.slice(key.length + 1).trim() : raw;
+
+  return withoutName.length >= 2 &&
+    (withoutName.startsWith('"') || withoutName.startsWith("'")) &&
+    withoutName.at(-1) === withoutName[0]
+    ? withoutName.slice(1, -1).trim()
+    : withoutName;
+};
 
 /** Long enough for a slow provider, short enough not to hold the job open. */
 const TIMEOUT_MS = 15_000;
@@ -123,6 +146,17 @@ async function sendEmail({ subject, body }) {
   // does not name the field to go and fill in. The generic contract may
   // legitimately have no token, so the requirement follows the provider.
   const tokenRequired = url.includes("api.brevo.com");
+
+  // Checked here rather than left to fetch, which reports `Failed to parse URL
+  // from ***` — the value masked, the setting unnamed, and nothing to act on.
+  if (url && !URL.canParse(url)) {
+    return {
+      channel: "email",
+      sent: false,
+      reason:
+        "EMAIL_PROVIDER_URL is not a web address. A value copied out of .env.local usually still has its quotes around it — paste just the https://… part.",
+    };
+  }
 
   if (!url || !to || (tokenRequired && !token)) {
     return {
