@@ -145,26 +145,35 @@ describe("what the shop can honestly say about being up", () => {
     expect(evidence).toContain("monitoring_errors");
   });
 
-  it("never invents a percentage from what it holds", async () => {
-    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
-    const card = dashboard.slice(
-      dashboard.indexOf("जवाफ दिइरहेको छ?"),
-      dashboard.indexOf("जवाफ दिइरहेको छ?") + 2000,
-    );
+  it("prints a percentage only from checks it actually took", async () => {
+    const monitoring = await readFile("lib/monitoring.ts", "utf8");
+    const evidence = monitoring.slice(monitoring.indexOf("export async function getUptimeEvidence"));
 
-    // A share of readings is not a share of minutes: there is no counting the
-    // minutes nobody was looking.
-    expect(card).not.toContain("toFixed(2)");
-    expect(card).not.toContain("99.9");
+    // The figure comes from monitoring_uptime — rows filed by the checker
+    // outside this platform — and from nothing else. Deriving it from
+    // performance readings would be counting the times somebody happened to
+    // look and calling it uptime.
+    expect(evidence).toContain("FROM monitoring_uptime");
+    expect(evidence).toContain("status = 'up'");
+
+    // Nought checks is not nought per cent.
+    expect(evidence).toContain("checks > 0 ?");
+    expect(evidence).toContain(": null");
   });
 
-  it("says plainly what it cannot know", async () => {
+  it("says plainly when nothing has been measured yet", async () => {
     const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
 
-    // The recommendation used to advise on the invented number. It now names
-    // the gap instead, and points at the only thing that closes it.
-    expect(dashboard).toContain("बाहिरबाट जाँच्ने कोही छैन");
-    expect(dashboard).toContain("UptimeRobot");
+    // Before a reading arrives the card says so, rather than showing the 0%
+    // this screen displayed for months while nothing was measuring anything.
+    expect(dashboard).toContain("monitoring.uptime.outside.percent !== null");
+    expect(dashboard).toContain("The outside check has not run yet");
+
+    // And the advice below stops advising the moment it is done. Telling the
+    // owner to add an outside checker, on a screen fed by one, would make the
+    // page wrong about itself.
+    expect(dashboard).not.toContain("UptimeRobot");
+    expect(dashboard).toContain("monitoring.uptime.outside.checks === 0");
   });
 
   it("shows the age of the answer, not a timestamp to subtract", async () => {
@@ -174,5 +183,8 @@ describe("what the shop can honestly say about being up", () => {
     // arithmetic across the 5h45m between Kathmandu and the server.
     expect(dashboard).toContain("function minutesAgo");
     expect(dashboard).toContain("मिनेटअघि");
+    // In whichever language they are reading. A helper cannot ask, so it hands
+    // back both halves and the caller picks.
+    expect(dashboard).toContain("minutes ago");
   });
 });

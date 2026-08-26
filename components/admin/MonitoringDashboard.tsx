@@ -12,15 +12,16 @@ import AlertText from "@/components/admin/AlertText";
  * not have to subtract two clock times to find out — least of all across the
  * five-and-three-quarter hours between Kathmandu and the server.
  */
-function minutesAgo(minutes: number | null) {
-  if (minutes === null) return "—";
-  if (minutes < 2) return "अहिल्यै";
-  if (minutes < 60) return `${minutes} मिनेटअघि`;
+function minutesAgo(minutes: number | null): { en: string; ne: string } {
+  if (minutes === null) return { en: "—", ne: "—" };
+  if (minutes < 2) return { en: "just now", ne: "अहिल्यै" };
+  if (minutes < 60) return { en: `${minutes} minutes ago`, ne: `${minutes} मिनेटअघि` };
 
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} घण्टाअघि`;
+  if (hours < 24) return { en: `${hours} hours ago`, ne: `${hours} घण्टाअघि` };
 
-  return `${Math.round(hours / 24)} दिनअघि`;
+  const days = Math.round(hours / 24);
+  return { en: `${days} days ago`, ne: `${days} दिनअघि` };
 }
 
 interface MonitoringData {
@@ -183,13 +184,15 @@ export default function MonitoringDashboard() {
             describing the laptop and saying it about the shop. */}
         {monitoring.health.scope === "local" ? (
           <p className="mb-4 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-900">
-            💻 यो <strong>तपाईंको कम्प्युटरको</strong> हालत हो — पसलको होइन।
-            Storage, Email र SMS यहाँ &quot;सेट अप छैन&quot; देखिन सक्छन्, तर live
-            पसलमा चालु हुन सक्छन्। पसलको साँचो हालत हेर्न live साइटबाट खोल्नुहोस्।
+            💻{" "}
+            <AlertText
+              en="This is your computer's state, not the shop's. Storage, Email and SMS may read “not set up” here while they are working on the live shop. Open this from the live site to see the shop itself."
+              ne="यो तपाईंको कम्प्युटरको हालत हो — पसलको होइन। Storage, Email र SMS यहाँ “सेट अप छैन” देखिन सक्छन्, तर live पसलमा चालु हुन सक्छन्। पसलको साँचो हालत हेर्न live साइटबाट खोल्नुहोस्।"
+            />
           </p>
         ) : (
           <p className="mb-4 mt-1 text-sm leading-6 text-brand-muted">
-            live पसलको हालत
+            <AlertText en="The live shop's state" ne="live पसलको हालत" />
           </p>
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -274,8 +277,8 @@ export default function MonitoringDashboard() {
             <>
               <div className="mt-3 text-xs leading-5 text-brand-muted">
                 <AlertText
-                  en={`A shopper's own browser was served ${minutesAgo(monitoring.uptime.minutesSinceAnswer)} · ${monitoring.uptime.readings} readings over ${monitoring.uptime.daysObserved} days`}
-                  ne={`ग्राहकको फोनले ${minutesAgo(monitoring.uptime.minutesSinceAnswer)} जवाफ पायो · ${monitoring.uptime.readings} नाप, ${monitoring.uptime.daysObserved} दिनमा`}
+                  en={`A shopper's own browser was served ${minutesAgo(monitoring.uptime.minutesSinceAnswer).en} · ${monitoring.uptime.readings} readings over ${monitoring.uptime.daysObserved} days`}
+                  ne={`ग्राहकको फोनले ${minutesAgo(monitoring.uptime.minutesSinceAnswer).ne} जवाफ पायो · ${monitoring.uptime.readings} नाप, ${monitoring.uptime.daysObserved} दिनमा`}
                 />
               </div>
               <div
@@ -311,7 +314,9 @@ export default function MonitoringDashboard() {
               how long until the main thing is on screen. A server timing would
               read a few milliseconds for a prerendered page while the shopper
               on a Nepali mobile connection waited seconds for it. */}
-          <div className="text-sm text-brand-muted">पाना देखिन लाग्ने समय</div>
+          <div className="text-sm text-brand-muted">
+            <AlertText en="How long a page takes to appear" ne="पाना देखिन लाग्ने समय" />
+          </div>
           {monitoring.performance.avgResponseTime > 0 ? (
             <>
               <div
@@ -328,15 +333,21 @@ export default function MonitoringDashboard() {
               <div className="mt-2 text-xs text-brand-muted">
                 {/* The slowest quarter is what people leave over, so the
                     average alone is not the whole answer. */}
-                सुस्त ५%: {(monitoring.performance.p95ResponseTime / 1000).toFixed(1)}s
-                {monitoring.performance.avgResponseTime <= 2500 ? " · राम्रो" : " · सुधार चाहिन्छ"}
+                <AlertText
+                  en={`Slowest 5%: ${(monitoring.performance.p95ResponseTime / 1000).toFixed(1)}s${
+                    monitoring.performance.avgResponseTime <= 2500 ? " · good" : " · needs work"
+                  }`}
+                  ne={`सुस्त ५%: ${(monitoring.performance.p95ResponseTime / 1000).toFixed(1)}s${
+                    monitoring.performance.avgResponseTime <= 2500 ? " · राम्रो" : " · सुधार चाहिन्छ"
+                  }`}
+                />
               </div>
             </>
           ) : (
             <>
               <div className="mt-2 text-3xl font-bold text-brand-muted-soft">—</div>
               <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
-                अझै कुनै ग्राहक आएका छैनन्
+                <AlertText en="No shopper has come yet" ne="अझै कुनै ग्राहक आएका छैनन्" />
               </div>
             </>
           )}
@@ -412,9 +423,14 @@ export default function MonitoringDashboard() {
         </h2>
         {monitoring.errors.recentErrors.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-green-600">✨ केही बिग्रेको छैन।</p>
+            <p className="text-green-600">
+              ✨ <AlertText en="Nothing has broken." ne="केही बिग्रेको छैन।" />
+            </p>
             <p className="mt-1 text-xs text-brand-muted">
-              पछिल्लो २४ घण्टामा एउटै गल्ती रेकर्ड भएको छैन।
+              <AlertText
+                en="Not one error recorded in the last 24 hours."
+                ne="पछिल्लो २४ घण्टामा एउटै गल्ती रेकर्ड भएको छैन।"
+              />
             </p>
           </div>
         ) : (
@@ -454,7 +470,7 @@ export default function MonitoringDashboard() {
       {/* How fast the shop felt, ordered slowest first. */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
         <h2 className="text-lg font-semibold text-brand-green-ink">
-          ⚡ पाना कति छिटो खुल्छ
+          ⚡ <AlertText en="How fast a page opens" ne="पाना कति छिटो खुल्छ" />
         </h2>
         {/* Two readings of one page were being ranked as "the slowest page",
             which reads as a fault and was nothing of the kind: 428ms is a good
@@ -466,10 +482,18 @@ export default function MonitoringDashboard() {
             good, 4s needs work — because that is the bar the shop is judged
             against by the search that sends it customers. */}
         <p className="mt-1 text-sm leading-6 text-brand-muted">
-          ग्राहकको फोनमा नापिएको — पछिल्लो २४ घण्टा
-          {monitoring.performance.samples > 0
-            ? ` · जम्मा ${monitoring.performance.samples} नाप`
-            : ""}
+          <AlertText
+            en={`Measured on shoppers' own phones — last 24 hours${
+              monitoring.performance.samples > 0
+                ? ` · ${monitoring.performance.samples} readings in all`
+                : ""
+            }`}
+            ne={`ग्राहकको फोनमा नापिएको — पछिल्लो २४ घण्टा${
+              monitoring.performance.samples > 0
+                ? ` · जम्मा ${monitoring.performance.samples} नाप`
+                : ""
+            }`}
+          />
         </p>
 
         {/* Said out loud rather than dropped silently. A dev server compiles a
@@ -480,14 +504,20 @@ export default function MonitoringDashboard() {
             because a number quietly removed is its own kind of dishonesty. */}
         {monitoring.performance.setAside > 0 ? (
           <p className="mt-1 text-xs leading-5 text-brand-muted">
-            ℹ️ {monitoring.performance.setAside} नाप परीक्षणका (आफ्नै कम्प्युटर वा
-            preview) — माथिको हिसाबमा गनिएको छैन।
+            ℹ️{" "}
+            <AlertText
+              en={`${monitoring.performance.setAside} readings were from testing (your own computer, or a preview) — they are not counted above.`}
+              ne={`${monitoring.performance.setAside} नाप परीक्षणका (आफ्नै कम्प्युटर वा preview) — माथिको हिसाबमा गनिएको छैन।`}
+            />
           </p>
         ) : null}
 
         {monitoring.performance.slowestEndpoints.length === 0 ? (
           <p className="mt-4 rounded-lg bg-brand-paper-deep px-4 py-3 text-sm text-brand-muted">
-            अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि यहीँ देखिन्छ।
+            <AlertText
+              en="No shopper has come yet — this fills in once there is something to measure."
+              ne="अझै कुनै ग्राहक आएका छैनन् — नाप्ने कुरा भएपछि यहीँ देखिन्छ।"
+            />
           </p>
         ) : (
           <>
@@ -495,8 +525,11 @@ export default function MonitoringDashboard() {
                 the order is chance, and the first row looks like a finding. */}
             {monitoring.performance.samples < 10 ? (
               <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-semibold leading-6 text-brand-green">
-                🔵 अझै थोरै नाप — भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ। तल क्रम
-                होइन, भएको जति देखाइएको हो।
+                🔵{" "}
+                <AlertText
+                  en="Too few readings yet — a dependable ranking needs at least ten. What is below is everything there is, not an order of merit."
+                  ne="अझै थोरै नाप — भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ। तल क्रम होइन, भएको जति देखाइएको हो।"
+                />
               </p>
             ) : null}
 
@@ -504,20 +537,28 @@ export default function MonitoringDashboard() {
               <table className="w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">पाना</th>
-                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">समय</th>
-                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">कस्तो</th>
-                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">नाप</th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
+                      <AlertText en="Page" ne="पाना" />
+                    </th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
+                      <AlertText en="Time" ne="समय" />
+                    </th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
+                      <AlertText en="How it reads" ne="कस्तो" />
+                    </th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
+                      <AlertText en="Readings" ne="नाप" />
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-green-line">
                   {monitoring.performance.slowestEndpoints.map((endpoint) => {
                     const verdict =
                       endpoint.avgTime <= 2500
-                        ? { label: "🟢 राम्रो", tone: "text-green-700" }
+                        ? { label: { en: "🟢 Good", ne: "🟢 राम्रो" }, tone: "text-green-700" }
                         : endpoint.avgTime <= 4000
-                          ? { label: "🟡 सुधार चाहिन्छ", tone: "text-yellow-700" }
-                          : { label: "🔴 सुस्त", tone: "text-red-700" };
+                          ? { label: { en: "🟡 Needs work", ne: "🟡 सुधार चाहिन्छ" }, tone: "text-yellow-700" }
+                          : { label: { en: "🔴 Slow", ne: "🔴 सुस्त" }, tone: "text-red-700" };
                     return (
                       <tr key={`${endpoint.path}-${endpoint.rating}`} className="hover:bg-brand-paper-deep">
                         <td className="px-4 py-2 text-brand-green-ink">
@@ -532,7 +573,7 @@ export default function MonitoringDashboard() {
                           {(endpoint.avgTime / 1000).toFixed(1)}s
                         </td>
                         <td className={`px-4 py-2 text-xs font-bold ${verdict.tone}`}>
-                          {verdict.label}
+                          <AlertText en={verdict.label.en} ne={verdict.label.ne} />
                         </td>
                         <td className="px-4 py-2 tabular-nums text-brand-muted">{endpoint.count}</td>
                       </tr>
@@ -558,15 +599,25 @@ export default function MonitoringDashboard() {
           {monitoring.errors.totalErrors > 50 && (
             <li>✓ Many errors in last 24h - urgent investigation needed</li>
           )}
-          {/* This used to advise reviewing stability whenever uptime was
-              below 99.9%, on a value that was always 0 because nothing had
-              measured it. There is no percentage any more, so there is nothing
-              to compare — and the one thing worth saying is what the shop
-              cannot know rather than what it has decided. */}
-          {monitoring.uptime.readings > 0 ? (
+          {/* This advised adding an outside checker, which was the honest
+              thing to say until there was one. There is now: GitHub Actions
+              files a reading every twenty minutes while the shop is open. The
+              line worth having is the opposite one — said only while nothing
+              has arrived, because that is when somebody needs to look. */}
+          {monitoring.uptime.outside.checks === 0 ? (
             <li>
-              ✓ बाहिरबाट जाँच्ने कोही छैन — साइट डाउन भएको बेला कसैले टिप्दैन। साँचो uptime
-              चाहिए UptimeRobot जस्तो निःशुल्क सेवा जोड्नुहोस्।
+              <AlertText
+                en="✓ The outside check has filed nothing yet. If this is still empty tomorrow, look at the Uptime workflow on GitHub."
+                ne="✓ बाहिरी जाँचले अझै केही पठाएको छैन। भोलि पनि खाली रह्यो भने GitHub को Uptime workflow हेर्नुहोस्।"
+              />
+            </li>
+          ) : null}
+          {monitoring.uptime.outside.lastFailureAt ? (
+            <li>
+              <AlertText
+                en="✓ The shop failed an outside check in the last 30 days — worth reading the errors below."
+                ne="✓ पछिल्लो ३० दिनमा बाहिरी जाँच एक पटक असफल भयो — तलका गल्ती हेर्नु राम्रो।"
+              />
             </li>
           ) : null}
           {/* This read `!v`, left over from when these were booleans. Every value
