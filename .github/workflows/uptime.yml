@@ -69,4 +69,19 @@ jobs:
           # database connection string: anything reaching these secrets should
           # not be able to read a single order, wage or customer.
           UPTIME_WRITE_TOKEN: ${{ secrets.UPTIME_WRITE_TOKEN }}
+
+          # Telling the owner. Each channel is skipped when its secrets are
+          # absent, so email can run today and WhatsApp can be added the day the
+          # Twilio account exists — no code change either time.
+          #
+          # These live here, beside the checker, rather than in the app, because
+          # the message has to go out when the app cannot send anything at all.
+          EMAIL_PROVIDER_URL: ${{ secrets.EMAIL_PROVIDER_URL }}
+          EMAIL_PROVIDER_TOKEN: ${{ secrets.EMAIL_PROVIDER_TOKEN }}
+          EMAIL_SENDER_ADDRESS: ${{ secrets.EMAIL_SENDER_ADDRESS }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_NUMBER: ${{ secrets.TWILIO_WHATSAPP_NUMBER }}
+          WHATSAPP_ADMIN_NUMBER: ${{ secrets.WHATSAPP_ADMIN_NUMBER }}
         run: node scripts/uptime-probe.mjs

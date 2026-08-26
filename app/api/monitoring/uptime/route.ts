@@ -1,4 +1,4 @@
-import { recordUptimeCheck } from "@/lib/monitoring";
+import { lastUptimeReading, recordUptimeCheck } from "@/lib/monitoring";
 import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
@@ -98,10 +98,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Read before writing, so "what was it before this reading" is answerable.
+  //
+  // The checker needs it to know whether this is a recovery — it runs on a
+  // fresh machine every time and remembers nothing between runs. It cannot keep
+  // that state itself without somewhere to keep it, and the obvious somewhere
+  // is this shop, which is exactly the thing that goes away. Answering it here
+  // costs one query on a reading that already opened a connection, and the
+  // shop is by definition up whenever the question can be asked at all.
+  const previous = await lastUptimeReading();
+
   await recordUptimeCheck(check);
 
   return Response.json(
-    { ok: true, recorded: check.status },
+    { ok: true, recorded: check.status, previousStatus: previous?.status ?? null, downSince: previous?.downSince ?? null },
     { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }

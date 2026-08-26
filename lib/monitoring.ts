@@ -290,6 +290,51 @@ export async function recordUptimeCheck(
   }
 }
 
+/**
+ * The reading before this one, and — if the shop was down — when it first went
+ * down in the current run of failures.
+ *
+ * Asked by the outside checker, which cannot remember anything between runs, so
+ * that a reading of "up" arriving after a reading of "down" can be recognised
+ * as a recovery and reported as one, with how long it lasted.
+ *
+ * downSince walks back through consecutive "down" rows rather than taking the
+ * newest one: an outage seen by four checks is one outage, and reporting it as
+ * twenty minutes when it was eighty would understate exactly the thing the
+ * owner needs the true size of.
+ */
+export async function lastUptimeReading() {
+  const rows = await queryPostgres<{ status: string; down_since: Date | string | null }>(
+    STORE,
+    `WITH latest AS (
+       SELECT status, checked_at
+       FROM monitoring_uptime
+       ORDER BY checked_at DESC
+       LIMIT 1
+     )
+     SELECT
+       (SELECT status FROM latest) AS status,
+       (SELECT min(checked_at)
+          FROM (
+            SELECT checked_at
+            FROM monitoring_uptime
+            WHERE status = 'down'
+              AND checked_at > coalesce(
+                (SELECT max(checked_at) FROM monitoring_uptime WHERE status = 'up'),
+                '-infinity'::timestamptz)
+            LIMIT 500
+          ) AS run) AS down_since`,
+  ).catch(() => []);
+
+  const row = rows[0];
+  if (!row?.status) return null;
+
+  return {
+    status: row.status === "down" ? ("down" as const) : ("up" as const),
+    downSince: row.down_since ? new Date(row.down_since).toISOString() : null,
+  };
+}
+
 export const MONITORING_RETENTION_DAYS = 90;
 
 /**

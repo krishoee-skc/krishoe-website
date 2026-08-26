@@ -23,7 +23,13 @@
  *   PROBE_URL           what to ask     (defaults to the production health URL)
  *   UPTIME_WRITE_URL    where to file it
  *   UPTIME_WRITE_TOKEN  the narrow token
+ *
+ * And it tells the owner. See scripts/uptime-alert.mjs — the alert is sent from
+ * here, before the filing is even attempted, because filing needs the shop to
+ * answer and the alert is for when it does not.
  */
+
+import { sendUptimeAlert } from "./uptime-alert.mjs";
 
 const PROBE_URL = process.env.PROBE_URL || "https://krishoe-website.vercel.app/api/health";
 const WRITE_URL =
@@ -94,12 +100,33 @@ async function file(reading) {
   if (!response.ok) {
     throw new Error(`filing returned HTTP ${response.status}`);
   }
+
+  // What the shop was before this reading landed, so an "up" that follows a
+  // "down" can be recognised as a recovery. Absent on an older deployment that
+  // does not answer with it yet, which simply means no recovery message.
+  return await response.json().catch(() => ({}));
 }
 
 const reading = await probe();
 console.log(
   `${reading.status.toUpperCase()}  ${reading.statusCode || "—"}  ${reading.responseTime}ms  ${PROBE_URL}${reading.note ? `  (${reading.note})` : ""}`,
 );
+
+// Told BEFORE the filing is attempted, and whether or not filing ever
+// succeeds. Filing needs the shop to answer; the alert exists precisely for
+// when it does not. Sending it first is what makes a long outage loud instead
+// of silent — waiting for a row to be written would mean the four-hour
+// failures, the only ones that really cost a customer, are the ones nobody is
+// told about.
+if (reading.status === "down") {
+  console.log("::warning::KRISHOE did not answer this check.");
+  await sendUptimeAlert({
+    state: "down",
+    url: PROBE_URL,
+    statusCode: reading.statusCode,
+    error: reading.note,
+  });
+}
 
 if (!TOKEN) {
   console.error("No UPTIME_WRITE_TOKEN — the reading was taken but cannot be filed.");
@@ -110,14 +137,26 @@ if (!TOKEN) {
 // true record of when the shop was down.
 for (let attempt = 0; ; attempt += 1) {
   try {
-    await file(reading);
+    const filed = await file(reading);
     console.log(`filed — ${reading.status} at ${reading.checkedAt}`);
+
+    // Answering again after a failure. Worth a message of its own: an owner who
+    // was told the shop was down should not have to keep checking to find out
+    // it came back, and how long it lasted is the number they will want.
+    if (reading.status === "up" && filed?.previousStatus === "down") {
+      await sendUptimeAlert({
+        state: "up",
+        url: PROBE_URL,
+        downSince: filed.downSince,
+      });
+    }
     break;
   } catch (error) {
     if (attempt >= RETRY_DELAYS_MS.length) {
       // Out of retries. The shop has been unreachable for the whole window, so
       // there is nowhere to file this — and the gap it leaves in the readings
-      // is itself the record. Said out loud rather than swallowed.
+      // is itself the record. Said out loud rather than swallowed. The owner
+      // has already been told, above.
       console.error(`Could not file the reading: ${error.message}`);
       console.log(
         "::warning::KRISHOE was unreachable for the whole retry window — this outage shows as a gap in the readings.",
@@ -129,8 +168,4 @@ for (let attempt = 0; ; attempt += 1) {
     console.log(`  filing failed (${error.message}) — retrying in ${wait / 1000}s`);
     await sleep(wait);
   }
-}
-
-if (reading.status === "down") {
-  console.log("::warning::KRISHOE did not answer this check.");
 }
