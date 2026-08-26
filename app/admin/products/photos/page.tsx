@@ -4,7 +4,11 @@ import T from "@/components/T";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getProducts } from "@/lib/product-store";
 
-export const metadata: Metadata = { title: "फोटो हाल्ने | KRISHOE Admin" };
+// English, like every other admin tab title (Orders, POS Billing, Barcode
+// labels). A browser tab is rendered before any language is chosen, so it
+// cannot follow the switch — this screen was the only one answering in Nepali
+// there regardless of what the reader had pressed.
+export const metadata: Metadata = { title: "Add photos | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -57,10 +61,14 @@ export default async function ProductPhotosPage() {
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">फोटो हाल्ने</h1>
+        <h1 className="text-2xl font-black text-brand-green-ink">
+          <T en="Add photos" ne="फोटो हाल्ने" />
+        </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-          जुत्ताको फोटो यहीँबाट खिच्नुहोस् वा फाइलबाट छान्नुहोस्। चढ्नेबित्तिकै
-          पसलमा देखिन्छ — Save थिच्नु पर्दैन।
+          <T
+            en="Photograph a shoe here, or pick a picture off this device. It shows in the shop the moment it uploads — there is no Save to press."
+            ne="जुत्ताको फोटो यहीँबाट खिच्नुहोस् वा फाइलबाट छान्नुहोस्। चढ्नेबित्तिकै पसलमा देखिन्छ — Save थिच्नु पर्दैन।"
+          />
         </p>
       </div>
 
@@ -78,17 +86,26 @@ export default async function ProductPhotosPage() {
 
       <div className="mt-5 flex flex-wrap gap-2 text-sm font-black">
         <span className={`rounded-full px-3 py-1.5 ${missing > 0 ? "bg-brand-clay text-white" : "bg-emerald-100 text-emerald-900"}`}>
-          {missing > 0 ? `${missing} सामानको फोटो छैन` : "सबैको फोटो छ ✅"}
+          {missing > 0 ? (
+            <T en={`${missing} without a photo`} ne={`${missing} सामानको फोटो छैन`} />
+          ) : (
+            <T en="Every one has a photo ✅" ne="सबैको फोटो छ ✅" />
+          )}
         </span>
         <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">
-          जम्मा {products.length} सामान
+          <T en={`${products.length} products in all`} ne={`जम्मा ${products.length} सामान`} />
         </span>
       </div>
 
       {missing > 0 ? (
         <p className="mt-4 rounded-xl bg-brand-mist px-4 py-3 text-sm leading-6 text-brand-muted">
-          <strong className="text-brand-green-ink">फोटो नभएको जुत्ता कसैले किन्दैन।</strong>{" "}
-          ग्राहकले पहिले फोटो हेर्छन्, अनि मूल्य। तल रातो चिन्ह भएका पहिले सिध्याउनुहोस्।
+          <strong className="text-brand-green-ink">
+            <T en="Nobody buys a shoe they cannot see." ne="फोटो नभएको जुत्ता कसैले किन्दैन।" />
+          </strong>{" "}
+          <T
+            en="Customers look at the picture first and the price second. Start with the ones marked in red below."
+            ne="ग्राहकले पहिले फोटो हेर्छन्, अनि मूल्य। तल रातो चिन्ह भएका पहिले सिध्याउनुहोस्।"
+          />
         </p>
       ) : null}
 

@@ -19,8 +19,10 @@ describe("photo page", () => {
     // to exist, so there are two inputs.
     expect(card).toContain('capture="environment"');
     expect((card.match(/type="file"/g) ?? []).length).toBe(2);
-    expect(card).toContain("📷 खिच्ने");
-    expect(card).toContain("🖼️ फाइलबाट");
+    // Each label written as a pair, so the two doors are named in whichever
+    // language the reader pressed.
+    expect(card).toContain('text("Take one", "खिच्ने")');
+    expect(card).toContain('text("From a file", "फाइलबाट")');
   });
 
   it("saves as soon as the upload finishes", async () => {

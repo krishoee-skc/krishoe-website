@@ -7,7 +7,15 @@ import { getProductById, upsertProduct } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
-export type PhotoActionState = { ok: boolean; message: string };
+/**
+ * The outcome, in both languages.
+ *
+ * A Server Action cannot read the reader's chosen language — that lives in a
+ * client context — so it cannot pick one. It returns the pair, and PhotoCard
+ * shows whichever half the reader asked for. Writing one string here is how
+ * this screen came to answer in Nepali to somebody who had pressed ENGLISH.
+ */
+export type PhotoActionState = { ok: boolean; en: string; ne: string };
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -34,12 +42,12 @@ export async function saveProductPhotoAction(
   const slot = textValue(formData, "slot") === "gallery" ? "gallery" : "main";
 
   if (!productId || !image) {
-    return { ok: false, message: "फोटो छानिएन।" };
+    return { ok: false, en: "No photo was chosen.", ne: "फोटो छानिएन।" };
   }
 
   const product = await getProductById(productId, { includeDrafts: true });
   if (!product) {
-    return { ok: false, message: "सामान भेटिएन।" };
+    return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
   }
 
   try {
@@ -55,7 +63,15 @@ export async function saveProductPhotoAction(
     });
   } catch (error) {
     reportError(`save photo for product ${product.sku}`, error);
-    return { ok: false, message: saveFailureMessage(error, "फोटो सुरक्षित भएन।") };
+    // saveFailureMessage answers in English when it recognises the failure;
+    // otherwise it hands back the fallback it was given, so each language gets
+    // its own half for the common case.
+    const fallback = { en: "The photo was not saved.", ne: "फोटो सुरक्षित भएन।" };
+    return {
+      ok: false,
+      en: saveFailureMessage(error, fallback.en),
+      ne: saveFailureMessage(error, fallback.ne),
+    };
   }
 
   await recordAdminAuditEvent(
@@ -69,8 +85,7 @@ export async function saveProductPhotoAction(
   revalidatePath("/", "layout");
   revalidatePath("/admin/products/photos");
 
-  return {
-    ok: true,
-    message: slot === "main" ? `${product.name} — मुख्य फोटो बदलियो ✅` : `${product.name} — थप फोटो जोडियो ✅`,
-  };
+  return slot === "main"
+    ? { ok: true, en: `${product.name} — main photo changed ✅`, ne: `${product.name} — मुख्य फोटो बदलियो ✅` }
+    : { ok: true, en: `${product.name} — another photo added ✅`, ne: `${product.name} — थप फोटो जोडियो ✅` };
 }

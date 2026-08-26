@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { saveProductPhotoAction, type PhotoActionState } from "./actions";
 
 type PhotoProduct = {
@@ -52,9 +53,10 @@ function readSize(file: File) {
 }
 
 export default function PhotoCard({ product }: { product: PhotoProduct }) {
+  const { text } = useLanguage();
   const [image, setImage] = useState(product.image);
   const [state, setState] = useState<PhotoActionState | null>(null);
-  const [sizeWarning, setSizeWarning] = useState("");
+  const [sizeWarning, setSizeWarning] = useState<{ en: string; ne: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -66,14 +68,15 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
     setBusy(true);
     setState(null);
-    setSizeWarning("");
+    setSizeWarning(null);
 
     try {
       const size = await readSize(file);
       if (size && Math.min(size.width, size.height) < MIN_GOOD_EDGE) {
-        setSizeWarning(
-          `यो फोटो सानो छ (${size.width}×${size.height})। WhatsApp बाट आएको हो कि? पसलमा धमिलो देखिन सक्छ — फोनको camera बाट सिधै खिच्नुहोस्।`,
-        );
+        setSizeWarning({
+          en: `This photo is small (${size.width}×${size.height}). Did it come through WhatsApp? It can look blurred in the shop — take it straight from the phone camera instead.`,
+          ne: `यो फोटो सानो छ (${size.width}×${size.height})। WhatsApp बाट आएको हो कि? पसलमा धमिलो देखिन सक्छ — फोनको camera बाट सिधै खिच्नुहोस्।`,
+        });
       }
 
       const body = new FormData();
@@ -82,7 +85,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error || `फोटो चढेन (${response.status})।`);
+        throw new Error(data.error || text(`The photo did not upload (${response.status}).`, `फोटो चढेन (${response.status})।`));
       }
 
       const { url } = (await response.json()) as { url: string };
@@ -96,9 +99,14 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
       setState(result);
       if (result.ok && slot === "main") setImage(url);
     } catch (error) {
+      // An upload error already carries its own sentence, in one language;
+      // when it carries none, the pair below supplies both halves.
+      const failed = error instanceof Error ? error.message : "";
+      const fallback = { en: "The photo did not upload.", ne: "फोटो चढेन।" };
       setState({
         ok: false,
-        message: error instanceof Error ? error.message : "फोटो चढेन।",
+        en: failed || fallback.en,
+        ne: failed || fallback.ne,
       });
     } finally {
       setBusy(false);
@@ -118,7 +126,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
         type="button"
         onClick={() => viewRef.current?.showModal()}
         disabled={!previewable}
-        aria-label={`${product.name} को फोटो ठूलो हेर्ने`}
+        aria-label={text(`See ${product.name} larger`, `${product.name} को फोटो ठूलो हेर्ने`)}
         className="relative block aspect-square w-full overflow-hidden rounded-xl bg-brand-mist"
       >
         {previewable ? (
@@ -126,17 +134,17 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
         ) : null}
         {previewable ? (
           <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white">
-            🔍 ठूलो हेर्ने
+            🔍 {text("See it big", "ठूलो हेर्ने")}
           </span>
         ) : null}
         {!product.hasRealPhoto ? (
           <span className="absolute left-2 top-2 rounded-full bg-brand-clay px-2.5 py-1 text-[11px] font-black text-white">
-            फोटो छैन
+            {text("No photo", "फोटो छैन")}
           </span>
         ) : null}
         {busy ? (
           <span className="absolute inset-0 grid place-items-center bg-brand-paper/75 text-sm font-black text-brand-green-ink">
-            चढ्दै…
+            {text("Uploading…", "चढ्दै…")}
           </span>
         ) : null}
       </button>
@@ -144,7 +152,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
       <div>
         <h3 className="truncate font-black text-brand-green-ink">{product.name}</h3>
         <p className="truncate font-mono text-[11px] text-brand-muted-soft">
-          {product.sku} · {product.galleryCount} फोटो
+          {product.sku} · {text(`${product.galleryCount} photos`, `${product.galleryCount} फोटो`)}
         </p>
       </div>
 
@@ -155,7 +163,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           onClick={() => cameraRef.current?.click()}
           className="min-h-11 rounded-xl bg-brand-green px-2 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
         >
-          📷 खिच्ने
+          📷 {text("Take one", "खिच्ने")}
         </button>
         <button
           type="button"
@@ -163,7 +171,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           onClick={() => galleryRef.current?.click()}
           className="min-h-11 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-green-ink transition hover:border-brand-green disabled:opacity-60"
         >
-          🖼️ फाइलबाट
+          🖼️ {text("From a file", "फाइलबाट")}
         </button>
       </div>
 
@@ -192,13 +200,13 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
             state.ok ? "bg-emerald-50 text-emerald-900" : "bg-red-50 text-red-800"
           }`}
         >
-          {state.message}
+          {text(state.en, state.ne)}
         </p>
       ) : null}
 
       {sizeWarning ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">
-          ⚠️ {sizeWarning}
+          ⚠️ {text(sizeWarning.en, sizeWarning.ne)}
         </p>
       ) : null}
 
@@ -229,7 +237,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
             onClick={() => viewRef.current?.close()}
             className="min-h-11 rounded-xl bg-brand-green px-5 text-sm font-black text-white"
           >
-            बन्द गर्ने
+            {text("Close", "बन्द गर्ने")}
           </button>
         </div>
       </dialog>
