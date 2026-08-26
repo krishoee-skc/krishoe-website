@@ -218,7 +218,7 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/insights/page.tsx": 16,
   "app/admin/login/actions.ts": 4,
   "app/admin/login/passkey-actions.ts": 4,
-  "app/admin/measurement/page.tsx": 4,
+  "app/admin/measurement/page.tsx": 1,
   "app/admin/open-on-phone/page.tsx": 3,
   "app/admin/operations/_components/LedgerTransactionFields.tsx": 1,
   "app/admin/operations/_components/OperationsQuickEntry.tsx": 6,

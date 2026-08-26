@@ -33,6 +33,11 @@ const trackers = [
     name: "Meta Pixel",
     nepali: "Facebook र Instagram",
     nepaliEn: "Facebook and Instagram",
+    // How it reads inside a list of several. The long form above says what Meta
+    // covers and belongs on the card; in a sentence it turns every list into
+    // "Facebook and Instagram and Google".
+    shortNe: "Facebook",
+    shortEn: "Facebook",
     whyNe: "Facebook/Instagram मा विज्ञापन चलाउँदा कुन विज्ञापनले बिक्री ल्यायो थाहा हुन्छ। यो बिना ad चलाउनु आँखा चिम्लेर पैसा फ्याँक्नु हो।",
     whyEn: "Running ads on Facebook or Instagram, this is what tells you which advert brought the sale. Without it, advertising is throwing money with your eyes shut.",
     looksLikeNe: "१५ अंकको नम्बर — जस्तै 1234567890123456",
@@ -66,6 +71,8 @@ const trackers = [
     name: "TikTok Pixel",
     nepali: "TikTok",
     nepaliEn: "TikTok",
+    shortNe: "TikTok",
+    shortEn: "TikTok",
     whyNe: "नेपालमा अहिले TikTok ले सबैभन्दा बढी बिक्री गराउँछ। कारखानाको भिडियोले ल्याएको ग्राहक यहीँ गनिन्छ।",
     whyEn: "TikTok sells more than anything else in Nepal right now. A customer who came from a video of the factory is counted here.",
     looksLikeNe: "अक्षर र अंक मिसिएको — जस्तै C4A2B8QRSTUV",
@@ -101,6 +108,8 @@ const trackers = [
     name: "Google Analytics 4",
     nepali: "Google",
     nepaliEn: "Google",
+    shortNe: "Google",
+    shortEn: "Google",
     whyNe: "कति मान्छे आए, कुन जुत्ता धेरै हेरे, कहाँबाट आए — सबै यहीँ देखिन्छ। निःशुल्क।",
     whyEn: "How many came, which shoes they looked at most, where they came from — all of it, and free.",
     looksLikeNe: "G- ले सुरु हुने — जस्तै G-XXXXXXXXXX",
@@ -125,6 +134,26 @@ const trackers = [
   },
 ];
 
+
+
+/**
+ * A list of names as a sentence would say it.
+ *
+ * "Facebook and Instagram and Google" is what join(" and ") gives you, and it
+ * reads like a child counting. English puts commas between all but the last
+ * pair; Nepali puts "र" before the last and nothing before the others.
+ */
+function asSentence(names: string[], language: "en" | "ne") {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+
+  const last = names[names.length - 1];
+  const rest = names.slice(0, -1);
+
+  return language === "en"
+    ? `${rest.join(", ")} and ${last}`
+    : `${rest.join(", ")} र ${last}`;
+}
 
 export default async function MeasurementPage() {
   await requireAdminPermission("settings:write");
@@ -183,12 +212,14 @@ export default async function MeasurementPage() {
             />
           ) : (
             <T
-              en={`🟡 ${live.map((t) => t.nepaliEn).join(" and ")} measured — ${missing
-                .map((t) => t.nepaliEn)
-                .join(" and ")} not`}
-              ne={`🟡 ${live.map((t) => t.nepali).join(" र ")} नापिन्छ — ${missing
-                .map((t) => t.nepali)
-                .join(" र ")} नापिँदैन`}
+              en={`🟡 ${asSentence(live.map((t) => t.shortEn), "en")} measured — ${asSentence(
+                missing.map((t) => t.shortEn),
+                "en",
+              )} not`}
+              ne={`🟡 ${asSentence(live.map((t) => t.shortNe), "ne")} नापिन्छ — ${asSentence(
+                missing.map((t) => t.shortNe),
+                "ne",
+              )} नापिँदैन`}
             />
           )}
         </p>
@@ -210,17 +241,19 @@ export default async function MeasurementPage() {
           <p className="mt-2 text-sm leading-6 text-brand-muted-deep">
             <strong className="text-brand-green-ink">
               <T
-                en={`Advertise on ${live.map((t) => t.nepaliEn).join(" and ")} with confidence`}
-                ne={`${live.map((t) => t.nepali).join(" र ")} मा विज्ञापन चलाउन ढुक्क हुनुहोस्`}
+                en={`Advertise on ${asSentence(live.map((t) => t.shortEn), "en")} with confidence`}
+                ne={`${asSentence(live.map((t) => t.shortNe), "ne")} मा विज्ञापन चलाउन ढुक्क हुनुहोस्`}
               />
             </strong>{" "}
             <T
-              en={`— you can see exactly which advert brought the sale. But hold off on ${missing
-                .map((t) => t.nepaliEn)
-                .join(" and ")} for now; there is no counting it yet.`}
-              ne={`— कुन विज्ञापनले बिक्री ल्यायो ठ्याक्कै देखिन्छ। तर ${missing
-                .map((t) => t.nepali)
-                .join(" र ")} मा भने अहिले नहाल्नुहोस्, त्यहाँको हिसाब थाहा हुँदैन।`}
+              en={`— you can see exactly which advert brought the sale. But hold off on ${asSentence(
+                missing.map((t) => t.shortEn),
+                "en",
+              )} for now; there is no counting it yet.`}
+              ne={`— कुन विज्ञापनले बिक्री ल्यायो ठ्याक्कै देखिन्छ। तर ${asSentence(
+                missing.map((t) => t.shortNe),
+                "ne",
+              )} मा भने अहिले नहाल्नुहोस्, त्यहाँको हिसाब थाहा हुँदैन।`}
             />
           </p>
         ) : null}
@@ -317,7 +350,7 @@ export default async function MeasurementPage() {
         </h2>
         <ol className="mt-3 grid gap-2 text-sm leading-6 text-brand-muted-deep">
           <li className="rounded-xl bg-brand-paper px-3 py-2">
-            <strong className="text-brand-green-ink">१.</strong>{" "}
+            <strong className="text-brand-green-ink"><T en="1." ne="१." /></strong>{" "}
             <T
               en="The button below goes straight to Environment Variables"
               ne="तलको बटनले सिधै Environment Variables मै पुर्‍याउँछ"
@@ -338,7 +371,7 @@ export default async function MeasurementPage() {
               it being pasted a second time, and a duplicate there overwrites a
               working value with whatever was on the clipboard. */}
           <li className="rounded-xl bg-brand-paper px-3 py-2">
-            <strong className="text-brand-green-ink">२.</strong>{" "}
+            <strong className="text-brand-green-ink"><T en="2." ne="२." /></strong>{" "}
             <T
               en={`Put in the Key and Value, then Save — ${missing.length} still to go:`}
               ne={`Key र Value हालेर Save — यी ${
@@ -352,7 +385,7 @@ export default async function MeasurementPage() {
             </div>
           </li>
           <li className="rounded-xl bg-brand-paper px-3 py-2">
-            <strong className="text-brand-green-ink">३.</strong>{" "}
+            <strong className="text-brand-green-ink"><T en="3." ne="३." /></strong>{" "}
             <T
               en="Then Deployments at the top → ⋯ on the newest one →"
               ne="माथि Deployments → पछिल्लोमा ⋯ →"
@@ -367,7 +400,7 @@ export default async function MeasurementPage() {
             </span>
           </li>
           <li className="rounded-xl bg-brand-paper px-3 py-2">
-            <strong className="text-brand-green-ink">४.</strong>{" "}
+            <strong className="text-brand-green-ink"><T en="4." ne="४." /></strong>{" "}
             <T
               en="Open this page again — a green On means it is done"
               ne="यही पाना फेरि खोल्नुहोस् — हरियो चालु देखियो भने भयो"
