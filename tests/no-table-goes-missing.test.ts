@@ -51,8 +51,6 @@ const NOT_A_TABLE = new Set([
  * new name appearing here fails the test rather than joining the pile.
  */
 const NEVER_EXISTED: Record<string, string> = {
-  admin_staff:
-    "A typo for admin_staff_accounts, in the staff status endpoint. Pre-dates this test; the endpoint has never been able to work.",
   customers:
     "lib/customer-engagement-gateway.ts — the shop keeps customers in customer_ledgers and users; this table was never created.",
   notification_preferences: "lib/customer-engagement-gateway.ts — an engagement feature that was written but never given a schema.",
