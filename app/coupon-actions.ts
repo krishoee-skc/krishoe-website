@@ -1,7 +1,7 @@
 "use server";
 
 import { evaluateCoupon, getCoupon, normalizeCouponCode } from "@/lib/coupons";
-import { findReferralCode, referralAsCoupon } from "@/lib/referrals";
+import { findReferralCode, referralAsCoupon, referralIsSelfUse } from "@/lib/referrals";
 import { getCustomerSession } from "@/lib/customer-auth";
 import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
 import { formatPrice } from "@/lib/products";
@@ -36,6 +36,12 @@ export type CouponPreview =
 export async function previewCouponAction(
   code: string,
   itemsField: string,
+  /**
+   * What the checkout form has been given so far. Present so this preview asks
+   * the same self-referral question the submission asks — a preview that
+   * promises a discount the order then refuses is worse than none.
+   */
+  contact: { email?: string; phone?: string } = {},
 ): Promise<CouponPreview> {
   const normalized = normalizeCouponCode(code);
   if (!normalized) return { status: "empty" };
@@ -51,6 +57,21 @@ export async function previewCouponAction(
     // it there is no difference. Resolved the same way here as at submit.
     const session = await getCustomerSession();
     const referral = await findReferralCode(normalized);
+
+    if (referral) {
+      const own = await referralIsSelfUse(referral, {
+        userId: session?.userId,
+        email: contact.email,
+        phone: contact.phone,
+      });
+      if (own) {
+        return {
+          status: "no",
+          reason: "This is your own referral code — pass it to a friend instead.",
+        };
+      }
+    }
+
     const coupon = referral
       ? referralAsCoupon(referral, session?.userId)
       : await getCoupon(normalized);

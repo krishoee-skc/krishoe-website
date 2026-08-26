@@ -70,7 +70,7 @@ function CheckoutForm({
 
   // Only the newest question is allowed to answer. A slow reply about "DASHAI"
   // must not overwrite a fast one about "DASHAIN10".
-  function askAboutCoupon(typed: string) {
+  function askAboutCoupon(typed: string, form: HTMLFormElement | null) {
     window.clearTimeout(couponTimer.current);
     const code = typed.trim();
     couponAsked.current = code;
@@ -80,8 +80,17 @@ function CheckoutForm({
       return;
     }
 
+    // Who is asking, so a referrer typing their own code is told now rather
+    // than at the end. Read straight off the form — these are filled in long
+    // before anybody reaches the discount box.
+    const fields = form ? new FormData(form) : null;
+    const contact = {
+      email: String(fields?.get("email") ?? ""),
+      phone: String(fields?.get("phone") ?? ""),
+    };
+
     couponTimer.current = window.setTimeout(() => {
-      void previewCouponAction(code, itemsJson).then((answer) => {
+      void previewCouponAction(code, itemsJson, contact).then((answer) => {
         if (couponAsked.current === code) setCoupon(answer);
       });
     }, 500);
@@ -224,7 +233,9 @@ function CheckoutForm({
               value={couponCode}
               onChange={(event) => {
                 setCouponCode(event.target.value);
-                askAboutCoupon(event.target.value);
+                // The form this input sits in — it carries the phone and email
+                // the self-referral check needs.
+                askAboutCoupon(event.target.value, event.target.form);
               }}
               maxLength={24}
               autoComplete="off"

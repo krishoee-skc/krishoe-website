@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
 import { markCheckoutRecovered } from "@/lib/checkout-attempts";
 import { evaluateCoupon, getCoupon, normalizeCouponCode, redeemCoupon } from "@/lib/coupons";
-import { findReferralCode, recordReferralClaim, referralAsCoupon } from "@/lib/referrals";
+import {
+  findReferralCode,
+  recordReferralClaim,
+  referralAsCoupon,
+  referralIsSelfUse,
+} from "@/lib/referrals";
 import { formatPrice } from "@/lib/products";
 import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
@@ -185,9 +190,19 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // means the minimum, the cap and the server-side recalculation all apply
   // unchanged, and there stays exactly one place where a price can fall.
   const referral = submittedCode ? await findReferralCode(submittedCode) : null;
-  const referralCoupon = referral
-    ? referralAsCoupon(referral, checkoutSession?.userId)
-    : null;
+
+  // Signed in, the user id settles whether this is the referrer's own code.
+  // Signed out it cannot, and that was the loophole — so the phone and email on
+  // this very order are compared with the referrer's account as well.
+  const referralCoupon =
+    referral &&
+    !(await referralIsSelfUse(referral, {
+      userId: checkoutSession?.userId,
+      email,
+      phone,
+    }))
+      ? referralAsCoupon(referral, checkoutSession?.userId)
+      : null;
 
   const couponCheck = submittedCode
     ? evaluateCoupon(referralCoupon ?? (await getCoupon(submittedCode)), pricing.totalPaisa)
