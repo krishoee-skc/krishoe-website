@@ -79,8 +79,30 @@
   @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
 
   .lines { display: flex; flex-direction: column; gap: 8px; }
-  .line { display: grid; grid-template-columns: 1.7fr 0.7fr 0.9fr 1fr; gap: 8px; }
-  @media (max-width: 620px) { .line { grid-template-columns: 1fr 1fr; } }
+  .line { display: grid; grid-template-columns: 46px minmax(0, 1.7fr) 0.75fr 0.9fr 1fr; gap: 8px; align-items: center; }
+  .head-line { margin-bottom: 8px; }
+  .colh { font-size: 10.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--soft); }
+
+  /* The serial number: read, never typed — it follows the row it sits on. */
+  .sn {
+    display: flex; align-items: center; justify-content: center; min-height: 44px;
+    border-radius: 6px; background: var(--mist); color: var(--muted);
+    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .line.empty .sn { background: transparent; border: 1px dashed var(--line); color: var(--soft); }
+
+  input.fld { width: 100%; font: inherit; font-size: 14px; color: var(--ink); outline: none; }
+  input.fld::placeholder { color: var(--soft); }
+  input.fld:focus { border-color: var(--green); background: #fff; box-shadow: 0 0 0 3px rgba(18,99,74,.12); }
+  input.fld.right { text-align: right; font-variant-numeric: tabular-nums; }
+  input.fld[readonly] { background: var(--mist); font-weight: 700; }
+  input.fld[readonly]:focus { box-shadow: none; border-color: var(--line); background: var(--mist); }
+
+  @media (max-width: 620px) {
+    .line { grid-template-columns: 38px 1fr 1fr; }
+    .head-line { display: none; }
+    .line > .sn { grid-row: span 2; }
+  }
 
   .pays { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .pay {
@@ -185,27 +207,19 @@
         </div>
 
         <div class="card">
-          <div class="step"><span class="num">2</span><h3 class="devdisp">के किन्यो</h3><small>Items</small></div>
-          <div class="lines">
-            <div class="line">
-              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">bag open</span><span class="pill">कच्चा</span></div>
-              <div class="fld num-cell" style="justify-content:flex-end">45</div>
-              <div class="fld num-cell" style="justify-content:flex-end">1,517</div>
-              <div class="fld num-cell" style="justify-content:flex-end;background:var(--mist);font-weight:700">68,250</div>
-            </div>
-            <div class="line">
-              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">buckal</span><span class="pill">कच्चा</span></div>
-              <div class="fld num-cell" style="justify-content:flex-end">45</div>
-              <div class="fld num-cell" style="justify-content:flex-end">362</div>
-              <div class="fld num-cell" style="justify-content:flex-end;background:var(--mist);font-weight:700">16,275</div>
-            </div>
-            <div class="line">
-              <div class="fld" style="border-style:dashed;color:var(--soft)"><span class="dev" style="font-size:13px">अर्को सामान…</span></div>
-              <div class="fld" style="border-style:dashed"></div>
-              <div class="fld" style="border-style:dashed"></div>
-              <div class="fld" style="border-style:dashed"></div>
-            </div>
+          <div class="step"><span class="num">2</span><h3 class="devdisp">के किन्यो</h3><small>यहाँ टाइप गर्नुहोस् — Enter थिच्दा तलको लाइनमा जान्छ</small></div>
+
+          <div class="line head-line">
+            <span class="colh">क्र.सं.</span>
+            <span class="colh">सामान</span>
+            <span class="colh" style="text-align:right">थान</span>
+            <span class="colh" style="text-align:right">दर</span>
+            <span class="colh" style="text-align:right">रकम</span>
           </div>
+
+          <div class="lines" id="lines"></div>
+
+          <p class="dev" style="margin:10px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)">अन्तिम लाइन भरिनेबित्तिकै अर्को आफैं देखिन्छ। खाली लाइन गनिँदैन।</p>
         </div>
 
         <div class="card" style="border-color:var(--green)">
@@ -233,7 +247,7 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
             <div>
               <p class="lbl">कति तिर्यो · Paid now</p>
-              <div class="fld num-cell" id="paidBox" style="border-color:var(--green);background:#fff;justify-content:flex-end;font-size:17px;font-weight:800">Rs. 50,000</div>
+              <input class="fld right" id="paidBox" inputmode="numeric" value="50000" style="border-color:var(--green);background:#fff;font-size:17px;font-weight:800">
             </div>
             <div>
               <p class="lbl" id="extraLabel">टिपोट · Note</p>
@@ -248,11 +262,11 @@
       <div class="card side">
         <h3 class="devdisp" style="margin:0;font-size:19px;font-weight:700">बिलको हिसाब</h3>
         <div style="display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--line);padding-bottom:13px">
-          <div class="row"><span class="dev">२ सामान</span><span>Rs. 84,525</span></div>
+          <div class="row"><span class="dev" id="countLabel">२ सामान</span><span id="subtotal">Rs. 84,525</span></div>
           <div class="row"><span class="dev">छुट</span><span style="color:var(--soft)">—</span></div>
           <div class="row"><span class="dev">VAT</span><span style="color:var(--soft)">—</span></div>
         </div>
-        <div class="row"><span class="dev" style="font-size:14px;font-weight:700;color:var(--ink)">बिल जम्मा</span><span style="font-size:22px;font-weight:800">Rs. 84,525</span></div>
+        <div class="row"><span class="dev" style="font-size:14px;font-weight:700;color:var(--ink)">बिल जम्मा</span><span id="grandTotal" style="font-size:22px;font-weight:800">Rs. 84,525</span></div>
         <div class="row"><span class="dev">तिरेको</span><span id="paidSide" style="font-size:16px;font-weight:700;color:var(--green)">Rs. 50,000</span></div>
 
         <div class="due" id="dueBox">
@@ -292,10 +306,18 @@
           <div>
             <p class="lbl">२ · के किन्यो</p>
             <div class="stack">
-              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">bag open</span><span class="num-cell" style="font-size:13px;font-weight:700">45 × 1,517</span></div>
-              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">buckal</span><span class="num-cell" style="font-size:13px;font-weight:700">45 × 362</span></div>
-              <div class="fld" style="border-style:dashed;border-color:var(--gold);background:#FFF9EA;gap:8px">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B98A2E" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              <div class="fld" style="gap:10px">
+                <span class="sn" style="min-height:0;width:22px;height:22px;border-radius:999px;font-size:12px;flex:none">1</span>
+                <span class="dev" style="font-weight:600;flex:1">bag open</span>
+                <span class="num-cell" style="font-size:13px;font-weight:700">45 × 1,517</span>
+              </div>
+              <div class="fld" style="gap:10px">
+                <span class="sn" style="min-height:0;width:22px;height:22px;border-radius:999px;font-size:12px;flex:none">2</span>
+                <span class="dev" style="font-weight:600;flex:1">buckal</span>
+                <span class="num-cell" style="font-size:13px;font-weight:700">45 × 362</span>
+              </div>
+              <div class="fld" style="border-style:dashed;border-color:var(--gold);background:#FFF9EA;gap:10px">
+                <span class="sn" style="min-height:0;width:22px;height:22px;border-radius:999px;font-size:12px;flex:none;background:transparent;border:1px dashed var(--gold);color:var(--gold-ink)">3</span>
                 <span class="dev" style="font-size:13.5px;font-weight:600;color:var(--gold-ink)">अर्को सामान</span>
               </div>
             </div>
@@ -335,60 +357,182 @@
 
 <script>
 (function () {
-  var TOTAL = 84525;
-  var shape = {
-    cash:   { paid: 50000, label: "टिपोट · Note",             hint: "गाडी, गेट पास, बिल नं.",
-              why: "नगद ५०,००० तिर्यो — बाँकी ३४,५२५ आफैं उधारोमा जान्छ। दुइटा फारम चाहिँदैन।" },
-    credit: { paid: 0,     label: "कहिलेसम्म · Pay by",       hint: "२०८३/०५/२४",
+  /* ---- The bill lines -------------------------------------------------
+     The serial number is not a field. It is read off the row it sits on and
+     renumbers itself when rows come and go, so it can never disagree with the
+     bill. Enter walks the row and then drops to the next one, which is how a
+     paper bill is copied in: name, pieces, rate, Enter, next line.
+  --------------------------------------------------------------------- */
+  var FIELDS = ["name", "qty", "rate"];
+  var rows = [
+    { name: "bag open", qty: "45", rate: "1516.67" },
+    { name: "buckal",   qty: "45", rate: "361.67" },
+    { name: "",         qty: "",   rate: "" }
+  ];
+
+  var linesEl = document.getElementById("lines");
+
+  function num(v) { var n = parseFloat(String(v).replace(/[^0-9.]/g, "")); return isFinite(n) ? n : 0; }
+  function money(n) { return "Rs. " + Math.round(n).toLocaleString("en-IN"); }
+  function amountOf(r) { return num(r.qty) * num(r.rate); }
+  function filled(r) { return Boolean(r.name.trim() || r.qty || r.rate); }
+
+  function draw(focus) {
+    /* Always one spare line at the bottom, never two. */
+    while (rows.length && !filled(rows[rows.length - 1])) rows.pop();
+    rows.push({ name: "", qty: "", rate: "" });
+
+    linesEl.textContent = "";
+
+    rows.forEach(function (r, i) {
+      var line = document.createElement("div");
+      line.className = "line" + (filled(r) ? "" : " empty");
+
+      var sn = document.createElement("div");
+      sn.className = "sn";
+      sn.textContent = String(i + 1);
+      line.appendChild(sn);
+
+      FIELDS.forEach(function (key) {
+        var input = document.createElement("input");
+        input.className = "fld" + (key === "name" ? "" : " right");
+        input.value = r[key];
+        input.dataset.row = String(i);
+        input.dataset.key = key;
+        if (key === "name") input.placeholder = i === 0 ? "सामानको नाम" : "";
+        if (key === "qty") { input.placeholder = "थान"; input.inputMode = "numeric"; }
+        if (key === "rate") { input.placeholder = "दर"; input.inputMode = "numeric"; }
+        line.appendChild(input);
+      });
+
+      var amount = document.createElement("input");
+      amount.className = "fld right";
+      amount.readOnly = true;
+      amount.tabIndex = -1;
+      amount.value = filled(r) ? Math.round(amountOf(r)).toLocaleString("en-IN") : "";
+      line.appendChild(amount);
+
+      linesEl.appendChild(line);
+    });
+
+    if (focus) {
+      var want = linesEl.querySelector(
+        'input[data-row="' + focus.row + '"][data-key="' + focus.key + '"]'
+      );
+      if (want) { want.focus(); want.select(); }
+    }
+
+    total();
+  }
+
+  linesEl.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t.dataset || !t.dataset.key) return;
+    rows[+t.dataset.row][t.dataset.key] = t.value;
+
+    /* Redraw only when a row appears or disappears — otherwise the caret jumps
+       mid-word. The amount and the totals still update every keystroke. */
+    var lastFilled = filled(rows[rows.length - 1]);
+    if (lastFilled) { draw({ row: +t.dataset.row, key: t.dataset.key }); return; }
+
+    var line = t.closest(".line");
+    var amount = line.lastElementChild;
+    var r = rows[+t.dataset.row];
+    amount.value = filled(r) ? Math.round(amountOf(r)).toLocaleString("en-IN") : "";
+    line.className = "line" + (filled(r) ? "" : " empty");
+    total();
+  });
+
+  linesEl.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var t = e.target;
+    if (!t.dataset || !t.dataset.key) return;
+    e.preventDefault();
+
+    var at = FIELDS.indexOf(t.dataset.key);
+    var row = +t.dataset.row;
+
+    /* Last field of the row: drop to the next serial number, not sideways. */
+    if (at === FIELDS.length - 1) draw({ row: row + 1, key: "name" });
+    else draw({ row: row, key: FIELDS[at + 1] });
+  });
+
+  /* ---- The money ------------------------------------------------------ */
+  var METHODS = {
+    cash:   { label: "टिपोट · Note",           hint: "गाडी, गेट पास, बिल नं.",
+              why: "जति तिर्‍यो त्यति लेख्ने — बाँकी आफैं उधारोमा जान्छ। दुइटा फारम चाहिँदैन।" },
+    credit: { label: "कहिलेसम्म · Pay by",     hint: "२०८३/०५/२४", pays: "none",
               why: "अहिले केही नतिरेको — पूरै उधारो। कहिलेसम्म तिर्ने भन्ने मिति यहीँ राख्ने।" },
-    cheque: { paid: TOTAL, label: "चेक नम्बर · Cheque no.",   hint: "NIC ASIA · 004412",
+    cheque: { label: "चेक नम्बर · Cheque no.", hint: "NIC ASIA · 004412", pays: "all",
               why: "चेकले पूरै तिरेको — चेक नम्बर यहीँ, बिलसँगै टाँसिन्छ।" },
-    qr:     { paid: TOTAL, label: "कुन app · Wallet",         hint: "eSewa · Khalti · Fonepay",
+    qr:     { label: "कुन app · Wallet",       hint: "eSewa · Khalti · Fonepay", pays: "all",
               why: "QR बाट तिरेको — कुन app भन्ने यहीँ। अहिलेको फारममा यो विकल्पै छैन।" }
   };
 
-  function money(n) { return "Rs. " + n.toLocaleString("en-IN"); }
-
+  var picked = "cash";
   var buttons = Array.prototype.slice.call(document.querySelectorAll("#pays .pay"));
   var paidBox = document.getElementById("paidBox");
-  var paidSide = document.getElementById("paidSide");
-  var extraLabel = document.getElementById("extraLabel");
-  var extraHint = document.getElementById("extraHint");
-  var explain = document.getElementById("explain");
-  var dueBox = document.getElementById("dueBox");
-  var dueLabel = document.getElementById("dueLabel");
-  var dueAmount = document.getElementById("dueAmount");
-  var dueNote = document.getElementById("dueNote");
+  var el = {
+    countLabel: document.getElementById("countLabel"),
+    subtotal: document.getElementById("subtotal"),
+    grandTotal: document.getElementById("grandTotal"),
+    paidSide: document.getElementById("paidSide"),
+    extraLabel: document.getElementById("extraLabel"),
+    extraHint: document.getElementById("extraHint"),
+    explain: document.getElementById("explain"),
+    dueBox: document.getElementById("dueBox"),
+    dueLabel: document.getElementById("dueLabel"),
+    dueAmount: document.getElementById("dueAmount"),
+    dueNote: document.getElementById("dueNote")
+  };
 
-  function show(id) {
-    var s = shape[id];
-    var due = Math.max(0, TOTAL - s.paid);
+  function total() {
+    var real = rows.filter(filled);
+    var sum = real.reduce(function (a, r) { return a + amountOf(r); }, 0);
+    var paid = Math.min(num(paidBox.value), sum);
+    var due = Math.max(0, sum - paid);
+    var m = METHODS[picked];
 
-    buttons.forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.getAttribute("data-m") === id));
-    });
+    el.countLabel.textContent = real.length + " सामान";
+    el.subtotal.textContent = money(sum);
+    el.grandTotal.textContent = money(sum);
+    el.paidSide.textContent = money(paid);
+    el.extraLabel.textContent = m.label;
+    el.extraHint.textContent = m.hint;
+    el.explain.textContent = m.why;
 
-    paidBox.textContent = money(s.paid);
-    paidSide.textContent = money(s.paid);
-    extraLabel.textContent = s.label;
-    extraHint.textContent = s.hint;
-    explain.textContent = s.why;
-
-    dueAmount.textContent = money(due);
+    el.dueAmount.textContent = money(due);
     if (due > 0) {
-      dueBox.classList.remove("clear");
-      dueLabel.textContent = "उधारो रहन्छ · Still owed";
-      dueNote.textContent = "nobel shoe को खातामा आफैं चढ्छ।";
+      el.dueBox.classList.remove("clear");
+      el.dueLabel.textContent = "उधारो रहन्छ · Still owed";
+      el.dueNote.textContent = "nobel shoe को खातामा आफैं चढ्छ।";
     } else {
-      dueBox.classList.add("clear");
-      dueLabel.textContent = "पूरै तिरियो · Nothing owed";
-      dueNote.textContent = "supplier को खातामा केही बाँकी रहँदैन।";
+      el.dueBox.classList.add("clear");
+      el.dueLabel.textContent = "पूरै तिरियो · Nothing owed";
+      el.dueNote.textContent = "supplier को खातामा केही बाँकी रहँदैन।";
     }
   }
 
+  function billTotal() {
+    return rows.filter(filled).reduce(function (a, r) { return a + amountOf(r); }, 0);
+  }
+
   buttons.forEach(function (b) {
-    b.addEventListener("click", function () { show(b.getAttribute("data-m")); });
+    b.addEventListener("click", function () {
+      picked = b.getAttribute("data-m");
+      buttons.forEach(function (o) {
+        o.setAttribute("aria-pressed", String(o.getAttribute("data-m") === picked));
+      });
+      var pays = METHODS[picked].pays;
+      if (pays === "none") paidBox.value = "0";
+      if (pays === "all") paidBox.value = String(Math.round(billTotal()));
+      total();
+    });
   });
+
+  paidBox.addEventListener("input", total);
+
+  draw();
 })();
 </script>
 </body>
