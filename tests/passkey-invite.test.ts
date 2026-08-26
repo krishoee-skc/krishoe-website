@@ -55,8 +55,11 @@ describe("what the sign-in page tells the owner", () => {
     // gains, which is that they stop typing a password. The owner asked whether
     // a good app would write it that way. It would not — Apple says "you can
     // now use Face ID to sign in", never "registered".
-    expect(button).toContain("हरेक यन्त्रमा एक पटक मिलाउनुपर्छ");
-    expect(button).toContain("भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ");
+    // "यन्त्र" alone read as a phone to a reader holding a computer, so it
+    // now names both. The promise is unchanged: say it is per-device, and say
+    // where switching it on happens.
+    expect(button).toContain("हरेक फोन वा computer मा एक पटक मिलाउनुपर्छ");
+    expect(button).toContain("चालु गर्ने बाटो देखिन्छ");
     expect(button).not.toContain("दर्ता");
   });
 });

@@ -184,7 +184,6 @@ const STILL_OWED: Record<string, number> = {
   "app/worker/dashboard/page.tsx": 15,
   "app/worker/payslip/page.tsx": 11,
   "app/worker/production/page.tsx": 8,
-  "components/AdminLoginForm.tsx": 20,
   "components/admin/AdminAccessForms.tsx": 4,
   "components/admin/BikramMonthPicker.tsx": 1,
   "components/admin/GoogleAnalyticsDashboard.tsx": 13,

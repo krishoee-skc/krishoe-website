@@ -10,6 +10,7 @@ import {
   type LoginState,
 } from "@/app/admin/login/actions";
 import SubmitButton from "@/components/SubmitButton";
+import { useLanguage } from "@/components/LanguageProvider";
 import PasskeySignInButton from "@/components/PasskeySignInButton";
 
 const initialState: LoginState = {
@@ -27,8 +28,10 @@ const initialState: LoginState = {
  * The sentence about Login devices went with it: it described what happens
  * after signing in, on a screen where the reader has not signed in yet.
  */
-const ADMIN_SIGN_IN_HINT =
-  "तपाईंलाई दिइएको email र password हाल्नुहोस्। आफ्नै खाता चलाउनुहोस्।";
+const ADMIN_SIGN_IN_HINT = {
+  en: "Sign in with the email and password you were given. Use your own account.",
+  ne: "तपाईंलाई दिइएको email र password हाल्नुहोस्। आफ्नै खाता चलाउनुहोस्।",
+};
 
 /**
  * The same, for the worker portal.
@@ -37,8 +40,10 @@ const ADMIN_SIGN_IN_HINT =
  * to them — they were standing there. What matters is changing it, so that is
  * what this says, without naming anybody.
  */
-const WORKER_SIGN_IN_HINT =
-  "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। पहिलो पटकमै आफ्नो नयाँ password राख्नुहोस्।";
+const WORKER_SIGN_IN_HINT = {
+  en: "Put in your mobile number or email and your password. Set your own new password the first time.",
+  ne: "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। पहिलो पटकमै आफ्नो नयाँ password राख्नुहोस्।",
+};
 
 export default function AdminLoginForm({
   nextPath = "/admin",
@@ -49,6 +54,7 @@ export default function AdminLoginForm({
   bootstrapLoginAllowed?: boolean;
   portal?: "admin" | "worker";
 }) {
+  const { text } = useLanguage();
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [code, setCode] = useState("");
@@ -132,13 +138,16 @@ export default function AdminLoginForm({
         <input type="hidden" name="challengeToken" value={state.challengeToken} />
         {state.remember ? <input type="hidden" name="remember" value="on" /> : null}
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-          KRISHOE · दुई चरणको जाँच
+          KRISHOE · {text("Two-step check", "दुई चरणको जाँच")}
         </p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-          Email हेर्नुहोस्
+          {text("Check your email", "Email हेर्नुहोस्")}
         </h1>
         <p className="mt-3 text-sm leading-7 text-brand-muted">
-          {state.emailHint ?? "तपाईंको staff email"} मा पठाइएको ६ अंकको कोड हाल्नुहोस्। १० मिनेटमा सकिन्छ।
+          {text(
+            `Put in the six-digit code sent to ${state.emailHint ?? "your staff email"}. It lasts ten minutes.`,
+            `${state.emailHint ?? "तपाईंको staff email"} मा पठाइएको ६ अंकको कोड हाल्नुहोस्। १० मिनेटमा सकिन्छ।`,
+          )}
         </p>
 
         {/* Asking for a code deletes the one before it, and nothing said so.
@@ -146,11 +155,13 @@ export default function AdminLoginForm({
             three arrived, the first two were already dead, and there was no way
             to tell which of the three to type. */}
         <p className="mt-3 rounded-xl bg-brand-mist px-3 py-2 text-sm font-semibold leading-6 text-brand-green-ink">
-          Email मा एकभन्दा बढी कोड छन् भने — <strong>सबैभन्दा नयाँ मात्र चल्छ</strong>। नयाँ माग्दा पुरानो आफैँ रद्द हुन्छ।
+          {text("More than one code in your email? ", "Email मा एकभन्दा बढी कोड छन् भने — ")}
+          <strong>{text("only the newest one works", "सबैभन्दा नयाँ मात्र चल्छ")}</strong>
+          {text(". Asking for a new one cancels the old.", "। नयाँ माग्दा पुरानो आफैँ रद्द हुन्छ।")}
         </p>
 
         <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
-          ६ अंकको कोड
+          {text("Six-digit code", "६ अंकको कोड")}
           <input
             name="code"
             type="text"
@@ -169,17 +180,27 @@ export default function AdminLoginForm({
 
         {codeWasFilled ? (
           <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold leading-5 text-amber-900">
-            ⚠️ त्यो password जस्तो देखियो — यहाँ चाहिने ६ अंकको कोड हो।
+            {text(
+              "⚠️ That looked like a password — what is needed here is the six-digit code.",
+              "⚠️ त्यो password जस्तो देखियो — यहाँ चाहिने ६ अंकको कोड हो।",
+            )}
             <span className="mt-0.5 block font-semibold">
-              Gmail खोलेर कोड हेर्नुहोस्, अनि हातले टाइप गर्नुहोस्।
+              {text(
+                "Open Gmail, find the code, and type it in by hand.",
+                "Gmail खोलेर कोड हेर्नुहोस्, अनि हातले टाइप गर्नुहोस्।",
+              )}
             </span>
           </p>
         ) : null}
 
         <div className="mt-6 grid gap-3">
           <SubmitButton
-            idleLabel={isPending ? "जाँच्दैछौँ…" : "कोड हालेर भित्र जाने"}
-            pendingLabel="जाँच्दैछौँ…"
+            idleLabel={
+              isPending
+                ? text("Checking…", "जाँच्दैछौँ…")
+                : text("Enter the code and go in", "कोड हालेर भित्र जाने")
+            }
+            pendingLabel={text("Checking…", "जाँच्दैछौँ…")}
             disabled={isPending}
           />
           {state.message && !state.ok ? (
@@ -197,14 +218,14 @@ export default function AdminLoginForm({
             disabled={isPending}
             className="min-h-11 text-sm font-black text-brand-green hover:underline disabled:opacity-60"
           >
-            नयाँ कोड पठाउने
+            {text("Send a new code", "नयाँ कोड पठाउने")}
           </button>
           <button
             type="button"
             onClick={() => setState(initialState)}
             className="min-h-11 text-sm font-bold text-brand-muted hover:underline"
           >
-            सुरुबाट फेरि login गर्ने
+            {text("Start signing in again", "सुरुबाट फेरि login गर्ने")}
           </button>
         </div>
       </form>
@@ -214,17 +235,20 @@ export default function AdminLoginForm({
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-white/15 bg-[#FFFFFF] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-        {portal === "worker" ? "KRISHOE · कामदार" : "KRISHOE · Admin"}
+        {portal === "worker" ? `KRISHOE · ${text("Worker", "कामदार")}` : "KRISHOE · Admin"}
       </p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
         {portal === "worker" ? "KRISHOE worker portal" : "KRISHOE Admin"}
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {portal === "worker"
-          ? WORKER_SIGN_IN_HINT
+          ? text(WORKER_SIGN_IN_HINT.en, WORKER_SIGN_IN_HINT.ne)
           : bootstrapLoginAllowed
-          ? "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank."
-          : ADMIN_SIGN_IN_HINT}
+          ? text(
+              "Sign in with a staff account. During initial setup only, the recovery admin password works when email is left blank.",
+              "Staff खाताबाट भित्र जानुहोस्। सुरुको सेटअपमा मात्र — email खाली छोड्दा recovery admin password चल्छ।",
+            )
+          : text(ADMIN_SIGN_IN_HINT.en, ADMIN_SIGN_IN_HINT.ne)}
       </p>
 
       {/* Offered above the password, because it is the better way in when the
@@ -238,7 +262,7 @@ export default function AdminLoginForm({
           type="email" would make the browser reject a phone number before the
           form was ever submitted. */}
       <label className="mt-7 grid gap-2 text-sm font-semibold text-brand-green-ink">
-        Email वा मोबाइल नम्बर
+        {text("Email or mobile number", "Email वा मोबाइल नम्बर")}
         <input
           name="email"
           type="text"
@@ -254,7 +278,7 @@ export default function AdminLoginForm({
           required={!bootstrapLoginAllowed}
           autoComplete="username"
           className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
-          placeholder="तपाईंकै email वा मोबाइल नम्बर"
+          placeholder={text("your email or mobile number", "तपाईंकै email वा मोबाइल नम्बर")}
         />
       </label>
 
@@ -266,7 +290,7 @@ export default function AdminLoginForm({
           required
           autoComplete="current-password"
           className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
-          placeholder="तपाईंकै password"
+          placeholder={text("your password", "तपाईंकै password")}
         />
       </label>
 
@@ -282,17 +306,26 @@ export default function AdminLoginForm({
           className="mt-0.5 h-5 w-5 shrink-0 accent-brand-green"
         />
         <span>
-          यो यन्त्र सम्झनुहोस् — ३० दिन
+          {text("Remember this device — 30 days", "यो यन्त्र सम्झनुहोस् — ३० दिन")}
           <span className="mt-0.5 block text-xs font-medium text-brand-muted">
-            आफ्नै फोन वा computer मा मात्र। अरूले चलाउने यन्त्रमा नटिक्नुहोस्।
+            {text(
+              "Only on your own phone or computer. Never tick this on a shared device.",
+              "आफ्नै फोन वा computer मा मात्र। अरूले चलाउने यन्त्रमा नटिक्नुहोस्।",
+            )}
           </span>
         </span>
       </label>
 
       <div className="mt-6 grid gap-3">
         <SubmitButton
-          idleLabel={isPending ? "Checking password" : portal === "worker" ? "Open worker portal" : "Unlock admin"}
-          pendingLabel="Checking password"
+          idleLabel={
+            isPending
+              ? text("Checking password", "Password जाँच्दैछौँ")
+              : portal === "worker"
+                ? text("Open worker portal", "कामदार portal खोल्ने")
+                : text("Unlock admin", "Admin खोल्ने")
+          }
+          pendingLabel={text("Checking password", "Password जाँच्दैछौँ")}
           disabled={isPending}
         />
         {state.message && !state.ok ? (
@@ -304,7 +337,7 @@ export default function AdminLoginForm({
           href="/admin/forgot-password"
           className="text-center text-sm font-black text-brand-green hover:underline"
         >
-          आफ्नो password बिर्सनुभयो?
+          {text("Forgotten your password?", "आफ्नो password बिर्सनुभयो?")}
         </Link>
       </div>
     </form>

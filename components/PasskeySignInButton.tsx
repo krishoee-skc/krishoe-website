@@ -53,26 +53,32 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
       // broken: the button was pressed, a QR sheet appeared, it was closed, and
       // the page sat there in silence. Nothing on screen said the phone has no
       // passkey yet, or that the password below still works.
+      // Both branches say the same two things, because they are the two things
+      // that are both true and useful: this device has no KRISHOE passkey
+      // saved, and the password below still works.
+      //
+      // "Passkey could not open it" was the other half of this, and it was
+      // useless — the owner pressed the button on a Windows computer while
+      // their only passkey sits on an iPhone, and the message read as the app
+      // being broken rather than as a passkey being per-device by design.
+      // Which DOMException the browser picked does not change the advice:
+      // Windows Hello, Safari and a dismissed QR sheet all raise different
+      // names for the same situation.
+      //
+      // It says "device", not "phone": half the times this is read, it is on a
+      // computer.
       const name = (cause as { name?: string })?.name;
-      if (name === "NotAllowedError" || name === "AbortError") {
-        setError(
-          // Says what to do next, not just what is missing. "Login devices" was
-          // a screen name the reader had to go and find; the shop now offers
-          // the registration itself the moment they are inside, so the honest
-          // instruction is simply to sign in and say yes.
-          text(
-            "Not set up on this phone yet — each device needs it once. Sign in with the password below and the way to switch it on appears once you are inside.",
-            "यो फोनमा अझै चालु छैन — हरेक यन्त्रमा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, भित्र गएपछि चालु गर्ने बाटो आफैँ देखिन्छ।",
-          )
-        );
-      } else {
-        setError(
-          text(
-            "Passkey could not open it. Use the password below.",
-            "Passkey ले खोल्न सकेन। तलको password प्रयोग गर्नुहोस्।",
-          ),
-        );
-      }
+      setError(
+        name === "NotAllowedError" || name === "AbortError"
+          ? text(
+              "Not set up on this device yet — each phone or computer needs it once. Sign in with the password below; the way to switch it on appears after that.",
+              "यो यन्त्रमा अझै चालु छैन — हरेक फोन वा computer मा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, अनि चालु गर्ने बाटो देखिन्छ।",
+            )
+          : text(
+              "This device has no KRISHOE passkey saved — one saved on your phone does not work on a computer, or the other way round. Use the password below.",
+              "यो यन्त्रमा KRISHOE को passkey छैन — फोनमा राखेको computer मा चल्दैन, computer को फोनमा चल्दैन। तलको password प्रयोग गर्नुहोस्।",
+            ),
+      );
     } finally {
       setBusy(false);
     }
