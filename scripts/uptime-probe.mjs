@@ -107,65 +107,113 @@ async function file(reading) {
   return await response.json().catch(() => ({}));
 }
 
-const reading = await probe();
-console.log(
-  `${reading.status.toUpperCase()}  ${reading.statusCode || "—"}  ${reading.responseTime}ms  ${PROBE_URL}${reading.note ? `  (${reading.note})` : ""}`,
-);
+/**
+ * The whole check, so a finished path can simply return.
+ *
+ * process.exit() was how this ended, and on Windows it aborts the process
+ * mid-flight: the fetch that just sent the alert still has a socket closing,
+ * and exiting through it trips a libuv assertion — the message goes out and
+ * the run still reports a crash. Returning a code and letting Node close its
+ * own handles ends the same way on every machine.
+ */
+async function main() {
+  /**
+   * Prove the alert works, on a day nothing is wrong.
+   *
+   * A shop that is up sends no alert, so the only thing that ever tests this
+   * path is a real outage — and finding out then that a secret was pasted wrong
+   * is finding out too late. Pressing "Send a test alert" in the Actions tab
+   * sends one now.
+   *
+   * It deliberately files nothing. Writing a "down" row to prove the message
+   * works would put a false outage into the uptime figure the owner is meant to
+   * trust, which is a strange price to pay for a test.
+   */
+  if ((process.env.UPTIME_TEST_ALERT || "").trim().toLowerCase() === "true") {
+    console.log("Test alert requested — sending, and filing nothing.");
+    const results = await sendUptimeAlert({
+      state: "down",
+      url: `${PROBE_URL}  ·  TEST — पसल ठीकै छ / the shop is fine`,
+      statusCode: 0,
+      error: "TEST — यो जाँच मात्र हो / this is only a test",
+    });
 
-// Told BEFORE the filing is attempted, and whether or not filing ever
-// succeeds. Filing needs the shop to answer; the alert exists precisely for
-// when it does not. Sending it first is what makes a long outage loud instead
-// of silent — waiting for a row to be written would mean the four-hour
-// failures, the only ones that really cost a customer, are the ones nobody is
-// told about.
-if (reading.status === "down") {
-  console.log("::warning::KRISHOE did not answer this check.");
-  await sendUptimeAlert({
-    state: "down",
-    url: PROBE_URL,
-    statusCode: reading.statusCode,
-    error: reading.note,
-  });
-}
-
-if (!TOKEN) {
-  console.error("No UPTIME_WRITE_TOKEN — the reading was taken but cannot be filed.");
-  process.exit(1);
-}
-
-// The reading carries its own checkedAt, so a late-landing "down" is still a
-// true record of when the shop was down.
-for (let attempt = 0; ; attempt += 1) {
-  try {
-    const filed = await file(reading);
-    console.log(`filed — ${reading.status} at ${reading.checkedAt}`);
-
-    // Answering again after a failure. Worth a message of its own: an owner who
-    // was told the shop was down should not have to keep checking to find out
-    // it came back, and how long it lasted is the number they will want.
-    if (reading.status === "up" && filed?.previousStatus === "down") {
-      await sendUptimeAlert({
-        state: "up",
-        url: PROBE_URL,
-        downSince: filed.downSince,
-      });
-    }
-    break;
-  } catch (error) {
-    if (attempt >= RETRY_DELAYS_MS.length) {
-      // Out of retries. The shop has been unreachable for the whole window, so
-      // there is nowhere to file this — and the gap it leaves in the readings
-      // is itself the record. Said out loud rather than swallowed. The owner
-      // has already been told, above.
-      console.error(`Could not file the reading: ${error.message}`);
+    const sent = results.filter((result) => result.sent).map((result) => result.channel);
+    if (sent.length === 0) {
       console.log(
-        "::warning::KRISHOE was unreachable for the whole retry window — this outage shows as a gap in the readings.",
+        "::error::No test alert was sent. Add the secrets at Settings → Secrets and variables → Actions.",
       );
-      process.exit(1);
+      return 1;
     }
 
-    const wait = RETRY_DELAYS_MS[attempt];
-    console.log(`  filing failed (${error.message}) — retrying in ${wait / 1000}s`);
-    await sleep(wait);
+    console.log(`::notice::Test alert sent by ${sent.join(" and ")}. Nothing was filed.`);
+    return 0;
   }
+
+  const reading = await probe();
+  console.log(
+    `${reading.status.toUpperCase()}  ${reading.statusCode || "—"}  ${reading.responseTime}ms  ${PROBE_URL}${reading.note ? `  (${reading.note})` : ""}`,
+  );
+
+  // Told BEFORE the filing is attempted, and whether or not filing ever
+  // succeeds. Filing needs the shop to answer; the alert exists precisely for
+  // when it does not. Sending it first is what makes a long outage loud instead
+  // of silent — waiting for a row to be written would mean the four-hour
+  // failures, the only ones that really cost a customer, are the ones nobody is
+  // told about.
+  if (reading.status === "down") {
+    console.log("::warning::KRISHOE did not answer this check.");
+    await sendUptimeAlert({
+      state: "down",
+      url: PROBE_URL,
+      statusCode: reading.statusCode,
+      error: reading.note,
+    });
+  }
+
+  if (!TOKEN) {
+    console.error("No UPTIME_WRITE_TOKEN — the reading was taken but cannot be filed.");
+    return 1;
+  }
+
+  // The reading carries its own checkedAt, so a late-landing "down" is still a
+  // true record of when the shop was down.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const filed = await file(reading);
+      console.log(`filed — ${reading.status} at ${reading.checkedAt}`);
+
+      // Answering again after a failure. Worth a message of its own: an owner who
+      // was told the shop was down should not have to keep checking to find out
+      // it came back, and how long it lasted is the number they will want.
+      if (reading.status === "up" && filed?.previousStatus === "down") {
+        await sendUptimeAlert({
+          state: "up",
+          url: PROBE_URL,
+          downSince: filed.downSince,
+        });
+      }
+      break;
+    } catch (error) {
+      if (attempt >= RETRY_DELAYS_MS.length) {
+        // Out of retries. The shop has been unreachable for the whole window, so
+        // there is nowhere to file this — and the gap it leaves in the readings
+        // is itself the record. Said out loud rather than swallowed. The owner
+        // has already been told, above.
+        console.error(`Could not file the reading: ${error.message}`);
+        console.log(
+          "::warning::KRISHOE was unreachable for the whole retry window — this outage shows as a gap in the readings.",
+        );
+        return 1;
+      }
+
+      const wait = RETRY_DELAYS_MS[attempt];
+      console.log(`  filing failed (${error.message}) — retrying in ${wait / 1000}s`);
+      await sleep(wait);
+    }
+  }
+
+  return 0;
 }
+
+process.exitCode = await main();

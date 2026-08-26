@@ -36,6 +36,11 @@ on:
     - cron: "0 0-3,14-23 * * *"
   # So a person can ask right now, from the Actions tab, without waiting.
   workflow_dispatch:
+    inputs:
+      send_test_alert:
+        description: "Send a test alert — proves the email and WhatsApp secrets work"
+        type: boolean
+        default: false
 
 concurrency:
   group: uptime
@@ -65,6 +70,10 @@ jobs:
       - name: Ask whether the shop is answering
         env:
           PROBE_URL: ${{ vars.PROBE_URL || 'https://krishoe-website.vercel.app/api/health' }}
+          # A shop that is up sends no alert, which leaves no way to find out
+          # whether the alert would have worked — until the night it matters.
+          # This sends one on request and files nothing.
+          UPTIME_TEST_ALERT: ${{ inputs.send_test_alert }}
           # Writes one uptime row and can do nothing else. Deliberately NOT the
           # database connection string: anything reaching these secrets should
           # not be able to read a single order, wage or customer.

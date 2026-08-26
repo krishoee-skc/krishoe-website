@@ -150,3 +150,62 @@ describe("a channel with no secrets", () => {
     expect(results.map((result) => result.reason)).toEqual(["not configured", "not configured"]);
   });
 });
+
+/**
+ * Proving the alert works on a day nothing is wrong.
+ *
+ * Until this existed, the only thing that exercised the alert path was a real
+ * outage — so a secret pasted wrong stayed wrong until the night it mattered.
+ */
+describe("the test alert", () => {
+  it("files nothing", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+    const testBlock = probe.slice(
+      probe.indexOf("UPTIME_TEST_ALERT"),
+      probe.indexOf("const reading = await probe()"),
+    );
+
+    // A "down" row written to prove the message works would put a false outage
+    // into the uptime figure the owner is meant to trust.
+    expect(testBlock).not.toContain("await file(");
+    // Returns rather than process.exit(): exiting through the socket the alert
+    // just used aborts the process on Windows, so the message goes out and the
+    // run still reports a crash.
+    expect(testBlock).toContain("return 0;");
+  });
+
+  it("ends without process.exit, which crashes on the way out", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    // As a statement, not as the comment above main() explaining why it went.
+    expect(probe).not.toMatch(/^\s*process\.exit\(/m);
+    expect(probe).toContain("process.exitCode = await main();");
+  });
+
+  it("says so plainly in the message", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    // Read on a phone, it must not be mistaken for the real thing.
+    expect(probe).toContain("TEST — पसल ठीकै छ");
+  });
+
+  it("fails the run when nothing could be sent", async () => {
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+    const testBlock = probe.slice(
+      probe.indexOf("UPTIME_TEST_ALERT"),
+      probe.indexOf("const reading = await probe()"),
+    );
+
+    // The whole point is finding out. A green tick and no email would say the
+    // secrets are fine when they are missing.
+    expect(testBlock).toContain("::error::");
+    expect(testBlock).toContain("return 1;");
+  });
+
+  it("is offered as a button on the workflow", async () => {
+    const workflow = await readFile(".github/workflows/uptime.yml", "utf8");
+
+    expect(workflow).toContain("send_test_alert");
+    expect(workflow).toContain("UPTIME_TEST_ALERT: ${{ inputs.send_test_alert }}");
+  });
+});
