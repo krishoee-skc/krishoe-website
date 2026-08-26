@@ -239,6 +239,9 @@ CREATE TABLE IF NOT EXISTS admin_staff_accounts (
   password_hash TEXT NOT NULL,
   -- Set for a Worker sign-in: the factory worker whose pairs and wages the
   -- portal shows.
+  -- Was a link into hr_employees, which no longer exists. Kept as a plain
+  -- nullable column because ten queries in lib/admin-settings.ts still name it.
+  employee_id TEXT,
   factory_worker_id TEXT,
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
   mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,

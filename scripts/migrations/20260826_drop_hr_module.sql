@@ -10,13 +10,24 @@
 --
 -- Safe to run twice. Nothing here deletes a row that has ever been written:
 -- every table dropped below was verified empty in production immediately before
--- the change, and the two columns dropped were NULL for every row.
+-- the change, and the one column dropped was NULL for every row.
 --
--- DELIBERATELY NOT DROPPED: twelve empty tables of an abandoned second factory
--- schema (factory_production_entries, factory_stage_assignments and their kin).
--- Nothing in the app names them and they hold nothing, but removing them was
--- not asked for — so this only cuts the one thread that ties them to HR, and
--- they can be dealt with as their own decision.
+-- DELIBERATELY NOT DROPPED, and each for its own reason:
+--
+--   * vehicle_dispatches and vehicle_dispatch_items. Empty, but read by
+--     getOperationsData() on every dashboard, dues, stock, POS, purchasing,
+--     insights and operations load. Dropping them took seven screens down.
+--   * admin_staff_accounts.employee_id. NULL for all six staff, but named in
+--     ten queries in lib/admin-settings.ts including the sign-in read.
+--     Dropping it locked everyone out of the admin.
+--   * Twelve empty tables of an abandoned second factory schema
+--     (factory_production_entries, factory_stage_assignments and their kin).
+--     Nothing names them, but removing them was not asked for — this only cuts
+--     the one thread tying them to HR.
+--
+-- The first two are why this file is shorter than it was: "the table is empty"
+-- is not the same question as "does anything still read it", and only the
+-- second one decides whether a DROP is safe.
 
 BEGIN;
 
@@ -83,28 +94,33 @@ ALTER TABLE factory_wage_settlements
   DROP CONSTRAINT IF EXISTS factory_wage_settlements_worker_id_fkey;
 
 -- ---------------------------------------------------------------------------
--- 3. The two link columns nobody ever filled in.
+-- 3. The link column nobody ever filled in.
 --
--- factory_workers.hr_employee_id was NULL for all eight workers, and
--- admin_staff_accounts.employee_id for all six staff. A login is tied to a
--- person by factory_worker_id, which stays.
+-- factory_workers.hr_employee_id was NULL for all eight workers. A worker's
+-- login is tied to them by factory_worker_id, which stays.
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE factory_workers DROP COLUMN IF EXISTS hr_employee_id;
-ALTER TABLE admin_staff_accounts DROP COLUMN IF EXISTS employee_id;
+
+-- admin_staff_accounts.employee_id is NOT dropped. It pointed at hr_employees
+-- and is NULL for all six staff, but lib/admin-settings.ts names it in ten
+-- queries including the sign-in read — dropping it locked everyone out of the
+-- admin. The foreign key goes; the column stays until those queries stop
+-- naming it, which is its own piece of work.
+ALTER TABLE admin_staff_accounts
+  DROP CONSTRAINT IF EXISTS admin_staff_accounts_employee_id_fkey;
+ALTER TABLE admin_staff_accounts
+  ADD COLUMN IF NOT EXISTS employee_id TEXT;
 
 -- ---------------------------------------------------------------------------
 -- 4. The tables themselves.
 --
 -- factory_worker_links existed only to marry the two worker lists; with one
--- list there is nothing to marry. The vehicle dispatch pair was never used —
--- no dispatch has ever been recorded. playing_with_neon is a sample table the
+-- list there is nothing to marry. playing_with_neon is a sample table the
 -- database provider left behind that no query in this app has ever named.
 -- ---------------------------------------------------------------------------
 
 DROP TABLE IF EXISTS factory_worker_links;
-DROP TABLE IF EXISTS vehicle_dispatch_items;
-DROP TABLE IF EXISTS vehicle_dispatches;
 DROP TABLE IF EXISTS playing_with_neon;
 
 DROP TABLE IF EXISTS hr_payroll;
