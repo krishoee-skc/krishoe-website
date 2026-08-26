@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ne">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>KRISHOE — किनमेलको नयाँ फारम</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700;800&family=Tiro+Devanagari+Hindi&family=Mukta:wght@400;600;700&display=swap">
+<style>
+  :root {
+    --green: #12634A;
+    --ink: #1A4238;
+    --line: #E4DFD5;
+    --gold: #C8A04D;
+    --gold-deep: #B98A2E;
+    --gold-ink: #7A5A00;
+    --paper: #FDFBF7;
+    --ground: #FAF8F3;
+    --mist: #F4F2ED;
+    --muted: #6B6459;
+    --soft: #938C80;
+    --clay: #7B3128;
+    --clay-tint: #FBEAE8;
+    --green-tint: #EAF5EF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Inter", "Mukta", "Segoe UI", Arial, sans-serif;
+  }
+  .dev { font-family: "Mukta", "Inter", "Segoe UI", Arial, sans-serif; }
+  .devdisp { font-family: "Tiro Devanagari Hindi", "Fraunces", Georgia, serif; }
+  .disp { font-family: "Fraunces", Georgia, serif; }
+  a { color: var(--gold-deep); }
+  a:hover { color: #9A6B08; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 72px; }
+
+  .top { border-bottom: 1px solid var(--line); padding-bottom: 22px; }
+  .eyebrow { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 2.4px; text-transform: uppercase; color: var(--gold-deep); }
+  h1 { margin: 10px 0 0; font-size: clamp(26px, 6vw, 38px); font-weight: 700; line-height: 1.18; }
+  .sub { margin: 4px 0 0; font-size: clamp(15px, 3.4vw, 19px); font-weight: 600; color: var(--muted); }
+  .lede { margin: 14px 0 0; max-width: 640px; font-size: 14.5px; line-height: 1.7; color: var(--muted); }
+
+  .note { margin-top: 18px; display: flex; gap: 10px; align-items: flex-start; border: 1px dashed var(--gold); background: #FFF9EA; border-radius: 10px; padding: 12px 14px; }
+  .note p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--gold-ink); }
+
+  section { margin-top: 52px; }
+  .shead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .shead h2 { margin: 0; font-size: clamp(21px, 5vw, 26px); font-weight: 700; }
+  .shead span { font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--soft); }
+  .sdesc { margin: 9px 0 22px; max-width: 660px; font-size: 14px; line-height: 1.7; color: var(--muted); }
+
+  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); padding: 20px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 780px) { .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+  .step { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: var(--green); color: var(--paper); font-size: 12px; font-weight: 800; flex: none; }
+  .step h3 { margin: 0; font-size: 19px; font-weight: 700; }
+  .step small { font-size: 12px; font-weight: 600; color: var(--soft); }
+
+  .ghost { height: 34px; border-radius: 6px; border: 1px solid var(--line); background: var(--ground); }
+  .stack { display: flex; flex-direction: column; gap: 7px; }
+
+  .fld { min-height: 44px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); padding: 10px 12px; display: flex; align-items: center; font-size: 14px; }
+  .lbl { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); margin: 0 0 6px; }
+  .pill { font-size: 11px; font-weight: 700; color: var(--green); background: var(--green-tint); border-radius: 999px; padding: 3px 8px; }
+  .num-cell { font-variant-numeric: tabular-nums; }
+
+  .why { display: flex; flex-direction: column; gap: 6px; }
+  .why p:first-child { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: var(--clay); }
+  .why p:last-child { margin: 0; font-size: 13.5px; line-height: 1.65; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 26px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+
+  .lines { display: flex; flex-direction: column; gap: 8px; }
+  .line { display: grid; grid-template-columns: 1.7fr 0.7fr 0.9fr 1fr; gap: 8px; }
+  @media (max-width: 620px) { .line { grid-template-columns: 1fr 1fr; } }
+
+  .pays { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .pay {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    min-height: 92px; border-radius: 10px; padding: 12px 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--muted);
+    font: inherit; text-align: center; transition: border-color .12s, background .12s, color .12s;
+  }
+  .pay:hover { border-color: var(--gold); }
+  .pay strong { font-family: "Mukta", "Inter", sans-serif; font-size: 15px; font-weight: 700; }
+  .pay em { font-style: normal; font-size: 11px; font-weight: 600; opacity: .72; }
+  .pay[aria-pressed="true"] { border: 2px solid var(--green); background: var(--green-tint); color: var(--green); }
+  .pay:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  .side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 13px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .row span:first-child { font-size: 13px; color: var(--muted); }
+  .row span:last-child { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .due { border-radius: 10px; padding: 14px 16px; border: 1px solid #E8C6C1; background: var(--clay-tint); color: var(--clay); }
+  .due.clear { border-color: #C9E2D5; background: var(--green-tint); color: var(--green); }
+  .due p:first-child { margin: 0; font-size: 12px; font-weight: 700; }
+  .due p:nth-child(2) { margin: 5px 0 0; font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .due p:last-child { margin: 7px 0 0; font-size: 12px; line-height: 1.55; opacity: .85; }
+
+  .save { display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 999px; background: var(--green); color: var(--paper); font-family: "Mukta", "Inter", sans-serif; font-size: 15px; font-weight: 700; }
+
+  .phonewrap { display: flex; justify-content: center; }
+  .phone { width: 390px; max-width: 100%; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--ground); }
+  .phone .head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); background: var(--paper); }
+  .phone .pays { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+  .phone .pay { min-height: 74px; }
+  .phone .foot { border-top: 1px solid var(--line); background: var(--paper); padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 11px; }
+
+  footer { margin-top: 64px; border-top: 1px solid var(--line); padding-top: 22px; font-size: 13px; line-height: 1.7; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <p class="eyebrow">KRISHOE · प्रस्ताव</p>
+    <h1 class="devdisp">एउटै बिल, एउटै ठाउँ</h1>
+    <p class="sub disp">One bill, start to finish</p>
+    <p class="lede dev">अहिले किनमेल टिप्न तीन वटा छुट्टै फारम भर्नुपर्छ — बिल, नयाँ supplier, अनि तिरेको पैसा। बीचमै एउटा छुट्छ। यो त्यही तीनलाई एउटै बनाउने प्रस्ताव हो।</p>
+    <div class="note">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B98A2E" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></svg>
+      <p class="dev">यो नमुना मात्र हो — app मा केही बदलिएको छैन। मन परे मात्र बनाउने।</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="shead"><h2 class="devdisp">अहिले के छ</h2><span>Today</span></div>
+    <p class="sdesc dev">एउटै किनमेलका लागि तीन ठाउँ, तीनपटक save, र माथि-तल।</p>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="step"><span class="num">1</span><h3>Purchase</h3></div>
+        <div class="stack"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;border-radius:6px;border:1px solid var(--gold);background:#FFF9EA;padding:8px 10px">
+          <span style="font-size:11px;font-weight:700;color:var(--gold-ink)">Cash ▾</span>
+          <span class="dev" style="font-size:11px;color:var(--gold-ink)">— सानो dropdown मा लुकेको</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="step"><span class="num">2</span><h3>New supplier</h3></div>
+        <div class="stack"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+        <p class="dev" style="margin:12px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)">बिल भर्दै गर्दा नयाँ नाम आयो — यहाँसम्म झर्नु, थप्नु, फेरि माथि जानु।</p>
+      </div>
+      <div class="card">
+        <div class="step"><span class="num">3</span><h3>Supplier payment</h3></div>
+        <div class="stack"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+        <p class="dev" style="margin:12px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)">अहिल्यै तिरेको पैसा पनि यहीँबाट — बिलसँग कुनै साइनो नदेखाई।</p>
+      </div>
+    </div>
+
+    <div class="grid4" style="margin-top:26px;border-top:1px solid var(--line);padding-top:24px">
+      <div class="why"><p>छुट्छ</p><p class="dev">तीन ठाउँ भर्नुपर्ने भएपछि एउटा बिर्सिन्छ — प्रायः तिरेको पैसा।</p></div>
+      <div class="why"><p>ढिलो</p><p class="dev">एउटै किनमेलका लागि तीनपटक save।</p></div>
+      <div class="why"><p>उधारो देखिँदैन</p><p class="dev">"Paid amount" खाली बाकस — कति बाँकी रह्यो, save नगरेसम्म थाहा हुँदैन।</p></div>
+      <div class="why"><p>QR छैनै</p><p class="dev">Cash · Cheque · Bank · Credit मात्र। आजकल धेरै भुक्तानी QR बाट।</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2 class="devdisp">प्रस्ताव</h2><span>Proposed — तल थिचेर हेर्नुहोस्</span></div>
+    <p class="sdesc dev">कागजको बिल जसरी पढिन्छ, त्यसरी नै — कसबाट, के किन्यो, कसरी तिर्यो। तिरेको रकम हाल्नेबित्तिकै उधारो आफैं गनिन्छ।</p>
+
+    <div class="layout">
+      <div style="display:flex;flex-direction:column;gap:20px">
+
+        <div class="card">
+          <div class="step"><span class="num">1</span><h3 class="devdisp">कसबाट</h3><small>Supplier</small></div>
+          <div class="fld" style="border-color:var(--green);background:#fff;justify-content:space-between">
+            <span class="dev" style="font-weight:600">nobel shoe</span>
+            <span style="font-size:12px;font-weight:700;color:var(--clay)">उधारो Rs. 84,525</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;border-radius:8px;border:1px dashed var(--gold);background:#FFF9EA;padding:11px 13px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B98A2E" stroke-width="2" stroke-linecap="round" style="flex:none"><path d="M12 5v14M5 12h14"/></svg>
+            <p class="dev" style="margin:0;font-size:13px;line-height:1.5;color:var(--gold-ink)">नाम टाइप गर्दा नभेटिए <strong>यहीँ थपिन्छ</strong> — फोन नम्बर पनि यहीँ। तल झर्नु पर्दैन।</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="step"><span class="num">2</span><h3 class="devdisp">के किन्यो</h3><small>Items</small></div>
+          <div class="lines">
+            <div class="line">
+              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">bag open</span><span class="pill">कच्चा</span></div>
+              <div class="fld num-cell" style="justify-content:flex-end">45</div>
+              <div class="fld num-cell" style="justify-content:flex-end">1,517</div>
+              <div class="fld num-cell" style="justify-content:flex-end;background:var(--mist);font-weight:700">68,250</div>
+            </div>
+            <div class="line">
+              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">buckal</span><span class="pill">कच्चा</span></div>
+              <div class="fld num-cell" style="justify-content:flex-end">45</div>
+              <div class="fld num-cell" style="justify-content:flex-end">362</div>
+              <div class="fld num-cell" style="justify-content:flex-end;background:var(--mist);font-weight:700">16,275</div>
+            </div>
+            <div class="line">
+              <div class="fld" style="border-style:dashed;color:var(--soft)"><span class="dev" style="font-size:13px">अर्को सामान…</span></div>
+              <div class="fld" style="border-style:dashed"></div>
+              <div class="fld" style="border-style:dashed"></div>
+              <div class="fld" style="border-style:dashed"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-color:var(--green)">
+          <div class="step"><span class="num">3</span><h3 class="devdisp">कसरी तिर्यो</h3><small>तल थिचेर हेर्नुहोस्</small></div>
+
+          <div class="pays" id="pays">
+            <button class="pay" type="button" data-m="cash" aria-pressed="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>
+              <strong>नगद</strong><em>Cash</em>
+            </button>
+            <button class="pay" type="button" data-m="credit" aria-pressed="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+              <strong>उधारो</strong><em>Credit</em>
+            </button>
+            <button class="pay" type="button" data-m="cheque" aria-pressed="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6M7 14h3"/></svg>
+              <strong>चेक</strong><em>Cheque</em>
+            </button>
+            <button class="pay" type="button" data-m="qr" aria-pressed="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4"/></svg>
+              <strong>QR</strong><em>QR</em>
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
+            <div>
+              <p class="lbl">कति तिर्यो · Paid now</p>
+              <div class="fld num-cell" id="paidBox" style="border-color:var(--green);background:#fff;justify-content:flex-end;font-size:17px;font-weight:800">Rs. 50,000</div>
+            </div>
+            <div>
+              <p class="lbl" id="extraLabel">टिपोट · Note</p>
+              <div class="fld" style="color:var(--soft)"><span class="dev" id="extraHint" style="font-size:13px">गाडी, गेट पास, बिल नं.</span></div>
+            </div>
+          </div>
+
+          <p class="dev" id="explain" style="margin:12px 0 0;font-size:13.5px;line-height:1.65;color:var(--muted)">नगद ५०,००० तिर्यो — बाँकी ३४,५२५ आफैं उधारोमा जान्छ। दुइटा फारम चाहिँदैन।</p>
+        </div>
+      </div>
+
+      <div class="card side">
+        <h3 class="devdisp" style="margin:0;font-size:19px;font-weight:700">बिलको हिसाब</h3>
+        <div style="display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--line);padding-bottom:13px">
+          <div class="row"><span class="dev">२ सामान</span><span>Rs. 84,525</span></div>
+          <div class="row"><span class="dev">छुट</span><span style="color:var(--soft)">—</span></div>
+          <div class="row"><span class="dev">VAT</span><span style="color:var(--soft)">—</span></div>
+        </div>
+        <div class="row"><span class="dev" style="font-size:14px;font-weight:700;color:var(--ink)">बिल जम्मा</span><span style="font-size:22px;font-weight:800">Rs. 84,525</span></div>
+        <div class="row"><span class="dev">तिरेको</span><span id="paidSide" style="font-size:16px;font-weight:700;color:var(--green)">Rs. 50,000</span></div>
+
+        <div class="due" id="dueBox">
+          <p class="dev" id="dueLabel">उधारो रहन्छ · Still owed</p>
+          <p id="dueAmount">Rs. 34,525</p>
+          <p class="dev" id="dueNote">nobel shoe को खातामा आफैं चढ्छ।</p>
+        </div>
+
+        <div class="save">बिल राख्ने</div>
+        <p class="dev" style="margin:0;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center">एकपटक थिच्दा — बिल, स्टक, supplier को खाता, र तिरेको पैसा सबै एकैचोटि।</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2 class="devdisp">फोनमा</h2><span>On a phone</span></div>
+    <p class="sdesc dev">तीनै खुड्किला एउटै पर्दामा। तल सधैं देखिने — बिल जम्मा, उधारो, र राख्ने बटन।</p>
+
+    <div class="phonewrap">
+      <div class="phone">
+        <div class="head">
+          <div>
+            <p class="devdisp" style="margin:0;font-size:20px;font-weight:700">नयाँ किनमेल</p>
+            <p style="margin:1px 0 0;font-size:11.5px;font-weight:600;color:var(--soft)">New purchase</p>
+          </div>
+          <span class="dev" style="font-size:12px;font-weight:700;color:var(--green);background:var(--green-tint);border-radius:999px;padding:6px 11px">२०८३/०५/१०</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;padding:16px 18px">
+          <div>
+            <p class="lbl">१ · कसबाट</p>
+            <div class="fld" style="border-color:var(--green);background:#fff;justify-content:space-between">
+              <span class="dev" style="font-weight:600">nobel shoe</span>
+              <span style="font-size:11.5px;font-weight:700;color:var(--clay)">उधारो 84,525</span>
+            </div>
+          </div>
+          <div>
+            <p class="lbl">२ · के किन्यो</p>
+            <div class="stack">
+              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">bag open</span><span class="num-cell" style="font-size:13px;font-weight:700">45 × 1,517</span></div>
+              <div class="fld" style="justify-content:space-between"><span class="dev" style="font-weight:600">buckal</span><span class="num-cell" style="font-size:13px;font-weight:700">45 × 362</span></div>
+              <div class="fld" style="border-style:dashed;border-color:var(--gold);background:#FFF9EA;gap:8px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B98A2E" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                <span class="dev" style="font-size:13.5px;font-weight:600;color:var(--gold-ink)">अर्को सामान</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="lbl">३ · कसरी तिर्यो</p>
+            <div class="pays">
+              <div class="pay" aria-pressed="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><strong style="font-size:13px">नगद</strong></div>
+              <div class="pay"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg><strong style="font-size:13px">उधारो</strong></div>
+              <div class="pay"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6M7 14h3"/></svg><strong style="font-size:13px">चेक</strong></div>
+              <div class="pay"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4"/></svg><strong style="font-size:13px">QR</strong></div>
+            </div>
+            <div class="fld" style="margin-top:8px;border-color:var(--green);background:#fff;justify-content:space-between">
+              <span class="dev" style="font-size:12.5px;color:var(--muted)">कति तिर्यो</span>
+              <span class="num-cell" style="font-size:17px;font-weight:800">50,000</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="foot">
+          <div class="row"><span class="dev">बिल जम्मा</span><span style="font-size:17px;font-weight:700">Rs. 84,525</span></div>
+          <div class="due" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px">
+            <span class="dev" style="font-size:13px;font-weight:700">उधारो रहन्छ</span>
+            <span class="num-cell" style="font-size:21px;font-weight:800">Rs. 34,525</span>
+          </div>
+          <div class="save" style="min-height:52px;font-size:16px">बिल राख्ने</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="dev">
+    <p style="margin:0 0 8px"><strong>मुख्य विचार:</strong> तिरेको रकम + तरिका → उधारो आफैं गनिन्छ। छुट्टै “Supplier payment” फारम बिलका बेला चाहिँदैन — त्यो पुरानो उधारो तिर्दा मात्र, supplier कै नाम छेउमा “तिर्ने” बटन भए पुग्छ।</p>
+    <p style="margin:0">यो नमुना मात्र हो। KRISHOE app मा केही बदलिएको छैन।</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var TOTAL = 84525;
+  var shape = {
+    cash:   { paid: 50000, label: "टिपोट · Note",             hint: "गाडी, गेट पास, बिल नं.",
+              why: "नगद ५०,००० तिर्यो — बाँकी ३४,५२५ आफैं उधारोमा जान्छ। दुइटा फारम चाहिँदैन।" },
+    credit: { paid: 0,     label: "कहिलेसम्म · Pay by",       hint: "२०८३/०५/२४",
+              why: "अहिले केही नतिरेको — पूरै उधारो। कहिलेसम्म तिर्ने भन्ने मिति यहीँ राख्ने।" },
+    cheque: { paid: TOTAL, label: "चेक नम्बर · Cheque no.",   hint: "NIC ASIA · 004412",
+              why: "चेकले पूरै तिरेको — चेक नम्बर यहीँ, बिलसँगै टाँसिन्छ।" },
+    qr:     { paid: TOTAL, label: "कुन app · Wallet",         hint: "eSewa · Khalti · Fonepay",
+              why: "QR बाट तिरेको — कुन app भन्ने यहीँ। अहिलेको फारममा यो विकल्पै छैन।" }
+  };
+
+  function money(n) { return "Rs. " + n.toLocaleString("en-IN"); }
+
+  var buttons = Array.prototype.slice.call(document.querySelectorAll("#pays .pay"));
+  var paidBox = document.getElementById("paidBox");
+  var paidSide = document.getElementById("paidSide");
+  var extraLabel = document.getElementById("extraLabel");
+  var extraHint = document.getElementById("extraHint");
+  var explain = document.getElementById("explain");
+  var dueBox = document.getElementById("dueBox");
+  var dueLabel = document.getElementById("dueLabel");
+  var dueAmount = document.getElementById("dueAmount");
+  var dueNote = document.getElementById("dueNote");
+
+  function show(id) {
+    var s = shape[id];
+    var due = Math.max(0, TOTAL - s.paid);
+
+    buttons.forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-m") === id));
+    });
+
+    paidBox.textContent = money(s.paid);
+    paidSide.textContent = money(s.paid);
+    extraLabel.textContent = s.label;
+    extraHint.textContent = s.hint;
+    explain.textContent = s.why;
+
+    dueAmount.textContent = money(due);
+    if (due > 0) {
+      dueBox.classList.remove("clear");
+      dueLabel.textContent = "उधारो रहन्छ · Still owed";
+      dueNote.textContent = "nobel shoe को खातामा आफैं चढ्छ।";
+    } else {
+      dueBox.classList.add("clear");
+      dueLabel.textContent = "पूरै तिरियो · Nothing owed";
+      dueNote.textContent = "supplier को खातामा केही बाँकी रहँदैन।";
+    }
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () { show(b.getAttribute("data-m")); });
+  });
+})();
+</script>
+</body>
+</html>
