@@ -209,3 +209,71 @@ describe("the test alert", () => {
     expect(workflow).toContain("UPTIME_TEST_ALERT: ${{ inputs.send_test_alert }}");
   });
 });
+
+/**
+ * The first test run came back red saying only "No test alert was sent", which
+ * is true and no use: a secret can be absent three ways that look identical
+ * from inside the job — pasted into the Variables tab instead of Secrets, saved
+ * under an Environment the job does not use, or spelled differently — and all
+ * three arrive as an empty string.
+ */
+describe("when a secret has not arrived", () => {
+  const KEYS = [
+    "EMAIL_PROVIDER_URL",
+    "EMAIL_PROVIDER_TOKEN",
+    "ALERT_EMAIL_TO",
+    "ADMIN_NOTIFICATION_EMAIL",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_WHATSAPP_NUMBER",
+    "WHATSAPP_ADMIN_NUMBER",
+  ];
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it("names the ones that came through empty", async () => {
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const missing = results.flatMap((result) => result.missing ?? []);
+
+    expect(missing).toContain("EMAIL_PROVIDER_URL");
+    expect(missing).toContain("ALERT_EMAIL_TO");
+    expect(missing).toContain("TWILIO_ACCOUNT_SID");
+  });
+
+  it("names only the empty ones", async () => {
+    process.env.EMAIL_PROVIDER_URL = "https://api.brevo.com/v3/smtp/email";
+    const results = await sendUptimeAlert({ state: "down", url: "https://example.test", statusCode: 500 });
+    const missing = results.flatMap((result) => result.missing ?? []);
+
+    expect(missing).not.toContain("EMAIL_PROVIDER_URL");
+    expect(missing).toContain("ALERT_EMAIL_TO");
+  });
+
+  it("never puts a value in the log, only a name", async () => {
+    const alert = await readFile("scripts/uptime-alert.mjs", "utf8");
+    const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
+
+    // A build log is readable by anyone with access to the repository. Echoing
+    // a key back to diagnose it would be a worse problem than the one being
+    // diagnosed, so what is printed is `missing` — names the code chose, never
+    // anything read out of the environment.
+    for (const source of [alert, probe]) {
+      expect(source).not.toMatch(/console\.(log|error)\([^)]*env\(/);
+      expect(source).not.toMatch(/console\.(log|error)\([^)]*process\.env/);
+    }
+    expect(probe).toContain("Empty in this job:");
+  });
+});

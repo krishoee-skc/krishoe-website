@@ -116,7 +116,17 @@ export function alertMessage({ state, url, statusCode, error, downSince }) {
 async function sendEmail({ subject, body }) {
   const url = env("EMAIL_PROVIDER_URL");
   const to = env("ALERT_EMAIL_TO") || env("ADMIN_NOTIFICATION_EMAIL");
-  if (!url || !to) return { channel: "email", sent: false, reason: "not configured" };
+  if (!url || !to) {
+    return {
+      channel: "email",
+      sent: false,
+      reason: "not configured",
+      // Which ones, by name. "Not configured" on its own sends the reader back
+      // to a settings page with eight fields and no idea which is wrong — the
+      // same shape as an outage alert that says only "KRISHOE is down".
+      missing: [!url && "EMAIL_PROVIDER_URL", !to && "ALERT_EMAIL_TO"].filter(Boolean),
+    };
+  }
 
   const token = env("EMAIL_PROVIDER_TOKEN");
   const headers = { "Content-Type": "application/json" };
@@ -165,7 +175,17 @@ async function sendWhatsApp({ subject, body }) {
   const from = env("TWILIO_WHATSAPP_NUMBER");
   const to = env("WHATSAPP_ADMIN_NUMBER");
   if (!sid || !token || !from || !to) {
-    return { channel: "whatsapp", sent: false, reason: "not configured" };
+    return {
+      channel: "whatsapp",
+      sent: false,
+      reason: "not configured",
+      missing: [
+        !sid && "TWILIO_ACCOUNT_SID",
+        !token && "TWILIO_AUTH_TOKEN",
+        !from && "TWILIO_WHATSAPP_NUMBER",
+        !to && "WHATSAPP_ADMIN_NUMBER",
+      ].filter(Boolean),
+    };
   }
 
   const whatsappNumber = (value) =>
@@ -211,7 +231,12 @@ export async function sendUptimeAlert(details) {
     if (result.sent) {
       console.log(`[uptime] alert sent by ${result.channel}`);
     } else if (result.reason === "not configured") {
-      console.log(`[uptime] ${result.channel} alert skipped — not configured`);
+      // Names only. A log that echoed a value back would put the shop's email
+      // key into a build log anyone with read access can open, which is a
+      // worse problem than the one being diagnosed.
+      console.log(
+        `[uptime] ${result.channel} alert skipped — empty here: ${result.missing.join(", ")}`,
+      );
     } else {
       console.error(`[uptime] ${result.channel} alert failed — ${result.reason}`);
     }

@@ -140,8 +140,17 @@ async function main() {
 
     const sent = results.filter((result) => result.sent).map((result) => result.channel);
     if (sent.length === 0) {
+      // Named, because "add the secrets" is the same unhelpful shape as "the
+      // shop is down": true, and no use to the person reading it. A secret can
+      // be missing three ways that look identical from here — pasted into the
+      // Variables tab instead of Secrets, saved under an Environment the job
+      // does not use, or spelled differently — and all three arrive as an
+      // empty string. Saying which name came through empty is what separates
+      // them.
+      const missing = results.flatMap((result) => result.missing ?? []);
+      console.log(`::error::No test alert was sent. Empty in this job: ${missing.join(", ")}`);
       console.log(
-        "::error::No test alert was sent. Add the secrets at Settings → Secrets and variables → Actions.",
+        "::error::Add them as repository SECRETS (not Variables) at Settings → Secrets and variables → Actions → New repository secret. The names must match exactly.",
       );
       return 1;
     }
