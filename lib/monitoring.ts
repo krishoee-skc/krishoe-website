@@ -607,21 +607,21 @@ export async function getUptimePercentage(days: number = 30): Promise<number> {
  * nowhere — so the figure was zero for want of measurement, and 0% under a
  * badge is the worst possible reading of "we never looked".
  *
- * The obvious fix, a cron that pings the site, is close to worthless here and
- * worth saying out loud: a checker running inside Vercel cannot observe Vercel
- * being down, because when the site is down the checker does not run either. It
- * would record a wall of "up" and miss every outage — a second lie, dressed as
- * a measurement.
+ * The obvious fix, a cron that pings the site, would have been worthless: a
+ * checker running inside Vercel cannot observe Vercel being down, because when
+ * the site is down the checker does not run either. It would record a wall of
+ * "up" and miss every outage — a second lie, dressed as a measurement.
  *
- * So this reports the evidence the shop actually holds. Every performance
- * reading is a shopper's own browser saying the site answered at that moment,
- * and every logged error is a moment it failed. That cannot produce a
- * percentage — there is no way to count the minutes nobody was looking — and it
- * does not pretend to. It answers the question a percentage was standing in
- * for: is it answering, and has anything broken lately.
+ * That objection is answered rather than avoided. .github/workflows/uptime.yml
+ * runs on GitHub's machines every five minutes and writes straight to Neon, so
+ * a Vercel outage is recorded by something the outage cannot reach. THAT is
+ * where the percentage below comes from, and it is a real one.
  *
- * A real percentage needs a checker OUTSIDE this platform. Until there is one,
- * this is the whole truth.
+ * The evidence half is kept beside it. A percentage says how many checks were
+ * answered; it does not say whether a shopper's own phone got a page. Every
+ * performance reading is exactly that, and every logged error is a moment
+ * something failed for somebody real. Two different questions, both worth
+ * asking, neither standing in for the other.
  */
 export type UptimeEvidence = {
   /** When a real browser last confirmed the site answered. */
@@ -634,6 +634,21 @@ export type UptimeEvidence = {
   /** Errors filed in the last seven days, and when the newest was. */
   recentErrors: number;
   lastErrorAt: string | null;
+  /**
+   * What the checker outside this platform has seen over thirty days.
+   *
+   * `checks` is 0 until that checker has run at all, and the card says so
+   * rather than printing 0% — which is what "we never looked" used to look
+   * like on this screen.
+   */
+  outside: {
+    checks: number;
+    answered: number;
+    /** Rounded to two places. Null while nothing has been checked. */
+    percent: number | null;
+    /** The most recent failed check, if there is one in the window. */
+    lastFailureAt: string | null;
+  };
 };
 
 export async function getUptimeEvidence(): Promise<UptimeEvidence> {
@@ -655,6 +670,27 @@ export async function getUptimeEvidence(): Promise<UptimeEvidence> {
        (SELECT max(created_at) FROM monitoring_errors WHERE level = 'error') AS last_error`,
   );
 
+  // Kept as its own query rather than more subselects: this table is written by
+  // something outside the app, and reading it separately means a failure here
+  // cannot cost the card the rest of its numbers.
+  const outsideRows = await queryPostgres<{
+    checks: number;
+    answered: number;
+    last_failure: Date | string | null;
+  }>(
+    STORE,
+    `SELECT count(*)::int AS checks,
+            count(*) FILTER (WHERE status = 'up')::int AS answered,
+            max(checked_at) FILTER (WHERE status = 'down') AS last_failure
+     FROM monitoring_uptime
+     WHERE checked_at > now() - INTERVAL '30 days'`,
+  ).catch(() => []);
+
+  const outsideRow = outsideRows[0];
+  const checks = Number(outsideRow?.checks ?? 0);
+  const answered = Number(outsideRow?.answered ?? 0);
+  const lastFailure = outsideRow?.last_failure ? new Date(outsideRow.last_failure) : null;
+
   const row = rows[0];
   const lastAnswer = row?.last_answer ? new Date(row.last_answer) : null;
   const lastError = row?.last_error ? new Date(row.last_error) : null;
@@ -668,5 +704,13 @@ export async function getUptimeEvidence(): Promise<UptimeEvidence> {
     daysObserved: Number(row?.days_observed ?? 0),
     recentErrors: Number(row?.recent_errors ?? 0),
     lastErrorAt: lastError ? lastError.toISOString() : null,
+    outside: {
+      checks,
+      answered,
+      // No checks means no answer, not zero per cent. That distinction is the
+      // whole reason this card was rewritten once already.
+      percent: checks > 0 ? Math.round((answered / checks) * 10_000) / 100 : null,
+      lastFailureAt: lastFailure ? lastFailure.toISOString() : null,
+    },
   };
 }

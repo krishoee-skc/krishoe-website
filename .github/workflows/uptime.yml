@@ -1,0 +1,46 @@
+name: Uptime
+
+# Every five minutes, from GitHub's machines rather than Vercel's.
+#
+# That separation is the whole feature. A checker running inside the app cannot
+# observe the app being down, because when the site is down the checker does not
+# run either — it records a wall of "up" and misses every outage. The monitoring
+# screen showed 0% for months for exactly this reason: nothing had ever written
+# a reading.
+#
+# GitHub's schedule is best-effort and runs late under load. That is fine here:
+# a reading a few minutes off still tells the truth about whether the shop was
+# answering, and this is a Nepali shoe shop, not an air traffic system.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # So a person can ask right now, from the Actions tab, without waiting.
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Only the one driver the probe needs. A full `npm ci` would take longer
+      # than the interval between checks.
+      - name: Install the database driver
+        run: npm install pg@8 --no-save --no-audit --no-fund
+
+      - name: Ask whether the shop is answering
+        id: probe
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PROBE_URL: ${{ vars.PROBE_URL || 'https://krishoe-website.vercel.app/api/health' }}
+        run: node scripts/uptime-probe.mjs

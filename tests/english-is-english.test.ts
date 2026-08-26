@@ -187,7 +187,7 @@ const STILL_OWED: Record<string, number> = {
   "components/admin/AdminAccessForms.tsx": 4,
   "components/admin/BikramMonthPicker.tsx": 1,
   "components/admin/GoogleAnalyticsDashboard.tsx": 13,
-  "components/admin/MonitoringDashboard.tsx": 37,
+  "components/admin/MonitoringDashboard.tsx": 31,
   "components/admin/PasskeyInvite.tsx": 12,
   "components/admin/PasskeyManager.tsx": 21,
   "components/admin/PushNotificationSetup.tsx": 20,

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ServiceStatus } from "@/lib/monitoring";
+import type { ServiceStatus, UptimeEvidence } from "@/lib/monitoring";
+import AlertText from "@/components/admin/AlertText";
 
 
 /**
@@ -50,14 +51,9 @@ interface MonitoringData {
     samples: number;
     setAside: number;
   };
-  uptime: {
-    lastAnsweredAt: string | null;
-    minutesSinceAnswer: number | null;
-    readings: number;
-    daysObserved: number;
-    recentErrors: number;
-    lastErrorAt: string | null;
-  };
+  // The library type, not a copy of it. This block was a hand-written
+  // duplicate of UptimeEvidence and went stale the moment that grew a field.
+  uptime: UptimeEvidence;
   health: {
     scope: "live" | "local";
     database: ServiceStatus;
@@ -234,30 +230,53 @@ export default function MonitoringDashboard() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-          {/* This said "Uptime (30 days)" and a percentage. Nothing had ever
-              written an uptime check, so the figure was zero for want of
-              measurement — and 0% under a badge is the worst possible reading
-              of "we never looked".
+          {/* This said "Uptime (30 days)" and a percentage over a figure
+              nothing had ever written — 0% standing in for "we never looked",
+              which is the worst possible way to say it.
 
-              A cron pinging the site would not fix it and is worth saying out
-              loud: a checker running inside Vercel cannot observe Vercel being
-              down, because when the site is down the checker does not run
-              either. It would record a wall of "up" and miss every outage.
+              A cron pinging the site from inside Vercel would not have fixed
+              it: when the site is down that cron does not run either, so it
+              records a wall of "up" and misses every outage. The checker that
+              feeds the percentage below runs on GitHub's machines instead and
+              writes straight to the database, so an outage is recorded by
+              something the outage cannot reach.
 
-              So this shows the evidence the shop actually holds. Every
-              performance reading is a shopper's own browser confirming the site
-              answered; every logged error is a moment it failed. That cannot
-              make a percentage — there is no counting the minutes nobody
-              looked — and it does not pretend to. */}
-          <div className="text-sm text-brand-muted">जवाफ दिइरहेको छ? · Answering?</div>
-          {monitoring.uptime.lastAnsweredAt ? (
+              Both halves are shown. The percentage is the shop being
+              reachable; the line under it is a real shopper's browser
+              confirming it served them. A perfect month of checks on a shop
+              nobody visits is not the same news. */}
+          <div className="text-sm text-brand-muted">
+            <AlertText en="Answering?" ne="जवाफ दिइरहेको छ?" />
+          </div>
+
+          {monitoring.uptime.outside.percent !== null ? (
             <>
               <div className="mt-2 text-3xl font-bold text-brand-green-ink">
-                {minutesAgo(monitoring.uptime.minutesSinceAnswer)}
+                {monitoring.uptime.outside.percent}%
               </div>
-              <div className="mt-2 text-xs leading-5 text-brand-muted">
-                पछिल्लो पटक ग्राहकको फोनले जवाफ पायो · {monitoring.uptime.readings} नाप,{" "}
-                {monitoring.uptime.daysObserved} दिनमा
+              <div className="mt-1 text-xs leading-5 text-brand-muted">
+                <AlertText
+                  en={`${monitoring.uptime.outside.answered} of ${monitoring.uptime.outside.checks} checks answered · 30 days, checked from outside`}
+                  ne={`${monitoring.uptime.outside.checks} जाँचमध्ये ${monitoring.uptime.outside.answered} ले जवाफ दियो · ३० दिन, बाहिरबाट जाँचिएको`}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
+              <AlertText
+                en="The outside check has not run yet"
+                ne="बाहिरी जाँच अझै चलेको छैन"
+              />
+            </div>
+          )}
+
+          {monitoring.uptime.lastAnsweredAt ? (
+            <>
+              <div className="mt-3 text-xs leading-5 text-brand-muted">
+                <AlertText
+                  en={`A shopper's own browser was served ${minutesAgo(monitoring.uptime.minutesSinceAnswer)} · ${monitoring.uptime.readings} readings over ${monitoring.uptime.daysObserved} days`}
+                  ne={`ग्राहकको फोनले ${minutesAgo(monitoring.uptime.minutesSinceAnswer)} जवाफ पायो · ${monitoring.uptime.readings} नाप, ${monitoring.uptime.daysObserved} दिनमा`}
+                />
               </div>
               <div
                 className={`mt-2 rounded px-2 py-1 text-xs font-medium ${
@@ -266,18 +285,24 @@ export default function MonitoringDashboard() {
                     : "bg-brand-green-tint text-brand-green"
                 }`}
               >
-                {monitoring.uptime.recentErrors > 0
-                  ? `७ दिनमा ${monitoring.uptime.recentErrors} गल्ती`
-                  : "७ दिनमा कुनै गल्ती छैन"}
+                <AlertText
+                  en={
+                    monitoring.uptime.recentErrors > 0
+                      ? `${monitoring.uptime.recentErrors} errors in 7 days`
+                      : "No errors in 7 days"
+                  }
+                  ne={
+                    monitoring.uptime.recentErrors > 0
+                      ? `७ दिनमा ${monitoring.uptime.recentErrors} गल्ती`
+                      : "७ दिनमा कुनै गल्ती छैन"
+                  }
+                />
               </div>
             </>
           ) : (
-            <>
-              <div className="mt-2 text-3xl font-bold text-brand-muted-soft">—</div>
-              <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
-                कसैले पसल खोलेकै छैन
-              </div>
-            </>
+            <div className="mt-3 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
+              <AlertText en="Nobody has opened the shop yet" ne="कसैले पसल खोलेकै छैन" />
+            </div>
           )}
         </div>
 
