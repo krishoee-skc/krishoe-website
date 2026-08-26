@@ -79,7 +79,23 @@
   @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
 
   .lines { display: flex; flex-direction: column; gap: 8px; }
-  .line { display: grid; grid-template-columns: 46px minmax(0, 1.7fr) 0.75fr 0.9fr 1fr; gap: 8px; align-items: center; }
+  .line { display: grid; grid-template-columns: 46px 108px minmax(0, 1.4fr) 0.7fr 0.85fr 1fr; gap: 8px; align-items: center; }
+
+  select.fld { width: 100%; font: inherit; font-size: 13px; color: var(--ink); outline: none; cursor: pointer; -webkit-appearance: none; appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--soft) 50%), linear-gradient(135deg, var(--soft) 50%, transparent 50%);
+    background-position: calc(100% - 15px) 19px, calc(100% - 10px) 19px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 26px; }
+  select.fld:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(18,99,74,.12); }
+  select.fld.raw { background-color: #FFF9EA; border-color: #EBD9AE; }
+  select.fld.trade { background-color: var(--green-tint); border-color: #C9E2D5; }
+
+  /* What each kind needs beyond the four columns every line shares: a unit for
+     material going to the factory store, a market and a size run for ready-made
+     pairs going to finished stock. Kept on its own strip so the main row stays
+     the same shape whichever kind the line is. */
+  .sub { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: -2px 0 2px 54px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .sub span { font-size: 11px; font-weight: 700; color: var(--soft); }
+  .sub select.fld { width: auto; min-width: 116px; min-height: 36px; padding: 4px 26px 4px 10px; background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; }
+  @media (max-width: 620px) { .sub { margin-left: 0; } }
   .head-line { margin-bottom: 8px; }
   .colh { font-size: 10.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--soft); }
 
@@ -108,7 +124,7 @@
     .line {
       grid-template-columns: 0.8fr 1fr 1.1fr;
       grid-template-areas:
-        "sn   sn   sn"
+        "sn   sn   kind"
         "name name name"
         "qty  rate amt";
       gap: 7px;
@@ -125,6 +141,8 @@
     }
     .line .sn::before { content: "क्र.सं. "; }
     .line.empty .sn { border: 0; }
+    .line .c-kind { grid-area: kind; min-height: 34px; padding: 2px 24px 2px 9px; font-size: 12px;
+      background-position: calc(100% - 14px) 15px, calc(100% - 10px) 15px; }
     .line .c-name { grid-area: name; }
     .line .c-qty { grid-area: qty; }
     .line .c-rate { grid-area: rate; }
@@ -222,7 +240,7 @@
       <div style="display:flex;flex-direction:column;gap:20px">
 
         <div class="card">
-          <div class="step"><span class="num">1</span><h3 class="devdisp">कसबाट</h3><small>Supplier</small></div>
+          <div class="step"><h3 class="devdisp">कसबाट</h3><small>Supplier</small></div>
           <div class="fld" style="border-color:var(--green);background:#fff;justify-content:space-between">
             <span class="dev" style="font-weight:600">nobel shoe</span>
             <span style="font-size:12px;font-weight:700;color:var(--clay)">उधारो Rs. 84,525</span>
@@ -234,10 +252,11 @@
         </div>
 
         <div class="card">
-          <div class="step"><span class="num">2</span><h3 class="devdisp">के किन्यो</h3><small>यहाँ टाइप गर्नुहोस् — Enter थिच्दा तलको लाइनमा जान्छ</small></div>
+          <div class="step"><h3 class="devdisp">के किन्यो</h3><small>यहाँ टाइप गर्नुहोस् — Enter थिच्दा तलको लाइनमा जान्छ</small></div>
 
           <div class="line head-line">
             <span class="colh">क्र.सं.</span>
+            <span class="colh">प्रकार</span>
             <span class="colh">सामान</span>
             <span class="colh" style="text-align:right">थान</span>
             <span class="colh" style="text-align:right">दर</span>
@@ -246,11 +265,11 @@
 
           <div class="lines" id="lines"></div>
 
-          <p class="dev" style="margin:10px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)">अन्तिम लाइन भरिनेबित्तिकै अर्को आफैं देखिन्छ। खाली लाइन गनिँदैन।</p>
+          <p class="dev" style="margin:10px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)">अन्तिम लाइन भरिनेबित्तिकै अर्को आफैं देखिन्छ। खाली लाइन गनिँदैन। <strong>एउटै बिलमा कच्चा र तयारी दुवै राख्न मिल्छ</strong> — प्रकार फेर्दा तल चाहिने कुरा आफैं बदलिन्छ।</p>
         </div>
 
         <div class="card" style="border-color:var(--green)">
-          <div class="step"><span class="num">3</span><h3 class="devdisp">कसरी तिर्यो</h3><small>तल थिचेर हेर्नुहोस्</small></div>
+          <div class="step"><h3 class="devdisp">कसरी तिर्यो</h3><small>तल थिचेर हेर्नुहोस्</small></div>
 
           <div class="pays" id="pays">
             <button class="pay" type="button" data-m="cash" aria-pressed="true">
@@ -391,12 +410,27 @@
      paper bill is copied in: name, pieces, rate, Enter, next line.
   --------------------------------------------------------------------- */
   var FIELDS = ["name", "qty", "rate"];
+  /* Both kinds land on one bill, because both arrive on one supplier bill.
+     They part company after it: material goes to the factory store, ready-made
+     pairs go straight to finished stock for a market, which is why a trading
+     line needs a market and a size run and a material line needs a unit. */
+  function line(over) {
+    return Object.assign(
+      { kind: "raw", name: "", qty: "", rate: "", unit: "जोडी", channel: "थोक", size: "36-41" },
+      over || {}
+    );
+  }
+
   var rows = [
-    { name: "bag open", qty: "45", rate: "1516.67" },
-    { name: "hill",     qty: "20", rate: "850" },
-    { name: "flat",     qty: "30", rate: "620" },
-    { name: "",         qty: "",   rate: "" }
+    line({ kind: "raw",   name: "bag open", qty: "45", rate: "1516.67", unit: "जोडी" }),
+    line({ kind: "trade", name: "hill",     qty: "20", rate: "850",  channel: "खुद्रा", size: "36-41" }),
+    line({ kind: "trade", name: "flat",     qty: "30", rate: "620",  channel: "थोक",   size: "36-41" }),
+    line()
   ];
+
+  var UNITS = ["जोडी", "पिस", "किलो", "मिटर", "लिटर"];
+  var CHANNELS = ["थोक", "खुद्रा", "अनलाइन"];
+  var SIZES = ["36-41", "24-30", "Mixed"];
 
   /* The shop's own items, offered as you type. Nobody should have to spell
      "Doctor Chappal moto" the same way twice, and a name typed a second way is
@@ -413,6 +447,20 @@
   function amountOf(r) { return num(r.qty) * num(r.rate); }
   function filled(r) { return Boolean(r.name.trim() || r.qty || r.rate); }
 
+  function pick(cls, value, options, onPick) {
+    var sel = document.createElement("select");
+    sel.className = "fld " + cls;
+    options.forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.value === undefined ? o : o.value;
+      opt.textContent = o.label === undefined ? o : o.label;
+      if (opt.value === value) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", function () { onPick(sel.value); });
+    return sel;
+  }
+
   function draw(focus) {
     /* Always one spare line at the bottom, never two. */
     while (rows.length && !filled(rows[rows.length - 1])) rows.pop();
@@ -428,6 +476,13 @@
       sn.className = "sn";
       sn.textContent = String(i + 1);
       line.appendChild(sn);
+
+      line.appendChild(pick(
+        "c-kind " + (r.kind === "trade" ? "trade" : "raw"),
+        r.kind,
+        [{ value: "raw", label: "कच्चा" }, { value: "trade", label: "तयारी" }],
+        function (v) { r.kind = v; draw({ row: i, key: "name" }); }
+      ));
 
       FIELDS.forEach(function (key) {
         var input = document.createElement("input");
@@ -452,6 +507,44 @@
       line.appendChild(amount);
 
       linesEl.appendChild(line);
+
+      /* Only once the line is real. An empty row asking which market its pairs
+         are for is noise on a bill that has not been started. */
+      if (filled(r)) {
+        var sub = document.createElement("div");
+        sub.className = "sub";
+
+        if (r.kind === "trade") {
+          var m = document.createElement("span");
+          m.textContent = "कुन बजार";
+          sub.appendChild(m);
+          sub.appendChild(pick("trade", r.channel, CHANNELS, function (v) { r.channel = v; }));
+
+          var z = document.createElement("span");
+          z.textContent = "साइज";
+          sub.appendChild(z);
+          sub.appendChild(pick("trade", r.size, SIZES, function (v) { r.size = v; }));
+
+          var say = document.createElement("span");
+          say.style.fontWeight = "600";
+          say.style.color = "var(--green)";
+          say.textContent = "→ सिधै बिक्रीयोग्य स्टकमा";
+          sub.appendChild(say);
+        } else {
+          var u = document.createElement("span");
+          u.textContent = "एकाइ";
+          sub.appendChild(u);
+          sub.appendChild(pick("raw", r.unit, UNITS, function (v) { r.unit = v; }));
+
+          var say2 = document.createElement("span");
+          say2.style.fontWeight = "600";
+          say2.style.color = "var(--gold-ink)";
+          say2.textContent = "→ कारखानाको भण्डारमा";
+          sub.appendChild(say2);
+        }
+
+        linesEl.appendChild(sub);
+      }
     });
 
     if (focus) {
