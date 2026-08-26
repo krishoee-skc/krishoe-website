@@ -66,3 +66,6 @@ design/*.html
 design/pair-*.mjs
 design/fix-*.mjs
 design/finish-*.mjs
+
+# One-off edit scripts belong in the commit they made, not in the tree.
+design/*.mjs
