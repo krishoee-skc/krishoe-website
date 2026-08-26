@@ -1,6 +1,6 @@
 name: Uptime
 
-# Every five minutes, from GitHub's machines rather than Vercel's.
+# Asks, from GitHub's machines rather than Vercel's, whether the shop answers.
 #
 # That separation is the whole feature. A checker running inside the app cannot
 # observe the app being down, because when the site is down the checker does not
@@ -8,12 +8,32 @@ name: Uptime
 # screen showed 0% for months for exactly this reason: nothing had ever written
 # a reading.
 #
-# GitHub's schedule is best-effort and runs late under load. That is fine here:
-# a reading a few minutes off still tells the truth about whether the shop was
-# answering, and this is a Nepali shoe shop, not an air traffic system.
+# WHY TWO SCHEDULES, AND NOT ONE EVERY FIVE MINUTES
+#
+# This repository is private, and GitHub gives a private repo 2,000 free Action
+# minutes a month. Every run is billed as a whole minute however short it is, so
+# a check every five minutes would cost 8,640 minutes — four times the budget —
+# and Actions would simply stop part-way through the month, taking CI with it.
+#
+# So the checks are spent where they buy something. The shop sells between
+# 10:00 and 19:00 Nepal time; an outage then costs a customer, and twenty
+# minutes is soon enough to act on. At three in the morning nobody is buying and
+# hourly is plenty — it still catches a night-long outage before the shop opens.
+#
+#   peak   10 hours x 3/hour x 30 =   900
+#   quiet  14 hours x 1/hour x 30 =   420
+#                                   -----
+#                                    1,320 minutes, leaving ~680 for CI
+#
+# Nepal is UTC+5:45, so 10:00–19:00 NPT is 04:15–13:15 UTC. The windows below
+# are rounded outward to whole hours, which starts the busy schedule fifteen
+# minutes early rather than fifteen minutes late.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # Shop hours — every 20 minutes.
+    - cron: "*/20 4-13 * * *"
+    # Overnight and early morning — hourly.
+    - cron: "0 0-3,14-23 * * *"
   # So a person can ask right now, from the Actions tab, without waiting.
   workflow_dispatch:
 
@@ -40,9 +60,8 @@ jobs:
           node-version: 22
 
       # No npm install. The probe uses fetch and nothing else — deliberately,
-      # so a check every five minutes does not spend most of its life
-      # installing packages, and so this job pulls in no third-party code at
-      # all.
+      # so a check running this often does not spend most of its life
+      # installing packages, and so this job pulls in no third-party code.
       - name: Ask whether the shop is answering
         env:
           PROBE_URL: ${{ vars.PROBE_URL || 'https://krishoe-website.vercel.app/api/health' }}

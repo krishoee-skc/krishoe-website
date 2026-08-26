@@ -25,10 +25,57 @@ describe("uptime is measured from outside", () => {
 
     expect(workflow).toContain("runs-on: ubuntu-latest");
     expect(workflow).toContain("schedule:");
-    // Often enough that a short outage is not invisible.
-    expect(workflow).toContain('cron: "*/5 * * * *"');
-    // And a person can ask right now without waiting for the schedule.
+    // A person can ask right now without waiting for the schedule.
     expect(workflow).toContain("workflow_dispatch:");
+  });
+
+  it("checks often enough while the shop is selling", () => {
+    const workflow = readFileSync(WORKFLOW, "utf8");
+    const crons = [...workflow.matchAll(/cron: "([^"]+)"/g)].map((m) => m[1]);
+
+    expect(crons.length, "a busy schedule and a quiet one").toBe(2);
+
+    // The shop sells 10:00–19:00 Nepal time, which is 04:15–13:15 UTC. An
+    // outage then costs a customer, so that window is checked at least three
+    // times an hour; a nightly outage is caught before the shop opens either
+    // way.
+    const busy = crons.find((c) => /\d-\d?\d /.test(c) && c.startsWith("*/"));
+    expect(busy, "a */N schedule over the selling hours").toBeTruthy();
+    const [minutes, hours] = busy!.split(" ");
+    expect(Number(minutes.replace("*/", "")), "at most 20 minutes apart").toBeLessThanOrEqual(20);
+    expect(hours, "covering 04:00–13:00 UTC").toContain("4-13");
+  });
+
+  it("stays inside the free Action minutes a private repo gets", () => {
+    const workflow = readFileSync(WORKFLOW, "utf8");
+    const crons = [...workflow.matchAll(/cron: "([^"]+)"/g)].map((m) => m[1]);
+
+    /**
+     * Runs a month, counting the way GitHub bills: every run is a whole minute
+     * however short it is. Only the two shapes this file uses are understood —
+     * anything else should fail loudly rather than be estimated as zero.
+     */
+    const runsPerMonth = (cron: string) => {
+      const [minute, hour] = cron.split(" ");
+      const hoursCovered = hour
+        .split(",")
+        .reduce((total, part) => {
+          if (part === "*") return total + 24;
+          const [from, to] = part.split("-").map(Number);
+          return total + (Number.isFinite(to) ? to - from + 1 : 1);
+        }, 0);
+      const perHour = minute.startsWith("*/") ? 60 / Number(minute.slice(2)) : 1;
+      return hoursCovered * perHour * 30;
+    };
+
+    const total = crons.reduce((sum, cron) => sum + runsPerMonth(cron), 0);
+
+    // 2,000 free minutes on a private repo, and CI spends from the same purse —
+    // roughly four minutes per push. Going over does not cost money; Actions
+    // simply stops for the rest of the month, taking CI down with it.
+    expect(total, `${total} minutes a month, leaving ${2000 - total} for CI`).toBeLessThanOrEqual(
+      1500,
+    );
   });
 
   it("is not scheduled inside the app, where it could not see an outage", () => {
