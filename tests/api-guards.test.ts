@@ -72,7 +72,13 @@ describe("every API route is guarded, or is public on purpose", () => {
         /requireStaff|requireWorker|factory-api-policy|authorizeFactoryApi/.test(source) ||
         // A route that delegates to another one inherits that one's guard.
         // daily-sales-backup exists to re-run daily-sales, CRON_SECRET and all.
-        /import \{ (GET|POST) as \w+ \} from "@\/app\/api\//.test(source);
+        /import \{ (GET|POST) as \w+ \} from "@\/app\/api\//.test(source) ||
+        // A shared secret compared in constant time. The uptime checker runs on
+        // GitHub's machines and has no session to present — it holds a token
+        // that writes one row and can read nothing back. timingSafeEqual is
+        // required rather than any token check: a plain === leaks the length of
+        // the correct prefix to anybody willing to send a few thousand guesses.
+        /timingSafeEqual/.test(source);
 
       if (!guarded && !(url in PUBLIC)) unaccounted.push(url);
     }

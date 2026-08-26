@@ -21,10 +21,16 @@ concurrency:
   group: uptime
   cancel-in-progress: false
 
+# Nothing here reads or writes the repository. The job talks to the shop and to
+# nothing else.
+permissions: {}
+
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Longer than the check itself, because a reading taken while the shop is
+    # down is retried for a few minutes until there is somewhere to file it.
+    timeout-minutes: 8
 
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +39,15 @@ jobs:
         with:
           node-version: 22
 
-      # Only the one driver the probe needs. A full `npm ci` would take longer
-      # than the interval between checks.
-      - name: Install the database driver
-        run: npm install pg@8 --no-save --no-audit --no-fund
-
+      # No npm install. The probe uses fetch and nothing else — deliberately,
+      # so a check every five minutes does not spend most of its life
+      # installing packages, and so this job pulls in no third-party code at
+      # all.
       - name: Ask whether the shop is answering
-        id: probe
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PROBE_URL: ${{ vars.PROBE_URL || 'https://krishoe-website.vercel.app/api/health' }}
+          # Writes one uptime row and can do nothing else. Deliberately NOT the
+          # database connection string: anything reaching these secrets should
+          # not be able to read a single order, wage or customer.
+          UPTIME_WRITE_TOKEN: ${{ secrets.UPTIME_WRITE_TOKEN }}
         run: node scripts/uptime-probe.mjs

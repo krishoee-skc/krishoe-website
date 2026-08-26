@@ -1,6 +1,5 @@
 /**
- * Asks, from outside, whether the shop is answering — and writes down what it
- * found.
+ * Asks, from outside, whether the shop is answering — and files what it found.
  *
  * This runs on GitHub's machines, not Vercel's, and that is the entire point.
  * The obvious way to measure uptime is a cron inside the app that pings itself,
@@ -8,30 +7,43 @@
  * it records a wall of "up" and misses every outage. A checker has to live
  * somewhere the thing it is checking cannot take down with it.
  *
- * The reading goes straight to Neon rather than through the app, for the same
- * reason. Posting "the site is down" to the site that is down would be the
- * one moment the recording fails, which is the one moment it matters.
+ * It files the reading through a narrow endpoint rather than writing to the
+ * database directly. Writing direct would mean the database connection string
+ * living in GitHub's secrets — and anything reaching those could then read
+ * every order, wage and customer this shop has. The token used here can write
+ * one uptime row and do nothing else, so the worst a stolen one buys is a false
+ * uptime figure.
  *
- *   DATABASE_URL   the Neon connection string
- *   PROBE_URL      what to ask (defaults to the production health endpoint)
+ * The cost of that choice is real and handled below: when the shop is down, the
+ * place to file the reading is down too. So a failed check is retried for a few
+ * minutes, and it is filed with the time the CHECK happened rather than the
+ * time it landed — a "down" that arrives late is still a true record of when
+ * the shop was down.
  *
- * Exits 0 whether the site was up or down: a failed check is a reading, not a
- * broken job. It exits non-zero only when it could not take a reading at all,
- * because that is the case a person needs to look at.
+ *   PROBE_URL           what to ask     (defaults to the production health URL)
+ *   UPTIME_WRITE_URL    where to file it
+ *   UPTIME_WRITE_TOKEN  the narrow token
  */
-import { Client } from "pg";
-import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const PROBE_URL = process.env.PROBE_URL || "https://krishoe-website.vercel.app/api/health";
+const WRITE_URL =
+  process.env.UPTIME_WRITE_URL || new URL("/api/monitoring/uptime", PROBE_URL).toString();
+const TOKEN = (process.env.UPTIME_WRITE_TOKEN || "").trim();
 
 /**
  * Long enough that a slow cold start is not called an outage, short enough that
- * a hung request does not hold the job open. Vercel's own function ceiling is
- * ten seconds; fifteen means a timeout here is the site's fault, not ours.
+ * a hung request does not hold the job open. Vercel's function ceiling is ten
+ * seconds, so fifteen means a timeout here is the site's fault, not ours.
  */
 const TIMEOUT_MS = 15_000;
 
+/** Roughly three minutes of retries, backing off. Most Vercel blips are shorter. */
+const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 45_000, 60_000];
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function probe() {
+  const checkedAt = new Date().toISOString();
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -44,20 +56,21 @@ async function probe() {
       // behind it is not.
       cache: "no-store",
     });
-    const responseTime = Date.now() - started;
 
-    // /api/health answers 503 with a body when the database is unreachable, so
-    // a 200 here means the whole path answered: edge, function, and Neon.
+    // /api/health answers 503 when the database is unreachable, so a 200 here
+    // means the whole path answered: edge, function, and Neon.
     return {
+      checkedAt,
       status: response.ok ? "up" : "down",
       statusCode: response.status,
-      responseTime,
+      responseTime: Date.now() - started,
       note: response.ok ? "" : `HTTP ${response.status}`,
     };
   } catch (error) {
     // No response at all — DNS, TLS, a timeout, or nothing listening. This is
-    // the reading a self-hosted checker can never take.
+    // the reading a checker inside the app can never take.
     return {
+      checkedAt,
       status: "down",
       statusCode: 0,
       responseTime: Date.now() - started,
@@ -68,49 +81,56 @@ async function probe() {
   }
 }
 
+async function file(reading) {
+  const response = await fetch(WRITE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${TOKEN}`,
+    },
+    body: JSON.stringify({ ...reading, region: "github-actions" }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`filing returned HTTP ${response.status}`);
+  }
+}
+
 const reading = await probe();
 console.log(
   `${reading.status.toUpperCase()}  ${reading.statusCode || "—"}  ${reading.responseTime}ms  ${PROBE_URL}${reading.note ? `  (${reading.note})` : ""}`,
 );
 
-if (!process.env.DATABASE_URL) {
-  console.error("No DATABASE_URL — the reading was taken but cannot be recorded.");
+if (!TOKEN) {
+  console.error("No UPTIME_WRITE_TOKEN — the reading was taken but cannot be filed.");
   process.exit(1);
 }
 
-const client = new Client(postgresConnectionOptions(process.env.DATABASE_URL));
+// The reading carries its own checkedAt, so a late-landing "down" is still a
+// true record of when the shop was down.
+for (let attempt = 0; ; attempt += 1) {
+  try {
+    await file(reading);
+    console.log(`filed — ${reading.status} at ${reading.checkedAt}`);
+    break;
+  } catch (error) {
+    if (attempt >= RETRY_DELAYS_MS.length) {
+      // Out of retries. The shop has been unreachable for the whole window, so
+      // there is nowhere to file this — and the gap it leaves in the readings
+      // is itself the record. Said out loud rather than swallowed.
+      console.error(`Could not file the reading: ${error.message}`);
+      console.log(
+        "::warning::KRISHOE was unreachable for the whole retry window — this outage shows as a gap in the readings.",
+      );
+      process.exit(1);
+    }
 
-try {
-  await client.connect();
-  await client.query(
-    `INSERT INTO monitoring_uptime (status, response_time, status_code, region, checked_at)
-     VALUES ($1, $2, $3, $4, now())`,
-    [reading.status, reading.responseTime, reading.statusCode, "github-actions"],
-  );
-
-  // Kept to thirty days. A reading every five minutes is 8,640 rows a month,
-  // and nobody has ever asked what the site was doing last spring.
-  await client.query(
-    `DELETE FROM monitoring_uptime WHERE checked_at < now() - INTERVAL '30 days'`,
-  );
-
-  const { rows } = await client.query(
-    `SELECT count(*)::int AS readings,
-            count(*) FILTER (WHERE status = 'up')::int AS up
-     FROM monitoring_uptime
-     WHERE checked_at > now() - INTERVAL '30 days'`,
-  );
-  const { readings, up } = rows[0];
-  console.log(`recorded — ${up}/${readings} up over 30 days (${((up / readings) * 100).toFixed(2)}%)`);
-} catch (error) {
-  console.error("Reading taken, but not recorded:", error.message);
-  process.exitCode = 1;
-} finally {
-  await client.end().catch(() => {});
+    const wait = RETRY_DELAYS_MS[attempt];
+    console.log(`  filing failed (${error.message}) — retrying in ${wait / 1000}s`);
+    await sleep(wait);
+  }
 }
 
-// A down site is a fact to record, not a reason to fail the job — the workflow
-// decides separately whether to raise the alarm.
 if (reading.status === "down") {
   console.log("::warning::KRISHOE did not answer this check.");
 }

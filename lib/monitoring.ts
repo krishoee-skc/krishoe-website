@@ -264,14 +264,26 @@ export async function logPerformanceMetric(
 }
 
 // Record uptime check
-export async function recordUptimeCheck(status: Omit<UptimeStatus, "timestamp">) {
+export async function recordUptimeCheck(
+  status: Omit<UptimeStatus, "timestamp"> & { checkedAt?: string },
+) {
   try {
     await queryPostgres(
       STORE,
+      // COALESCE, not NOW(): a "down" reading cannot be filed until the shop
+      // comes back, so it arrives minutes after the outage it describes.
+      // Stamping it on arrival would record every outage as having happened the
+      // moment it ended.
       `INSERT INTO monitoring_uptime
        (status, response_time, status_code, region, checked_at)
-       VALUES ($1, $2, $3, $4, NOW())`,
-      [status.status, status.responseTime, status.statusCode, status.region]
+       VALUES ($1, $2, $3, $4, COALESCE($5::timestamptz, now()))`,
+      [
+        status.status,
+        status.responseTime,
+        status.statusCode,
+        status.region,
+        status.checkedAt ?? null,
+      ],
     );
   } catch (err) {
     console.error("Failed to record uptime check:", err);
