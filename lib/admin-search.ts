@@ -34,6 +34,15 @@ export type AdminSearchRecord = {
   title: string;
   /** The line under it — a stage, a phone number, a total. */
   detail: string;
+  /**
+   * The same two in English, for the rows that are ours to translate.
+   *
+   * Only the page entries carry these. A worker's name and a customer's
+   * phone number are data, not language — "ankus" is "ankus" on both sides,
+   * and inventing an English half for it would be inventing a second name.
+   */
+  titleEn?: string;
+  detailEn?: string;
   href: string;
   /** Everything typed that should find this row. */
   terms: string[];
@@ -112,50 +121,53 @@ export function searchRecords(records: AdminSearchRecord[], query: string, limit
  * screen and in English in the code, and either is a fair thing to type.
  */
 export const ADMIN_SEARCH_PAGES: AdminSearchRecord[] = [
-  { kind: "page", title: "काम टिप्ने", detail: "कामदारको दैनिक काम र ज्याला", href: "/admin/factory/add-work", terms: ["काम टिप्ने", "add work", "factory entry", "kaam", "wage", "ज्याला"] },
-  { kind: "page", title: "कामदार", detail: "नाम, चरण, ज्यालाको किसिम", href: "/admin/factory/workers", terms: ["कामदार", "workers", "worker", "staff", "kamdar"] },
-  { kind: "page", title: "कामदारको खाता", detail: "कसले कति कमायो, कति पाए", href: "/admin/factory/ledger", terms: ["खाता", "ledger", "khata", "balance", "हिसाब"] },
-  { kind: "page", title: "तलब", detail: "मासिक तलब र भुक्तानी", href: "/admin/factory/salary", terms: ["तलब", "salary", "talab", "pay"] },
-  { kind: "page", title: "कारखानाका item", detail: "जुत्ताको सूची र दर", href: "/admin/factory/items", terms: ["item", "items", "कारखाना", "factory item", "rate", "दर"] },
-  { kind: "page", title: "स्टक", detail: "कति माल छ, चढाउने", href: "/admin/operations", terms: ["स्टक", "stock", "operations", "maal", "माल"] },
-  { kind: "page", title: "सामान", detail: "जुत्ता, मूल्य, फोटो", href: "/admin/products", terms: ["सामान", "products", "product", "saman", "जुत्ता", "मूल्य", "price"] },
-  { kind: "page", title: "अर्डर", detail: "ग्राहकका अर्डर", href: "/admin/orders", terms: ["अर्डर", "orders", "order"] },
-  { kind: "page", title: "बिल काट्ने", detail: "पसलमै बेचेको बिल", href: "/admin/pos", terms: ["बिल", "pos", "bill", "billing", "invoice"] },
-  { kind: "page", title: "भुक्तानी", detail: "पैसा आयो कि आएन", href: "/admin/payments", terms: ["भुक्तानी", "payments", "payment", "paisa", "पैसा"] },
-  { kind: "page", title: "किनमेल", detail: "कच्चा पदार्थ र साहु", href: "/admin/purchasing", terms: ["किनमेल", "purchasing", "purchase", "supplier", "साहु"] },
-  { kind: "page", title: "ग्राहक", detail: "ग्राहक र उनीहरूको किनमेल", href: "/admin/customers", terms: ["ग्राहक", "customers", "customer", "grahak"] },
-  { kind: "page", title: "हिसाब र नाफा", detail: "बिक्री, नाफा, ग्राहक", href: "/admin/analytics", terms: ["हिसाब", "analytics", "नाफा", "profit", "report"] },
-  { kind: "page", title: "निगरानी", detail: "app ठीक छ कि छैन", href: "/admin/monitoring", terms: ["निगरानी", "monitoring", "health", "error"] },
-  { kind: "page", title: "सेटिङ", detail: "पसलको नाम, ठेगाना, शाखा", href: "/admin/settings", terms: ["सेटिङ", "settings", "setting"] },
-  { kind: "page", title: "कुन फोन/computer", detail: "कहाँबाट login भएको", href: "/admin/devices", terms: ["devices", "login", "passkey", "फोन"] },
+  { kind: "page", title: "काम टिप्ने", titleEn: "Add work", detail: "कामदारको दैनिक काम र ज्याला", detailEn: "A worker's day and what it earned", href: "/admin/factory/add-work", terms: ["काम टिप्ने", "add work", "factory entry", "kaam", "wage", "ज्याला"] },
+  { kind: "page", title: "कामदार", titleEn: "Workers", detail: "नाम, चरण, ज्यालाको किसिम", detailEn: "Name, stage, how they are paid", href: "/admin/factory/workers", terms: ["कामदार", "workers", "worker", "staff", "kamdar"] },
+  { kind: "page", title: "कामदारको खाता", titleEn: "Worker ledger", detail: "कसले कति कमायो, कति पाए", detailEn: "Who earned what, and what they were paid", href: "/admin/factory/ledger", terms: ["खाता", "ledger", "khata", "balance", "हिसाब"] },
+  { kind: "page", title: "तलब", titleEn: "Salary", detail: "मासिक तलब र भुक्तानी", detailEn: "Monthly salary and payment", href: "/admin/factory/salary", terms: ["तलब", "salary", "talab", "pay"] },
+  { kind: "page", title: "कारखानाका item", titleEn: "Factory items", detail: "जुत्ताको सूची र दर", detailEn: "The list of shoes and their rates", href: "/admin/factory/items", terms: ["item", "items", "कारखाना", "factory item", "rate", "दर"] },
+  { kind: "page", title: "स्टक", titleEn: "Stock", detail: "कति माल छ, चढाउने", detailEn: "How much there is, and putting more on", href: "/admin/operations", terms: ["स्टक", "stock", "operations", "maal", "माल"] },
+  { kind: "page", title: "सामान", titleEn: "Products", detail: "जुत्ता, मूल्य, फोटो", detailEn: "Shoes, prices, photographs", href: "/admin/products", terms: ["सामान", "products", "product", "saman", "जुत्ता", "मूल्य", "price"] },
+  { kind: "page", title: "अर्डर", titleEn: "Orders", detail: "ग्राहकका अर्डर", detailEn: "Customer orders", href: "/admin/orders", terms: ["अर्डर", "orders", "order"] },
+  { kind: "page", title: "बिल काट्ने", titleEn: "POS billing", detail: "पसलमै बेचेको बिल", detailEn: "Billing a sale made at the counter", href: "/admin/pos", terms: ["बिल", "pos", "bill", "billing", "invoice"] },
+  { kind: "page", title: "भुक्तानी", titleEn: "Payments", detail: "पैसा आयो कि आएन", detailEn: "Whether the money arrived", href: "/admin/payments", terms: ["भुक्तानी", "payments", "payment", "paisa", "पैसा"] },
+  { kind: "page", title: "किनमेल", titleEn: "Purchasing", detail: "कच्चा पदार्थ र साहु", detailEn: "Raw materials and suppliers", href: "/admin/purchasing", terms: ["किनमेल", "purchasing", "purchase", "supplier", "साहु"] },
+  { kind: "page", title: "ग्राहक", titleEn: "Customers", detail: "ग्राहक र उनीहरूको किनमेल", detailEn: "Customers and what they bought", href: "/admin/customers", terms: ["ग्राहक", "customers", "customer", "grahak"] },
+  { kind: "page", title: "हिसाब र नाफा", titleEn: "Reports and profit", detail: "बिक्री, नाफा, ग्राहक", detailEn: "Sales, profit, customers", href: "/admin/analytics", terms: ["हिसाब", "analytics", "नाफा", "profit", "report"] },
+  { kind: "page", title: "निगरानी", titleEn: "Monitoring", detail: "app ठीक छ कि छैन", detailEn: "Whether the app is well", href: "/admin/monitoring", terms: ["निगरानी", "monitoring", "health", "error"] },
+  { kind: "page", title: "सेटिङ", titleEn: "Settings", detail: "पसलको नाम, ठेगाना, शाखा", detailEn: "Shop name, address, branches", href: "/admin/settings", terms: ["सेटिङ", "settings", "setting"] },
+  { kind: "page", title: "कुन फोन/computer", titleEn: "Login devices", detail: "कहाँबाट login भएको", detailEn: "Where a sign-in came from", href: "/admin/devices", terms: ["devices", "login", "passkey", "फोन"] },
   // Search is what makes moving a screen out of the menu safe rather than a
   // way to lose it. Eight of these were reachable only from the menu, so
   // taking them out of it without adding them here would have hidden them.
-  { kind: "page", title: "ग्राहकको आवाज", detail: "राय, सोधपुछ, गुनासो — सबै एकै ठाउँ", href: "/admin/inbox", terms: ["राय", "review", "गुनासो", "feedback", "सोधपुछ", "message", "सन्देश", "inbox", "grahak", "customer voice"] },
-  { kind: "page", title: "सुरु गर्ने", detail: "पहिलो पटक के-के मिलाउने", href: "/admin/getting-started", terms: ["सुरु", "getting started", "suru", "setup", "सेटअप", "help"] },
-  { kind: "page", title: "मापन सेटअप", detail: "Meta Pixel, Google Analytics, TikTok", href: "/admin/measurement", terms: ["मापन", "measurement", "pixel", "analytics", "ga4", "tiktok", "meta", "मापन सेटअप", "tracking"] },
-  { kind: "page", title: "फोनमा खोल्ने", detail: "app जसरी फोनमा राख्ने", href: "/admin/open-on-phone", terms: ["फोन", "phone", "mobile", "install", "app", "qr"] },
-  { kind: "page", title: "सुरक्षा / CCTV", detail: "पसलको सुरक्षा", href: "/admin/security", terms: ["सुरक्षा", "security", "cctv", "camera", "surakshya"] },
-  { kind: "page", title: "को ले के गर्‍यो", detail: "कसले कहिले के बदल्यो", href: "/admin/activity", terms: ["activity", "log", "इतिहास", "history", "audit", "kasle"] },
-  { kind: "page", title: "सूचना", detail: "पठाइएका इमेल र notification", href: "/admin/notifications", terms: ["सूचना", "notification", "email", "इमेल", "push", "suchana"] },
-  { kind: "page", title: "चेतावनी", detail: "ध्यान दिनुपर्ने कुरा", href: "/admin/alerts", terms: ["चेतावनी", "alert", "warning", "chetawani"] },
-  { kind: "page", title: "मोबाइल सन्देश", detail: "SMS पठाउने", href: "/admin/sms", terms: ["sms", "मोबाइल सन्देश", "text", "message"] },
+  { kind: "page", title: "ग्राहकको आवाज", titleEn: "Customer voice", detail: "राय, सोधपुछ, गुनासो — सबै एकै ठाउँ", detailEn: "Reviews, questions, complaints — all in one place", href: "/admin/inbox", terms: ["राय", "review", "गुनासो", "feedback", "सोधपुछ", "message", "सन्देश", "inbox", "grahak", "customer voice"] },
+  { kind: "page", title: "सुरु गर्ने", titleEn: "Getting started", detail: "पहिलो पटक के-के मिलाउने", detailEn: "What to set up the first time", href: "/admin/getting-started", terms: ["सुरु", "getting started", "suru", "setup", "सेटअप", "help"] },
+  { kind: "page", title: "मापन सेटअप", titleEn: "Measurement setup", detail: "Meta Pixel, Google Analytics, TikTok", detailEn: "Meta Pixel, Google Analytics, TikTok", href: "/admin/measurement", terms: ["मापन", "measurement", "pixel", "analytics", "ga4", "tiktok", "meta", "मापन सेटअप", "tracking"] },
+  { kind: "page", title: "फोनमा खोल्ने", titleEn: "Open on phone", detail: "app जसरी फोनमा राख्ने", detailEn: "Putting it on a phone like an app", href: "/admin/open-on-phone", terms: ["फोन", "phone", "mobile", "install", "app", "qr"] },
+  { kind: "page", title: "सुरक्षा / CCTV", titleEn: "Security / CCTV", detail: "पसलको सुरक्षा", detailEn: "Keeping the shop safe", href: "/admin/security", terms: ["सुरक्षा", "security", "cctv", "camera", "surakshya"] },
+  { kind: "page", title: "को ले के गर्‍यो", titleEn: "Activity", detail: "कसले कहिले के बदल्यो", detailEn: "Who changed what, and when", href: "/admin/activity", terms: ["activity", "log", "इतिहास", "history", "audit", "kasle"] },
+  { kind: "page", title: "सूचना", titleEn: "Notifications", detail: "पठाइएका इमेल र notification", detailEn: "Emails and notifications sent", href: "/admin/notifications", terms: ["सूचना", "notification", "email", "इमेल", "push", "suchana"] },
+  { kind: "page", title: "चेतावनी", titleEn: "Alerts", detail: "ध्यान दिनुपर्ने कुरा", detailEn: "Things that need looking at", href: "/admin/alerts", terms: ["चेतावनी", "alert", "warning", "chetawani"] },
+  { kind: "page", title: "मोबाइल सन्देश", titleEn: "SMS", detail: "SMS पठाउने", detailEn: "Sending an SMS", href: "/admin/sms", terms: ["sms", "मोबाइल सन्देश", "text", "message"] },
   // Named for what it shows, not "Customer Voice" — that name belongs to the
   // inbox now, and two screens sharing it is how the owner ended up opening
   // the wrong one.
-  { kind: "page", title: "कुन जुत्ता राम्रो", detail: "राय र फिर्ता — कुन design सुधार्ने", href: "/admin/insights", terms: ["insight", "राय", "फिर्ता", "return", "design", "kun jutta", "सुधार", "rating"] },
+  { kind: "page", title: "कुन जुत्ता राम्रो", titleEn: "Which shoes do well", detail: "राय र फिर्ता — कुन design सुधार्ने", detailEn: "Reviews and returns — which design to improve", href: "/admin/insights", terms: ["insight", "राय", "फिर्ता", "return", "design", "kun jutta", "सुधार", "rating"] },
 ];
 
 /** What each kind is called on screen, and the mark beside it. */
-export const ADMIN_SEARCH_LABELS: Record<AdminSearchKind, { icon: string; label: string }> = {
-  worker: { icon: "👷", label: "कामदार" },
-  factoryItem: { icon: "🏭", label: "कारखानाका item" },
-  product: { icon: "👟", label: "सामान" },
-  customer: { icon: "👥", label: "ग्राहक" },
-  order: { icon: "📦", label: "अर्डर" },
-  invoice: { icon: "🧾", label: "बिल" },
-  supplier: { icon: "🚚", label: "साहु" },
-  page: { icon: "📄", label: "पाना" },
+export const ADMIN_SEARCH_LABELS: Record<
+  AdminSearchKind,
+  { icon: string; label: string; labelEn: string }
+> = {
+  worker: { icon: "👷", label: "कामदार", labelEn: "Workers" },
+  factoryItem: { icon: "🏭", label: "कारखानाका item", labelEn: "Factory items" },
+  product: { icon: "👟", label: "सामान", labelEn: "Products" },
+  customer: { icon: "👥", label: "ग्राहक", labelEn: "Customers" },
+  order: { icon: "📦", label: "अर्डर", labelEn: "Orders" },
+  invoice: { icon: "🧾", label: "बिल", labelEn: "Bills" },
+  supplier: { icon: "🚚", label: "साहु", labelEn: "Suppliers" },
+  page: { icon: "📄", label: "पाना", labelEn: "Pages" },
 };
 
 /**

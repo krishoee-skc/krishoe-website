@@ -45,6 +45,66 @@ function unpaired(source: string) {
     .replace(/<AlertText[\s\S]*?\/>/g, "")
     .replace(/\bne=\{?\s*(["'`])[\s\S]*?\1\s*\}?/g, "")
     .replace(/\b(\w*[Nn]e|nepali)\s*:\s*(["'`])[\s\S]*?\2/g, "")
+    // The same property when it holds a list rather than one string:
+    //
+    //     stepsNe: ["business.facebook.com खोल्नुहोस्", …],
+    //     stepsEn: ["Open business.facebook.com", …],
+    //
+    // Instructions come in numbered steps, and a step is a sentence — pairing
+    // them one array against another keeps each language readable end to end.
+    .replace(/\b(\w*[Nn]e|nepali)\s*:\s*\[[\s\S]*?\]/g, "")
+    // A whole letter, chosen by the reader's language:
+    //
+    //     if (order.language === "en") {
+    //       return [ …the English letter… ];
+    //     }
+    //     return [ …the Nepali one… ];
+    //
+    // An email body is two letters, not twenty interleaved pairs — writing it
+    // as `text(en, ne)` line by line would make it harder to read and easier to
+    // get wrong. The branch IS the pair, so the block it guards is removed
+    // before counting. Only a block genuinely guarded by a language test
+    // qualifies; anything else still counts.
+    .replace(
+      /if\s*\([^)]*\blanguage\s*===\s*["']en["']\)\s*\{[\s\S]*?\n {4}\}\s*\n\s*return\s*\[[\s\S]*?\n {4}\][^;]*;/g,
+      "",
+    )
+    // The same property when its value is a conditional rather than one string:
+    //
+    //     detailNe:
+    //       days >= 1
+    //         ? `अर्डर गरेको ${days} दिन भयो…`
+    //         : `अर्डर गरेको ${hours} घण्टा भयो…`,
+    //
+    // Its English twin sits directly above as `detail:`, written the same way.
+    // Read to the comma that ends the property, so a Nepali string belonging to
+    // the NEXT property is not swallowed with it.
+    .replace(/\b(\w*[Nn]e|nepali)\s*:\s*\n?[^,;]*\?[^;]*?,\s*\n/g, "")
+    // A property written in Nepali whose English twin follows it immediately:
+    //
+    //     title: "काम टिप्ने", titleEn: "Add work",
+    //
+    // The reverse of the `titleNe` shape, and used where the plain name has to
+    // stay the default — an admin search row holds a worker's name in `title`
+    // as often as a page name, and a worker's name has no English half.
+    .replace(/\b(\w+)\s*:\s*(["'`])[\s\S]*?\2(?=\s*,\s*\1En\s*:)/g, "")
+    // What somebody TYPES, as opposed to what they read:
+    //
+    //     terms: ["काम टिप्ने", "add work", "factory entry", "kaam", "ज्याला"],
+    //
+    // A search box has to understand Nepali whichever language the screen is
+    // showing — a search that only knows the language you are currently
+    // reading fails the moment you switch. These are keys, not copy.
+    .replace(/\bterms\s*:\s*\[[\s\S]*?\]/g, "")
+    // The same thing declared as its own table:
+    //
+    //     export const ADMIN_SEARCH_KIND_TERMS = {
+    //       worker: ["कामदार", "worker", "workers", "kamdar", "मान्छे"],
+    //       …
+    //
+    // Also keys, not copy: typing "कामदार" has to find the workers whichever
+    // language the screen is in.
+    .replace(/\bconst\s+\w*_?TERMS\b[^=]*=\s*\{[\s\S]*?^\};/gm, "")
     // A whole declaration whose name ends Ne or _NE: a lookup table of Nepali
     // keyed by the English (`shippingLabelsNe`), or a Nepali array beside its
     // English twin (`WORDS_NE` / `WORDS_EN`). There the pair is the name.
@@ -124,6 +184,10 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 10,
     why: "The enquiry email, which goes to the owner and nobody else. One reader, who reads Nepali, and no switch involved.",
   },
+  "lib/notifications.ts": {
+    lines: 21,
+    why: "The owner's own evening and weekly digests, which nobody else ever reads — and the review invitation, whose payload carries no language because it is sent by a cron long after the shopper has closed the tab.",
+  },
   "lib/coupons.ts": {
     lines: 4,
     why: "Thrown to whoever is typing a coupon on an admin screen. An exception carries no language context, so both sentences travel together.",
@@ -150,12 +214,11 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/factory/items/page.tsx": 9,
   "app/admin/factory/reports/page.tsx": 2,
   "app/admin/factory/worker-portal-qr/page.tsx": 3,
-  "app/admin/getting-started/page.tsx": 8,
   "app/admin/inbox/page.tsx": 22,
   "app/admin/insights/page.tsx": 16,
   "app/admin/login/actions.ts": 4,
   "app/admin/login/passkey-actions.ts": 4,
-  "app/admin/measurement/page.tsx": 54,
+  "app/admin/measurement/page.tsx": 4,
   "app/admin/open-on-phone/page.tsx": 3,
   "app/admin/operations/_components/LedgerTransactionFields.tsx": 1,
   "app/admin/operations/_components/OperationsQuickEntry.tsx": 6,
@@ -168,7 +231,6 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/products/photos/PhotoCard.tsx": 11,
   "app/admin/products/photos/actions.ts": 4,
   "app/admin/products/photos/page.tsx": 9,
-  "app/admin/search/SearchAsYouType.tsx": 6,
   "app/admin/search/page.tsx": 3,
   "app/admin/security/page.tsx": 10,
   "app/admin/settings/actions.ts": 6,
@@ -195,11 +257,9 @@ const STILL_OWED: Record<string, number> = {
   "components/admin/TodaySales.tsx": 10,
   "components/worker/WorkerPortalShell.tsx": 3,
   "components/worker/WorkerPortalUnavailable.tsx": 9,
-  "lib/admin-search.ts": 42,
   "lib/factory-worker-options.ts": 3,
   "lib/google-analytics.ts": 10,
   "lib/login-alerts.ts": 2,
-  "lib/notifications.ts": 41,
   "lib/passkeys.ts": 5,
   "lib/period-report.ts": 12,
   "lib/pos.ts": 2,

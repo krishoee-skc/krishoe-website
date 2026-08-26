@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ADMIN_SEARCH_LABELS, type AdminSearchHit } from "@/lib/admin-search";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * Results while you type.
@@ -20,6 +21,7 @@ import { ADMIN_SEARCH_LABELS, type AdminSearchHit } from "@/lib/admin-search";
  * results under the right text.
  */
 export default function SearchAsYouType() {
+  const { language, text } = useLanguage();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<AdminSearchHit[]>([]);
   const [busy, setBusy] = useState(false);
@@ -42,7 +44,7 @@ export default function SearchAsYouType() {
         const data = await response.json();
         // Ignore anything that answers a query the box has moved on from.
         if (latest.current !== trimmed) return;
-        if (!response.ok) throw new Error(data.error || "खोज्न सकिएन।");
+        if (!response.ok) throw new Error(data.error || "Search failed");
         setHits((data.hits || []) as AdminSearchHit[]);
         setFailed(false);
       } catch {
@@ -67,15 +69,18 @@ export default function SearchAsYouType() {
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
-          placeholder="कामदार, सामान, ग्राहक, बिल, वा पानाको नाम…"
-          aria-label="खोज्नुहोस्"
+          placeholder={text(
+            "A worker, a product, a customer, a bill, or a page name…",
+            "कामदार, सामान, ग्राहक, बिल, वा पानाको नाम…",
+          )}
+          aria-label={text("Search", "खोज्नुहोस्")}
           className="min-h-14 w-full rounded-xl border-2 border-brand-gold/60 bg-brand-paper px-4 pr-12 text-lg font-semibold text-brand-green-ink outline-none focus:border-brand-green"
         />
         {trimmed ? (
           <button
             type="button"
             onClick={() => setQuery("")}
-            aria-label="मेट्ने"
+            aria-label={text("Clear", "मेट्ने")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl leading-none text-brand-muted-soft hover:text-brand-muted-deep"
           >
             ×
@@ -85,14 +90,16 @@ export default function SearchAsYouType() {
 
       {failed ? (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-          खोज्न सकिएन। फेरि टाइप गर्नुहोस्।
+          {text("The search failed. Type it again.", "खोज्न सकिएन। फेरि टाइप गर्नुहोस्।")}
         </p>
       ) : hits.length === 0 ? (
         <p className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper px-4 py-3 text-sm text-brand-muted">
           {/* "" भन्ने केही भेटिएन would flash in the moment before the first
               answer arrives, which reads as a broken box on the screen someone
               just opened. */}
-          {busy || !trimmed ? "हेर्दैछौँ…" : `“${trimmed}” भन्ने केही भेटिएन।`}
+          {busy || !trimmed
+            ? text("Looking…", "हेर्दैछौँ…")
+            : text(`Nothing found for “${trimmed}”.`, `“${trimmed}” भन्ने केही भेटिएन।`)}
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-brand-green-line overflow-hidden rounded-xl border border-brand-green-line bg-brand-paper">
@@ -108,11 +115,15 @@ export default function SearchAsYouType() {
                     {mark.icon}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold text-brand-green-ink">{hit.title}</span>
-                    <span className="block truncate text-xs text-brand-muted">{hit.detail}</span>
+                    <span className="block truncate font-bold text-brand-green-ink">
+                      {language === "en" ? hit.titleEn ?? hit.title : hit.title}
+                    </span>
+                    <span className="block truncate text-xs text-brand-muted">
+                      {language === "en" ? hit.detailEn ?? hit.detail : hit.detail}
+                    </span>
                   </span>
                   <span className="shrink-0 rounded-full bg-brand-mist px-2 py-1 text-[11px] font-black text-brand-muted">
-                    {mark.label}
+                    {language === "en" ? mark.labelEn : mark.label}
                   </span>
                 </Link>
               </li>
