@@ -43,9 +43,12 @@ describe("how much menu a shopkeeper has to read", () => {
  * Moving a screen out of the menu is only safe if it is still reachable.
  * Otherwise this is not tidying, it is losing things.
  */
-describe("what happened to the ten that moved", () => {
+describe("what happened to the ones that moved", () => {
   it("moved them rather than deleted them", () => {
-    expect(adminSetupLinks.length).toBe(10);
+    // Ten moved out of the menu; "Open on phone" was later deleted outright,
+    // its worker QR already being at /admin/factory/worker-portal-qr. Nine is
+    // the list as it stands, pinned so a screen cannot quietly fall out of it.
+    expect(adminSetupLinks.length).toBe(9);
 
     const main = adminNavLinks.map((link) => link.href);
     for (const link of adminSetupLinks) {

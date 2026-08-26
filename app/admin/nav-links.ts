@@ -153,7 +153,6 @@ export const adminSetupGroups: Array<{
     links: [
       { href: "/admin/getting-started", label: "Getting Started", nepali: "सुरु गर्ने", icon: HomeIcon },
       { href: "/admin/measurement", label: "Measurement setup", nepali: "मापन सेटअप", icon: StarIcon },
-      { href: "/admin/open-on-phone", label: "Open on phone", nepali: "फोनमा खोल्ने", icon: SearchIcon },
     ],
   },
   {

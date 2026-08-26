@@ -34,26 +34,3 @@ describe("the two-step code box", () => {
     expect(source).toContain("Gmail खोलेर कोड हेर्नुहोस्");
   });
 });
-
-/**
- * "Owner & staff" read as two kinds of sign-in, and after scanning the owner
- * could not tell which door their phone had opened. There is one office door —
- * Owner, Manager and Accountant all use /admin/login — and one factory door.
- */
-describe("the QR page", () => {
-  it("names the heading each code opens, so the phone can be checked", async () => {
-    const page = await readFile("app/admin/open-on-phone/page.tsx", "utf8");
-
-    expect(page).toContain("फोनमा यही लेखेको आउनुपर्छ");
-    expect(page).toContain("KRISHOE control room");
-    expect(page).toContain("KRISHOE worker portal");
-  });
-
-  it("says plainly that there are only two doors", async () => {
-    const page = await readFile("app/admin/open-on-phone/page.tsx", "utf8");
-
-    expect(page).toContain("ढोका दुई मात्र छन्");
-    // The label that caused the confusion.
-    expect(page).not.toContain("मालिक र staff");
-  });
-});
