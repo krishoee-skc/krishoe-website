@@ -87,14 +87,41 @@ describe("saving one photo", () => {
   });
 });
 
-describe("photo guide", () => {
-  it("describes the screen that now exists", async () => {
-    const guide = await readFile("app/admin/products/photo-guide/page.tsx", "utf8");
+/**
+ * The photography advice used to be a page of its own, reached by a button
+ * from here and from Products. Somebody standing over a shoe with a phone does
+ * not leave to go and read, so the four rules that change the picture come to
+ * them instead.
+ */
+describe("how to take the photograph", () => {
+  it("says it on the screen where the photograph is taken", async () => {
+    const photos = await readFile("app/admin/products/photos/page.tsx", "utf8");
 
-    expect(guide).toContain("/admin/products/photos");
-    expect(guide).toContain("📷 खिच्ने");
-    // The old route — Products, Edit, Save Changes — is three screens longer
-    // and no longer how this is done.
-    expect(guide).not.toContain("Save Changes क्लिक");
+    expect(photos).toContain("photoTips");
+    // Daylight, a plain background, the phone down at the shoe, and no zoom.
+    expect(photos).toContain("झ्यालको उज्यालोमा");
+    expect(photos).toContain("Zoom नगर्ने");
+  });
+
+  it("does not send the reader off to another screen for it", async () => {
+    for (const file of [
+      "app/admin/products/photos/page.tsx",
+      "app/admin/products/page.tsx",
+      "app/admin/getting-started/page.tsx",
+    ]) {
+      const source = await readFile(file, "utf8");
+      // The link, not the mention: photos/page.tsx names the old path in the
+      // comment explaining where the advice came from.
+      expect(source, file).not.toMatch(/href[:=]\s*["']\/admin\/products\/photo-guide/);
+    }
+  });
+
+  it("reads in English too", async () => {
+    const photos = await readFile("app/admin/products/photos/page.tsx", "utf8");
+
+    // Every tip carries both halves, so pressing ENGLISH does not leave a
+    // reader four lines of Devanagari.
+    expect(photos).toContain("Daylight near a window");
+    expect(photos).toContain("No zoom");
   });
 });

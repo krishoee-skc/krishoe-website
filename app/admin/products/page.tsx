@@ -77,12 +77,6 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             📷 <T en="Add photos" ne="फोटो हाल्ने" />
           </Link>
           <Link
-            href="/admin/products/photo-guide"
-            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-          >
-            📸 <T en="Photo guide" ne="फोटो कसरी खिच्ने" />
-          </Link>
-          <Link
             href="/admin/products/labels"
             className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
           >

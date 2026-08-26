@@ -226,7 +226,6 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/pos/[id]/page.tsx": 5,
   "app/admin/pos/actions.ts": 6,
   "app/admin/products/labels/page.tsx": 2,
-  "app/admin/products/photo-guide/page.tsx": 60,
   "app/admin/products/photos/PhotoCard.tsx": 11,
   "app/admin/products/photos/actions.ts": 4,
   "app/admin/products/photos/page.tsx": 9,

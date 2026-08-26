@@ -1,11 +1,32 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import PhotoCard from "./PhotoCard";
+import T from "@/components/T";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getProducts } from "@/lib/product-store";
 
 export const metadata: Metadata = { title: "फोटो हाल्ने | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
+
+/**
+ * The four rules that change the photograph, on the screen where the
+ * photograph is taken.
+ *
+ * These were a page of their own — /admin/products/photo-guide, six rules and
+ * four sections of best practice, reached by a button from here and from
+ * Products. The owner did not use it, and the shape is why: somebody standing
+ * over a shoe with a phone does not leave to go and read, and by the time they
+ * have read it they are on a different screen.
+ *
+ * So the advice comes to them, cut to what actually changes the picture:
+ * daylight, a plain wall, the phone down at the shoe, and no zoom. The rest of
+ * that page was generic photography writing available anywhere.
+ */
+const photoTips = [
+  { icon: "☀️", ne: "दिउँसो झ्यालको उज्यालोमा — सिधा घाम होइन", en: "Daylight near a window — not direct sun" },
+  { icon: "⬜", ne: "पछाडि सेतो पर्खाल वा सादा कपडा", en: "A white wall or plain cloth behind it" },
+  { icon: "📐", ne: "निहुरिएर जुत्ताकै उचाइबाट", en: "Crouch down and shoot at the shoe's own height" },
+  { icon: "🚫", ne: "Zoom नगर्ने — फोन नै नजिक लैजाने", en: "No zoom — move the phone closer instead" },
+];
 
 /**
  * A product uploaded from a real camera lands on Vercel Blob; a product that
@@ -35,21 +56,25 @@ export default async function ProductPhotosPage() {
 
   return (
     <section className="p-6 pb-24">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">फोटो हाल्ने</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-            जुत्ताको फोटो यहीँबाट खिच्नुहोस् वा फाइलबाट छान्नुहोस्। चढ्नेबित्तिकै
-            पसलमा देखिन्छ — Save थिच्नु पर्दैन।
-          </p>
-        </div>
-        <Link
-          href="/admin/products/photo-guide"
-          className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
-        >
-          📸 फोटो कसरी खिच्ने
-        </Link>
+      <div>
+        <h1 className="text-2xl font-black text-brand-green-ink">फोटो हाल्ने</h1>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
+          जुत्ताको फोटो यहीँबाट खिच्नुहोस् वा फाइलबाट छान्नुहोस्। चढ्नेबित्तिकै
+          पसलमा देखिन्छ — Save थिच्नु पर्दैन।
+        </p>
       </div>
+
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {photoTips.map((tip) => (
+          <li
+            key={tip.en}
+            className="flex items-start gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5 text-[13px] leading-5 text-brand-green-ink"
+          >
+            <span aria-hidden className="text-base leading-5">{tip.icon}</span>
+            <span><T en={tip.en} ne={tip.ne} /></span>
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-5 flex flex-wrap gap-2 text-sm font-black">
         <span className={`rounded-full px-3 py-1.5 ${missing > 0 ? "bg-brand-clay text-white" : "bg-emerald-100 text-emerald-900"}`}>

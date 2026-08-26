@@ -52,7 +52,10 @@ export default async function GettingStartedPage() {
       titleEn: "Add the photographs",
       detailNe: "फोटो नभएको जुत्ता कसैले किन्दैन",
       detailEn: "Nobody buys a shoe they cannot see",
-      href: "/admin/products/photo-guide",
+      // Where the photographs are actually added. This step used to open the
+      // photography guide instead — so "Add the photographs" handed the reader
+      // something to read, and they had to find the screen themselves.
+      href: "/admin/products/photos",
       done: products.length > 0 && photographed.length === products.length,
       statusNe:
         products.length > 0
@@ -111,16 +114,6 @@ export default async function GettingStartedPage() {
 
   const guides = [
     {
-      icon: "📸",
-      titleNe: "फोटो खिच्ने तरिका",
-      titleEn: "How to take the photographs",
-      descriptionNe: "फोनले नै पसलजस्तो फोटो कसरी खिच्ने",
-      descriptionEn: "Shop-quality pictures, taken on the phone you have",
-      href: "/admin/products/photo-guide",
-      timeNe: "५ मिनेट पढ्ने",
-      timeEn: "5 minutes to read",
-    },
-    {
       icon: "📦",
       titleNe: "सामान थप्ने",
       titleEn: "Adding a product",
@@ -170,7 +163,7 @@ export default async function GettingStartedPage() {
       items: [
         { name: "Products", href: "/admin/products", descNe: "जुत्ताको सूची र विवरण", descEn: "The list of shoes and their details" },
         { name: "Stock", href: "/admin/stock", descNe: "कुन साइजमा कति जोडी छ", descEn: "How many pairs in which size" },
-        { name: "Photo Guide", href: "/admin/products/photo-guide", descNe: "फोटो खिच्ने तरिका", descEn: "How to take the photographs" },
+        { name: "Photos", href: "/admin/products/photos", descNe: "जुत्ताको फोटो खिच्ने र चढाउने", descEn: "Photograph the shoes and upload them" },
       ],
     },
     {
