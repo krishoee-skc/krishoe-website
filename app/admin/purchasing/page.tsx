@@ -2,11 +2,7 @@ import Link from "next/link";
 import T from "@/components/T";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
-import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
-import {
-  createSupplierLedgerAction,
-} from "@/app/admin/purchasing/actions";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
 import SupplierPaymentForm from "@/app/admin/purchasing/_components/SupplierPaymentForm";
 import LoadFailure from "@/components/admin/LoadFailure";
@@ -21,9 +17,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-const inputClass =
-  "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
 
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -181,37 +174,28 @@ export default async function AdminPurchasingPage() {
         <StatCard label="Month profit signal" value={money(purchasing.summary.monthProfitEstimate)} detail="POS net sales minus purchases" />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr] print:hidden">
+      {/* The bill has the whole width now, and the whole job with it. The
+          "New supplier" form that used to sit beside it is gone: a supplier is
+          named in the bill, which is where the shopkeeper is standing when a
+          new name turns up on a delivery. */}
+      <div className="mt-8 print:hidden">
         <PurchaseInvoiceForm
           supplierLedgers={purchasing.supplierLedgers}
           rawMaterials={operations.rawMaterials}
           productNames={productNames}
         />
+      </div>
 
-        <div className="grid gap-6">
-          <form action={createSupplierLedgerAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="New supplier" ne="नयाँ साहु" /></h2>
-            <div className="mt-4 grid gap-3">
-              <input name="supplierName" required className={inputClass} placeholder="Supplier name" />
-              <input name="phone" className={inputClass} placeholder="Phone" />
-              <input name="materialFocus" className={inputClass} placeholder="Material focus" />
-              <FormSubmitButton
-                className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white"
-                pendingLabel="Adding…"
-              >
-                Add supplier
-              </FormSubmitButton>
-            </div>
-          </form>
-
-          <SupplierPaymentForm
-            suppliers={purchasing.supplierLedgers.map((supplier) => ({
-              id: supplier.id,
-              name: supplier.supplierName,
-              due: supplier.balanceDue,
-            }))}
-          />
-        </div>
+      {/* Settling an OLD due, which is a different act on a different day from
+          paying for a bill as it arrives. That one is part of the bill above. */}
+      <div className="mt-6 max-w-xl print:hidden">
+        <SupplierPaymentForm
+          suppliers={purchasing.supplierLedgers.map((supplier) => ({
+            id: supplier.id,
+            name: supplier.supplierName,
+            due: supplier.balanceDue,
+          }))}
+        />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-4">

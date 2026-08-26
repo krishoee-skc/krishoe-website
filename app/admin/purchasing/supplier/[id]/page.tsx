@@ -194,6 +194,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
               <option>Cash Payment</option>
               <option>Cheque Payment</option>
               <option>Bank Payment</option>
+          <option>QR Payment</option>
               <option>Return Adjustment</option>
               <option>Manual Adjustment</option>
             </select>

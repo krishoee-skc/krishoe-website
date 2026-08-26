@@ -397,7 +397,7 @@ CREATE TABLE IF NOT EXISTS supplier_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   supplier_ledger_id TEXT NOT NULL REFERENCES supplier_ledgers(id) ON DELETE CASCADE,
   supplier_name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('Purchase Bill', 'Cash Payment', 'Cheque Payment', 'Bank Payment', 'Return Adjustment', 'Manual Adjustment')),
+  type TEXT NOT NULL CHECK (type IN ('Purchase Bill', 'Cash Payment', 'Cheque Payment', 'Bank Payment', 'QR Payment', 'Return Adjustment', 'Manual Adjustment')),
   amount NUMERIC NOT NULL CHECK (amount >= 0),
   note TEXT NOT NULL DEFAULT ''
 );
@@ -433,7 +433,7 @@ CREATE TABLE IF NOT EXISTS purchase_invoices (
   total NUMERIC NOT NULL DEFAULT 0 CHECK (total >= 0),
   paid_amount NUMERIC NOT NULL DEFAULT 0 CHECK (paid_amount >= 0),
   credit_amount NUMERIC NOT NULL DEFAULT 0 CHECK (credit_amount >= 0),
-  payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Cheque', 'Bank', 'Credit')),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Cheque', 'Bank', 'Credit', 'QR')),
   payment_reference TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL CHECK (status IN ('Paid', 'Partial', 'Credit')),
   posting_status TEXT NOT NULL CHECK (posting_status IN ('Posted', 'Needs Review')),

@@ -22,7 +22,12 @@ import {
   getPurchasingDataFromPostgres,
 } from "@/lib/purchasing-postgres";
 
-export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit";
+// QR sits beside cash because that is where it sits at the counter: money
+// that arrived now, through eSewa, Khalti or Fonepay, against a bill being
+// written. The shop pays suppliers this way already; until now the only place
+// to record it was "Bank", which loses which wallet it went through and reads
+// as a transfer nobody made.
+export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit" | "QR";
 // A "Raw Material" buy feeds the factory (raw material received stock).
 // A "Trading Goods" buy is ready-made stock bought for resale through the
 // wholesale/retail/online channels, so it feeds finished stock instead.
@@ -38,6 +43,7 @@ export type SupplierTransactionType =
   | "Cash Payment"
   | "Cheque Payment"
   | "Bank Payment"
+  | "QR Payment"
   | "Return Adjustment"
   | "Manual Adjustment";
 
@@ -259,7 +265,12 @@ function clonePurchasingData(data: PurchasingData): PurchasingData {
 }
 
 function isSupplierPaymentType(type: SupplierTransactionType) {
-  return type === "Cash Payment" || type === "Cheque Payment" || type === "Bank Payment";
+  return (
+    type === "Cash Payment" ||
+    type === "Cheque Payment" ||
+    type === "Bank Payment" ||
+    type === "QR Payment"
+  );
 }
 
 function assertSupplierTransactionAllowed(
@@ -559,6 +570,7 @@ export async function addSupplierTransaction(
 function paymentTransactionType(paymentMethod: SupplierPaymentMethod): SupplierTransactionType {
   if (paymentMethod === "Cheque") return "Cheque Payment";
   if (paymentMethod === "Bank") return "Bank Payment";
+  if (paymentMethod === "QR") return "QR Payment";
   return "Cash Payment";
 }
 
@@ -702,15 +714,23 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
   }
 
   if (normalizedInput.paymentMethod === "Credit" && normalizedInput.paidAmount > 0) {
-    throw new Error("Credit purchase cannot have paid amount. Use Cash, Cheque, or Bank for payments.");
+    throw new Error("A credit purchase cannot carry a paid amount. Choose Cash, QR, Cheque or Bank.");
   }
 
+  // A cheque or a transfer is traceable only by its number, a QR payment by
+  // which wallet it came through. Cash needs neither — it was counted.
   if (
-    (normalizedInput.paymentMethod === "Cheque" || normalizedInput.paymentMethod === "Bank") &&
+    (normalizedInput.paymentMethod === "Cheque" ||
+      normalizedInput.paymentMethod === "Bank" ||
+      normalizedInput.paymentMethod === "QR") &&
     normalizedInput.paidAmount > 0 &&
     !normalizedInput.paymentReference
   ) {
-    throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
+    throw new Error(
+      normalizedInput.paymentMethod === "QR"
+        ? "Say which wallet the QR payment came through — eSewa, Khalti, Fonepay."
+        : "Cheque or bank payment reference is required when paid amount is entered.",
+    );
   }
 
   const invoice = await runWithDataBackend({

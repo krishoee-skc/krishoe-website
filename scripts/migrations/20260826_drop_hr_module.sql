@@ -28,8 +28,10 @@
 -- The first two are why this file is shorter than it was: "the table is empty"
 -- is not the same question as "does anything still read it", and only the
 -- second one decides whether a DROP is safe.
-
-BEGIN;
+--
+-- No BEGIN/COMMIT of its own: apply-postgres-schema.mjs runs every migration
+-- inside one transaction and refuses a file that opens a second. All-or-nothing
+-- still holds — the runner provides it.
 
 -- ---------------------------------------------------------------------------
 -- 1. The wage and production tables now point at factory_workers.
@@ -126,5 +128,3 @@ DROP TABLE IF EXISTS playing_with_neon;
 DROP TABLE IF EXISTS hr_payroll;
 DROP TABLE IF EXISTS hr_attendance;
 DROP TABLE IF EXISTS hr_employees;
-
-COMMIT;

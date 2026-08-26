@@ -114,7 +114,12 @@ function today() {
 }
 
 function isSupplierPaymentType(type: SupplierTransactionType) {
-  return type === "Cash Payment" || type === "Cheque Payment" || type === "Bank Payment";
+  return (
+    type === "Cash Payment" ||
+    type === "Cheque Payment" ||
+    type === "Bank Payment" ||
+    type === "QR Payment"
+  );
 }
 
 function assertSupplierTransactionAllowed(
@@ -479,6 +484,7 @@ export async function addSupplierTransactionToPostgres(
 function paymentTransactionType(paymentMethod: SupplierPaymentMethod): SupplierTransactionType {
   if (paymentMethod === "Cheque") return "Cheque Payment";
   if (paymentMethod === "Bank") return "Bank Payment";
+  if (paymentMethod === "QR") return "QR Payment";
   return "Cash Payment";
 }
 
@@ -512,7 +518,9 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
     }
 
     if (
-      (input.paymentMethod === "Cheque" || input.paymentMethod === "Bank") &&
+      (input.paymentMethod === "Cheque" ||
+        input.paymentMethod === "Bank" ||
+        input.paymentMethod === "QR") &&
       paidInputAmount > 0 &&
       !paymentReference
     ) {

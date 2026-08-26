@@ -9,7 +9,6 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
-  addSupplierLedger,
   addSupplierTransaction,
   createPurchaseInvoice,
   type CreatePurchaseInvoiceItemInput,
@@ -19,7 +18,7 @@ import {
 } from "@/lib/purchasing";
 import type { BusinessChannel } from "@/lib/operations";
 
-const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit"];
+const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit", "QR"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
 const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"] as const;
 // A ceiling on what one submitted form can post, not on what a bill may hold.
@@ -32,6 +31,7 @@ const transactionTypes: SupplierTransactionType[] = [
   "Cash Payment",
   "Cheque Payment",
   "Bank Payment",
+  "QR Payment",
   "Return Adjustment",
   "Manual Adjustment",
 ];
@@ -60,24 +60,13 @@ function refreshPurchasingPage(returnTo = "/admin/purchasing") {
   redirect(safeReturnTo(returnTo));
 }
 
-export async function createSupplierLedgerAction(formData: FormData) {
-  await requireAdminPermission("purchasing:write");
-
-  const supplierName = textValue(formData, "supplierName");
-
-  if (!supplierName) {
-    throw new Error("Supplier name is required.");
-  }
-
-  await addSupplierLedger({
-    supplierName,
-    phone: textValue(formData, "phone"),
-    materialFocus: textValue(formData, "materialFocus"),
-  });
-  await recordAdminAuditEvent("supplier_create", `Supplier ${supplierName} created.`);
-
-  refreshPurchasingPage(textValue(formData, "returnTo"));
-}
+// createSupplierLedgerAction lived here, behind a standalone "New supplier"
+// form beside the bill. A supplier is named in the bill now — which is where
+// the shopkeeper is standing when a new name turns up on a delivery — and
+// createPurchaseInvoice opens the ledger, taking the material focus from the
+// first line rather than asking for it. The form went, so its action goes with
+// it: an exported Server Action is a reachable endpoint, and one nothing calls
+// is surface with no purpose.
 
 // The form posts item0..itemN-1 and says how many rows it rendered. Reading the
 // count rather than assuming one keeps a 25-line bill from being silently cut

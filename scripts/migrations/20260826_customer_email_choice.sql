@@ -14,8 +14,11 @@
 -- Additive only. This migration creates a table and touches nothing else, so
 -- there is no state it can leave the database in that is worse than before it
 -- ran. Safe to run twice.
-
-BEGIN;
+--
+-- No BEGIN/COMMIT of its own: apply-postgres-schema.mjs runs every migration
+-- inside one transaction and refuses a file that opens a second, so a migration
+-- carrying its own blocked the runner outright — this one included, and every
+-- migration written after it.
 
 CREATE TABLE IF NOT EXISTS customer_email_preferences (
   -- One row per customer, and the customer is a user. ON DELETE CASCADE
@@ -46,5 +49,3 @@ CREATE TABLE IF NOT EXISTS customer_email_preferences (
 
 CREATE INDEX IF NOT EXISTS customer_email_preferences_token_idx
   ON customer_email_preferences(unsubscribe_token);
-
-COMMIT;
