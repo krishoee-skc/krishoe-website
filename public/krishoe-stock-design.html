@@ -84,6 +84,21 @@
          border-bottom:1px solid var(--line)}
   .pnums{display:flex;gap:6px}
 
+
+  .slip{border:1px solid var(--ink);border-radius:10px;background:#fff;padding:20px;max-width:520px}
+  .sliphead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+            border-bottom:2px solid var(--ink);padding-bottom:12px}
+  .slipno{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--green)}
+  .sliprow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .sliprow:last-child{border-bottom:0}
+  .sign{display:flex;gap:16px;margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)}
+  .sign div{flex:1}
+  .sign p{margin:0;font-size:11px;color:var(--soft)}
+  .sign span{display:block;margin-top:26px;border-top:1px solid var(--line);padding-top:5px;font-size:12px;color:var(--muted)}
+  .badge{display:inline-block;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700}
+  .b-transit{background:#FFF9EA;color:var(--gold-ink)}
+  .b-done{background:var(--green-tint);color:var(--green)}
+  .b-short{background:var(--clay-tint);color:var(--clay)}
   footer{margin-top:64px;border-top:1px solid var(--line);padding-top:22px;font-size:13px;line-height:1.75;color:var(--muted)}
   @media(max-width:620px){
     th:nth-child(4),td:nth-child(4){display:none}
@@ -215,6 +230,136 @@
     </div>
   </section>
 
+
+  <section>
+    <div class="shead"><h2 class="devdisp">सारेको कहाँ लेखिन्छ</h2><span>The record</span></div>
+    <p class="sdesc dev">माल सर्दा एउटा <strong>चलान</strong> बन्छ — नम्बर सहित, छाप्न मिल्ने, मालसँगै जाने कागज। यो <strong>बिल होइन</strong>: पैसा आउँदैन, ग्राहक छैन, VAT लाग्दैन। आफ्नै मालको आफ्नै ठाउँमा सरुवा हो।</p>
+
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+      <div class="slip">
+        <div class="sliphead">
+          <div>
+            <p style="margin:0;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--gold-deep)">KRISHOE</p>
+            <p class="devdisp" style="margin:4px 0 0;font-size:20px;font-weight:700">माल सरुवा चलान</p>
+            <p style="margin:1px 0 0;font-size:11px;color:var(--soft)">Stock transfer note — not a sale</p>
+          </div>
+          <div style="text-align:right">
+            <p class="slipno" style="margin:0">KR-CHA-20260827-01</p>
+            <p class="dev" style="margin:3px 0 0;font-size:11.5px;color:var(--muted)">२०८३/०५/११</p>
+            <p style="margin:1px 0 0;font-size:11px;color:var(--soft)">27 Aug 2026</p>
+          </div>
+        </div>
+
+        <div class="sliprow dev" style="padding-top:12px">
+          <span style="color:var(--muted)">कहाँबाट</span>
+          <strong>🏭 कारखाना — कमलनगर</strong>
+        </div>
+        <div class="sliprow dev">
+          <span style="color:var(--muted)">कहाँ</span>
+          <strong>🛒 पसल — नारायणगढ</strong>
+        </div>
+
+        <table style="margin-top:12px">
+          <thead><tr><th>सामान</th><th>साइज</th><th>जोडी</th></tr></thead>
+          <tbody>
+            <tr><td>close shoes</td><td style="text-align:right">36-41</td><td>10</td></tr>
+            <tr><td>T bag open</td><td style="text-align:right">36-41</td><td>10</td></tr>
+            <tr><td>Bachha Rubber (Kids)</td><td style="text-align:right">24-30</td><td>10</td></tr>
+            <tr class="total"><td class="dev">जम्मा</td><td></td><td>30</td></tr>
+          </tbody>
+        </table>
+
+        <div class="sliprow dev" style="margin-top:10px">
+          <span style="color:var(--muted)">कसले लग्यो</span>
+          <strong>राजु · मोटरसाइकल बा १२ प ३४५६</strong>
+        </div>
+
+        <div class="sign">
+          <div><p class="dev">पठाउने</p><span class="dev">कृष्ण</span></div>
+          <div><p class="dev">बुझ्ने</p><span class="dev">— — —</span></div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:250px">
+        <h4 style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold-deep)">यसले के दिन्छ</h4>
+        <p class="dev" style="margin:0 0 14px;font-size:13.5px;line-height:1.7">छापेर मालसँगै पठाउने। पसलमा गनेर मिल्यो कि मिलेन, त्यहीँ थाहा हुन्छ — मुख्य नम्बर <strong>KR-CHA-20260827-01</strong> ले जोड्छ।</p>
+
+        <h4 style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--clay)">बिल किन होइन</h4>
+        <p class="dev" style="margin:0 0 14px;font-size:13.5px;line-height:1.7">बिल काट्दा बिक्री गनिन्छ, VAT को हिसाबमा चढ्छ, नाफा बिग्रिन्छ। आफ्नै मालको सरुवामा बिक्री भएकै छैन — त्यसैले <strong>चलान</strong>।</p>
+
+        <h4 style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--green)">कारखानाभित्र पहिल्यै छ</h4>
+        <p class="dev" style="margin:0;font-size:13.5px;line-height:1.7">Upper बाट Fiber मा माल दिँदा app ले <strong>पठाएको / बुझेको / छुटेको</strong> यसरी नै टिप्छ। त्यही तरिका पसलसम्म लैजाने — नयाँ केही सिक्नु पर्दैन।</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2 class="devdisp">सबै चलान एकै ठाउँ</h2><span>Where to see them</span></div>
+    <p class="sdesc dev">कति पठाइयो, कति पुग्यो, कति बाटोमै छ — एउटै सूचीमा। <strong>बाटोमा</strong> भन्ने अवस्थाले नै “गयो तर पुगेन” देखाउँछ; नभए त्यो चुपचाप हराउँछ।</p>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>चलान नं.</th><th style="text-align:left">मिति</th><th style="text-align:left">कहाँबाट → कहाँ</th><th>पठाएको</th><th>बुझेको</th><th style="text-align:left">अवस्था</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:700;color:var(--green)">KR-CHA-20260827-01</td>
+            <td style="text-align:left" class="dev">२०८३/०५/११</td>
+            <td style="text-align:left" class="dev">🏭 कारखाना → 🛒 पसल</td>
+            <td>30</td><td class="zero">—</td>
+            <td style="text-align:left"><span class="badge b-transit dev">बाटोमा</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;color:var(--green)">KR-CHA-20260826-02</td>
+            <td style="text-align:left" class="dev">२०८३/०५/१०</td>
+            <td style="text-align:left" class="dev">🏭 कारखाना → 🛒 पसल</td>
+            <td>24</td><td>24</td>
+            <td style="text-align:left"><span class="badge b-done dev">पुग्यो</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;color:var(--green)">KR-CHA-20260826-01</td>
+            <td style="text-align:left" class="dev">२०८३/०५/१०</td>
+            <td style="text-align:left" class="dev">🏭 कारखाना → 🛒 पसल</td>
+            <td>20</td><td>18</td>
+            <td style="text-align:left"><span class="badge b-short dev">२ जोडी छुट्यो</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="why" style="margin-top:22px">
+        <div><h4>छिटो</h4><p class="dev">जहिले पनि पठाउने चाहिँ एक थिचाइ। बुझ्ने पछि — पसलमा पुगेपछि गनेर।</p></div>
+        <div><h4>हिसाब देखिने</h4><p class="dev">कारखानाको सङ्ख्या घट्छ, पसलको बढ्छ — <strong>जम्मा उही</strong>। बाटोमा भएको माल छुट्टै देखिन्छ।</p></div>
+        <div><h4>छुटे थाहा</h4><p class="dev">२० पठाएर १८ पुग्यो भने रातो देखिन्छ, सोध्न मिल्छ। अहिले यस्तो केही देखिँदैन।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2 class="devdisp">दुई तरिका — कुन चाहिन्छ?</h2><span>One step or two</span></div>
+    <p class="sdesc dev">यो निर्णय तपाईंको हो, र यसले काम कति छिटो हुन्छ भन्ने तय गर्छ।</p>
+
+    <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+      <div>
+        <p class="devdisp" style="margin:0 0 8px;font-size:18px;font-weight:700">क · सिधै सार्ने</p>
+        <p class="dev" style="margin:0 0 10px;font-size:13.5px;line-height:1.7">एक थिचाइमा सङ्ख्या सर्छ। चलान बन्छ, तर “बुझेको” आफैं लेखिन्छ।</p>
+        <p class="dev" style="margin:0;font-size:13px;line-height:1.65;color:var(--green)"><strong>ठीक हुन्छ जब:</strong> तपाईं आफैं लैजानुहुन्छ, वा पसल नजिकै छ।</p>
+        <p class="dev" style="margin:6px 0 0;font-size:13px;line-height:1.65;color:var(--clay)"><strong>कमजोरी:</strong> बाटोमा हराए थाहा हुँदैन।</p>
+      </div>
+      <div>
+        <p class="devdisp" style="margin:0 0 8px;font-size:18px;font-weight:700">ख · पठाउने अनि बुझ्ने</p>
+        <p class="dev" style="margin:0 0 10px;font-size:13.5px;line-height:1.7">पठाउँदा “बाटोमा” हुन्छ। पसलमा गनेर “बुझेँ” थिचेपछि मात्र पसलको सङ्ख्यामा जोडिन्छ।</p>
+        <p class="dev" style="margin:0;font-size:13px;line-height:1.65;color:var(--green)"><strong>ठीक हुन्छ जब:</strong> अरूले लैजान्छन्, वा छुट्ने डर छ।</p>
+        <p class="dev" style="margin:6px 0 0;font-size:13px;line-height:1.65;color:var(--clay)"><strong>कमजोरी:</strong> दुई पटक छुनुपर्छ।</p>
+      </div>
+    </div>
+
+    <div class="note" style="border-color:var(--green);background:var(--green-tint);margin-top:18px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#12634A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M20 6 9 17l-5-5"/></svg>
+      <p class="dev" style="color:var(--green)"><strong>मेरो सुझाव: दुवै राख्ने।</strong> पठाउने बेला एउटा टिक — <em>“अहिल्यै बुझ्ने”</em>। तपाईं आफैं लैजाँदा टिक लगाउने, एक थिचाइमा सकिन्छ। अरूले लैजाँदा नलगाउने, “बाटोमा” रहन्छ। एउटै बाटो, दुवै काम।</p>
+    </div>
+  </section>
+
   <footer class="dev">
     <p style="margin:0 0 10px"><strong>सुरु कसरी गर्ने:</strong> केही गर्नु पर्दैन। बनाएका <strong>१५२ जोडी</strong> कारखानामा, किनेका <strong>१२८ जोडी</strong> पसलमा — आफैं मिल्छ। कुनै जुत्ता अर्कै ठाउँमा छ भने त्यति मात्र सार्नुहोस्।</p>
     <p style="margin:0 0 10px"><strong>तर एउटा कुरा:</strong> पहिलो दिनपछि “कसरी आयो” ले ठाउँ भन्न छोड्छ — कारखानामा बनाएको जुत्ता पसल पुगेपछि पनि “बनाएको” नै रहन्छ। त्यसैले <strong>ठाउँ छुट्टै खाना</strong> हुनुपर्छ; “कसरी आयो” ले सुरुको सङ्ख्या मात्र दिन्छ।</p>
@@ -243,6 +388,9 @@
 
   var open = -1;
   var moves = [];
+  /* Every move gets a challan number, the way a POS sale gets an invoice
+     number: it is what the factory copy and the shop copy have in common. */
+  var challanNo = 0;
   var rowsEl = document.getElementById("log").previousElementSibling;
   var tbody = document.getElementById("rows");
   var panel = document.getElementById("panel");
@@ -328,7 +476,9 @@
 
     item[from] -= pairs;
     item[to] += pairs;
-    moves.unshift(item.name + " — " + pairs + " जोडी " + place[from] + " बाट " + place[to] + " मा");
+    challanNo += 1;
+    var no = "KR-CHA-20260827-" + String(challanNo).padStart(2, "0");
+    moves.unshift({ no: no, line: item.name + " — " + pairs + " जोडी " + place[from] + " बाट " + place[to] + " मा" });
 
     panel.hidden = true;
     open = -1;
@@ -344,12 +494,16 @@
     head.className = "dev";
     head.style.fontWeight = "700";
     head.style.color = "var(--ink)";
-    head.textContent = "आज सारेको";
+    head.textContent = "आज सारेको — हरेकको आफ्नै चलान";
     log.appendChild(head);
-    moves.slice(0, 5).forEach(function (line) {
+    moves.slice(0, 5).forEach(function (move) {
       var p = document.createElement("p");
       p.className = "dev";
-      p.textContent = "• " + line;
+      var no = document.createElement("b");
+      no.textContent = move.no;
+      no.style.color = "var(--green)";
+      p.appendChild(no);
+      p.appendChild(document.createTextNode("  " + move.line));
       log.appendChild(p);
     });
   }
