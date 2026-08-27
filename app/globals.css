@@ -225,11 +225,31 @@ table th,
 /* Brand surfaces. The greens and golds themselves keep their identity — a shop
    is recognisable by its colour — but the pale tints exist to sit behind text
    and have to darken or they blind. */
+
+/* The paper the whole admin is written on, and the ground those sheets sit on.
+   These two are used 421 and 124 times — every card, every form, every panel —
+   and neither was listed here, so a phone set to dark mode got dark chrome with
+   white cards inside it: worse than no dark mode, because the toggle follows
+   the phone's own setting and nobody chose it.
+   They map to the same two roles the tokens already name, so the values are
+   stated once, in :root and .dark, and everything follows. */
+.dark .bg-brand-paper { background-color: var(--surface); }
+.dark .bg-brand-paper-deep { background-color: var(--surface-sunken); }
+
 .dark .bg-brand-mist,
 .dark .bg-brand-green-mist { background-color: var(--surface-raised); }
+
+/* A hairline colour used as a fill. #E4DFD5 is pale stone — correct as a border
+   between rows, and a bright block when something sets it as a background,
+   which eighteen places do. */
+.dark .bg-brand-green-line { background-color: var(--hairline); }
+.dark .bg-brand-muted-soft { background-color: var(--surface-raised); }
 .dark .bg-brand-green-tint,
 .dark .bg-brand-green-wash { background-color: #16302a; }
 .dark .bg-brand-cream-soft { background-color: #2c2617; }
+/* The phone hero on the shop front. Cream is the point of it in daylight; at
+   night it is a bright card filling most of the first screen. */
+.dark .bg-brand-cream-hero { background-color: #241f13; }
 .dark .bg-brand-clay-tint,
 .dark .bg-brand-clay-mist { background-color: #33201d; }
 .dark .border-brand-green-line { border-color: var(--hairline); }

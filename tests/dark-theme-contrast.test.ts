@@ -129,3 +129,91 @@ describe("the remap layer covers what the app actually paints with", () => {
     expect(css).not.toContain(".dark .bg-white\\/20");
   });
 });
+
+/**
+ * The remap layer only covers what is listed in it.
+ *
+ * A phone set to dark mode gets the `dark` class before anyone chooses
+ * anything — themeBootScript reads prefers-color-scheme. So an unlisted
+ * background class is not "dark mode is incomplete", it is a white card on a
+ * dark page, on a screen the owner did not ask to be dark.
+ *
+ * bg-brand-paper was exactly that: the paper every admin card, form and panel
+ * is written on, used 534 times, and absent from the list. bg-brand-paper-deep
+ * (125) and bg-brand-green-line (18 — a pale hairline colour used as a fill)
+ * were the same.
+ *
+ * This counts what the app uses against what the stylesheet remaps, so the next
+ * pale surface to be introduced is caught here rather than at night.
+ */
+describe("every pale surface the app paints has a dark answer", () => {
+  const BACKSLASH = String.fromCharCode(92);
+  const remapped = new Set(
+    [...css.matchAll(new RegExp(`^\\.dark \\.([a-zA-Z0-9${BACKSLASH}${BACKSLASH}/-]+)`, "gm"))].map(
+      (match) => match[1].split(BACKSLASH).join(""),
+    ),
+  );
+
+  /**
+   * Brand colours that keep their identity in the dark, on purpose.
+   *
+   * A shop is recognised by its colour: the solid green of a button, the gold
+   * of a label, the clay of a warning. These carry white text already and
+   * darkening them would make the app look like a different company. The pale
+   * TINTS of those colours are remapped — they exist to sit behind dark text.
+   */
+  const KEEPS_ITS_COLOUR = [
+    "bg-brand-green", "bg-brand-green-ink", "bg-brand-gold", "bg-brand-gold-bright",
+    "bg-brand-clay", "bg-brand-clay-deep", "bg-brand-clay-ink", "bg-brand-danger",
+    "border-brand-green", "border-brand-gold", "border-brand-gold-bright",
+    "border-brand-clay", "border-brand-green-ink",
+    // Deep browns and maroons that carry white text: the factory nav badge, the
+    // report buttons, the gold labels. Darkening them would take the colour out
+    // of the shop without making anything easier to read.
+    "bg-brand-muted-deep", "bg-brand-maroon", "bg-brand-gold-deep", "bg-brand-gold-dark",
+    // Text colours are handled by the ink tokens where they need to be; a brand
+    // green heading stays brand green.
+  ];
+
+  it("remaps every pale background the app actually uses", async () => {
+    const { readdirSync, statSync } = await import("node:fs");
+
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        if (entry === "node_modules" || entry === ".next") continue;
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.tsx$/.test(entry)) files.push(full);
+      }
+    };
+    walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "components"));
+
+    const used = new Map<string, number>();
+    for (const file of files) {
+      for (const match of readFileSync(file, "utf8").matchAll(/\bbg-brand-[a-z-]+/g)) {
+        used.set(match[0], (used.get(match[0]) ?? 0) + 1);
+      }
+    }
+
+    const unanswered = [...used.entries()]
+      .filter(([name]) => !remapped.has(name) && !KEEPS_ITS_COLOUR.includes(name))
+      .sort((left, right) => right[1] - left[1])
+      .map(([name, count]) => `${name} (${count} places)`);
+
+    expect(
+      unanswered,
+      "These backgrounds have no dark answer and no decision to keep their colour.\n" +
+        "Either remap them in globals.css or add them to KEEPS_ITS_COLOUR with a reason:\n" +
+        unanswered.join("\n"),
+    ).toEqual([]);
+  });
+
+  it("remaps the paper the admin is written on", () => {
+    // Named on their own because they are the ones that were missing, and the
+    // ones whose absence turned dark mode into a half-lit screen.
+    expect(remapped.has("bg-brand-paper")).toBe(true);
+    expect(remapped.has("bg-brand-paper-deep")).toBe(true);
+  });
+});
