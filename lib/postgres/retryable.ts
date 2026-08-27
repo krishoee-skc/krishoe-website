@@ -1,3 +1,5 @@
+import { describeDatabaseRefusal } from "@/lib/postgres/refusal";
+
 // Kept apart from client.ts so callers that only want to *explain* a failure —
 // a server action deciding what to tell the admin — can ask without pulling in
 // the `pg` driver and the connection pool.
@@ -50,6 +52,13 @@ export function saveFailureMessage(error: unknown, fallback: string) {
   if (isRetryableConnectionError(error)) {
     return "The database did not answer. Nothing you typed was lost — press Save again.";
   }
+
+  // A refusal from Postgres says which rule and which table; passing on its raw
+  // sentence — `new row for relation "x" violates check constraint "y"` —
+  // names the rule but not what to do about it, and every screen in the app
+  // reaches this one function, so explaining it here explains it everywhere.
+  const refusal = describeDatabaseRefusal(error);
+  if (refusal) return refusal;
 
   return error instanceof Error && error.message ? error.message : fallback;
 }

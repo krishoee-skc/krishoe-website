@@ -1,3 +1,10 @@
+import {
+  missingReferenceMessage,
+  paymentNeedsReference,
+  paymentTransactionType,
+  purchaseStatus,
+  withSupplierTransactionApplied,
+} from "@/lib/purchasing-rules";
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 import { insertStockMovement } from "@/lib/operations-postgres";
 import type { BusinessChannel } from "@/lib/operations";
@@ -111,30 +118,6 @@ function dateOnly(value: Date | string) {
 
 function today() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function isSupplierPaymentType(type: SupplierTransactionType) {
-  return (
-    type === "Cash Payment" ||
-    type === "Cheque Payment" ||
-    type === "Bank Payment" ||
-    type === "QR Payment"
-  );
-}
-
-function assertSupplierTransactionAllowed(
-  ledger: SupplierLedger,
-  transaction: Pick<SupplierTransaction, "type" | "amount">,
-) {
-  if (transaction.amount <= 0) {
-    throw new Error("Supplier transaction amount must be greater than zero.");
-  }
-
-  if ((isSupplierPaymentType(transaction.type) || transaction.type === "Return Adjustment") && transaction.amount > ledger.balanceDue) {
-    throw new Error(
-      `${ledger.supplierName} has only Rs. ${ledger.balanceDue} supplier due. Cannot post Rs. ${transaction.amount}.`,
-    );
-  }
 }
 
 function supplierLedgerFromRow(row: SupplierLedgerRow): SupplierLedger {
@@ -349,37 +332,6 @@ async function updateSupplierLedgerTotals(db: PostgresExecutor, ledger: Supplier
   );
 }
 
-function applySupplierTransaction(
-  ledger: SupplierLedger,
-  transaction: Pick<SupplierTransaction, "type" | "amount">,
-) {
-  assertSupplierTransactionAllowed(ledger, transaction);
-
-  const nextLedger = { ...ledger };
-
-  if (transaction.type === "Purchase Bill") {
-    nextLedger.totalPurchase += transaction.amount;
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  if (isSupplierPaymentType(transaction.type)) {
-    nextLedger.paidAmount += transaction.amount;
-    nextLedger.balanceDue -= transaction.amount;
-  }
-
-  if (transaction.type === "Return Adjustment") {
-    nextLedger.totalPurchase -= transaction.amount;
-    nextLedger.balanceDue -= transaction.amount;
-  }
-
-  if (transaction.type === "Manual Adjustment") {
-    nextLedger.balanceDue += transaction.amount;
-  }
-
-  nextLedger.lastTransaction = today();
-  return nextLedger;
-}
-
 async function insertSupplierTransaction(
   db: PostgresExecutor,
   ledger: SupplierLedger,
@@ -397,7 +349,7 @@ async function insertSupplierTransaction(
     note: cleanText(note),
   };
 
-  await updateSupplierLedgerTotals(db, applySupplierTransaction(ledger, record));
+  await updateSupplierLedgerTotals(db, withSupplierTransactionApplied(ledger, record, today()));
 
   const rows = await db.query<SupplierTransactionRow>(
     `
@@ -481,21 +433,6 @@ export async function addSupplierTransactionToPostgres(
   });
 }
 
-function paymentTransactionType(paymentMethod: SupplierPaymentMethod): SupplierTransactionType {
-  if (paymentMethod === "Cheque") return "Cheque Payment";
-  if (paymentMethod === "Bank") return "Bank Payment";
-  if (paymentMethod === "QR") return "QR Payment";
-  return "Cash Payment";
-}
-
-function purchaseStatus(total: number, paidAmount: number): PurchaseInvoice["status"] {
-  const creditAmount = Math.max(0, total - paidAmount);
-
-  if (creditAmount > 0 && paidAmount > 0) return "Partial";
-  if (creditAmount > 0) return "Credit";
-  return "Paid";
-}
-
 export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoiceInput) {
   return transactionPostgres("purchasing", async (db) => {
     const supplierLedgerId = cleanText(input.supplierLedgerId);
@@ -518,13 +455,11 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
     }
 
     if (
-      (input.paymentMethod === "Cheque" ||
-        input.paymentMethod === "Bank" ||
-        input.paymentMethod === "QR") &&
+      paymentNeedsReference(input.paymentMethod) &&
       paidInputAmount > 0 &&
       !paymentReference
     ) {
-      throw new Error("Cheque or bank payment reference is required when paid amount is entered.");
+      throw new Error(missingReferenceMessage(input.paymentMethod));
     }
 
     // Look every material up in one go, ordered, and lock them. Ordering by id
@@ -649,7 +584,7 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
       `${purchaseNumber} purchase, ${lines.length} item(s).`,
     );
     transactionIds.push(billTransaction.id);
-    ledger = applySupplierTransaction(ledger, billTransaction);
+    ledger = withSupplierTransactionApplied(ledger, billTransaction, today());
 
     if (paidAmount > 0 && input.paymentMethod !== "Credit") {
       const paymentTransaction = await insertSupplierTransaction(

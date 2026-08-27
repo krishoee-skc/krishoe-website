@@ -5,6 +5,8 @@ import {
   submissionKeyForFactoryRequest,
 } from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
+import { databaseRefusalDetail, refusalMessage } from "@/lib/postgres/refusal";
+import { reportError } from "@/lib/report-error";
 import {
   numeric,
   positiveInteger,
@@ -102,15 +104,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
-    console.error("Error creating work entry:", error);
+    // "Failed to create work entry" was all this said for weeks, while the
+    // database refused every one of them over a CHECK constraint it named in
+    // the error the whole time. A FactoryMutationError speaks for itself; a
+    // refusal from Postgres now speaks too, and the constraint and the failing
+    // row go to the error log rather than to a console nobody reads.
+    if (error instanceof FactoryMutationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    const refusal = databaseRefusalDetail(error);
+    reportError(
+      refusal
+        ? `create a factory work entry — ${refusal.code} on ${refusal.table ?? "?"}, rule ${refusal.constraint ?? "?"}, ${refusal.detail ?? ""}`
+        : "create a factory work entry",
+      error,
+    );
+
     return NextResponse.json(
-      {
-        error:
-          error instanceof FactoryMutationError
-            ? error.message
-            : "Failed to create work entry",
-      },
-      { status: error instanceof FactoryMutationError ? error.status : 500 }
+      { error: refusalMessage(error, "Failed to create work entry") },
+      { status: 500 }
     );
   }
 }

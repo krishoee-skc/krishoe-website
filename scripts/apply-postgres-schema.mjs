@@ -108,7 +108,24 @@ async function migrationFiles(schemaPath, migrationsOnly) {
     .sort((left, right) => left.localeCompare(right));
 }
 
+/**
+ * A migration's fingerprint, blind to how the lines end.
+ *
+ * git rewrites line endings on a Windows checkout, so the same untouched file
+ * hashes differently on different days. That was already true of one applied
+ * migration here: 27 of 28 matched as-is and one matched only with LF endings,
+ * and NONE of them had actually been edited. The next migration run would have
+ * refused the whole batch over it — the same silence that once left weeks of
+ * migrations unapplied, this time for no change at all.
+ *
+ * CR is stripped before hashing. A migration means the same thing either way.
+ */
 function migrationChecksum(sql) {
+  return createHash("sha256").update(sql.replace(/\r\n/g, "\n")).digest("hex");
+}
+
+/** What the fingerprint used to be, before line endings stopped counting. */
+function legacyMigrationChecksum(sql) {
   return createHash("sha256").update(sql).digest("hex");
 }
 
@@ -157,8 +174,20 @@ async function main() {
       );
 
       if (existing.rows.length > 0) {
-        if (existing.rows[0].checksum !== checksum) {
-          throw new Error(`Migration checksum mismatch for ${name}. Never edit an applied migration.`);
+        const recorded = existing.rows[0].checksum;
+
+        if (recorded !== checksum) {
+          // Stamped before line endings stopped counting: the file is
+          // unchanged, only its fingerprint recipe is. Re-stamp it and carry
+          // on rather than refusing the batch over a CR.
+          if (recorded === legacyMigrationChecksum(sql)) {
+            await client.query(
+              "UPDATE schema_migrations SET checksum = $2 WHERE name = $1",
+              [name, checksum],
+            );
+          } else {
+            throw new Error(`Migration checksum mismatch for ${name}. Never edit an applied migration.`);
+          }
         }
 
         skipped.push(name);

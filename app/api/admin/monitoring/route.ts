@@ -6,6 +6,7 @@ import {
   checkSystemHealth,
 } from "@/lib/monitoring";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { describeMigrationState, getMigrationState } from "@/lib/pending-migrations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,11 +40,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Return all stats
-    const [errors, performance, uptime, health] = await Promise.all([
+    const [errors, performance, uptime, health, migrations] = await Promise.all([
       getErrorStats(hours),
       getPerformanceStats(hours),
       getUptimeEvidence(),
       checkSystemHealth(),
+      // Nothing told anybody that migrations were pending, and two blocked ones
+      // sat unapplied for weeks — until every work entry started failing over a
+      // constraint a migration had already dropped. Asked here so the answer is
+      // on a screen somebody opens.
+      getMigrationState(),
     ]);
 
     return NextResponse.json({
@@ -53,6 +59,7 @@ export async function GET(request: NextRequest) {
         performance,
         uptime,
         health,
+        migrations: { ...migrations, summary: describeMigrationState(migrations) },
         timestamp: new Date().toISOString(),
       },
     });

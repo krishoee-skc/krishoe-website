@@ -141,7 +141,10 @@ describe("saving a product reports what happened", () => {
     const state = await upsertProductAction(null, productForm());
 
     expect(state.ok).toBe(false);
-    expect(state.message).toContain("duplicate key");
+    // The database's refusal, explained rather than quoted: a shopkeeper can
+    // act on "already exists" and not on "duplicate key value violates unique
+    // constraint".
+    expect(state.message).toContain("already exists");
   });
 });
 

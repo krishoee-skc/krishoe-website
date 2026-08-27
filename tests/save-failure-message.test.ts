@@ -16,13 +16,18 @@ describe("the message shown when a save fails", () => {
     expect(message).toContain("Nothing you typed was lost");
   });
 
-  it("passes a real problem through so it can be acted on", () => {
+  it("explains a real problem so it can be acted on", () => {
     const message = saveFailureMessage(
       Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" }),
       "Could not save this product.",
     );
 
-    expect(message).toBe("duplicate key value violates unique constraint");
+    // It used to hand back the database's own sentence. That names the rule
+    // and not the remedy, and "violates unique constraint" is not a thing to
+    // say to a shopkeeper — so a refusal is explained now, and the fallback is
+    // still not used, which is what this test was always really about.
+    expect(message).not.toBe("Could not save this product.");
+    expect(message).toContain("already exists");
   });
 
   it("falls back when the failure carries no message", () => {

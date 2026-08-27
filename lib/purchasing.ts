@@ -3,6 +3,21 @@ import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import {
+  applySupplierTransactionToLedger,
+  assertSupplierTransactionAllowed,
+  isSupplierPaymentType,
+  missingReferenceMessage,
+  paymentNeedsReference,
+  paymentTransactionType,
+  purchaseStatus,
+  supplierPaymentMethods,
+  supplierTransactionTypes,
+  withSupplierTransactionApplied,
+  type PurchaseInvoiceStatus,
+  type SupplierPaymentMethod,
+  type SupplierTransactionType,
+} from "@/lib/purchasing-rules";
+import {
   addRawMaterialReceipt,
   addStockMovement,
   getOperationsData,
@@ -22,12 +37,22 @@ import {
   getPurchasingDataFromPostgres,
 } from "@/lib/purchasing-postgres";
 
-// QR sits beside cash because that is where it sits at the counter: money
-// that arrived now, through eSewa, Khalti or Fonepay, against a bill being
-// written. The shop pays suppliers this way already; until now the only place
-// to record it was "Bank", which loses which wallet it went through and reads
-// as a transfer nobody made.
-export type SupplierPaymentMethod = "Cash" | "Cheque" | "Bank" | "Credit" | "QR";
+// The rules themselves live in lib/purchasing-rules.ts, where the Postgres
+// backend can reach them too. Re-exported so the rest of the app keeps
+// importing these from here.
+export {
+  isSupplierPaymentType,
+  paymentTransactionType,
+  paymentNeedsReference,
+  missingReferenceMessage,
+  purchaseStatus,
+  assertSupplierTransactionAllowed,
+  applySupplierTransactionToLedger,
+  withSupplierTransactionApplied,
+  supplierPaymentMethods,
+  supplierTransactionTypes,
+};
+export type { SupplierPaymentMethod, SupplierTransactionType, PurchaseInvoiceStatus };
 // A "Raw Material" buy feeds the factory (raw material received stock).
 // A "Trading Goods" buy is ready-made stock bought for resale through the
 // wholesale/retail/online channels, so it feeds finished stock instead.
@@ -36,16 +61,7 @@ export type PurchaseKind = "Raw Material" | "Trading Goods";
 // supplier bill can carry leather and ready-made chappals together, so "Mixed"
 // is a normal answer, not an error.
 export type PurchaseBillKind = PurchaseKind | "Mixed";
-export type PurchaseInvoiceStatus = "Paid" | "Partial" | "Credit";
 export type PurchasePostingStatus = "Posted" | "Needs Review";
-export type SupplierTransactionType =
-  | "Purchase Bill"
-  | "Cash Payment"
-  | "Cheque Payment"
-  | "Bank Payment"
-  | "QR Payment"
-  | "Return Adjustment"
-  | "Manual Adjustment";
 
 export type SupplierLedger = {
   id: string;
@@ -264,29 +280,6 @@ function clonePurchasingData(data: PurchasingData): PurchasingData {
   };
 }
 
-function isSupplierPaymentType(type: SupplierTransactionType) {
-  return (
-    type === "Cash Payment" ||
-    type === "Cheque Payment" ||
-    type === "Bank Payment" ||
-    type === "QR Payment"
-  );
-}
-
-function assertSupplierTransactionAllowed(
-  ledger: SupplierLedger,
-  transaction: Pick<SupplierTransaction, "type" | "amount">,
-) {
-  if (transaction.amount <= 0) {
-    throw new Error("Supplier transaction amount must be greater than zero.");
-  }
-
-  if ((isSupplierPaymentType(transaction.type) || transaction.type === "Return Adjustment") && transaction.amount > ledger.balanceDue) {
-    throw new Error(
-      `${ledger.supplierName} has only Rs. ${ledger.balanceDue} supplier due. Cannot post Rs. ${transaction.amount}.`,
-    );
-  }
-}
 
 function normalizeSupplierLedger(ledger: Partial<SupplierLedger>): SupplierLedger {
   return {
@@ -496,34 +489,6 @@ export async function addSupplierLedger(
   });
 }
 
-function applySupplierTransaction(
-  ledger: SupplierLedger,
-  transaction: Pick<SupplierTransaction, "type" | "amount">,
-) {
-  assertSupplierTransactionAllowed(ledger, transaction);
-
-  if (transaction.type === "Purchase Bill") {
-    ledger.totalPurchase += transaction.amount;
-    ledger.balanceDue += transaction.amount;
-  }
-
-  if (isSupplierPaymentType(transaction.type)) {
-    ledger.paidAmount += transaction.amount;
-    ledger.balanceDue -= transaction.amount;
-  }
-
-  if (transaction.type === "Return Adjustment") {
-    ledger.totalPurchase -= transaction.amount;
-    ledger.balanceDue -= transaction.amount;
-  }
-
-  if (transaction.type === "Manual Adjustment") {
-    ledger.balanceDue += transaction.amount;
-  }
-
-  ledger.lastTransaction = today();
-}
-
 function addSupplierTransactionToLocalData(
   data: PurchasingData,
   transaction: Omit<SupplierTransaction, "id" | "createdAt" | "supplierName">,
@@ -543,7 +508,7 @@ function addSupplierTransactionToLocalData(
     note: cleanText(transaction.note),
   };
 
-  applySupplierTransaction(ledger, record);
+  applySupplierTransactionToLedger(ledger, record, today());
   data.supplierTransactions.unshift(record);
   return record;
 }
@@ -565,21 +530,6 @@ export async function addSupplierTransaction(
     },
     postgres: () => addSupplierTransactionToPostgres(transaction),
   });
-}
-
-function paymentTransactionType(paymentMethod: SupplierPaymentMethod): SupplierTransactionType {
-  if (paymentMethod === "Cheque") return "Cheque Payment";
-  if (paymentMethod === "Bank") return "Bank Payment";
-  if (paymentMethod === "QR") return "QR Payment";
-  return "Cash Payment";
-}
-
-function purchaseStatus(total: number, paidAmount: number): PurchaseInvoiceStatus {
-  const creditAmount = Math.max(0, total - paidAmount);
-
-  if (creditAmount > 0 && paidAmount > 0) return "Partial";
-  if (creditAmount > 0) return "Credit";
-  return "Paid";
 }
 
 async function nextPurchaseNumber() {
@@ -717,20 +667,12 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
     throw new Error("A credit purchase cannot carry a paid amount. Choose Cash, QR, Cheque or Bank.");
   }
 
-  // A cheque or a transfer is traceable only by its number, a QR payment by
-  // which wallet it came through. Cash needs neither — it was counted.
   if (
-    (normalizedInput.paymentMethod === "Cheque" ||
-      normalizedInput.paymentMethod === "Bank" ||
-      normalizedInput.paymentMethod === "QR") &&
+    paymentNeedsReference(normalizedInput.paymentMethod) &&
     normalizedInput.paidAmount > 0 &&
     !normalizedInput.paymentReference
   ) {
-    throw new Error(
-      normalizedInput.paymentMethod === "QR"
-        ? "Say which wallet the QR payment came through — eSewa, Khalti, Fonepay."
-        : "Cheque or bank payment reference is required when paid amount is entered.",
-    );
+    throw new Error(missingReferenceMessage(normalizedInput.paymentMethod));
   }
 
   const invoice = await runWithDataBackend({
