@@ -88,6 +88,16 @@ function unpaired(source: string) {
     // stay the default — an admin search row holds a worker's name in `title`
     // as often as a page name, and a worker's name has no English half.
     .replace(/\b(\w+)\s*:\s*(["'`])[\s\S]*?\2(?=\s*,\s*\1En\s*:)/g, "")
+    // A regular expression, which nobody ever reads:
+    //
+    //     const UNMADE_PROMISES = [/ग्यारेन्टी/, /पैसा\s*फिर्ता/, …];
+    //
+    // Nepali inside slashes is a matcher, not a message. `lib/ai/product-copy.ts`
+    // throws away any AI draft promising a guarantee the shop has not made, and
+    // it has to recognise that promise in the language it was written in.
+    // Demanding an English half would mean writing an English sentence nobody
+    // displays, to satisfy a reader who never sees either one.
+    .replace(/\/(?:[^/\\\n[]|\\.|\[(?:[^\]\\]|\\.)*\])+\/[gimsuy]*/g, "")
     // What somebody TYPES, as opposed to what they read:
     //
     //     terms: ["काम टिप्ने", "add work", "factory entry", "kaam", "ज्याला"],

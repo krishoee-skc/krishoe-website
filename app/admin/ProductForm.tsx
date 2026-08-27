@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/products";
 import type { Product, Category } from "@/lib/products";
 import { upsertProductAction, type ActionState } from "./actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
 import ImageUploadField from "@/components/admin/ImageUploadField";
+import AiDraftButton from "./AiDraftButton";
 
 type ProductFormProps = {
   product?: Product | null;
@@ -29,6 +30,9 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     product ? String(product.priceValue / 100) : "",
   );
   const [isSaving, startSaving] = useTransition();
+  // Held so the AI drafter can read what is typed and fill what is not, without
+  // this form having to mirror every field into React state first.
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Submitted here rather than through `action={...}` so a failure comes back as
   // a message beside the button. The form is never re-rendered from scratch, so
@@ -51,7 +55,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-brand-paper p-6 shadow-sm">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-brand-paper p-6 shadow-sm">
       <input type="hidden" name="id" defaultValue={product?.id ?? ""} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -219,6 +223,8 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         </label>
       </div>
 
+      <AiDraftButton formRef={formRef} />
+
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">{text("Short description", "छोटो विवरण")}</span>
         <textarea name="description" defaultValue={product?.description} rows={2} className="form-input" />
@@ -241,6 +247,24 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">{text("Long description", "लामो विवरण")}</span>
         <textarea name="longDescription" defaultValue={product?.longDescription} rows={4} className="form-input" />
+      </label>
+
+      {/*
+        The save has always accepted this column and the form never offered a
+        box for it, so a shopper reading the shop in Nepali got the English
+        paragraph on every product page. Nothing to migrate — no product could
+        have a value there.
+      */}
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium">
+          {text("Long description in Nepali", "नेपालीमा लामो विवरण")}
+        </span>
+        <textarea
+          name="longDescriptionNe"
+          defaultValue={product?.longDescriptionNe ?? ""}
+          rows={4}
+          className="form-input"
+        />
       </label>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
