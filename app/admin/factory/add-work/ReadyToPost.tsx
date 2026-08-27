@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import type { ReadyItem } from "@/app/api/factory/ready/route";
 
 /**
@@ -26,6 +27,7 @@ import type { ReadyItem } from "@/app/api/factory/ready/route";
  * ever true.
  */
 export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
+  const { text } = useLanguage();
   const [items, setItems] = useState<ReadyItem[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
@@ -36,13 +38,13 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
     try {
       const response = await fetch("/api/factory/ready", { cache: "no-store" });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "पढ्न सकिएन।");
+      if (!response.ok) throw new Error(data.error || text("Could not read this.", "पढ्न सकिएन।"));
       setItems((data.items || []) as ReadyItem[]);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "पढ्न सकिएन।");
+      setError(reason instanceof Error ? reason.message : text("Could not read this.", "पढ्न सकिएन।"));
       setItems([]);
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     const id = window.setTimeout(() => void load(), 0);
@@ -61,12 +63,17 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
         body: JSON.stringify({ item_id: item.itemId, pairs }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "चढाउन सकिएन।");
-      setMessage(`${item.name} — ${pairs} जोडी स्टकमा चढ्यो। पसलमा तुरुन्तै देखिन्छ।`);
+      if (!response.ok) throw new Error(data.error || text("Could not post this.", "चढाउन सकिएन।"));
+      setMessage(
+        text(
+          `${item.name} — ${pairs} pairs posted to stock. They show in the shop straight away.`,
+          `${item.name} — ${pairs} जोडी स्टकमा चढ्यो। पसलमा तुरुन्तै देखिन्छ।`,
+        ),
+      );
       setDrafts((current) => ({ ...current, [item.itemId]: "" }));
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "चढाउन सकिएन।");
+      setError(reason instanceof Error ? reason.message : text("Could not post this.", "चढाउन सकिएन।"));
     } finally {
       setBusy("");
     }
@@ -75,17 +82,21 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
   if (items === null) {
     return (
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-6">
-        <p className="text-sm text-brand-muted">हेर्दैछौँ…</p>
+        <p className="text-sm text-brand-muted">{text("Looking…", "हेर्दैछौँ…")}</p>
       </section>
     );
   }
 
   return (
     <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-6">
-      <h2 className="text-xl font-bold text-brand-green-ink">📦 कति तयार भयो — स्टकमा चढाउने</h2>
+      <h2 className="text-xl font-bold text-brand-green-ink">
+        📦 {text("What is made — post it to stock", "कति तयार भयो — स्टकमा चढाउने")}
+      </h2>
       <p className="mt-1 text-sm leading-6 text-brand-muted">
-        काम टिप्दा ज्याला मात्र चढ्छ, स्टक चढ्दैन — नत्र Upper ६० र Fibermen ६० जोडिएर
-        १२० जोडी देखिन्थ्यो। यहाँ <strong>गोदाममा गनेको सङ्ख्या</strong> हाल्नुहोस्।
+        {text(
+          "Recording work adds the wage, not the stock — otherwise Upper's 60 and Fibermen's 60 would add up to 120 pairs. Enter what was counted in the godown.",
+          "काम टिप्दा ज्याला मात्र चढ्छ, स्टक चढ्दैन — नत्र Upper ६० र Fibermen ६० जोडिएर १२० जोडी देखिन्थ्यो। यहाँ गोदाममा गनेको सङ्ख्या हाल्नुहोस्।",
+        )}
       </p>
 
       {message ? (
@@ -101,7 +112,10 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
 
       {items.length === 0 ? (
         <p className="mt-4 text-sm text-brand-muted">
-          अझै कुनै काम टिपिएको छैन। माथिको फारमबाट टिप्नुहोस्।
+          {text(
+            "No work has been recorded yet. Add it from the form above.",
+            "अझै कुनै काम टिपिएको छैन। माथिको फारमबाट टिप्नुहोस्।",
+          )}
         </p>
       ) : (
         <div className="mt-4 space-y-4">
@@ -118,25 +132,35 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                 {item.stages.map((stage) => (
                   <div key={stage.category} className="flex justify-between">
                     <dt>{stage.category}</dt>
-                    <dd className="font-bold tabular-nums">{stage.pairs} जोडी बनेको</dd>
+                    <dd className="font-bold tabular-nums">
+                      {text(`${stage.pairs} pairs made`, `${stage.pairs} जोडी बनेको`)}
+                    </dd>
                   </div>
                 ))}
                 <div className="mt-1 flex justify-between border-t border-brand-green-line pt-1">
                   {/* The smallest stage total, never the sum. Sixty uppers and
                       sixty bottoms are sixty finished pairs. */}
-                  <dt>तयार हुनसक्ने</dt>
-                  <dd className="font-bold tabular-nums">{item.madePairs} जोडी</dd>
+                  <dt>{text("Could be ready", "तयार हुनसक्ने")}</dt>
+                  <dd className="font-bold tabular-nums">
+                    {text(`${item.madePairs} pairs`, `${item.madePairs} जोडी`)}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt>स्टकमा चढिसकेको</dt>
-                  <dd className="font-bold tabular-nums">{item.postedPairs} जोडी</dd>
+                  <dt>{text("Already posted", "स्टकमा चढिसकेको")}</dt>
+                  <dd className="font-bold tabular-nums">
+                    {text(`${item.postedPairs} pairs`, `${item.postedPairs} जोडी`)}
+                  </dd>
                 </div>
               </dl>
 
               {item.pendingPairs > 0 ? (
                 <>
                   <p className="mt-3 text-sm font-black text-amber-900">
-                    🟡 {item.pendingPairs} जोडी चढाउन बाँकी
+                    🟡{" "}
+                    {text(
+                      `${item.pendingPairs} pairs still to post`,
+                      `${item.pendingPairs} जोडी चढाउन बाँकी`,
+                    )}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <input
@@ -147,7 +171,10 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       onChange={(event) =>
                         setDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))
                       }
-                      aria-label={`${item.name} को कति जोडी तयार भयो`}
+                      aria-label={text(
+                        `How many pairs of ${item.name} are ready`,
+                        `${item.name} को कति जोडी तयार भयो`,
+                      )}
                       className="min-h-12 w-28 rounded-xl border border-brand-green-line px-3 text-brand-green-ink"
                     />
                     <button
@@ -156,15 +183,22 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       disabled={busy === item.itemId}
                       className="min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
                     >
-                      {busy === item.itemId ? "चढाउँदैछौँ…" : "स्टकमा चढाउने"}
+                      {busy === item.itemId
+                        ? text("Posting…", "चढाउँदैछौँ…")
+                        : text("Post to stock", "स्टकमा चढाउने")}
                     </button>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-brand-muted">
-                    गोदाममा गनेको सङ्ख्या हाल्नुहोस् — माथिको अङ्क अनुमान मात्र हो।
+                    {text(
+                      "Enter what was counted in the godown — the number above is only an estimate.",
+                      "गोदाममा गनेको सङ्ख्या हाल्नुहोस् — माथिको अङ्क अनुमान मात्र हो।",
+                    )}
                   </p>
                 </>
               ) : (
-                <p className="mt-3 text-sm font-bold text-green-700">✅ मिलेको छ — चढाउन बाँकी छैन</p>
+                <p className="mt-3 text-sm font-bold text-green-700">
+                  ✅ {text("All square — nothing left to post", "मिलेको छ — चढाउन बाँकी छैन")}
+                </p>
               )}
 
               {/* Where these pairs land. A factory name no product carries makes
@@ -172,14 +206,29 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                   before the pairs are posted, not after. */}
               <p className="mt-3 border-t border-brand-green-line pt-2 text-xs leading-5 text-brand-muted">
                 {item.productName === null ? (
-                  <>⚠️ पसलमा “{item.name}” नामको जुत्ता छैन — चढाउँदा नयाँ Draft बन्नेछ, र Draft पसलमा देखिँदैन।</>
+                  <>
+                    ⚠️{" "}
+                    {text(
+                      `The shop has no shoe called "${item.name}" — posting creates a new Draft, and a Draft is not shown in the shop.`,
+                      `पसलमा “${item.name}” नामको जुत्ता छैन — चढाउँदा नयाँ Draft बन्नेछ, र Draft पसलमा देखिँदैन।`,
+                    )}
+                  </>
                 ) : item.productStatus !== "Active" ? (
                   <>
-                    ⚠️ पसलमा “{item.productName}” छ तर <strong>{item.productStatus}</strong> मा —
-                    Active नबनाएसम्म ग्राहकले देख्दैनन्। अहिले {item.productStock} जोडी।
+                    ⚠️{" "}
+                    {text(
+                      `The shop has "${item.productName}" but it is ${item.productStatus} — customers cannot see it until it is Active. ${item.productStock} pairs now.`,
+                      `पसलमा “${item.productName}” छ तर ${item.productStatus} मा — Active नबनाएसम्म ग्राहकले देख्दैनन्। अहिले ${item.productStock} जोडी।`,
+                    )}
                   </>
                 ) : (
-                  <>✅ पसलमा “{item.productName}” — अहिले {item.productStock} जोडी बिक्रीमा।</>
+                  <>
+                    ✅{" "}
+                    {text(
+                      `In the shop as "${item.productName}" — ${item.productStock} pairs on sale now.`,
+                      `पसलमा “${item.productName}” — अहिले ${item.productStock} जोडी बिक्रीमा।`,
+                    )}
+                  </>
                 )}
               </p>
             </article>

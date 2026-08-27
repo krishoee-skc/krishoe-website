@@ -210,7 +210,6 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/TodayBoard.tsx": 9,
   "app/admin/coupons/actions.ts": 2,
   "app/admin/factory/_components/factory-nav.tsx": 7,
-  "app/admin/factory/add-work/ReadyToPost.tsx": 24,
   "app/admin/factory/items/page.tsx": 9,
   "app/admin/factory/reports/page.tsx": 2,
   "app/admin/factory/worker-portal-qr/page.tsx": 3,

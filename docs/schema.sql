@@ -1192,8 +1192,10 @@ CREATE TABLE IF NOT EXISTS factory_worker_ledger (
     CHECK (entry_type IN ('work', 'payment', 'adjustment')),
   CONSTRAINT factory_worker_ledger_status_check
     CHECK (status IN ('pending', 'settled', 'reversed')),
-  CONSTRAINT factory_worker_ledger_salary_period_check
-    CHECK (salary_period_month IS NULL OR salary_period_month = date_trunc('month', salary_period_month)::date)
+  -- No month-start CHECK: this shop keeps months in Bikram Sambat, and a BS
+  -- month begins in the middle of a Gregorian one (Bhadra 2083 on 17 August
+  -- 2026). A date_trunc check demands the first, and refused every piece-rate
+  -- work entry until it was dropped. bikramMonthRange() holds the rule now.
 );
 
 CREATE TABLE IF NOT EXISTS factory_weekly_advance (
@@ -1207,8 +1209,10 @@ CREATE TABLE IF NOT EXISTS factory_weekly_advance (
   salary_period_month DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT factory_weekly_advance_salary_period_check
-    CHECK (salary_period_month = date_trunc('month', salary_period_month)::date)
+  -- No month-start CHECK: this shop keeps months in Bikram Sambat, and a BS
+  -- month begins in the middle of a Gregorian one (Bhadra 2083 on 17 August
+  -- 2026). A date_trunc check demands the first, and refused every piece-rate
+  -- work entry until it was dropped. bikramMonthRange() holds the rule now.
 );
 
 CREATE TABLE IF NOT EXISTS factory_monthly_summary (
@@ -1223,8 +1227,10 @@ CREATE TABLE IF NOT EXISTS factory_monthly_summary (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT factory_monthly_summary_month_worker_key UNIQUE (month, worker_id),
-  CONSTRAINT factory_monthly_summary_month_check
-    CHECK (month = date_trunc('month', month)::date),
+  -- No month-start CHECK: this shop keeps months in Bikram Sambat, and a BS
+  -- month begins in the middle of a Gregorian one (Bhadra 2083 on 17 August
+  -- 2026). A date_trunc check demands the first, and refused every piece-rate
+  -- work entry until it was dropped. bikramMonthRange() holds the rule now.,
   CONSTRAINT factory_monthly_summary_status_check
     CHECK (status IN ('draft', 'locked'))
 );

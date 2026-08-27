@@ -58,8 +58,24 @@ function optionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+/**
+ * A DATE column back as the day it says, not the day UTC says.
+ *
+ * node-postgres parses a DATE into a Date at LOCAL midnight, so 2026-08-27 in
+ * Kathmandu is 2026-08-26T18:15Z — and toISOString() then reports the 26th. A
+ * day's wages were being read back under the day before, on any machine not
+ * running UTC. Vercel runs UTC, which is why production looked right and the
+ * owner's own machine did not.
+ *
+ * The date parts are read locally, matching how the driver built it.
+ */
 function dbDate(value: unknown) {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
   return String(value ?? "").slice(0, 10);
 }
 
