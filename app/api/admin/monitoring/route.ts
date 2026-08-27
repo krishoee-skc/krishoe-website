@@ -7,6 +7,7 @@ import {
 } from "@/lib/monitoring";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { describeMigrationState, getMigrationState } from "@/lib/pending-migrations";
+import { getBranchIsolationStatus } from "@/lib/branch-isolation-status";
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Return all stats
-    const [errors, performance, uptime, health, migrations] = await Promise.all([
+    const [errors, performance, uptime, health, migrations, branchIsolation] = await Promise.all([
       getErrorStats(hours),
       getPerformanceStats(hours),
       getUptimeEvidence(),
@@ -50,6 +51,10 @@ export async function GET(request: NextRequest) {
       // constraint a migration had already dropped. Asked here so the answer is
       // on a screen somebody opens.
       getMigrationState(),
+      // Written on every branch table and enforced on none of them, because the
+      // role the app connects as bypasses row-level security. Shown so nobody
+      // relies on a wall that is drawn and not built.
+      getBranchIsolationStatus(),
     ]);
 
     return NextResponse.json({
@@ -60,6 +65,7 @@ export async function GET(request: NextRequest) {
         uptime,
         health,
         migrations: { ...migrations, summary: describeMigrationState(migrations) },
+        branchIsolation,
         timestamp: new Date().toISOString(),
       },
     });

@@ -32,6 +32,11 @@ const NOT_A_TABLE = new Set([
   // Postgres catalogue and metadata.
   "pg_tables", "pg_class", "pg_namespace", "pg_policies", "pg_indexes",
   "information_schema", "pg_catalog", "pg_stat_user_tables",
+  // Postgres' own, not the shop's: pg_roles answers whether the connecting
+  // role bypasses row-level security, which is what decides whether branch
+  // isolation is doing anything; pg_proc and pg_constraint name the rules a
+  // refusal came from.
+  "pg_roles", "pg_proc", "pg_constraint",
   // SQL keywords that follow FROM/UPDATE in the shapes used here.
   "lateral", "set", "of", "your", "balanced",
   // Common table expressions and derived-table aliases used across the app.
