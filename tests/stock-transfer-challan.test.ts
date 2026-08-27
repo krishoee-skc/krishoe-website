@@ -27,7 +27,23 @@ afterAll(async () => {
 
 const only = (rows: Awaited<ReturnType<typeof getStockByPlace>>) => rows.find((r) => r.design === D)!;
 
-describe("a challan from the factory to the shop", () => {
+/**
+ * A live check, against a real Postgres.
+ *
+ * Every other test here reads source and reasons about it, and CI runs with
+ * DATA_BACKEND=local-json and no DATABASE_URL on purpose so it never touches
+ * the shop. This one moves pairs, which is the only way to find out that a
+ * challan inserts its lines before the challan they point at, or that a join
+ * turns 54 pairs into 108 — both of which it did find.
+ *
+ * So it skips where there is no database, and runs where there is:
+ *
+ *   node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/stock-transfer-challan.test.ts
+ *
+ * It works on a design of its own and deletes it afterwards; the shop own rows
+ * are never read or written.
+ */
+describe.skipIf(!process.env.DATABASE_URL)("a challan from the factory to the shop", () => {
   it("leaves, waits on the road, and arrives short", async () => {
     await seed();
     expect(only(await getStockByPlace())).toMatchObject({ factory: 54, shop: 0, total: 54, unplaced: 0 });

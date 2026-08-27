@@ -7,6 +7,10 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { buildStockOverview, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
 import { outlookAdvice, stockOutlook, type StockOutlook } from "@/lib/stock-forecast";
+import { getStockByPlace, getStockTransfers } from "@/lib/stock-transfers";
+import { getAdminSession } from "@/lib/admin-auth";
+import { NEPAL_TIME_ZONE, toBikramSambatNumeric } from "@/lib/bikram-sambat";
+import WherePairsAre from "@/app/admin/stock/WherePairsAre";
 
 export const metadata = { title: "Stock Control | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -207,9 +211,14 @@ function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
 
 async function loadStock() {
   try {
-    const [products, operations] = await Promise.all([
+    const [products, operations, byPlace, transfers] = await Promise.all([
       getProducts({ includeDrafts: true }),
       getOperationsData(),
+      // Where the pairs are, and the challans that moved them. Read beside the
+      // stock overview rather than inside it: this is a different question, and
+      // a failure here must not cost the screen its stock figures.
+      getStockByPlace().catch(() => []),
+      getStockTransfers(40).catch(() => []),
     ]);
     const overview = buildStockOverview(operations, products);
     // Every design that holds pairs, collapsed across channels: the question
@@ -222,6 +231,8 @@ async function loadStock() {
 
     return {
       overview,
+      byPlace,
+      transfers,
       outlook: stockOutlook(
         [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
         operations.stockMovements,
@@ -230,12 +241,21 @@ async function loadStock() {
     };
   } catch (error) {
     reportError("load unified stock control", error);
-    return { overview: null, outlook: [], error: saveFailureMessage(error, "Could not load stock control.") };
+    return {
+      overview: null,
+      byPlace: [],
+      transfers: [],
+      outlook: [],
+      error: saveFailureMessage(error, "Could not load stock control."),
+    };
   }
 }
 
 export default async function AdminStockPage() {
-  const loaded = await loadStock();
+  const [loaded, session] = await Promise.all([loadStock(), getAdminSession()]);
+  // The day as this shop counts it, worked out on the server so the challan is
+  // dated where the shop is rather than where the browser thinks it is.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE }).format(new Date());
   if (!loaded.overview) return <LoadFailure what="stock control" message={loaded.error} retryHref="/admin/stock" />;
   const { summary, rawMaterials, manufactured, purchased, mixed, opening, recentMovements } = loaded.overview;
 
@@ -265,6 +285,14 @@ export default async function AdminStockPage() {
         <StatCard label="Purchased for resale" value={summary.purchasedPairs} detail="Current pairs whose source history is Purchase In." />
         <StatCard label="Raw materials" value={summary.rawMaterialItems} detail={`${summary.rawMaterialReorderItems} material item(s) at or below reorder level.`} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
       </div>
+
+      <WherePairsAre
+        rows={loaded.byPlace}
+        transfers={loaded.transfers}
+        staffName={session?.name || session?.email || "Admin"}
+        today={today}
+        todayBs={toBikramSambatNumeric(today)}
+      />
 
       <StockOutlookPanel rows={loaded.outlook} />
 
