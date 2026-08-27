@@ -132,11 +132,17 @@
     <div class="shead"><h2 class="devdisp">प्रस्ताव</h2><span>Proposed — सार्ने बटन थिचेर हेर्नुहोस्</span></div>
     <p class="sdesc dev">हरेक जुत्ताको <strong>दुई सङ्ख्या</strong> — कारखानामा कति, पसलमा कति। माल सर्दा यहीँ टिप्ने, अनि हिसाब पनि सँगै सर्छ।</p>
 
+    <div class="note" style="border-color:var(--green);background:var(--green-tint);margin:0 0 20px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#12634A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M20 6 9 17l-5-5"/></svg>
+      <p class="dev" style="color:var(--green)"><strong>गन्नै पर्दैन।</strong> तपाईंले भन्नुभएको नियम — <strong>बनाएको → कारखाना, किनेको → पसल</strong> — app मा पहिल्यै लेखिएको छ। तलका सङ्ख्या अनुमान होइनन्, तपाईंकै साँचो डाटा हुन्।</p>
+    </div>
+
     <div class="card">
       <table>
         <thead>
           <tr>
             <th>सामान</th>
+            <th style="text-align:left">कसरी आयो</th>
             <th>🏭 कारखाना</th>
             <th>🛒 पसल</th>
             <th>जम्मा</th>
@@ -147,6 +153,7 @@
         <tfoot>
           <tr class="total">
             <td class="dev">जम्मा</td>
+            <td></td>
             <td id="tf">0</td>
             <td id="ts">0</td>
             <td id="tt">0</td>
@@ -196,20 +203,21 @@
           <p class="devdisp" style="margin:0;font-size:20px;font-weight:700">कति माल छ</p>
           <p style="margin:1px 0 0;font-size:11.5px;font-weight:600;color:var(--soft)">Stock</p>
         </div>
-        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">T bag open</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 38</p></div>
-          <div class="pnums"><span class="where at-factory">🏭 20</span><span class="where at-shop">🛒 18</span></div></div>
-        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">close shoes</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 54</p></div>
-          <div class="pnums"><span class="where at-factory">🏭 30</span><span class="where at-shop">🛒 24</span></div></div>
-        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">Bachha Rubber (Kids)</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 60</p></div>
+        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">Bachha Rubber (Kids)</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 60 · बनाएको</p></div>
           <div class="pnums"><span class="where at-factory">🏭 60</span><span class="where at-shop zero">🛒 0</span></div></div>
-        <div class="pitem" style="border-bottom:0"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">doctor</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 50</p></div>
-          <div class="pnums"><span class="where at-factory">🏭 50</span><span class="where at-shop zero">🛒 0</span></div></div>
+        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">T bag open</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 38 · बनाएको</p></div>
+          <div class="pnums"><span class="where at-factory">🏭 38</span><span class="where at-shop zero">🛒 0</span></div></div>
+        <div class="pitem"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">bag open</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 45 · किनेको</p></div>
+          <div class="pnums"><span class="where at-factory zero">🏭 0</span><span class="where at-shop">🛒 45</span></div></div>
+        <div class="pitem" style="border-bottom:0"><div><p class="dev" style="margin:0;font-weight:700;font-size:14px">doctor</p><p style="margin:2px 0 0;font-size:11.5px;color:var(--soft)">जम्मा 50 · किनेको</p></div>
+          <div class="pnums"><span class="where at-factory zero">🏭 0</span><span class="where at-shop">🛒 50</span></div></div>
       </div>
     </div>
   </section>
 
   <footer class="dev">
-    <p style="margin:0 0 10px"><strong>सुरु कसरी गर्ने:</strong> अहिले सबै <strong>२८० जोडी</strong> छन्। पहिलो दिन एकपटक गनेर — पसलमा कति छ, त्यति सार्ने। त्यसपछि माल पठाउँदा टिप्दै जाने।</p>
+    <p style="margin:0 0 10px"><strong>सुरु कसरी गर्ने:</strong> केही गर्नु पर्दैन। बनाएका <strong>१५२ जोडी</strong> कारखानामा, किनेका <strong>१२८ जोडी</strong> पसलमा — आफैं मिल्छ। कुनै जुत्ता अर्कै ठाउँमा छ भने त्यति मात्र सार्नुहोस्।</p>
+    <p style="margin:0 0 10px"><strong>तर एउटा कुरा:</strong> पहिलो दिनपछि “कसरी आयो” ले ठाउँ भन्न छोड्छ — कारखानामा बनाएको जुत्ता पसल पुगेपछि पनि “बनाएको” नै रहन्छ। त्यसैले <strong>ठाउँ छुट्टै खाना</strong> हुनुपर्छ; “कसरी आयो” ले सुरुको सङ्ख्या मात्र दिन्छ।</p>
     <p style="margin:0 0 10px"><strong>बेच्ने कुरा बदलिँदैन:</strong> POS ले जम्माबाट घटाउँछ, अहिले जस्तै। यो थपिने कुरा हो, बदलिने होइन।</p>
     <p style="margin:0">यो नमुना मात्र हो। KRISHOE app मा केही बदलिएको छैन।</p>
   </footer>
@@ -220,13 +228,17 @@
   /* The real designs and the real totals — 280 pairs, as the shop has today.
      The split is a plausible starting point, not a record: the app does not
      know it yet, which is the whole point of the proposal. */
+  /* The shop's own six designs, and the owner's rule for where each starts:
+     what production made is at the factory, what was bought in is at the shop.
+     Those are the real numbers — finished_stock already records which is which,
+     as channel Factory and channel Wholesale. Nothing here is guessed. */
   var items = [
-    { name: "T bag open",           factory: 20, shop: 18 },
-    { name: "close shoes",          factory: 30, shop: 24 },
-    { name: "Bachha Rubber (Kids)", factory: 60, shop: 0 },
-    { name: "bag open",             factory: 45, shop: 0 },
-    { name: "doctor",               factory: 50, shop: 0 },
-    { name: "hill sandel",          factory: 33, shop: 0 }
+    { name: "Bachha Rubber (Kids)", made: true,  factory: 60, shop: 0 },
+    { name: "T bag open",           made: true,  factory: 38, shop: 0 },
+    { name: "close shoes",          made: true,  factory: 54, shop: 0 },
+    { name: "bag open",             made: false, factory: 0,  shop: 45 },
+    { name: "doctor",               made: false, factory: 0,  shop: 50 },
+    { name: "hill sandel",          made: false, factory: 0,  shop: 33 }
   ];
 
   var open = -1;
@@ -248,6 +260,16 @@
       var name = document.createElement("td");
       name.textContent = item.name;
       tr.appendChild(name);
+
+      /* Kept beside the numbers, because it is the answer to "why is it there?"
+         on the first day — and after that it is history, not location. */
+      var origin = document.createElement("td");
+      origin.style.textAlign = "left";
+      var tag = document.createElement("span");
+      tag.className = "where " + (item.made ? "at-factory" : "at-shop");
+      tag.textContent = item.made ? "बनाएको" : "किनेको";
+      origin.appendChild(tag);
+      tr.appendChild(origin);
 
       [["factory", "at-factory"], ["shop", "at-shop"]].forEach(function (pair) {
         var td = document.createElement("td");
