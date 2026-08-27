@@ -6,10 +6,14 @@ import pg from "pg";
 import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
 
 const { Pool } = pg;
+// hr_employees, hr_attendance and hr_payroll were here until the HR module was
+// taken out. They are gone from the database, and listing a table that no
+// longer exists turns a real audit finding into noise the reader learns to
+// scroll past.
 const branchTables = [
   "orders", "order_items", "contact_messages", "raw_materials",
   "supplier_ledgers", "supplier_transactions", "purchase_invoices",
-  "purchase_invoice_items", "hr_employees", "hr_attendance", "hr_payroll",
+  "purchase_invoice_items",
   "production_batches", "material_consumptions", "worker_tasks",
   "production_work_orders", "production_cctv_references",
   "production_material_consumptions", "production_stage_handovers",
@@ -46,7 +50,13 @@ try {
          WHERE p.schemaname = 'public'
            AND p.tablename = c.relname
            AND p.policyname = 'krishoe_branch_isolation'
-       ) AS has_policy
+       ) AS has_policy,
+       EXISTS (
+         SELECT 1 FROM information_schema.columns col
+         WHERE col.table_schema = 'public'
+           AND col.table_name = c.relname
+           AND col.column_name = 'branch_id'
+       ) AS has_branch_column
      FROM pg_class c
      JOIN pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname = 'public' AND c.relname = ANY($1::text[])`,
@@ -64,6 +74,16 @@ try {
     if (!relation.relrowsecurity || !relation.relforcerowsecurity || !relation.has_policy) {
       failures.push(`${table}: RLS/policy is incomplete`);
     }
+    // Asked before it is counted. vehicle_dispatches and its items are branch
+    // tables that never got the column, and the unguarded count below threw
+    // "column branch_id does not exist" — which stopped the audit at the first
+    // such table and reported nothing about any of the others. A table missing
+    // the column is a finding, not a reason to stop looking.
+    if (!relation.has_branch_column) {
+      failures.push(`${table}: no branch_id column`);
+      continue;
+    }
+
     const nullResult = await pool.query(
       `SELECT count(*)::int AS count FROM ${table} WHERE branch_id IS NULL OR branch_id = ''`,
     );
@@ -120,7 +140,7 @@ try {
         [defaultBranchId],
       );
       for (const table of [
-        "orders", "pos_invoices", "purchase_invoices", "hr_employees",
+        "orders", "pos_invoices", "purchase_invoices",
         "production_work_orders", "factory_daily_work", "stock_movements",
       ]) {
         const crossBranch = await client.query(
