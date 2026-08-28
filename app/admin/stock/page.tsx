@@ -22,11 +22,20 @@ function StatCard({ label, value, detail, tone = "plain" }: {
   tone?: "plain" | "good" | "warn";
 }) {
   const valueTone = tone === "warn" ? "text-brand-clay" : tone === "good" ? "text-brand-green" : "text-brand-green-ink";
+  // Same gradient accent the shared StatTile carries, so this page — which keeps
+  // its own card only because its tones differ — still reads as one family.
+  const accent =
+    tone === "warn"
+      ? "linear-gradient(90deg,#A9503F,#c86a5b)"
+      : tone === "good"
+        ? "linear-gradient(90deg,#12876a,#37c98c)"
+        : "linear-gradient(90deg,#C8A04D,#E9C978)";
   return (
     <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">{label}</p>
-      <p className={`mt-2 text-3xl font-black ${valueTone}`}>{value}</p>
+      <p className={`mt-2 font-display text-3xl font-black tabular-nums ${valueTone}`}>{value}</p>
       <p className="mt-2 text-xs font-semibold leading-5 text-brand-muted-soft">{detail}</p>
+      <span className="mt-3 block h-1.5 rounded-full" style={{ background: accent }} />
     </div>
   );
 }
@@ -266,7 +275,7 @@ export default async function AdminStockPage() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
             <T en="One stock control" ne="मालको एउटै हिसाब" />
           </p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+          <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
             <T en="Raw materials and ready goods" ne="कच्चा पदार्थ र बनिसकेको माल" />
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">

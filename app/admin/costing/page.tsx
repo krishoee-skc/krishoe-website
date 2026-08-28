@@ -1,4 +1,6 @@
 import Link from "next/link";
+import StatCard from "@/components/admin/StatTile";
+import T from "@/components/T";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import type { Metadata } from "next";
@@ -46,35 +48,6 @@ function overheadPerPair(settings: CostingSettings) {
     settings.rentPerPair +
     settings.miscellaneousPerPair +
     monthlyAllocation
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  detail,
-  tone = "default",
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  tone?: "default" | "good" | "warn" | "danger";
-}) {
-  const toneClass = {
-    default: "border-brand-green-line bg-brand-paper text-brand-green-ink",
-    good: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    warn: "border-amber-200 bg-amber-50 text-amber-800",
-    danger: "border-red-200 bg-red-50 text-red-800",
-  }[tone];
-
-  return (
-    <div className={`rounded-lg border p-5 shadow-sm ${toneClass}`}>
-      <p className="text-sm font-medium opacity-75">{label}</p>
-      <p className="mt-2 text-2xl font-black">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] opacity-65">
-        {detail}
-      </p>
-    </div>
   );
 }
 
@@ -263,7 +236,10 @@ export default async function AdminCostingPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">COGS and design profit</h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+            <T en="Costing" ne="लागत" />
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">COGS and design profit</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Material, labor, factory overhead, production batch COGS, and POS design margin in one control view.
           </p>
