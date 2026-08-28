@@ -61,7 +61,7 @@ export default async function ProductPhotosPage() {
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">
+        <h1 className="font-display text-2xl font-black text-brand-green-ink">
           <T en="Add photos" ne="फोटो हाल्ने" />
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">

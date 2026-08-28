@@ -92,7 +92,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Customer ledger
             </p>
-            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.customerName}</h1>
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">{ledger.customerName}</h1>
             <p className="mt-2 text-sm text-brand-muted">
               {ledger.channel} - {ledger.phone || "No phone"} - Last transaction {ledger.lastTransaction}
             </p>

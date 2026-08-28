@@ -137,7 +137,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               Supplier ledger statement
             </p>
-            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">{ledger.supplierName}</h1>
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">{ledger.supplierName}</h1>
             <p className="mt-2 text-sm text-brand-muted">
               {ledger.phone || "No phone"} - {ledger.materialFocus || "General supply"} - Last transaction {ledger.lastTransaction}
             </p>

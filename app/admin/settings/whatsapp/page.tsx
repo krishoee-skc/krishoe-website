@@ -53,7 +53,7 @@ export default function WhatsAppSettingsPage() {
           <Link href="/admin" className="text-brand-green hover:text-brand-green-ink mb-4 inline-block">
             ← Back to Admin
           </Link>
-          <h1 className="text-3xl font-bold text-brand-green-ink">WhatsApp Settings</h1>
+          <h1 className="font-display text-3xl font-black text-brand-green-ink">WhatsApp Settings</h1>
           <p className="text-brand-muted mt-2">Configure WhatsApp integration for admin notifications</p>
         </div>
 

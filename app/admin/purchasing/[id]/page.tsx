@@ -51,7 +51,7 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
-            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">Purchase bill</h1>
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">Purchase bill</h1>
             <p className="mt-2 text-sm text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
           </div>
           <div className="text-right">

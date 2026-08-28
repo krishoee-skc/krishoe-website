@@ -104,7 +104,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
               KRISHOE factory and footwear
             </p>
-            <h1 className="mt-2 text-3xl font-black text-brand-green-ink">
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">
               {invoice.kind === "Return" ? "Return bill" : "Sales bill"}
             </h1>
             {/* DateDisplayAdmin shows the Bikram Sambat date after the English one,

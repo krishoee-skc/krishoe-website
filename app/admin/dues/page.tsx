@@ -107,7 +107,7 @@ export default async function AdminDuesPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Credit control</p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl"><T en="Customer and supplier ledgers" ne="ग्राहक र साहुको खाता" /></h1>
+          <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl"><T en="Customer and supplier ledgers" ne="ग्राहक र साहुको खाता" /></h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Customer receivable means money KRISHOE must collect. Supplier payable means money KRISHOE must pay.
           </p>

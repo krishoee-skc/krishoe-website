@@ -43,7 +43,7 @@ export default async function ProductLabelsPage() {
           >
             ← Products
           </Link>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Barcode labels</h1>
+          <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink">Barcode labels</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
             हरेक design को SKU barcode — sticker paper मा print गरी बट्टा/rack मा टाँस्नुहोस्। POS मा scan गर्नासाथ
             सामान बिलमा झर्छ।
