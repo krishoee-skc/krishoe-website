@@ -50,6 +50,15 @@ module.exports = {
           "muted-soft": "#938C80",
           "muted-deep": "#7A7263",
           danger: "#B3261E",
+          // Deep royal purple — the storefront's accent beside green and gold,
+          // chosen by the owner over a blue. White on purple is 10.9:1. Paired
+          // with a soft platinum silver for a premium metallic touch on cards
+          // and category chips. Storefront only; the admin stays green/gold.
+          purple: "#3C1A63",
+          "purple-deep": "#2B1049",
+          "purple-tint": "#EBE0F6",
+          silver: "#C3C9D0",
+          "silver-lt": "#ECEEF1",
         },
         // The admin used to be a different company: a stock indigo primary and
         // an amber accent that appear nowhere else in KRISHOE, on neutral

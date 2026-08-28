@@ -31,6 +31,19 @@ export default async function Home() {
 
       <Navbar />
 
+      {/* This week's offer, in the storefront's new purple. One tappable line
+          under the nav — free-delivery threshold and the WhatsApp order path,
+          the two things a first-time shopper most wants to know. */}
+      <Link
+        href="/shop"
+        className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-deep px-4 py-2.5 text-center text-xs font-bold leading-5 text-white shadow-md md:mx-8"
+      >
+        <T
+          en="This week — free delivery over NPR 2000 · order on WhatsApp too"
+          ne="यो हप्ता — NPR 2000 माथि Free delivery · WhatsApp मा पनि अर्डर"
+        />
+      </Link>
+
       {/* The hero graphic is a complete branded banner (headline, CTAs, trust
           badges are part of the image). We render it as one responsive,
           tappable image — no overlaid text — so it never doubles up, stays
