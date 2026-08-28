@@ -2,6 +2,7 @@ import Link from "next/link";
 import T from "@/components/T";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
+import StatCard from "@/components/admin/StatTile";
 import type { Metadata } from "next";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
 import SupplierPaymentForm from "@/app/admin/purchasing/_components/SupplierPaymentForm";
@@ -56,26 +57,6 @@ function paymentPriorityTone(priority: string) {
   return "border-brand-green-line bg-brand-paper-deep text-brand-muted";
 }
 
-function StatCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <p className="text-sm font-medium text-brand-muted">{label}</p>
-      <p className="mt-2 text-2xl font-black text-brand-green-ink">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
-        {detail}
-      </p>
-    </div>
-  );
-}
-
 // Three loads, and any one failing used to take the whole page to the shop's
 // retry screen. Next replaces a server error message with a bare digest in
 // production, so the reason never reached the owner — which is why "it says
@@ -125,7 +106,10 @@ export default async function AdminPurchasingPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink"><T en="Purchasing and supplier ledger" ne="किनमेल र साहुको खाता" /></h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+            <T en="Purchase" ne="किनमेल" />
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="Purchasing and supplier ledger" ne="किनमेल र साहुको खाता" /></h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Raw material purchase, supplier due, payment history, and purchase-basis profit signal.
           </p>

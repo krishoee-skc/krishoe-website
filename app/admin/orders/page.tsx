@@ -48,7 +48,10 @@ export default async function AdminOrdersPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+            <T en="Online orders" ne="अनलाइन अर्डर" />
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
             <T en="Orders" ne="अर्डर" />
           </h1>
           <p className="mt-1 text-sm text-brand-muted">
