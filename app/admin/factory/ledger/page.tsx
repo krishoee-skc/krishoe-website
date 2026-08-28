@@ -179,7 +179,7 @@ export default function LedgerPage() {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
         {text("Piece-rate wages", "ज्यालाको हिसाब")}
       </p>
-      <h1 className="mt-2 text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
+      <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
         {text("Work and payment ledger", "कामदारको खाता")}
       </h1>
       <p className="mb-6 text-sm leading-6 text-brand-muted">

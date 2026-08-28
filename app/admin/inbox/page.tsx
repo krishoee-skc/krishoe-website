@@ -227,7 +227,7 @@ export default async function InboxPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">📬 ग्राहकको आवाज</h1>
+        <h1 className="font-display text-3xl font-black text-brand-green-ink">ग्राहकको आवाज</h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           राय, सोधपुछ र गुनासो — ग्राहकले भनेको सबै कुरा एउटै ठाउँमा।
           {counts.waiting > 0 ? (

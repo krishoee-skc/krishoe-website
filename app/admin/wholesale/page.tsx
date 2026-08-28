@@ -27,7 +27,7 @@ export default async function WholesaleEnquiriesPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">थोकको सोधपुछ</h1>
+        <h1 className="font-display text-3xl font-black text-brand-green-ink">थोकको सोधपुछ</h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           पसलहरूले वेबसाइटबाट पठाएको सोधपुछ। एउटा थोक ग्राहक = ५० जोडी — त्यसैले
           चाँडो फोन गर्नुहोस्।

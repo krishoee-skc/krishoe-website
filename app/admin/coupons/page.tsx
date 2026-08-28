@@ -33,7 +33,10 @@ export default async function CouponsPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+          <T en="Offers" ne="छुट" />
+        </p>
+        <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">
           <T en="Discount codes" ne="छुटको कोड" />
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">

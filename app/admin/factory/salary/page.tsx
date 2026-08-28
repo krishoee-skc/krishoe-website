@@ -158,7 +158,7 @@ export default function StaffSalaryPage() {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
         {text("Monthly payroll", "मासिक तलब")}
       </p>
-      <h1 className="mt-2 text-3xl font-black text-brand-green-ink mb-2">
+      <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink mb-2">
         {text("Staff salary, advance and payment", "तलब, पेश्की र भुक्तानी")}
       </h1>
 

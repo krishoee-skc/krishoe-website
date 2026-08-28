@@ -134,7 +134,7 @@ export default async function CustomerVoicePage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">कुन जुत्ता राम्रो — राय र फिर्ता</h1>
+          <h1 className="font-display text-3xl font-black text-brand-green-ink">कुन जुत्ता राम्रो — राय र फिर्ता</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             ग्राहकले शब्दले (review) र खुट्टाले (return) के भन्छन् — दुवै एकै ठाउँमा। यसैबाट अर्को design
             र सुधारको दिशा निस्कन्छ।

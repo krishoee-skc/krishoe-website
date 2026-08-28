@@ -154,7 +154,7 @@ export default function WorkersPage() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
             {text("Factory people", "कारखानाका मान्छे")}
           </p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+          <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
             {text("Workers and HR linkage", "कामदार")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">

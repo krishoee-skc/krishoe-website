@@ -106,7 +106,7 @@ export default function ReportsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-ink">📊 मासिक रिपोर्ट</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">मासिक रिपोर्ट</h1>
         <p className="mb-4 mt-1 text-sm text-brand-muted">Monthly reports</p>
 
         <div className="flex gap-3 mb-6">

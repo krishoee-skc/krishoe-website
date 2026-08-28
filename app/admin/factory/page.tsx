@@ -153,7 +153,7 @@ export default function FactoryDashboard() {
   return (
     <div className="flex min-h-screen flex-col space-y-3 p-3 sm:p-5 lg:p-6">
       <div className="mb-1">
-        <h1 className="text-lg sm:text-xl font-bold text-brand-green-ink">KRISHOE Factory</h1>
+        <h1 className="font-display text-xl sm:text-2xl font-black text-brand-green-ink">KRISHOE Factory</h1>
         <p className="text-brand-muted text-xs sm:text-sm">
           {formatAdminDate(new Date())}
         </p>
