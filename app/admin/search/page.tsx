@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 export default function AdminSearchPage() {
   return (
     <section className="p-6">
-      <h1 className="text-2xl font-black text-brand-green-ink">खोज्नुहोस्</h1>
+      <h1 className="font-display text-3xl font-black text-brand-green-ink">खोज्नुहोस्</h1>
       <p className="mt-1 text-sm leading-6 text-brand-muted">
         कामदार, सामान, कारखानाका item, ग्राहक, अर्डर, बिल, साहु — वा पानाको नाम।
         नेपाली र अङ्ग्रेजी दुवैले चल्छ।

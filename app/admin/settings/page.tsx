@@ -132,7 +132,7 @@ export default async function AdminSettingsPage({
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
             Access control
           </p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Company and staff settings</h1>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">Company and staff settings</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Manage branch identity, staff login accounts, and role-based admin access for the
             factory, shop, POS, inventory, HR, and reports modules.

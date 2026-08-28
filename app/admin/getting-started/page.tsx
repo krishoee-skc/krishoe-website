@@ -211,7 +211,7 @@ export default async function GettingStartedPage() {
   return (
     <section className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-brand-green-ink">KRISHOE Admin</h1>
+        <h1 className="font-display text-3xl font-black leading-tight text-brand-green-ink">KRISHOE Admin</h1>
         <p className="mt-2 max-w-3xl text-brand-muted">
           {remaining.length === 0 ? (
             <T en="Everything is ready. The shop can sell." ne="सबै तयार छ। पसल बेच्न तयार छ।" />

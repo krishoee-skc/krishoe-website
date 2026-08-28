@@ -27,7 +27,7 @@ export default async function AdminDevicesPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Account security</p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink">Login devices</h1>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">Login devices</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
             Review active phones and computers. Password, role, branch, MFA, disable, and lock changes automatically close old sessions; the Owner can also sign out any device manually.
           </p>

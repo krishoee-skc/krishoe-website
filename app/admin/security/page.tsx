@@ -72,7 +72,7 @@ export default function SecurityPage() {
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
           Security centre
         </p>
-        <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+        <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
           CCTV camera apps
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
