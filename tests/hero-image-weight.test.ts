@@ -22,35 +22,29 @@ import { describe, expect, it } from "vitest";
  */
 const HOME = "app/page.tsx";
 
-describe("the home page's two banners", () => {
-  it("preloads neither, so a phone fetches only the one it shows", async () => {
+describe("the home page's hero banner", () => {
+  // The two-banner era is over: a shopper on a phone once downloaded the
+  // desktop banner as well, racing the one they were actually shown. The shop's
+  // own complete banner (crest, Made in Nepal and tagline all in the artwork)
+  // is served once from Blob now, so there is only ever one hero image to fetch
+  // and no second one to waste a Nepali connection on.
+  it("is one image, not two — so a phone fetches only the banner it shows", async () => {
     const home = await readFile(HOME, "utf8");
-    const markup = home.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
-    expect(markup).not.toContain("preload");
-    expect(markup).not.toMatch(/^\s*priority$/m);
+    expect(home).not.toContain("mobile-hero-krishoe-gold-v2.png");
+    expect(home).toContain("public.blob.vercel-storage.com");
+    // No preload link, which cannot see CSS and would fetch a hidden twin —
+    // moot now, but the guard stays so a second banner cannot creep back.
+    expect(home).not.toContain("preload");
   });
 
-  it("says which one matters instead", async () => {
+  it("prioritises the one hero as the LCP image", async () => {
     const home = await readFile(HOME, "utf8");
+    const hero = home.slice(home.indexOf("public.blob.vercel-storage.com"));
 
-    const mobile = home.slice(home.indexOf("mobile-hero-krishoe-gold-v2.png"));
-    const desktop = home.slice(home.indexOf('src="/images/hero-krishoe-gold-v2.png"'));
-
-    expect(mobile.slice(0, 400)).toContain('fetchPriority="high"');
-    expect(desktop.slice(0, 400)).toContain('fetchPriority="high"');
-  });
-
-  it("asks for a full-width image only on the screen that shows it", async () => {
-    const home = await readFile(HOME, "utf8");
-
-    const mobile = home.slice(home.indexOf("mobile-hero-krishoe-gold-v2.png"));
-    const desktop = home.slice(home.indexOf('src="/images/hero-krishoe-gold-v2.png"'));
-
-    // 100vw on both meant each banner was fetched at the full width of whatever
-    // screen was asking, including the screen that would never show it.
-    expect(mobile.slice(0, 400)).toContain('sizes="(max-width: 767px) 100vw, 1px"');
-    expect(desktop.slice(0, 400)).toContain('sizes="(min-width: 768px) 100vw, 1px"');
+    // With a single hero, priority is correct: it marks the largest paint so
+    // the browser fetches it first, without a rival banner to load beside it.
+    expect(hero.slice(0, 600)).toMatch(/priority/);
   });
 });
 

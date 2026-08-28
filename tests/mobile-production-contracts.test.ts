@@ -105,24 +105,18 @@ describe("mobile production contracts", () => {
     expect((addWork.match(/min-h-12/g) ?? []).length).toBeGreaterThan(5);
   });
 
-  it("serves dedicated premium hero artwork for desktop and mobile", () => {
+  it("serves the shop's own premium hero banner", () => {
     const homepage = source("app/page.tsx");
-    expect(homepage).toContain("/images/hero-krishoe-gold-v2.png");
-    expect(homepage).toContain("/images/mobile-hero-krishoe-gold-v2.png");
-    expect(homepage).toContain("Your Identity.");
-    expect(homepage).toContain("The Signature Collection");
-    // The crest, not the placeholder. /icons/icon.svg was a rounded square
-    // with a serif K typed into it — a stand-in from before the shop had a
-    // logo — and it sat beside the word KRISHOE in the first thing any
-    // customer sees. The real emblem is cut from the brand artwork.
-    expect(homepage).toContain("/images/logo-mark.png");
-    expect(homepage).not.toContain("/icons/icon.svg");
+    // One complete branded banner from the shop's Blob store: the crest, "Made
+    // in Nepal" and the tagline all live in the artwork, so nothing is typed
+    // over it to double up. The old portrait+landscape pair and their overlaid
+    // "Your Identity." headline are gone; the words survive in an sr-only H1.
+    expect(homepage).toContain("public.blob.vercel-storage.com");
     expect(homepage).toContain("Walk with Authority");
-    // The deep maroon band under the hero. Named rather than spelled as
-    // #651B24: the storefront's colours moved into tailwind.config.js so that
-    // near-identical twins of the same shade stop accumulating, and a test that
-    // insists on the literal hex would pull them back out.
-    expect(homepage).toContain("bg-brand-clay-ink/95");
+    // The crest, not the placeholder /icons/icon.svg square. It leads the nav
+    // now rather than being cut into the homepage markup.
+    expect(source("components/Navbar.tsx")).toContain("/images/logo-mark.png");
+    expect(homepage).not.toContain("/icons/icon.svg");
     expect(homepage).not.toContain("Trusted support");
   });
 
