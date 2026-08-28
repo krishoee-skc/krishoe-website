@@ -37,34 +37,39 @@ const categories = [
 
 export default function Categories() {
   return (
-    <section className="bg-brand-mist py-20">
+    <section className="bg-brand-mist py-16">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-brand-green">
-          <T en="Shop by Category" ne="किसिम अनुसार" />
+        <h2 className="text-center font-display text-4xl font-bold text-brand-green">
+          <T en="Shop by Collection" ne="किसिम अनुसार" />
         </h2>
 
-        <p className="mb-12 mt-3 text-center text-gray-500">
+        <p className="mb-10 mt-3 text-center text-brand-muted">
           <T en="Find your perfect footwear." ne="आफूलाई मिल्ने जुत्ता भेट्टाउनुहोस्।" />
         </p>
 
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
+        {/* Round chips with a platinum-silver rim that turns purple on hover —
+            the storefront's new accents. Real category photos, not emoji, so
+            each reads as the shoes it leads to. Scrolls on a phone, centres on
+            a wider screen. */}
+        <div className="flex snap-x gap-6 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center">
           {categories.map((item) => (
             <Link
               key={item.slug}
               href={`/shop/${item.slug}`}
-              className="group relative overflow-hidden rounded-lg"
+              className="group flex w-24 flex-none snap-start flex-col items-center gap-3 text-center"
             >
-              <Image
-                src={item.image}
-                alt={item.title}
-                width={500}
-                height={500}
-                className="h-72 w-full object-cover transition duration-500 group-hover:scale-110"
-              />
-
-              <div className="absolute inset-0 flex items-end bg-black/30">
-                <h3 className="p-6 text-2xl font-bold text-white">{item.title}</h3>
-              </div>
+              <span className="relative h-24 w-24 overflow-hidden rounded-full shadow-sm ring-2 ring-brand-silver transition duration-300 group-hover:-translate-y-1 group-hover:ring-brand-purple">
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  sizes="96px"
+                  className="object-cover transition duration-500 group-hover:scale-110"
+                />
+              </span>
+              <span className="text-sm font-semibold leading-tight text-brand-green-ink">
+                {item.title}
+              </span>
             </Link>
           ))}
         </div>

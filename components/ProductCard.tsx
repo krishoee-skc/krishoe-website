@@ -32,7 +32,7 @@ export default function ProductCard({
       id={product.id}
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-brand-paper shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
-      <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-brand-mist">
+      <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-brand-silver-lt to-brand-mist">
         <SafeImage
           src={product.image}
           // The name alone leaves out what kind of shoe it is and where it
