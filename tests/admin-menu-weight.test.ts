@@ -125,10 +125,13 @@ describe("what stayed in the menu", () => {
 
     // The report hub sits here rather than analytics itself: eleven ways to
     // read the shop, one door, and money is read from both sides of the
-    // business. Analytics is the first report inside it.
+    // business. Analytics is the first report inside it. Robot दरबार joins them:
+    // the control room for the eight automated jobs, cross-cutting like the rest
+    // of this group and so reached from either workspace.
     expect(everywhere?.links.map((link) => link.href)).toEqual([
       "/admin",
       "/admin/search",
+      "/admin/robots",
       "/admin/reports",
       "/admin/settings",
     ]);

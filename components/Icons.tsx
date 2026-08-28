@@ -341,3 +341,12 @@ export function SettingsIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function RobotIcon({ className }: IconProps) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5v3M7 6.5h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 11.5v1.5M14.5 11.5v1.5M3 12v3M21 12v3" />
+    </svg>
+  );
+}
