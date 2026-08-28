@@ -1,4 +1,6 @@
 import Link from "next/link";
+import T from "@/components/T";
+import StatCard from "@/components/admin/StatTile";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import PushNotificationSetup from "@/components/admin/PushNotificationSetup";
@@ -78,18 +80,6 @@ function targetLabel(event: NotificationEvent) {
   return (event.payload as ContactSubmission).email;
 }
 
-function StatCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
-  return (
-    <div className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <p className="text-sm font-medium text-brand-muted">{label}</p>
-      <p className="mt-2 text-3xl font-black text-brand-green-ink">{value}</p>
-      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted-soft">
-        {detail}
-      </p>
-    </div>
-  );
-}
-
 export default async function AdminNotificationsPage() {
   const [events, config, alertCenter] = await Promise.all([
     getNotificationEvents(120),
@@ -105,7 +95,10 @@ export default async function AdminNotificationsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">Notification delivery</h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+            <T en="Alerts" ne="सूचना" />
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">Notification delivery</h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Live alert queue for new orders, contact messages, and customer account emails.
           </p>

@@ -59,7 +59,10 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-brand-green-ink">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+            <T en="Catalog" ne="सामान · फोटो" />
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
             <T en="Products" ne="सामान" />
           </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">

@@ -55,7 +55,10 @@ export default async function AdminOperationsPage({
         </p>
       ) : null}
       <div>
-        <h1 className="text-2xl font-black text-brand-green-ink">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+          <T en="Operations" ne="उत्पादन र स्टक" />
+        </p>
+        <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
           Factory, wholesale, retail and online operations
         </h1>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
