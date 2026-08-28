@@ -30,15 +30,6 @@ export default async function Home() {
   return (
     <main className="bg-brand-paper">
 
-      {/* Free-delivery utility bar — the very top of the shop, like the mockup:
-          the two facts a first-time shopper checks before anything else. */}
-      <div className="bg-brand-green px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-brand-cream-hero sm:text-xs">
-        <T
-          en="Free delivery over NPR 2000 · Order on WhatsApp · Made in Nepal"
-          ne="NPR 2000 माथि Free delivery · WhatsApp मा अर्डर · नेपालमै बनेको"
-        />
-      </div>
-
       <Navbar />
 
       {/* This week's offer, in the storefront's purple. */}
