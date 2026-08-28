@@ -93,8 +93,11 @@ describe("dashboard", () => {
     const page = await readFile("app/admin/page.tsx", "utf8");
     const body = page.slice(page.indexOf('<section className="p-6 space-y-6">'));
 
+    // What needs doing comes first; the shop-health zone — the only reporting
+    // left on the home — comes after it. The cluttered wall of tiles that used
+    // to sit between them is gone.
     expect(body.indexOf("<TodayBoard")).toBeGreaterThan(-1);
-    expect(body.indexOf("<TodayBoard")).toBeLessThan(body.indexOf("<QuickAdminHome"));
+    expect(body.indexOf("<TodayBoard")).toBeLessThan(body.indexOf('data-zone="health"'));
 
     const board = await readFile("app/admin/TodayBoard.tsx", "utf8");
     expect(board).toContain("आजको काम");

@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { ArrowRightIcon, PackageIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
+import type { ComponentType } from "react";
+
+type IconComponent = ComponentType<{ className?: string }>;
 
 /**
  * The first thing on the dashboard, in Nepali: what needs doing today, and the
@@ -8,6 +12,10 @@ import Link from "next/link";
  * question "what should I do now?" is already answered. That question was
  * answered nowhere, so the owner arrived at a wall of tiles and had to work it
  * out each time. Three lines and three buttons is the whole of it.
+ *
+ * The look is the shop's own: a coloured medallion drawn from a brand icon
+ * rather than an emoji, because an emoji is whatever font the phone carries and
+ * looked different on every device. Urgent is clay-red, a waiting job is gold.
  */
 export default function TodayBoard({
   todayPairs,
@@ -27,55 +35,95 @@ export default function TodayBoard({
   const alerts = [
     newOrders > 0 && {
       tone: "urgent" as const,
+      Icon: ShoppingCartIcon,
+      count: newOrders,
       text: `${newOrders} नयाँ अर्डर पठाउन बाँकी`,
       href: "/admin/orders",
     },
     lowStockNames.length > 0 && {
       tone: "warn" as const,
+      Icon: PackageIcon,
+      count: lowStockNames.length,
       text: `${lowStockNames.slice(0, 2).join(", ")}${lowStockNames.length > 2 ? ` +${lowStockNames.length - 2}` : ""} — माल सकिन लाग्यो`,
       href: "/admin/stock",
     },
     workerDue > 0 && {
       tone: "warn" as const,
+      Icon: UserIcon,
+      count: null,
       text: `कामदारलाई ${money(workerDue)} दिन बाँकी`,
       href: "/admin/factory/salary",
     },
-  ].filter(Boolean) as { tone: "urgent" | "warn"; text: string; href: string }[];
+  ].filter(Boolean) as {
+    tone: "urgent" | "warn";
+    Icon: IconComponent;
+    count: number | null;
+    text: string;
+    href: string;
+  }[];
 
   return (
-    <section className="rounded-2xl border-2 border-brand-green/25 bg-brand-paper p-5 shadow-sm">
+    <section className="rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-2xl font-black text-brand-green-ink">आजको काम</h2>
+        <h2 className="font-display text-2xl font-black text-brand-green-ink sm:text-3xl">आजको काम</h2>
         <p className="text-sm font-bold text-brand-muted">
           आज बनेको: <span className="text-brand-green">{todayPairs} जोडी</span>
         </p>
       </div>
 
-      <div className="mt-4 grid gap-2">
+      <div className="mt-4 grid gap-3">
         {alerts.length === 0 ? (
-          <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
-            ✅ अहिले केही अड्किएको छैन।
-          </p>
+          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-brand-paper p-5 ring-1 ring-emerald-100">
+            <span
+              className="grid h-12 w-12 flex-none place-items-center rounded-2xl text-white shadow-sm"
+              style={{ background: "linear-gradient(150deg,#12876a,#0B4D3B)" }}
+            >
+              <CheckMark />
+            </span>
+            <p className="text-base font-black text-emerald-900">✅ अहिले केही अड्किएको छैन।</p>
+          </div>
         ) : (
           alerts.map((alert) => (
             <Link
               key={alert.href + alert.text}
               href={alert.href}
-              className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-bold transition ${
-                alert.tone === "urgent"
-                  ? "bg-red-50 text-red-900 hover:bg-red-100"
-                  : "bg-amber-50 text-amber-900 hover:bg-amber-100"
-              }`}
+              className="group flex items-center gap-4 rounded-2xl p-4 shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                background:
+                  alert.tone === "urgent"
+                    ? "linear-gradient(120deg,#fce9e6,#ffffff)"
+                    : "linear-gradient(120deg,#fdf3e0,#ffffff)",
+                boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.03)",
+              }}
             >
-              <span aria-hidden>{alert.tone === "urgent" ? "🔴" : "🟡"}</span>
-              {alert.text}
+              <span
+                className="grid h-14 w-14 flex-none place-items-center rounded-2xl text-white shadow-sm"
+                style={{
+                  background:
+                    alert.tone === "urgent"
+                      ? "linear-gradient(150deg,#c85a4d,#b1443a)"
+                      : "linear-gradient(150deg,#e0a23f,#c07d1e)",
+                }}
+              >
+                <alert.Icon className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1 text-base font-bold text-brand-green-ink">{alert.text}</span>
+              {alert.count !== null ? (
+                <span
+                  className="font-display text-3xl font-black leading-none"
+                  style={{ color: alert.tone === "urgent" ? "#b1443a" : "#c07d1e" }}
+                >
+                  {alert.count}
+                </span>
+              ) : null}
+              <ArrowRightIcon className="h-5 w-5 flex-none text-brand-muted-soft transition group-hover:translate-x-0.5" />
             </Link>
           ))
         )}
       </div>
 
       {/* The three jobs the owner actually does, big enough for a thumb. */}
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[
           { href: "/admin/factory/add-work", label: "काम टिप्ने", english: "Add work" },
           { href: "/admin/pos", label: "बिल काट्ने", english: "Billing" },
@@ -84,7 +132,8 @@ export default function TodayBoard({
           <Link
             key={action.href}
             href={action.href}
-            className="grid min-h-14 place-items-center rounded-xl bg-brand-green px-4 text-center font-black text-white transition hover:bg-brand-green-ink"
+            className="grid min-h-14 place-items-center rounded-2xl px-4 text-center font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            style={{ background: "linear-gradient(150deg,#0e6349,#0B4D3B)" }}
           >
             <span>
               {action.label}
@@ -94,5 +143,14 @@ export default function TodayBoard({
         ))}
       </div>
     </section>
+  );
+}
+
+/** A plain tick, drawn rather than typed, so the calm state matches the brand. */
+function CheckMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-6 w-6">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+    </svg>
   );
 }
