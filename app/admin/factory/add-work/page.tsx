@@ -317,7 +317,7 @@ export default function AddWorkPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-ink">
+      <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">
         ➕ {text("Add work", "काम टिप्ने")}
       </h1>
       <p className="mb-6 mt-1 text-sm text-brand-muted">

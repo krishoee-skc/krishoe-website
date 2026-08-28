@@ -134,7 +134,7 @@ export default function AdvancedAnalyticsDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
-        <h1 className="text-2xl font-bold text-brand-green-ink mb-2">
+        <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">
           📊 Advanced Analytics
         </h1>
         <p className="text-brand-muted">

@@ -120,7 +120,7 @@ export default function SMSManagementPanel() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
-        <h1 className="text-2xl font-bold text-brand-green-ink mb-2">📱 SMS Management</h1>
+        <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">SMS Management</h1>
         <p className="text-brand-muted">
           Manage and monitor all SMS notifications sent to customers and workers
         </p>

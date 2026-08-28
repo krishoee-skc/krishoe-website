@@ -144,7 +144,7 @@ export default function MonitoringDashboard() {
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-brand-green-ink mb-2">
+            <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">
               🔍 Production Monitoring
             </h1>
             <p className="text-brand-muted">

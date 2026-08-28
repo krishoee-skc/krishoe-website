@@ -153,7 +153,7 @@ export default function FactoryItemsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका item</p>
-          <h1 className="mt-2 text-2xl font-black text-brand-green-ink sm:text-3xl">
+          <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
             item र दर <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
