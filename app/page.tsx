@@ -41,21 +41,6 @@ export default async function Home() {
 
       <Navbar />
 
-      {/* Search — a wide, tappable bar into the shop, in the purple accent. */}
-      <div className="px-4 pt-3 md:px-8">
-        <Link
-          href="/shop"
-          className="mx-auto flex max-w-2xl items-center gap-3 rounded-full border border-brand-green-line bg-brand-mist px-5 py-3 shadow-sm transition hover:border-brand-gold"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#3C1A63" strokeWidth="2" className="h-5 w-5 shrink-0">
-            <path strokeLinecap="round" d="m21 21-4.3-4.3m1.3-5.2a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
-          </svg>
-          <span className="text-sm text-brand-muted">
-            <T en="Search shoes…" ne="जुत्ता खोज्नुहोस्…" />
-          </span>
-        </Link>
-      </div>
-
       {/* This week's offer, in the storefront's purple. */}
       <Link
         href="/shop"
