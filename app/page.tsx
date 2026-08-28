@@ -29,11 +29,33 @@ export default async function Home() {
   return (
     <main className="bg-brand-paper">
 
+      {/* Free-delivery utility bar — the very top of the shop, like the mockup:
+          the two facts a first-time shopper checks before anything else. */}
+      <div className="bg-brand-green px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-brand-cream-hero sm:text-xs">
+        <T
+          en="Free delivery over NPR 2000 · Order on WhatsApp · Made in Nepal"
+          ne="NPR 2000 माथि Free delivery · WhatsApp मा अर्डर · नेपालमै बनेको"
+        />
+      </div>
+
       <Navbar />
 
-      {/* This week's offer, in the storefront's new purple. One tappable line
-          under the nav — free-delivery threshold and the WhatsApp order path,
-          the two things a first-time shopper most wants to know. */}
+      {/* Search — a wide, tappable bar into the shop, in the purple accent. */}
+      <div className="px-4 pt-3 md:px-8">
+        <Link
+          href="/shop"
+          className="mx-auto flex max-w-2xl items-center gap-3 rounded-full border border-brand-green-line bg-brand-mist px-5 py-3 shadow-sm transition hover:border-brand-gold"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#3C1A63" strokeWidth="2" className="h-5 w-5 shrink-0">
+            <path strokeLinecap="round" d="m21 21-4.3-4.3m1.3-5.2a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
+          </svg>
+          <span className="text-sm text-brand-muted">
+            <T en="Search shoes…" ne="जुत्ता खोज्नुहोस्…" />
+          </span>
+        </Link>
+      </div>
+
+      {/* This week's offer, in the storefront's purple. */}
       <Link
         href="/shop"
         className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-deep px-4 py-2.5 text-center text-xs font-bold leading-5 text-white shadow-md md:mx-8"
@@ -44,13 +66,8 @@ export default async function Home() {
         />
       </Link>
 
-      {/* One complete branded banner — the crest, "Made in Nepal", the tagline
-          and the product all live in the image, so it renders as a single
-          tappable graphic with no HTML text over it (nothing to double up). The
-          same 3:2 banner scales full-width on a phone and on a desktop; a
-          visually-hidden heading carries the words for search and screen
-          readers. Hosted on the shop's own Blob store, whitelisted in
-          next.config.js. */}
+      {/* One complete branded banner — crest, Made in Nepal, tagline and the
+          product all in the artwork, so nothing is typed over it. */}
       <section className="bg-brand-paper px-4 pt-4 md:px-8 md:pt-6">
         <Link
           href="/shop"
@@ -66,22 +83,47 @@ export default async function Home() {
             sizes="(min-width: 1152px) 1152px, 100vw"
             className="h-auto w-full"
           />
-          <h1 className="sr-only">KRISHOE — Made in Nepal premium footwear. Walk with Authority.</h1>
+          <h1 className="sr-only text-brand-green-ink">KRISHOE — Made in Nepal premium footwear. Walk with Authority.</h1>
         </Link>
       </section>
 
-      <FeaturedProducts products={products} />
+      {/* Trust badges — the four assurances under the hero, like the mockup. */}
+      <section className="px-4 pt-5 md:px-8">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13v10H3zM16 10h3l2 3v4h-5M6 19a2 2 0 1 0 4 0M15 19a2 2 0 1 0 4 0" /></svg>
+            <span className="text-xs font-bold text-brand-green-ink"><T en="Free Shipping" ne="Free ढुवानी" /></span>
+          </div>
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 1 3 6.7M3 12v5m0-5h5" /></svg>
+            <span className="text-xs font-bold text-brand-green-ink"><T en="Easy Returns" ne="सजिलो फिर्ता" /></span>
+          </div>
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6l-8-3Z" /></svg>
+            <span className="text-xs font-bold text-brand-green-ink"><T en="Premium Quality" ne="उत्कृष्ट गुण" /></span>
+          </div>
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><rect x="3" y="6" width="18" height="13" rx="2" /><path strokeLinecap="round" d="M3 10h18" /></svg>
+            <span className="text-xs font-bold text-brand-green-ink"><T en="Secure Payment" ne="सुरक्षित भुक्तानी" /></span>
+          </div>
+        </div>
+      </section>
+
+      {/* Mockup order: collections → best-seller tabs → featured/new →
+          reviews → why → about → footer. */}
+      <Categories />
 
       <BestSeller products={products} />
 
-      <Categories />
+      <FeaturedProducts products={products} />
 
       <NewArrivals products={products} />
-      <About />
+
+      <Testimonials products={products} />
 
       <WhyChoose />
 
-      <Testimonials products={products} />
+      <About />
 
       <Footer />
 
