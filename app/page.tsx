@@ -11,6 +11,7 @@ import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 import { getProducts } from "@/lib/product-store";
+import { businessContact } from "@/lib/seo";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
 
@@ -124,6 +125,70 @@ export default async function Home() {
       <WhyChoose />
 
       <About />
+
+      {/* The features row from the mockup — small pills into the parts of the
+          shop a returning customer reaches for. Every one goes somewhere real. */}
+      <section className="px-4 py-6 md:px-8">
+        <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-2.5">
+          {[
+            { href: "/track-order", en: "Track order", ne: "अर्डर ट्र्याक" },
+            { href: "/wishlist", en: "Wishlist", ne: "मन परेका" },
+            { href: "/wholesale", en: "Wholesale", ne: "थोक" },
+            { href: "/faq", en: "Size guide", ne: "साइज" },
+            { href: "/shop", en: "Offers", ne: "छुट" },
+            { href: `https://wa.me/${businessContact.whatsappNumber}`, en: "WhatsApp", ne: "WhatsApp" },
+          ].map((chip) => (
+            <Link
+              key={chip.href + chip.en}
+              href={chip.href}
+              className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-xs font-semibold text-brand-green-ink shadow-sm transition hover:border-brand-purple hover:text-brand-purple"
+            >
+              <T en={chip.en} ne={chip.ne} />
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Contact — phone, WhatsApp and where the shop is, on the front page
+          itself like the mockup, drawn from the one place these facts live. */}
+      <section className="bg-brand-mist px-4 py-12 md:px-8">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-brand-gold-deep">
+            <T en="Reach us" ne="सम्पर्क" />
+          </p>
+          <h2 className="mt-2 text-center font-display text-3xl font-bold text-brand-green md:text-4xl">
+            <T en="Talk to KRISHOE" ne="हामीलाई सम्पर्क गर्नुहोस्" />
+          </h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <a
+              href={`tel:${businessContact.phoneTel}`}
+              className="flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm transition hover:border-brand-gold"
+            >
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-brand-green text-white">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path d="M4 4h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 2 6a2 2 0 0 1 2-2Z" /></svg>
+              </span>
+              <span className="font-bold text-brand-green-ink">{businessContact.phoneDisplay}</span>
+            </a>
+            <a
+              href={`https://wa.me/${businessContact.whatsappNumber}`}
+              className="flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm transition hover:border-brand-gold"
+            >
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[#25D366] text-white">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 20l1.5-4A8 8 0 1 1 9 19Z" /></svg>
+              </span>
+              <span className="font-bold text-brand-green-ink"><T en="WhatsApp order" ne="WhatsApp अर्डर" /></span>
+            </a>
+            <div className="flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-brand-purple text-white">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+              </span>
+              <span className="text-sm font-semibold text-brand-muted">
+                {businessContact.streetAddress}, {businessContact.addressLocality}, {businessContact.addressRegion}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
 

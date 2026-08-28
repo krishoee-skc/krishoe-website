@@ -171,6 +171,11 @@ describe("every pale surface the app paints has a dark answer", () => {
     // report buttons, the gold labels. Darkening them would take the colour out
     // of the shop without making anything easier to read.
     "bg-brand-muted-deep", "bg-brand-maroon", "bg-brand-gold-deep", "bg-brand-gold-dark",
+    // The storefront's deep royal-purple accent — the offer strip, the contact
+    // address medallion and the category-hover ring — carries white or brand
+    // text on it. It is an accent, not a pale surface, so it keeps its colour
+    // in the dark rather than being remapped to a lighter shade.
+    "bg-brand-purple", "bg-brand-purple-deep",
     // Text colours are handled by the ink tokens where they need to be; a brand
     // green heading stays brand green.
   ];
