@@ -135,12 +135,10 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         <div className="grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Phone</span><span className="font-bold">: {invoice.phone || "—"}</span></div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
           <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Payment Mode</span><span className="font-bold">: {invoice.paymentMethod}</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
           <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Cashier</span><span className="font-bold">: {invoice.cashier}</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Payment Mode</span><span className="font-bold">: {invoice.paymentMethod}</span></div>
         </div>
 
         {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount */}
@@ -242,19 +240,8 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         </div>
 
         <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-[11px] text-brand-muted">
-          This is a computer generated invoice · KRISHOE POS
+          Billed by {invoice.cashier} · This is a computer generated invoice · KRISHOE POS
         </p>
-
-        {/* Internal reconciliation ids — on screen only, hidden on the printed bill. */}
-        <div className="mt-5 rounded-lg border border-dashed border-brand-green-line p-4 print:hidden">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Billing IDs</p>
-          <div className="mt-3 grid gap-2 text-sm text-brand-muted">
-            <p>Barcode value: <span className="font-mono font-bold text-brand-green-ink">{invoice.barcodeValue}</span></p>
-            <p className="break-all">QR payload: <span className="font-mono text-xs text-brand-green-ink">{invoice.qrPayload}</span></p>
-            <p>Stock movement IDs: <span className="font-mono text-xs text-brand-green-ink">{invoice.stockMovementIds.length > 0 ? invoice.stockMovementIds.join(", ") : "Not posted"}</span></p>
-            <p>Ledger transaction: <span className="font-mono text-xs text-brand-green-ink">{invoice.ledgerTransactionId || "Not linked"}</span></p>
-          </div>
-        </div>
       </div>
     </section>
   );
