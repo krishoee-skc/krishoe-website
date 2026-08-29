@@ -7,6 +7,8 @@ import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getPosInvoiceById } from "@/lib/pos";
+import { getAdminSettings } from "@/lib/admin-settings";
+import { amountInWords } from "@/lib/amount-in-words";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { whatsappToUrl } from "@/lib/commerce";
 
@@ -16,8 +18,20 @@ type PosInvoicePageProps = {
 
 export const dynamic = "force-dynamic";
 
+// Every pair KRISHOE makes is footwear under one customs heading; shown on the
+// bill the way the sample invoice carries it. Per-product codes can replace this
+// later without touching the layout.
+const HS_CODE = "6402.99.90";
+const RETURN_NOTE = "Goods once sold will not be taken back.";
+
 function money(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
+}
+
+// Plain rupees for the invoice columns (the sample prints amounts without the
+// "Rs." prefix, which sits in the header instead).
+function amount(value: number) {
+  return value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export async function generateMetadata({ params }: PosInvoicePageProps): Promise<Metadata> {
@@ -36,6 +50,11 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
   if (!invoice) {
     notFound();
   }
+
+  // The seller block on the bill — legal name, address, phone and PAN — comes
+  // from the shop's own company settings, so one edit there updates every bill.
+  const company = (await getAdminSettings()).company;
+  const sellerName = company.legalName || company.companyName || "KRISHOE";
 
   // A ready-to-send bill summary for the customer's WhatsApp. Kept short — the
   // number, what was paid, and anything still due.
@@ -82,173 +101,160 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         </div>
       </div>
 
-      <div className="receipt-print mx-auto max-w-4xl rounded-lg border border-brand-green-line bg-brand-paper p-6 shadow-sm print:border-0 print:shadow-none">
-        {/* The crest, not the full lockup, and small.
-            This sheet is printed on white, and the full artwork is set on
-            black — a slab of it at the top of every bill would drink ink and
-            leave the paper cockled. The crest is about a fingernail wide and
-            the gold rule under it costs almost nothing to print, which is how
-            an expensive-looking document is actually made: thin lines and
-            white space, not a large picture. */}
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-brand-gold/40 pb-5">
-          <div className="flex items-start gap-3">
-            <Image
-              src="/images/logo-mark.png"
-              alt=""
-              aria-hidden
-              width={128}
-              height={128}
-              className="mt-0.5 h-11 w-11 shrink-0"
-            />
-            <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-              KRISHOE factory and footwear
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">
-              {invoice.kind === "Return" ? "Return bill" : "Sales bill"}
+      <div className="receipt-print mx-auto max-w-3xl rounded-lg border-2 border-brand-green-ink bg-white p-6 text-brand-green-ink shadow-sm print:border-2 print:shadow-none">
+        {/* Seller header — legal name, address, phone and PAN, centred like a
+            standard Nepal PAN sales invoice. Everything here comes from the
+            shop's company settings, so one edit updates every future bill. */}
+        <div className="border-b-2 border-brand-green-ink pb-3 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <Image src="/images/logo-mark.png" alt="" aria-hidden width={128} height={128} className="h-9 w-9 shrink-0" />
+            <h1 className="font-display text-2xl font-black uppercase tracking-wide text-brand-green-ink md:text-3xl">
+              {sellerName}
             </h1>
-            {/* DateDisplayAdmin shows the Bikram Sambat date after the English one,
-                so the bill reads naturally to a Nepali reader. */}
-            <p className="mt-2 text-sm text-brand-muted">
-              {invoice.channel} - <DateDisplayAdmin date={invoice.createdAt} time={true} />
+          </div>
+          <p className="mt-1.5 text-sm text-brand-muted">
+            {company.address || "—"}
+            {company.phone ? <> · <span className="font-mono">+977 {company.phone}</span></> : null}
+          </p>
+          {company.panVatNumber ? (
+            <p className="mt-1 inline-block border-b-4 border-brand-gold/60 text-sm font-black text-brand-green-ink">
+              PAN No.: {company.panVatNumber}
             </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-sm font-black text-brand-green-ink">{invoice.invoiceNumber}</p>
-            <p className="mt-2 rounded-full border border-brand-green-line px-3 py-1 text-xs font-black text-brand-muted">
-              {invoice.status} / {invoice.postingStatus}
-            </p>
-          </div>
+          ) : null}
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-brand-paper-deep p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Customer</p>
-            <p className="mt-2 font-black text-brand-green-ink">{invoice.customerName}</p>
-            <p className="mt-1 text-sm text-brand-muted">{invoice.phone || "No phone"}</p>
-          </div>
-          <div className="rounded-lg bg-brand-paper-deep p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Payment</p>
-            <p className="mt-2 font-black text-brand-green-ink">{invoice.paymentMethod}</p>
-            <p className="mt-1 text-sm text-brand-muted">{invoice.paymentReference || "No reference"}</p>
-          </div>
-          <div className="rounded-lg bg-brand-paper-deep p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Cashier</p>
-            <p className="mt-2 font-black text-brand-green-ink">{invoice.cashier}</p>
-            <p className="mt-1 text-sm text-brand-muted">{invoice.note || "No note"}</p>
-          </div>
+        <div className="my-4 flex justify-center">
+          <span className="rounded bg-brand-green-ink px-6 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-white">
+            {invoice.kind === "Return" ? "Return Invoice" : "Sales Invoice"}
+          </span>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-[1fr_180px]">
-          <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Invoice barcode</p>
-            <img
-              src={`/api/admin/pos/${invoice.id}/barcode`}
-              alt={`Barcode for ${invoice.invoiceNumber}`}
-              className="mt-3 h-24 w-full object-contain print:mt-1 print:h-12"
-            />
-          </div>
-          <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Invoice QR</p>
-            <img
-              src={`/api/admin/pos/${invoice.id}/qr`}
-              alt={`QR code for ${invoice.invoiceNumber}`}
-              className="mx-auto mt-3 h-32 w-32 object-contain print:mt-1 print:h-16 print:w-16"
-            />
-          </div>
+        {/* Customer (left) and invoice meta (right). Address and PAN carry a
+            write-on line for now — a wholesale buyer's PAN can be filled by hand
+            until it is captured on the bill form. */}
+        <div className="grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Phone</span><span className="font-bold">: {invoice.phone || "—"}</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
+          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Payment Mode</span><span className="font-bold">: {invoice.paymentMethod}</span></div>
+          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
+          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Cashier</span><span className="font-bold">: {invoice.cashier}</span></div>
         </div>
 
-        <div className="mt-6 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="border-b text-left text-brand-muted">
-              <tr>
-                <th className="py-2 pr-3">SKU</th>
-                <th className="py-2 pr-3">Design</th>
-                <th className="py-2 pr-3">Size</th>
-                <th className="py-2 pr-3 text-right">Pairs</th>
-                <th className="py-2 pr-3 text-right">Rate</th>
-                <th className="py-2 pr-3 text-right">Discount</th>
-                <th className="py-2 pr-3 text-right">Line total</th>
+        {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount */}
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-brand-green-ink text-left text-xs uppercase tracking-wide text-white">
+                <th className="border border-brand-green-ink px-2 py-2">S.No</th>
+                <th className="border border-brand-green-ink px-2 py-2">HS Code</th>
+                <th className="border border-brand-green-ink px-2 py-2">Product Description</th>
+                <th className="border border-brand-green-ink px-2 py-2">Size</th>
+                <th className="border border-brand-green-ink px-2 py-2 text-right">Qty</th>
+                <th className="border border-brand-green-ink px-2 py-2 text-right">Rate</th>
+                <th className="border border-brand-green-ink px-2 py-2 text-right">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {invoice.items.map((item) => (
+            <tbody>
+              {invoice.items.map((item, index) => (
                 <tr key={item.id}>
-                  <td className="py-3 pr-3 font-mono text-xs">{item.sku || "-"}</td>
-                  <td className="py-3 pr-3 font-semibold text-brand-green-ink">{item.design}</td>
-                  <td className="py-3 pr-3">{item.sizeRun}</td>
-                  <td className="py-3 pr-3 text-right">{item.quantity}</td>
-                  <td className="py-3 pr-3 text-right">{money(item.rate)}</td>
-                  <td className="py-3 pr-3 text-right">{money(item.discount)}</td>
-                  <td className="py-3 pr-3 text-right font-bold">{money(item.lineTotal)}</td>
+                  <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
+                  <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
+                  <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">{item.design}</td>
+                  <td className="border border-brand-green-line px-2 py-2">{item.sizeRun}</td>
+                  <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{item.quantity}</td>
+                  <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(item.rate)}</td>
+                  <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(item.lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-[1fr_280px] print:block">
-          {/* Internal reconciliation ids — useful on screen, but not something a
-              customer's printed bill needs, and it was pushing the receipt onto
-              a second sheet. Hidden on paper. */}
-          <div className="rounded-lg border border-dashed border-brand-green-line p-4 print:hidden">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Billing IDs</p>
-            <div className="mt-3 grid gap-2 text-sm text-brand-muted">
-              <p>
-                Barcode value: <span className="font-mono font-bold text-brand-green-ink">{invoice.barcodeValue}</span>
-              </p>
-              <p className="break-all">
-                QR payload: <span className="font-mono text-xs text-brand-green-ink">{invoice.qrPayload}</span>
-              </p>
-              <p>
-                Stock movement IDs:{" "}
-                <span className="font-mono text-xs text-brand-green-ink">
-                  {invoice.stockMovementIds.length > 0 ? invoice.stockMovementIds.join(", ") : "Not posted"}
-                </span>
-              </p>
-              <p>
-                Ledger transaction:{" "}
-                <span className="font-mono text-xs text-brand-green-ink">
-                  {invoice.ledgerTransactionId || "Not linked"}
-                </span>
-              </p>
-            </div>
-          </div>
+        {/* Totals — Basic, Discount, Net. No VAT line: KRISHOE bills on PAN. */}
+        <div className="mt-4 flex justify-end">
+          <table className="border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Basic Total</td>
+                <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.subtotal)}</td>
+              </tr>
+              {invoice.discount > 0 ? (
+                <tr>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Discount</td>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.discount)}</td>
+                </tr>
+              ) : null}
+              {invoice.tax > 0 ? (
+                <tr>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">VAT</td>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.tax)}</td>
+                </tr>
+              ) : null}
+              <tr className="bg-brand-mist">
+                <td className="border-2 border-brand-green-ink px-3 py-2 font-black text-brand-green-ink">Net Total</td>
+                <td className="border-2 border-brand-green-ink px-3 py-2 text-right text-base font-black tabular-nums text-brand-green-ink">{amount(invoice.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-          <div className="rounded-lg bg-brand-mist p-4">
-            <div className="flex justify-between gap-3 text-sm">
-              <span className="text-brand-muted">Subtotal</span>
-              <span className="font-bold">{money(invoice.subtotal)}</span>
-            </div>
-            <div className="mt-2 flex justify-between gap-3 text-sm">
-              <span className="text-brand-muted">Discount</span>
-              <span className="font-bold">{money(invoice.discount)}</span>
-            </div>
-            <div className="mt-2 flex justify-between gap-3 text-sm">
-              <span className="text-brand-muted">Tax / VAT</span>
-              <span className="font-bold">{money(invoice.tax)}</span>
-            </div>
-            <div className="mt-4 border-t border-brand-green-line pt-4">
-              <div className="flex justify-between gap-3">
-                <span className="font-black text-brand-green-ink">Total</span>
-                <span className="text-xl font-black text-brand-green-ink">{money(invoice.total)}</span>
-              </div>
-              <div className="mt-3 flex justify-between gap-3 text-sm">
-                <span className="text-brand-muted">Paid</span>
-                <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span>
-              </div>
-              <div className="mt-2 flex justify-between gap-3 text-sm">
-                <span className="text-brand-muted">Credit</span>
-                <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span>
-              </div>
-            </div>
+        <div className="mt-3 border-y border-brand-green-ink py-2 text-sm">
+          <span className="font-black">In Words:</span>{" "}
+          <span className="italic text-brand-muted">{amountInWords(invoice.total)}</span>
+        </div>
+
+        <div className="mt-2 text-xs text-brand-muted">
+          <p>Remarks: {invoice.note || "—"}</p>
+          <p className="mt-0.5">Note: {RETURN_NOTE}</p>
+        </div>
+
+        {invoice.creditAmount > 0 ? (
+          <div className="mt-2 flex justify-end gap-6 text-sm">
+            <span className="text-brand-muted">Paid <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span></span>
+            <span className="text-brand-muted">Balance <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span></span>
+          </div>
+        ) : null}
+
+        <div className="mt-8 flex items-end justify-between gap-8">
+          <div className="flex-1 text-center">
+            <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Received By</div>
+          </div>
+          <div className="flex-1 text-right">
+            <p className="text-xs font-black text-brand-green-ink">For: {sellerName}</p>
+            <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Authorized Signature</div>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-brand-muted-soft">
-          Thank you for choosing KRISHOE
+        {/* What this system adds over a plain paper bill: the sales channel, a
+            scannable barcode and QR, and a one-tap WhatsApp send. */}
+        <div className="mt-4 flex items-center gap-3 border-t border-dashed border-brand-green-line pt-3">
+          <span className="shrink-0 rounded-full border border-brand-green-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-brand-green-ink">
+            {invoice.channel}
+          </span>
+          <img src={`/api/admin/pos/${invoice.id}/barcode`} alt={`Barcode for ${invoice.invoiceNumber}`} className="h-9 flex-1 object-contain" />
+          <img src={`/api/admin/pos/${invoice.id}/qr`} alt={`QR code for ${invoice.invoiceNumber}`} className="h-12 w-12 shrink-0 object-contain" />
+          {invoice.phone ? (
+            <span className="shrink-0 rounded-full border border-emerald-500 px-2.5 py-1 text-[10px] font-black text-emerald-700 print:hidden">WhatsApp ✓</span>
+          ) : null}
+        </div>
+
+        <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-[11px] text-brand-muted">
+          This is a computer generated invoice · KRISHOE POS
         </p>
+
+        {/* Internal reconciliation ids — on screen only, hidden on the printed bill. */}
+        <div className="mt-5 rounded-lg border border-dashed border-brand-green-line p-4 print:hidden">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">Billing IDs</p>
+          <div className="mt-3 grid gap-2 text-sm text-brand-muted">
+            <p>Barcode value: <span className="font-mono font-bold text-brand-green-ink">{invoice.barcodeValue}</span></p>
+            <p className="break-all">QR payload: <span className="font-mono text-xs text-brand-green-ink">{invoice.qrPayload}</span></p>
+            <p>Stock movement IDs: <span className="font-mono text-xs text-brand-green-ink">{invoice.stockMovementIds.length > 0 ? invoice.stockMovementIds.join(", ") : "Not posted"}</span></p>
+            <p>Ledger transaction: <span className="font-mono text-xs text-brand-green-ink">{invoice.ledgerTransactionId || "Not linked"}</span></p>
+          </div>
+        </div>
       </div>
     </section>
   );
