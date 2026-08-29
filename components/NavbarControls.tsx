@@ -4,7 +4,7 @@ import Link from "next/link";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { HeartIcon, MenuIcon, ShoppingBagIcon, XIcon } from "@/components/Icons";
+import { HeartIcon, MenuIcon, ShoppingCartIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import CommandSearch from "@/components/CommandSearch";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -110,7 +110,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
         aria-label={text("Open cart", "कार्ट खोल्ने")}
         className="relative grid h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
       >
-        <ShoppingBagIcon className="h-5 w-5" />
+        <ShoppingCartIcon className="h-5 w-5" />
         <CountBadge count={cartCount} />
       </Link>
 
