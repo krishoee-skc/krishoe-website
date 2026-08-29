@@ -7,7 +7,7 @@ import { JsonLdScript } from "@/components/commerce/StructuredData";
 import { businessContact, createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "बारम्बार सोधिने प्रश्न — FAQ",
+  title: "FAQ | KRISHOE",
   description:
     "KRISHOE बाट किन्दा सोधिने प्रश्नहरू: कति दिनमा पुग्छ, सामान पाएपछि पैसा तिर्न मिल्छ, साइज मिलेन भने के गर्ने, साट्न मिल्छ कि मिल्दैन। Delivery, cash on delivery, sizing and exchanges at KRISHOE.",
   path: "/faq",

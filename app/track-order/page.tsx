@@ -6,7 +6,7 @@ import TrackOrderForm from "@/components/TrackOrderForm";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "अर्डर कहाँ पुग्यो — Track your order",
+  title: "Track your order | KRISHOE",
   description:
     "अर्डर नम्बर र मोबाइल हालेर आफ्नो KRISHOE अर्डर कहाँ पुग्यो हेर्नुहोस्। Track your KRISHOE order with your reference number and phone.",
   path: "/track-order",

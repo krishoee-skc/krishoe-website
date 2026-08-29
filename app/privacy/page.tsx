@@ -5,7 +5,7 @@ import T from "@/components/T";
 import { businessContact, createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "गोपनीयता — Privacy Policy",
+  title: "Privacy Policy | KRISHOE",
   description:
     "KRISHOE ले कस्तो जानकारी लिन्छ, किन लिन्छ र कसरी जोगाउँछ। What KRISHOE collects, why, and how it is protected.",
   path: "/privacy",

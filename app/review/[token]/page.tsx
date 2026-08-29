@@ -16,7 +16,7 @@ import ReviewInviteForm from "./ReviewInviteForm";
  */
 
 export const metadata: Metadata = {
-  title: "जुत्ता कस्तो लाग्यो? | KRISHOE",
+  title: "How were your shoes? | KRISHOE",
   // A review link is per-customer. It has no business in a search index, and a
   // crawler following one would be asking the shop to render a stranger's
   // order.

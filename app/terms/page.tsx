@@ -6,7 +6,7 @@ import T from "@/components/T";
 import { businessContact, createPageMetadata, siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "सर्तहरू — Terms of Service",
+  title: "Terms of Service | KRISHOE",
   description:
     "KRISHOE बाट किन्दा लागू हुने सर्तहरू: मूल्य, अर्डर पक्का हुने तरिका, डेलिभरी, साट्ने नियम। The terms KRISHOE trades on: price, confirmation, delivery and exchange.",
   path: "/terms",

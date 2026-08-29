@@ -7,12 +7,12 @@ import { getProducts } from "@/lib/product-store";
 import { absoluteUrl, siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "थोक बिक्री — Wholesale | KRISHOE",
+  title: "Wholesale | KRISHOE",
   description:
     "KRISHOE sells wholesale to shops across Nepal, direct from our own factory in Narayangadh. Trade rates on enquiry, minimum order per design.",
   alternates: { canonical: absoluteUrl("/wholesale") },
   openGraph: {
-    title: "थोक बिक्री — KRISHOE",
+    title: "Wholesale — KRISHOE",
     description: "हाम्रै कारखानाबाट थोकमा — पसलहरूका लागि।",
     url: absoluteUrl("/wholesale"),
     siteName: siteConfig.name,
