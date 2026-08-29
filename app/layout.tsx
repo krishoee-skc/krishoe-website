@@ -5,6 +5,7 @@ import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
 import BottomTabBar from "@/components/BottomTabBar";
+import AiAssistant from "@/components/AiAssistant";
 import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -174,6 +175,7 @@ export default async function RootLayout({
             <SpeedReporter />
             <LanguageInvite />
             <BottomTabBar />
+            <AiAssistant />
           </CommerceProvider>
           {/* Passed the deployment that served this page, so a tab left open
               across a deploy can offer a reload instead of silently running old
