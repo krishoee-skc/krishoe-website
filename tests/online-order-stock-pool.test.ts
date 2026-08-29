@@ -57,3 +57,42 @@ describe("online order readiness uses the shared ready-stock pool", () => {
     },
   );
 });
+
+// The KRS-ORD-…VWCM case: factory finished_stock lagged behind the website, the
+// owner read a bare "stock 0", and turned a fulfillable order away. On a factory
+// shortfall the detail must now name BOTH pools so that never repeats.
+describe("factory shortfall names both the factory and website pools", () => {
+  const shortOrder = {
+    ...order,
+    order: "1. Ladies Flat (ladies-flat)\n   Size: 38 / Color: Black / Qty: 1\n   Line total: Rs. 1,500",
+  } as OrderSubmission;
+
+  it("says the pairs are sellable when the website pool still covers them", () => {
+    const report = buildOnlineOrderConversionReport({
+      orders: [shortOrder],
+      products: [{ ...product, stock: 60 } as Product],
+      finishedStock: [{ ...stock("Factory"), stockPairs: 0 }],
+      posInvoices: [],
+    });
+
+    const detail = report.rows[0]?.missingStockItems[0] ?? "";
+    expect(detail).toContain("factory 0");
+    expect(detail).toContain("website 60");
+    expect(detail).toContain("sellable");
+    expect(report.rows[0]?.signal).toBe("Needs stock");
+  });
+
+  it("flags a real gap when both pools are short", () => {
+    const report = buildOnlineOrderConversionReport({
+      orders: [shortOrder],
+      products: [{ ...product, stock: 0 } as Product],
+      finishedStock: [{ ...stock("Factory"), stockPairs: 0 }],
+      posInvoices: [],
+    });
+
+    const detail = report.rows[0]?.missingStockItems[0] ?? "";
+    expect(detail).toContain("factory 0");
+    expect(detail).toContain("website 0");
+    expect(detail).toContain("make or source stock");
+  });
+});

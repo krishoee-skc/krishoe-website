@@ -260,7 +260,27 @@ function stockByDesign(finishedStock: FinishedStock[]) {
   return stockByDesign;
 }
 
-function missingOnlineStockItems(items: ParsedOnlineOrderItem[], finishedStock: FinishedStock[]) {
+// Website ready-stock (products.stock) per design — the pool the storefront
+// actually sells from. The factory finished_stock and this can drift: the shop
+// can list a pair the factory has not logged yet, and vice versa. Showing both
+// on a shortfall is what stops the owner reading a bare "stock 0" as "no
+// product" and turning a fulfillable order away.
+function websiteStockByDesign(products: Product[]) {
+  const map = new Map<string, number>();
+
+  for (const product of products) {
+    const key = productKey(product.name);
+    map.set(key, (map.get(key) ?? 0) + cleanNumber(product.stock));
+  }
+
+  return map;
+}
+
+function missingOnlineStockItems(
+  items: ParsedOnlineOrderItem[],
+  finishedStock: FinishedStock[],
+  websiteStock: Map<string, number>,
+) {
   const stockGroups = stockByDesign(finishedStock);
   const requiredGroups = new Map<string, { design: string; pairs: number }>();
 
@@ -273,13 +293,20 @@ function missingOnlineStockItems(items: ParsedOnlineOrderItem[], finishedStock: 
 
   return [...requiredGroups.values()].flatMap((item) => {
     const stock = [...stockGroups.values()].find((group) => sameDesign(group.design, item.design));
-    const available = stock?.pairs ?? 0;
+    const factory = stock?.pairs ?? 0;
 
-    if (available >= item.pairs) {
+    if (factory >= item.pairs) {
       return [];
     }
 
-    return [`${item.design}: need ${item.pairs}, stock ${available}`];
+    // Factory is short — but say plainly whether the website pool can still
+    // cover it. "sellable" means the pairs exist to fulfil; only log/make the
+    // factory finished-stock. If the website is short too, it is a real gap.
+    const website = websiteStock.get(productKey(item.design)) ?? 0;
+    const note =
+      website >= item.pairs ? "sellable — log/make factory pairs" : "make or source stock";
+
+    return [`${item.design}: need ${item.pairs} · factory ${factory} · website ${website} (${note})`];
   });
 }
 
@@ -298,11 +325,15 @@ export function buildOnlineOrderConversionReport({
   finishedStock: FinishedStock[];
   posInvoices: PosInvoice[];
 }): OnlineOrderConversionReport {
+  const websiteStock = websiteStockByDesign(products);
+
   const rows = orders.map((order) => {
     const posInvoice = posInvoices.find((invoice) => posInvoiceMatchesOnlineOrder(invoice, order.id));
     const items = parseOnlineOrderItems(order.order, products);
     const parsed = items.length > 0;
-    const missingStockItems = parsed ? missingOnlineStockItems(items, finishedStock) : [];
+    const missingStockItems = parsed
+      ? missingOnlineStockItems(items, finishedStock, websiteStock)
+      : [];
     const missingLedger = orderNeedsLedgerForDefaultConversion(order);
     const itemCount = items.length;
     const pairCount = items.reduce((total, item) => total + item.quantity, 0);
