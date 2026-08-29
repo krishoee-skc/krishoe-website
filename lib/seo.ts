@@ -93,13 +93,13 @@ export function getSiteUrl() {
   // emit — the live sitemap was serving `<loc>https://host\n/shop</loc>`, and
   // the same broken string would be encoded into printed QR codes.
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
-  // The fallback is the address that actually resolves. It used to be
-  // https://krishoe.com, which nobody has registered — checked, and it does not
-  // answer at all. Every canonical link, every sitemap entry and every QR code
-  // would have pointed at a dead host the moment this variable went missing,
-  // and Google would have been told the whole shop lives there. Change this the
-  // day the domain is really bought, not before.
-  return (configured || "https://krishoe-website.vercel.app").replace(/\/+$/, "");
+  // The fallback is the address that actually resolves. krishoe.com was bought
+  // on 2026-08-29 and is live; the apex 308-redirects to www, so www.krishoe.com
+  // is the host that actually serves the shop and holds the TLS certificate —
+  // that is the canonical every sitemap entry, canonical link and QR code should
+  // point at. NEXT_PUBLIC_SITE_URL is set to the same value in production; this
+  // fallback only guards a missing variable.
+  return (configured || "https://www.krishoe.com").replace(/\/+$/, "");
 }
 
 export function absoluteUrl(pathOrUrl: string) {
