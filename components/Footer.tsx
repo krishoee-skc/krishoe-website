@@ -96,7 +96,12 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-white/80">
             {shopLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="transition hover:text-brand-gold-bright">
+                <Link href={link.href} className="group/link flex items-center gap-2.5 transition hover:text-brand-gold-bright">
+                  <span className="grid h-6 w-6 flex-none place-items-center rounded-md border border-white/10 bg-white/5 text-brand-gold-bright transition group-hover/link:bg-brand-gold group-hover/link:text-brand-purple-deep">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
                   <T en={link.en} ne={link.ne} />
                 </Link>
               </li>
@@ -111,7 +116,12 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-white/80">
             {companyLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="transition hover:text-brand-gold-bright">
+                <Link href={link.href} className="group/link flex items-center gap-2.5 transition hover:text-brand-gold-bright">
+                  <span className="grid h-6 w-6 flex-none place-items-center rounded-md border border-white/10 bg-white/5 text-brand-gold-bright transition group-hover/link:bg-brand-gold group-hover/link:text-brand-purple-deep">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
                   <T en={link.en} ne={link.ne} />
                 </Link>
               </li>
