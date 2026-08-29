@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getProducts } from "@/lib/product-store";
 import { categories } from "@/lib/products";
+import { guides } from "@/lib/guides";
 import { absoluteUrl, getProductsByCategory, getSiteUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -73,8 +74,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const guideRoutes: MetadataRoute.Sitemap = [
+    {
+      // The guides hub. A shopper who searches a question rather than a product
+      // lands here, so it is ranked with the story pages, not the policies.
+      url: `${baseUrl}/guides`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...guides.map((guide) => ({
+      url: `${baseUrl}/guides/${guide.slug}`,
+      lastModified: new Date(guide.updated),
+      changeFrequency: "monthly" as const,
+      priority: 0.65,
+    })),
+  ];
+
   return [
     ...coreRoutes,
+    ...guideRoutes,
     ...categories.map((category) => ({
       url: `${baseUrl}/shop/${category.slug}`,
       lastModified: now,

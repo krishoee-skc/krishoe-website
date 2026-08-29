@@ -23,6 +23,7 @@ const shopLinks = [
 const companyLinks = [
   { href: "/", en: "Home", ne: "गृह पृष्ठ" },
   { href: "/about", en: "Our Story", ne: "हाम्रो कथा" },
+  { href: "/guides", en: "Guides", ne: "जानकारी" },
   { href: "/wholesale", en: "Wholesale", ne: "थोक बिक्री" },
   { href: "/track-order", en: "Track order", ne: "अर्डर ट्र्याक" },
   { href: "/faq", en: "FAQ", ne: "प्रश्न उत्तर" },
