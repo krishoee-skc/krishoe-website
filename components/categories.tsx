@@ -24,6 +24,11 @@ const categories = [
     image: "/images/products/party-heels.jpg",
   },
   {
+    title: "Men's Collection",
+    slug: "mens-collection",
+    image: "/images/products/casual-shoes.jpg",
+  },
+  {
     title: "Kids Collection",
     slug: "kids-collection",
     image: "/images/products/kids-collection.jpg",

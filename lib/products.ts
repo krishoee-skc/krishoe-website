@@ -99,6 +99,15 @@ export const categories: Category[] = [
     description: "Statement heels with a refined finish.",
   },
   {
+    title: "Men's Collection",
+    slug: "mens-collection",
+    // Placeholder photo until a men's-specific one is uploaded; men's footwear
+    // reads closest to the casual line. KRISHOE makes and supplies for men as
+    // well as women, so this section carries that range online.
+    image: "/images/products/casual-shoes.jpg",
+    description: "Sturdy slippers, sandals and shoes made for men.",
+  },
+  {
     title: "Kids Collection",
     slug: "kids-collection",
     image: "/images/products/kids-collection.jpg",
