@@ -59,14 +59,18 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
                 grey smudge and the tagline was nothing at all. The word is
                 already set beside it in type that stays sharp at any size, so
                 the picture only has to carry the crest. */}
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-brand-gold/50 sm:h-12 sm:w-12">
+            {/* The owner's full crest, on a black tile that matches the logo's
+                own ground so it reads as one premium badge rather than a black
+                square dropped on white paper. The wordmark stays set beside it
+                in sharp type; the crest carries the crown, shield and laurel. */}
+            <span className="grid h-12 w-[68px] shrink-0 place-items-center overflow-hidden rounded-xl bg-black ring-1 ring-brand-gold/60 sm:h-14 sm:w-[80px]">
               <Image
-                src="/images/logo-mark.png"
-                alt="KRISHOE"
-                width={80}
-                height={80}
-                preload
-                className="h-9 w-9 sm:h-10 sm:w-10"
+                src="https://scx7x508oyhat5zs.public.blob.vercel-storage.com/products/krishoe-logo-198YNm1h6FD1f1393IdOtRaEvgN557.jpeg"
+                alt="KRISHOE — Walk with Authority"
+                width={893}
+                height={723}
+                priority
+                className="h-full w-full object-contain"
               />
             </span>
             <span className="min-w-0">

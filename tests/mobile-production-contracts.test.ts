@@ -113,9 +113,9 @@ describe("mobile production contracts", () => {
     // "Your Identity." headline are gone; the words survive in an sr-only H1.
     expect(homepage).toContain("public.blob.vercel-storage.com");
     expect(homepage).toContain("Walk with Authority");
-    // The crest, not the placeholder /icons/icon.svg square. It leads the nav
-    // now rather than being cut into the homepage markup.
-    expect(source("components/Navbar.tsx")).toContain("/images/logo-mark.png");
+    // The owner's full crest leads the nav — the crown-and-shield logo served
+    // from the shop's Blob store, not the placeholder /icons/icon.svg square.
+    expect(source("components/Navbar.tsx")).toContain("public.blob.vercel-storage.com");
     expect(homepage).not.toContain("/icons/icon.svg");
     expect(homepage).not.toContain("Trusted support");
   });
