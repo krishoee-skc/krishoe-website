@@ -161,6 +161,186 @@ export const guides: Guide[] = [
     ctaHref: "/shop",
     ctaLabel: { en: "Shop by your size", ne: "आफ्नो size अनुसार किन्नुहोस्" },
   },
+  {
+    slug: "leather-footwear-care",
+    title: {
+      en: "How to care for leather footwear so it lasts for years",
+      ne: "छालाको जुत्ता वर्षौँ टिकाउन कसरी सम्हाल्ने",
+    },
+    description: {
+      en: "Simple steps to clean, dry and protect leather shoes and sandals in Nepal — so a good pair lasts years, not one season.",
+      ne: "नेपालमा छालाको जुत्ता/सयल कसरी सफा गर्ने, सुकाउने र जोगाउने — राम्रो जोडी एक season होइन, वर्षौँ टिकोस्।",
+    },
+    summary: {
+      en: "Clean, dry and protect — the three-minute habit that doubles a pair's life.",
+      ne: "सफा, सुकाउने, जोगाउने — जोडीको आयु दोब्बर बनाउने तीन-मिनेटे बानी।",
+    },
+    keywords: [
+      "leather shoe care",
+      "how to clean leather sandals",
+      "make shoes last longer",
+      "leather footwear Nepal",
+      "shoe maintenance",
+    ],
+    published: "2026-08-29",
+    updated: "2026-08-29",
+    emoji: "👞",
+    intro: {
+      en: "Leather is a natural material — treated well it softens and lasts for years; ignored, it cracks in one wet season. None of the care is difficult. Here is the whole of it.",
+      ne: "छाला प्राकृतिक सामग्री हो — राम्ररी हेरचाह गर्दा नरम भई वर्षौँ टिक्छ; बेवास्ता गर्दा एउटै ओसिलो season मा फुट्छ। हेरचाह गाह्रो केही छैन। पूरै यहाँ छ।",
+    },
+    blocks: [
+      {
+        heading: { en: "Wipe after wearing", ne: "लगाएपछि पुछ्नुहोस्" },
+        body: [
+          {
+            en: "Dust and street grit dry out leather. A quick wipe with a soft, slightly damp cloth after a day out removes it before it does harm — the single most useful habit there is.",
+            ne: "धूलो र सडकको फोहोरले छाला सुख्खा बनाउँछ। दिनभरपछि नरम, अलिकति ओसिलो कपडाले छिटो पुछ्दा हानि गर्नुअघि हट्छ — सबभन्दा उपयोगी बानी यही हो।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Dry slowly, never in the sun", ne: "बिस्तारै सुकाउनुहोस्, घाममा कहिल्यै होइन" },
+        body: [
+          {
+            en: "Got caught in the rain? Wipe off the water and let the pair dry in the shade, away from direct sun and heaters. Stuff them with paper to hold their shape. Fast heat is what curls and cracks leather.",
+            ne: "पानीमा भिज्नुभयो? पानी पुछेर छायाँमा, सीधा घाम र heater बाट टाढा सुकाउनुहोस्। आकार जोगाउन भित्र कागज कोच्नुहोस्। छिटो ताप नै छाला बटार्ने र फुटाउने कारण हो।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Feed it now and then", ne: "बेला-बेला पोषण दिनुहोस्" },
+        body: [
+          {
+            en: "Every few weeks, a thin coat of leather conditioner or even a little natural oil keeps leather supple and water-resistant. A small amount, rubbed in and left overnight, is plenty.",
+            ne: "केही हप्तामा एकपटक, leather conditioner वा अलिकति प्राकृतिक तेलको पातलो तह लगाउँदा छाला नरम र पानी-प्रतिरोधी रहन्छ। थोरै, मालिस गरेर रातभर छोड्दा पुग्छ।",
+          },
+        ],
+      },
+    ],
+    ctaHref: "/shop/casual-shoes",
+    ctaLabel: { en: "See KRISHOE shoes", ne: "KRISHOE का जुत्ता हेर्नुहोस्" },
+  },
+  {
+    slug: "monsoon-footwear-nepal",
+    title: {
+      en: "The best footwear for Nepal's monsoon",
+      ne: "नेपालको बर्खाका लागि उत्तम जुत्ता",
+    },
+    description: {
+      en: "What to wear on wet, muddy streets in Nepal's monsoon — grippy, quick-drying footwear that keeps you steady and comfortable.",
+      ne: "नेपालको बर्खामा ओसिलो, हिलो सडकमा के लगाउने — grip भएको, छिटो सुक्ने जुत्ता जसले स्थिर र आरामदायी राख्छ।",
+    },
+    summary: {
+      en: "Grip, quick-dry and easy-clean — how to stay steady all monsoon.",
+      ne: "Grip, छिटो सुक्ने, सजिलो सफा — बर्खाभरि स्थिर रहने तरिका।",
+    },
+    keywords: [
+      "monsoon footwear Nepal",
+      "rainy season shoes",
+      "waterproof sandals Nepal",
+      "best shoes for rain",
+      "anti-slip footwear",
+    ],
+    published: "2026-08-29",
+    updated: "2026-08-29",
+    emoji: "🌧️",
+    intro: {
+      en: "For four months of the year, the right pair is the difference between a steady walk and a slip on a wet tile. Monsoon footwear has three jobs — grip, dry fast, and clean easily. Here is what to look for.",
+      ne: "वर्षको चार महिना, ठीक जोडीले नै ओसिलो tile मा स्थिर हिँड्ने र चिप्लने बीचको फरक बनाउँछ। बर्खाको जुत्ताको तीन काम — grip, छिटो सुक्ने, सजिलो सफा। के हेर्ने, यहाँ छ।",
+    },
+    blocks: [
+      {
+        heading: { en: "Grip is everything", ne: "Grip नै सबथोक" },
+        body: [
+          {
+            en: "A patterned rubber sole with deep grooves channels water away and holds a wet floor. Turn any pair over before buying — if the sole is flat and smooth, it will slide the first wet morning.",
+            ne: "गहिरो grooves भएको pattern-rubber sole ले पानी बगाउँछ र ओसिलो भुइँ समात्छ। किन्नुअघि जोडी पल्टाएर हेर्नुहोस् — sole समथर र चिल्लो भए पहिलो ओसिलो बिहानै चिप्लन्छ।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Choose quick-drying materials", ne: "छिटो सुक्ने सामग्री छान्नुहोस्" },
+        body: [
+          {
+            en: "For daily monsoon wear, rubber and synthetic straps beat fabric and thick padding — they shed water and dry by morning. Save the leather and cloth pairs for dry days.",
+            ne: "दैनिक बर्खा प्रयोगका लागि, rubber र synthetic strap ले कपडा र बाक्लो padding लाई जित्छ — पानी झार्छ, बिहानसम्म सुक्छ। छाला र कपडाका जोडी सुख्खा दिनका लागि राख्नुहोस्।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Easy to clean matters", ne: "सजिलो सफा हुनु जरुरी" },
+        body: [
+          {
+            en: "Mud is part of the season. A pair you can rinse under a tap and wipe dry gets worn again the same day — that convenience is what keeps a monsoon pair actually useful.",
+            ne: "हिलो season कै भाग हो। धारामुनि पखालेर पुछ्न मिल्ने जोडी त्यही दिन फेरि लगाइन्छ — त्यो सजिलोपनले नै बर्खाको जोडीलाई साँच्चै उपयोगी राख्छ।",
+          },
+        ],
+      },
+    ],
+    ctaHref: "/shop/ladies-sandals",
+    ctaLabel: { en: "See grippy sandals", ne: "Grip भएका सयल हेर्नुहोस्" },
+  },
+  {
+    slug: "sandals-vs-slippers",
+    title: {
+      en: "Sandals or slippers: which should you buy?",
+      ne: "सयल कि चप्पल: कुन किन्ने?",
+    },
+    description: {
+      en: "The real difference between sandals and slippers, and which suits your day — errands, office, home or travel — in Nepal.",
+      ne: "सयल र चप्पलको वास्तविक फरक, अनि नेपालमा तपाईंको दिनलाई कुन सुहाउँछ — बजार, अफिस, घर वा यात्रा।",
+    },
+    summary: {
+      en: "Support and hold vs. slip-on ease — pick by how your day actually goes.",
+      ne: "Support र पकड बनाम slip-on सजिलो — दिन कस्तो हुन्छ त्यसैले छान्नुहोस्।",
+    },
+    keywords: [
+      "sandals vs slippers",
+      "difference sandal slipper",
+      "which footwear to buy",
+      "ladies sandals Nepal",
+      "everyday slippers",
+    ],
+    published: "2026-08-29",
+    updated: "2026-08-29",
+    emoji: "🩴",
+    intro: {
+      en: "People use the words for each other, but they solve different problems. The choice is not about looks — it is about how much your feet move in a day. Here is how to decide.",
+      ne: "मान्छे यी दुई शब्द एकअर्काको ठाउँमा प्रयोग गर्छन्, तर यिनले फरक समस्या समाधान गर्छन्। छनौट हेराइको होइन — दिनमा खुट्टा कति चल्छ त्यसको हो। कसरी छान्ने, यहाँ छ।",
+    },
+    blocks: [
+      {
+        heading: { en: "Sandals: hold and support", ne: "सयल: पकड र support" },
+        body: [
+          {
+            en: "A sandal has a back strap or a strap over the foot, so it stays on when you walk fast, climb stairs or stand for hours. Choose sandals for errands, office, market days and travel — anywhere your feet keep moving.",
+            ne: "सयलमा पछाडि strap वा खुट्टामाथि strap हुन्छ, त्यसैले छिटो हिँड्दा, भर्‍याङ चढ्दा वा घण्टौँ उभिँदा टिकिरहन्छ। बजार, अफिस, हाट र यात्रा — जहाँ खुट्टा चलिरहन्छ — त्यहाँ सयल छान्नुहोस्।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Slippers: slip-on ease", ne: "चप्पल: slip-on सजिलो" },
+        body: [
+          {
+            en: "A slipper you step into and out of in a second — perfect for home, short trips to the shop, or the office desk. Less hold when you rush, but unbeatable for comfort and convenience close to home.",
+            ne: "चप्पल एक सेकेन्डमा लगाइन्छ र फुकालिन्छ — घर, नजिकको पसल, वा अफिसको desk का लागि उत्तम। हतारमा पकड कम, तर घर वरिपरि आराम र सजिलोमा अतुलनीय।",
+          },
+        ],
+      },
+      {
+        heading: { en: "Most people need one of each", ne: "धेरैलाई दुबै एक-एक चाहिन्छ" },
+        body: [
+          {
+            en: "A sturdy sandal for the day out and a soft slipper for home covers almost every hour of the week. If you buy one pair, buy for the activity you do most.",
+            ne: "बाहिरका लागि बलियो सयल र घरका लागि नरम चप्पल — हप्ताको लगभग हरेक घडी टारिन्छ। एउटा मात्र किन्ने भए, सबभन्दा बढी गर्ने कामका लागि किन्नुहोस्।",
+          },
+        ],
+      },
+    ],
+    ctaHref: "/shop/ladies-sandals",
+    ctaLabel: { en: "Browse sandals and slippers", ne: "सयल र चप्पल हेर्नुहोस्" },
+  },
 ];
 
 export function getGuide(slug: string): Guide | undefined {
