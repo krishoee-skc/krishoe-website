@@ -43,7 +43,7 @@ export default function Footer() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-b border-brand-gold/20 px-6 py-6">
         <div>
           <h3 className="font-display text-2xl font-bold text-white">
-            <T en="10% off your first order" ne="पहिलो अर्डरमा १०% छुट" />
+            <T en="5% off your first order" ne="पहिलो अर्डरमा ५% छुट" />
           </h3>
           <p className="mt-1 text-sm text-white/70">
             <T en="Explore the collection made in Nepal." ne="नेपालमै बनेको संग्रह हेर्नुहोस्।" />
