@@ -221,7 +221,7 @@ export default function OperationsQuickEntry({
               ))}
             </datalist>
             <div className="grid grid-cols-2 gap-2">
-              <select name="station" className={inputClass} defaultValue="Cutting">
+              <select name="station" className={inputClass} defaultValue="Upper">
                 {workerStationOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}

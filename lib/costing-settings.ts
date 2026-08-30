@@ -4,13 +4,17 @@ import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
 
+// KRISHOE's real production stages, matching the factory floor and the data in
+// production_work_entries — the upper man makes the fita (Upper), the bottom man
+// prepares and assembles the fiber (Fiber Preparation, Bottom Final), and the
+// silai man stitches it (Fiber Silai). The generic Cutting/Stitching stations
+// this began with were never used here. worker_tasks is empty, so switching the
+// station set corrupts nothing.
 export const productionStations = [
-  "Cutting",
-  "Stitching",
-  "Sole Press",
-  "Finishing",
-  "Packing",
-  "QC",
+  "Upper",
+  "Fiber Preparation",
+  "Fiber Silai",
+  "Bottom Final",
 ] as const;
 
 export type ProductionStation = (typeof productionStations)[number];

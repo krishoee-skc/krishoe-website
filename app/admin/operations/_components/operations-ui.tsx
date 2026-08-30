@@ -10,7 +10,7 @@ export const textareaClass =
 export const compactInputClass =
   "h-9 rounded-md border border-brand-green-line px-2 text-xs outline-none focus:border-brand-green";
 
-export const workerStationOptions = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
+export const workerStationOptions = ["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final"];
 export const workerStatusOptions = ["Not Started", "In Progress", "Paused", "Done"];
 
 export function money(value: number) {

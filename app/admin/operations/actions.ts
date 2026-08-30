@@ -43,7 +43,7 @@ const rawMaterialUnits: RawMaterial["unit"][] = ["kg", "meter", "pair", "piece",
 const batchStatuses: ProductionBatch["status"][] = ["Planning", "Cutting", "Making", "QC", "Packed"];
 const dispatchStatuses: VehicleDispatch["status"][] = ["Loading", "In Market", "Returned", "Closed"];
 const dispatchItemChannels: VehicleDispatchItem["channel"][] = ["Wholesale", "Retail", "Online"];
-const workerStations: WorkerTask["station"][] = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
+const workerStations: WorkerTask["station"][] = ["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final"];
 const workerStatuses: WorkerTask["status"][] = ["Not Started", "In Progress", "Paused", "Done"];
 const ledgerChannels: CustomerLedger["channel"][] = ["Wholesale", "Retail", "Online"];
 const finishedStockChannels: FinishedStock["channel"][] = ["Factory", "Wholesale", "Retail", "Online"];
@@ -325,7 +325,7 @@ export async function createWorkerTaskAction(formData: FormData) {
 
   await addWorkerTask({
     workerName,
-    station: optionValue(textValue(formData, "station"), workerStations, "Cutting"),
+    station: optionValue(textValue(formData, "station"), workerStations, "Upper"),
     batchId,
     design,
     targetPairs: numberValue(formData, "targetPairs"),
@@ -401,7 +401,7 @@ export async function updateWorkerTaskAction(formData: FormData) {
 
   await updateWorkerTask(id, {
     workerName,
-    station: optionValue(textValue(formData, "station"), workerStations, "Cutting"),
+    station: optionValue(textValue(formData, "station"), workerStations, "Upper"),
     batchId,
     design,
     targetPairs: numberValue(formData, "targetPairs"),

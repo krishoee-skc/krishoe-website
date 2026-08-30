@@ -65,7 +65,7 @@ export type RawMaterial = {
 export type WorkerTask = {
   id: string;
   workerName: string;
-  station: "Cutting" | "Stitching" | "Sole Press" | "Finishing" | "Packing" | "QC";
+  station: "Upper" | "Fiber Preparation" | "Fiber Silai" | "Bottom Final";
   batchId: string;
   design: string;
   targetPairs: number;
@@ -238,7 +238,7 @@ const seedOperations: OperationsData = {
     {
       id: "task-cut-01",
       workerName: "Ramesh BK",
-      station: "Cutting",
+      station: "Upper",
       batchId: "batch-20260711-01",
       design: "Cloud Step Slippers",
       targetPairs: 320,
@@ -249,7 +249,7 @@ const seedOperations: OperationsData = {
     {
       id: "task-sole-01",
       workerName: "Suman Tamang",
-      station: "Sole Press",
+      station: "Bottom Final",
       batchId: "batch-20260711-02",
       design: "Signature Ladies Sandals",
       targetPairs: 260,
@@ -260,7 +260,7 @@ const seedOperations: OperationsData = {
     {
       id: "task-pack-01",
       workerName: "Mina Rai",
-      station: "Packing",
+      station: "Fiber Silai",
       batchId: "batch-20260711-03",
       design: "Kids Daily Runner",
       targetPairs: 180,
