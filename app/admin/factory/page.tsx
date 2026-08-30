@@ -53,6 +53,7 @@ export default function FactoryDashboard() {
   });
   const [topWorkers, setTopWorkers] = useState<TopWorker[]>([]);
   const [products, setProducts] = useState<ProductCount[]>([]);
+  const [owed, setOwed] = useState<{ totalOwed: number; workersOwed: number }>({ totalOwed: 0, workersOwed: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +132,21 @@ export default function FactoryDashboard() {
         });
         setTopWorkers(topWorkersArray);
         setProducts(productsArray);
+
+        // Owed-to-workers glance — its own fetch so a summary hiccup never
+        // blanks the rest of the board.
+        try {
+          const owedRes = await fetch("/api/factory/summary");
+          const owedData = await owedRes.json();
+          if (!owedData.error) {
+            setOwed({
+              totalOwed: Number(owedData.totalOwed) || 0,
+              workersOwed: Number(owedData.workersOwed) || 0,
+            });
+          }
+        } catch {
+          // Leave owed at its default; the rest of the board still renders.
+        }
       } catch (error) {
         console.error("Error loading dashboard:", error);
         setError(`Failed to load dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -153,7 +169,7 @@ export default function FactoryDashboard() {
   return (
     <div className="flex min-h-screen flex-col space-y-3 p-3 sm:p-5 lg:p-6">
       <div className="mb-1">
-        <h1 className="font-display text-xl sm:text-2xl font-black text-brand-green-ink">KRISHOE Factory</h1>
+        <h1 className="font-display text-xl sm:text-2xl font-black text-brand-green-ink">Factory Today</h1>
         <p className="text-brand-muted text-xs sm:text-sm">
           {formatAdminDate(new Date())}
         </p>
@@ -176,7 +192,7 @@ export default function FactoryDashboard() {
 
         <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
           <div className="text-xs text-brand-muted font-medium">Piece Wage Earned</div>
-          <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
+          <div className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">
             Rs. {moneyFormatter.format(stats.totalAmount)}
           </div>
           <div className="text-xs text-brand-muted mt-0.5">Today</div>
@@ -184,7 +200,7 @@ export default function FactoryDashboard() {
 
         <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
           <div className="text-xs text-brand-muted font-medium">Workers Active</div>
-          <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
+          <div className="text-xl sm:text-2xl font-bold text-brand-gold-deep mt-1">
             {stats.workersActive}
           </div>
           <div className="text-xs text-brand-muted mt-0.5">Today</div>
@@ -205,6 +221,24 @@ export default function FactoryDashboard() {
           <div className="text-xs text-brand-muted mt-0.5">Completed</div>
         </div>
       </div>
+
+      {/* Owed to workers — the "how much is still to pay" glance the counter
+          asked for, so wages are never paid twice or missed. */}
+      <Link
+        href="/admin/factory/salary"
+        className="flex items-center justify-between rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] transition hover:border-brand-gold sm:p-4"
+      >
+        <div>
+          <div className="text-xs font-medium text-brand-muted">Owed to workers</div>
+          <div className="mt-1 text-xl font-black text-brand-green-ink sm:text-2xl">
+            Rs. {moneyFormatter.format(owed.totalOwed)}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-black text-brand-green-ink">{owed.workersOwed}</div>
+          <div className="text-xs font-semibold text-brand-gold-deep">workers to pay →</div>
+        </div>
+      </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 flex-1">
         {/* Top Workers */}
@@ -251,15 +285,15 @@ export default function FactoryDashboard() {
       <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
         <h2 className="text-sm sm:text-base font-bold text-brand-green-ink mb-2">Quality Status</h2>
         <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="text-center p-2 sm:p-2.5 bg-green-50 rounded">
-            <div className="text-lg sm:text-xl font-bold text-green-600">{stats.completedEntries}</div>
-            <div className="text-xs text-green-700 mt-0.5">Completed</div>
+          <div className="text-center p-2 sm:p-2.5 bg-emerald-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-emerald-600">{stats.completedEntries}</div>
+            <div className="text-xs text-emerald-700 mt-0.5">Completed</div>
           </div>
-          <div className="text-center p-2 sm:p-2.5 bg-yellow-50 rounded">
-            <div className="text-lg sm:text-xl font-bold text-yellow-600">
+          <div className="text-center p-2 sm:p-2.5 bg-amber-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-amber-600">
               {stats.inProgressEntries}
             </div>
-            <div className="text-xs text-yellow-700 mt-0.5">In progress</div>
+            <div className="text-xs text-amber-700 mt-0.5">In progress</div>
           </div>
           <div className="text-center p-2 sm:p-2.5 bg-red-50 rounded">
             <div className="text-lg sm:text-xl font-bold text-red-600">{stats.reworkEntries}</div>
