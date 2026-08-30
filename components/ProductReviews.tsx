@@ -41,7 +41,13 @@ function StarRatingInput({ rating, setRating }: { rating: number; setRating: (r:
   );
 }
 
-function ReviewForm({ productId }: { productId: string }) {
+function ReviewForm({
+  productId,
+  verifiedBuyer,
+}: {
+  productId: string;
+  verifiedBuyer: boolean;
+}) {
   const { text } = useLanguage();
   const [rating, setRating] = useState(0);
   const [state, setState] = useState<FormState>(initialState);
@@ -77,12 +83,28 @@ function ReviewForm({ productId }: { productId: string }) {
           </label>
           <StarRatingInput rating={rating} setRating={setRating} />
         </div>
-        <p className="rounded-lg bg-brand-green-mist p-3 text-sm font-semibold text-brand-green">
-          {text(
-            "Verified purchase — your account name will be shown with this review.",
-            "किनेको पुष्टि भएको — तपाईंको खाताको नाम समीक्षासँगै देखिनेछ।",
-          )}
-        </p>
+        {verifiedBuyer ? (
+          <p className="rounded-lg bg-brand-green-mist p-3 text-sm font-semibold text-brand-green">
+            {text(
+              "Verified purchase — your account name will be shown with this review.",
+              "किनेको पुष्टि भएको — तपाईंको खाताको नाम समीक्षासँगै देखिनेछ।",
+            )}
+          </p>
+        ) : (
+          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
+            {text("Your name", "तपाईंको नाम")}{" "}
+            <span className="font-normal text-brand-muted">
+              {text("— you may leave this blank", "— नलेखे पनि हुन्छ")}
+            </span>
+            <input
+              type="text"
+              name="name"
+              maxLength={80}
+              className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
+              placeholder={text("e.g. Sita K.", "जस्तै — सीता के.")}
+            />
+          </label>
+        )}
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           {text("Your Review", "तपाईंको समीक्षा")}
           <textarea
@@ -104,11 +126,17 @@ function ReviewForm({ productId }: { productId: string }) {
           pendingLabel={text("Submitting...", "पठाइँदै...")}
           disabled={isPending}
         />
+        <p className="text-xs leading-5 text-brand-muted">
+          {text(
+            "KRISHOE reads every review before it appears in the shop.",
+            "तपाईंको राय KRISHOE ले हेरेर मात्र पसलमा देखाइन्छ।",
+          )}
+        </p>
         {state.message ? (
           <p
             aria-live="polite"
             className={`rounded-lg p-3 text-sm font-semibold ${
-              state.ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-tint text-brand-clay"
             }`}
           >
             {state.message}
@@ -119,6 +147,16 @@ function ReviewForm({ productId }: { productId: string }) {
   );
 }
 
+/** One published review, shaped by the page from the shop's inbox. */
+export type PublishedReview = {
+  id: string;
+  name: string;
+  comment: string;
+  rating: number;
+  createdAt: string;
+  verifiedPurchase: boolean;
+};
+
 type ReviewAccess = {
   canReview: boolean;
   isLoggedIn: boolean;
@@ -127,18 +165,19 @@ type ReviewAccess = {
 
 export default function ProductReviews({
   product,
+  reviews,
   reviewAccess,
 }: {
   product: Product;
+  reviews: PublishedReview[];
   reviewAccess: ReviewAccess;
 }) {
   const { text, language } = useLanguage();
-  const approvedReviews = product.reviews.filter((r) => r.status === "approved");
-  const totalReviews = approvedReviews.length;
+  const totalReviews = reviews.length;
 
   const averageRating =
     totalReviews > 0
-      ? approvedReviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / totalReviews
       : 0;
 
   return (
@@ -172,7 +211,7 @@ export default function ProductReviews({
 
         <div className="mt-10 space-y-8 border-t border-black/10 pt-10">
           {totalReviews > 0 ? (
-            approvedReviews.map((review) => (
+            reviews.map((review) => (
               <article key={review.id}>
                 <div className="flex items-center gap-2">
                   <div className="flex">
@@ -183,7 +222,9 @@ export default function ProductReviews({
                       />
                     ))}
                   </div>
-                  <h5 className="font-bold text-brand-green-ink">{review.name}</h5>
+                  <h5 className="font-bold text-brand-green-ink">
+                    {review.name || text("Customer", "ग्राहक")}
+                  </h5>
                   {review.verifiedPurchase ? (
                     <span className="rounded-full bg-brand-green-mist px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand-green">
                       {text("Verified purchase", "किनेको पुष्टि")}
@@ -218,27 +259,31 @@ export default function ProductReviews({
           )}
         </div>
 
+        {/* The form is open to everyone: a shopper reading reviews before they
+            buy is exactly who a review is for, and nothing appears in the shop
+            until KRISHOE publishes it. A signed-in buyer whose order arrived
+            gets the Verified-purchase badge; anyone else may still write, and
+            is gently offered sign-in to earn the badge. */}
         <div className="mt-12 border-t border-black/10 pt-12">
-          {reviewAccess.canReview ? (
-            <ReviewForm productId={product.id} />
-          ) : (
-            <div className="rounded-lg bg-brand-mist p-5">
-              <h4 className="text-lg font-black text-brand-green-ink">
-                {text("Write a review", "समीक्षा लेख्नुहोस्")}
-              </h4>
-              <p className="mt-2 text-sm leading-6 text-brand-muted">
-                {text(reviewAccess.reason.en, reviewAccess.reason.ne)}
-              </p>
-              {!reviewAccess.isLoggedIn ? (
-                <Link
-                  href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
-                  className="mt-4 inline-flex h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white"
-                >
-                  {text("Sign in", "साइन इन")}
-                </Link>
-              ) : null}
-            </div>
-          )}
+          <ReviewForm productId={product.id} verifiedBuyer={reviewAccess.canReview} />
+          {!reviewAccess.isLoggedIn ? (
+            <p className="mt-4 max-w-lg text-sm leading-6 text-brand-muted">
+              {text(
+                "Bought this pair? ",
+                "यो जोडी किन्नुभयो? ",
+              )}
+              <Link
+                href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
+                className="font-bold text-brand-green underline"
+              >
+                {text("Sign in", "साइन इन")}
+              </Link>
+              {text(
+                " to add a Verified-purchase badge to your review.",
+                " गरे समीक्षामा “किनेको पुष्टि” छाप थपिन्छ।",
+              )}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

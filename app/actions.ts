@@ -20,7 +20,8 @@ import {
   describeStockShortfalls,
   parseCheckoutItems,
 } from "@/lib/order-pricing";
-import { addProductReview, getProductById } from "@/lib/product-store";
+import { getProductById } from "@/lib/product-store";
+import { saveCustomerVoice } from "@/lib/customer-voice";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { getOrdersForCustomer, saveContactMessage, saveOrder } from "@/lib/submissions";
 import { notifyOrderConfirmation } from "@/lib/notifications";
@@ -328,6 +329,7 @@ export async function submitReview(
   formData: FormData,
 ) {
   const comment = textValue(formData, "comment");
+  const typedName = textValue(formData, "name");
   const rating = Number(formData.get("rating"));
 
   if (!productId || !comment || !Number.isFinite(rating) || rating < 1 || rating > 5) {
@@ -338,48 +340,63 @@ export async function submitReview(
     return errorState("Please keep your review short and try again.");
   }
 
-  const customer = await getCurrentCustomer();
-  if (!customer) {
-    return errorState("Sign in to review a product you purchased.");
+  if (tooLong(typedName, 80)) {
+    return errorState("Please keep your name short and try again.");
   }
 
+  // Anyone may write a review — a shopper deciding between KRISHOE and a shop
+  // they already know has nothing to read otherwise. Nothing appears in the
+  // shop until the owner publishes it from the inbox, so an open form is not an
+  // open door: the rate limit (keyed on the sender, not the account) blunts
+  // spam, and the owner reads every review before a single one is shown.
   const rateLimitError = await enforceSubmissionLimit("product-review", 4);
   if (rateLimitError) return rateLimitError;
 
-  const [product, orders] = await Promise.all([
-    getProductById(productId),
-    getOrdersForCustomer(customer),
-  ]);
-
+  const product = await getProductById(productId);
   if (!product) {
     return errorState("This product is no longer available for review.");
   }
 
-  if (product.reviews.some((review) => review.customerUserId === customer.id)) {
-    return errorState("You have already reviewed this product.");
+  // Verified means the order arrived, not merely that someone is signed in. A
+  // signed-in buyer whose pair is Closed gets the badge and a one-per-order
+  // guard; everyone else may still write, unbadged.
+  const customer = await getCurrentCustomer();
+  const purchase = customer
+    ? (await getOrdersForCustomer(customer)).find(
+        (order) =>
+          order.status === "Closed" &&
+          order.items.some((item) => item.productId === productId && item.quantity > 0),
+      )
+    : undefined;
+
+  const reviewerName =
+    (typedName || customer?.name || "").trim() || "";
+
+  try {
+    await saveCustomerVoice({
+      kind: "review",
+      customerName: reviewerName,
+      productId,
+      productName: product.name,
+      // The order stamps the review as verified and, through the one-review-
+      // per-order index, stops the same buyer double-posting the same pair.
+      orderId: purchase?.id ?? "",
+      rating: Math.round(rating),
+      message: comment,
+      source: "site",
+    });
+  } catch (error) {
+    // A verified buyer re-submitting the same pair hits the unique index rather
+    // than writing twice. "Already received" is both true and the calmest reply.
+    if (String((error as { code?: string })?.code) === "23505") {
+      return successState("Your review already reached us — thank you.");
+    }
+    reportError(`save product review for ${productId}`, error);
+    return errorState("It could not be sent. Please try again in a moment.");
   }
-
-  const purchase = orders.find(
-    (order) =>
-      order.status === "Closed" &&
-      order.items.some((item) => item.productId === productId && item.quantity > 0),
-  );
-
-  if (!purchase) {
-    return errorState("Reviews open after a completed purchase of this product.");
-  }
-
-  await addProductReview(productId, {
-    customerUserId: customer.id,
-    orderId: purchase.id,
-    name: customer.name,
-    comment,
-    rating,
-    verifiedPurchase: true,
-  });
 
   revalidatePath(`/product/${productId}`);
-  revalidatePath("/admin/reviews");
+  revalidatePath("/admin/inbox");
 
-  return successState("Thank you. Your verified-purchase review is waiting for approval.");
+  return successState("Thank you. Your review is waiting for the shop to publish it.");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ProductReviews from "@/components/ProductReviews";
+import ProductReviews, { type PublishedReview } from "@/components/ProductReviews";
 import type { Product } from "@/lib/products";
 import type { ReviewAccessAnswer } from "@/app/api/products/review-access/route";
 
@@ -28,7 +28,13 @@ const SIGNED_OUT: ReviewAccessAnswer = {
   },
 };
 
-export default function ProductReviewsPanel({ product }: { product: Product }) {
+export default function ProductReviewsPanel({
+  product,
+  reviews,
+}: {
+  product: Product;
+  reviews: PublishedReview[];
+}) {
   const [access, setAccess] = useState<ReviewAccessAnswer>(SIGNED_OUT);
 
   useEffect(() => {
@@ -56,5 +62,5 @@ export default function ProductReviewsPanel({ product }: { product: Product }) {
     };
   }, [product.id]);
 
-  return <ProductReviews product={product} reviewAccess={access} />;
+  return <ProductReviews product={product} reviews={reviews} reviewAccess={access} />;
 }

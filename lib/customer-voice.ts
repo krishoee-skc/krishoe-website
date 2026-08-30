@@ -205,13 +205,25 @@ export async function setVoiceStatus(id: string, status: VoiceStatus, replyNote 
   );
 }
 
-/** Whether a review appears on the storefront. Off until the owner says so. */
-export async function setVoicePublished(id: string, published: boolean) {
-  await queryPostgres(
+/**
+ * Whether a review appears on the storefront. Off until the owner says so.
+ *
+ * Returns the product id the review belongs to, so the caller can revalidate
+ * that product's page — publishing is pointless if the page it should appear on
+ * stays cached without it.
+ */
+export async function setVoicePublished(
+  id: string,
+  published: boolean,
+): Promise<{ productId: string } | null> {
+  const rows = await queryPostgres<{ product_id: string }>(
     STORE,
-    `UPDATE customer_voice SET published = $2, updated_at = now() WHERE id = $1`,
+    `UPDATE customer_voice SET published = $2, updated_at = now()
+     WHERE id = $1
+     RETURNING product_id`,
     [id, published],
   );
+  return rows[0] ? { productId: rows[0].product_id } : null;
 }
 
 /**

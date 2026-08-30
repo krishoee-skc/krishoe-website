@@ -38,7 +38,15 @@ export async function setPublishedAction(formData: FormData) {
   if (!id) return;
 
   try {
-    await setVoicePublished(id, String(formData.get("published") ?? "") === "true");
+    const affected = await setVoicePublished(
+      id,
+      String(formData.get("published") ?? "") === "true",
+    );
+    // Refresh the product page so a just-published review shows (and a hidden
+    // one disappears) without waiting for the page to rebuild on its own.
+    if (affected?.productId) {
+      revalidatePath(`/product/${affected.productId}`);
+    }
   } catch (error) {
     reportError("publish customer review", error);
   }
