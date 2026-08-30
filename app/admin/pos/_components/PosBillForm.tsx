@@ -490,6 +490,16 @@ export default function PosBillForm({
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
         />
+        <input
+          name="customerAddress"
+          className={inputClass}
+          placeholder={text("Customer address", "ग्राहकको ठेगाना")}
+        />
+        <input
+          name="customerPan"
+          className={inputClass}
+          placeholder={text("Customer PAN (wholesale)", "ग्राहकको PAN (थोक)")}
+        />
         <select
           name="ledgerId"
           className={fieldClass(ledgerMissing)}

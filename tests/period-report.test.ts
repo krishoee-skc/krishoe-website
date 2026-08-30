@@ -36,6 +36,8 @@ function pos(overrides: {
     kind: overrides.kind ?? "Sale",
     customerName: "",
     phone: "",
+    customerAddress: "",
+    customerPan: "",
     cashier: "",
     paymentMethod: "Cash",
     paymentReference: "",

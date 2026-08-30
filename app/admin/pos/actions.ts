@@ -127,6 +127,8 @@ export async function createPosInvoiceAction(
       kind,
       customerName: textValue(formData, "customerName"),
       phone: textValue(formData, "phone"),
+      customerAddress: textValue(formData, "customerAddress"),
+      customerPan: textValue(formData, "customerPan"),
       cashier: textValue(formData, "cashier"),
       paymentMethod,
       paymentReference,

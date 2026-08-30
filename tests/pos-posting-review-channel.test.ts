@@ -17,6 +17,8 @@ function invoice(overrides: Partial<PosInvoice> = {}): PosInvoice {
     kind: "Sale",
     customerName: "saroj",
     phone: "",
+    customerAddress: "",
+    customerPan: "",
     cashier: "",
     paymentMethod: "Cash",
     paymentReference: "",

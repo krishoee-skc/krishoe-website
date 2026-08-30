@@ -135,9 +135,9 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         <div className="grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
-          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
+          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span>{invoice.customerAddress ? <span className="font-bold">: {invoice.customerAddress}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
-          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span><span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span></div>
+          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span>{invoice.customerPan ? <span className="font-bold">: {invoice.customerPan}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Payment Mode</span><span className="font-bold">: {invoice.paymentMethod}</span></div>
         </div>
 

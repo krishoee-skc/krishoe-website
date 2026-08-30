@@ -210,6 +210,9 @@ export async function buildPosInvoiceInputFromOnlineOrder(
     kind: "Sale",
     customerName: order.name,
     phone: order.phone,
+    // The online order already carries the delivery address; carry it onto the
+    // bill so an online sale's invoice is not left with a blank address line.
+    customerAddress: order.address,
     cashier: cleanText(options.cashier) || "Online order desk",
     paymentMethod: options.paymentMethod,
     paymentReference: cleanText(options.paymentReference),

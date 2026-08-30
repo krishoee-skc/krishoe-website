@@ -11,6 +11,8 @@ type PosInvoiceRow = {
   kind: PosInvoice["kind"];
   customer_name: string;
   phone: string;
+  customer_address: string;
+  customer_pan: string;
   cashier: string;
   payment_method: PosInvoice["paymentMethod"];
   payment_reference: string;
@@ -48,6 +50,8 @@ function posInvoiceFromRow(row: PosInvoiceRow): PosInvoice {
     kind: row.kind,
     customerName: row.customer_name,
     phone: row.phone,
+    customerAddress: row.customer_address ?? "",
+    customerPan: row.customer_pan ?? "",
     cashier: row.cashier,
     paymentMethod: row.payment_method,
     paymentReference: row.payment_reference,
@@ -78,6 +82,8 @@ const selectPosInvoiceColumns = `
   kind,
   customer_name,
   phone,
+  customer_address,
+  customer_pan,
   cashier,
   payment_method,
   payment_reference,
@@ -137,12 +143,14 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
         ledger_transaction_id,
         barcode_value,
         qr_payload,
-        note
+        note,
+        customer_address,
+        customer_pan
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19,
-        $20::jsonb, $21, $22, $23, $24, $25
+        $20::jsonb, $21, $22, $23, $24, $25, $26, $27
       )
       RETURNING ${selectPosInvoiceColumns}
     `,
@@ -172,6 +180,8 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
       invoice.barcodeValue,
       invoice.qrPayload,
       invoice.note,
+      invoice.customerAddress,
+      invoice.customerPan,
     ],
   );
 

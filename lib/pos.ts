@@ -46,6 +46,8 @@ export type PosInvoice = {
   kind: PosInvoiceKind;
   customerName: string;
   phone: string;
+  customerAddress: string;
+  customerPan: string;
   cashier: string;
   paymentMethod: PosPaymentMethod;
   paymentReference: string;
@@ -131,6 +133,8 @@ export type CreatePosInvoiceInput = {
   kind: PosInvoiceKind;
   customerName: string;
   phone: string;
+  customerAddress?: string;
+  customerPan?: string;
   cashier: string;
   paymentMethod: PosPaymentMethod;
   paymentReference: string;
@@ -410,6 +414,8 @@ function normalizeInvoice(invoice: Partial<PosInvoice>): PosInvoice {
     kind: invoice.kind === "Return" ? "Return" : "Sale",
     customerName: cleanText(invoice.customerName ?? ""),
     phone: cleanText(invoice.phone ?? ""),
+    customerAddress: cleanText(invoice.customerAddress ?? ""),
+    customerPan: cleanText(invoice.customerPan ?? ""),
     cashier: cleanText(invoice.cashier ?? ""),
     paymentMethod: invoice.paymentMethod ?? "Cash",
     paymentReference: cleanText(invoice.paymentReference ?? ""),
@@ -621,6 +627,8 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     kind: input.kind,
     customerName: cleanText(input.customerName) || "Walk-in Customer",
     phone: cleanText(input.phone),
+    customerAddress: cleanText(input.customerAddress ?? ""),
+    customerPan: cleanText(input.customerPan ?? ""),
     cashier: cleanText(input.cashier) || "Admin",
     paymentMethod: input.paymentMethod,
     paymentReference: cleanText(input.paymentReference),
