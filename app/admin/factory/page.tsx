@@ -12,6 +12,7 @@ const moneyFormatter = new Intl.NumberFormat("en-IN", {
 
 interface DailyStats {
   totalPairs: number;
+  totalReject: number;
   totalAmount: number;
   workersActive: number;
   completedEntries: number;
@@ -38,6 +39,7 @@ interface WorkEntry {
   item_id: string;
   item_name: string;
   pairs_count: number;
+  reject_pairs: number;
   amount_earned: number;
   status: string;
 }
@@ -45,6 +47,7 @@ interface WorkEntry {
 export default function FactoryDashboard() {
   const [stats, setStats] = useState<DailyStats>({
     totalPairs: 0,
+    totalReject: 0,
     totalAmount: 0,
     workersActive: 0,
     completedEntries: 0,
@@ -78,11 +81,13 @@ export default function FactoryDashboard() {
         const works: WorkEntry[] = (workData.works || []).map((work: WorkEntry) => ({
           ...work,
           pairs_count: Number(work.pairs_count) || 0,
+          reject_pairs: Number(work.reject_pairs) || 0,
           amount_earned: Number(work.amount_earned) || 0,
         }));
 
         // Calculate stats
         const totalPairs = works.reduce((sum: number, w: WorkEntry) => sum + (w.pairs_count || 0), 0);
+        const totalReject = works.reduce((sum: number, w: WorkEntry) => sum + (w.reject_pairs || 0), 0);
         const totalAmount = works.reduce((sum: number, w: WorkEntry) => sum + (w.amount_earned || 0), 0);
         const completedEntries = works.filter((w: WorkEntry) => w.status === "completed").length;
         const inProgressEntries = works.filter((w: WorkEntry) => w.status === "in_progress").length;
@@ -124,6 +129,7 @@ export default function FactoryDashboard() {
 
         setStats({
           totalPairs,
+          totalReject,
           totalAmount,
           workersActive: uniqueWorkers,
           completedEntries,
@@ -281,23 +287,23 @@ export default function FactoryDashboard() {
         </div>
       </div>
 
-      {/* Quality Status */}
+      {/* Quality (QC) — good vs reject by pairs, today */}
       <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
-        <h2 className="text-sm sm:text-base font-bold text-brand-green-ink mb-2">Quality Status</h2>
+        <h2 className="text-sm sm:text-base font-bold text-brand-green-ink mb-2">Quality today (QC)</h2>
         <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <div className="text-center p-2 sm:p-2.5 bg-emerald-50 rounded">
-            <div className="text-lg sm:text-xl font-bold text-emerald-600">{stats.completedEntries}</div>
-            <div className="text-xs text-emerald-700 mt-0.5">Completed</div>
+            <div className="text-lg sm:text-xl font-bold text-emerald-600">{stats.totalPairs - stats.totalReject}</div>
+            <div className="text-xs text-emerald-700 mt-0.5">Good pairs</div>
+          </div>
+          <div className="text-center p-2 sm:p-2.5 bg-red-50 rounded">
+            <div className="text-lg sm:text-xl font-bold text-red-600">{stats.totalReject}</div>
+            <div className="text-xs text-red-700 mt-0.5">Reject pairs</div>
           </div>
           <div className="text-center p-2 sm:p-2.5 bg-amber-50 rounded">
             <div className="text-lg sm:text-xl font-bold text-amber-600">
-              {stats.inProgressEntries}
+              {stats.totalPairs > 0 ? Math.round((stats.totalReject / stats.totalPairs) * 100) : 0}%
             </div>
-            <div className="text-xs text-amber-700 mt-0.5">In progress</div>
-          </div>
-          <div className="text-center p-2 sm:p-2.5 bg-red-50 rounded">
-            <div className="text-lg sm:text-xl font-bold text-red-600">{stats.reworkEntries}</div>
-            <div className="text-xs text-red-700 mt-0.5">Rework</div>
+            <div className="text-xs text-amber-700 mt-0.5">Reject rate</div>
           </div>
         </div>
       </div>

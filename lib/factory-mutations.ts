@@ -144,6 +144,7 @@ interface WorkRow {
   color: string | null;
   size: string | null;
   pairs_count: number;
+  reject_pairs: number;
   status: string;
   rate_applied: DbNumeric;
   amount_earned: DbNumeric;
@@ -159,6 +160,7 @@ export interface FactoryWorkInput {
   color: string | null;
   size: string | null;
   pairsCount: number;
+  rejectPairs?: number;
   status: string;
 }
 
@@ -172,6 +174,7 @@ function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
     color: row.color,
     size: row.size,
     pairs_count: Number(row.pairs_count),
+    reject_pairs: Number(row.reject_pairs) || 0,
     rate: numeric(row.rate_applied),
     amount_earned: numeric(row.amount_earned),
     status: row.status,
@@ -210,7 +213,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     await lockSubmissionKey(db, input.submissionKey);
 
     const existing = await db.query<WorkRow>(
-      `SELECT id, date, worker_id, item_id, color, size, pairs_count, status,
+      `SELECT id, date, worker_id, item_id, color, size, pairs_count, reject_pairs, status,
               rate_applied, amount_earned, work_order_id
        FROM factory_daily_work
        WHERE submission_key = $1
@@ -373,10 +376,10 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     const inserted = await db.query<WorkRow>(
       `INSERT INTO factory_daily_work
        (id, submission_key, date, worker_id, item_id, color, size, pairs_count,
-        status, rate_applied, amount_earned, work_order_id)
+        status, rate_applied, amount_earned, work_order_id, reject_pairs)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               ROUND($10::numeric * $8::integer, 2), $11)
-       RETURNING id, date, worker_id, item_id, color, size, pairs_count, status,
+               ROUND($10::numeric * $8::integer, 2), $11, $12)
+       RETURNING id, date, worker_id, item_id, color, size, pairs_count, reject_pairs, status,
                  rate_applied, amount_earned, work_order_id`,
       [
         workId,
@@ -390,6 +393,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         input.status,
         rate,
         input.workOrderId ?? null,
+        Math.max(0, Math.min(input.pairsCount, Math.round(Number(input.rejectPairs) || 0))),
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);

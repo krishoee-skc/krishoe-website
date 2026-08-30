@@ -26,6 +26,7 @@ interface WorkEntry {
   color: string | null;
   size: string | null;
   pairs_count: number;
+  reject_pairs: number;
   status: string;
   rate_applied: DbNumeric;
   amount_earned: DbNumeric;
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       color: typeof color === "string" && color.trim() ? color.trim() : null,
       size: typeof size === "string" && size.trim() ? size.trim() : null,
       pairsCount,
+      rejectPairs: Number(body.reject_pairs) || 0,
       status,
     });
 
@@ -142,7 +144,7 @@ export async function GET(request: NextRequest) {
     const workerId = request.nextUrl.searchParams.get("workerId");
 
     let query = `SELECT w.id, w.date, w.worker_id, w.item_id, w.color, w.size,
-                        w.pairs_count, w.status, w.rate_applied, w.amount_earned,
+                        w.pairs_count, w.reject_pairs, w.status, w.rate_applied, w.amount_earned,
                         COALESCE(fw.name, 'Unknown Worker') as worker_name,
                         COALESCE(fi.name, 'Unknown Item') as item_name
                  FROM factory_daily_work w

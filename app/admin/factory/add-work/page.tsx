@@ -52,6 +52,7 @@ export default function AddWorkPage() {
     color: "",
     size: "",
     pairs_count: "",
+    reject_pairs: "",
     status: "completed",
   });
 
@@ -279,6 +280,7 @@ export default function AddWorkPage() {
         color: "",
         size: "",
         pairs_count: "",
+        reject_pairs: "",
         status: "completed",
       });
       setSelectedRate(null);
@@ -500,6 +502,21 @@ export default function AddWorkPage() {
             min="1"
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
+          />
+        </div>
+
+        {/* QC — how many of those pairs were rejects (bad). Optional; 0 means all good. */}
+        <div>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            ❌ {text("Rejected pairs (QC)", "खराब जोडी (QC)")}
+          </label>
+          <input
+            type="number"
+            value={formData.reject_pairs}
+            onChange={(e) => setFormData((prev) => ({ ...prev, reject_pairs: e.target.value }))}
+            placeholder={text("0 — leave blank if all good", "० — सबै राम्रो भए खाली")}
+            min="0"
+            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
         </div>
 
