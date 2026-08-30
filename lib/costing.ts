@@ -609,6 +609,28 @@ export async function getDesignLaborPerPair(): Promise<Map<string, number>> {
   return map;
 }
 
+/**
+ * A simple per-pair material estimate the owner set on each factory item, keyed
+ * by the item's name so it lines up with the design on the costing side. This is
+ * the rough route until full recipes exist; zero when nothing was entered.
+ */
+export async function getDesignMaterialPerPair(): Promise<Map<string, number>> {
+  if (getDataBackend() !== "postgres") {
+    return new Map();
+  }
+
+  const rows = await queryPostgres<{ name: string; material_cost_per_pair: string | number }>(
+    "design material per pair",
+    `SELECT name, material_cost_per_pair FROM factory_items WHERE material_cost_per_pair > 0`,
+  );
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(designKey(row.name), Math.max(0, Number(row.material_cost_per_pair) || 0));
+  }
+  return map;
+}
+
 export function buildDesignCosting(
   batchCosting: BatchCostingRow[],
   designSales: Map<string, DesignSalesGroup>,
@@ -619,6 +641,9 @@ export function buildDesignCosting(
   // have no batch cost of their own — which is every KRISHOE design today.
   silaiPerPair = 0,
   overheadRatePerPair = 0,
+  // A rough per-pair material estimate per design (keyed by designKey), until
+  // full recipes exist.
+  designMaterialPerPair: Map<string, number> = new Map(),
 ) {
   const groups = new Map<string, DesignCostingRow>();
 
@@ -681,7 +706,8 @@ export function buildDesignCosting(
       // design keeps its supplier-blended cost.
       const key = designKey(row.design);
       const laborPerPair = (designLaborPerPair.get(key) ?? 0) + silaiPerPair;
-      const derivedUnitCost = roundRate(laborPerPair + overheadRatePerPair);
+      const materialPerPair = designMaterialPerPair.get(key) ?? 0;
+      const derivedUnitCost = roundRate(materialPerPair + laborPerPair + overheadRatePerPair);
       const unitCostPerPair = blendedUnitCost > 0 ? blendedUnitCost : derivedUnitCost;
 
       const netPairs = row.soldPairs - row.returnedPairs;
@@ -689,14 +715,16 @@ export function buildDesignCosting(
       const grossProfit = row.netRevenue - estimatedCogs;
 
       // Breakdown for display: when a design had no batch cost of its own, show
-      // the derived labour and overhead against the pairs actually sold.
-      const shownLaborCost = row.laborCost > 0 ? row.laborCost : laborPerPair * Math.max(0, netPairs);
+      // the derived material, labour and overhead against the pairs actually sold.
+      const soldForBreakdown = Math.max(0, netPairs);
+      const shownMaterialCost = row.materialCost > 0 ? row.materialCost : materialPerPair * soldForBreakdown;
+      const shownLaborCost = row.laborCost > 0 ? row.laborCost : laborPerPair * soldForBreakdown;
       const shownOverheadCost =
-        row.overheadCost > 0 ? row.overheadCost : overheadRatePerPair * Math.max(0, netPairs);
+        row.overheadCost > 0 ? row.overheadCost : overheadRatePerPair * soldForBreakdown;
 
       return {
         ...row,
-        materialCost: roundMoney(row.materialCost),
+        materialCost: roundMoney(shownMaterialCost),
         laborCost: roundMoney(shownLaborCost),
         overheadCost: roundMoney(shownOverheadCost),
         productionCost: roundMoney(row.productionCost),
@@ -1013,7 +1041,10 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   );
   const tradingGoodsCostRates = buildTradingGoodsCostRates(purchasing.purchaseInvoices);
   const designSales = buildDesignSales(posInvoices);
-  const designLaborPerPair = await getDesignLaborPerPair();
+  const [designLaborPerPair, designMaterialPerPair] = await Promise.all([
+    getDesignLaborPerPair(),
+    getDesignMaterialPerPair(),
+  ]);
   const designCosting = buildDesignCosting(
     batchCosting,
     designSales,
@@ -1024,6 +1055,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     // adding one would double-count it.
     0,
     overheadPerPair(settings),
+    designMaterialPerPair,
   );
   const finishedStockValuation = buildFinishedStockValuation(operations.finishedStock, designCosting, products);
   const catalogStockReconciliation = buildCatalogStockReconciliation(products, operations.finishedStock);

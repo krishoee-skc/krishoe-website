@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type FactoryItem = {
   id: string;
   name: string;
   code: string | null;
   status: string;
+  material_cost_per_pair: number;
   production_item_id: string | null;
   production_item_name: string | null;
 };
@@ -23,9 +25,11 @@ type ProductionItem = {
 const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-brand-green-ink";
 
 export default function FactoryItemsPage() {
+  const { text } = useLanguage();
   const [items, setItems] = useState<FactoryItem[]>([]);
   const [productionItems, setProductionItems] = useState<ProductionItem[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [materialDrafts, setMaterialDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
@@ -43,6 +47,10 @@ export default function FactoryItemsPage() {
       setItems(nextItems);
       setProductionItems((data.productionItems || []) as ProductionItem[]);
       setDrafts(Object.fromEntries(nextItems.map((item) => [item.id, item.production_item_id || ""])));
+      setMaterialDrafts(Object.fromEntries(nextItems.map((item) => [
+        item.id,
+        Number(item.material_cost_per_pair) > 0 ? String(Number(item.material_cost_per_pair)) : "",
+      ])));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Items could not be loaded.");
     } finally {
@@ -125,6 +133,43 @@ export default function FactoryItemsPage() {
     }
   }
 
+  /**
+   * Save the owner's rough material cost per pair for an item.
+   *
+   * No BOM recipe exists yet, so this is one figure the owner keeps in their
+   * head — leather + sole + glue for a pair. Costing adds it to labour and
+   * overhead so profit per design stops assuming material is free.
+   */
+  async function saveMaterial(itemId: string) {
+    const raw = (materialDrafts[itemId] || "").trim();
+    const value = raw === "" ? 0 : Number(raw);
+    if (!Number.isFinite(value) || value < 0) {
+      setError("Material cost must be a number of 0 or more.");
+      return;
+    }
+    setSaving(itemId);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/factory/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId, material_cost_per_pair: value }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Material cost could not be saved.");
+      setMessage(text(
+        "Material cost saved — it now adds to the cost per pair in costing.",
+        "Material लागत सेभ भयो — अब costing मा प्रति जोडी लागतमा जोडिन्छ।",
+      ));
+      await loadItems();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Material cost could not be saved.");
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function saveLink(itemId: string) {
     setSaving(itemId);
     setMessage("");
@@ -200,6 +245,43 @@ export default function FactoryItemsPage() {
                 ))}
               </select>
               <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft">{saving === item.id ? "Saving..." : "Save item link"}</button>
+            </div>
+            ) : null}
+
+            {/* Rough material cost per pair — leather + sole + glue for one
+                pair — the one figure the owner keeps in their head until a full
+                BOM exists. Costing adds it to labour and overhead so profit per
+                design is real, not material-free. */}
+            {item.status === "active" ? (
+            <div className="mt-3">
+              <label className="text-xs font-black uppercase tracking-[0.12em] text-brand-muted" htmlFor={`material-${item.id}`}>
+                {text("Material cost · per pair (Rs.)", "Material लागत · प्रति जोडी (Rs.)")}
+              </label>
+              <div className="mt-1 grid gap-2 sm:grid-cols-[1fr_auto]">
+                <input
+                  id={`material-${item.id}`}
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step={1}
+                  placeholder={text("e.g. 250", "जस्तै 250")}
+                  value={materialDrafts[item.id] ?? ""}
+                  onChange={(event) => setMaterialDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => void saveMaterial(item.id)}
+                  disabled={saving === item.id || (materialDrafts[item.id] ?? "") === (Number(item.material_cost_per_pair) > 0 ? String(Number(item.material_cost_per_pair)) : "")}
+                  className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft"
+                >
+                  {saving === item.id ? "Saving..." : "Save material"}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-brand-muted">{text(
+                "Fabric + sole + glue — the estimated cost of one pair. Left blank counts as 0.",
+                "कपडा + sole + गम — एक जोडीको अनुमानित लागत। खाली राखे 0 मानिन्छ।",
+              )}</p>
             </div>
             ) : null}
 

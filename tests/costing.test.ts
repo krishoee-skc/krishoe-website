@@ -282,25 +282,27 @@ describe("design costing", () => {
     expect(rows[0].unitCostPerPair).toBe(300);
   });
 
-  it("derives cost from factory labour, silai and overhead when a design has no batch", () => {
+  it("derives cost from factory labour, silai, overhead and material when a design has no batch", () => {
     // KRISHOE's real state: no batch rows. The per-pair cost is built from the
-    // factory rates (upper + bottom = 85), the flat silai rate (3) and the
-    // overhead per pair (40) — material stays out until recipes exist.
+    // factory rates (upper + bottom = 85), silai (3), overhead per pair (40) and
+    // the per-item material estimate (250).
     const rows = buildDesignCosting(
       [],
       new Map([
-        ["bagopen", { design: "bagopen", soldPairs: 10, returnedPairs: 0, netRevenue: 3000 }],
+        ["bagopen", { design: "bagopen", soldPairs: 10, returnedPairs: 0, netRevenue: 5000 }],
       ]),
       [],
       new Map([["bagopen", 85]]),
       3,
       40,
+      new Map([["bagopen", 250]]),
     );
 
-    expect(rows[0].unitCostPerPair).toBe(128); // 85 + 3 + 40
-    expect(rows[0].estimatedCogs).toBe(1280); // 10 pairs at 128
-    expect(rows[0].grossProfit).toBe(1720); // 3000 - 1280
-    expect(rows[0].laborCost).toBe(880); // (85 + 3) x 10 sold, for the breakdown
+    expect(rows[0].unitCostPerPair).toBe(378); // 250 material + 85 labour + 3 silai + 40 overhead
+    expect(rows[0].materialCost).toBe(2500); // 250 x 10 sold
+    expect(rows[0].laborCost).toBe(880); // (85 + 3) x 10 sold
+    expect(rows[0].estimatedCogs).toBe(3780); // 10 pairs at 378
+    expect(rows[0].grossProfit).toBe(1220); // 5000 - 3780
   });
 
   it("matches a sale to its batches whatever the design was typed like", () => {

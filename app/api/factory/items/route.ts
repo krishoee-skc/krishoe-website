@@ -17,6 +17,7 @@ interface Item {
   name: string;
   code: string | null;
   status: string;
+  material_cost_per_pair: number;
   production_item_id: string | null;
   production_item_name: string | null;
 }
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
       queryPostgres<Item>(
         STORE,
         `SELECT items.id, items.name, items.code, items.status, items.created_at,
+                items.material_cost_per_pair,
                 items.production_item_id, production.name AS production_item_name
          FROM factory_items items
          LEFT JOIN production_items production ON production.id = items.production_item_id
@@ -196,6 +198,42 @@ export async function PATCH(request: NextRequest) {
 
     if (!itemId) {
       return NextResponse.json({ error: "item_id is required" }, { status: 400 });
+    }
+
+    /**
+     * Set the per-pair material estimate for an item.
+     *
+     * KRISHOE has no material recipe yet, so this is the owner's own rough
+     * "leather + sole + glue" figure per pair. Costing rolls it into the cost
+     * per pair (material + labour + overhead) so gross profit stops assuming
+     * material is free. Additive and reversible — set it back to 0 any time.
+     */
+    if (body.material_cost_per_pair !== undefined) {
+      const raw = Number(body.material_cost_per_pair);
+      if (!Number.isFinite(raw) || raw < 0) {
+        return NextResponse.json(
+          { error: "material_cost_per_pair must be a number of 0 or more" },
+          { status: 400 },
+        );
+      }
+      const material = Math.round(raw * 100) / 100;
+      const changed = await queryPostgres<Item>(
+        STORE,
+        `UPDATE factory_items
+         SET material_cost_per_pair = $2, updated_at = now()
+         WHERE id = $1
+         RETURNING id, name, code, status, material_cost_per_pair, production_item_id,
+                   NULL::text AS production_item_name`,
+        [itemId, material],
+      );
+      if (!changed[0]) {
+        return NextResponse.json({ error: "Factory Item not found" }, { status: 404 });
+      }
+      await recordAdminAuditEvent(
+        "factory_item_material_cost",
+        `Factory item ${changed[0].name} material cost set to Rs. ${material} per pair.`,
+      );
+      return NextResponse.json({ item: changed[0] });
     }
 
     /**
