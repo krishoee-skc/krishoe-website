@@ -4,6 +4,14 @@ import { getSiteUrl } from "@/lib/seo";
 
 const STORE = "krishoe";
 
+/**
+ * The measurements a shopper's browser reports about how a page felt. These are
+ * field data from real phones and networks, not a server that failed — a slow
+ * one is shown in the speed chart, never raised as an error. Keep in sync with
+ * the vitals endpoint (`app/api/monitoring/vitals/route.ts`).
+ */
+const CLIENT_VITALS = new Set(["LCP", "TTFB", "FCP", "INP", "CLS"]);
+
 export interface ErrorLog {
   id: string;
   timestamp: string;
@@ -243,11 +251,19 @@ export async function logPerformanceMetric(
       ]
     );
 
-    // Alert if slow — but only for the shop. This is what put "Slow API: poor
-    // /contact took 20648ms" in front of the owner as an error: a laptop
-    // building the page for the first time, filed as though customers were
-    // waiting twenty seconds.
-    if (metric.duration > 5000 && environment === "production") {
+    // Alert if slow — but only for a genuine server-side timing, and only for
+    // the shop. Two things had turned this into a false alarm:
+    //   1. A laptop building /contact for the first time, filed as though
+    //      customers were waiting twenty seconds.
+    //   2. A shopper's own phone reporting a slow page paint (LCP, FCP…) on a
+    //      weak network — statusCode 200, nothing failed, the page was drawn —
+    //      filed as a warning "error" the owner reads as breakage, when the same
+    //      reading is already shown honestly in "How fast a page opens".
+    // Web-vital rows carry a `metric` name; they belong in the speed chart, not
+    // the error log. Only a server timing with no vital name can raise this.
+    const isClientVital =
+      !!metric.metric && CLIENT_VITALS.has(metric.metric.toUpperCase());
+    if (metric.duration > 5000 && environment === "production" && !isClientVital) {
       // 5 seconds
       await logError({
         level: "warning",
