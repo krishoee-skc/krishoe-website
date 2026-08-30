@@ -316,6 +316,13 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // Send SMS notification to customer (non-blocking)
   await autoNotifyOrderCreatedBySMS(record);
 
+  // The shop shows what is buyable = catalog minus the pairs open orders hold,
+  // so this new order has just changed what every shopper should see. Push that
+  // change now, exactly as an admin edit or a POS sale does — the storefront is
+  // no longer left to a timed refresh to notice a pair was reserved, which is
+  // how the shelf drifted out of step with real stock before.
+  revalidatePath("/", "layout");
+
   return successState(
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,
     record.id,
