@@ -11,6 +11,8 @@ import {
 } from "@/lib/operations";
 import { getPosInvoices, type PosInvoice, type PosInvoiceItem } from "@/lib/pos";
 import { getPurchasingData, type PurchaseInvoice } from "@/lib/purchasing";
+import { getDataBackend } from "@/lib/data-backend";
+import { queryPostgres } from "@/lib/postgres/client";
 
 export type MaterialCostRate = {
   materialId: string;
@@ -571,10 +573,52 @@ function designCostSource(row: DesignCostingRow): DesignCostSource {
   return "Unknown";
 }
 
+/**
+ * Real per-pair labour from the factory rates the owner already keeps.
+ *
+ * KRISHOE pays two per-item rates — the upper man (Upper) and the bottom man
+ * (Fibermen), who does the fiber, fitting and pasting — recorded in factory_rates
+ * against each factory_item. The map is keyed by the item's name (via designKey)
+ * so a design on the costing side lines up with the item on the factory side.
+ * Only the latest rate per item and category counts. Silai is added separately
+ * (a flat costing rate for now) because its price varies by silai type, which is
+ * not yet stored per item.
+ */
+export async function getDesignLaborPerPair(): Promise<Map<string, number>> {
+  if (getDataBackend() !== "postgres") {
+    return new Map();
+  }
+
+  const rows = await queryPostgres<{ name: string; labor_per_pair: string | number }>(
+    "design labour per pair",
+    `SELECT fi.name AS name, COALESCE(SUM(latest.rate), 0) AS labor_per_pair
+       FROM (
+         SELECT DISTINCT ON (item_id, worker_category)
+                item_id, rate_per_pair AS rate
+         FROM factory_rates
+         ORDER BY item_id, worker_category, effective_date DESC
+       ) latest
+       JOIN factory_items fi ON fi.id = latest.item_id
+      GROUP BY fi.name`,
+  );
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(designKey(row.name), Math.max(0, Number(row.labor_per_pair) || 0));
+  }
+  return map;
+}
+
 export function buildDesignCosting(
   batchCosting: BatchCostingRow[],
   designSales: Map<string, DesignSalesGroup>,
   tradingGoodsCostRates: TradingGoodsCostRate[] = [],
+  // Real per-pair labour from factory_rates (Upper + Bottom), keyed by designKey.
+  designLaborPerPair: Map<string, number> = new Map(),
+  // Silai per pair (flat for now) and overhead per pair, added to designs that
+  // have no batch cost of their own — which is every KRISHOE design today.
+  silaiPerPair = 0,
+  overheadRatePerPair = 0,
 ) {
   const groups = new Map<string, DesignCostingRow>();
 
@@ -627,17 +671,34 @@ export function buildDesignCosting(
       const costingPairs = madePairs + row.purchasedPairs;
       // One shelf, one cost per pair: blend both sides by pairs. A design that
       // is only made, or only bought, simply has nothing on the other side.
-      const unitCostPerPair =
+      const blendedUnitCost =
         costingPairs > 0 ? roundRate((row.productionCost + row.purchaseCost) / costingPairs) : 0;
+
+      // KRISHOE's own designs carry no batch rows yet, so the blend is zero.
+      // Build the per-pair cost from what is actually known: the factory labour
+      // rates (upper + bottom, per item) plus the flat silai rate, plus overhead
+      // per pair. Material stays out until recipes are entered. A purchased
+      // design keeps its supplier-blended cost.
+      const key = designKey(row.design);
+      const laborPerPair = (designLaborPerPair.get(key) ?? 0) + silaiPerPair;
+      const derivedUnitCost = roundRate(laborPerPair + overheadRatePerPair);
+      const unitCostPerPair = blendedUnitCost > 0 ? blendedUnitCost : derivedUnitCost;
+
       const netPairs = row.soldPairs - row.returnedPairs;
       const estimatedCogs = Math.max(0, netPairs) * unitCostPerPair;
       const grossProfit = row.netRevenue - estimatedCogs;
 
+      // Breakdown for display: when a design had no batch cost of its own, show
+      // the derived labour and overhead against the pairs actually sold.
+      const shownLaborCost = row.laborCost > 0 ? row.laborCost : laborPerPair * Math.max(0, netPairs);
+      const shownOverheadCost =
+        row.overheadCost > 0 ? row.overheadCost : overheadRatePerPair * Math.max(0, netPairs);
+
       return {
         ...row,
         materialCost: roundMoney(row.materialCost),
-        laborCost: roundMoney(row.laborCost),
-        overheadCost: roundMoney(row.overheadCost),
+        laborCost: roundMoney(shownLaborCost),
+        overheadCost: roundMoney(shownOverheadCost),
         productionCost: roundMoney(row.productionCost),
         purchaseCost: roundMoney(row.purchaseCost),
         costSource: designCostSource(row),
@@ -952,7 +1013,15 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   );
   const tradingGoodsCostRates = buildTradingGoodsCostRates(purchasing.purchaseInvoices);
   const designSales = buildDesignSales(posInvoices);
-  const designCosting = buildDesignCosting(batchCosting, designSales, tradingGoodsCostRates);
+  const designLaborPerPair = await getDesignLaborPerPair();
+  const designCosting = buildDesignCosting(
+    batchCosting,
+    designSales,
+    tradingGoodsCostRates,
+    designLaborPerPair,
+    settings.laborRates["Fiber Silai"] ?? 0,
+    overheadPerPair(settings),
+  );
   const finishedStockValuation = buildFinishedStockValuation(operations.finishedStock, designCosting, products);
   const catalogStockReconciliation = buildCatalogStockReconciliation(products, operations.finishedStock);
   const periodReports = buildPeriodReports(posInvoices, designCosting);
