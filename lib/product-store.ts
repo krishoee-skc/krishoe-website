@@ -373,7 +373,67 @@ async function getProductsFromPostgres(options: { includeDrafts?: boolean } = {}
     `,
   );
 
-  return rows.map(productFromRow);
+  const products = rows.map(productFromRow);
+
+  // Reviews live in one place now — the customer_voice inbox the owner
+  // publishes from. The product-page form and the after-delivery invite both
+  // write there, so the legacy `reviews` JSON column on the product no longer
+  // receives anything. Hydrate each product's reviews from the published
+  // customer_voice rows instead, in a single grouped query, so everything that
+  // reads product.reviews — the homepage testimonials, the SEO rating schema,
+  // the admin insights and exports — shows the same reviews the shop has stood
+  // behind, rather than an abandoned store that never fills.
+  const publishedByProduct = await getPublishedReviewsByProduct();
+  for (const product of products) {
+    const reviews = publishedByProduct.get(product.id);
+    product.reviews = reviews ?? [];
+  }
+
+  return products;
+}
+
+/**
+ * Published reviews per product, in the product's own Review shape, read from
+ * the customer_voice inbox. `published = true` is the owner's approval, so it
+ * maps to the "approved" status the storefront and schema already filter on;
+ * an order id means the purchase was matched, which is what "verified" means.
+ */
+async function getPublishedReviewsByProduct(): Promise<Map<string, Review[]>> {
+  const rows = await queryPostgres<{
+    id: string;
+    product_id: string;
+    customer_name: string;
+    message: string;
+    rating: number;
+    order_id: string;
+    created_at: Date | string;
+  }>(
+    "products",
+    `SELECT id, product_id, customer_name, message, rating, order_id, created_at
+     FROM customer_voice
+     WHERE kind = 'review' AND published = true AND product_id <> ''
+     ORDER BY created_at DESC`,
+    [],
+  );
+
+  const byProduct = new Map<string, Review[]>();
+  for (const row of rows) {
+    const list = byProduct.get(row.product_id) ?? [];
+    list.push({
+      id: row.id,
+      name: row.customer_name || "",
+      comment: row.message || "",
+      rating: Number(row.rating) || 0,
+      createdAt:
+        row.created_at instanceof Date
+          ? row.created_at.toISOString()
+          : String(row.created_at),
+      status: "approved",
+      verifiedPurchase: row.order_id !== "",
+    });
+    byProduct.set(row.product_id, list);
+  }
+  return byProduct;
 }
 
 async function writeProducts(products: Product[]) {
