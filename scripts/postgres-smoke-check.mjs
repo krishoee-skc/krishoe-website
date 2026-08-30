@@ -28,9 +28,6 @@ const countTables = [
   ["purchaseInvoiceItems", "purchase_invoice_items"],
   ["supplierTransactions", "supplier_transactions"],
   ["costingSettings", "costing_settings"],
-  ["hrEmployees", "hr_employees"],
-  ["hrAttendance", "hr_attendance"],
-  ["hrPayroll", "hr_payroll"],
   ["companySettings", "company_settings"],
   ["companyBranches", "company_branches"],
   ["adminStaffAccounts", "admin_staff_accounts"],
@@ -152,7 +149,6 @@ function expectedCountsFromBackup(backup) {
   const counts = backup.counts ?? {};
   const operations = counts.operations ?? {};
   const purchasing = counts.purchasing ?? {};
-  const hr = counts.hr ?? {};
   const adminSettings = counts.adminSettings ?? {};
   const extensionCounts = Object.fromEntries(
     backupExtensionTableSpecs.map(({ group, table }) => [table, counts[group]?.[table]]),
@@ -172,9 +168,6 @@ function expectedCountsFromBackup(backup) {
     purchaseInvoiceItems: purchasing.purchaseInvoiceItems,
     supplierTransactions: purchasing.supplierTransactions,
     costingSettings: counts.costingSettings,
-    hrEmployees: hr.employees,
-    hrAttendance: hr.attendanceRecords,
-    hrPayroll: hr.payrollRecords,
     companySettings: adminSettings.company,
     companyBranches: adminSettings.branches,
     adminStaffAccounts: adminSettings.staff,
@@ -507,24 +500,6 @@ async function getIntegrity(client) {
         WHERE suppliers.id IS NULL
       `,
     ),
-    orphanHrAttendanceEmployees: await scalar(
-      client,
-      `
-        SELECT count(*) AS value
-        FROM hr_attendance attendance
-        LEFT JOIN hr_employees employees ON employees.id = attendance.employee_id
-        WHERE employees.id IS NULL
-      `,
-    ),
-    orphanHrPayrollEmployees: await scalar(
-      client,
-      `
-        SELECT count(*) AS value
-        FROM hr_payroll payroll
-        LEFT JOIN hr_employees employees ON employees.id = payroll.employee_id
-        WHERE employees.id IS NULL
-      `,
-    ),
     stockMovementsWithoutStockRow: await scalar(
       client,
       `
@@ -612,19 +587,6 @@ async function getIntegrity(client) {
             WHERE factory_overhead_per_pair < 0 OR electricity_per_pair < 0
               OR rent_per_pair < 0 OR miscellaneous_per_pair < 0
               OR monthly_fixed_overhead < 0 OR monthly_capacity_pairs <= 0
-          ) +
-          (
-            SELECT count(*) FROM hr_employees
-            WHERE base_salary < 0 OR daily_wage < 0 OR piece_rate < 0
-          ) +
-          (
-            SELECT count(*) FROM hr_attendance
-            WHERE overtime_hours < 0
-          ) +
-          (
-            SELECT count(*) FROM hr_payroll
-            WHERE base_amount < 0 OR attendance_bonus < 0 OR piece_amount < 0
-              OR overtime_amount < 0 OR deduction < 0 OR net_pay < 0
           ) AS value
       `,
     ),
