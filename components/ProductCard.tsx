@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ProductText from "@/components/commerce/ProductText";
 import { productImageAlt } from "@/lib/search-words";
-import type { Product } from "@/lib/products";
+import { productReviewStats, type Product } from "@/lib/products";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
 import SafeImage from "@/components/SafeImage";
@@ -26,6 +26,9 @@ export default function ProductCard({
   // Shop-grid cards render two-up on phones, so they use a denser mobile
   // layout; collection cards (homepage) keep the full layout everywhere.
   const compact = intent === "shop";
+  // The star comes from real published reviews, not the manual rating field.
+  // No reviews yet means a "New" tag, never an invented score.
+  const reviewStats = productReviewStats(product.reviews);
 
   return (
     <article
@@ -77,10 +80,17 @@ export default function ProductCard({
               </h3>
             </Link>
           </div>
-          <div className="flex shrink-0 items-center gap-1 rounded-full bg-brand-green-ink px-2.5 py-1 text-xs font-semibold text-white">
-            <StarIcon className="h-3.5 w-3.5 text-brand-gold-bright" />
-            {product.rating}
-          </div>
+          {reviewStats.count > 0 ? (
+            <div className="flex shrink-0 items-center gap-1 rounded-full bg-brand-green-ink px-2.5 py-1 text-xs font-semibold text-white">
+              <StarIcon className="h-3.5 w-3.5 text-brand-gold-bright" />
+              {reviewStats.average.toFixed(1)}
+              <span className="font-normal text-white/70">({reviewStats.count})</span>
+            </div>
+          ) : (
+            <span className="shrink-0 rounded-full bg-brand-green-mist px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-green">
+              <T en="New" ne="नयाँ" />
+            </span>
+          )}
         </div>
 
         <p className={`line-clamp-2 min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : "mt-4"}`}>

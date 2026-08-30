@@ -13,6 +13,23 @@ export type Review = {
   flaggedAt?: string;
 };
 
+/**
+ * A product's star rating from its real published reviews — never the manual
+ * `rating` field, which is a placeholder a shopper never agreed to. Returns the
+ * count too, so a card can say "4.7 (12)" and, when there are none, say nothing
+ * rather than invent a score. Only "approved" (published) reviews count; that is
+ * exactly what a shopper is shown on the product page.
+ */
+export function productReviewStats(reviews: Review[]): { count: number; average: number } {
+  const approved = reviews.filter((review) => review.status === "approved");
+  if (approved.length === 0) return { count: 0, average: 0 };
+  const total = approved.reduce((sum, review) => sum + review.rating, 0);
+  return {
+    count: approved.length,
+    average: Math.round((total / approved.length) * 10) / 10,
+  };
+}
+
 export type Product = {
   id: string;
   sku: string;

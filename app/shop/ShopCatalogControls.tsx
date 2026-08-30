@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { SearchIcon, XIcon } from "@/components/Icons";
-import { categories, type Category, type Product } from "@/lib/products";
+import { categories, productReviewStats, type Category, type Product } from "@/lib/products";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -50,7 +50,10 @@ function searchText(product: Product) {
 }
 
 function ratingValue(product: Product) {
-  return Number(product.rating) || 0;
+  // Sort by the rating real reviews give, matching the star on the card — not
+  // the manual field. A product with no reviews sorts as 0, below any that have
+  // earned a score.
+  return productReviewStats(product.reviews).average;
 }
 
 function sortProducts(products: Product[], sortMode: SortMode) {

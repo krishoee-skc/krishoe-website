@@ -5,7 +5,7 @@ import {
   PLACE_WORDS,
   productSearchWords,
 } from "@/lib/search-words";
-import { categories, formatPrice, type Category, type Product } from "@/lib/products";
+import { categories, formatPrice, productReviewStats, type Category, type Product } from "@/lib/products";
 
 export const siteConfig = {
   name: "KRISHOE",
@@ -355,7 +355,10 @@ export function collectionPageJsonLd({
 
 export function productJsonLd(product: Product) {
   const approvedReviews = product.reviews.filter((review) => review.status === "approved");
-  const ratingValue = Number(product.rating);
+  // The rating Google shows must be the one real reviews add up to, not the
+  // manual `rating` field — otherwise a search snippet could promise 4.8 stars
+  // over reviews that average 3.2, which the shopper then reads on the page.
+  const { average: ratingValue } = productReviewStats(product.reviews);
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -379,7 +382,7 @@ export function productJsonLd(product: Product) {
     },
   };
 
-  if (Number.isFinite(ratingValue) && approvedReviews.length > 0) {
+  if (ratingValue > 0 && approvedReviews.length > 0) {
     data.aggregateRating = {
       "@type": "AggregateRating",
       ratingValue: ratingValue.toFixed(1),
