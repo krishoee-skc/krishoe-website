@@ -1019,7 +1019,10 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     designSales,
     tradingGoodsCostRates,
     designLaborPerPair,
-    settings.laborRates["Fiber Silai"] ?? 0,
+    // Silai is now a per-item factory rate (the Fiber Silai worker category),
+    // already summed into designLaborPerPair, so no flat silai is added here —
+    // adding one would double-count it.
+    0,
     overheadPerPair(settings),
   );
   const finishedStockValuation = buildFinishedStockValuation(operations.finishedStock, designCosting, products);
