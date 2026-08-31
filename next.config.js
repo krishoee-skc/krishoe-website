@@ -24,16 +24,26 @@ const contentSecurityPolicy = [
   "frame-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  // 'self' plus eSewa: online payment submits a POST form to eSewa's gateway
+  // (epay.esewa.com.np in production, rc-epay for its test sandbox), and an
+  // enforcing form-action would otherwise block that submission and break the
+  // payment. Khalti redirects with window.location instead of a form, so it
+  // needs nothing here. The status checks against esewa/khalti run server-side,
+  // never in the browser, so they are outside CSP entirely.
+  "form-action 'self' https://epay.esewa.com.np https://rc-epay.esewa.com.np",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");
 
 const securityHeaders = [
   {
-    // Report-Only: observe, never block. Flip the key to
-    // "Content-Security-Policy" to enforce once the shop is confirmed clean.
-    key: "Content-Security-Policy-Report-Only",
+    // Enforcing. The allowlist was audited against everything the storefront
+    // actually loads — self-hosted next/font, Vercel blob images, the Meta/GA/
+    // TikTok pixels, and eSewa's payment form — so a real page never hits a
+    // block. (Report-only left no reports to review because it carried no
+    // report-uri; the audit stood in for that. If a block ever does surface,
+    // add the missing source here and redeploy.)
+    key: "Content-Security-Policy",
     value: contentSecurityPolicy,
   },
   {
