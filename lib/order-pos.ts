@@ -5,6 +5,7 @@ import {
   type PosPaymentMethod,
 } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
+import { designKey } from "@/lib/design-name";
 import type { Product } from "@/lib/products";
 import type { FinishedStock } from "@/lib/operations";
 import type { OrderSubmission, PaymentProvider } from "@/lib/submissions";
@@ -83,8 +84,16 @@ function moneyNumber(value: string) {
   return parseOrderTotalRupees(value);
 }
 
+// One matching rule for the whole app: the canonical designKey (trim, collapse
+// inner whitespace, lowercase). The order→stock lookup used a weaker local key
+// (trim + lowercase only), so a design typed with a stray double space read as a
+// different shoe and its stock came back 0 — the shape of the "website shows
+// stock, bill says stock-out" complaint. Delegating here means the shop, the
+// costing and this conversion all decide "same shoe" the same way. It does not
+// merge genuinely different spellings ("bag open" vs "bagopen") — that is a data
+// choice, not a match — only cosmetic whitespace/case differences.
 function productKey(value: string) {
-  return cleanText(value).toLowerCase();
+  return designKey(value);
 }
 
 function sameDesign(left: string, right: string) {

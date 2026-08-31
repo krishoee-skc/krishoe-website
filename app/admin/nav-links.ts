@@ -125,9 +125,6 @@ export const adminNavGroups: AdminNavGroup[] = [
       // used to be scattered across four screens inside Settings; this gathers
       // it into one place and links back out to each one's detail.
       { href: "/admin/robots", label: "Robots", nepali: "Robot दरबार · स्वचालन", icon: RobotIcon },
-      // Who tried to sign in — successes, failures and blocked attempts in one
-      // place, so a run of attempts on an account is noticed rather than buried.
-      { href: "/admin/security-overview", label: "Security", nepali: "सुरक्षा · कसले पस्न खोज्यो", icon: ShieldCheckIcon },
       // One door to all eleven ways the shop can look at itself. Six of them
       // were hard to find: four were in no menu at all, and monitoring and the
       // activity log lived only inside Settings — which is the right place for

@@ -39,6 +39,8 @@ const PUBLIC: Record<string, string> = {
   "/api/version": "Which build is serving. A tab left open across a deploy compares it.",
   "/api/deployment-info": "The same, plus whether the database answers.",
   "/api/monitoring/vitals": "Where a shopper's browser posts how fast the page felt. They are signed in to nothing.",
+  "/api/csp-report": "Where the browser reports a blocked script. It posts without a session by design; only the directive and blocked address are kept.",
+  "/api/assistant": "The shop assistant a signed-out shopper asks about products. Rate-limited, and it only ever sees public catalog copy.",
   "/api/images/[id]": "Product photographs. They are on the storefront already.",
   "/api/payments/[provider]/callback": "The payment gateway calling back. It carries its own signature.",
   "/api/webhooks/whatsapp": "WhatsApp calling in. Verified by its own token.",

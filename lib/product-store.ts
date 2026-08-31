@@ -409,10 +409,14 @@ async function getPublishedReviewsByProduct(): Promise<Map<string, Review[]>> {
     created_at: Date | string;
   }>(
     "products",
+    // Bounded so this stays cheap as reviews accumulate: newest first, capped
+    // well above any single product's shown reviews. The storefront shows only a
+    // handful per product anyway.
     `SELECT id, product_id, customer_name, message, rating, order_id, created_at
      FROM customer_voice
      WHERE kind = 'review' AND published = true AND product_id <> ''
-     ORDER BY created_at DESC`,
+     ORDER BY created_at DESC
+     LIMIT 2000`,
     [],
   );
 

@@ -297,7 +297,10 @@ describe("telling the shop from a laptop", () => {
     const lib = await readFile(LIB, "utf8");
 
     // This is what filled the owner's error log with a page that was never slow.
-    expect(lib).toContain('if (metric.duration > 5000 && environment === "production")');
+    // The warning stays production-only AND now skips client web-vitals (a
+    // shopper's phone reporting a slow paint is not a server fault), so both the
+    // laptop reading and the field-data reading stay out of the error log.
+    expect(lib).toContain('environment === "production" && !isClientVital');
   });
 
   it("stamps every row, so nothing arrives unlabelled", async () => {

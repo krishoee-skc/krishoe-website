@@ -92,6 +92,12 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Login, backup, product, order, payment, and operations changes in one protected trail.
           </p>
+          <Link
+            href="/admin/security-overview"
+            className="mt-2 inline-flex items-center gap-1 text-sm font-black text-brand-green underline"
+          >
+            🔒 Security overview — who tried to sign in
+          </Link>
         </div>
         <div className="flex flex-wrap gap-2">
           <a
