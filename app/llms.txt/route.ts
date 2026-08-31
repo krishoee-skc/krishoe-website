@@ -31,7 +31,7 @@ ${siteConfig.name} (legal name ${siteConfig.legalName}) is a Nepali footwear bra
 - Based in ${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}, Nepal.
 - Order or ask on WhatsApp/Viber: ${businessContact.phoneDisplay}.
 - Cash on delivery available; delivery across Nepal.
-- The site is bilingual (English and नेपाली).
+- The site is bilingual (English and Nepali).
 
 ## Shop by category
 ${shopLinks}

@@ -48,12 +48,20 @@ type CommerceContextValue = {
   clearCart: () => void;
   toggleWishlist: (productId: string) => void;
   isWishlisted: (productId: string) => boolean;
+  /** Product ids the shopper has opened, most recent first. */
+  recentlyViewed: string[];
+  /** Remembers that this product was opened, so it can be offered again. */
+  recordView: (productId: string) => void;
 };
 
 const CommerceContext = createContext<CommerceContextValue | null>(null);
 
 const cartKey = "krishoe-cart";
 const wishlistKey = "krishoe-wishlist";
+const recentKey = "krishoe-recent";
+// Enough to fill a "recently viewed" row without becoming a history the shopper
+// never asked the shop to keep.
+const RECENT_MAX = 8;
 
 function itemKey(item: Pick<CartItem, "productId" | "size" | "color">) {
   return `${item.productId}:${item.size}:${item.color}`;
@@ -81,6 +89,7 @@ export function CommerceProvider({
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
   const productById = useMemo(
     () => new Map(catalogProducts.map((product) => [product.id, product])),
@@ -91,6 +100,7 @@ export function CommerceProvider({
     const timeoutId = window.setTimeout(() => {
       setCart(readJson<CartItem[]>(cartKey, []));
       setWishlist(readJson<string[]>(wishlistKey, []));
+      setRecentlyViewed(readJson<string[]>(recentKey, []));
       setHasLoadedStorage(true);
     }, 0);
 
@@ -102,6 +112,12 @@ export function CommerceProvider({
       window.localStorage.setItem(cartKey, JSON.stringify(cart));
     }
   }, [cart, hasLoadedStorage]);
+
+  useEffect(() => {
+    if (hasLoadedStorage) {
+      window.localStorage.setItem(recentKey, JSON.stringify(recentlyViewed));
+    }
+  }, [recentlyViewed, hasLoadedStorage]);
 
   useEffect(() => {
     if (hasLoadedStorage) {
@@ -152,6 +168,15 @@ export function CommerceProvider({
     (productId: string) => wishlist.includes(productId),
     [wishlist],
   );
+
+  const recordView = useCallback((productId: string) => {
+    setRecentlyViewed((current) => {
+      // Most recent first, no duplicates, capped — reopening a shoe moves it to
+      // the front rather than adding it twice.
+      const next = [productId, ...current.filter((id) => id !== productId)];
+      return next.slice(0, RECENT_MAX);
+    });
+  }, []);
 
   const cartItems = useMemo<DetailedCartItem[]>(
     () =>
@@ -211,6 +236,8 @@ export function CommerceProvider({
       clearCart,
       toggleWishlist,
       isWishlisted,
+      recentlyViewed,
+      recordView,
     }),
     [
       catalogProducts,
@@ -227,6 +254,8 @@ export function CommerceProvider({
       clearCart,
       toggleWishlist,
       isWishlisted,
+      recentlyViewed,
+      recordView,
     ],
   );
 

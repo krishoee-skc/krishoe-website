@@ -21,7 +21,7 @@ type ProductDetailActionsProps = {
 export default function ProductDetailActions({ product }: ProductDetailActionsProps) {
   const { text } = useLanguage();
   const router = useRouter();
-  const { addToCart, toggleWishlist, isWishlisted } = useCommerce();
+  const { addToCart, toggleWishlist, isWishlisted, recordView } = useCommerce();
   const [size, setSize] = useState(product.sizes[0]);
   const [color, setColor] = useState(product.colors[0]);
   const [quantity, setQuantity] = useState(1);
@@ -39,7 +39,8 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
       name: product.name,
       pricePaisa: product.priceValue,
     });
-  }, [product.id, product.name, product.priceValue]);
+    recordView(product.id);
+  }, [product.id, product.name, product.priceValue, recordView]);
 
   const orderMessage = useMemo(() => {
     if (outOfStock) {

@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import ProductDetailActions from "@/components/ProductDetailActions";
 import ProductGallery from "@/components/ProductGallery";
 import ProductCard from "@/components/ProductCard";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import { CheckIcon, StarIcon } from "@/components/Icons";
 import ProductReviewsPanel from "@/components/ProductReviewsPanel";
 import { getPublishedReviews } from "@/lib/customer-voice";
@@ -274,6 +275,8 @@ export default async function ProductPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        <RecentlyViewed excludeId={product.id} />
       </main>
 
       <ProductReviewsPanel product={product} reviews={publishedReviews} />
