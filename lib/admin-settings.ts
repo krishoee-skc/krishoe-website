@@ -784,7 +784,9 @@ async function staffRecordFromInput(
       input.temporaryPassword
         ? true
         : input.mustChangePassword ?? existing?.mustChangePassword ?? (status === "Active"),
-    mfaEnabled: input.mfaEnabled ?? existing?.mfaEnabled ?? false,
+    // Two-step sign-in is on by default now — a new account is created with it,
+    // matching the database default, so no one is added without it.
+    mfaEnabled: input.mfaEnabled ?? existing?.mfaEnabled ?? true,
     passwordChangedAt: password ? stamp : existing?.passwordChangedAt,
     invitedAt: existing?.invitedAt ?? (status === "Invited" ? stamp : undefined),
     invitationAcceptedAt:

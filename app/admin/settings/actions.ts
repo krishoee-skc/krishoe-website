@@ -247,7 +247,10 @@ export async function inviteStaffAccountAction(formData: FormData) {
         status: "Active",
         password: temporaryPassword,
         temporaryPassword: true,
-        mfaEnabled: false,
+        // On like every other account — two-step sign-in is required for all.
+        // A phone-first staffer completes it by email code or a registered
+        // passkey; give them an email or set up a passkey when creating them.
+        mfaEnabled: true,
       });
       await recordStaffChange("staff_created_with_temporary_password", null, worker, actor);
       await recordAdminAuditEvent(
@@ -491,6 +494,17 @@ export async function updateStaffMfaAction(formData: FormData) {
     const actor = await requireAdminPermission("settings:write");
     const staff = await getExistingStaff(formData);
     const enabled = textValue(formData, "enabled") === "true";
+    // Two-step sign-in is required for everyone now, so it can be switched on but
+    // not off for an account that is in use. Turning it off is refused gently —
+    // no error, no lock-out — rather than removed, so an older screen or a habit
+    // still lands somewhere that explains why. A disabled account may be left as
+    // it is; only active accounts must keep the second factor.
+    if (!enabled && staff.status === "Active") {
+      refreshSettingsPage(
+        "Two-step verification is required for all active staff and cannot be turned off. It stays on.",
+      );
+      return;
+    }
     const updated = await setAdminStaffMfa(staff.id, enabled);
     const revokedSessions = await revokeSecuritySessions(updated.id, actor, "mfa-change");
     await recordStaffChange(enabled ? "staff_mfa_enabled" : "staff_mfa_disabled", staff, updated, actor);
