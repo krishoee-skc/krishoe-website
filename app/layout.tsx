@@ -4,6 +4,7 @@ import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi } from "next/font/google"
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
+import SkipToContent from "@/components/SkipToContent";
 import BottomTabBar from "@/components/BottomTabBar";
 import AiAssistant from "@/components/AiAssistant";
 import { themeBootScript } from "@/components/ThemeToggle";
@@ -178,6 +179,7 @@ export default async function RootLayout({
         <ServiceWorkerRegistration />
         <Analytics />
         <LanguageProvider>
+          <SkipToContent />
           <CommerceProvider catalogProducts={products}>
             {children}
             <PwaInstallHelp />
