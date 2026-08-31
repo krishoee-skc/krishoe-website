@@ -27,6 +27,10 @@ export type CompanySettings = {
   currency: string;
   timezone: string;
   defaultBranchId: string;
+  /** The owner's own line for the storefront top bar. Empty falls back to the built-in one. */
+  promoText: string;
+  /** Whether the owner's promo line is shown at all. */
+  promoEnabled: boolean;
   updatedAt: string;
 };
 
@@ -113,6 +117,8 @@ type CompanySettingsRow = {
   currency: string;
   timezone: string;
   default_branch_id: string;
+  promo_text: string;
+  promo_enabled: boolean;
   updated_at: Date | string;
 };
 
@@ -255,6 +261,8 @@ function createDefaultSettings(): AdminSettingsStore {
       currency: "NPR",
       timezone: "Asia/Kathmandu",
       defaultBranchId: branches[0]?.id ?? "",
+      promoText: "",
+      promoEnabled: false,
       updatedAt: stamp,
     },
     branches,
@@ -315,6 +323,8 @@ function companyFromRow(row: CompanySettingsRow, defaultBranchId: string): Compa
     currency: row.currency,
     timezone: row.timezone,
     defaultBranchId: row.default_branch_id || defaultBranchId,
+    promoText: row.promo_text ?? "",
+    promoEnabled: Boolean(row.promo_enabled),
     updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
@@ -356,6 +366,8 @@ function normalizeStore(value: unknown): AdminSettingsStore {
       currency: requiredText(source.company?.currency, "NPR").toUpperCase().slice(0, 3),
       timezone: requiredText(source.company?.timezone, "Asia/Kathmandu"),
       defaultBranchId,
+      promoText: optionalText(source.company?.promoText),
+      promoEnabled: Boolean(source.company?.promoEnabled),
       updatedAt: source.company?.updatedAt ? new Date(source.company.updatedAt).toISOString() : nowIso(),
     },
     branches,
@@ -452,7 +464,7 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     "admin settings",
     `
       SELECT id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
       FROM company_settings
       WHERE id = 'default'
       LIMIT 1
@@ -544,6 +556,8 @@ async function saveCompanySettingsToLocalJson(input: Partial<CompanySettings>) {
     currency: requiredText(input.currency, settings.company.currency).toUpperCase().slice(0, 3),
     timezone: requiredText(input.timezone, settings.company.timezone),
     defaultBranchId,
+    promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
+    promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     updatedAt: nowIso(),
   };
   await writeSettingsToLocalJson(settings);
@@ -566,6 +580,8 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     currency: requiredText(input.currency, settings.company.currency).toUpperCase().slice(0, 3),
     timezone: requiredText(input.timezone, settings.company.timezone),
     defaultBranchId,
+    promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
+    promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     updatedAt: nowIso(),
   };
   const defaultBranch = settings.branches.find((branch) => branch.id === defaultBranchId);
@@ -579,9 +595,9 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     `
       INSERT INTO company_settings (
         id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
       )
-      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       ON CONFLICT (id) DO UPDATE SET
         company_name = EXCLUDED.company_name,
         legal_name = EXCLUDED.legal_name,
@@ -592,9 +608,11 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
         currency = EXCLUDED.currency,
         timezone = EXCLUDED.timezone,
         default_branch_id = EXCLUDED.default_branch_id,
+        promo_text = EXCLUDED.promo_text,
+        promo_enabled = EXCLUDED.promo_enabled,
         updated_at = EXCLUDED.updated_at
       RETURNING id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
     `,
     [
       nextCompany.companyName,
@@ -606,6 +624,8 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
       nextCompany.currency,
       nextCompany.timezone,
       nextCompany.defaultBranchId,
+      nextCompany.promoText,
+      nextCompany.promoEnabled,
       new Date(nextCompany.updatedAt),
     ],
   );

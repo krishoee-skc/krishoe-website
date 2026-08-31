@@ -11,6 +11,7 @@ import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 import { getProducts } from "@/lib/product-store";
+import { getAdminSettings } from "@/lib/admin-settings";
 import { businessContact } from "@/lib/seo";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
@@ -24,23 +25,41 @@ async function loadHomeProducts(): Promise<Product[]> {
   }
 }
 
+// The owner's top-bar promo. A settings hiccup must not take the homepage down,
+// so a failure falls back to "no custom promo" and the built-in line shows.
+async function loadPromo(): Promise<{ promoText: string; promoEnabled: boolean }> {
+  try {
+    const settings = await getAdminSettings();
+    return { promoText: settings.company.promoText, promoEnabled: settings.company.promoEnabled };
+  } catch (error) {
+    reportError("load storefront promo line", error);
+    return { promoText: "", promoEnabled: false };
+  }
+}
+
 export default async function Home() {
-  const products = await loadHomeProducts();
+  const [products, settings] = await Promise.all([loadHomeProducts(), loadPromo()]);
+  const promo = settings.promoEnabled && settings.promoText.trim() ? settings.promoText.trim() : "";
 
   return (
     <main className="bg-brand-paper">
 
       <Navbar />
 
-      {/* This week's offer, in the storefront's purple. */}
+      {/* The shop's top-bar line. The owner's own message when they've set one and
+          switched it on; the built-in line otherwise, so the bar is never empty. */}
       <Link
         href="/shop"
         className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-deep px-4 py-2.5 text-center text-xs font-bold leading-5 text-white shadow-md md:mx-8"
       >
-        <T
-          en="This week — free delivery over NPR 2000 · order on WhatsApp too"
-          ne="यो हप्ता — NPR 2000 माथि Free delivery · WhatsApp मा पनि अर्डर"
-        />
+        {promo ? (
+          <span>{promo}</span>
+        ) : (
+          <T
+            en="This week — free delivery over NPR 2000 · order on WhatsApp too"
+            ne="यो हप्ता — NPR 2000 माथि Free delivery · WhatsApp मा पनि अर्डर"
+          />
+        )}
       </Link>
 
       {/* One complete branded banner — crest, Made in Nepal, tagline and the

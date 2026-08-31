@@ -253,6 +253,29 @@ export default async function AdminSettingsPage({
                 className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
+
+            {/* The line shown across the top of the shop. The owner writes it —
+                a welcome code, a Dashain offer, a delivery line — and turns it on
+                or off. Off or blank shows the built-in line instead. */}
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
+              Shop top-bar message · पसलमाथिको सन्देश
+              <input
+                name="promoText"
+                defaultValue={settings.company.promoText}
+                maxLength={160}
+                placeholder="e.g. First order? Use WELCOME10 for 10% off · पहिलो अर्डरमा WELCOME10 ले १०% छुट"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+              <span className="flex items-center gap-2 text-xs font-semibold text-brand-muted">
+                <input
+                  type="checkbox"
+                  name="promoEnabled"
+                  defaultChecked={settings.company.promoEnabled}
+                  className="h-4 w-4 accent-brand-green"
+                />
+                Show this message on the shop (off = the built-in line)
+              </span>
+            </label>
           </div>
           <div className="mt-5">
             <SubmitButton label="Save company settings" />

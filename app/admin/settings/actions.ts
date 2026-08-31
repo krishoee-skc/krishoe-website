@@ -162,6 +162,8 @@ export async function saveCompanySettingsAction(formData: FormData) {
       currency: textValue(formData, "currency"),
       timezone: textValue(formData, "timezone"),
       defaultBranchId: textValue(formData, "defaultBranchId"),
+      promoText: textValue(formData, "promoText"),
+      promoEnabled: textValue(formData, "promoEnabled") === "on",
     });
     await recordAdminAuditEvent("settings_company_update", `Company settings updated for ${companyName}.`);
   } catch (error) {
