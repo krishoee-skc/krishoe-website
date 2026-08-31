@@ -74,7 +74,10 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
               />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-lg font-black uppercase tracking-[0.26em] text-brand-green-ink sm:text-xl">
+              {/* Tighter letter-spacing on the phone so the full name fits
+                  beside the crest instead of truncating to "KRISH…"; the wide,
+                  premium spacing returns once there is room. */}
+              <span className="block truncate text-lg font-black uppercase tracking-[0.12em] text-brand-green-ink sm:text-xl sm:tracking-[0.26em]">
                 KRISHOE
               </span>
               <span className="hidden text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-gold-deep sm:block">

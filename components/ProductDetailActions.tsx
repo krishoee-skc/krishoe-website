@@ -208,7 +208,12 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         </ul>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-white/95 px-4 py-3 shadow-[0_-16px_40px_rgba(16,35,29,0.14)] backdrop-blur md:hidden">
+      {/* A floating pill that sits ABOVE the bottom navigation, in the same
+          style, so the two never collide — the product action stays reachable
+          while scrolling without covering Home/Shop/Search/Cart. Only on the
+          phone (md:hidden); the tab bar and this bar both end at the same
+          breakpoint the page reserves space for. */}
+      <div className="fixed inset-x-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/92 px-3 py-2.5 shadow-[0_18px_55px_rgba(16,35,29,0.22)] backdrop-blur-xl md:hidden">
         {/* On the phone, the impulse zone. Buy Now leads; Add and WhatsApp stay
             within reach for the shopper who wants a cart or a chat first. */}
         <div className="mx-auto grid max-w-md grid-cols-[1.4fr_auto_auto] gap-2">

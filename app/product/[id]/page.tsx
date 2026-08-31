@@ -118,7 +118,9 @@ export default async function ProductPage({ params }: Props) {
         ])}
       />
       <Navbar />
-      <div className="pb-24 md:pb-0">
+      {/* Clears both the floating buy bar and the bottom navigation on the phone,
+          so nothing at the end of the page hides behind them. */}
+      <div className="pb-32 md:pb-0">
       <main className="bg-brand-paper">
         <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
