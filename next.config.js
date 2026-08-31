@@ -33,6 +33,12 @@ const contentSecurityPolicy = [
   "form-action 'self' https://epay.esewa.com.np https://rc-epay.esewa.com.np",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
+  // Where the browser reports a block. Enforcing without this sends the signal
+  // to a console nobody reads; here it reaches /api/csp-report, which files it in
+  // the monitoring log as a Security warning — the first sign of an injected or
+  // tampered script on a page. report-uri is widely supported; report-to is its
+  // newer name and the same endpoint.
+  "report-uri /api/csp-report",
 ].join("; ");
 
 const securityHeaders = [
