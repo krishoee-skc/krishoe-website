@@ -10,6 +10,7 @@ import About from "@/components/About";
 import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
+import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/product-store";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { businessContact } from "@/lib/seo";
@@ -25,17 +26,23 @@ async function loadHomeProducts(): Promise<Product[]> {
   }
 }
 
-// The owner's top-bar promo. A settings hiccup must not take the homepage down,
-// so a failure falls back to "no custom promo" and the built-in line shows.
-async function loadPromo(): Promise<{ promoText: string; promoEnabled: boolean }> {
-  try {
-    const settings = await getAdminSettings();
-    return { promoText: settings.company.promoText, promoEnabled: settings.company.promoEnabled };
-  } catch (error) {
-    reportError("load storefront promo line", error);
-    return { promoText: "", promoEnabled: false };
-  }
-}
+// The owner's top-bar promo, cached on its own so a homepage regeneration does
+// not pay a fresh settings read every time — the promo changes rarely, and its
+// own 10-minute window keeps a homepage rebuild cheap. A settings hiccup must
+// not take the homepage down, so a failure falls back to the built-in line.
+const loadPromo = unstable_cache(
+  async (): Promise<{ promoText: string; promoEnabled: boolean }> => {
+    try {
+      const settings = await getAdminSettings();
+      return { promoText: settings.company.promoText, promoEnabled: settings.company.promoEnabled };
+    } catch (error) {
+      reportError("load storefront promo line", error);
+      return { promoText: "", promoEnabled: false };
+    }
+  },
+  ["storefront-promo"],
+  { revalidate: 600 },
+);
 
 export default async function Home() {
   const [products, settings] = await Promise.all([loadHomeProducts(), loadPromo()]);

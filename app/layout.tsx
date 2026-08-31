@@ -147,15 +147,16 @@ const loadBuyableProducts = unstable_cache(async (): Promise<Product[]> => {
     return [];
   }
 // This runs on every storefront page, so its revalidate window is also the
-// window on which those pages regenerate. At 10s that meant the whole shop
-// rebuilt every ten seconds under traffic, and a request landing on a cold
-// regeneration is exactly what produced the 30-second spikes on the home page.
+// window on which those pages regenerate. At 10s the whole shop rebuilt every
+// ten seconds under traffic, and a request landing on a cold regeneration is
+// exactly what produced the 30-second spikes on the home page.
 //
 // Every real change now pushes on its own: an admin edit, a POS sale, a stock
-// or photo change, and — newly — a customer's order all call
-// revalidatePath("/", "layout"). So freshness no longer depends on this window;
-// it is only a safety net, and 120s is a safe one that regenerates ~12x less.
-}, ["storefront-buyable-products"], { revalidate: 120 });
+// or photo change, and a customer's order all call revalidatePath("/", "layout").
+// So freshness no longer depends on this window; it is only a safety net. Raised
+// 10s → 120s → 600s: the longer it is, the rarer a cold blocking regeneration,
+// and nothing real waits for it because every real change is pushed on demand.
+}, ["storefront-buyable-products"], { revalidate: 600 });
 
 export default async function RootLayout({
   children,
