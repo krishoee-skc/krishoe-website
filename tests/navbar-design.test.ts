@@ -39,13 +39,15 @@ describe("the header", () => {
     const nav = await readFile("components/PrimaryNav.tsx", "utf8");
 
     // The ring around the mark…
-    expect(navbar).toContain("border-brand-gold/50");
+    expect(navbar).toContain("ring-brand-gold/60");
     // …and the rule under the current page.
     expect(nav).toContain("bg-brand-gold-bright");
   });
 
   it("leads with what this shop can say that others cannot", async () => {
     const navbar = await readFile("components/Navbar.tsx", "utf8");
-    expect(navbar).toContain("नेपालमै बनेको");
+    // The header's own line under the mark. The made-in-Nepal message now leads
+    // the footer and the About block; the header carries the brand promise.
+    expect(navbar).toContain("Walk with Authority");
   });
 });

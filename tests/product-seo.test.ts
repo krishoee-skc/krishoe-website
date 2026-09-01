@@ -85,10 +85,10 @@ describe("the site address handed to Google", () => {
     vi.resetModules();
     const { getSiteUrl } = await import("@/lib/seo");
 
-    // The old fallback was https://krishoe.com, which is not registered — it
-    // does not answer. With the variable missing, every canonical link, sitemap
-    // entry and QR code would have pointed Google at a dead host.
-    expect(getSiteUrl()).not.toContain("krishoe.com");
-    expect(getSiteUrl()).toBe("https://krishoe-website.vercel.app");
+    // krishoe.com is now the shop's live registered domain (on Vercel), so the
+    // fallback points every canonical link, sitemap entry and QR code at the real
+    // host. (It used to fall back to the vercel host, from when krishoe.com was
+    // unregistered and would not answer.)
+    expect(getSiteUrl()).toBe("https://www.krishoe.com");
   });
 });

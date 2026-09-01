@@ -48,8 +48,11 @@ describe("getSiteUrl", () => {
    * Change this the day the domain is really bought, not in anticipation of it.
    */
   it("falls back to a host that actually resolves", async () => {
-    expect((await siteUrlWith(undefined)).getSiteUrl()).toBe("https://krishoe-website.vercel.app");
-    expect((await siteUrlWith("   \n  ")).getSiteUrl()).toBe("https://krishoe-website.vercel.app");
+    // krishoe.com is now the live registered domain (on Vercel), so the fallback
+    // resolves to it. It used to fall back to the vercel host, from the era when
+    // krishoe.com was not registered.
+    expect((await siteUrlWith(undefined)).getSiteUrl()).toBe("https://www.krishoe.com");
+    expect((await siteUrlWith("   \n  ")).getSiteUrl()).toBe("https://www.krishoe.com");
   });
 
   it("builds an absolute URL with no stray whitespace inside it", async () => {

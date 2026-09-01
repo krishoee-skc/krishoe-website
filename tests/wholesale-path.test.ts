@@ -34,7 +34,9 @@ describe("the wholesale page", () => {
     const footer = await readFile("components/Footer.tsx", "utf8");
     const sitemap = await readFile("app/sitemap.ts", "utf8");
 
-    expect(footer).toContain('href="/wholesale"');
+    // The footer links from a data list (href: "/wholesale"), so the quoted path
+    // is what proves it is reachable.
+    expect(footer).toContain('"/wholesale"');
     expect(sitemap).toContain("/wholesale");
   });
 });

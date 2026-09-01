@@ -50,9 +50,9 @@ describe("the bill", () => {
     const bill = await readFile(BILL, "utf8");
     const header = bill.slice(bill.indexOf("receipt-print"));
 
-    expect(header).toContain("h-11 w-11");
+    expect(header).toContain("h-9 w-9");
     // Thin lines and white space are what make a document look expensive.
-    expect(header).toContain("border-brand-gold/40");
+    expect(header).toContain("border-brand-gold/60");
   });
 });
 

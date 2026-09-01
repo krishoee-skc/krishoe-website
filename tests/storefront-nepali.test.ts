@@ -45,11 +45,13 @@ describe("the footer", () => {
     const footer = await readFile("components/Footer.tsx", "utf8");
 
     for (const nepali of [
-      "छिटो जाने",
-      "किसिम",
-      "सम्पर्क",
-      "गृह पृष्ठ",
+      // Section headings (the footer's columns are Shop / Company / Contact now —
+      // the old "छिटो जाने"/"किसिम" headings were renamed):
       "पसल",
+      "कम्पनी",
+      "सम्पर्क",
+      // Link labels, all still carried:
+      "गृह पृष्ठ",
       "हाम्रो कथा",
       "थोक बिक्री",
       "साट्ने नियम",

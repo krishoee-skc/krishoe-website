@@ -23,9 +23,11 @@ describe("the trust pages", () => {
 
   it("are all reachable from the footer", async () => {
     const footer = await readFile("components/Footer.tsx", "utf8");
-    // A page nobody links to is a page nobody finds.
+    // A page nobody links to is a page nobody finds. The footer builds its links
+    // from a data list (href: "/faq") rendered as <Link href={link.href}>, so the
+    // path is what proves it is linked — either quoting shape carries it.
     for (const page of PAGES) {
-      expect(footer, page).toContain(`href="/${page}"`);
+      expect(footer, page).toContain(`"/${page}"`);
     }
   });
 
