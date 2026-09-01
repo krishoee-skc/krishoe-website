@@ -4,6 +4,12 @@ type ProductOptionSelectorProps = {
   selectedValue: string;
   onValueChange: (value: string) => void;
   variant?: "default" | "color";
+  /**
+   * Options with no stock — shown struck through and not selectable. Empty (the
+   * default) keeps every option choosable, so a product whose stock is not tracked
+   * size-wise behaves exactly as before.
+   */
+  unavailable?: string[];
 };
 
 const COLOR_SWATCHES: Record<string, string> = {
@@ -37,6 +43,7 @@ export default function ProductOptionSelector({
   options,
   selectedValue,
   onValueChange,
+  unavailable = [],
   variant = "default",
 }: ProductOptionSelectorProps) {
   return (
@@ -59,6 +66,7 @@ export default function ProductOptionSelector({
       <div className="mt-3 flex flex-wrap gap-2">
         {options.map((item) => {
           const isSelected = selectedValue === item;
+          const isOut = unavailable.includes(item);
           const color = variant === "color" ? swatchColor(item) : null;
 
           return (
@@ -66,13 +74,17 @@ export default function ProductOptionSelector({
               key={item}
               type="button"
               onClick={() => onValueChange(item)}
+              disabled={isOut}
               aria-pressed={isSelected}
+              aria-disabled={isOut}
               className={`inline-flex h-11 min-w-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
-                isSelected
-                  ? variant === "color"
-                    ? "border-brand-green bg-brand-green-mist text-brand-green"
-                    : "border-brand-green bg-brand-green text-white"
-                  : "border-black/10 text-brand-green-ink hover:border-brand-green"
+                isOut
+                  ? "cursor-not-allowed border-black/10 text-brand-muted line-through opacity-50"
+                  : isSelected
+                    ? variant === "color"
+                      ? "border-brand-green bg-brand-green-mist text-brand-green"
+                      : "border-brand-green bg-brand-green text-white"
+                    : "border-black/10 text-brand-green-ink hover:border-brand-green"
               }`}
             >
               {color ? (
