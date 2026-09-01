@@ -72,10 +72,37 @@ export function sizeInStock(
   return (availableBySize(rows, design, options).get(wanted) ?? 0) > 0;
 }
 
+/** A real, single shoe size like "30" or "9" — not "Mixed" or a range "36-41". */
+function isRealSize(size: string): boolean {
+  return /^\d{1,2}$/.test(size.trim());
+}
+
 /** True once a design has any size-wise stock (a real size, not just "Mixed"/a range). */
 export function hasSizeWiseStock(rows: FinishedStock[], design: string): boolean {
   for (const size of availableBySize(rows, design).keys()) {
-    if (/^\d{1,2}$/.test(size)) return true;
+    if (isRealSize(size)) return true;
   }
   return false;
+}
+
+/**
+ * Whether a design's stock is FULLY tracked by size — every available pair sits
+ * under a real size, with no "Mixed"/range pile left over.
+ *
+ * This is the safe gate for disabling sizes in the shop: only when a design is
+ * fully size-tracked can we say a size is sold out, because a leftover Mixed pile
+ * might still contain that size. A design with any untracked pairs falls back to
+ * "all sizes choosable", so the shop never wrongly refuses a pair it actually has.
+ */
+export function isSizeTracked(rows: FinishedStock[], design: string): boolean {
+  let hasRealSizeInStock = false;
+  for (const [size, pairs] of availableBySize(rows, design)) {
+    if (isRealSize(size)) {
+      if (pairs > 0) hasRealSizeInStock = true;
+    } else if (pairs > 0) {
+      // A "Mixed"/range pile with pairs — the sizes inside it are unknown.
+      return false;
+    }
+  }
+  return hasRealSizeInStock;
 }
