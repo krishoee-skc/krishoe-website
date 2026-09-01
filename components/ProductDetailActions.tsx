@@ -16,13 +16,19 @@ import { trackCommerceEvent, trackContact } from "@/lib/analytics-events";
 
 type ProductDetailActionsProps = {
   product: Product;
+  /** Sizes with no stock, disabled in the picker. Empty unless the design has real per-size stock. */
+  soldOutSizes?: string[];
 };
 
-export default function ProductDetailActions({ product }: ProductDetailActionsProps) {
+export default function ProductDetailActions({ product, soldOutSizes = [] }: ProductDetailActionsProps) {
   const { text } = useLanguage();
   const router = useRouter();
   const { addToCart, toggleWishlist, isWishlisted, recordView } = useCommerce();
-  const [size, setSize] = useState(product.sizes[0]);
+  // Start on the first size that is actually in stock, so the page never opens
+  // pre-selected on a sold-out size.
+  const firstInStock = product.sizes.find((s) => !soldOutSizes.includes(s)) ?? product.sizes[0];
+  const [size, setSize] = useState(firstInStock);
+  const selectedSizeOut = soldOutSizes.includes(size);
   const [color, setColor] = useState(product.colors[0]);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -62,8 +68,11 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
     text("Stock confirmed before digital payment", "अनलाइन भुक्तानीअघि स्टक पक्का"),
   ];
 
+  // Blocked when the whole shoe is out, or when the chosen size specifically is.
+  const blockPurchase = outOfStock || selectedSizeOut;
+
   function addSelectedItem() {
-    if (outOfStock) {
+    if (blockPurchase) {
       return;
     }
 
@@ -82,7 +91,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
   // between wanting the shoe and paying for it to a single tap — no cart detour —
   // which is where an impulse to buy is most often lost.
   function buyNow() {
-    if (outOfStock) {
+    if (blockPurchase) {
       return;
     }
 
@@ -115,7 +124,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
 
         <div className="space-y-6">
           <div>
-            <ProductOptionSelector title={text("Select size", "साइज छान्नुहोस्")} options={product.sizes} selectedValue={size} onValueChange={setSize} />
+            <ProductOptionSelector title={text("Select size", "साइज छान्नुहोस्")} options={product.sizes} selectedValue={size} onValueChange={setSize} unavailable={soldOutSizes} />
             {/* Beside the sizes, where the doubt is. A guide linked from the
                 footer is a guide nobody opens — and guessing the size is the
                 single biggest reason a pair of shoes comes back. */}
@@ -132,12 +141,14 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
         <button
           type="button"
           onClick={buyNow}
-          disabled={outOfStock}
+          disabled={blockPurchase}
           className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-base font-black text-white shadow-[0_14px_30px_-12px_rgba(16,35,29,0.6)] transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-brand-muted-soft disabled:hover:text-white"
         >
           {outOfStock
             ? text("Sold out", "बिक्री सकियो")
-            : text("Buy now", "अहिले किन्नुहोस्")}
+            : selectedSizeOut
+              ? text("This size is sold out", "यो साइज सकियो")
+              : text("Buy now", "अहिले किन्नुहोस्")}
         </button>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -146,7 +157,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           <button
             type="button"
             onClick={addSelectedItem}
-            disabled={outOfStock}
+            disabled={blockPurchase}
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
           >
             <ShoppingBagIcon className="h-4 w-4" />
@@ -220,7 +231,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           <button
             type="button"
             onClick={buyNow}
-            disabled={outOfStock}
+            disabled={blockPurchase}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
           >
             {outOfStock
@@ -230,7 +241,7 @@ export default function ProductDetailActions({ product }: ProductDetailActionsPr
           <button
             type="button"
             onClick={addSelectedItem}
-            disabled={outOfStock}
+            disabled={blockPurchase}
             aria-label={text("Add to cart", "कार्टमा थप्नुहोस्")}
             className="inline-flex h-12 items-center justify-center gap-1 rounded-full border-2 border-brand-green bg-transparent px-3 text-sm font-bold text-brand-green disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
           >

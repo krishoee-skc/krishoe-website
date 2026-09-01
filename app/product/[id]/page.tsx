@@ -8,6 +8,8 @@ import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDetailActions from "@/components/ProductDetailActions";
+import { getFinishedStock } from "@/lib/operations";
+import { hasSizeWiseStock, sizeInStock } from "@/lib/stock-by-size";
 import ProductGallery from "@/components/ProductGallery";
 import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
@@ -76,6 +78,17 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const relatedProducts = getRelatedProductsFromList(products, product);
+
+  // Sizes that are genuinely out of stock, so the buttons for them are disabled.
+  // Only applies once this design has real per-size stock (a size like "30", not
+  // just a "Mixed" pile); otherwise the list is empty and every size stays
+  // choosable exactly as before — a stock read must never make a shoe unbuyable
+  // by accident. Read from the browser-safe finished-stock list (no cookie), so
+  // the page stays static.
+  const finishedStock = await getFinishedStock();
+  const soldOutSizes = hasSizeWiseStock(finishedStock, product.name)
+    ? product.sizes.filter((size) => !sizeInStock(finishedStock, product.name, size))
+    : [];
 
   // The reviews the shop has published, from the one inbox the owner approves
   // in — the on-page form and the after-delivery invite both land there. Read
@@ -176,7 +189,7 @@ export default async function ProductPage({ params }: Props) {
               </div>
 
               <div className="mt-8">
-                <ProductDetailActions product={product} />
+                <ProductDetailActions product={product} soldOutSizes={soldOutSizes} />
                 <ShareProduct
                   name={product.name}
                   price={product.price}

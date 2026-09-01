@@ -1005,6 +1005,16 @@ export async function addStockMovementToPostgres(movement: StockMovementInput) {
   return transactionPostgres("operations", (db) => insertStockMovement(db, movement));
 }
 
+// Just the finished-stock table — for callers (the shop) that need per-size
+// availability without paying for the full ten-table operations read.
+export async function getFinishedStockFromPostgres(): Promise<FinishedStock[]> {
+  const rows = await queryPostgres<FinishedStockRow>(
+    "operations",
+    "SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs FROM finished_stock",
+  );
+  return rows.map(finishedStockFromRow);
+}
+
 export async function insertStockMovement(
   db: PostgresExecutor,
   movement: StockMovementInput,

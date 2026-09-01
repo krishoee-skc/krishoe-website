@@ -22,6 +22,7 @@ import {
   addVehicleDispatchItemToPostgres,
   addWorkerTaskToPostgres,
   deleteOperationRecordFromPostgres,
+  getFinishedStockFromPostgres,
   getOperationsDataFromPostgres,
   updateCustomerLedgerToPostgres,
   updateFinishedStockToPostgres,
@@ -748,6 +749,24 @@ export async function getOperationsData(): Promise<OperationsData> {
     localJson: getOperationsDataFromLocalJson,
     postgres: getOperationsDataFromPostgres,
   });
+}
+
+/**
+ * Just the finished-stock rows — the light read the shop uses to know which
+ * sizes of a shoe are actually in stock, without loading the whole operations
+ * report. Local-json falls back to the full read (dev only); a failure returns
+ * an empty list so a stock hiccup never takes a product page down.
+ */
+export async function getFinishedStock(): Promise<FinishedStock[]> {
+  try {
+    return await runWithDataBackend({
+      storeName: "operations",
+      localJson: async () => (await getOperationsDataFromLocalJson()).finishedStock,
+      postgres: getFinishedStockFromPostgres,
+    });
+  } catch {
+    return [];
+  }
 }
 
 /**
