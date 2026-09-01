@@ -2378,6 +2378,10 @@ export async function approvePackingQcAndPostStock(input: {
       sizeRun: "Mixed",
       type: "Production In",
       pairs: input.totalPairs,
+      // The pairs total is authoritative; this records how they split by size so
+      // the shop can later show size 30 as gone while 35 is in stock. Additive —
+      // it does not change the total or the reversal, which still key off pairs.
+      sizeBreakdown: normalizeSizeBreakdown(input.sizeBreakdown),
       note: `${approvalReference} · ${item.name} packing/QC approved`,
     });
     const postingId = id("qc");

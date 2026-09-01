@@ -175,6 +175,10 @@ export type StockMovement = {
 // production/dispatch/adjustment call sites keep working unchanged.
 export type StockMovementInput = Omit<StockMovement, "id" | "createdAt" | "sizeRun"> & {
   sizeRun?: string;
+  // Optional size split for a stock-in ({ "30": 5, "31": 8 }). Recorded on the
+  // finished-stock row as display metadata; the authoritative pair count stays
+  // `pairs`. Omitted by every existing caller, so nothing changes for them.
+  sizeBreakdown?: Record<string, number>;
 };
 
 export type LedgerTransactionType =

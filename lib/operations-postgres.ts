@@ -975,6 +975,32 @@ async function updateFinishedStockTotals(db: PostgresExecutor, stock: FinishedSt
   );
 }
 
+// Add a size split into a finished-stock row's size_breakdown, keeping only
+// clean "size -> whole positive number" entries so the value written is always
+// well-formed JSON and the UPDATE cannot fail on a malformed payload. Pure
+// metadata: it never touches stock_pairs/sold_pairs/returned_pairs.
+async function mergeSizeBreakdown(
+  db: PostgresExecutor,
+  stockId: string,
+  incoming: Record<string, number>,
+) {
+  const current = await db.query<{ size_breakdown: Record<string, number> | null }>(
+    "SELECT size_breakdown FROM finished_stock WHERE id = $1",
+    [stockId],
+  );
+  const merged: Record<string, number> = { ...(current[0]?.size_breakdown ?? {}) };
+  for (const [size, pairs] of Object.entries(incoming)) {
+    const key = String(size).trim();
+    const count = Math.max(0, Math.round(Number(pairs) || 0));
+    if (!key || count <= 0) continue;
+    merged[key] = (merged[key] ?? 0) + count;
+  }
+  await db.query(
+    "UPDATE finished_stock SET size_breakdown = $2::jsonb, updated_at = now() WHERE id = $1",
+    [stockId, JSON.stringify(merged)],
+  );
+}
+
 export async function addStockMovementToPostgres(movement: StockMovementInput) {
   return transactionPostgres("operations", (db) => insertStockMovement(db, movement));
 }
@@ -999,6 +1025,14 @@ export async function insertStockMovement(
   // movement list does not grow a second way of writing the same design.
   record.design = stock.design;
   await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
+
+  // Record the size split, when a stock-in carries one, as metadata beside the
+  // authoritative pair count. Additive: the pairs above are already written and
+  // unchanged; this only fills the size_breakdown column so a later step can show
+  // which sizes the pairs are. Merges (adds) into whatever the row already holds.
+  if (movement.sizeBreakdown && (record.type === "Production In" || record.type === "Purchase In")) {
+    await mergeSizeBreakdown(db, stock.id, movement.sizeBreakdown);
+  }
 
   const rows = await db.query<StockMovementRow>(
     `
