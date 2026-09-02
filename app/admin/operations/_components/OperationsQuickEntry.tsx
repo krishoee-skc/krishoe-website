@@ -53,13 +53,17 @@ export default function OperationsQuickEntry({
               no longer takes a number — so the three ways in are spelled out
               rather than left to be guessed from the dropdown. */}
           <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
-            स्टक भित्र्याउने <strong className="text-brand-green-ink">एउटै ठाउँ</strong>:
+            <strong className="text-brand-green-ink">
+              <T en="One place to bring stock in" ne="स्टक भित्र्याउने एउटै ठाउँ" />
+            </strong>:
             <br />
-            <strong>Production In</strong> — आफ्नै कारखानाले बनाएको
+            <strong>Production In</strong>{" "}
+            <T en="— made in your own factory" ne="— आफ्नै कारखानाले बनाएको" />
             <br />
-            <strong>Purchase In</strong> — किनेर ल्याएको
+            <strong>Purchase In</strong> <T en="— bought in" ne="— किनेर ल्याएको" />
             <br />
-            <strong>Adjustment</strong> — पहिलेदेखि भएको / गन्ती मिलाउने
+            <strong>Adjustment</strong>{" "}
+            <T en="— already existing / fixing the count" ne="— पहिलेदेखि भएको / गन्ती मिलाउने" />
             <br />
             <strong>Damage Out</strong>{" "}
             <T
@@ -149,10 +153,13 @@ export default function OperationsQuickEntry({
           them. */}
       <details className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper-deep/60 p-4">
         <summary className="cursor-pointer text-sm font-black text-brand-green-ink">
-          अरू विकल्प (7) — कच्चा पदार्थ · कामदार · गाडी · उधारो
+          <T
+            en="More options (7) — raw materials · workers · vehicles · credit"
+            ne="अरू विकल्प (7) — कच्चा पदार्थ · कामदार · गाडी · उधारो"
+          />
         </summary>
         <p className="mt-2 text-xs leading-5 text-brand-muted">
-          यी अहिले चलाइएका छैनन्। चाहिँदा यहीँ भेटिन्छन्।
+          <T en="These are not in use right now. They are here when needed." ne="यी अहिले चलाइएका छैनन्। चाहिँदा यहीँ भेटिन्छन्।" />
         </p>
         <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
