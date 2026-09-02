@@ -26,6 +26,10 @@ async function cleanup() {
   await queryPostgres("t", `DELETE FROM pos_invoices WHERE customer_name = $1`, [CUST]);
   await queryPostgres("t", `DELETE FROM stock_movements WHERE design = $1`, [D]);
   await queryPostgres("t", `DELETE FROM finished_stock WHERE design = $1`, [D]);
+  // A first-ever return creates a catalog product for the design (the storefront
+  // sync backfills one for any finished-stock design), so remove that too — or it
+  // lingers as a Draft with phantom stock after finished_stock is gone.
+  await queryPostgres("t", `DELETE FROM products WHERE name = $1`, [D]);
   await queryPostgres("t", `DELETE FROM ledger_transactions WHERE ledger_id IN (SELECT id FROM customer_ledgers WHERE customer_name = $1)`, [CUST]);
   await queryPostgres("t", `DELETE FROM customer_ledgers WHERE customer_name = $1`, [CUST]);
 }
