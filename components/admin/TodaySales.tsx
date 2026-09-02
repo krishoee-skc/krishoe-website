@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, PlusIcon } from "@/components/Icons";
+import T from "@/components/T";
 
 /**
  * The one number the owner opens this app to see.
@@ -30,7 +31,7 @@ export default function TodaySales({
   billCount: number;
   pairsSold: number;
 }) {
-  const money = (value: number) => `रु. ${Math.round(value).toLocaleString("en-IN")}`;
+  const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
   const owed = Math.max(0, Math.round(netSales - collected));
 
   return (
@@ -38,7 +39,7 @@ export default function TodaySales({
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">
-            आज बिक्री भयो · Sold today
+            <T en="Sold today" ne="आज बिक्री भयो" />
           </p>
           <p className="mt-2 font-display text-[2.75rem] font-black leading-none sm:text-6xl">
             {money(netSales)}
@@ -46,25 +47,27 @@ export default function TodaySales({
 
           {billCount > 0 ? (
             <p className="mt-4 text-sm text-white/70">
-              {billCount} बिल
-              {pairsSold > 0 ? ` · ${pairsSold} जोडी` : ""}
+              <T en={`${billCount} bill(s)`} ne={`${billCount} बिल`} />
+              {pairsSold > 0 ? <T en={` · ${pairsSold} pairs`} ne={` · ${pairsSold} जोडी`} /> : ""}
               {owed > 0 ? (
                 <>
                   {" · "}
                   <Link href="/admin/dues" className="font-bold text-brand-gold-bright hover:underline">
-                    {money(owed)} उधारो बाँकी
+                    <T en={`${money(owed)} credit due`} ne={`${money(owed)} उधारो बाँकी`} />
                   </Link>
                 </>
               ) : (
-                " · सबै तिरेको"
+                <T en=" · all paid" ne=" · सबै तिरेको" />
               )}
             </p>
           ) : (
             /* An empty day says so plainly. A zero with no sentence beside it
                reads as a broken screen rather than as a quiet morning. */
             <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">
-              आज अझै बिल काटिएको छैन। पसलमा बेच्नुभयो भने यहीँबाट टिप्नुहोस् —
-              स्टक र हिसाब आफैँ मिल्छ।
+              <T
+                en="No bill cut yet today. If you sold at the shop, record it from here — stock and books settle themselves."
+                ne="आज अझै बिल काटिएको छैन। पसलमा बेच्नुभयो भने यहीँबाट टिप्नुहोस् — स्टक र हिसाब आफैँ मिल्छ।"
+              />
             </p>
           )}
         </div>
@@ -75,13 +78,13 @@ export default function TodaySales({
             className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-gold-bright px-6 text-sm font-black text-brand-green-ink transition hover:bg-brand-paper"
           >
             <PlusIcon className="h-4 w-4" />
-            बिल काट्ने
+            <T en="Cut a bill" ne="बिल काट्ने" />
           </Link>
           <Link
             href="/admin/analytics"
             className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/25 px-5 text-sm font-bold text-white/85 transition hover:border-white/60 hover:text-white"
           >
-            हिसाब
+            <T en="Accounts" ne="हिसाब" />
             <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </div>

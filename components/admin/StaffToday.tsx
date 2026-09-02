@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, PlusIcon } from "@/components/Icons";
+import T from "@/components/T";
 
 /**
  * The counter's own screen, for the people who are not the owner.
@@ -31,7 +32,7 @@ export default function StaffToday({
   creditToday: number;
   ordersToSend: number;
 }) {
-  const money = (value: number) => `रु. ${Math.round(value).toLocaleString("en-IN")}`;
+  const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
   const firstName = name.trim().split(" ")[0];
 
   return (
@@ -42,12 +43,17 @@ export default function StaffToday({
             {role}
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
-            नमस्कार{firstName ? ` ${firstName}` : ""}
+            <T en={`Hello${firstName ? ` ${firstName}` : ""}`} ne={`नमस्कार${firstName ? ` ${firstName}` : ""}`} />
           </h1>
           <p className="mt-2 text-sm text-brand-muted">
-            {billsToday > 0
-              ? `तपाईंको काउन्टरबाट आज ${billsToday} बिल कटेको छ।`
-              : "आज अझै बिल कटेको छैन।"}
+            {billsToday > 0 ? (
+              <T
+                en={`${billsToday} bill(s) cut from your counter today.`}
+                ne={`तपाईंको काउन्टरबाट आज ${billsToday} बिल कटेको छ।`}
+              />
+            ) : (
+              <T en="No bill cut yet today." ne="आज अझै बिल कटेको छैन।" />
+            )}
           </p>
         </div>
 
@@ -56,13 +62,13 @@ export default function StaffToday({
           className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink"
         >
           <PlusIcon className="h-4 w-4" />
-          नयाँ बिल
+          <T en="New bill" ne="नयाँ बिल" />
         </Link>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
-          <p className="text-sm font-semibold text-brand-muted">आज काटेको</p>
+          <p className="text-sm font-semibold text-brand-muted"><T en="Sold today" ne="आज काटेको" /></p>
           <p className="mt-2 font-display text-2xl font-black text-brand-green-ink">
             {money(soldToday)}
           </p>
@@ -71,7 +77,7 @@ export default function StaffToday({
             folded into the total: it is money the shop has not got yet, and a
             counter that cannot see it will keep giving it. */}
         <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
-          <p className="text-sm font-semibold text-brand-muted">उधारो बाँकी</p>
+          <p className="text-sm font-semibold text-brand-muted"><T en="Credit due" ne="उधारो बाँकी" /></p>
           <p
             className={`mt-2 font-display text-2xl font-black ${
               creditToday > 0 ? "text-brand-clay" : "text-brand-green-ink"
@@ -81,7 +87,7 @@ export default function StaffToday({
           </p>
         </div>
         <div className="rounded-xl border border-brand-green-line bg-brand-paper/60 p-4">
-          <p className="text-sm font-semibold text-brand-muted">पठाउन बाँकी अर्डर</p>
+          <p className="text-sm font-semibold text-brand-muted"><T en="Orders to send" ne="पठाउन बाँकी अर्डर" /></p>
           <p className="mt-2 font-display text-2xl font-black text-brand-green-ink">
             {ordersToSend}
           </p>
@@ -89,9 +95,12 @@ export default function StaffToday({
       </div>
 
       <p className="mt-5 flex flex-wrap items-center gap-1.5 text-xs leading-5 text-brand-muted">
-        तलब, कारखाना र सेटिङ मालिकको मात्र हो — त्यसैले यहाँ देखिँदैन।
+        <T
+          en="Salary, factory and settings are the owner's only — so they are not shown here."
+          ne="तलब, कारखाना र सेटिङ मालिकको मात्र हो — त्यसैले यहाँ देखिँदैन।"
+        />
         <Link href="/admin/orders" className="inline-flex items-center gap-1 font-bold text-brand-green">
-          अर्डर हेर्ने
+          <T en="View orders" ne="अर्डर हेर्ने" />
           <ArrowRightIcon className="h-3.5 w-3.5" />
         </Link>
       </p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRightIcon, PackageIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
 import type { ComponentType } from "react";
+import T from "@/components/T";
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -37,37 +38,43 @@ export default function TodayBoard({
       tone: "urgent" as const,
       Icon: ShoppingCartIcon,
       count: newOrders,
-      text: `${newOrders} नयाँ अर्डर पठाउन बाँकी`,
+      textEn: `${newOrders} new order(s) to send`,
+      textNe: `${newOrders} नयाँ अर्डर पठाउन बाँकी`,
       href: "/admin/orders",
     },
     lowStockNames.length > 0 && {
       tone: "warn" as const,
       Icon: PackageIcon,
       count: lowStockNames.length,
-      text: `${lowStockNames.slice(0, 2).join(", ")}${lowStockNames.length > 2 ? ` +${lowStockNames.length - 2}` : ""} — माल सकिन लाग्यो`,
+      names: `${lowStockNames.slice(0, 2).join(", ")}${lowStockNames.length > 2 ? ` +${lowStockNames.length - 2}` : ""}`,
+      textEn: "running low",
+      textNe: "माल सकिन लाग्यो",
       href: "/admin/stock",
     },
     workerDue > 0 && {
       tone: "warn" as const,
       Icon: UserIcon,
       count: null,
-      text: `कामदारलाई ${money(workerDue)} दिन बाँकी`,
+      textEn: `${money(workerDue)} still to pay workers`,
+      textNe: `कामदारलाई ${money(workerDue)} दिन बाँकी`,
       href: "/admin/factory/salary",
     },
   ].filter(Boolean) as {
     tone: "urgent" | "warn";
     Icon: IconComponent;
     count: number | null;
-    text: string;
+    names?: string;
+    textEn: string;
+    textNe: string;
     href: string;
   }[];
 
   return (
     <section className="rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-2xl font-black text-brand-green-ink sm:text-3xl">आजको काम</h2>
+        <h2 className="font-display text-2xl font-black text-brand-green-ink sm:text-3xl"><T en="Today's work" ne="आजको काम" /></h2>
         <p className="text-sm font-bold text-brand-muted">
-          आज बनेको: <span className="text-brand-green">{todayPairs} जोडी</span>
+          <T en="Made today:" ne="आज बनेको:" /> <span className="text-brand-green"><T en={`${todayPairs} pairs`} ne={`${todayPairs} जोडी`} /></span>
         </p>
       </div>
 
@@ -80,12 +87,12 @@ export default function TodayBoard({
             >
               <CheckMark />
             </span>
-            <p className="text-base font-black text-emerald-900">✅ अहिले केही अड्किएको छैन।</p>
+            <p className="text-base font-black text-emerald-900">✅ <T en="Nothing stuck right now." ne="अहिले केही अड्किएको छैन।" /></p>
           </div>
         ) : (
           alerts.map((alert) => (
             <Link
-              key={alert.href + alert.text}
+              key={alert.href + alert.textEn}
               href={alert.href}
               className="group flex items-center gap-4 rounded-2xl p-4 shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md"
               style={{
@@ -107,7 +114,10 @@ export default function TodayBoard({
               >
                 <alert.Icon className="h-6 w-6" />
               </span>
-              <span className="min-w-0 flex-1 text-base font-bold text-brand-green-ink">{alert.text}</span>
+              <span className="min-w-0 flex-1 text-base font-bold text-brand-green-ink">
+                {alert.names ? `${alert.names} — ` : ""}
+                <T en={alert.textEn} ne={alert.textNe} />
+              </span>
               {alert.count !== null ? (
                 <span
                   className="font-display text-3xl font-black leading-none"
@@ -125,9 +135,9 @@ export default function TodayBoard({
       {/* The three jobs the owner actually does, big enough for a thumb. */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[
-          { href: "/admin/factory/add-work", label: "काम टिप्ने", english: "Add work" },
-          { href: "/admin/pos", label: "बिल काट्ने", english: "Billing" },
-          { href: "/admin/stock", label: "स्टक हेर्ने", english: "Stock" },
+          { href: "/admin/factory/add-work", labelNe: "काम टिप्ने", labelEn: "Add work" },
+          { href: "/admin/pos", labelNe: "बिल काट्ने", labelEn: "Billing" },
+          { href: "/admin/stock", labelNe: "स्टक हेर्ने", labelEn: "Stock" },
         ].map((action) => (
           <Link
             key={action.href}
@@ -136,8 +146,7 @@ export default function TodayBoard({
             style={{ background: "linear-gradient(150deg,#0e6349,#0B4D3B)" }}
           >
             <span>
-              {action.label}
-              <span className="block text-[11px] font-semibold text-white/70">{action.english}</span>
+              <T en={action.labelEn} ne={action.labelNe} />
             </span>
           </Link>
         ))}
