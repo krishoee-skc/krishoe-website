@@ -10,6 +10,7 @@ import {
   createVehicleDispatchItemAction,
   createWorkerTaskAction,
 } from "@/app/admin/operations/actions";
+import T from "@/components/T";
 import type { OperationsSnapshot } from "@/app/admin/operations/_components/types";
 import {
   inputClass,
@@ -59,6 +60,12 @@ export default function OperationsQuickEntry({
             <strong>Purchase In</strong> — किनेर ल्याएको
             <br />
             <strong>Adjustment</strong> — पहिलेदेखि भएको / गन्ती मिलाउने
+            <br />
+            <strong>Damage Out</strong>{" "}
+            <T
+              en="— write off a damaged or lost pair (not a sale)"
+              ne="— बिग्रेको / हराएको जुत्ता स्टकबाट हटाउने (बिक्री होइन)"
+            />
           </p>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
@@ -76,6 +83,7 @@ export default function OperationsQuickEntry({
               <option>Sale Out</option>
               <option>Market Sale</option>
               <option>Adjustment</option>
+              <option>Damage Out</option>
             </select>
           </div>
           <input name="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />

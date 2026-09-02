@@ -20,7 +20,11 @@ export type StockMovementType =
   | "Return In"
   | "Sale Out"
   | "Market Sale"
-  | "Adjustment";
+  | "Adjustment"
+  // Pairs written off the shelf — damaged, lost, or a quality reject after
+  // packing. Takes stock off exactly like a dispatch, but for a reason that is
+  // not a sale, so it never touches soldPairs.
+  | "Damage Out";
 
 // Only what the rules need. The stored rows carry more (id, size run), and the
 // callers keep those.
@@ -39,7 +43,7 @@ export type StockMovementEffect = {
 
 /** Movements that take pairs off the shelf, so they have to be checked first. */
 export function isStockOutMovement(type: StockMovementType) {
-  return type === "Dispatch Out" || type === "Sale Out";
+  return type === "Dispatch Out" || type === "Sale Out" || type === "Damage Out";
 }
 
 function isStockInMovement(type: StockMovementType) {
@@ -76,6 +80,11 @@ export function applyStockMovementToStock(stock: StockCounts, movement: StockMov
     stock.stockPairs -= movement.pairs;
   }
 
+  // Written off, not sold — pairs leave the shelf without adding to soldPairs.
+  if (movement.type === "Damage Out") {
+    stock.stockPairs -= movement.pairs;
+  }
+
   if (movement.type === "Sale Out") {
     stock.stockPairs -= movement.pairs;
     stock.soldPairs += movement.pairs;
@@ -109,6 +118,11 @@ export function reverseStockMovementFromStock(stock: StockCounts, movement: Stoc
   }
 
   if (movement.type === "Dispatch Out") {
+    stock.stockPairs += movement.pairs;
+  }
+
+  // Undoing a write-off puts the pairs back on the shelf.
+  if (movement.type === "Damage Out") {
     stock.stockPairs += movement.pairs;
   }
 

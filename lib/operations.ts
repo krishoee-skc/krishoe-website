@@ -411,6 +411,7 @@ function emptyStockMovementTotals(): Record<StockMovementType, number> {
     "Sale Out": 0,
     "Market Sale": 0,
     Adjustment: 0,
+    "Damage Out": 0,
   };
 }
 
