@@ -13,14 +13,18 @@ import type { BusinessChannel, FinishedStock } from "@/lib/operations";
  * treating a mixed pile as if every size were in it.
  */
 
-/** Net pairs on the shelf for one row: made, minus sold, plus what came back. */
-function availablePairs(
-  row: Pick<FinishedStock, "stockPairs" | "soldPairs" | "returnedPairs">,
-): number {
-  const made = Number(row.stockPairs) || 0;
-  const sold = Number(row.soldPairs) || 0;
-  const returned = Number(row.returnedPairs) || 0;
-  return Math.max(0, made - sold + returned);
+/**
+ * Pairs on the shelf for one row.
+ *
+ * stockPairs is ALREADY the live on-shelf count: a Sale Out subtracts from it
+ * (and separately tallies soldPairs), a Return In adds to it (and separately
+ * tallies returnedPairs) — see lib/stock-rules.ts. soldPairs and returnedPairs
+ * are running histories beside it, not amounts still to apply. Subtracting sold
+ * or adding returned here would count each a second time: a row with stockPairs
+ * 88 and soldPairs 12 has 88 pairs to sell, not 76. So availability IS stockPairs.
+ */
+function availablePairs(row: Pick<FinishedStock, "stockPairs">): number {
+  return Math.max(0, Number(row.stockPairs) || 0);
 }
 
 /** Available pairs keyed by the size label, for one design (optionally one channel). */
