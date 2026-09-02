@@ -111,6 +111,9 @@ function movementTone(type: StockMovement["type"]) {
   if (type === "Production In") return "bg-emerald-100 text-emerald-800";
   if (type === "Purchase In") return "bg-brand-green-wash text-brand-green";
   if (type === "Sale Out" || type === "Dispatch Out") return "bg-rose-100 text-rose-800";
+  // A write-off is a loss, not a sale — amber so it stands out from routine
+  // entries when the owner scans the movement list.
+  if (type === "Damage Out") return "bg-amber-100 text-amber-900";
   return "bg-brand-mist text-brand-muted-deep";
 }
 
@@ -297,6 +300,9 @@ export default async function AdminStockPage() {
         <StatCard label="KRISHOE manufactured" value={summary.manufacturedPairs} detail="Current pairs whose source history is Production In." />
         <StatCard label="Purchased for resale" value={summary.purchasedPairs} detail="Current pairs whose source history is Purchase In." />
         <StatCard label="Raw materials" value={summary.rawMaterialItems} detail={`${summary.rawMaterialReorderItems} material item(s) at or below reorder level.`} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
+        {summary.damagedPairs > 0 ? (
+          <StatCard label="Written off" value={summary.damagedPairs} detail="Pairs recorded as damaged or lost (Damage Out) — not a sale." tone="warn" />
+        ) : null}
       </div>
 
       <WherePairsAre

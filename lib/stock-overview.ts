@@ -95,6 +95,13 @@ export function buildStockOverview(data: OperationsData, products: Product[]) {
     })
     .sort((left, right) => Number(right.needsReorder) - Number(left.needsReorder) || left.onHand - right.onHand);
 
+  // Pairs written off as damaged or lost — a real cost worth its own number, not
+  // buried in the movement list. Summed straight from the movements, so it counts
+  // every write-off ever made, whatever channel or design it was on.
+  const damagedPairs = data.stockMovements
+    .filter((movement) => movement.type === "Damage Out")
+    .reduce((total, movement) => total + movement.pairs, 0);
+
   const byOrigin = (origin: ReadyStockOrigin) => readyStock.filter((row) => row.origin === origin);
   const sumPairs = (rows: ReadyStockOverviewRow[]) => rows.reduce((total, row) => total + row.stockPairs, 0);
   const manufactured = byOrigin("Manufactured");
@@ -118,6 +125,7 @@ export function buildStockOverview(data: OperationsData, products: Product[]) {
       purchasedPairs: sumPairs(purchased),
       mixedPairs: sumPairs(mixed),
       openingPairs: sumPairs(opening),
+      damagedPairs,
       sellableCatalogPairs: products.reduce((total, product) => total + product.stock, 0),
       catalogDesigns: products.length,
     },
