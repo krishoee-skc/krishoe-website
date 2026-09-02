@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import T from "@/components/T";
 
 export const metadata: Metadata = {
   title: "Security / CCTV | KRISHOE Admin",
@@ -126,30 +127,35 @@ export default function SecurityPage() {
 
       <div className="mt-5 grid max-w-5xl gap-5 lg:grid-cols-2">
         <div className="rounded-3xl border border-brand-green-line bg-brand-green-wash p-5">
-          <h2 className="text-base font-black text-brand-green">iPhone मा नखुलेमा</h2>
+          <h2 className="text-base font-black text-brand-green"><T en="If it does not open on iPhone" ne="iPhone मा नखुलेमा" /></h2>
           <ol className="mt-3 grid list-decimal gap-2 pl-5 text-sm leading-6 text-brand-green">
-            <li>माथिको iPhone / iPad बटन Safari मा खोल्नुहोस्।</li>
-            <li>App Store मा Get/Open थिच्नुहोस् र Apple ID पुष्टि गर्नुहोस्।</li>
-            <li>पहिले Google Play खुलेको थियो भने त्यो Android link भएकाले iPhone मा चल्दैन।</li>
+            <li><T en="Open the iPhone / iPad button above in Safari." ne="माथिको iPhone / iPad बटन Safari मा खोल्नुहोस्।" /></li>
+            <li><T en="Press Get/Open in the App Store and confirm your Apple ID." ne="App Store मा Get/Open थिच्नुहोस् र Apple ID पुष्टि गर्नुहोस्।" /></li>
+            <li><T en="If Google Play opened earlier, that is an Android link and will not work on iPhone." ne="पहिले Google Play खुलेको थियो भने त्यो Android link भएकाले iPhone मा चल्दैन।" /></li>
           </ol>
         </div>
 
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
           <h2 className="text-base font-black text-emerald-950">KRISHOE account safety</h2>
           <ul className="mt-3 grid gap-2 text-sm leading-6 text-emerald-900">
-            <li>हरेक staff लाई आफ्नै login दिनुहोस्; password नबाँड्नुहोस्।</li>
-            <li>Camera password KRISHOE staff password भन्दा फरक राख्नुहोस्।</li>
+            <li><T en="Give each staff member their own login; do not share the password." ne="हरेक staff लाई आफ्नै login दिनुहोस्; password नबाँड्नुहोस्।" /></li>
+            <li><T en="Keep the camera password different from the KRISHOE staff password." ne="Camera password KRISHOE staff password भन्दा फरक राख्नुहोस्।" /></li>
             <li>
-              बेलाबेला <Link href="/admin/activity" className="font-black underline">Activity log</Link> र{" "}
-              <Link href="/admin/login-devices" className="font-black underline">Login devices</Link> जाँच्नुहोस्।
+              <T en="Check " ne="बेलाबेला " />
+              <Link href="/admin/activity" className="font-black underline">Activity log</Link>
+              <T en=" and " ne=" र " />
+              <Link href="/admin/login-devices" className="font-black underline">Login devices</Link>
+              <T en=" from time to time." ne=" जाँच्नुहोस्।" />
             </li>
           </ul>
         </div>
       </div>
 
       <p className="mt-6 max-w-4xl text-xs leading-6 text-brand-muted">
-        CCTV ले स्थानको दृश्य सुरक्षा दिन्छ; KRISHOE ले बिक्री, stock, credit र activity records सुरक्षित राख्छ।
-        Live camera feed लाई KRISHOE भित्र embed गरिएको छैन।
+        <T
+          en="CCTV gives visual security of the place; KRISHOE keeps sales, stock, credit and activity records safe. The live camera feed is not embedded inside KRISHOE."
+          ne="CCTV ले स्थानको दृश्य सुरक्षा दिन्छ; KRISHOE ले बिक्री, stock, credit र activity records सुरक्षित राख्छ। Live camera feed लाई KRISHOE भित्र embed गरिएको छैन।"
+        />
       </p>
     </section>
   );

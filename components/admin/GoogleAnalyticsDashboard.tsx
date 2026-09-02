@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AnalyticsSnapshot } from "@/lib/google-analytics";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type DashboardState =
   | { state: "loading" }
@@ -35,14 +36,14 @@ async function loadSnapshot(days: number): Promise<DashboardState> {
         reason:
           (payload && "reason" in payload ? payload.reason : undefined) ??
           (payload && "error" in payload ? payload.error : undefined) ??
-          "Google Analytics load भएन।",
+          "Google Analytics did not load.",
         configured: payload && "configured" in payload ? payload.configured : false,
       };
     }
 
     return { state: "ready", snapshot: payload.snapshot };
   } catch {
-    return { state: "error", reason: "Google Analytics सँग जोडिन सकिएन।", configured: true };
+    return { state: "error", reason: "Could not connect to Google Analytics.", configured: true };
   }
 }
 
@@ -53,6 +54,7 @@ function formatDuration(seconds: number) {
 }
 
 export default function GoogleAnalyticsDashboard() {
+  const { text } = useLanguage();
   const [days, setDays] = useState(28);
   // Bumped to ask again for the range already shown, which changing `days`
   // alone cannot express.
@@ -86,9 +88,9 @@ export default function GoogleAnalyticsDashboard() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Google Analytics 4</p>
-          <h2 className="mt-1 text-xl font-black text-brand-green-ink">Website मा आएका ग्राहक</h2>
+          <h2 className="mt-1 text-xl font-black text-brand-green-ink">{text("Customers who came to the website", "Website मा आएका ग्राहक")}</h2>
           <p className="mt-1 text-sm text-brand-muted">
-            कुन पाना हेरे र कहाँबाट आए भन्ने live website data।
+            {text("Live website data on which pages they saw and where they came from.", "कुन पाना हेरे र कहाँबाट आए भन्ने live website data।")}
           </p>
         </div>
         <div className="flex gap-2" aria-label="Analytics time range">
@@ -101,28 +103,31 @@ export default function GoogleAnalyticsDashboard() {
                 days === option ? "bg-brand-green text-white" : "border border-brand-green/20 text-brand-green hover:bg-brand-mist"
               }`}
             >
-              {option} दिन
+              {text(`${option} days`, `${option} दिन`)}
             </button>
           ))}
         </div>
       </div>
 
       {dashboard.state === "loading" ? (
-        <p className="mt-6 text-sm text-brand-muted">Google को data पढिँदैछ…</p>
+        <p className="mt-6 text-sm text-brand-muted">{text("Reading Google's data…", "Google को data पढिँदैछ…")}</p>
       ) : null}
 
       {dashboard.state === "error" ? (
         <div className="mt-5 rounded-xl border border-brand-gold-bright/40 bg-brand-cream-soft p-4 text-sm text-brand-green-ink">
-          <p className="font-black">{dashboard.configured ? "Data लिन सकिएन" : "Google dashboard जोड्न बाँकी"}</p>
+          <p className="font-black">{dashboard.configured ? text("Could not fetch data", "Data लिन सकिएन") : text("Google dashboard still to connect", "Google dashboard जोड्न बाँकी")}</p>
           <p className="mt-1 leading-6">{dashboard.reason}</p>
           {!dashboard.configured ? (
             <p className="mt-3 leading-6">
-              Vercel मा <code>GA4_PROPERTY_ID</code> र <code>GA_SERVICE_ACCOUNT_KEY</code> राखेर service account लाई
-              Google Analytics property को <strong>Viewer</strong> बनाउनुहोस्।
+              {text("In Vercel, add ", "Vercel मा ")}
+              <code>GA4_PROPERTY_ID</code> {text("and", "र")} <code>GA_SERVICE_ACCOUNT_KEY</code>
+              {text(", then make the service account a ", " राखेर service account लाई ")}
+              <strong>Viewer</strong>
+              {text(" on the Google Analytics property.", " बनाउनुहोस्।")}
             </p>
           ) : null}
           <button type="button" onClick={() => reload(days)} className="mt-3 min-h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white">
-            फेरि प्रयास गर्ने
+            {text("Try again", "फेरि प्रयास गर्ने")}
           </button>
         </div>
       ) : null}
@@ -143,8 +148,8 @@ export default function GoogleAnalyticsDashboard() {
             ))}
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
-            <AnalyticsList title="धेरै हेरिएका पाना" rows={dashboard.snapshot.topPages} />
-            <AnalyticsList title="ग्राहक कहाँबाट आए" rows={dashboard.snapshot.channels} />
+            <AnalyticsList title={text("Most-viewed pages", "धेरै हेरिएका पाना")} rows={dashboard.snapshot.topPages} />
+            <AnalyticsList title={text("Where customers came from", "ग्राहक कहाँबाट आए")} rows={dashboard.snapshot.channels} />
           </div>
         </div>
       ) : null}
@@ -153,13 +158,14 @@ export default function GoogleAnalyticsDashboard() {
 }
 
 function AnalyticsList({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
+  const { text } = useLanguage();
   const maximum = Math.max(...rows.map((row) => row.count), 1);
 
   return (
     <div>
       <h3 className="font-black text-brand-green-ink">{title}</h3>
       <div className="mt-3 space-y-3">
-        {rows.length === 0 ? <p className="text-sm text-brand-muted">अहिलेसम्म data छैन।</p> : null}
+        {rows.length === 0 ? <p className="text-sm text-brand-muted">{text("No data yet.", "अहिलेसम्म data छैन।")}</p> : null}
         {rows.map((row) => (
           <div key={row.label}>
             <div className="flex justify-between gap-3 text-sm"><span className="truncate text-brand-muted-deep">{row.label}</span><strong>{row.count.toLocaleString()}</strong></div>

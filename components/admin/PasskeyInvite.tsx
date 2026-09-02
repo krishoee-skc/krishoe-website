@@ -8,6 +8,7 @@ import {
   startPasskeyRegistrationAction,
 } from "@/app/admin/login/passkey-actions";
 import { usePasskeySupport } from "@/lib/use-passkey-support";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * Offers to register this device, once, just after signing in.
@@ -35,22 +36,24 @@ const DELAY_MS = 1800;
 function deviceLabel() {
   const agent = navigator.userAgent;
   if (/iPhone|iPad/i.test(agent)) return "iPhone";
-  if (/Android/i.test(agent)) return "Android फोन";
+  if (/Android/i.test(agent)) return "Android";
   if (/Mac/i.test(agent)) return "Mac";
   return "Computer";
 }
 
-/** What the device calls the thing it will ask for. */
-function unlockWord() {
+/** What the device calls the thing it will ask for. Device names stay verbatim;
+ *  only the "or" between Face ID / Touch ID and the fingerprint word translate. */
+function unlockWord(text: (en: string, ne: string) => string) {
   const agent = navigator.userAgent;
-  if (/iPhone|iPad|Mac/i.test(agent)) return "Face ID वा Touch ID";
-  if (/Android/i.test(agent)) return "औंलाको छाप";
+  if (/iPhone|iPad|Mac/i.test(agent)) return text("Face ID or Touch ID", "Face ID वा Touch ID");
+  if (/Android/i.test(agent)) return text("a fingerprint", "औंलाको छाप");
   return "Windows Hello";
 }
 
 type Stage = "hidden" | "asking" | "working" | "done" | "failed";
 
 export default function PasskeyInvite() {
+  const { text } = useLanguage();
   const supported = usePasskeySupport();
   const [stage, setStage] = useState<Stage>("hidden");
   const [problem, setProblem] = useState("");
@@ -118,7 +121,7 @@ export default function PasskeyInvite() {
     } catch {
       // A cancelled Face ID prompt lands here, and it is not an error worth a
       // red box — the person simply changed their mind.
-      setProblem("चालु भएन। फेरि प्रयास गर्न Settings → Login devices मा जानुहोस्।");
+      setProblem(text("Did not turn on. To try again, go to Settings → Login devices.", "चालु भएन। फेरि प्रयास गर्न Settings → Login devices मा जानुहोस्।"));
       setStage("failed");
     }
   }
@@ -134,16 +137,16 @@ export default function PasskeyInvite() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-base font-black text-brand-green-ink">
-              अब {unlockWord()} ले खुल्छ
+              {text(`Now it opens with ${unlockWord(text)}`, `अब ${unlockWord(text)} ले खुल्छ`)}
             </p>
             <p className="mt-0.5 text-sm text-brand-muted">
-              यो {deviceLabel()} मा अब password टाइप गर्नु पर्दैन।
+              {text(`No password to type on this ${deviceLabel()} anymore.`, `यो ${deviceLabel()} मा अब password टाइप गर्नु पर्दैन।`)}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setStage("hidden")}
-            aria-label="बन्द गर्ने"
+            aria-label={text("Close", "बन्द गर्ने")}
             className="-mr-1 -mt-1 rounded-lg px-2 py-1 text-lg leading-none text-brand-muted hover:bg-brand-mist"
           >
             ✕
@@ -156,10 +159,10 @@ export default function PasskeyInvite() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-base font-black leading-6 text-brand-green-ink">
-              अर्को पटक {unlockWord()} ले खोल्ने?
+              {text(`Open with ${unlockWord(text)} next time?`, `अर्को पटक ${unlockWord(text)} ले खोल्ने?`)}
             </p>
             <p className="mt-1 text-sm leading-6 text-brand-muted">
-              यो {deviceLabel()} मा एक पटक मिलाउनुहोस् — अनि password टाइप गर्नु पर्दैन।
+              {text(`Set it up once on this ${deviceLabel()} — then no password to type.`, `यो ${deviceLabel()} मा एक पटक मिलाउनुहोस् — अनि password टाइप गर्नु पर्दैन।`)}
             </p>
 
             {stage === "failed" && problem ? (
@@ -175,7 +178,7 @@ export default function PasskeyInvite() {
                 disabled={stage === "working"}
                 className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white disabled:opacity-60"
               >
-                {stage === "working" ? "मिलाउँदै…" : "हुन्छ, चालु गर्ने"}
+                {stage === "working" ? text("Setting up…", "मिलाउँदै…") : text("Yes, turn on", "हुन्छ, चालु गर्ने")}
               </button>
               <button
                 type="button"
@@ -185,12 +188,12 @@ export default function PasskeyInvite() {
                 }}
                 className="min-h-11 rounded-xl border border-brand-green/30 bg-brand-paper px-3 text-sm font-black text-brand-green-ink"
               >
-                पछि
+                {text("Later", "पछि")}
               </button>
             </div>
 
             <p className="mt-2 text-xs leading-5 text-brand-muted">
-              password पहिलेकै जस्तै चल्छ — यो थपिने सुविधा हो।
+              {text("The password works just as before — this is an added convenience.", "password पहिलेकै जस्तै चल्छ — यो थपिने सुविधा हो।")}
             </p>
           </div>
         </div>

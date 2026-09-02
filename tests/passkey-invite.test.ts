@@ -134,8 +134,10 @@ describe("the words on the passkey screens", () => {
     const invite = await readFile(INVITE, "utf8");
     const shown = invite.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
-    // The headline after success, and the one asking.
-    expect(shown).toContain("अब {unlockWord()} ले खुल्छ");
+    // The headline after success, and the one asking — now bilingual, so the
+    // benefit leads in whichever language the reader chose.
+    expect(shown).toContain("ले खुल्छ");
+    expect(shown).toContain("Now it opens with");
     expect(shown).toContain("password टाइप गर्नु पर्दैन");
   });
 
