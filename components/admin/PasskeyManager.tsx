@@ -11,6 +11,7 @@ import {
 import type { StoredPasskey } from "@/lib/passkeys";
 import { usePasskeySupport } from "@/lib/use-passkey-support";
 import { formatAdminDate } from "@/lib/format-date";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * Adding and removing the devices that can sign in without a password.
@@ -20,6 +21,7 @@ import { formatAdminDate } from "@/lib/format-date";
  * from credential ids, so each one is named when it is created.
  */
 export default function PasskeyManager() {
+  const { text } = useLanguage();
   const [keys, setKeys] = useState<StoredPasskey[] | null>(null);
   const supported = usePasskeySupport();
   const [busy, setBusy] = useState(false);
@@ -57,7 +59,7 @@ export default function PasskeyManager() {
         /iPhone|iPad/i.test(navigator.userAgent)
           ? "iPhone"
           : /Android/i.test(navigator.userAgent)
-            ? "Android फोन"
+            ? "Android"
             : /Mac/i.test(navigator.userAgent)
               ? "Mac"
               : "Computer";
@@ -68,14 +70,14 @@ export default function PasskeyManager() {
         return;
       }
 
-      setMessage("भयो — अब यो यन्त्रबाट password बिनै भित्र जान सकिन्छ।");
+      setMessage(text("Done — you can now sign in from this device without a password.", "भयो — अब यो यन्त्रबाट password बिनै भित्र जान सकिन्छ।"));
       await refresh();
     } catch (cause) {
       const name = (cause as { name?: string })?.name;
       if (name === "InvalidStateError") {
-        setMessage("यो यन्त्र पहिल्यै दर्ता छ।");
+        setMessage(text("This device is already registered.", "यो यन्त्र पहिल्यै दर्ता छ।"));
       } else if (name !== "NotAllowedError" && name !== "AbortError") {
-        setMessage("दर्ता गर्न सकिएन। फेरि प्रयास गर्नुहोस्।");
+        setMessage(text("Could not register. Please try again.", "दर्ता गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"));
       }
     } finally {
       setBusy(false);
@@ -87,13 +89,13 @@ export default function PasskeyManager() {
     await deletePasskeyAction(id);
     await refresh();
     setBusy(false);
-    setMessage("हटाइयो।");
+    setMessage(text("Removed.", "हटाइयो।"));
   }
 
   return (
     <section className="rounded-2xl border border-brand-green/15 bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">
-        Passkey — password बिनाको login
+        {text("Passkey — login without a password", "Passkey — password बिनाको login")}
       </h2>
       <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
         {/* Which of the three it uses is the device's decision, not ours, and
@@ -101,21 +103,28 @@ export default function PasskeyManager() {
             look for a sensor that is not there and conclude the app does not
             work on their phone. The device words stay in English because that
             is what the phone itself says on screen. */}
-        Face ID, Touch ID वा फोनकै PIN — यन्त्रसँग जे छ, त्यसैले भित्र जाने।
-        Password टाइप गर्नै पर्दैन, र कसैले हेरेर वा अनुमान गरेर चोर्न सक्दैन।
+        {text(
+          "Face ID, Touch ID or the phone's own PIN — whatever the device has is how you sign in. No password to type, and nobody can steal it by watching or guessing.",
+          "Face ID, Touch ID वा फोनकै PIN — यन्त्रसँग जे छ, त्यसैले भित्र जाने। Password टाइप गर्नै पर्दैन, र कसैले हेरेर वा अनुमान गरेर चोर्न सक्दैन।",
+        )}
       </p>
       {/* A passkey lives on one device and dies with it. Saying so here is the
           difference between a shortcut and a trap: if the phone is lost or
           reset, the password and the emailed code are still the way in, and
           that path is never taken away. */}
       <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-        यो यन्त्रमा मात्र बस्छ — अर्को फोन वा computer मा छुट्टै दर्ता गर्नुपर्छ।
-        फोन हरायो वा reset भयो भने password र email को कोडले सधैँ पस्न मिल्छ।
+        {text(
+          "It lives only on this device — another phone or computer must be registered separately. If the phone is lost or reset, the password and the email code always let you in.",
+          "यो यन्त्रमा मात्र बस्छ — अर्को फोन वा computer मा छुट्टै दर्ता गर्नुपर्छ। फोन हरायो वा reset भयो भने password र email को कोडले सधैँ पस्न मिल्छ।",
+        )}
       </p>
 
       {!supported ? (
         <p className="mt-4 rounded-xl bg-brand-clay-mist px-4 py-3 text-sm font-bold text-brand-clay">
-          यो browser मा passkey चल्दैन। नयाँ Chrome/Safari प्रयोग गर्नुहोस्।
+          {text(
+            "Passkeys do not work in this browser. Please use a recent Chrome or Safari.",
+            "यो browser मा passkey चल्दैन। नयाँ Chrome/Safari प्रयोग गर्नुहोस्।",
+          )}
         </p>
       ) : (
         <button
@@ -124,7 +133,7 @@ export default function PasskeyManager() {
           disabled={busy}
           className="mt-4 min-h-11 rounded-full bg-brand-green px-6 text-sm font-black text-white disabled:opacity-60"
         >
-          {busy ? "गर्दैछौँ…" : "यो यन्त्र दर्ता गर्ने"}
+          {busy ? text("Working…", "गर्दैछौँ…") : text("Register this device", "यो यन्त्र दर्ता गर्ने")}
         </button>
       )}
 
@@ -134,10 +143,13 @@ export default function PasskeyManager() {
 
       <div className="mt-5">
         {keys === null ? (
-          <p className="text-sm text-brand-muted">हेर्दैछौँ…</p>
+          <p className="text-sm text-brand-muted">{text("Loading…", "हेर्दैछौँ…")}</p>
         ) : keys.length === 0 ? (
           <p className="text-sm text-brand-muted">
-            अहिलेसम्म कुनै यन्त्र दर्ता छैन — password बाटै चलिरहेको छ।
+            {text(
+              "No device registered yet — still signing in with a password.",
+              "अहिलेसम्म कुनै यन्त्र दर्ता छैन — password बाटै चलिरहेको छ।",
+            )}
           </p>
         ) : (
           <ul className="grid gap-2">
@@ -148,17 +160,17 @@ export default function PasskeyManager() {
               >
                 <div>
                   <p className="font-black text-brand-green-ink">
-                    {key.label || "यन्त्र"}
+                    {key.label || text("Device", "यन्त्र")}
                     {key.backedUp ? (
                       <span className="ml-2 rounded-full bg-brand-green-mist px-2 py-0.5 text-xs font-bold text-brand-green">
-                        अरू यन्त्रमा पनि
+                        {text("On other devices too", "अरू यन्त्रमा पनि")}
                       </span>
                     ) : null}
                   </p>
                   <p className="mt-0.5 text-xs text-brand-muted">
                     {key.lastUsedAt
-                      ? `पछिल्लो पटक: ${formatAdminDate(key.lastUsedAt)}`
-                      : "अझै प्रयोग भएको छैन"}
+                      ? text(`Last used: ${formatAdminDate(key.lastUsedAt)}`, `पछिल्लो पटक: ${formatAdminDate(key.lastUsedAt)}`)
+                      : text("Not used yet", "अझै प्रयोग भएको छैन")}
                   </p>
                 </div>
                 <button
@@ -167,7 +179,7 @@ export default function PasskeyManager() {
                   disabled={busy}
                   className="min-h-10 rounded-full border border-brand-clay/40 px-4 text-sm font-bold text-brand-clay disabled:opacity-60"
                 >
-                  हटाउने
+                  {text("Remove", "हटाउने")}
                 </button>
               </li>
             ))}
@@ -176,8 +188,11 @@ export default function PasskeyManager() {
       </div>
 
       <p className="mt-4 text-xs leading-5 text-brand-muted">
-        ⚠️ Password हट्दैन — passkey थपिने मात्र हो। फोन हराए password बाटै भित्र
-        जान सकिन्छ, अनि यहाँबाट त्यो यन्त्र हटाइदिनुहोस्।
+        ⚠️{" "}
+        {text(
+          "The password stays — a passkey is only added. If the phone is lost you can still sign in with the password, then remove that device from here.",
+          "Password हट्दैन — passkey थपिने मात्र हो। फोन हराए password बाटै भित्र जान सकिन्छ, अनि यहाँबाट त्यो यन्त्र हटाइदिनुहोस्।",
+        )}
       </p>
     </section>
   );

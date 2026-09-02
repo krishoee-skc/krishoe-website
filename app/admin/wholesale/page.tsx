@@ -3,8 +3,9 @@ import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listWholesaleEnquiries } from "@/lib/wholesale-enquiries";
 import { updateEnquiryStatusAction } from "./actions";
 import { formatAdminDate } from "@/lib/format-date";
+import T from "@/components/T";
 
-export const metadata: Metadata = { title: "थोकको सोधपुछ | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Wholesale enquiries | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 const statusTone: Record<string, string> = {
@@ -27,10 +28,14 @@ export default async function WholesaleEnquiriesPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="font-display text-3xl font-black text-brand-green-ink">थोकको सोधपुछ</h1>
+        <h1 className="font-display text-3xl font-black text-brand-green-ink">
+          <T en="Wholesale enquiries" ne="थोकको सोधपुछ" />
+        </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-          पसलहरूले वेबसाइटबाट पठाएको सोधपुछ। एउटा थोक ग्राहक = ५० जोडी — त्यसैले
-          चाँडो फोन गर्नुहोस्।
+          <T
+            en="Enquiries shops sent from the website. One wholesale customer = 50 pairs — so call quickly."
+            ne="पसलहरूले वेबसाइटबाट पठाएको सोधपुछ। एउटा थोक ग्राहक = ५० जोडी — त्यसैले चाँडो फोन गर्नुहोस्।"
+          />
         </p>
       </div>
 
@@ -42,18 +47,22 @@ export default async function WholesaleEnquiriesPage({
 
       <div className="mt-5 flex flex-wrap gap-2 text-sm font-black">
         <span className={`rounded-full px-3 py-1.5 ${fresh > 0 ? "bg-brand-clay text-white" : "bg-brand-mist text-brand-muted"}`}>
-          {fresh > 0 ? `${fresh} नयाँ — फोन गर्न बाँकी` : "नयाँ सोधपुछ छैन"}
+          {fresh > 0 ? (
+            <T en={`${fresh} new — to call`} ne={`${fresh} नयाँ — फोन गर्न बाँकी`} />
+          ) : (
+            <T en="No new enquiries" ne="नयाँ सोधपुछ छैन" />
+          )}
         </span>
         <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">
-          जम्मा {enquiries.length}
+          <T en={`Total ${enquiries.length}`} ne={`जम्मा ${enquiries.length}`} />
         </span>
       </div>
 
       {enquiries.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-dashed border-brand-green-line p-8 text-center text-sm font-semibold text-brand-muted">
-          अझै कुनै सोधपुछ आएको छैन। पसलहरूलाई{" "}
-          <span className="font-mono text-brand-green">krishoe-website.vercel.app/wholesale</span>{" "}
-          पठाउनुहोस्।
+          <T en="No enquiries yet. Send shops to " ne="अझै कुनै सोधपुछ आएको छैन। पसलहरूलाई " />
+          <span className="font-mono text-brand-green">krishoe.com/wholesale</span>
+          <T en="." ne=" पठाउनुहोस्।" />
         </p>
       ) : (
         <div className="mt-6 grid gap-4 xl:grid-cols-2">
@@ -94,18 +103,20 @@ export default async function WholesaleEnquiriesPage({
               <dl className="mt-4 grid gap-2 rounded-xl bg-brand-paper-deep p-3 text-sm sm:grid-cols-2">
                 {enquiry.monthlyPairs > 0 ? (
                   <div>
-                    <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft">महिनामा</dt>
-                    <dd className="font-bold text-brand-green-ink">{enquiry.monthlyPairs} जोडी</dd>
+                    <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft"><T en="Per month" ne="महिनामा" /></dt>
+                    <dd className="font-bold text-brand-green-ink">
+                      <T en={`${enquiry.monthlyPairs} pairs`} ne={`${enquiry.monthlyPairs} जोडी`} />
+                    </dd>
                   </div>
                 ) : null}
                 {enquiry.email ? (
                   <div className="min-w-0">
-                    <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft">इमेल</dt>
+                    <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft"><T en="Email" ne="इमेल" /></dt>
                     <dd className="truncate font-bold text-brand-green-ink">{enquiry.email}</dd>
                   </div>
                 ) : null}
                 <div className="sm:col-span-2">
-                  <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft">आयो</dt>
+                  <dt className="text-xs font-black uppercase tracking-wider text-brand-muted-soft"><T en="Received" ne="आयो" /></dt>
                   <dd className="font-bold text-brand-green-ink">
                     {formatAdminDate(enquiry.createdAt, { time: true })}
                   </dd>
@@ -126,22 +137,22 @@ export default async function WholesaleEnquiriesPage({
                   className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green"
                 >
                   <option value="New">New</option>
-                  <option value="Contacted">फोन गरेँ</option>
-                  <option value="Customer">ग्राहक बने</option>
-                  <option value="Closed">बन्द</option>
+                  <option value="Contacted">Called</option>
+                  <option value="Customer">Became customer</option>
+                  <option value="Closed">Closed</option>
                 </select>
                 <input
                   name="note"
                   defaultValue={enquiry.note}
                   maxLength={500}
-                  placeholder="के कुरा भयो"
+                  placeholder="What was discussed"
                   className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green"
                 />
                 <button
                   type="submit"
                   className="min-h-11 rounded-xl border border-brand-green-line px-4 text-sm font-black text-brand-green-ink transition hover:border-brand-green"
                 >
-                  सुरक्षित
+                  <T en="Save" ne="सुरक्षित" />
                 </button>
               </form>
             </article>
