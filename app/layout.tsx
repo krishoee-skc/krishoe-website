@@ -108,6 +108,20 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  // Facebook domain verification — the meta tag Meta checks to confirm KRISHOE
+  // owns krishoe.com, which iOS ad delivery and link-editing on the Page both
+  // need. The code is a string Meta generates in Business Settings → Brand
+  // Safety → Domains; paste it into FACEBOOK_DOMAIN_VERIFICATION and it appears
+  // here with no code change. Absent, no tag is emitted — nothing breaks.
+  ...(process.env.FACEBOOK_DOMAIN_VERIFICATION
+    ? {
+        verification: {
+          other: {
+            "facebook-domain-verification": process.env.FACEBOOK_DOMAIN_VERIFICATION.trim(),
+          },
+        },
+      }
+    : {}),
   openGraph: {
     title: siteConfig.defaultTitle,
     description: siteConfig.shortDescription,

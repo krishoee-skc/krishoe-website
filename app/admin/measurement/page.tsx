@@ -160,6 +160,7 @@ export default async function MeasurementPage() {
 
   const live = trackers.filter((tracker) => Boolean(tracker.value));
   const missing = trackers.filter((tracker) => !tracker.value);
+  const domainVerified = Boolean((process.env.FACEBOOK_DOMAIN_VERIFICATION ?? "").trim());
 
   return (
     <section className="p-6 pb-24">
@@ -414,6 +415,73 @@ export default async function MeasurementPage() {
             ne="नाम ठ्याक्कै माथिकै जस्तो हुनुपर्छ — एउटा अक्षर फरक परे चल्दैन।"
           />
         </p>
+      </section>
+
+      {/* Domain verification is a separate thing from the pixel: it proves to
+          Meta that KRISHOE owns krishoe.com, which iOS ad delivery and editing a
+          link's preview on the Page both need. It is a one-time paste of a code
+          Meta generates, into its own env var — kept apart from the pixel steps
+          so the two are not confused. */}
+      <section className="mt-8 rounded-2xl border-2 border-brand-gold/40 bg-brand-cream-soft p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="Prove Facebook you own the website" ne="वेबसाइट तपाईंकै हो भनी Facebook लाई देखाउने" />
+          </h2>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-black ${
+              domainVerified ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"
+            }`}
+          >
+            {domainVerified ? (
+              <T en="On" ne="चालु" />
+            ) : (
+              <T en="Not set yet" ne="अझै बाँकी" />
+            )}
+          </span>
+        </div>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
+          <T
+            en="This is not the pixel — it is a one-time code that tells Facebook krishoe.com belongs to you. Meta needs it to run ads to iPhone users properly and to let you edit how a shared link looks on your Page."
+            ne="यो pixel होइन — यो एक पटकको कोड हो जसले Facebook लाई krishoe.com तपाईंकै हो भन्छ। iPhone प्रयोगकर्तालाई राम्ररी विज्ञापन देखाउन र Page मा link कस्तो देखिन्छ मिलाउन Meta लाई यो चाहिन्छ।"
+          />
+        </p>
+        <ol className="mt-4 grid gap-2 text-sm leading-6 text-brand-muted-deep">
+          {[
+            {
+              en: "Open Meta Business Settings → Brand Safety → Domains",
+              ne: "Meta Business Settings → Brand Safety → Domains खोल्नुहोस्",
+            },
+            { en: "Add krishoe.com, then choose the Meta-tag method", ne: "krishoe.com थप्नुहोस्, अनि Meta-tag तरिका छान्नुहोस्" },
+            {
+              en: "Copy only the code inside the content part of the tag, not the whole tag",
+              ne: "tag भित्रको content भागको कोड मात्र copy गर्नुहोस्, पूरै tag होइन",
+            },
+            {
+              en: "Paste it into FACEBOOK_DOMAIN_VERIFICATION in Vercel env vars, Redeploy, then press Verify in Meta",
+              ne: "त्यो कोड Vercel env vars मा FACEBOOK_DOMAIN_VERIFICATION मा हाल्नुहोस्, Redeploy गर्नुहोस्, अनि Meta मा Verify थिच्नुहोस्",
+            },
+          ].map((step, index) => (
+            <li key={step.en} className="flex gap-3 rounded-xl bg-brand-paper px-3 py-2">
+              <span className="font-black text-brand-green">{index + 1}.</span>
+              <span>
+                <T en={step.en} ne={step.ne} />
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href="https://business.facebook.com/settings/owned-domains"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center rounded-xl bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink"
+          >
+            <T en="Open Meta Domains" ne="Meta Domains खोल्ने" /> ↗
+          </a>
+          <span className="inline-flex items-center rounded-xl bg-brand-paper px-3 font-mono text-xs text-brand-green">
+            FACEBOOK_DOMAIN_VERIFICATION
+          </span>
+        </div>
       </section>
     </section>
   );
