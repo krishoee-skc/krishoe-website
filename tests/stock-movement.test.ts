@@ -74,6 +74,13 @@ describe("outbound movements", () => {
     expect(row.stockPairs).toBe(100);
     expect(row.soldPairs).toBe(50);
   });
+
+  it("Damage Out removes pairs from stock without counting them as sold", () => {
+    const row = stock({ stockPairs: 100, soldPairs: 20 });
+    applyStockMovementToStock(row, { type: "Damage Out", pairs: 12 });
+    expect(row.stockPairs).toBe(88);
+    expect(row.soldPairs).toBe(20); // damaged/lost, not sold — money stays honest
+  });
 });
 
 describe("overselling guards", () => {
@@ -104,9 +111,18 @@ describe("overselling guards", () => {
     expect(row.stockPairs).toBe(0);
   });
 
+  it("refuses to write off more pairs than are in stock", () => {
+    const row = stock({ stockPairs: 10 });
+    expect(() => applyStockMovementToStock(row, { type: "Damage Out", pairs: 11 })).toThrow(
+      /has only 10 pairs/,
+    );
+    expect(row.stockPairs).toBe(10);
+  });
+
   it("names the outbound types that are stock checked", () => {
     expect(isStockOutMovement("Sale Out")).toBe(true);
     expect(isStockOutMovement("Dispatch Out")).toBe(true);
+    expect(isStockOutMovement("Damage Out")).toBe(true);
     // Market Sale does not reduce stock, so it has nothing to check against.
     expect(isStockOutMovement("Market Sale")).toBe(false);
     expect(isStockOutMovement("Purchase In")).toBe(false);
@@ -160,6 +176,14 @@ describe("reversing a movement", () => {
     applyStockMovementToStock(row, { type: "Dispatch Out", pairs: 30 });
     reverseStockMovementFromStock(row, { type: "Dispatch Out", pairs: 30 });
     expect(row.stockPairs).toBe(100);
+  });
+
+  it("Damage Out reversal puts the written-off pairs back", () => {
+    const row = stock({ stockPairs: 100, soldPairs: 20 });
+    applyStockMovementToStock(row, { type: "Damage Out", pairs: 15 });
+    reverseStockMovementFromStock(row, { type: "Damage Out", pairs: 15 });
+    expect(row.stockPairs).toBe(100);
+    expect(row.soldPairs).toBe(20); // a write-off is never a sale
   });
 
   it.each(inbound)("refuses to reverse %s when the stock it added is already gone", (type) => {

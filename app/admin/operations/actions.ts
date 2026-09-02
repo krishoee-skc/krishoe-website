@@ -56,6 +56,7 @@ const stockMovementTypes: StockMovement["type"][] = [
   "Sale Out",
   "Market Sale",
   "Adjustment",
+  "Damage Out",
 ];
 const ledgerTransactionTypes: LedgerTransaction["type"][] = [
   "Cash Payment",

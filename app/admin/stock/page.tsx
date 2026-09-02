@@ -5,7 +5,7 @@ import { getOperationsData, type StockMovement } from "@/lib/operations";
 import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
-import { buildStockOverview, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
+import { buildStockOverview, catalogStockWarnings, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
 import { outlookAdvice, stockOutlook, type StockOutlook } from "@/lib/stock-forecast";
 import { getStockByPlace, getStockTransfers } from "@/lib/stock-transfers";
 import { getAdminSession } from "@/lib/admin-auth";
@@ -242,6 +242,9 @@ async function loadStock() {
       overview,
       byPlace,
       transfers,
+      // Products the shop would sell that trace to no ready-stock pool — the
+      // catalog number promising pairs the stock count cannot account for.
+      catalogWarnings: catalogStockWarnings(products, operations.finishedStock),
       outlook: stockOutlook(
         [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
         operations.stockMovements,
@@ -254,6 +257,7 @@ async function loadStock() {
       overview: null,
       byPlace: [],
       transfers: [],
+      catalogWarnings: [],
       outlook: [],
       error: saveFailureMessage(error, "Could not load stock control."),
     };
@@ -308,6 +312,63 @@ export default async function AdminStockPage() {
       <div className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft p-4 text-sm leading-6 text-brand-green-ink">
         <strong>Do not add catalog stock twice:</strong> the shop catalog currently shows {summary.sellableCatalogPairs} sellable pairs across {summary.catalogDesigns} designs. It is the selling view of ready stock, not a fourth warehouse.
       </div>
+
+      {loaded.catalogWarnings.length > 0 ? (
+        <div className="mt-4 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-black text-rose-900">
+                <T
+                  en="Website stock with no factory or purchase behind it"
+                  ne="कारखाना वा किनाइको आधार नभएको वेबसाइट स्टक"
+                />
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-rose-800">
+                <T
+                  en="The shop is selling these, but their pairs trace to no production or purchase — so the count promises stock the factory cannot account for. This is the drift that can make the shop show a shoe it may not have. Make or receive the pairs (log Production In / Purchase In), or take the website stock down."
+                  ne="पसलले यी बेचिरहेको छ, तर यिनका जोडी कुनै उत्पादन वा किनाइसँग मिल्दैनन् — त्यसैले संख्याले नभएको स्टकको वाचा गर्छ। यही फरकले पसलमा नभएको जुत्ता देखाउन सक्छ। जोडी बनाउनुहोस् वा भित्र्याउनुहोस् (Production In / Purchase In टिप्नुहोस्), वा वेबसाइट स्टक घटाउनुहोस्।"
+                />
+              </p>
+            </div>
+            <span className="inline-flex rounded-full border border-rose-300 bg-white px-3 py-1 text-xs font-black text-rose-800">
+              {loaded.catalogWarnings.length}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {loaded.catalogWarnings.map((warning) => (
+              <div
+                key={warning.productId}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-white p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-black text-brand-green-ink">{warning.productName}</p>
+                  <p className="mt-0.5 text-xs font-semibold text-brand-muted">
+                    {warning.sku ? `${warning.sku} · ` : ""}
+                    <T
+                      en={`${warning.websiteStock} pairs on the website · 0 in ready stock`}
+                      ne={`वेबसाइटमा ${warning.websiteStock} जोडी · तयारी स्टकमा ०`}
+                    />
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/admin/operations"
+                    className="rounded-full bg-brand-green px-3 py-1.5 text-xs font-black text-white"
+                  >
+                    <T en="Log stock" ne="स्टक टिप्ने" />
+                  </Link>
+                  <Link
+                    href={`/admin/products?edit=${encodeURIComponent(warning.productId)}`}
+                    className="rounded-full border border-rose-300 bg-white px-3 py-1.5 text-xs font-black text-rose-800"
+                  >
+                    <T en="Edit product" ne="सामान मिलाउने" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
