@@ -86,7 +86,16 @@ export default function OperationsQuickEntry({
               <option>Damage Out</option>
             </select>
           </div>
-          <input name="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
+          <div className="grid grid-cols-2 gap-2">
+            <input name="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
+            <input name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
+          </div>
+          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
+            <T
+              en="Size: type one size like 36 to file the pairs under that size. Leave it blank for a mixed pile."
+              ne="Size: एउटै साइज (जस्तै 36) टाइप गर्नुहोस् — जोडी त्यही साइजमा जान्छ। खाली छोडे मिश्रित (Mixed) पिलोमा बस्छ।"
+            />
+          </p>
           <textarea name="note" className={textareaClass} placeholder="Bill, vehicle, return, or adjustment note" />
           <SubmitActionButton label="Record movement" />
         </form>

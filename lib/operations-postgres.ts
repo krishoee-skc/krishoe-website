@@ -909,27 +909,44 @@ async function findOrCreateFinishedStock(
   const key = designKey(movement.design);
   const normalizedColumn = "lower(regexp_replace(btrim(design), '\\s+', ' ', 'g'))";
 
-  // Prefer an exact size-run row, then the aggregate "Mixed" row, then any row
-  // for this design/channel — this keeps range-based stock rows working while
-  // letting size-specific rows take over once the owner adds them.
-  const existingRows = await db.query<FinishedStockRow>(
-    `
-      SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
-      FROM finished_stock
-      WHERE ${normalizedColumn} = $1 AND channel = $2
-      ORDER BY
-        CASE
-          WHEN size_run = $3 THEN 0
-          WHEN size_run = 'Mixed' THEN 1
-          WHEN size_run LIKE '%-%' THEN 2
-          ELSE 3
-        END,
-        created_at DESC
-      LIMIT 1
-      FOR UPDATE
-    `,
-    [key, movement.channel, sizeRun],
-  );
+  // A real single size ("36", "9") is asking for that exact shelf, and must not
+  // be answered with the mixed pile — otherwise the size field can never split a
+  // "Mixed" row, because every size-36 entry would keep landing back on Mixed. So
+  // for a real size we match only that exact row (and create it below if absent).
+  // For "Mixed" or a range ("36-41") the old fallback still applies: prefer the
+  // exact label, then the Mixed aggregate, then a range, then any row — which
+  // keeps range-based and mixed stock working exactly as before.
+  const requestedSizeIsReal = /^\d{1,2}$/.test(sizeRun);
+  const existingRows = requestedSizeIsReal
+    ? await db.query<FinishedStockRow>(
+        `
+          SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
+          FROM finished_stock
+          WHERE ${normalizedColumn} = $1 AND channel = $2 AND size_run = $3
+          ORDER BY created_at DESC
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [key, movement.channel, sizeRun],
+      )
+    : await db.query<FinishedStockRow>(
+        `
+          SELECT id, design, channel, size_run, stock_pairs, sold_pairs, returned_pairs
+          FROM finished_stock
+          WHERE ${normalizedColumn} = $1 AND channel = $2
+          ORDER BY
+            CASE
+              WHEN size_run = $3 THEN 0
+              WHEN size_run = 'Mixed' THEN 1
+              WHEN size_run LIKE '%-%' THEN 2
+              ELSE 3
+            END,
+            created_at DESC
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [key, movement.channel, sizeRun],
+      );
 
   if (existingRows[0]) {
     return finishedStockFromRow(existingRows[0]);

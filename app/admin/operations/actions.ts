@@ -534,6 +534,9 @@ export async function createStockMovementAction(formData: FormData) {
     channel: optionValue(textValue(formData, "channel"), stockChannels, "Factory"),
     type: optionValue(textValue(formData, "type"), stockMovementTypes, "Production In"),
     pairs,
+    // A single real size ("36") files the pairs under that size; empty or "Mixed"
+    // keeps the old one-pile behaviour, so nothing existing changes.
+    sizeRun: textValue(formData, "sizeRun") || "Mixed",
     note: textValue(formData, "note"),
   });
   await syncCatalogStock(`stock movement for ${design}`);
