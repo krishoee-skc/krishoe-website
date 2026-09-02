@@ -101,8 +101,8 @@ export default function FactoryItemsPage() {
       if (!response.ok) throw new Error(data.error || "Item status could not be changed.");
       setMessage(
         status === "inactive"
-          ? "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। हिसाब जस्ताको तस्तै छ।"
-          : "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।",
+          ? text("Turned off — no longer shows in the add-work form. The books are unchanged.", "बन्द भयो — अब काम भर्ने फारममा देखिँदैन। हिसाब जस्ताको तस्तै छ।")
+          : text("Turned on again — now shows in the add-work form.", "फेरि चालु भयो — अब काम भर्ने फारममा देखिन्छ।"),
       );
       await loadItems();
     } catch (reason) {
@@ -124,7 +124,7 @@ export default function FactoryItemsPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Production Item could not be created.");
-      setMessage("Production Item बनेर जोडियो — अब यो item को लागत निस्कन थाल्छ।");
+      setMessage(text("Production Item created and linked — this item's cost now starts coming through.", "Production Item बनेर जोडियो — अब यो item को लागत निस्कन थाल्छ।"));
       await loadItems();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Production Item could not be created.");
@@ -197,9 +197,9 @@ export default function FactoryItemsPage() {
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">कारखानाका item</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">{text("Factory items", "कारखानाका item")}</p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-            item र दर <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
+            {text("Items and rates", "item र दर")} <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, Work Orders, costing and finished-stock identity. Link them once so both systems refer to the same product.
@@ -231,7 +231,7 @@ export default function FactoryItemsPage() {
                 <h2 className={`text-lg font-black ${item.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{item.name}</h2>
                 <p className="mt-1 text-xs font-semibold text-brand-muted">Factory code: {item.code || "Not set"}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-brand-green-line text-brand-muted-deep" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? "बन्द" : item.production_item_id ? "Master linked" : "Link needed"}</span>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-brand-green-line text-brand-muted-deep" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? text("Off", "बन्द") : item.production_item_id ? "Master linked" : "Link needed"}</span>
             </div>
 
             {/* Nothing to link while an item is out of use. Offering it would
@@ -297,7 +297,7 @@ export default function FactoryItemsPage() {
                 disabled={saving === item.id}
                 className="mt-2 min-h-12 w-full rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:opacity-60"
               >
-                {saving === item.id ? "गर्दैछौँ…" : "फेरि चालु गर्ने"}
+                {saving === item.id ? text("Working…", "गर्दैछौँ…") : text("Turn on again", "फेरि चालु गर्ने")}
               </button>
             ) : (
               <button
@@ -306,7 +306,7 @@ export default function FactoryItemsPage() {
                 disabled={saving === item.id}
                 className="mt-2 min-h-12 w-full rounded-xl border border-brand-green-line px-4 text-sm font-bold text-brand-muted disabled:opacity-60"
               >
-                {saving === item.id ? "गर्दैछौँ…" : "बन्द गर्ने — काम भर्ने फारमबाट हटाउने"}
+                {saving === item.id ? text("Working…", "गर्दैछौँ…") : text("Turn off — remove from the add-work form", "बन्द गर्ने — काम भर्ने फारमबाट हटाउने")}
               </button>
             )}
 
@@ -317,7 +317,7 @@ export default function FactoryItemsPage() {
                 disabled={saving === item.id}
                 className="mt-2 min-h-12 w-full rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
               >
-                {saving === item.id ? "बनाउँदैछौँ…" : `“${item.name}” को Production Item बनाएर जोड्ने`}
+                {saving === item.id ? text("Creating…", "बनाउँदैछौँ…") : text(`Create and link a Production Item for "${item.name}"`, `“${item.name}” को Production Item बनाएर जोड्ने`)}
               </button>
             ) : null}
           </article>

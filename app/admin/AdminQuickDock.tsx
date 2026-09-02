@@ -10,6 +10,7 @@ import {
   UserIcon,
 } from "@/components/Icons";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * The jobs a thumb should reach without opening a menu.
@@ -23,17 +24,18 @@ import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions
  * factory floor.
  */
 const links = [
-  { href: "/admin", label: "घर", Icon: HomeIcon },
-  { href: "/admin/factory/add-work", label: "काम टिप्ने", Icon: UserIcon },
-  { href: "/admin/pos", label: "बिल", Icon: CreditCardIcon },
-  { href: "/admin/stock", label: "स्टक", Icon: PackageIcon },
-  { href: "/admin/search", label: "खोज्ने", Icon: SearchIcon },
+  { href: "/admin", labelEn: "Home", labelNe: "घर", Icon: HomeIcon },
+  { href: "/admin/factory/add-work", labelEn: "Add work", labelNe: "काम टिप्ने", Icon: UserIcon },
+  { href: "/admin/pos", labelEn: "Bill", labelNe: "बिल", Icon: CreditCardIcon },
+  { href: "/admin/stock", labelEn: "Stock", labelNe: "स्टक", Icon: PackageIcon },
+  { href: "/admin/search", labelEn: "Search", labelNe: "खोज्ने", Icon: SearchIcon },
 ];
 
 export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
+  const { language } = useLanguage();
   const roleLinks = adminRole === "Factory"
-    ? [{ href: "/admin/factory", label: "कारखाना", Icon: PackageIcon }]
+    ? [{ href: "/admin/factory", labelEn: "Factory", labelNe: "कारखाना", Icon: PackageIcon }]
     : links;
   const visibleLinks = roleLinks.filter((link) => canAccessAdminPath(adminRole, link.href));
 
@@ -50,7 +52,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
           className="mx-auto grid max-w-md gap-1"
           style={{ gridTemplateColumns: `repeat(${Math.max(1, visibleLinks.length)}, minmax(0, 1fr))` }}
         >
-          {visibleLinks.map(({ href, label, Icon }) => {
+          {visibleLinks.map(({ href, labelEn, labelNe, Icon }) => {
             const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
             return (
               <Link
@@ -64,7 +66,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                {label}
+                {language === "ne" ? labelNe : labelEn}
               </Link>
             );
           })}

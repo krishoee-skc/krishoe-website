@@ -9,6 +9,7 @@ import { hasNoPhoto, isSamplePhoto } from "@/lib/product-photo";
 import { PencilIcon, TrashIcon } from "@/components/Icons";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { deleteProductAction, type ActionState } from "@/app/admin/actions";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function StatusBadge({ status }: { status: string }) {
   const baseClasses = "rounded-full px-2.5 py-1 text-xs font-semibold";
@@ -28,6 +29,7 @@ type ProductsClientProps = {
 };
 
 export default function ProductsClient({ products, editingId = null }: ProductsClientProps) {
+  const { text } = useLanguage();
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
   const [isDeleting, startDeleting] = useTransition();
@@ -75,17 +77,18 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
       {wrongPhotos.length > 0 ? (
         <div className="rounded-lg border border-brand-clay bg-brand-clay-tint p-4">
           <h2 className="text-sm font-black text-brand-clay">
-            📷 {wrongPhotos.length} जुत्ताको फोटो मिलेको छैन
+            📷 {text(`${wrongPhotos.length} shoe photo(s) not right`, `${wrongPhotos.length} जुत्ताको फोटो मिलेको छैन`)}
           </h2>
           <p className="mt-1 text-sm leading-6 text-brand-clay">
-            यी जुत्ता बिक्रीमा छन्, तर ग्राहकले गलत फोटो देख्छन् —{" "}
-            {wrongPhotos.reduce((total, product) => total + product.stock, 0)} जोर
-            जुत्ता यसरी बिक्दैन। मोबाइलबाटै खिचेर हाल्न मिल्छ।
+            {text(
+              `These shoes are on sale, but customers see the wrong photo — ${wrongPhotos.reduce((total, product) => total + product.stock, 0)} pairs will not sell this way. You can snap and upload right from a phone.`,
+              `यी जुत्ता बिक्रीमा छन्, तर ग्राहकले गलत फोटो देख्छन् — ${wrongPhotos.reduce((total, product) => total + product.stock, 0)} जोर जुत्ता यसरी बिक्दैन। मोबाइलबाटै खिचेर हाल्न मिल्छ।`,
+            )}
           </p>
           <ul className="mt-2 space-y-1">
             {wrongPhotos.map((product) => (
               <li key={product.id} className="text-sm font-bold text-brand-clay">
-                • {product.name} ({product.stock} जोर)
+                • {product.name} ({text(`${product.stock} pairs`, `${product.stock} जोर`)})
               </li>
             ))}
           </ul>
@@ -134,11 +137,11 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                     click away. */}
                 {isSamplePhoto(product.image) ? (
                   <span className="mt-1 block text-xs font-bold text-brand-clay">
-                    ⚠️ नमुना फोटो — असली जुत्ताको होइन
+                    ⚠️ {text("Sample photo — not the real shoe", "नमुना फोटो — असली जुत्ताको होइन")}
                   </span>
                 ) : hasNoPhoto(product.image) ? (
                   <span className="mt-1 block text-xs font-bold text-brand-clay">
-                    ⚠️ फोटो छैन
+                    ⚠️ {text("No photo", "फोटो छैन")}
                   </span>
                 ) : null}
               </td>
