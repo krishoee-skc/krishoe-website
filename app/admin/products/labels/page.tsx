@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import PrintButton from "@/components/admin/PrintButton";
+import T from "@/components/T";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -45,8 +46,10 @@ export default async function ProductLabelsPage() {
           </Link>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink">Barcode labels</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-            हरेक design को SKU barcode — sticker paper मा print गरी बट्टा/rack मा टाँस्नुहोस्। POS मा scan गर्नासाथ
-            सामान बिलमा झर्छ।
+            <T
+              en="An SKU barcode for each design — print on sticker paper and stick it on the box/rack. Scanning it at the POS drops the item onto the bill."
+              ne="हरेक design को SKU barcode — sticker paper मा print गरी बट्टा/rack मा टाँस्नुहोस्। POS मा scan गर्नासाथ सामान बिलमा झर्छ।"
+            />
           </p>
         </div>
         <PrintButton className="inline-flex h-11 items-center rounded-full bg-brand-green-ink px-6 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">

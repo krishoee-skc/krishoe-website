@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 // Payments and returns reduce what the customer owes, so the amount box can
 // helpfully start at the full balance due. A credit sale or a manual note does
@@ -18,6 +19,7 @@ export default function LedgerTransactionFields({
   inputClass,
   textareaClass,
 }: LedgerTransactionFieldsProps) {
+  const { text } = useLanguage();
   const dueString = balanceDue > 0 ? String(balanceDue) : "";
   const [type, setType] = useState("Cash Payment");
   const [amount, setAmount] = useState(dueString);
@@ -63,7 +65,10 @@ export default function LedgerTransactionFields({
       />
       {showHint ? (
         <p className="text-xs font-semibold text-brand-green">
-          बाँकी रु. {balanceDue.toLocaleString("en-IN")} अगाडि भरिएको — फेर्न मिल्छ।
+          {text(
+            `Balance Rs. ${balanceDue.toLocaleString("en-IN")} filled in — you can change it.`,
+            `बाँकी रु. ${balanceDue.toLocaleString("en-IN")} अगाडि भरिएको — फेर्न मिल्छ।`,
+          )}
         </p>
       ) : null}
       <textarea

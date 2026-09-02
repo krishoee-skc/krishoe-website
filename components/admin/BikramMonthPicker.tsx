@@ -18,7 +18,7 @@ import { recentBikramMonths } from "@/lib/bikram-sambat";
 export default function BikramMonthPicker({
   value,
   onChange,
-  label = "महिना",
+  label = "Month",
   months = 14,
   className = "",
 }: {

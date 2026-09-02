@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import { useLanguage } from "@/components/LanguageProvider";
 import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
 
 interface Summary {
@@ -20,6 +21,7 @@ interface Summary {
 }
 
 export default function ReportsPage() {
+  const { text } = useLanguage();
   const [summaries, setSummaries] = useState<Summary[]>([]);
   // The Bikram Sambat month, because that is the month wages are agreed in.
   // nepalMonthKey() gave the English month in Nepal's timezone, which is a
@@ -106,11 +108,11 @@ export default function ReportsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8">
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">मासिक रिपोर्ट</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">{text("Monthly reports", "मासिक रिपोर्ट")}</h1>
         <p className="mb-4 mt-1 text-sm text-brand-muted">Monthly reports</p>
 
         <div className="flex gap-3 mb-6">
-          <BikramMonthPicker value={month} onChange={setMonth} label="महिना" className="min-w-[180px]" />
+          <BikramMonthPicker value={month} onChange={setMonth} label={text("Month", "महिना")} className="min-w-[180px]" />
           <button
             onClick={() => generateSummaries(month)}
             className="bg-brand-green hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"

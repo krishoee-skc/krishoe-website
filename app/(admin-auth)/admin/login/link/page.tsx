@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { emailLinkStillValid } from "@/app/admin/login/actions";
 import EmailLinkSignIn from "./EmailLinkSignIn";
+import T from "@/components/T";
 
 export const metadata: Metadata = {
   title: "Sign in from email | KRISHOE Admin",
@@ -47,17 +48,19 @@ export default async function EmailSignInLinkPage({
         ) : (
           <>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-              यो link अब चल्दैन
+              <T en="This link no longer works" ne="यो link अब चल्दैन" />
             </h1>
             <p className="mt-3 text-sm leading-7 text-brand-muted">
-              Link १० मिनेटसम्म मात्र चल्छ, र एक पटक प्रयोग भएपछि सकिन्छ। नयाँ कोड
-              मागेको भए पनि पुरानो link आफैँ रद्द हुन्छ।
+              <T
+                en="A link works for 10 minutes only, and ends once it has been used. If a new code was requested, the old link is cancelled automatically."
+                ne="Link १० मिनेटसम्म मात्र चल्छ, र एक पटक प्रयोग भएपछि सकिन्छ। नयाँ कोड मागेको भए पनि पुरानो link आफैँ रद्द हुन्छ।"
+              />
             </p>
             <Link
               href="/admin/login"
               className="mt-6 inline-flex min-h-11 items-center rounded-full bg-brand-green px-6 text-sm font-black text-white"
             >
-              फेरि login गर्ने
+              <T en="Log in again" ne="फेरि login गर्ने" />
             </Link>
           </>
         )}
