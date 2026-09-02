@@ -7,9 +7,10 @@ import { getReviewSummaryByProduct } from "@/lib/customer-voice";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import T from "@/components/T";
 
 export const metadata: Metadata = {
-  title: "कुन जुत्ता राम्रो | KRISHOE Admin",
+  title: "Which shoe does well | KRISHOE Admin",
 };
 
 export const dynamic = "force-dynamic";
@@ -134,10 +135,14 @@ export default async function CustomerVoicePage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-black text-brand-green-ink">कुन जुत्ता राम्रो — राय र फिर्ता</h1>
+          <h1 className="font-display text-3xl font-black text-brand-green-ink">
+            <T en="Which shoe does well — reviews and returns" ne="कुन जुत्ता राम्रो — राय र फिर्ता" />
+          </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
-            ग्राहकले शब्दले (review) र खुट्टाले (return) के भन्छन् — दुवै एकै ठाउँमा। यसैबाट अर्को design
-            र सुधारको दिशा निस्कन्छ।
+            <T
+              en="What customers say in words (review) and with their feet (return) — both in one place. This is where the next design and improvements come from."
+              ne="ग्राहकले शब्दले (review) र खुट्टाले (return) के भन्छन् — दुवै एकै ठाउँमा। यसैबाट अर्को design र सुधारको दिशा निस्कन्छ।"
+            />
           </p>
         </div>
         <Link
@@ -187,9 +192,12 @@ export default async function CustomerVoicePage() {
 
       {attentionRows.length > 0 ? (
         <section className="mt-8 rounded-2xl border border-brand-clay bg-brand-clay-tint p-5">
-          <h2 className="text-lg font-black text-brand-clay">⚠️ सुधार्न ध्यान दिने design</h2>
+          <h2 className="text-lg font-black text-brand-clay">⚠️ <T en="Designs to look at" ne="सुधार्न ध्यान दिने design" /></h2>
           <p className="mt-1 text-sm font-semibold text-brand-green-ink">
-            ग्राहकले यी design मा चित्त नबुझेको संकेत दिएका छन् — अर्को batch अघि हेर्नुहोस्।
+            <T
+              en="Customers have signalled they were not satisfied with these designs — look before the next batch."
+              ne="ग्राहकले यी design मा चित्त नबुझेको संकेत दिएका छन् — अर्को batch अघि हेर्नुहोस्।"
+            />
           </p>
           <div className="mt-4 grid gap-3">
             {attentionRows.map((row) => (
@@ -202,18 +210,25 @@ export default async function CustomerVoicePage() {
         </section>
       ) : (
         <p className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-green">
-          अहिलेसम्म कुनै design मा चिन्ताको संकेत छैन। 👍
+          <T en="No design shows a worry signal yet." ne="अहिलेसम्म कुनै design मा चिन्ताको संकेत छैन।" /> 👍
         </p>
       )}
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">⭐ मनपरेका design</h2>
-          <p className="mt-1 text-sm text-brand-muted">ग्राहकले उच्च rating दिएका — यस्तै अरू बनाउने संकेत।</p>
+          <h2 className="text-lg font-black text-brand-green-ink">⭐ <T en="Loved designs" ne="मनपरेका design" /></h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            <T
+              en="Designs customers rated highly — a signal to make more like these."
+              ne="ग्राहकले उच्च rating दिएका — यस्तै अरू बनाउने संकेत।"
+            />
+          </p>
           {topRated.length === 0 ? (
             <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-              अहिलेसम्म review छैन। बिल WhatsApp मा पठाउँदा &ldquo;राम्रो लागे review लेखिदिनुस्&rdquo;
-              भन्न सकिन्छ — आवाज आउन थाल्छ।
+              <T
+                en={'No reviews yet. When you send a bill on WhatsApp you can add "if you liked it, please write a review" — the voices start coming in.'}
+                ne="अहिलेसम्म review छैन। बिल WhatsApp मा पठाउँदा “राम्रो लागे review लेखिदिनुस्” भन्न सकिन्छ — आवाज आउन थाल्छ।"
+              />
             </p>
           ) : (
             <div className="mt-4 divide-y">
@@ -236,11 +251,13 @@ export default async function CustomerVoicePage() {
         </section>
 
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">📦 Return को हिसाब (design-अनुसार)</h2>
-          <p className="mt-1 text-sm text-brand-muted">फर्किएका जोडी — साइज, आराम, वा गुणस्तरको संकेत।</p>
+          <h2 className="text-lg font-black text-brand-green-ink">📦 <T en="Returns by design" ne="Return को हिसाब (design-अनुसार)" /></h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            <T en="Pairs that came back — a signal of size, comfort or quality." ne="फर्किएका जोडी — साइज, आराम, वा गुणस्तरको संकेत।" />
+          </p>
           {returnRows.length === 0 ? (
             <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-              बिक्री/return को data अझै छैन।
+              <T en="No sales/return data yet." ne="बिक्री/return को data अझै छैन।" />
             </p>
           ) : (
             <div className="mt-4 divide-y">
@@ -272,10 +289,10 @@ export default async function CustomerVoicePage() {
       </div>
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">🗣️ पछिल्ला प्रतिक्रिया</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">🗣️ <T en="Recent feedback" ne="पछिल्ला प्रतिक्रिया" /></h2>
         {recentReviews.length === 0 ? (
           <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-            अहिलेसम्म कुनै प्रतिक्रिया छैन।
+            <T en="No feedback yet." ne="अहिलेसम्म कुनै प्रतिक्रिया छैन।" />
           </p>
         ) : (
           <div className="mt-4 divide-y">

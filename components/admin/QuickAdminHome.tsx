@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowRightIcon,
@@ -10,13 +12,13 @@ import {
   UserIcon,
 } from "@/components/Icons";
 import type { ReactNode } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface QuickCardProps {
+  // Already resolved to the reader's language at the call site, via text().
   title: string;
-  titleNepali: string;
   value: string | number;
   detail: string;
-  detailNepali: string;
   action: string;
   href: string;
   tone?: "default" | "good" | "warn" | "danger";
@@ -25,10 +27,8 @@ interface QuickCardProps {
 
 function QuickCard({
   title,
-  titleNepali,
   value,
   detail,
-  detailNepali,
   action,
   href,
   tone = "default",
@@ -65,18 +65,16 @@ function QuickCard({
           <ArrowRightIcon className="h-5 w-5 opacity-40 transition group-hover:translate-x-1 group-hover:opacity-100" />
         </div>
 
-        {/* Labels */}
+        {/* Labels — one language, the reader's own. */}
         <div className="mb-3">
           <p className="text-xs font-semibold uppercase tracking-wide opacity-60">{title}</p>
-          <p className="text-xs font-semibold text-brand-muted">{titleNepali}</p>
         </div>
 
         {/* Main value */}
         <p className={`text-3xl font-black leading-none ${valueColor[tone]} mb-3`}>{value}</p>
 
         {/* Details */}
-        <p className="mb-2 text-xs font-medium text-brand-muted">{detail}</p>
-        <p className="text-xs font-medium text-brand-muted">{detailNepali}</p>
+        <p className="text-xs font-medium text-brand-muted">{detail}</p>
 
         {/* Action label */}
         <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-paper/70 px-3 py-1 text-xs font-bold text-brand-green-ink shadow-sm">
@@ -120,30 +118,39 @@ export default function QuickAdminHome({
   lowStockProducts,
   topWorker,
 }: AdminQuickHomeProps) {
+  const { text } = useLanguage();
   const formatMoney = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
+  const pairs = (n: number) => text(`${n} pairs`, `${n} जोडी`);
 
   return (
     <section className="space-y-6">
       {/* Header */}
       <div className="rounded-lg border border-brand-green/20 bg-brand-paper p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand-gold-ink">तुरुन्त अवलोकन</p>
-        <h1 className="mt-2 text-2xl font-black text-brand-green-ink md:text-3xl">KRISHOE आज को नियन्त्रण कक्ष</h1>
-        <p className="mt-2 text-sm text-brand-muted">कारखाना, बिक्रय र बुकिङ - सबै एक नजरमा</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-gold-ink">
+          {text("Quick view", "तुरुन्त अवलोकन")}
+        </p>
+        <h1 className="mt-2 text-2xl font-black text-brand-green-ink md:text-3xl">
+          {text("KRISHOE control room — today", "KRISHOE आज को नियन्त्रण कक्ष")}
+        </h1>
+        <p className="mt-2 text-sm text-brand-muted">
+          {text("Factory, sales and bookings — all at a glance", "कारखाना, बिक्रय र बुकिङ - सबै एक नजरमा")}
+        </p>
       </div>
 
       {/* Main Cards Grid */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {/* Card 1: Today's Production */}
         <QuickCard
-          title="Today Production"
-          titleNepali="आज को उत्पादन"
-          value={`${todayProduction.pairs} जोडी`}
-          detail={`Total: ${formatMoney(todayProduction.amount)}`}
+          title={text("Today Production", "आज को उत्पादन")}
+          value={pairs(todayProduction.pairs)}
           // Twelve used to be written in by hand here and matched nothing: the
           // shop has eight workers in the app and twenty-five in the factory,
           // so it was wrong the day it was typed and gets wronger as workers
           // are added. How many worked today is a number we actually know.
-          detailNepali={`आज ${todayProduction.activeWorkers} जनाले काम गरे`}
+          detail={text(
+            `Total: ${formatMoney(todayProduction.amount)}`,
+            `आज ${todayProduction.activeWorkers} जनाले काम गरे`,
+          )}
           action="Production"
           href="/admin/operations/production-accounts"
           tone={todayProduction.pairs > 200 ? "good" : "default"}
@@ -152,11 +159,12 @@ export default function QuickAdminHome({
 
         {/* Card 2: Pending Payments */}
         <QuickCard
-          title="Pending Payments"
-          titleNepali="भुक्तानी गर्ने बाकी"
+          title={text("Pending Payments", "भुक्तानी गर्ने बाकी")}
           value={pendingPayments.count}
-          detail={`Workers owe: ${formatMoney(pendingPayments.totalAmount)}`}
-          detailNepali={`काम दिएको तर पैसा नदिएको`}
+          detail={text(
+            `Workers owe: ${formatMoney(pendingPayments.totalAmount)}`,
+            "काम दिएको तर पैसा नदिएको",
+          )}
           action="Pay Now"
           href="/admin/factory/ledger"
           tone={pendingPayments.count > 0 ? "warn" : "good"}
@@ -165,11 +173,12 @@ export default function QuickAdminHome({
 
         {/* Card 3: New Orders */}
         <QuickCard
-          title="New Orders"
-          titleNepali="नयाँ अर्डर"
+          title={text("New Orders", "नयाँ अर्डर")}
           value={newOrders.count}
-          detail={`Revenue: ${formatMoney(newOrders.totalAmount)}`}
-          detailNepali={`नयाँ customers को अर्डर`}
+          detail={text(
+            `Revenue: ${formatMoney(newOrders.totalAmount)}`,
+            "नयाँ customers को अर्डर",
+          )}
           action="Process"
           href="/admin/orders"
           tone={newOrders.count > 0 ? "warn" : "good"}
@@ -178,11 +187,12 @@ export default function QuickAdminHome({
 
         {/* Card 4: Low Stock */}
         <QuickCard
-          title="Low Stock"
-          titleNepali="कम स्टक"
+          title={text("Low Stock", "कम स्टक")}
           value={lowStockProducts.count}
-          detail={lowStockProducts.names.join(", ") || "Good stock level"}
-          detailNepali="खरिद गर्न सक्छ"
+          detail={
+            lowStockProducts.names.join(", ") ||
+            text("Good stock level", "खरिद गर्न सक्छ")
+          }
           action="Check Stock"
           href="/admin/stock"
           tone={lowStockProducts.count > 0 ? "danger" : "good"}
@@ -191,11 +201,12 @@ export default function QuickAdminHome({
 
         {/* Card 5: Top Worker */}
         <QuickCard
-          title="Top Performer"
-          titleNepali="सितारा कामदार"
-          value={`${topWorker.pairs} जोडी`}
-          detail={`${topWorker.name}: ${formatMoney(topWorker.amount)}`}
-          detailNepali="आज को सबै भन्दा राम्रो काम"
+          title={text("Top Performer", "सितारा कामदार")}
+          value={pairs(topWorker.pairs)}
+          detail={text(
+            `${topWorker.name}: ${formatMoney(topWorker.amount)}`,
+            "आज को सबै भन्दा राम्रो काम",
+          )}
           action="View"
           href="/admin/factory/ledger"
           tone="good"
