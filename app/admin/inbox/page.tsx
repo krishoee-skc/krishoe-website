@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import T from "@/components/T";
 import {
   daysWaiting,
   getCustomerVoice,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/customer-voice";
 import { setPublishedAction, setStatusAction } from "./actions";
 
-export const metadata: Metadata = { title: "ग्राहकको आवाज | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Customer Voice | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -30,10 +31,10 @@ export const dynamic = "force-dynamic";
  * to record is a reply nobody records.
  */
 
-const KINDS: Array<{ id: VoiceKind; label: string; emoji: string }> = [
-  { id: "review", label: "राय", emoji: "⭐" },
-  { id: "question", label: "सोधपुछ", emoji: "💬" },
-  { id: "complaint", label: "गुनासो", emoji: "😟" },
+const KINDS: Array<{ id: VoiceKind; labelEn: string; labelNe: string; emoji: string }> = [
+  { id: "review", labelEn: "Review", labelNe: "राय", emoji: "⭐" },
+  { id: "question", labelEn: "Question", labelNe: "सोधपुछ", emoji: "💬" },
+  { id: "complaint", labelEn: "Complaint", labelNe: "गुनासो", emoji: "😟" },
 ];
 
 function kindOf(kind: VoiceKind) {
@@ -53,7 +54,7 @@ function whatsappNumber(digits: string) {
 function Stars({ rating }: { rating: number }) {
   if (rating < 1) return null;
   return (
-    <span className="text-amber-500" aria-label={`${rating} तारा`}>
+    <span className="text-amber-500" aria-label={`${rating} stars`}>
       {"★".repeat(rating)}
       <span className="text-brand-muted-soft">{"★".repeat(5 - rating)}</span>
     </span>
@@ -68,27 +69,27 @@ function StatusBadge({ voice }: { voice: CustomerVoice }) {
   if (voice.status === "new" && waited >= 3) {
     return (
       <span className="rounded-full bg-brand-clay px-2.5 py-1 text-xs font-black text-white">
-        🔴 {waited} दिन भयो!
+        🔴 <T en={`${waited} days waiting!`} ne={`${waited} दिन भयो!`} />
       </span>
     );
   }
   if (voice.status === "new") {
     return (
       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">
-        जवाफ बाँकी
+        <T en="Reply due" ne="जवाफ बाँकी" />
       </span>
     );
   }
   if (voice.status === "answered") {
     return (
       <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-900">
-        ✓ जवाफ दिइयो
+        ✓ <T en="Replied" ne="जवाफ दिइयो" />
       </span>
     );
   }
   return (
     <span className="rounded-full bg-brand-mist px-2.5 py-1 text-xs font-bold text-brand-muted">
-      सकियो
+      <T en="Done" ne="सकियो" />
     </span>
   );
 }
@@ -101,10 +102,10 @@ function Row({ voice }: { voice: CustomerVoice }) {
     <article className="border-b border-brand-green-line px-4 py-4 last:border-b-0 hover:bg-brand-paper-deep">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="text-sm font-bold text-brand-green-ink">
-          {kind.emoji} {kind.label}
+          {kind.emoji} <T en={kind.labelEn} ne={kind.labelNe} />
         </span>
         <span className="text-sm font-semibold text-brand-green-ink">
-          {voice.customerName || "नाम छैन"}
+          {voice.customerName || <T en="No name" ne="नाम छैन" />}
         </span>
         {voice.phone ? <span className="text-xs text-brand-muted">{voice.phone}</span> : null}
         <span className="ml-auto">
@@ -130,7 +131,8 @@ function Row({ voice }: { voice: CustomerVoice }) {
         <DateDisplayAdmin date={voice.createdAt} />
         {voice.repliedAt ? (
           <>
-            {" · जवाफ "}
+            {" · "}
+            <T en="replied " ne="जवाफ " />
             <DateDisplayAdmin date={voice.repliedAt} />
           </>
         ) : null}
@@ -143,7 +145,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
               href={`tel:${phone}`}
               className="rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-green-ink hover:bg-brand-paper"
             >
-              📞 फोन
+              📞 <T en="Call" ne="फोन" />
             </a>
             <a
               href={`https://wa.me/${whatsappNumber(phone)}`}
@@ -161,7 +163,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
             <input type="hidden" name="id" value={voice.id} />
             <input type="hidden" name="status" value="answered" />
             <button className="rounded-lg bg-brand-green-ink px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">
-              ✓ जवाफ दिएँ
+              ✓ <T en="Replied" ne="जवाफ दिएँ" />
             </button>
           </form>
         ) : voice.status === "answered" ? (
@@ -169,7 +171,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
             <input type="hidden" name="id" value={voice.id} />
             <input type="hidden" name="status" value="closed" />
             <button className="rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-muted-deep hover:bg-brand-paper">
-              सकियो भन्ने
+              <T en="Mark done" ne="सकियो भन्ने" />
             </button>
           </form>
         ) : null}
@@ -185,7 +187,11 @@ function Row({ voice }: { voice: CustomerVoice }) {
                   : "border border-brand-green-line text-brand-muted-deep hover:bg-brand-paper"
               }`}
             >
-              {voice.published ? "👁 पसलमा देखिँदैछ" : "पसलमा राख्ने"}
+              {voice.published ? (
+                <>👁 <T en="Live in shop" ne="पसलमा देखिँदैछ" /></>
+              ) : (
+                <T en="Publish to shop" ne="पसलमा राख्ने" />
+              )}
             </button>
           </form>
         ) : null}
@@ -210,7 +216,7 @@ export default async function InboxPage({
     getVoiceCounts(),
   ]);
 
-  const tab = (href: string, label: string, active: boolean) => (
+  const tab = (href: string, label: React.ReactNode, active: boolean) => (
     <Link
       key={href}
       href={href}
@@ -227,22 +233,44 @@ export default async function InboxPage({
   return (
     <section className="p-6 pb-24">
       <div>
-        <h1 className="font-display text-3xl font-black text-brand-green-ink">ग्राहकको आवाज</h1>
+        <h1 className="font-display text-3xl font-black text-brand-green-ink">
+          <T en="Customer Voice" ne="ग्राहकको आवाज" />
+        </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-          राय, सोधपुछ र गुनासो — ग्राहकले भनेको सबै कुरा एउटै ठाउँमा।
+          <T
+            en="Reviews, questions and complaints — everything a customer said, in one place."
+            ne="राय, सोधपुछ र गुनासो — ग्राहकले भनेको सबै कुरा एउटै ठाउँमा।"
+          />
           {counts.waiting > 0 ? (
-            <strong className="text-brand-clay"> {counts.waiting} वटा जवाफ बाँकी छ।</strong>
+            <strong className="text-brand-clay">
+              {" "}
+              <T en={`${counts.waiting} still to reply.`} ne={`${counts.waiting} वटा जवाफ बाँकी छ।`} />
+            </strong>
           ) : null}
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        {tab("/admin/inbox", `सबै ${counts.total}`, !kind && !status)}
-        {tab("/admin/inbox?status=new", `🔴 जवाफ बाँकी ${counts.waiting}`, status === "new")}
+        {tab(
+          "/admin/inbox",
+          <T en={`All ${counts.total}`} ne={`सबै ${counts.total}`} />,
+          !kind && !status,
+        )}
+        {tab(
+          "/admin/inbox?status=new",
+          <T en={`🔴 Reply due ${counts.waiting}`} ne={`🔴 जवाफ बाँकी ${counts.waiting}`} />,
+          status === "new",
+        )}
         {KINDS.map((entry) =>
           tab(
             `/admin/inbox?kind=${entry.id}`,
-            `${entry.emoji} ${entry.label} ${counts.byKind[entry.id]}`,
+            <>
+              {entry.emoji}{" "}
+              <T
+                en={`${entry.labelEn} ${counts.byKind[entry.id]}`}
+                ne={`${entry.labelNe} ${counts.byKind[entry.id]}`}
+              />
+            </>,
             kind === entry.id,
           ),
         )}
@@ -251,9 +279,14 @@ export default async function InboxPage({
       <div className="mt-5 overflow-hidden rounded-lg border border-brand-green-line bg-brand-paper">
         {voices.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-brand-muted">
-            {counts.total === 0
-              ? "अझै कुनै ग्राहकले केही भनेका छैनन् — आएपछि यहीँ देखिन्छ।"
-              : "यो छनोटमा केही छैन।"}
+            {counts.total === 0 ? (
+              <T
+                en="No customer has said anything yet — it will show up here when they do."
+                ne="अझै कुनै ग्राहकले केही भनेका छैनन् — आएपछि यहीँ देखिन्छ।"
+              />
+            ) : (
+              <T en="Nothing in this filter." ne="यो छनोटमा केही छैन।" />
+            )}
           </p>
         ) : (
           voices.map((voice) => <Row key={voice.id} voice={voice} />)

@@ -101,7 +101,8 @@ describe("the inbox screen", () => {
 
     expect(page).toContain("href={`tel:${phone}`}");
     expect(page).toContain("https://wa.me/");
-    expect(page).toContain("✓ जवाफ दिएँ");
+    // The one-tap reply button, now bilingual (English shows in English mode).
+    expect(page).toContain('<T en="Replied" ne="जवाफ दिएँ" />');
   });
 
   it("dials a Nepali number the way wa.me needs it", async () => {

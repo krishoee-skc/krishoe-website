@@ -223,7 +223,6 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/factory/items/page.tsx": 9,
   "app/admin/factory/reports/page.tsx": 2,
   "app/admin/factory/worker-portal-qr/page.tsx": 3,
-  "app/admin/inbox/page.tsx": 22,
   "app/admin/insights/page.tsx": 16,
   "app/admin/login/actions.ts": 4,
   "app/admin/login/passkey-actions.ts": 4,
