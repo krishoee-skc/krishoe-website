@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   inviteStaffAccountAction,
   resendStaffInvitationAction,
@@ -57,6 +58,7 @@ export default function StaffAccessManager({
   permissionMap: Record<AdminRole, string[]>;
   defaultBranchId: string;
 }) {
+  const { text } = useLanguage();
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -96,7 +98,7 @@ export default function StaffAccessManager({
             <input name="email" type="email" autoComplete="email" className={inputClass} />
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            मोबाइल नम्बर · Mobile
+            {text("Mobile number", "मोबाइल नम्बर")}
             <input
               name="phone"
               type="tel"

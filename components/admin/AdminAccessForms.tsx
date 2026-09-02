@@ -11,6 +11,7 @@ import {
   type AdminAccessActionState,
 } from "@/app/admin/access/actions";
 import { adminPasswordStrength } from "@/lib/admin-password-policy";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const initialState: AdminAccessActionState = { ok: false, message: "" };
 const inputClass =
@@ -39,6 +40,7 @@ function ResultMessage({ state }: { state: AdminAccessActionState }) {
 }
 
 export function AdminForgotPasswordForm() {
+  const { text } = useLanguage();
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
 
@@ -76,7 +78,7 @@ export function AdminForgotPasswordForm() {
         href="/admin/reset-password"
         className="text-center text-sm font-black text-brand-green hover:underline"
       >
-        कोड आइसक्यो? यहाँ हाल्नुहोस् · I already have a code
+        {text("I already have a code", "कोड आइसक्यो? यहाँ हाल्नुहोस्")}
       </Link>
       <Link href="/admin/login" className="text-center text-sm font-black text-brand-green hover:underline">
         Back to staff sign in
@@ -93,6 +95,7 @@ export function AdminForgotPasswordForm() {
  * depend on a session or on the emailed link having been opened.
  */
 export function AdminResetWithCodeForm() {
+  const { text } = useLanguage();
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
@@ -118,7 +121,7 @@ export function AdminResetWithCodeForm() {
         <input name="email" type="email" autoComplete="email" required className={inputClass} />
       </label>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Email मा आएको 6-digit कोड
+        {text("6-digit code from your email", "Email मा आएको 6-digit कोड")}
         <input
           name="code"
           inputMode="numeric"
@@ -177,14 +180,14 @@ export function AdminResetWithCodeForm() {
         disabled={pending || state.ok}
         className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
       >
-        {pending ? "Saving password..." : "कोडले password बदल्ने"}
+        {pending ? "Saving password..." : text("Change password with code", "कोडले password बदल्ने")}
       </button>
       <ResultMessage state={state} />
       <Link
         href="/admin/forgot-password"
         className="text-center text-sm font-black text-brand-green hover:underline"
       >
-        नयाँ कोड पठाउने · Send a new code
+        {text("Send a new code", "नयाँ कोड पठाउने")}
       </Link>
     </form>
   );

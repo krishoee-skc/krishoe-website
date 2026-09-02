@@ -231,8 +231,6 @@ const STILL_OWED: Record<string, number> = {
   "app/worker/dashboard/page.tsx": 15,
   "app/worker/payslip/page.tsx": 11,
   "app/worker/production/page.tsx": 8,
-  "components/admin/AdminAccessForms.tsx": 4,
-  "components/admin/StaffAccessManager.tsx": 1,
   "components/worker/WorkerPortalShell.tsx": 3,
   "components/worker/WorkerPortalUnavailable.tsx": 9,
   "lib/factory-worker-options.ts": 3,
