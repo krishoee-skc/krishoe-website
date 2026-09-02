@@ -533,22 +533,44 @@ export default function OrdersClient({
                       {order.order}
                     </p>
                   ) : (
-                    <div className="divide-y divide-dashed divide-brand-green-line/70">
-                      {items.map((item, index) => (
-                        <div key={`${item.design}-${index}`} className="flex items-start justify-between gap-3 py-2 first:pt-0">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-brand-green-ink">{item.design}</p>
-                            <p className="text-xs text-brand-muted">
-                              {item.sizeRun}
-                              {item.color ? ` · ${item.color}` : ""}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-xs font-bold text-brand-green-ink">Rs. {item.lineTotal.toLocaleString()}</p>
-                            <p className="text-[11px] text-brand-muted">×{item.quantity}</p>
-                          </div>
-                        </div>
-                      ))}
+                    // An aligned table: name, size, colour, qty and price each in
+                    // their own column, so every row lines up and the size — the
+                    // thing checked most — sits in one scannable column. Wrapped
+                    // in overflow-x-auto so a very long colour never pushes the
+                    // price off a narrow phone; size/qty/price stay put, only the
+                    // colour cell gives.
+                    <div className="-mx-1 overflow-x-auto">
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-brand-green-line text-[9px] font-black uppercase tracking-[0.08em] text-brand-muted">
+                            <th className="px-1 py-1 text-left font-black">Item</th>
+                            <th className="px-1 py-1 text-center font-black">Size</th>
+                            <th className="px-1 py-1 text-left font-black">Color</th>
+                            <th className="px-1 py-1 text-center font-black">Qty</th>
+                            <th className="px-1 py-1 text-right font-black">Rs.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((item, index) => (
+                            <tr
+                              key={`${item.design}-${index}`}
+                              className="border-b border-dashed border-brand-green-line/60 last:border-0"
+                            >
+                              <td className="px-1 py-2 font-semibold text-brand-green-ink">{item.design}</td>
+                              <td className="px-1 py-2 text-center">
+                                <span className="inline-block min-w-[26px] rounded-md bg-brand-green-ink px-1.5 py-0.5 text-center font-mono text-xs font-bold text-white">
+                                  {item.sizeRun}
+                                </span>
+                              </td>
+                              <td className="px-1 py-2 text-xs text-brand-muted">{item.color || "—"}</td>
+                              <td className="px-1 py-2 text-center font-mono text-xs text-brand-muted">{item.quantity}</td>
+                              <td className="whitespace-nowrap px-1 py-2 text-right font-mono text-xs font-bold text-brand-green-ink">
+                                {item.lineTotal.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
