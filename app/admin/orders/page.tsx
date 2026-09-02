@@ -1,6 +1,6 @@
 import OrdersClient from "@/app/admin/OrdersClient";
 import T from "@/components/T";
-import { buildOnlineOrderConversionReport, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
+import { buildOnlineOrderConversionReport, parseOnlineOrderItems, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
 import { getOperationsDataForReports } from "@/lib/operations";
 import { getPaymentTransactionsByOrderIds } from "@/lib/payment-transactions";
 import { getPosInvoices } from "@/lib/pos";
@@ -43,6 +43,22 @@ export default async function AdminOrdersPage() {
     finishedStock: operations.finishedStock,
     posInvoices,
   });
+  // Parse each order's items into clean rows (name, size, colour, qty, price)
+  // once on the server, where the catalog is already loaded — so the admin table
+  // can lay them out side by side instead of showing the raw pasted text block.
+  const parsedItemsByOrderId = Object.fromEntries(
+    orders.map((order) => [
+      order.id,
+      parseOnlineOrderItems(order.order, products).map((item) => ({
+        design: item.design,
+        sizeRun: item.sizeRun,
+        color: item.color,
+        quantity: item.quantity,
+        rate: item.rate,
+        lineTotal: item.rate * item.quantity,
+      })),
+    ]),
+  );
 
   return (
     <section className="p-6">
@@ -79,6 +95,7 @@ export default async function AdminOrdersPage() {
         paymentTransactions={paymentTransactions}
         posInvoicesByOrderId={posInvoicesByOrderId}
         conversionReport={conversionReport}
+        parsedItemsByOrderId={parsedItemsByOrderId}
       />
     </section>
   );

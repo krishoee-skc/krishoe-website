@@ -404,18 +404,29 @@ function OrderToPosForm({
   );
 }
 
+type ParsedOrderItem = {
+  design: string;
+  sizeRun: string;
+  color: string;
+  quantity: number;
+  rate: number;
+  lineTotal: number;
+};
+
 export default function OrdersClient({
   orders,
   customerLedgers,
   paymentTransactions,
   posInvoicesByOrderId,
   conversionReport,
+  parsedItemsByOrderId,
 }: {
   orders: OrderSubmission[];
   customerLedgers: CustomerLedger[];
   paymentTransactions: PaymentTransaction[];
   posInvoicesByOrderId: Record<string, OrderPosInvoiceLink | null>;
   conversionReport: OnlineOrderConversionReport;
+  parsedItemsByOrderId: Record<string, ParsedOrderItem[]>;
 }) {
   const [conversionFilter, setConversionFilter] = useState<OnlineOrderConversionSignal | "All">("All");
   const conversionByOrderId = new Map(conversionReport.rows.map((row) => [row.orderId, row]));
@@ -452,74 +463,117 @@ export default function OrdersClient({
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
-      <table className="reflow-table min-w-full divide-y divide-brand-green-line text-sm">
-        <thead className="bg-brand-paper-deep">
-          <tr>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Order ID</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Date</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Customer</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Items</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Total</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Signal</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Payment</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">POS</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Status</th>
-          </tr>
-        </thead>
+      <div className="space-y-4">
+        {visibleOrders.map((order) => {
+          const conversionRow =
+            conversionByOrderId.get(order.id) ??
+            {
+              orderId: order.id,
+              customerName: order.name,
+              createdAt: order.createdAt,
+              total: order.total,
+              itemCount: 0,
+              pairCount: 0,
+              parsed: false,
+              converted: false,
+              posInvoiceId: "",
+              posInvoiceNumber: "",
+              missingLedger: false,
+              missingStockItems: [],
+              signal: "Needs parsing" as const,
+              detail: "Order signal missing.",
+            };
+          const items = parsedItemsByOrderId[order.id] ?? [];
+          const posInvoice = posInvoicesByOrderId[order.id] ?? null;
 
-        <tbody className="divide-y divide-brand-green-line">
-          {visibleOrders.map((order) => {
-            const conversionRow =
-              conversionByOrderId.get(order.id) ??
-              {
-                orderId: order.id,
-                customerName: order.name,
-                createdAt: order.createdAt,
-                total: order.total,
-                itemCount: 0,
-                pairCount: 0,
-                parsed: false,
-                converted: false,
-                posInvoiceId: "",
-                posInvoiceNumber: "",
-                missingLedger: false,
-                missingStockItems: [],
-                signal: "Needs parsing" as const,
-                detail: "Order signal missing.",
-              };
-
-            return (
-              <tr key={order.id}>
-                <td className="reflow-primary whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{order.id}</td>
-                <td data-label="Date" className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">
-                  <DateDisplayAdmin date={order.createdAt} />
-                </td>
-                <td data-label="Customer" className="whitespace-nowrap px-4 py-3">
-                  <p className="font-medium text-brand-green-ink">{order.name}</p>
-                  <p className="text-xs text-brand-muted">{order.phone}</p>
-                  {order.email ? <p className="text-xs text-brand-muted">{order.email}</p> : null}
+          return (
+            <article
+              key={order.id}
+              className="overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper shadow-sm"
+            >
+              {/* Header strip — the short facts, side by side on one line, so
+                  "who ordered, how much, what state" reads at a glance. */}
+              <header className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-brand-green-line bg-brand-paper-deep px-4 py-3 sm:px-5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted">Order · Customer</p>
+                  <p className="truncate font-mono text-xs font-semibold text-brand-green-ink">{order.id}</p>
+                  <p className="mt-0.5 truncate text-sm font-bold text-brand-green-ink">{order.name}</p>
+                  <p className="text-xs text-brand-muted">
+                    {order.phone}
+                    {order.email ? ` · ${order.email}` : ""}
+                  </p>
                   <CustomerTrustForm order={order} />
-                </td>
-                <td data-label="Items" className="px-4 py-3 text-brand-muted-deep">
-                  <p className="max-h-32 min-w-[260px] max-w-[360px] overflow-y-auto whitespace-pre-line rounded-md bg-brand-paper-deep p-3 text-xs leading-6">
-                    {order.order}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted">Date</p>
+                  <p className="text-sm font-bold text-brand-green-ink">
+                    <DateDisplayAdmin date={order.createdAt} />
                   </p>
-                </td>
-                <td data-label="Total" className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{order.total}</td>
-                <td data-label="Signal" className="px-4 py-3 text-brand-muted-deep">
-                  <div className="grid min-w-[220px] gap-2">
-                    <ConversionPill signal={conversionRow.signal} />
-                    <p className="text-xs font-semibold leading-5 text-brand-muted">{conversionRow.detail}</p>
-                    <p className="text-xs text-brand-muted">
-                      {conversionRow.itemCount} items, {conversionRow.pairCount} pairs
+                </div>
+                <div className="ml-auto text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted">Total</p>
+                  <p className="font-display text-2xl font-black text-brand-green-ink">{order.total}</p>
+                </div>
+                <div className="shrink-0">
+                  <OrderStatusSelector order={order} />
+                </div>
+              </header>
+
+              {/* Body — three side-by-side zones. On a phone they stack; on a
+                  wide screen they sit next to each other, so nothing crams a
+                  long sentence into a narrow column. */}
+              <div className="grid gap-px bg-brand-green-line lg:grid-cols-[1.4fr_1fr_1fr]">
+                {/* Items — a neat table, name left, price right. */}
+                <div className="bg-brand-paper p-4 sm:p-5">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-brand-gold-deep">
+                    Items · {conversionRow.itemCount || items.length} · {conversionRow.pairCount} pairs
+                  </p>
+                  {items.length === 0 ? (
+                    <p className="whitespace-pre-line rounded-md bg-brand-paper-deep p-3 text-xs leading-6 text-brand-muted">
+                      {order.order}
                     </p>
-                  </div>
-                </td>
-                <td data-label="Payment" className="px-4 py-3 text-brand-muted-deep">
-                  <p className="mb-2 max-w-[420px] text-xs font-semibold text-brand-muted">
-                    {order.payment}
-                  </p>
+                  ) : (
+                    <div className="divide-y divide-dashed divide-brand-green-line/70">
+                      {items.map((item, index) => (
+                        <div key={`${item.design}-${index}`} className="flex items-start justify-between gap-3 py-2 first:pt-0">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-brand-green-ink">{item.design}</p>
+                            <p className="text-xs text-brand-muted">
+                              {item.sizeRun}
+                              {item.color ? ` · ${item.color}` : ""}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-xs font-bold text-brand-green-ink">Rs. {item.lineTotal.toLocaleString()}</p>
+                            <p className="text-[11px] text-brand-muted">×{item.quantity}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Stock signal — the pill, then each gap on its own line. */}
+                <div className="bg-brand-paper p-4 sm:p-5">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-brand-gold-deep">Stock signal</p>
+                  <ConversionPill signal={conversionRow.signal} />
+                  {conversionRow.missingStockItems.length > 0 ? (
+                    <div className="mt-3 space-y-1">
+                      {conversionRow.missingStockItems.map((gap, index) => (
+                        <p key={index} className="border-b border-dashed border-brand-green-line/60 pb-1 text-xs leading-5 text-brand-muted last:border-0">
+                          {gap}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs leading-5 text-brand-muted">{conversionRow.detail}</p>
+                  )}
+                </div>
+
+                {/* Payment + POS together — status, then the forms unchanged. */}
+                <div className="bg-brand-paper p-4 sm:p-5">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-brand-gold-deep">Payment · POS</p>
+                  <p className="mb-2 text-xs font-semibold text-brand-muted">{order.payment}</p>
                   <OrderPaymentForm
                     order={order}
                     customerLedgers={customerLedgers}
@@ -527,30 +581,24 @@ export default function OrdersClient({
                       (transaction) => transaction.orderId === order.id,
                     )}
                   />
-                </td>
-                <td data-label="POS" className="px-4 py-3 text-brand-muted-deep">
-                  <OrderToPosForm
-                    order={order}
-                    customerLedgers={customerLedgers}
-                    posInvoice={posInvoicesByOrderId[order.id] ?? null}
-                    conversionRow={conversionRow}
-                  />
-                </td>
-                <td data-label="Status" className="whitespace-nowrap px-4 py-3">
-                  <OrderStatusSelector order={order} />
-                </td>
-              </tr>
-            );
-          })}
-          {visibleOrders.length === 0 ? (
-            <tr>
-              <td className="px-4 py-8 text-center text-sm text-brand-muted" colSpan={9}>
-                No orders match this conversion filter.
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+                  <div className="mt-3 border-t border-brand-green-line pt-3">
+                    <OrderToPosForm
+                      order={order}
+                      customerLedgers={customerLedgers}
+                      posInvoice={posInvoice}
+                      conversionRow={conversionRow}
+                    />
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+        {visibleOrders.length === 0 ? (
+          <p className="rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-8 text-center text-sm text-brand-muted">
+            No orders match this conversion filter.
+          </p>
+        ) : null}
       </div>
     </div>
   );
