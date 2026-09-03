@@ -1,10 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/Icons";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { AdminFacts } from "@/lib/ai/admin-assistant-prompt";
+
+// The browser's own speech-to-text, on the two names it goes by. It is free and
+// on-device; when the browser has neither, the mic button simply never shows and
+// typing works exactly as before — so a phone without it is never broken.
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
+function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
 
 /**
  * Ask the shop about itself, in words.
@@ -25,14 +47,64 @@ type Turn = { role: "owner" | "assistant"; text: string };
 const money = (v: number | null) =>
   v === null ? null : `Rs. ${Math.round(v).toLocaleString("en-IN")}`;
 
+function MicIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
 export default function AdminAskPanel() {
-  const { text } = useLanguage();
+  const { text, language } = useLanguage();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [facts, setFacts] = useState<AdminFacts | null>(null);
   const [aiOff, setAiOff] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice input, only where the browser supports it. `voiceReady` gates the mic
+  // button so a phone without speech never shows a dead control.
+  // Starts false so the server and the client's first paint agree (no window on
+  // the server), then flips to the browser's real capability after mount. That
+  // one deliberate post-mount setState is why the rule is disabled on the line.
+  const [voiceReady, setVoiceReady] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- capability check after hydration, intentional
+    setVoiceReady(getSpeechRecognition() !== null);
+    // Stop any live recognition if the panel unmounts mid-listen.
+    return () => recognitionRef.current?.stop();
+  }, []);
+
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const Recognition = getSpeechRecognition();
+    if (!Recognition) return;
+
+    const recognition = new Recognition();
+    // Nepali when the shop is in Nepali, English otherwise; the phone falls back
+    // on its own if it can't do one of them.
+    recognition.lang = language === "en" ? "en-US" : "ne-NP";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const said = event.results?.[0]?.[0]?.transcript;
+      if (said) setInput((prev) => (prev ? `${prev} ${said}` : said));
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
+  }
 
   const suggestions = [
     text("How much did we sell today?", "आज कति बिक्री भयो?"),
@@ -222,9 +294,31 @@ export default function AdminAskPanel() {
             }
           }}
           rows={1}
-          placeholder={text("Ask a question…", "प्रश्न सोध्नुहोस्…")}
+          placeholder={
+            voiceReady
+              ? text("Speak or type a question…", "बोल्नुहोस् वा लेख्नुहोस्…")
+              : text("Ask a question…", "प्रश्न सोध्नुहोस्…")
+          }
           className="max-h-24 flex-1 resize-none rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5 text-sm text-brand-green-ink outline-none focus:border-brand-green"
         />
+        {/* Mic: only when the browser can hear. Tapping it starts listening;
+            what is said lands in the box, so voice and typing share one field —
+            speak, then edit or add by typing before sending. */}
+        {voiceReady ? (
+          <button
+            type="button"
+            onClick={toggleVoice}
+            aria-label={listening ? text("Stop listening", "सुन्न रोक्नुहोस्") : text("Speak", "बोल्नुहोस्")}
+            aria-pressed={listening}
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border transition ${
+              listening
+                ? "animate-pulse border-brand-clay bg-brand-clay-tint text-brand-clay"
+                : "border-brand-green-line bg-brand-paper text-brand-green hover:border-brand-green"
+            }`}
+          >
+            <MicIcon className="h-5 w-5" />
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={busy || !input.trim()}
@@ -234,6 +328,11 @@ export default function AdminAskPanel() {
           <ArrowRightIcon className="h-5 w-5" />
         </button>
       </form>
+      {listening ? (
+        <p className="mt-2 text-center text-xs font-semibold text-brand-clay">
+          {text("Listening… speak now", "सुन्दैछु… अहिले बोल्नुहोस्")}
+        </p>
+      ) : null}
     </div>
   );
 }
