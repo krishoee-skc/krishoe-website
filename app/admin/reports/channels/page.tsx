@@ -129,12 +129,12 @@ export default async function ChannelsPage() {
       <div className="mt-5 rounded-2xl bg-brand-green-ink p-6 text-white sm:p-7">
         {result.ok ? (
           <>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/80">
               <AlertText en="Last 30 days" ne="पछिल्लो ३० दिन" />
             </p>
             <p className="mt-2 font-display text-[2.5rem] font-black leading-none sm:text-5xl">
               {total.toLocaleString("en-IN")}{" "}
-              <span className="text-lg font-bold text-white/70">
+              <span className="text-lg font-bold text-white/85">
                 <AlertText en="visits" ne="भ्रमण" />
               </span>
             </p>

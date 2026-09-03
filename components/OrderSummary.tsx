@@ -22,7 +22,7 @@ export default function OrderSummary() {
             </div>
             <div className="min-w-0">
               <p className="break-words font-bold">{item.name}</p>
-              <p className="mt-1 text-xs text-white/60">
+              <p className="mt-1 text-xs text-white/80">
                 {item.size} / {item.color} / Qty {item.quantity}
               </p>
               <p className="mt-2 text-sm font-black text-brand-gold-bright">{formatPrice(item.lineTotal)}</p>
@@ -31,13 +31,13 @@ export default function OrderSummary() {
         ))}
       </div>
       <div className="mt-6 flex items-center justify-between">
-        <span className="text-sm text-white/65">Total</span>
+        <span className="text-sm text-white/85">Total</span>
         <span className="text-3xl font-black">{subtotalLabel}</span>
       </div>
-      <p className="mt-4 text-xs leading-6 text-white/55">
+      <p className="mt-4 text-xs leading-6 text-white/75">
         Delivery charge and final availability are confirmed by KRISHOE before payment.
       </p>
-      <div className="mt-5 grid gap-2 border-t border-white/10 pt-5 text-xs font-semibold text-white/70">
+      <div className="mt-5 grid gap-2 border-t border-white/10 pt-5 text-xs font-semibold text-white/85">
         <p>{text("Stock check before dispatch", "पठाउनुअघि स्टक जाँचिन्छ")}</p>
         <p>{text("Payment matched with order reference", "अर्डर नम्बरसँग भुक्तानी मिलाइन्छ")}</p>
         <p>{text("Private order page after request", "अर्डरपछि आफ्नै पाना पाइन्छ")}</p>

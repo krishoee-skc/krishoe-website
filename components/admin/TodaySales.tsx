@@ -38,7 +38,7 @@ export default function TodaySales({
     <section className="krishoe-rise rounded-2xl bg-brand-green-ink p-6 text-white sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">
             <T en="Sold today" ne="आज बिक्री भयो" />
           </p>
           <p className="mt-2 font-display text-[2.75rem] font-black leading-none sm:text-6xl">
@@ -46,7 +46,7 @@ export default function TodaySales({
           </p>
 
           {billCount > 0 ? (
-            <p className="mt-4 text-sm text-white/70">
+            <p className="mt-4 text-sm text-white/85">
               <T en={`${billCount} bill(s)`} ne={`${billCount} बिल`} />
               {pairsSold > 0 ? <T en={` · ${pairsSold} pairs`} ne={` · ${pairsSold} जोडी`} /> : ""}
               {owed > 0 ? (
@@ -63,7 +63,7 @@ export default function TodaySales({
           ) : (
             /* An empty day says so plainly. A zero with no sentence beside it
                reads as a broken screen rather than as a quiet morning. */
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/85">
               <T
                 en="No bill cut yet today. If you sold at the shop, record it from here — stock and books settle themselves."
                 ne="आज अझै बिल काटिएको छैन। पसलमा बेच्नुभयो भने यहीँबाट टिप्नुहोस् — स्टक र हिसाब आफैँ मिल्छ।"

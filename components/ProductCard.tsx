@@ -33,7 +33,7 @@ export default function ProductCard({
   return (
     <article
       id={product.id}
-      className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-brand-paper shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
+      className="krishoe-rise group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-brand-paper shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
       <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-brand-silver-lt to-brand-mist">
         <SafeImage
