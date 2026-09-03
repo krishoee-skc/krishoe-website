@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import T from "@/components/T";
+import { NEPAL_TIME_ZONE, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 
 export const metadata: Metadata = {
   title: "Enter KRISHOE",
@@ -108,74 +109,110 @@ const doors: Door[] = [
 ];
 
 export default function EnterPage() {
+  // The day, as this shop counts it, worked out on the server so the date reads
+  // where the shop is rather than where a visitor's browser thinks it is.
+  const today = new Date();
+  const adDate = new Intl.DateTimeFormat("en-GB", {
+    timeZone: NEPAL_TIME_ZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(today);
+  const isoDate = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE }).format(today);
+  const bsDate = toBikramSambatNumeric(isoDate);
+
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f4efe3] px-4 py-10">
-      <div className="w-full max-w-3xl">
-        {/* The threshold: deep-green ground, a gold monogram with a slow gleam,
-            the brand line, then the three doors. */}
-        <section className="krishoe-enter relative overflow-hidden rounded-[26px] border border-[#c9a24b]/30 bg-[linear-gradient(180deg,#0b2e22,#123f30)] px-5 py-9 shadow-[0_30px_70px_-30px_rgba(11,46,34,0.6)] sm:px-8">
-          {/* top glow */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(201,162,75,0.28),transparent)]"
-          />
-          {/* hairline gold frame */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-[10px] rounded-[18px] border border-[#c9a24b]/25" />
+    // The whole screen is the threshold now — deep green edge to edge, with the
+    // content held in the centre — so on a wide monitor it reads as a grand
+    // doorway rather than a small card floating on cream.
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-4 py-10 text-white">
+      {/* Ambient light: a warm gold pool from the top, a cooler one low-left, and
+          a faint footwear-tread texture — enough to feel crafted, never busy. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-40 h-[60vh] bg-[radial-gradient(50%_100%_at_50%_0%,rgba(201,162,75,0.22),transparent)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 -left-40 h-[60vh] w-[60vh] rounded-full bg-[radial-gradient(closest-side,rgba(79,158,120,0.14),transparent)]" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, #ffffff 0 2px, transparent 2px 16px), repeating-linear-gradient(45deg, #ffffff 0 2px, transparent 2px 16px)",
+          backgroundSize: "34px 34px",
+        }}
+      />
 
-          <div className="relative flex items-center justify-center gap-3">
-            <span className="krishoe-mono grid h-14 w-14 place-items-center overflow-hidden rounded-[15px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-display text-3xl font-black leading-none text-[#0b2e22] shadow-[0_8px_22px_-8px_rgba(201,162,75,0.7),inset_0_1px_0_rgba(255,255,255,0.5)]">
-              K
-            </span>
-            <span className="font-display text-3xl font-black tracking-[0.02em] text-white sm:text-4xl">
-              KRISHOE<span className="text-[#e3c684]">®</span>
-            </span>
-          </div>
-          <p className="relative mt-2 text-center text-[11px] font-bold uppercase tracking-[0.22em] text-white/60">
-            Walk with Authority
-          </p>
-          <p className="relative mb-6 mt-5 text-center text-sm text-white/80">
-            <T en="Who are you? — choose your door" ne="तपाईं को हुनुहुन्छ? — आफ्नो द्वार छान्नुहोस्" />
-          </p>
+      <div className="krishoe-enter relative w-full max-w-5xl">
+        {/* Monogram + wordmark, larger, centred. */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          <span className="krishoe-mono grid h-16 w-16 place-items-center overflow-hidden rounded-[18px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-display text-4xl font-black leading-none text-[#0b2e22] shadow-[0_10px_30px_-10px_rgba(201,162,75,0.8),inset_0_1px_0_rgba(255,255,255,0.6)] sm:h-20 sm:w-20 sm:text-5xl">
+            K
+          </span>
+          <span className="font-display text-4xl font-black tracking-[0.02em] text-white sm:text-6xl">
+            KRISHOE<span className="text-[#e3c684]">®</span>
+          </span>
+        </div>
+        <p className="mt-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-white/60 sm:text-sm">
+          Walk with Authority
+        </p>
 
-          <div className="relative grid gap-3 sm:grid-cols-3">
-            {doors.map((door) => (
-              <Link
-                key={door.href}
-                href={door.href}
-                className={`group/door relative flex flex-col gap-3 overflow-hidden rounded-[18px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_14px_30px_-18px_rgba(0,0,0,0.7)] transition duration-200 hover:-translate-y-1.5 ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-90 ${door.glow}`}
-              >
-                <div className="relative flex items-center justify-between">
-                  <span className={`grid h-11 w-11 place-items-center rounded-[13px] border ${door.chip} ${door.chipText}`}>
-                    <span className="h-5 w-5">{door.icon}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-2.5 py-1 text-[10px] font-bold text-white/85">
-                    <span className={`krishoe-pulse h-1.5 w-1.5 rounded-full ${door.chipText.replace("text-", "bg-")}`} />
-                    <T en={door.pulseEn} ne={door.pulseNe} />
-                  </span>
-                </div>
-                <span className="relative font-display text-lg font-semibold leading-tight">
-                  <T en={door.titleEn} ne={door.titleNe} />
-                  <span className="mt-0.5 block font-sans text-xs font-semibold text-white/60">
-                    <T en={door.subEn} ne={door.subNe} />
-                  </span>
+        {/* A thin gold rule with a diamond — the "golden line" divider. */}
+        <div className="mx-auto mt-6 flex max-w-xs items-center gap-3 sm:max-w-md">
+          <span className="h-px flex-1 bg-[linear-gradient(90deg,transparent,rgba(201,162,75,0.7))]" />
+          <span className="h-1.5 w-1.5 rotate-45 bg-[#c9a24b]" />
+          <span className="h-px flex-1 bg-[linear-gradient(90deg,rgba(201,162,75,0.7),transparent)]" />
+        </div>
+
+        <p className="mb-9 mt-6 text-center text-base text-white/80 sm:text-lg">
+          <T en="Who are you? — choose your door" ne="तपाईं को हुनुहुन्छ? — आफ्नो द्वार छान्नुहोस्" />
+        </p>
+
+        {/* The three doors, wide and tall on desktop. */}
+        <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
+          {doors.map((door, index) => (
+            <Link
+              key={door.href}
+              href={door.href}
+              style={{ animationDelay: `${index * 90}ms` }}
+              className={`krishoe-rise group/door relative flex min-h-[190px] flex-col gap-3 overflow-hidden rounded-[22px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_18px_40px_-20px_rgba(0,0,0,0.75)] transition duration-200 hover:-translate-y-2 sm:min-h-[240px] ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-100 ${door.glow}`}
+            >
+              <div className="relative flex items-center justify-between">
+                <span className={`grid h-14 w-14 place-items-center rounded-[16px] border ${door.chip} ${door.chipText}`}>
+                  <span className="h-7 w-7">{door.icon}</span>
                 </span>
-                <span className={`relative inline-flex items-center gap-1.5 text-xs font-black tracking-[0.02em] ${door.chipText}`}>
-                  <T en={door.goEn} ne={door.goNe} /> →
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] font-bold text-white/85">
+                  <span className={`krishoe-pulse h-1.5 w-1.5 rounded-full ${door.chipText.replace("text-", "bg-")}`} />
+                  <T en={door.pulseEn} ne={door.pulseNe} />
                 </span>
-              </Link>
-            ))}
-          </div>
+              </div>
+              <span className="relative mt-auto font-display text-2xl font-semibold leading-tight sm:text-3xl">
+                <T en={door.titleEn} ne={door.titleNe} />
+                <span className="mt-1 block font-sans text-sm font-semibold text-white/60">
+                  <T en={door.subEn} ne={door.subNe} />
+                </span>
+              </span>
+              <span className={`relative inline-flex items-center gap-1.5 text-sm font-black tracking-[0.02em] ${door.chipText}`}>
+                <T en={door.goEn} ne={door.goNe} />
+                <span className="transition-transform duration-200 group-hover/door:translate-x-1">→</span>
+              </span>
+            </Link>
+          ))}
+        </div>
 
-          <p className="relative mt-5 text-center text-[11px] text-white/55">
-            🔒 <T en="Worker and Admin need a login · the Shop is open to everyone" ne="कामदार र Admin लाई login · पसल सबैलाई खुला" />
-          </p>
-        </section>
+        <p className="mt-8 text-center text-xs text-white/55 sm:text-sm">
+          🔒 <T en="Worker and Admin need a login · the Shop is open to everyone" ne="कामदार र Admin लाई login · पसल सबैलाई खुला" />
+        </p>
+      </div>
 
-        <p className="mt-5 text-center text-xs text-[#5f6a5f]">
-          <Link href="/" className="font-bold text-[#8a6516] hover:underline">
+      {/* Bottom golden rule with the live date — a quiet, grand footer. */}
+      <div className="pointer-events-auto absolute inset-x-0 bottom-0">
+        <div className="h-px w-full bg-[linear-gradient(90deg,transparent,rgba(201,162,75,0.55),transparent)]" />
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 py-4 text-[11px] text-white/50 sm:text-xs">
+          <Link href="/" className="font-bold text-[#e3c684] transition hover:text-white">
             <T en="← Back to the shop" ne="← पसलमा फर्कने" />
           </Link>
-        </p>
+          <span className="font-mono tracking-wide">
+            {adDate} · <span className="text-[#e3c684]/80">B.S {bsDate}</span>
+          </span>
+        </div>
       </div>
     </main>
   );
