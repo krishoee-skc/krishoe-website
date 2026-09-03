@@ -25,6 +25,11 @@ import { describe, expect, it } from "vitest";
  */
 const SANS = ["Inter", "Mukta"];
 const SERIF = ["Fraunces", "Tiro_Devanagari_Hindi"];
+// A robotic accent face used ONLY on the sign-in doors (/enter, admin & worker
+// login) — never on the shop or in body copy. It is a deliberate, narrowly
+// scoped fifth family (a "secure terminal" mark), not the template sprawl this
+// test exists to stop, so it is allowed alongside the two designs.
+const TECH = ["Orbitron"];
 
 describe("the shop's typefaces", () => {
   it("loads two designs and nothing more, each in both scripts", async () => {
@@ -37,9 +42,11 @@ describe("the shop's typefaces", () => {
       .map((name) => name.trim())
       .filter(Boolean);
 
-    // A third design is what this test exists to stop — four families on one
-    // page is what made the shop read as assembled from a template.
-    expect([...families].sort()).toEqual([...SANS, ...SERIF].sort());
+    // A third *shop* design is what this test exists to stop — sprawl on the
+    // pages a customer reads is what made the shop look assembled from a
+    // template. The robotic TECH face is exempt because it never appears there;
+    // it is confined to the sign-in doors.
+    expect([...families].sort()).toEqual([...SANS, ...SERIF, ...TECH].sort());
   });
 
   it("gives each script a face rather than leaving one to the device", async () => {

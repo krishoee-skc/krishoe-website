@@ -16,24 +16,17 @@ function code(source: string) {
  * the wordmark to be read; the crest alone goes everywhere else.
  */
 describe("the full lockup", () => {
-  it("is on the sign-in screen, which is already dark", async () => {
+  it("greets the owner on a dark ground, with no heavy image to wait on", async () => {
     const page = await readFile(LOGIN, "utf8");
 
-    expect(page).toContain("/images/logo-full.webp");
-    // bg-brand-green-ink under it, so the artwork's own black meets no seam.
-    expect(page).toContain("bg-brand-green-ink");
-  });
-
-  it("loads before the decoration behind it", async () => {
-    const page = await readFile(LOGIN, "utf8");
-    const logo = page.slice(page.indexOf("/images/logo-full.webp"));
-    const banner = page.slice(page.indexOf("/images/hero-banner.png"));
-
-    // 150KB the owner came to see, against a 909KB photograph at 35% opacity.
-    // Next 16 renamed this prop from priority to preload; same instruction to
-    // the browser, a name that says what it does.
-    expect(logo.slice(0, 400)).toContain("preload");
-    expect(banner.slice(0, 400)).toContain('loading="lazy"');
+    // The admin sign-in was rebuilt as a secure-terminal doorway: a CSS gold
+    // monogram on a deep-green gradient, no logo-full.webp and no 909KB
+    // photograph behind it. So the ground is dark and the fields never wait on
+    // an image — the outcome the two old image tests were protecting, reached
+    // by removing the images rather than ordering their load.
+    expect(page).toContain("#0b2e22");
+    expect(page).not.toContain("/images/logo-full.webp");
+    expect(page).not.toContain("/images/hero-banner.png");
   });
 
   it("stays off the printed bill", async () => {

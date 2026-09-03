@@ -49,26 +49,21 @@ describe("counting Owners", () => {
   });
 });
 
-describe("the photograph behind the form", () => {
-  it("does not make the sign-in fields wait for it", async () => {
+describe("the admin sign-in has nothing heavy behind the form", () => {
+  it("carries no photograph to make the fields wait", async () => {
     const page = code(await readFile("app/(admin-auth)/admin/login/page.tsx", "utf8"));
 
-    // 909KB, shown at 35% opacity under a near-opaque gradient. `priority`
-    // told the browser to fetch it before the things people came for.
-    //
-    // Scoped to this image rather than the whole page: the logo above the form
-    // is 150KB, is the first thing the owner looks at, and should load first.
-    // A page-wide ban would have read as "never prioritise anything here",
-    // which was never the point.
-    const banner = page.slice(page.indexOf("/images/hero-banner.png"), page.indexOf("/>", page.indexOf("/images/hero-banner.png")));
-    expect(banner).not.toContain("priority");
-    expect(banner).toContain('loading="lazy"');
+    // The 909KB photograph is gone: the admin door was rebuilt as a CSS
+    // gradient with a light SVG texture, so the fields have nothing to wait on.
+    expect(page).not.toContain("/images/hero-banner.png");
+    expect(page).not.toContain("next/image");
   });
 
-  it("is not announced to someone who cannot see it", async () => {
+  it("keeps its decorative layers out of the accessibility tree", async () => {
     const page = code(await readFile("app/(admin-auth)/admin/login/page.tsx", "utf8"));
-    expect(page).toContain("aria-hidden");
-    expect(page).toContain('alt=""');
+    // The gold glow and sandal texture are aria-hidden so a screen reader is
+    // taken straight to the fields.
+    expect(page).toContain('aria-hidden="true"');
   });
 });
 

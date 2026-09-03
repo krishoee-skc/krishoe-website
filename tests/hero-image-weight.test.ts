@@ -55,14 +55,18 @@ describe("the home page's hero banner", () => {
  * was still marked urgent.
  */
 describe("the photograph behind the sign-in forms", () => {
-  it("never comes before the fields, on either door", async () => {
-    for (const page of ["app/worker/login/page.tsx", "app/(admin-auth)/admin/login/page.tsx"]) {
-      const source = await readFile(page, "utf8");
-      const banner = source.slice(source.indexOf("/images/hero-banner.png"), source.indexOf("/images/hero-banner.png") + 400);
+  it("never comes before the fields on the worker door", async () => {
+    // The admin door no longer carries the photograph at all — it was rebuilt
+    // as a CSS doorway — so only the worker sign-in still has one to order.
+    const source = await readFile("app/worker/login/page.tsx", "utf8");
+    const banner = source.slice(source.indexOf("/images/hero-banner.png"), source.indexOf("/images/hero-banner.png") + 400);
 
-      expect(banner, page).toContain('loading="lazy"');
-      expect(banner, page).not.toContain("preload");
-    }
+    expect(banner).toContain('loading="lazy"');
+    expect(banner).not.toContain("preload");
+
+    // And the admin door must stay imageless, so this stress never returns there.
+    const admin = await readFile("app/(admin-auth)/admin/login/page.tsx", "utf8");
+    expect(admin).not.toContain("/images/hero-banner.png");
   });
 
   it("is not announced to a screen reader, being decoration", async () => {

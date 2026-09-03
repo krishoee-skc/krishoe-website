@@ -171,10 +171,10 @@ export default function EnterPage() {
       <div className="krishoe-enter relative w-full max-w-5xl">
         {/* Monogram + wordmark, larger, centred. */}
         <div className="flex items-center justify-center gap-3 sm:gap-4">
-          <span className="krishoe-mono grid h-16 w-16 place-items-center overflow-hidden rounded-[18px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-display text-4xl font-black leading-none text-[#0b2e22] shadow-[0_10px_30px_-10px_rgba(201,162,75,0.8),inset_0_1px_0_rgba(255,255,255,0.6)] sm:h-20 sm:w-20 sm:text-5xl">
+          <span className="krishoe-mono grid h-16 w-16 place-items-center overflow-hidden rounded-[18px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-tech text-3xl font-black leading-none text-[#0b2e22] shadow-[0_10px_30px_-10px_rgba(201,162,75,0.8),inset_0_1px_0_rgba(255,255,255,0.6)] sm:h-20 sm:w-20 sm:text-4xl">
             K
           </span>
-          <span className="font-display text-4xl font-black tracking-[0.02em] text-white sm:text-6xl">
+          <span className="font-tech text-3xl font-black tracking-[0.14em] text-white sm:text-5xl">
             KRISHOE<span className="text-[#e3c684]">®</span>
           </span>
         </div>

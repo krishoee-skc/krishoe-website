@@ -85,6 +85,8 @@ module.exports = {
         // phone happened to ship with.
         sans: ["var(--font-sans)", "var(--font-dev-sans)", "Inter", "Mukta", "Segoe UI", "Arial", "Helvetica", "sans-serif"],
         display: ["var(--font-display)", "var(--font-dev-display)", "Georgia", "Times New Roman", "serif"],
+        // A robotic, futuristic face for the sign-in doors only.
+        tech: ["var(--font-tech)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       spacing: {
         xs: "4px",

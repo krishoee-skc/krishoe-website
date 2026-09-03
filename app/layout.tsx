@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { unstable_cache } from "next/cache";
-import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
+import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi, Orbitron } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import { Analytics } from "@/components/commerce/Analytics";
@@ -33,6 +33,16 @@ const display = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
+  display: "swap",
+});
+
+// A robotic, futuristic face used only where the app wants to read as "secure
+// terminal" — the sign-in doors and their monograms. It never touches the shop
+// or body copy, where readability rules; it is a deliberate accent, latin-only.
+const tech = Orbitron({
+  subsets: ["latin"],
+  weight: ["500", "700", "900"],
+  variable: "--font-tech",
   display: "swap",
 });
 
@@ -182,7 +192,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${sans.variable} ${display.variable} ${devanagariSans.variable} ${devanagariDisplay.variable}`}
+      className={`h-full antialiased ${sans.variable} ${display.variable} ${tech.variable} ${devanagariSans.variable} ${devanagariDisplay.variable}`}
     >
       <head>
         {/* Before the first paint, so the page never renders light and then
