@@ -54,26 +54,23 @@ describe("the home page's hero banner", () => {
  * the worker page — used by people with the cheapest phones in the building —
  * was still marked urgent.
  */
-describe("the photograph behind the sign-in forms", () => {
-  it("never comes before the fields on the worker door", async () => {
-    // The admin door no longer carries the photograph at all — it was rebuilt
-    // as a CSS doorway — so only the worker sign-in still has one to order.
-    const source = await readFile("app/worker/login/page.tsx", "utf8");
-    const banner = source.slice(source.indexOf("/images/hero-banner.png"), source.indexOf("/images/hero-banner.png") + 400);
-
-    expect(banner).toContain('loading="lazy"');
-    expect(banner).not.toContain("preload");
-
-    // And the admin door must stay imageless, so this stress never returns there.
-    const admin = await readFile("app/(admin-auth)/admin/login/page.tsx", "utf8");
-    expect(admin).not.toContain("/images/hero-banner.png");
+describe("the sign-in doors carry no heavy photograph", () => {
+  it("keeps the 909KB banner off both doors, so the fields wait on nothing", async () => {
+    // Both sign-in screens were rebuilt as CSS doorways — a gradient with a
+    // light SVG texture — so neither loads the 909KB hero-banner behind the
+    // fields any more. That is the outcome this file was protecting, reached by
+    // removing the image rather than ordering its load.
+    for (const page of ["app/worker/login/page.tsx", "app/(admin-auth)/admin/login/page.tsx"]) {
+      const source = await readFile(page, "utf8");
+      expect(source, page).not.toContain("/images/hero-banner.png");
+      expect(source, page).not.toContain("next/image");
+    }
   });
 
-  it("is not announced to a screen reader, being decoration", async () => {
-    const worker = await readFile("app/worker/login/page.tsx", "utf8");
-    const banner = worker.slice(worker.indexOf("/images/hero-banner.png"));
-
-    expect(banner.slice(0, 400)).toContain('alt=""');
-    expect(banner.slice(0, 400)).toContain("aria-hidden");
+  it("keeps each door's decorative layers out of the accessibility tree", async () => {
+    for (const page of ["app/worker/login/page.tsx", "app/(admin-auth)/admin/login/page.tsx"]) {
+      const source = await readFile(page, "utf8");
+      expect(source, page).toContain('aria-hidden="true"');
+    }
   });
 });
