@@ -123,6 +123,10 @@ export default function AdminAskPanel() {
     const Recognition = getSpeechRecognition();
     if (!Recognition) return;
 
+    // Silence any answer being read aloud before listening, so the mic hears the
+    // owner and not the phone's own voice.
+    if (canSpeak()) window.speechSynthesis.cancel();
+
     const recognition = new Recognition();
     // Nepali when the shop is in Nepali, English otherwise; the phone falls back
     // on its own if it can't do one of them.
