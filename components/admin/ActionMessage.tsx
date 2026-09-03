@@ -24,7 +24,7 @@ export default function ActionMessage({ state, linkLabel }: ActionMessageProps) 
     <div
       role="status"
       aria-live="polite"
-      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${tone}`}
+      className={`krishoe-flash flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${tone}`}
     >
       <span>
         <span aria-hidden="true">{state.ok ? "✓ " : "✕ "}</span>

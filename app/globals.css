@@ -507,6 +507,42 @@ table th,
   transition-duration: 150ms;
 }
 
+/* A few small, shared entrances. Kept deliberately gentle and short — a status
+   message that slides up an inch, a card that fades in — so the app feels alive
+   without ever making the owner wait on a flourish. All of these are switched
+   off entirely by the reduce-motion block below, which zeroes every animation. */
+@keyframes krishoe-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes krishoe-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  60% {
+    transform: translateY(-1px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* A saved / error banner announcing itself — a small pop, once. */
+.krishoe-flash {
+  animation: krishoe-pop 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* A card settling into place on first paint. */
+.krishoe-rise {
+  animation: krishoe-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Disable animations for reduce-motion preference */
 @media (prefers-reduced-motion: reduce) {
   * {

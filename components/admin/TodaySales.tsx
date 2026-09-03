@@ -35,7 +35,7 @@ export default function TodaySales({
   const owed = Math.max(0, Math.round(netSales - collected));
 
   return (
-    <section className="rounded-2xl bg-brand-green-ink p-6 text-white sm:p-8">
+    <section className="krishoe-rise rounded-2xl bg-brand-green-ink p-6 text-white sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">
