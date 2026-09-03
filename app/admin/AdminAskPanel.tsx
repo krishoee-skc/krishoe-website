@@ -70,11 +70,61 @@ function SpeakerIcon({ className, muted }: { className?: string; muted?: boolean
 function canSpeak(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
+
+/**
+ * Pick the clearest available voice for a language, preferring a female one.
+ *
+ * Setting only utterance.lang leaves the browser to choose, and on many phones
+ * it reads Nepali with an English voice — the words come out garbled. So we look
+ * through the installed voices and choose deliberately, in this order:
+ *   1. a female voice in the right script (Nepali, else Hindi — Hindi shares
+ *      Devanagari and sounds far closer to Nepali than English);
+ *   2. any voice in that script;
+ *   3. whatever matches the language tag, then the default.
+ * The owner asked for a clear female Nepali voice; a real one is only there if
+ * the phone has it, but this gets as close as the device allows. English almost
+ * always has a good voice, so the rescue work is really for Nepali.
+ */
+const FEMALE_HINT = /female|woman|zira|susan|heera|kalpana|swara|lekha|veena|priya|neerja|aditi|google.*(हिन्दी|hindi|nepali)/i;
+
+function isFemale(voice: SpeechSynthesisVoice): boolean {
+  // Some engines expose no gender at all; the name is the only clue. Google's
+  // default Hindi/Nepali web voices are female, so treat those as female too.
+  return FEMALE_HINT.test(voice.name);
+}
+
+function pickVoice(lang: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
+  const wanted = lang.toLowerCase();
+  const scripts = wanted.startsWith("ne") ? ["ne", "hi"] : [wanted.slice(0, 2)];
+
+  const inScript = (prefix: string) =>
+    voices.filter((voice) => voice.lang?.toLowerCase().startsWith(prefix));
+
+  for (const prefix of scripts) {
+    const matches = inScript(prefix);
+    const female = matches.find(isFemale);
+    if (female) return female; // a female voice in the right script — best case
+    if (matches[0]) return matches[0]; // any voice in the right script
+  }
+  // Nothing in-script: a female English voice if we can, else the default.
+  return voices.find(isFemale) ?? voices[0];
+}
+
 function speakText(message: string, lang: string) {
   if (!canSpeak()) return;
   window.speechSynthesis.cancel(); // never let two answers talk over each other
   const utterance = new SpeechSynthesisUtterance(message);
-  utterance.lang = lang;
+  const voice = pickVoice(lang);
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang; // match the tag to the chosen voice
+  } else {
+    utterance.lang = lang;
+  }
+  // A touch slower reads clearer, especially for a Hindi voice speaking Nepali.
+  utterance.rate = 0.95;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -107,11 +157,21 @@ export default function AdminAskPanel() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- capability check after hydration, intentional
     setVoiceReady(getSpeechRecognition() !== null);
     setSpeakReady(canSpeak());
+    // Warm the voice list: on many browsers getVoices() is empty on first call
+    // and fills in asynchronously. Touching it here, and listening for the
+    // change, means a good voice is ready by the time the first answer speaks.
+    if (canSpeak()) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
     return () => {
       // Stop any live recognition, and silence any answer still being spoken,
       // if the panel unmounts.
       recognitionRef.current?.stop();
-      if (canSpeak()) window.speechSynthesis.cancel();
+      if (canSpeak()) {
+        window.speechSynthesis.onvoiceschanged = null;
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
