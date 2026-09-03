@@ -71,12 +71,12 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
       setError(
         name === "NotAllowedError" || name === "AbortError"
           ? text(
-              "Not set up on this device yet — each phone or computer needs it once. Sign in with the password below; the way to switch it on appears after that.",
-              "यो यन्त्रमा अझै चालु छैन — हरेक फोन वा computer मा एक पटक मिलाउनुपर्छ। तलको password ले पस्नुहोस्, अनि चालु गर्ने बाटो देखिन्छ।",
+              "All good — just sign in with the password below. If you'd like password-free sign-in on this device, you can switch it on once you're in.",
+              "ठीकै छ — तलको password ले पस्नुहोस्। यो यन्त्रमा password बिना पस्न चाहनुभए, भित्र गएपछि एक पटक चालु गर्न सकिन्छ।",
             )
           : text(
-              "This device has no KRISHOE passkey saved — one saved on your phone does not work on a computer, or the other way round. Use the password below.",
-              "यो यन्त्रमा KRISHOE को passkey छैन — फोनमा राखेको computer मा चल्दैन, computer को फोनमा चल्दैन। तलको password प्रयोग गर्नुहोस्।",
+              "No password-free sign-in on this device yet — one set on your phone works on that phone only. Just use the password below.",
+              "यो यन्त्रमा password बिनाको सुविधा अझै छैन — फोनमा राखेको त्यही फोनमा मात्र चल्छ। तलको password नै प्रयोग गर्नुहोस्।",
             ),
       );
     } finally {
@@ -97,8 +97,14 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
           : text("🔓 Let this device recognise me", "🔓 यो यन्त्रले चिनेर भित्र जाने")}
       </button>
 
+      {/* A calm, friendly note — not an error. A passkey simply not being set up
+          on this device is normal (every device needs it once), so it wears a
+          soft cream tone with an ℹ️, never the red of something gone wrong. */}
       {error ? (
-        <p className="mt-2 text-sm font-semibold text-brand-clay">{error}</p>
+        <p className="mt-2 rounded-xl border border-brand-gold-bright/40 bg-brand-cream-soft px-3 py-2 text-sm font-semibold leading-6 text-brand-green-ink">
+          <span aria-hidden="true">ℹ️ </span>
+          {error}
+        </p>
       ) : null}
 
       <div className="mt-5 flex items-center gap-3">

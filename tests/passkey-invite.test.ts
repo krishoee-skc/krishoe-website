@@ -58,8 +58,8 @@ describe("what the sign-in page tells the owner", () => {
     // "यन्त्र" alone read as a phone to a reader holding a computer, so it
     // now names both. The promise is unchanged: say it is per-device, and say
     // where switching it on happens.
-    expect(button).toContain("हरेक फोन वा computer मा एक पटक मिलाउनुपर्छ");
-    expect(button).toContain("चालु गर्ने बाटो देखिन्छ");
+    expect(button).toContain("तलको password ले पस्नुहोस्");
+    expect(button).toContain("एक पटक चालु गर्न सकिन्छ");
     expect(button).not.toContain("दर्ता");
   });
 });

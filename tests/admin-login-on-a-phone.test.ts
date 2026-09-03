@@ -20,17 +20,19 @@ describe("signing in with a passkey on a device that has none", () => {
     // fingerprint prompt. Both were being swallowed, so the button appeared to
     // do nothing at all.
     expect(source).toContain('name === "NotAllowedError" || name === "AbortError"');
-    // The wording changed after the owner hit this on their iPhone: "passkey
-    // दर्ता छैन" was accurate and left them stuck, because it never said that
-    // registration is per-device or where it happens. What has to hold is that
-    // the message explains rather than merely reports.
-    expect(source).toContain("यो यन्त्रमा अझै चालु छैन");
-    expect(source).toContain("हरेक फोन वा computer मा एक पटक मिलाउनुपर्छ");
+    // The wording changed twice. First after the owner hit this on their iPhone
+    // ("passkey दर्ता छैन" left them stuck), then again because a red note read
+    // as an error when nothing was wrong. What has to hold is that the message
+    // reassures and points at the password, rather than alarming.
+    expect(source).toContain("ठीकै छ");
+    expect(source).toContain("तलको password ले पस्नुहोस्");
     // Both branches explain now, not just the one. The browser's choice of
     // DOMException does not change what the reader needs to be told.
-    expect(source).toContain("यो यन्त्रमा KRISHOE को passkey छैन");
-    // And it points at the way in that does work.
+    expect(source).toContain("password बिनाको सुविधा अझै छैन");
+    // And it points at the way in that does work, in a calm tone.
     expect(source).toContain("password");
+    // The note is a calm hint, not a red error — no clay/warning tone on it.
+    expect(source).not.toMatch(/text-brand-clay">\{error\}/);
   });
 });
 
