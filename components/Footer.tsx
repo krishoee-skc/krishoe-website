@@ -175,7 +175,19 @@ export default function Footer() {
               <span className="mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-md bg-brand-green text-brand-gold-bright">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.3" /></svg>
               </span>
-              <span>{businessContact.streetAddress}, {businessContact.addressLocality}, {businessContact.addressRegion}</span>
+              {/* The address opens the place in Google Maps, so tapping it gives
+                  directions rather than being dead text next to a live phone
+                  and email. */}
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="transition hover:text-brand-green"
+              >
+                {businessContact.streetAddress}, {businessContact.addressLocality}, {businessContact.addressRegion}
+              </a>
             </li>
             <li className="flex items-center gap-2.5">
               <span className="grid h-6 w-6 flex-none place-items-center rounded-md bg-brand-green text-brand-gold-bright">
