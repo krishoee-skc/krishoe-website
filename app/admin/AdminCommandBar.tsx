@@ -68,7 +68,7 @@ export default function AdminCommandBar() {
         aria-label={text("Search everything", "सबै खोज्नुहोस्")}
         className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-brand-green-line bg-brand-paper px-3.5 text-left text-brand-muted transition hover:border-brand-green/50 hover:bg-brand-mist"
       >
-        <SearchIcon className="h-4.5 w-4.5 shrink-0 text-brand-green" />
+        <SearchIcon className="h-5 w-5 shrink-0 text-brand-green" />
         <span className="flex-1 truncate text-sm font-semibold">
           {text("Search or ask about the shop…", "खोज्नुहोस् वा शपबारे सोध्नुहोस्…")}
         </span>
