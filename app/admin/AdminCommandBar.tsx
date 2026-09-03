@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { SearchIcon } from "@/components/Icons";
 import { useLanguage } from "@/components/LanguageProvider";
 import SearchAsYouType from "@/app/admin/search/SearchAsYouType";
+import AdminAskPanel from "./AdminAskPanel";
+
+type Mode = "find" | "ask";
 
 /**
  * The one box that reaches everything, from the top of every admin screen.
@@ -21,6 +24,7 @@ import SearchAsYouType from "@/app/admin/search/SearchAsYouType";
 export default function AdminCommandBar() {
   const { text } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("find");
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -66,7 +70,7 @@ export default function AdminCommandBar() {
       >
         <SearchIcon className="h-4.5 w-4.5 shrink-0 text-brand-green" />
         <span className="flex-1 truncate text-sm font-semibold">
-          {text("Search a page, product, order, worker…", "पाना, सामान, अर्डर, कामदार खोज्नुहोस्…")}
+          {text("Search or ask about the shop…", "खोज्नुहोस् वा शपबारे सोध्नुहोस्…")}
         </span>
         <kbd className="hidden shrink-0 rounded border border-brand-green-line bg-brand-mist px-1.5 py-0.5 text-[10px] font-bold text-brand-muted sm:inline">
           Ctrl K
@@ -81,28 +85,60 @@ export default function AdminCommandBar() {
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
           />
-          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,600px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper p-4 shadow-2xl sm:top-20">
-            <div className="mb-1 flex items-center justify-between">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">
-                {text("Search", "खोज्नुहोस्")}
-              </p>
+          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,600px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper p-4 shadow-2xl sm:top-20 sm:max-h-[80vh]">
+            <div className="mb-3 flex items-center gap-2">
+              {/* Two ways to use the box: find a thing, or ask about the shop.
+                  Find is the default — it is what a search box is for; Ask is
+                  the newer, read-only assistant. */}
+              <div className="flex rounded-full bg-brand-mist p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setMode("find")}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+                    mode === "find" ? "bg-brand-green-ink text-white" : "text-brand-muted"
+                  }`}
+                >
+                  🔍 {text("Find", "खोज्ने")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("ask")}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-black transition ${
+                    mode === "ask" ? "bg-brand-green-ink text-white" : "text-brand-muted"
+                  }`}
+                >
+                  🤖 {text("Ask", "सोध्ने")}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label={text("Close", "बन्द गर्नुहोस्")}
-                className="grid h-8 w-8 place-items-center rounded-full text-xl leading-none text-brand-muted-soft transition hover:bg-brand-mist hover:text-brand-muted-deep"
+                className="ml-auto grid h-8 w-8 place-items-center rounded-full text-xl leading-none text-brand-muted-soft transition hover:bg-brand-mist hover:text-brand-muted-deep"
               >
                 ×
               </button>
             </div>
-            {/* Tapping a result navigates, which unmounts this overlay, so the
-                links close it on their own — no extra wiring needed. */}
-            <div className="overflow-y-auto" onClick={(event) => {
-              const target = event.target as HTMLElement;
-              if (target.closest("a")) setOpen(false);
-            }}>
-              <SearchAsYouType />
-            </div>
+            {mode === "find" ? (
+              /* Tapping a result navigates, which unmounts this overlay, so the
+                 links close it on their own — no extra wiring needed. */
+              <div className="min-h-0 overflow-y-auto" onClick={(event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest("a")) setOpen(false);
+              }}>
+                <SearchAsYouType />
+              </div>
+            ) : (
+              /* Ask keeps the overlay open on a link tap only for its fact
+                 tiles, which the panel itself closes over; here we let those
+                 through so the owner lands on the page they tapped. */
+              <div className="flex min-h-0 flex-1 flex-col" onClick={(event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest("a")) setOpen(false);
+              }}>
+                <AdminAskPanel />
+              </div>
+            )}
           </div>
         </div>
       ) : null}
