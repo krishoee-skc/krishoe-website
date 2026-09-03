@@ -572,6 +572,42 @@ table th,
   animation-delay: 135ms;
 }
 
+/* The one-door entry page (/enter): a slow gold gleam across the monogram and a
+   soft live pulse beside each door. Both are switched off by the reduce-motion
+   block below. */
+@keyframes krishoe-gleam {
+  0%,
+  72% {
+    transform: translateX(-120%);
+  }
+  86%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+.krishoe-mono::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.6), transparent 65%);
+  transform: translateX(-120%);
+  animation: krishoe-gleam 3.6s ease-in-out 0.6s infinite;
+}
+@keyframes krishoe-doorpulse {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.krishoe-pulse {
+  animation: krishoe-doorpulse 2.4s infinite;
+}
+
 /* Disable animations for reduce-motion preference */
 @media (prefers-reduced-motion: reduce) {
   * {
