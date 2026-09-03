@@ -164,6 +164,10 @@ export const adminSetupGroups: Array<{
     titleEn: "Security",
     titleNe: "सुरक्षा",
     links: [
+      // The switch-board first: every safety page reachable from one center,
+      // so "security" is one place to look and not seven to remember. The
+      // individual pages stay listed and unchanged underneath.
+      { href: "/admin/security-overview", label: "Security Center", nepali: "सुरक्षा केन्द्र", icon: ShieldCheckIcon },
       { href: "/admin/devices", label: "Login devices", nepali: "कुन फोन/computer", icon: ShieldCheckIcon },
       { href: "/admin/security", label: "Security / CCTV", nepali: "सुरक्षा", icon: ShieldCheckIcon },
       { href: "/admin/activity", label: "Activity", nepali: "को ले के गर्‍यो", icon: ShieldCheckIcon },

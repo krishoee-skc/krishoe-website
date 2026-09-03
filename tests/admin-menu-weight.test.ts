@@ -46,9 +46,10 @@ describe("how much menu a shopkeeper has to read", () => {
 describe("what happened to the ones that moved", () => {
   it("moved them rather than deleted them", () => {
     // Ten moved out of the menu; "Open on phone" was later deleted outright,
-    // its worker QR already being at /admin/factory/worker-portal-qr. Nine is
-    // the list as it stands, pinned so a screen cannot quietly fall out of it.
-    expect(adminSetupLinks.length).toBe(9);
+    // its worker QR already being at /admin/factory/worker-portal-qr. Then the
+    // Security Center switch-board was added to the safety group, bringing it to
+    // ten — pinned so a screen cannot quietly fall out of the list.
+    expect(adminSetupLinks.length).toBe(10);
 
     const main = adminNavLinks.map((link) => link.href);
     for (const link of adminSetupLinks) {
