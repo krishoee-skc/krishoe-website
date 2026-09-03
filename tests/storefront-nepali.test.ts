@@ -33,7 +33,7 @@ describe("the add-to-cart button", () => {
     const actions = await readFile("components/ProductCardActions.tsx", "utf8");
 
     expect(actions).toContain('text("Sold out", "सकियो")');
-    expect(actions).toContain('text("Added", "थपियो")');
+    expect(actions).toContain('text("Added ✓", "थपियो ✓")');
     expect(actions).toContain('text("Add", "थप्ने")');
     // The wishlist control is an icon; its aria-label is the only words it has.
     expect(actions).toContain('text("Add to wishlist", "मनपर्नेमा राख्ने")');
