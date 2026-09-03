@@ -1,4 +1,5 @@
 import AdminNav from "./AdminNav";
+import AdminCommandBar from "./AdminCommandBar";
 import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminQuickDock from "./AdminQuickDock";
@@ -25,6 +26,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
         <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
           <AdminMobileNav adminRole={adminRole} />
+          {/* The command bar — one search across every page, product, order,
+              worker and bill, from the top of every admin screen. Read-only:
+              it opens the same login-guarded search the search page uses. */}
+          <div className="px-4 pt-4 sm:px-6">
+            <AdminCommandBar />
+          </div>
           {children}
           <AdminQuickDock adminRole={adminRole} />
           {/* Offered just after signing in, on the device being held. It
