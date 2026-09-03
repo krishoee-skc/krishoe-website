@@ -155,13 +155,16 @@ export default function EnterPage() {
           a faint footwear-tread texture — enough to feel crafted, never busy. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-40 h-[60vh] bg-[radial-gradient(50%_100%_at_50%_0%,rgba(201,162,75,0.22),transparent)]" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 -left-40 h-[60vh] w-[60vh] rounded-full bg-[radial-gradient(closest-side,rgba(79,158,120,0.14),transparent)]" />
+      {/* A faint tiled pattern of little sandals — the shop's own product, drawn
+          softly enough to read as texture rather than a picture. It is an inline
+          SVG (a sole outline with a toe strap), tiled and barely there. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
         style={{
           backgroundImage:
-            "repeating-linear-gradient(135deg, #ffffff 0 2px, transparent 2px 16px), repeating-linear-gradient(45deg, #ffffff 0 2px, transparent 2px 16px)",
-          backgroundSize: "34px 34px",
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(20 22) rotate(-18)'%3E%3Cpath d='M6 2c8 0 12 5 12 14s-3 22-6 26-9 4-11 0-3-14-3-22S-2 2 6 2Z'/%3E%3Cpath d='M2 12c3-4 9-4 12 0'/%3E%3C/g%3E%3Cg transform='translate(78 74) rotate(20)'%3E%3Cpath d='M6 2c8 0 12 5 12 14s-3 22-6 26-9 4-11 0-3-14-3-22S-2 2 6 2Z'/%3E%3Cpath d='M2 12c3-4 9-4 12 0'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          backgroundSize: "120px 120px",
         }}
       />
 
@@ -197,24 +200,24 @@ export default function EnterPage() {
               key={door.href}
               href={door.href}
               style={{ animationDelay: `${index * 90}ms` }}
-              className={`krishoe-rise group/door relative flex min-h-[180px] flex-col gap-3 overflow-hidden rounded-[22px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_18px_40px_-20px_rgba(0,0,0,0.75)] transition duration-200 hover:-translate-y-2 sm:min-h-[210px] sm:p-6 ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-100 ${door.glow}`}
+              className={`krishoe-rise group/door relative flex min-h-[220px] flex-col gap-4 overflow-hidden rounded-[24px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_18px_40px_-20px_rgba(0,0,0,0.75)] transition duration-200 hover:-translate-y-2 sm:min-h-[280px] sm:p-7 ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-100 ${door.glow}`}
             >
               <div className="relative flex items-center justify-between">
-                <span className={`grid h-14 w-14 place-items-center rounded-[16px] border ${door.chip} ${door.chipText}`}>
-                  <span className="h-7 w-7">{door.icon}</span>
+                <span className={`krishoe-doorIcon grid h-16 w-16 place-items-center rounded-[19px] border ${door.chip} ${door.chipText} shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-transform duration-200 group-hover/door:scale-105 sm:h-[72px] sm:w-[72px]`}>
+                  <span className="h-9 w-9 sm:h-10 sm:w-10">{door.icon}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] font-bold text-white/85">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-3 py-1.5 text-[11px] font-bold text-white/85">
                   <span className={`krishoe-pulse h-1.5 w-1.5 rounded-full ${door.chipText.replace("text-", "bg-")}`} />
                   <T en={door.pulseEn} ne={door.pulseNe} />
                 </span>
               </div>
-              <span className="relative mt-auto font-display text-2xl font-semibold leading-tight sm:text-3xl">
+              <span className="relative mt-auto font-display text-3xl font-semibold leading-tight sm:text-4xl">
                 <T en={door.titleEn} ne={door.titleNe} />
-                <span className="mt-1 block font-sans text-sm font-semibold text-white/60">
+                <span className="mt-1.5 block font-sans text-sm font-semibold text-white/60 sm:text-base">
                   <T en={door.subEn} ne={door.subNe} />
                 </span>
               </span>
-              <span className={`relative inline-flex items-center gap-1.5 text-sm font-black tracking-[0.02em] ${door.chipText}`}>
+              <span className={`relative inline-flex items-center gap-1.5 text-sm font-black tracking-[0.02em] sm:text-base ${door.chipText}`}>
                 <T en={door.goEn} ne={door.goNe} />
                 <span className="transition-transform duration-200 group-hover/door:translate-x-1">→</span>
               </span>
