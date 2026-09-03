@@ -21,7 +21,11 @@ const contentSecurityPolicy = [
   "img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://www.facebook.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://analytics.tiktok.com",
   "font-src 'self' data:",
   "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://analytics.tiktok.com",
-  "frame-src 'self'",
+  // 'self' plus Facebook: the Meta Pixel drops a hidden facebook.com iframe to
+  // set its cookie. Without it here the pixel is blocked and every page view
+  // files a CSP warning — the "frame-src" errors in monitoring. connect.facebook
+  // .net (the pixel script) is already allowed under script-src/connect-src.
+  "frame-src 'self' https://www.facebook.com",
   "object-src 'none'",
   "base-uri 'self'",
   // 'self' plus eSewa: online payment submits a POST form to eSewa's gateway
@@ -30,7 +34,12 @@ const contentSecurityPolicy = [
   // payment. Khalti redirects with window.location instead of a form, so it
   // needs nothing here. The status checks against esewa/khalti run server-side,
   // never in the browser, so they are outside CSP entirely.
-  "form-action 'self' https://epay.esewa.com.np https://rc-epay.esewa.com.np",
+  // 'self' plus eSewa and Facebook. eSewa: online payment POSTs a form to its
+  // gateway (epay in production, rc-epay for the sandbox). Facebook: the Meta
+  // Pixel posts its tracking beacon to facebook.com/tr — without it here every
+  // tracked event files a CSP "form-action" warning in monitoring. Khalti
+  // redirects with window.location, not a form, so it needs nothing here.
+  "form-action 'self' https://epay.esewa.com.np https://rc-epay.esewa.com.np https://www.facebook.com",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
   // Where the browser reports a block. Enforcing without this sends the signal
