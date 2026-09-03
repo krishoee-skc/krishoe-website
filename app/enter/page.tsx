@@ -86,6 +86,31 @@ const doors: Door[] = [
     glow: "before:bg-[radial-gradient(closest-side,#4f9e78,transparent)]",
   },
   {
+    // Sales staff sign in through /admin too; after login they see their own
+    // counter view (StaffToday), so this door and the Owner door share a way in
+    // but are named apart, because a salesperson is not the owner and should not
+    // have to read "Admin" and wonder if the door is theirs.
+    href: "/admin",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path d="M8 7h8M8 11h8M8 15h5" />
+      </svg>
+    ),
+    titleEn: "Staff",
+    titleNe: "स्टाफ",
+    subEn: "Counter · sales",
+    subNe: "काउन्टर · बिक्री",
+    goEn: "Billing",
+    goNe: "बिल काट्ने",
+    pulseEn: "Counter",
+    pulseNe: "काउन्टर",
+    ring: "hover:border-[#d98a5b]/70",
+    chip: "bg-[#d98a5b]/26 border-[#d98a5b]/40",
+    chipText: "text-[#f0c3a3]",
+    glow: "before:bg-[radial-gradient(closest-side,#d98a5b,transparent)]",
+  },
+  {
     href: "/admin",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -165,14 +190,14 @@ export default function EnterPage() {
           <T en="Who are you? — choose your door" ne="तपाईं को हुनुहुन्छ? — आफ्नो द्वार छान्नुहोस्" />
         </p>
 
-        {/* The three doors, wide and tall on desktop. */}
-        <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
+        {/* The four doors — two-up on a tablet, four across on a wide screen. */}
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
           {doors.map((door, index) => (
             <Link
               key={door.href}
               href={door.href}
               style={{ animationDelay: `${index * 90}ms` }}
-              className={`krishoe-rise group/door relative flex min-h-[190px] flex-col gap-3 overflow-hidden rounded-[22px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_18px_40px_-20px_rgba(0,0,0,0.75)] transition duration-200 hover:-translate-y-2 sm:min-h-[240px] ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-100 ${door.glow}`}
+              className={`krishoe-rise group/door relative flex min-h-[180px] flex-col gap-3 overflow-hidden rounded-[22px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_18px_40px_-20px_rgba(0,0,0,0.75)] transition duration-200 hover:-translate-y-2 sm:min-h-[210px] sm:p-6 ${door.ring} before:pointer-events-none before:absolute before:-top-[40%] before:left-1/2 before:h-[80%] before:w-[120%] before:-translate-x-1/2 before:rounded-full before:opacity-50 before:blur-2xl before:transition-opacity group-hover/door:before:opacity-100 ${door.glow}`}
             >
               <div className="relative flex items-center justify-between">
                 <span className={`grid h-14 w-14 place-items-center rounded-[16px] border ${door.chip} ${door.chipText}`}>
