@@ -56,6 +56,28 @@ function MicIcon({ className }: { className?: string }) {
   );
 }
 
+function SpeakerIcon({ className, muted }: { className?: string; muted?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+      {muted ? <path d="m22 9-6 6M16 9l6 6" /> : <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" />}
+    </svg>
+  );
+}
+
+// The browser's own text-to-speech, if it has one. Free and on-device, like the
+// mic; where it is missing, the speaker button never shows and nothing breaks.
+function canSpeak(): boolean {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
+}
+function speakText(message: string, lang: string) {
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel(); // never let two answers talk over each other
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = lang;
+  window.speechSynthesis.speak(utterance);
+}
+
 export default function AdminAskPanel() {
   const { text, language } = useLanguage();
   const [input, setInput] = useState("");
@@ -74,11 +96,23 @@ export default function AdminAskPanel() {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
+  // Speak the answer aloud. On by default when the browser can, and the owner
+  // can mute it. Starts false for the same SSR/first-paint reason as voiceReady.
+  const [speakReady, setSpeakReady] = useState(false);
+  const [speakOn, setSpeakOn] = useState(true);
+
   useEffect(() => {
+    // Both are browser-capability checks that must run after hydration, so the
+    // server and first client paint agree; the disable covers both setStates.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- capability check after hydration, intentional
     setVoiceReady(getSpeechRecognition() !== null);
-    // Stop any live recognition if the panel unmounts mid-listen.
-    return () => recognitionRef.current?.stop();
+    setSpeakReady(canSpeak());
+    return () => {
+      // Stop any live recognition, and silence any answer still being spoken,
+      // if the panel unmounts.
+      recognitionRef.current?.stop();
+      if (canSpeak()) window.speechSynthesis.cancel();
+    };
   }, []);
 
   function toggleVoice() {
@@ -162,7 +196,10 @@ export default function AdminAskPanel() {
       setAiOff(!data.reply);
 
       if (data.reply) {
-        setTurns((prev) => [...prev, { role: "assistant", text: data.reply as string }]);
+        const reply = data.reply;
+        setTurns((prev) => [...prev, { role: "assistant", text: reply }]);
+        // Read the answer aloud, unless the owner muted it.
+        if (speakOn) speakText(reply, language === "en" ? "en-US" : "ne-NP");
       }
     } catch {
       // Network trouble: keep whatever facts we had, say so plainly.
@@ -275,6 +312,31 @@ export default function AdminAskPanel() {
           </div>
         ) : null}
       </div>
+
+      {/* Speak-aloud toggle — only where the browser can speak. Muting it also
+          silences an answer being read right now. */}
+      {speakReady ? (
+        <button
+          type="button"
+          onClick={() => {
+            setSpeakOn((on) => {
+              if (on && canSpeak()) window.speechSynthesis.cancel();
+              return !on;
+            });
+          }}
+          aria-pressed={speakOn}
+          className={`mt-3 inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+            speakOn
+              ? "border-brand-green bg-brand-green-mist text-brand-green"
+              : "border-brand-green-line bg-brand-paper text-brand-muted"
+          }`}
+        >
+          <SpeakerIcon className="h-4 w-4" muted={!speakOn} />
+          {speakOn
+            ? text("Speaking answers", "बोलेर सुनाउँदै")
+            : text("Answers muted", "आवाज बन्द")}
+        </button>
+      ) : null}
 
       {/* Ask box */}
       <form
