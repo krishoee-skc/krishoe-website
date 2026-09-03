@@ -5,14 +5,8 @@ import {
   buildAdminAssistantPrompt,
   adminFactsBlock,
   type AdminChatTurn,
-  type AdminFacts,
 } from "@/lib/ai/admin-assistant-prompt";
-import { getPosSnapshot } from "@/lib/pos";
-import { getPurchasingSnapshot } from "@/lib/purchasing";
-import { getProductionControlSummary } from "@/lib/production-accounting";
-import { getProducts } from "@/lib/product-store";
-import { isLowOrOut } from "@/lib/stock-thresholds";
-import { reportError } from "@/lib/report-error";
+import { readAdminFacts } from "@/lib/admin-facts";
 
 /**
  * The owner's private assistant inside the admin.
@@ -33,39 +27,6 @@ import { reportError } from "@/lib/report-error";
  */
 
 const MAX_MESSAGE = 500;
-
-async function safe<T>(what: string, run: () => Promise<T>): Promise<T | null> {
-  try {
-    return await run();
-  } catch (error) {
-    reportError(`admin assistant: ${what}`, error);
-    return null;
-  }
-}
-
-async function readFacts(): Promise<AdminFacts> {
-  const [pos, purchasing, production, products] = await Promise.all([
-    safe("pos snapshot", getPosSnapshot),
-    safe("purchasing snapshot", getPurchasingSnapshot),
-    safe("production summary", getProductionControlSummary),
-    safe("products", () => getProducts({ includeDrafts: true })),
-  ]);
-
-  const lowStock = (products ?? [])
-    .filter((product) => product && "stock" in product && isLowOrOut(Number(product.stock)))
-    .map((product) => ({ name: product.name, stock: Number(product.stock) }));
-
-  return {
-    todaySales: pos ? pos.summary.todayNetSales : null,
-    todayPairs: pos ? pos.summary.todayPairs : null,
-    creditOwed: pos ? pos.summary.totalCredit : null,
-    workerOwed: production ? production.workerBalanceDue : null,
-    todayGoodPairs: production ? production.todayGoodPairs : null,
-    monthProfit: purchasing ? purchasing.summary.monthProfitEstimate : null,
-    lowStock: products ? lowStock : null,
-    lowStockCount: products ? lowStock.length : null,
-  };
-}
 
 export async function POST(request: Request) {
   const adminUser = await requireAdminPermission("production:entry");
@@ -101,7 +62,8 @@ export async function POST(request: Request) {
 
   // The true numbers, read first and always returned. This is the safety net:
   // whatever happens with the AI below, the box has the real figures to show.
-  const facts = await readFacts();
+  // Same reader the facts API uses, so the two never disagree.
+  const facts = await readAdminFacts();
 
   // No AI on this deployment, or the quota is spent: return the facts with no
   // sentence. The box shows the real numbers rather than an error or a blank.

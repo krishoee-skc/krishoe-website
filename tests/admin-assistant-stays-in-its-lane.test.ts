@@ -71,7 +71,9 @@ describe("the admin assistant route is read-only and guarded", () => {
 
   it("only reads snapshots and never writes", async () => {
     const source = await readFile(ROUTE, "utf8");
-    expect(source).toContain("getPosSnapshot");
+    // Reads the shop's numbers through the shared read-only reader — the same
+    // one the facts API uses, so the two can never disagree.
+    expect(source).toContain("readAdminFacts");
     for (const forbidden of ["INSERT", "UPDATE", "DELETE", "queryPostgres", "savePos"]) {
       expect(source, `admin assistant must not ${forbidden}`).not.toContain(forbidden);
     }

@@ -57,6 +57,30 @@ export default function AdminAskPanel() {
           history: turns.slice(-6).map((t) => ({ role: t.role === "owner" ? "user" : "assistant", text: t.text })),
         }),
       });
+
+      // A guard failure (session expired) or a server error answers without
+      // facts. Say so plainly rather than leaving a blank turn the owner can't
+      // read — most often it means signing in again.
+      if (!response.ok) {
+        setTurns((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text:
+              response.status === 401
+                ? text(
+                    "Your session ended — please sign in again.",
+                    "तपाईंको session सकियो — फेरि login गर्नुहोस्।",
+                  )
+                : text(
+                    "Couldn't read the shop just now — please try again.",
+                    "अहिले शप पढ्न सकिएन — फेरि प्रयास गर्नुहोस्।",
+                  ),
+          },
+        ]);
+        return;
+      }
+
       const data = (await response.json()) as {
         facts?: AdminFacts;
         reply?: string | null;

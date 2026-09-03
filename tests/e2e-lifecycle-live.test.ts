@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { queryPostgres } from "@/lib/postgres/client";
-import { addStockMovementToPostgres, deleteOperationRecordFromPostgres, getFinishedStockFromPostgres } from "@/lib/operations-postgres";
+import { addStockMovementToPostgres, getFinishedStockFromPostgres } from "@/lib/operations-postgres";
 import { createPosInvoice } from "@/lib/pos";
 import { addCustomerLedger, getOperationsData } from "@/lib/operations";
 import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";

@@ -12,7 +12,7 @@ const HIDDEN_PREFIXES = ["/admin", "/worker", "/account", "/customer"];
 
 export default function AiAssistant() {
   const pathname = usePathname();
-  const { text, language } = useLanguage();
+  const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
