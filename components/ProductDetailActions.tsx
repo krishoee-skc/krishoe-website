@@ -142,7 +142,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
           type="button"
           onClick={buyNow}
           disabled={blockPurchase}
-          className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-base font-black text-white shadow-[0_14px_30px_-12px_rgba(16,35,29,0.6)] transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:bg-brand-muted-soft disabled:hover:text-white"
+          className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand-green px-6 text-base font-black text-white shadow-[0_14px_30px_-12px_rgba(16,35,29,0.6)] transition hover:bg-brand-gold-bright hover:text-brand-green-ink active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-brand-muted-soft disabled:hover:text-white"
         >
           {outOfStock
             ? text("Sold out", "बिक्री सकियो")
@@ -158,7 +158,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
             type="button"
             onClick={addSelectedItem}
             disabled={blockPurchase}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock

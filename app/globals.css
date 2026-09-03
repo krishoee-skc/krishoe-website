@@ -542,6 +542,23 @@ table th,
 .krishoe-rise {
   animation: krishoe-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* A small spinner shown while a form is submitting, so a shopper who pressed a
+   button sees it working rather than wondering whether the tap landed. */
+@keyframes krishoe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.krishoe-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: krishoe-spin 700ms linear infinite;
+  vertical-align: -0.15em;
+}
 /* When a grid of product cards rises in, a small stagger makes it ripple gently
    left-to-right rather than all at once. Only the first row is delayed — enough
    to read as intentional, never long enough to make a shopper wait. */

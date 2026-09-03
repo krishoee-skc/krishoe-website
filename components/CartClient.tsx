@@ -45,7 +45,7 @@ export default function CartClient() {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-4">
         {cartItems.map((item) => (
-          <article key={item.key} className="grid gap-5 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm sm:grid-cols-[140px_1fr]">
+          <article key={item.key} className="krishoe-rise grid gap-5 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm sm:grid-cols-[140px_1fr]">
             <Link href={`/product/${item.productId}`} className="relative aspect-square overflow-hidden rounded-lg bg-brand-mist">
               <Image src={item.image} alt={item.name} fill sizes="140px" className="object-cover" />
             </Link>
@@ -78,7 +78,7 @@ export default function CartClient() {
                     type="button"
                     aria-label={text("Decrease quantity", "सङ्ख्या घटाउनुहोस्")}
                     onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                    className="grid h-11 w-11 place-items-center text-brand-green"
+                    className="grid h-11 w-11 place-items-center text-brand-green transition active:scale-90"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
@@ -87,7 +87,7 @@ export default function CartClient() {
                     type="button"
                     aria-label={text("Increase quantity", "सङ्ख्या बढाउनुहोस्")}
                     onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                    className="grid h-11 w-11 place-items-center text-brand-green"
+                    className="grid h-11 w-11 place-items-center text-brand-green transition active:scale-90"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
