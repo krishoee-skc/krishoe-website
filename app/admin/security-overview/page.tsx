@@ -24,14 +24,17 @@ export const dynamic = "force-dynamic";
 
 // The sign-in actions the audit log records, mapped to a plain description and
 // the bucket it counts toward. Everything else on the page is derived from these.
-const SECURITY_ACTIONS: Record<string, { label: string; bucket: "success" | "failed" | "blocked" }> = {
-  login_success: { label: "Signed in", bucket: "success" },
-  login_failed: { label: "Wrong password / unknown account", bucket: "failed" },
-  login_mfa_challenge: { label: "Two-step code sent", bucket: "success" },
-  login_mfa_delivery_failed: { label: "Two-step code could not be sent", bucket: "failed" },
-  login_rate_limited: { label: "Blocked — too many attempts", bucket: "blocked" },
-  bootstrap_login_blocked: { label: "Bootstrap sign-in blocked", bucket: "blocked" },
-  logout: { label: "Signed out", bucket: "success" },
+const SECURITY_ACTIONS: Record<
+  string,
+  { label: string; labelNe: string; bucket: "success" | "failed" | "blocked" }
+> = {
+  login_success: { label: "Signed in", labelNe: "प्रवेश गरियो", bucket: "success" },
+  login_failed: { label: "Wrong password / unknown account", labelNe: "गलत पासवर्ड / नभएको खाता", bucket: "failed" },
+  login_mfa_challenge: { label: "Two-step code sent", labelNe: "दुई-चरण कोड पठाइयो", bucket: "success" },
+  login_mfa_delivery_failed: { label: "Two-step code could not be sent", labelNe: "दुई-चरण कोड पठाउन सकिएन", bucket: "failed" },
+  login_rate_limited: { label: "Blocked — too many attempts", labelNe: "रोकियो — धेरै प्रयास", bucket: "blocked" },
+  bootstrap_login_blocked: { label: "Bootstrap sign-in blocked", labelNe: "Bootstrap प्रवेश रोकियो", bucket: "blocked" },
+  logout: { label: "Signed out", labelNe: "बाहिरियो", bucket: "success" },
 };
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -51,9 +54,16 @@ export default async function SecurityOverviewPage() {
   const failedCount = count("failed");
   const blockedCount = count("blocked");
 
-  const describe = (event: AdminAuditEvent) => SECURITY_ACTIONS[event.action]?.label ?? event.action;
+  const describe = (event: AdminAuditEvent) =>
+    SECURITY_ACTIONS[event.action] ? (
+      <T en={SECURITY_ACTIONS[event.action].label} ne={SECURITY_ACTIONS[event.action].labelNe} />
+    ) : (
+      event.action
+    );
+  // A real name/email if the log has one; otherwise say it's unknown, in the
+  // reader's language rather than a bare English word.
   const who = (event: AdminAuditEvent) =>
-    event.actorEmail || event.actorName || event.detail || "Unknown";
+    event.actorEmail || event.actorName || event.detail || null;
 
   return (
     <section className="p-4 pb-24 sm:p-6">
@@ -106,28 +116,46 @@ export default async function SecurityOverviewPage() {
       </h2>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Successful sign-ins" value={successCount} detail="Last 7 days" />
-        <StatCard label="Failed attempts" value={failedCount} detail="Wrong password / no such account" />
-        <StatCard label="Blocked attempts" value={blockedCount} detail="Stopped by rate limit" />
+        <StatCard
+          label={<T en="Successful sign-ins" ne="सफल प्रवेश" />}
+          value={successCount}
+          detail={<T en="Last 7 days" ne="पछिल्लो ७ दिन" />}
+        />
+        <StatCard
+          label={<T en="Failed attempts" ne="असफल प्रयास" />}
+          value={failedCount}
+          detail={<T en="Wrong password / no such account" ne="गलत पासवर्ड / खाता नभएको" />}
+        />
+        <StatCard
+          label={<T en="Blocked attempts" ne="रोकिएका प्रयास" />}
+          value={blockedCount}
+          detail={<T en="Stopped by rate limit" ne="धेरै प्रयासले रोकिएको" />}
+        />
       </div>
 
       <div className="mt-8 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">Recent sign-in activity</h2>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="Recent sign-in activity" ne="भर्खरैको प्रवेश" />
+        </h2>
         <p className="mt-1 text-sm text-brand-muted">
-          Newest first. For the device and location (IP) of each sign-in, open{" "}
+          <T en="Newest first. For the device and location (IP) of each sign-in, open" ne="नयाँ पहिले। हरेक प्रवेशको यन्त्र र स्थान (IP) हेर्न खोल्नुहोस्" />{" "}
           <Link href="/admin/devices" className="font-black text-brand-green underline">
-            Login devices
+            <T en="Login devices" ne="यन्त्रहरू" />
           </Link>
-          ; for scripts a page blocked, open{" "}
+          {"; "}
+          <T en="for scripts a page blocked, open" ne="कुनै पेजले रोकेको script हेर्न खोल्नुहोस्" />{" "}
           <Link href="/admin/monitoring" className="font-black text-brand-green underline">
-            Monitoring
+            <T en="Monitoring" ne="निगरानी" />
           </Link>
           .
         </p>
 
         {security.length === 0 ? (
           <p className="mt-6 text-sm text-brand-muted">
-            No sign-in activity recorded in the last 7 days.
+            <T
+              en="No sign-in activity recorded in the last 7 days."
+              ne="पछिल्लो ७ दिनमा कुनै प्रवेश-गतिविधि छैन।"
+            />
           </p>
         ) : (
           <ul className="mt-5 divide-y divide-brand-green-line">
@@ -137,7 +165,9 @@ export default async function SecurityOverviewPage() {
                 <li key={event.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <p className="font-bold text-brand-green-ink">{describe(event)}</p>
-                    <p className="truncate text-sm text-brand-muted">{who(event)}</p>
+                    <p className="truncate text-sm text-brand-muted">
+                      {who(event) ?? <T en="Unknown" ne="थाहा छैन" />}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span
@@ -149,7 +179,13 @@ export default async function SecurityOverviewPage() {
                             : "bg-brand-green-mist text-brand-green"
                       }`}
                     >
-                      {bucket === "blocked" ? "Blocked" : bucket === "failed" ? "Failed" : "OK"}
+                      {bucket === "blocked" ? (
+                        <T en="Blocked" ne="रोकियो" />
+                      ) : bucket === "failed" ? (
+                        <T en="Failed" ne="असफल" />
+                      ) : (
+                        <T en="OK" ne="ठीक" />
+                      )}
                     </span>
                     <span className="text-xs font-semibold text-brand-muted">
                       <DateDisplayAdmin date={event.createdAt} time={true} />

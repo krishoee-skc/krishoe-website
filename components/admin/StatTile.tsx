@@ -11,6 +11,8 @@
  * the two that want attention — so a glance down a row reads the state before
  * the numbers do.
  */
+import type { ReactNode } from "react";
+
 type Tone = "default" | "good" | "warn" | "danger";
 
 const ACCENT: Record<Tone, string> = {
@@ -26,9 +28,12 @@ export default function StatTile({
   detail,
   tone = "default",
 }: {
-  label: string;
+  // label and detail accept a node, not just a string, so a caller can pass a
+  // bilingual <T en ne /> where a plain string used to go. A string still works
+  // exactly as before — this only widens what is allowed.
+  label: ReactNode;
   value: string | number;
-  detail?: string;
+  detail?: ReactNode;
   tone?: Tone;
 }) {
   return (
