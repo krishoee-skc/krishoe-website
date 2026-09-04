@@ -37,7 +37,11 @@ const confirmed = process.argv.includes(confirmationFlag);
  * either sample data that shipped with the app or, in one case, an entry with
  * no price that the owner asked to remove.
  */
-const KEEP_PRODUCTS = ["Doctor Chappal moto", "bag open", "halka fom", "jeans shoes"];
+// The owner's own products, kept by their current names in the live database.
+// The old list predated a rename and would have dropped the real shoes; this
+// is the six the owner confirmed keeping, the accounts (sales, wages, rates,
+// stock movements) cleared out from under them for a clean real start.
+const KEEP_PRODUCTS = ["bag open", "doctor", "hill sandel", "rubber bagopen", "clocks", "bagopen"];
 
 /**
  * Emptied completely.
@@ -65,7 +69,13 @@ const KEEP_PRODUCTS = ["Doctor Chappal moto", "bag open", "halka fom", "jeans sh
  * ever made, this will fail loudly rather than quietly orphan it — which is the
  * behaviour worth having.
  */
-const CLEAR_BY_DELETE = ["production_items", "hr_employees"];
+// Only hr_employees now. production_items was here on the assumption the nine
+// factory items had a null production_item_id — but the owner has since linked
+// all nine, so deleting production_items would break factory_items, which we
+// keep. It is dormant and does not touch the accounts being cleared, so it
+// stays. The foreign key stopped the earlier run before anything was removed;
+// this is the fix.
+const CLEAR_BY_DELETE = ["hr_employees"];
 
 const CLEAR = [
   // Shop
