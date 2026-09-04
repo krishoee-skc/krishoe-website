@@ -65,6 +65,10 @@ export default function AddWorkPage() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showAddProduct, setShowAddProduct] = useState(false);
+  // Which half of the screen is showing: the entry form, or the post-to-stock
+  // list. Only one at a time, so the page is short. "entry" first — that is what
+  // this screen is opened to do.
+  const [view, setView] = useState<"entry" | "post">("entry");
   const [newProductName, setNewProductName] = useState("");
   const [showSetRate, setShowSetRate] = useState(false);
   const [newRate, setNewRate] = useState("");
@@ -338,7 +342,36 @@ export default function AddWorkPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Two views, one at a time, so the page stays short: entering work, and
+          posting what was made to stock. Entering is the default because that
+          is what this screen is for; posting is one tap away when the pairs are
+          counted in the godown. */}
+      <div className="mt-5 flex gap-1.5 rounded-xl bg-brand-mist p-1">
+        <button
+          type="button"
+          onClick={() => setView("entry")}
+          className={`flex-1 min-h-11 rounded-lg px-3 text-sm font-black transition ${
+            view === "entry" ? "bg-brand-green-ink text-white shadow-sm" : "text-brand-muted"
+          }`}
+        >
+          📝 {text("Add work", "काम टिप्ने")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("post")}
+          className={`flex-1 min-h-11 rounded-lg px-3 text-sm font-black transition ${
+            view === "post" ? "bg-brand-green-ink text-white shadow-sm" : "text-brand-muted"
+          }`}
+        >
+          📦 {text("Post to stock", "माल चढाउने")}
+        </button>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        hidden={view !== "entry"}
+        className="mt-5 bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6"
+      >
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
             {error}
@@ -594,7 +627,9 @@ export default function AddWorkPage() {
         </div>
       </form>
 
-      <ReadyToPost refreshKey={workSaved} />
+      <div hidden={view !== "post"} className="mt-5">
+        <ReadyToPost refreshKey={workSaved} />
+      </div>
 
       {/* Add Product Modal */}
       {showAddProduct && (
