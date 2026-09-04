@@ -15,6 +15,7 @@ import { getGatewayConfig, type GatewayProvider } from "@/lib/payment-gateways";
 import { getProducts } from "@/lib/product-store";
 import { reportError } from "@/lib/report-error";
 import { getOrderById, orderMatchesCustomer, type OrderItem, type OrderStatus } from "@/lib/submissions";
+import { getAdminSettings } from "@/lib/admin-settings";
 
 type OrderStatusPageProps = {
   params: Promise<{ id: string }>;
@@ -82,6 +83,17 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
     canViewPrivateDetails &&
     order.status === "Contacted" &&
     (order.paymentStatus === "Unpaid" || order.paymentStatus === "Failed");
+  // The owner's public review links, for a happy app rating to be offered. A
+  // failure here must not take down the order page — the links just aren't shown.
+  const companySettings = canViewPrivateDetails
+    ? await getAdminSettings()
+        .then((settings) => settings.company)
+        .catch((error) => {
+          reportError("load review links for the order page", error);
+          return { googleReviewUrl: "", facebookReviewUrl: "" };
+        })
+    : { googleReviewUrl: "", facebookReviewUrl: "" };
+
   const canInviteReview = canViewPrivateDetails && user && order.status === "Closed";
   const pairsToReview = canInviteReview
     ? await reviewablePairs(order.items, user.id).catch((error) => {
@@ -287,9 +299,14 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
 
         {/* The app rating, asked right after an order — the moment a shopper is
             happiest with KRISHOE. Open to everyone, read by the owner in admin.
-            The public review links come in the next piece, once the owner can
-            set their own Google/Facebook URLs. */}
-        {canViewPrivateDetails ? <AppReviewCard /> : null}
+            A happy rating is offered the owner's own public review links, set in
+            Settings; blank there means the links are simply not shown. */}
+        {canViewPrivateDetails ? (
+          <AppReviewCard
+            googleReviewUrl={companySettings.googleReviewUrl || undefined}
+            facebookReviewUrl={companySettings.facebookReviewUrl || undefined}
+          />
+        ) : null}
 
         {/* Asked here and nowhere else. Someone looking at their own order is
             the one person on the site who has already decided KRISHOE is worth

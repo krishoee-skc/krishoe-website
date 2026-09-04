@@ -276,6 +276,33 @@ export default async function AdminSettingsPage({
                 Show this message on the shop (off = the built-in line)
               </span>
             </label>
+
+            {/* Public review links. After an order the app asks for a rating; a
+                happy one (4-5 stars) is offered these so a kind word reaches
+                Google or Facebook and brings new customers. Blank = not offered;
+                the rating still reaches you in the inbox either way. */}
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Google review link
+              <input
+                name="googleReviewUrl"
+                type="url"
+                defaultValue={settings.company.googleReviewUrl}
+                maxLength={400}
+                placeholder="Your Google Business review link (leave blank to skip)"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Facebook review link
+              <input
+                name="facebookReviewUrl"
+                type="url"
+                defaultValue={settings.company.facebookReviewUrl}
+                maxLength={400}
+                placeholder="Your Facebook page review link (leave blank to skip)"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
           </div>
           <div className="mt-5">
             <SubmitButton label="Save company settings" />

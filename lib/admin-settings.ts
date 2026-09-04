@@ -31,6 +31,10 @@ export type CompanySettings = {
   promoText: string;
   /** Whether the owner's promo line is shown at all. */
   promoEnabled: boolean;
+  /** The owner's public review links. A happy app rating is offered these; empty
+   *  means "don't offer it", and every rating still reaches the owner in admin. */
+  googleReviewUrl: string;
+  facebookReviewUrl: string;
   updatedAt: string;
 };
 
@@ -119,6 +123,8 @@ type CompanySettingsRow = {
   default_branch_id: string;
   promo_text: string;
   promo_enabled: boolean;
+  google_review_url: string;
+  facebook_review_url: string;
   updated_at: Date | string;
 };
 
@@ -178,6 +184,25 @@ function requiredText(value: string | undefined, fallback: string) {
 
 function optionalText(value: string | undefined) {
   return value?.trim() ?? "";
+}
+
+/**
+ * A public review link the storefront will send a shopper to.
+ *
+ * Empty is fine — it means "don't offer this one". A non-empty value must be an
+ * http(s) URL: anything else (a javascript: URL, a bare word) is dropped to
+ * empty, so a bad or hostile value can never reach a shopper's click. Capped in
+ * length like the other free-text settings.
+ */
+function reviewUrl(value: string | undefined) {
+  const trimmed = (value ?? "").trim().slice(0, 400);
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:" ? trimmed : "";
+  } catch {
+    return "";
+  }
 }
 
 function normalizeEmail(email: string) {
@@ -263,6 +288,8 @@ function createDefaultSettings(): AdminSettingsStore {
       defaultBranchId: branches[0]?.id ?? "",
       promoText: "",
       promoEnabled: false,
+      googleReviewUrl: "",
+      facebookReviewUrl: "",
       updatedAt: stamp,
     },
     branches,
@@ -325,6 +352,8 @@ function companyFromRow(row: CompanySettingsRow, defaultBranchId: string): Compa
     defaultBranchId: row.default_branch_id || defaultBranchId,
     promoText: row.promo_text ?? "",
     promoEnabled: Boolean(row.promo_enabled),
+    googleReviewUrl: row.google_review_url ?? "",
+    facebookReviewUrl: row.facebook_review_url ?? "",
     updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
@@ -368,6 +397,8 @@ function normalizeStore(value: unknown): AdminSettingsStore {
       defaultBranchId,
       promoText: optionalText(source.company?.promoText),
       promoEnabled: Boolean(source.company?.promoEnabled),
+      googleReviewUrl: optionalText(source.company?.googleReviewUrl),
+      facebookReviewUrl: optionalText(source.company?.facebookReviewUrl),
       updatedAt: source.company?.updatedAt ? new Date(source.company.updatedAt).toISOString() : nowIso(),
     },
     branches,
@@ -464,7 +495,8 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     "admin settings",
     `
       SELECT id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        google_review_url, facebook_review_url, updated_at
       FROM company_settings
       WHERE id = 'default'
       LIMIT 1
@@ -558,6 +590,8 @@ async function saveCompanySettingsToLocalJson(input: Partial<CompanySettings>) {
     defaultBranchId,
     promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
+    googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
+    facebookReviewUrl: reviewUrl(input.facebookReviewUrl ?? settings.company.facebookReviewUrl),
     updatedAt: nowIso(),
   };
   await writeSettingsToLocalJson(settings);
@@ -582,6 +616,8 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     defaultBranchId,
     promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
+    googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
+    facebookReviewUrl: reviewUrl(input.facebookReviewUrl ?? settings.company.facebookReviewUrl),
     updatedAt: nowIso(),
   };
   const defaultBranch = settings.branches.find((branch) => branch.id === defaultBranchId);
@@ -595,9 +631,10 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     `
       INSERT INTO company_settings (
         id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        google_review_url, facebook_review_url, updated_at
       )
-      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       ON CONFLICT (id) DO UPDATE SET
         company_name = EXCLUDED.company_name,
         legal_name = EXCLUDED.legal_name,
@@ -610,9 +647,12 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
         default_branch_id = EXCLUDED.default_branch_id,
         promo_text = EXCLUDED.promo_text,
         promo_enabled = EXCLUDED.promo_enabled,
+        google_review_url = EXCLUDED.google_review_url,
+        facebook_review_url = EXCLUDED.facebook_review_url,
         updated_at = EXCLUDED.updated_at
       RETURNING id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled, updated_at
+        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        google_review_url, facebook_review_url, updated_at
     `,
     [
       nextCompany.companyName,
@@ -626,6 +666,8 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
       nextCompany.defaultBranchId,
       nextCompany.promoText,
       nextCompany.promoEnabled,
+      nextCompany.googleReviewUrl,
+      nextCompany.facebookReviewUrl,
       new Date(nextCompany.updatedAt),
     ],
   );
