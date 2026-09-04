@@ -280,28 +280,36 @@ export default async function AdminSettingsPage({
             {/* Public review links. After an order the app asks for a rating; a
                 happy one (4-5 stars) is offered these so a kind word reaches
                 Google or Facebook and brings new customers. Blank = not offered;
-                the rating still reaches you in the inbox either way. */}
-            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+                the rating still reaches you in the inbox either way. The
+                placeholders show the real address to copy so the owner is not
+                left guessing the format. */}
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
               Google review link
               <input
                 name="googleReviewUrl"
                 type="url"
                 defaultValue={settings.company.googleReviewUrl}
                 maxLength={400}
-                placeholder="Your Google Business review link (leave blank to skip)"
+                placeholder="From Google Business, e.g. https://g.page/r/… (leave blank to skip)"
                 className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
+              <span className="text-xs font-semibold text-brand-muted">
+                On Google, search your shop → your business profile → &ldquo;Ask for reviews&rdquo; → copy the link.
+              </span>
             </label>
-            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
               Facebook review link
               <input
                 name="facebookReviewUrl"
                 type="url"
                 defaultValue={settings.company.facebookReviewUrl}
                 maxLength={400}
-                placeholder="Your Facebook page review link (leave blank to skip)"
+                placeholder="https://www.facebook.com/krishoe.np/reviews (leave blank to skip)"
                 className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
+              <span className="text-xs font-semibold text-brand-muted">
+                Your KRISHOE Facebook page address with /reviews on the end.
+              </span>
             </label>
           </div>
           <div className="mt-5">
