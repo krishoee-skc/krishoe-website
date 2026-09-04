@@ -21,6 +21,7 @@ import TodayBoard from "@/app/admin/TodayBoard";
 import TodaySales from "@/components/admin/TodaySales";
 import StaffToday from "@/components/admin/StaffToday";
 import GoalCard from "@/components/admin/GoalCard";
+import ChannelCompare from "@/components/admin/ChannelCompare";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 
 export const dynamic = "force-dynamic";
@@ -186,6 +187,11 @@ export default async function AdminDashboardPage() {
   const workerBalanceDue = readPath(productionControl, "workerBalanceDue", 0);
   const monthProfit = readPath(purchasing, "summary.monthProfitEstimate", 0);
   const monthSales = getPos("summary.monthNetSales", 0);
+  // Today's sales split by channel, from the POS day-close snapshot. Read
+  // defensively — an empty array is a fine "no sales yet" state.
+  const channelRows = getPos<
+    Array<{ channel: "Retail" | "Wholesale" | "Online"; invoiceCount: number; netTotal: number }>
+  >("todayDayClose.channelRows", []);
 
   // This month's goal, for the owner's dashboard. A failure to read it must not
   // take down the whole dashboard — the goal card simply doesn't show.
@@ -244,6 +250,10 @@ export default async function AdminDashboardPage() {
           monthPairs={todayGoodPairs}
         />
       ) : null}
+
+      {/* Which channel is carrying today — owner only. Shown after the goal so
+          the owner reads the target, then where the money is coming from. */}
+      {isOwner && channelRows.length > 0 ? <ChannelCompare rows={channelRows} /> : null}
 
       {/* What needs doing, before any reporting. */}
       <TodayBoard
