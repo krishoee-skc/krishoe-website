@@ -209,7 +209,39 @@ export default function ProductReviews({
           </div>
         )}
 
-        <div className="mt-10 space-y-8 border-t border-black/10 pt-10">
+        {/* The form comes first, right under the rating, so the "Leave a review"
+            link at the top of the page lands straight on it — a shopper who
+            wants to write one does not read past every existing review to reach
+            the box. It is open to everyone: nothing appears in the shop until
+            KRISHOE publishes it. A signed-in buyer whose order arrived gets the
+            Verified-purchase badge; anyone else may still write, and is gently
+            offered sign-in to earn the badge. */}
+        <div className="mt-8 border-t border-black/10 pt-8">
+          <ReviewForm productId={product.id} verifiedBuyer={reviewAccess.canReview} />
+          {!reviewAccess.isLoggedIn ? (
+            <p className="mt-4 max-w-lg text-sm leading-6 text-brand-muted">
+              {text("Bought this pair? ", "यो जोडी किन्नुभयो? ")}
+              <Link
+                href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
+                className="font-bold text-brand-green underline"
+              >
+                {text("Sign in", "साइन इन")}
+              </Link>
+              {text(
+                " to add a Verified-purchase badge to your review.",
+                " गरे समीक्षामा “किनेको पुष्टि” छाप थपिन्छ।",
+              )}
+            </p>
+          ) : null}
+        </div>
+
+        {totalReviews > 0 ? (
+          <p className="mt-12 text-sm font-black uppercase tracking-wide text-brand-muted">
+            {text("What buyers say", "ग्राहकहरू के भन्छन्")}
+          </p>
+        ) : null}
+
+        <div className="mt-4 space-y-8 border-t border-black/10 pt-10">
           {totalReviews > 0 ? (
             reviews.map((review) => (
               <article key={review.id}>
@@ -257,33 +289,6 @@ export default function ProductReviews({
               )}
             </p>
           )}
-        </div>
-
-        {/* The form is open to everyone: a shopper reading reviews before they
-            buy is exactly who a review is for, and nothing appears in the shop
-            until KRISHOE publishes it. A signed-in buyer whose order arrived
-            gets the Verified-purchase badge; anyone else may still write, and
-            is gently offered sign-in to earn the badge. */}
-        <div className="mt-12 border-t border-black/10 pt-12">
-          <ReviewForm productId={product.id} verifiedBuyer={reviewAccess.canReview} />
-          {!reviewAccess.isLoggedIn ? (
-            <p className="mt-4 max-w-lg text-sm leading-6 text-brand-muted">
-              {text(
-                "Bought this pair? ",
-                "यो जोडी किन्नुभयो? ",
-              )}
-              <Link
-                href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
-                className="font-bold text-brand-green underline"
-              >
-                {text("Sign in", "साइन इन")}
-              </Link>
-              {text(
-                " to add a Verified-purchase badge to your review.",
-                " गरे समीक्षामा “किनेको पुष्टि” छाप थपिन्छ।",
-              )}
-            </p>
-          ) : null}
         </div>
       </div>
     </section>

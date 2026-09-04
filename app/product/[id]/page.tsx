@@ -162,12 +162,30 @@ export default async function ProductPage({ params }: Props) {
               <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
                 <ProductText en={product.name} ne={product.nameNe} />
               </h1>
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-4 flex flex-wrap items-center gap-4">
                 <span className="text-3xl font-bold text-brand-green">{product.price}</span>
-                <div className="flex items-center gap-1 rounded-full bg-brand-green-ink px-3 py-1 text-sm font-semibold text-white">
+                {/* The rating badge jumps straight to the reviews, and a plain
+                    "leave a review" link sits beside it — so a shopper can read
+                    or write a review from the top of the page, without scrolling
+                    to the very bottom to find the form. */}
+                <a
+                  href="#reviews"
+                  className="flex items-center gap-1 rounded-full bg-brand-green-ink px-3 py-1 text-sm font-semibold text-white transition hover:bg-brand-green"
+                >
                   <StarIcon className="h-4 w-4 text-brand-gold-bright" />
                   {product.rating}
-                </div>
+                  {publishedReviews.length > 0 ? (
+                    <span className="ml-1 font-normal text-white/70">
+                      ({publishedReviews.length})
+                    </span>
+                  ) : null}
+                </a>
+                <a
+                  href="#reviews"
+                  className="text-sm font-bold text-brand-green underline underline-offset-2 transition hover:text-brand-green-ink"
+                >
+                  <T en="Leave a review" ne="राय दिनुहोस्" />
+                </a>
               </div>
               {/* The wholesale price is a trade rate, used only at the POS
                   Wholesale channel — it is deliberately not shown to shoppers
