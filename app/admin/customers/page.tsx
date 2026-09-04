@@ -1,5 +1,6 @@
 import Link from "next/link";
 import T from "@/components/T";
+import { customerStage, STAGE_META, type CustomerStage } from "@/lib/customer-stage";
 import StatCard from "@/components/admin/StatTile";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
@@ -31,6 +32,8 @@ type CustomerRow = {
   openOrders: OrderSubmission[];
   pendingPayments: OrderSubmission[];
   latestOrder?: OrderSubmission;
+  closedOrders: number;
+  stage: CustomerStage;
 };
 
 function trustClass(verified: boolean) {
@@ -60,6 +63,8 @@ function buildCustomerRows(users: SafeUser[], orders: OrderSubmission[]): Custom
     const pendingPayments = linkedOrders.filter(
       (order) => order.paymentStatus === "Pending" || order.paymentStatus === "Unpaid",
     );
+    const closedOrders = linkedOrders.filter((order) => order.status === "Closed").length;
+    const stage = customerStage(closedOrders, linkedOrders.length > 0);
 
     return {
       user,
@@ -69,6 +74,8 @@ function buildCustomerRows(users: SafeUser[], orders: OrderSubmission[]): Custom
       openOrders,
       pendingPayments,
       latestOrder: linkedOrders[0],
+      closedOrders,
+      stage,
     };
   });
 }
@@ -170,9 +177,24 @@ export default async function AdminCustomersPage() {
                 {rows.map((row) => (
                   <tr key={row.user.id}>
                     <td className="reflow-primary py-3 pr-3">
-                      <p className="font-black text-brand-green-ink">{row.user.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-black text-brand-green-ink">{row.user.name}</p>
+                        {/* The CRM stage — where this customer is in the shop's
+                            relationship with them, from their orders alone. */}
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black ${STAGE_META[row.stage].className}`}>
+                          <span aria-hidden="true">{STAGE_META[row.stage].icon}</span>
+                          <T en={STAGE_META[row.stage].en} ne={STAGE_META[row.stage].ne} />
+                        </span>
+                      </div>
                       <p className="mt-1 text-xs font-semibold text-brand-muted">{row.user.email}</p>
-                      <p className="mt-1 text-xs text-brand-muted">{row.user.phone || "No phone saved"}</p>
+                      <p className="mt-1 text-xs text-brand-muted">
+                        {row.user.phone || "No phone saved"}
+                        {row.closedOrders > 0 ? (
+                          <span className="ml-1 text-brand-green">
+                            · <T en={`${row.closedOrders} bought`} ne={`${row.closedOrders} पटक किन्यो`} />
+                          </span>
+                        ) : null}
+                      </p>
                     </td>
                     <td data-label="Trust" className="py-3 pr-3">
                       <div className="grid gap-1.5">
