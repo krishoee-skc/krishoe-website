@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShareShop from "@/components/ShareShop";
+import AppReviewCard from "@/components/AppReviewCard";
 import { absoluteUrl } from "@/lib/seo";
 import OnlinePaymentButtons from "@/components/payments/OnlinePaymentButtons";
 import PendingPaymentStatus from "@/components/payments/PendingPaymentStatus";
@@ -283,6 +284,12 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
             </Link>
           </div>
         </div>
+
+        {/* The app rating, asked right after an order — the moment a shopper is
+            happiest with KRISHOE. Open to everyone, read by the owner in admin.
+            The public review links come in the next piece, once the owner can
+            set their own Google/Facebook URLs. */}
+        {canViewPrivateDetails ? <AppReviewCard /> : null}
 
         {/* Asked here and nowhere else. Someone looking at their own order is
             the one person on the site who has already decided KRISHOE is worth
