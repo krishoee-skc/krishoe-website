@@ -97,7 +97,11 @@ describe("mobile production contracts", () => {
     expect(addWork).toContain('type="date"');
     expect(addWork).toContain('type="number"');
     expect(addWork).toContain('text("Worker", "कामदार")');
-    expect(addWork).toContain('text("Add daily work entry", "आजको काम टिप्नुहोस्")');
+    // The header carries the bilingual subtitle; it was reworded when the form
+    // was given its factory-crest header, so match the current line.
+    expect(addWork).toContain(
+      'text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")',
+    );
 
     // Every control on this form is thumb-height. A wage entry made standing
     // on a factory floor cannot need a fingertip.

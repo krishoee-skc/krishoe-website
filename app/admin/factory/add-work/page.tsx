@@ -319,14 +319,26 @@ export default function AddWorkPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-      <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">
-        ➕ {text("Add work", "काम टिप्ने")}
-      </h1>
-      <p className="mb-6 mt-1 text-sm text-brand-muted">
-        {text("Add daily work entry", "आजको काम टिप्नुहोस्")}
-      </p>
+      {/* A small factory-crest header, the same monogram the shop signs itself
+          with, so the busiest screen in the building reads as KRISHOE's own. */}
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-gradient-to-br from-brand-green to-brand-green-ink font-display text-lg font-black text-brand-gold-bright shadow-sm"
+        >
+          K
+        </span>
+        <div>
+          <h1 className="font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
+            {text("Add work", "काम टिप्ने")}
+          </h1>
+          <p className="text-sm text-brand-muted">
+            {text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")}
+          </p>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="mt-6 bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6 space-y-4 sm:space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
             {error}
@@ -351,6 +363,10 @@ export default function AddWorkPage() {
           />
         </div>
 
+        {/* Worker + Product on one row on wider phones and up, so the two most
+            important choices sit together and the form is shorter to scroll. On
+            a narrow phone they stack, one per line, as before. */}
+        <div className="grid gap-4 sm:grid-cols-2">
         {/* Worker */}
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Worker", "कामदार")}</label>
@@ -412,6 +428,7 @@ export default function AddWorkPage() {
             ))}
           </select>
         </div>
+        </div>
 
         {/* Work Order / Lot */}
         {selectedItem?.production_item_id && (
@@ -446,6 +463,10 @@ export default function AddWorkPage() {
           </div>
         )}
 
+        {/* Colour, Size and Pairs on one row from small screens up — three short
+            fields that belong together, so the form does not run down the page.
+            They stack on a narrow phone. */}
+        <div className="grid gap-4 sm:grid-cols-3">
         {/* Color */}
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
@@ -504,6 +525,7 @@ export default function AddWorkPage() {
             required
           />
         </div>
+        </div>
 
         {/* QC — how many of those pairs were rejects (bad). Optional; 0 means all good. */}
         <div>
@@ -525,17 +547,30 @@ export default function AddWorkPage() {
           Rejected work should be corrected first.
         </div>
 
-        {/* Rate Display */}
+        {/* The live total — the one figure the owner is really entering this
+            work for. Shown big and gold the moment a worker, product and pair
+            count are chosen, with the rate and where it came from beside it, so
+            there is nothing to scroll for and nothing to add up by hand. */}
         {selectedRate !== null && (
-          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
-            <div className="text-sm text-brand-green">
-              <strong>💰 Rate:</strong> Rs. {selectedRate} per pair
+          <div className="overflow-hidden rounded-2xl border-2 border-brand-gold bg-gradient-to-br from-brand-gold/10 to-transparent">
+            <div className="flex items-center justify-between gap-3 border-b border-brand-green-line/60 px-4 py-2.5">
+              <p className="text-sm font-semibold text-brand-green-ink">
+                {text("Rate", "दर")}: <span className="font-black">Rs. {selectedRate}</span>{" "}
+                <span className="text-xs font-normal text-brand-muted">{text("/ pair", "/ जोडी")}</span>
+              </p>
+              {selectedRateSource ? (
+                <span className="shrink-0 rounded-full bg-brand-green-mist px-2.5 py-1 text-[11px] font-black text-brand-green">
+                  ✓ {selectedRateSource}
+                </span>
+              ) : null}
             </div>
-            {selectedRateSource ? (
-              <div className="mt-1 text-xs font-semibold text-brand-green">Source: {selectedRateSource}</div>
-            ) : null}
-            <div className="text-sm text-brand-green mt-2">
-              <strong>💵 Total Amount:</strong> {formData.pairs_count} pairs × Rs. {selectedRate} = <span className="text-lg font-bold">Rs. {calculatedAmount.toLocaleString()}</span>
+            <div className="flex items-baseline justify-between gap-3 px-4 py-3">
+              <span className="text-sm text-brand-muted">
+                {formData.pairs_count || 0} {text("pairs", "जोडी")} × Rs. {selectedRate}
+              </span>
+              <span className="font-display text-3xl font-black leading-none tabular-nums text-brand-green-ink">
+                Rs. {calculatedAmount.toLocaleString()}
+              </span>
             </div>
           </div>
         )}
