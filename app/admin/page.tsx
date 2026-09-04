@@ -20,6 +20,8 @@ import { getOrders, type OrderSubmission } from "@/lib/submissions";
 import TodayBoard from "@/app/admin/TodayBoard";
 import TodaySales from "@/components/admin/TodaySales";
 import StaffToday from "@/components/admin/StaffToday";
+import GoalCard from "@/components/admin/GoalCard";
+import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 
 export const dynamic = "force-dynamic";
 
@@ -183,6 +185,12 @@ export default async function AdminDashboardPage() {
   const todayGoodPairs = readPath(productionControl, "todayGoodPairs", 0);
   const workerBalanceDue = readPath(productionControl, "workerBalanceDue", 0);
   const monthProfit = readPath(purchasing, "summary.monthProfitEstimate", 0);
+  const monthSales = getPos("summary.monthNetSales", 0);
+
+  // This month's goal, for the owner's dashboard. A failure to read it must not
+  // take down the whole dashboard — the goal card simply doesn't show.
+  const goalMonthKey = currentGoalMonthKey();
+  const businessGoal = await getBusinessGoal(goalMonthKey).catch(() => null);
 
   const quickTiles = [
     { href: "/admin/pos", labelEn: "Billing", labelNe: "बिल काट्ने", Icon: CreditCardIcon, gradient: GRAD.emerald },
@@ -224,6 +232,18 @@ export default async function AdminDashboardPage() {
           ordersToSend={newOrders.length}
         />
       )}
+
+      {/* This month's goal and how close the shop is — owner only, and only
+          when the goal read succeeded. Sits under today's money so the day
+          reads against a target. */}
+      {isOwner && businessGoal ? (
+        <GoalCard
+          goal={businessGoal}
+          monthSales={monthSales}
+          monthProfit={monthProfit}
+          monthPairs={todayGoodPairs}
+        />
+      ) : null}
 
       {/* What needs doing, before any reporting. */}
       <TodayBoard
