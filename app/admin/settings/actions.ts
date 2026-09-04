@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
+import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { clearAdminSessionCookie } from "@/lib/admin-auth";
 import { adminRoles, requireAdminPermission } from "@/lib/admin-permissions";
 import {
@@ -172,6 +173,24 @@ export async function saveCompanySettingsAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Company settings saved.");
+}
+
+export async function saveBusinessGoalAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    const monthKey = textValue(formData, "monthKey") || currentGoalMonthKey();
+    await saveBusinessGoal({
+      monthKey,
+      salesGoal: Number(textValue(formData, "salesGoal")) || 0,
+      profitGoal: Number(textValue(formData, "profitGoal")) || 0,
+      productionGoal: Number(textValue(formData, "productionGoal")) || 0,
+      note: textValue(formData, "goalNote"),
+    });
+    await recordAdminAuditEvent("settings_goal_update", `Business goal set for ${monthKey}.`);
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("This month's goal saved.");
 }
 
 export async function createBranchAction(formData: FormData) {

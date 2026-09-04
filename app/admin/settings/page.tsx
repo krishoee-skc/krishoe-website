@@ -12,7 +12,9 @@ import {
 import {
   createBranchAction,
   saveCompanySettingsAction,
+  saveBusinessGoalAction,
 } from "./actions";
+import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
@@ -104,10 +106,12 @@ export default async function AdminSettingsPage({
   searchParams?: Promise<{ success?: string; error?: string }>;
 }) {
   const { role } = await requireAdminPermission("settings:write");
-  const [settings, accessHistory, factoryWorkers] = await Promise.all([
+  const goalMonthKey = currentGoalMonthKey();
+  const [settings, accessHistory, factoryWorkers, businessGoal] = await Promise.all([
     getAdminSettings(),
     getAdminStaffAccessHistory(undefined, 40),
     listFactoryWorkerOptions(),
+    getBusinessGoal(goalMonthKey),
   ]);
   const notice = await searchParams;
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
@@ -314,6 +318,61 @@ export default async function AdminSettingsPage({
           </div>
           <div className="mt-5">
             <SubmitButton label="Save company settings" />
+          </div>
+        </form>
+
+        {/* This month's goal — sales, profit and pairs the owner is aiming at.
+            The dashboard's goal card links here (#goals). Leaving a line at 0
+            means it is not tracked; the card shows "Set a goal" for it. */}
+        <form
+          id="goals"
+          action={saveBusinessGoalAction}
+          className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm"
+        >
+          <input type="hidden" name="monthKey" value={goalMonthKey} />
+          <div className="mb-5">
+            <h2 className="text-lg font-black text-brand-green-ink">🎯 This month's goal ({goalMonthKey})</h2>
+            <p className="mt-1 text-sm text-brand-muted">
+              Set a monthly sales, profit and production target. The dashboard shows how close you are. Leave any at 0 to skip it.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Sales goal (Rs.)
+              <input
+                name="salesGoal"
+                type="number"
+                min="0"
+                defaultValue={businessGoal.salesGoal || ""}
+                placeholder="e.g. 200000"
+                className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Profit goal (Rs.)
+              <input
+                name="profitGoal"
+                type="number"
+                min="0"
+                defaultValue={businessGoal.profitGoal || ""}
+                placeholder="e.g. 60000"
+                className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Production goal (pairs)
+              <input
+                name="productionGoal"
+                type="number"
+                min="0"
+                defaultValue={businessGoal.productionGoal || ""}
+                placeholder="e.g. 1500"
+                className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+          </div>
+          <div className="mt-5">
+            <SubmitButton label="Save this month's goal" />
           </div>
         </form>
 
