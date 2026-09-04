@@ -112,15 +112,24 @@ export default function GoalCard({
       </div>
 
       {anyGoalSet ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <GoalLine label={<T en="Sales" ne="बिक्री" />} achieved={monthSales} goal={goal.salesGoal} isMoney />
-          <GoalLine label={<T en="Profit" ne="नाफा" />} achieved={monthProfit} goal={goal.profitGoal} isMoney />
-          <GoalLine
-            label={<T en="Pairs made" ne="बनेको जोडी" />}
-            achieved={monthPairs}
-            goal={goal.productionGoal}
-            isMoney={false}
-          />
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <GoalLine label={<T en="Sales this month" ne="यो महिनाको बिक्री" />} achieved={monthSales} goal={goal.salesGoal} isMoney />
+          <GoalLine label={<T en="Profit this month" ne="यो महिनाको नाफा" />} achieved={monthProfit} goal={goal.profitGoal} isMoney />
+          {/* Production is shown as today's pairs against the monthly goal only
+              when a production goal is set — labelled "today" so it is honest
+              that this is the day, not the month's running total (a month-to-
+              date pair count isn't computed yet). Sales and profit above are the
+              month's real running totals. */}
+          {goal.productionGoal > 0 ? (
+            <div className="sm:col-span-2">
+              <GoalLine
+                label={<T en="Pairs made today" ne="आज बनेको जोडी" />}
+                achieved={monthPairs}
+                goal={goal.productionGoal}
+                isMoney={false}
+              />
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="mt-3 text-sm leading-6 text-brand-muted">
