@@ -8,7 +8,7 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
-import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
+import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
 interface WorkerLedger {
@@ -366,6 +366,13 @@ export default function LedgerPage() {
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment date", "कहिले दिइयो")}
                 <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
+                {/* The Bikram Sambat reading of the chosen day (2083/05/19), so
+                    the owner records the payment by the Nepali calendar. */}
+                {paymentDate ? (
+                  <span className="text-xs font-semibold text-brand-green">
+                    {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(paymentDate)}
+                  </span>
+                ) : null}
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
                 <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
