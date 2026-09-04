@@ -60,3 +60,26 @@ export const STAGE_META: Record<
     icon: "🌱",
   },
 };
+
+/**
+ * A ready WhatsApp greeting for a customer, warmer as the relationship deepens,
+ * in Nepali because that is who KRISHOE serves. The owner opens WhatsApp with
+ * this filled in and can edit before sending — it is a starting point, not an
+ * automated message. The name is worked into it when there is one.
+ */
+export function followUpMessage(stage: CustomerStage, name?: string): string {
+  const namePart = name && name.trim() ? ` ${name.trim()}` : "";
+  switch (stage) {
+    case "VIP":
+      return `नमस्ते${namePart} जी! 🙏 KRISHOE को विशेष ग्राहकलाई नयाँ डिजाइनको पहिलो जानकारी — हेर्नुहोस्: krishoe.com/shop`;
+    case "Repeat":
+      return `नमस्ते${namePart} जी! 🙏 फेरि किन्नुभएकोमा धन्यवाद। नयाँ डिजाइन आइपुग्यो — krishoe.com/shop`;
+    case "Ordered":
+      return `नमस्ते${namePart} जी! 🙏 KRISHOE किन्नुभएकोमा धन्यवाद। तपाईंलाई कस्तो लाग्यो? नयाँ सामान: krishoe.com/shop`;
+    case "Interested":
+      return `नमस्ते${namePart} जी! 🙏 KRISHOE मा रुचि देखाउनुभएकोमा धन्यवाद। केही सोध्नु छ भने भन्नुहोस्, वा हेर्नुहोस्: krishoe.com/shop`;
+    case "New":
+    default:
+      return `नमस्ते${namePart} जी! 🙏 KRISHOE मा स्वागत छ। हाम्रा जुत्ता हेर्नुहोस्: krishoe.com/shop`;
+  }
+}

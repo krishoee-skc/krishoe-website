@@ -1,6 +1,7 @@
 import Link from "next/link";
 import T from "@/components/T";
-import { customerStage, STAGE_META, type CustomerStage } from "@/lib/customer-stage";
+import { customerStage, STAGE_META, followUpMessage, type CustomerStage } from "@/lib/customer-stage";
+import { whatsappToUrl } from "@/lib/commerce";
 import StatCard from "@/components/admin/StatTile";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
@@ -90,6 +91,14 @@ export default async function AdminCustomersPage() {
   const verifiedEmail = users.filter((user) => user.emailVerifiedAt).length;
   const verifiedPhone = users.filter((user) => user.phoneVerifiedAt).length;
   const customersWithOrders = rows.filter((row) => row.linkedOrders.length > 0).length;
+  // How the customers spread across the CRM ladder, for the summary strip.
+  const stageCounts = rows.reduce(
+    (counts, row) => {
+      counts[row.stage] += 1;
+      return counts;
+    },
+    { New: 0, Interested: 0, Ordered: 0, Repeat: 0, VIP: 0 } as Record<CustomerStage, number>,
+  );
   const emailChannel = deliveryConfig.channels.find((channel) => channel.id === "email-http");
 
   return (
@@ -117,6 +126,22 @@ export default async function AdminCustomersPage() {
         <StatCard label="Email verified" value={verifiedEmail} detail="safe guest matching" />
         <StatCard label="Phone verified" value={verifiedPhone} detail="manual trust checks" />
         <StatCard label="With orders" value={customersWithOrders} detail="linked history" />
+      </div>
+
+      {/* The CRM ladder at a glance — how many customers sit at each stage, so
+          the owner sees who to keep close (VIP, Repeat) and who to welcome (New)
+          without reading the whole list. */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(["VIP", "Repeat", "Ordered", "Interested", "New"] as const).map((stage) => (
+          <span
+            key={stage}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black ${STAGE_META[stage].className}`}
+          >
+            <span aria-hidden="true">{STAGE_META[stage].icon}</span>
+            <T en={STAGE_META[stage].en} ne={STAGE_META[stage].ne} />
+            <span className="tabular-nums">{stageCounts[stage]}</span>
+          </span>
+        ))}
       </div>
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
@@ -233,6 +258,19 @@ export default async function AdminCustomersPage() {
                     </td>
                     <td data-label="Actions" className="py-3 pr-3">
                       <div className="flex min-w-56 flex-wrap gap-2">
+                        {/* Follow up on WhatsApp — a stage-aware greeting the
+                            owner can send in one tap to keep a customer close.
+                            Only shown when there is a phone to reach them on. */}
+                        {row.user.phone ? (
+                          <a
+                            href={whatsappToUrl(row.user.phone, followUpMessage(row.stage, row.user.name))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-9 items-center justify-center gap-1 rounded-full bg-[#25D366] px-3 text-xs font-black text-white transition hover:brightness-95"
+                          >
+                            💬 <T en="WhatsApp" ne="WhatsApp" />
+                          </a>
+                        ) : null}
                         <form action={sendCustomerEmailVerificationAction}>
                           <input type="hidden" name="userId" value={row.user.id} />
                           <FormSubmitButton

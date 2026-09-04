@@ -150,6 +150,10 @@ function leakCount(file: string) {
  * licence for the file.
  */
 const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
+  "lib/customer-stage.ts": {
+    lines: 5,
+    why: "The five WhatsApp follow-up greetings the owner sends to a customer, one per CRM stage. They are the message that goes TO the customer, in Nepali because that is who KRISHOE serves — not admin UI a reader chooses a language for.",
+  },
   "components/LanguageSwitch.tsx": {
     lines: 1,
     why: "The word नेपाली on the button that switches to Nepali. A reader looking for it must find it whichever side they are on — that is the button's whole job.",
