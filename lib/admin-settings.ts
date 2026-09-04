@@ -194,7 +194,7 @@ function optionalText(value: string | undefined) {
  * empty, so a bad or hostile value can never reach a shopper's click. Capped in
  * length like the other free-text settings.
  */
-function reviewUrl(value: string | undefined) {
+export function reviewUrl(value: string | undefined) {
   const trimmed = (value ?? "").trim().slice(0, 400);
   if (!trimmed) return "";
   try {
