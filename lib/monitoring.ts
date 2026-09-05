@@ -385,6 +385,31 @@ export async function pruneOldMonitoringRows() {
   }
 }
 
+/**
+ * Clear the error log now, when the owner asks — the errors already fade on
+ * their own after the retention window, but a clean slate is useful right after
+ * fixing what caused them (a stale "not in stock" from before real data, a CSP
+ * warning already understood). Only the error table is touched: the performance
+ * and uptime readings that power the speed and answering figures are left alone,
+ * and no shop, stock, sales or production data lives here at all. Returns how
+ * many rows went, so the screen can say what it cleared.
+ */
+export async function clearAllMonitoringErrors(): Promise<{ cleared: number }> {
+  try {
+    // queryPostgres returns the rows, not a count, so RETURNING id gives one row
+    // per deleted error — its length is how many were cleared.
+    const deleted = await queryPostgres<{ id: string }>(
+      STORE,
+      `DELETE FROM monitoring_errors RETURNING id`,
+      []
+    );
+    return { cleared: deleted.length };
+  } catch (err) {
+    console.error("Failed to clear monitoring errors:", err);
+    throw err;
+  }
+}
+
 // Get error statistics
 export async function getErrorStats(hours: number = 24): Promise<{
   totalErrors: number;

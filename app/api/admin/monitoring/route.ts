@@ -4,6 +4,7 @@ import {
   getPerformanceStats,
   getUptimeEvidence,
   checkSystemHealth,
+  clearAllMonitoringErrors,
 } from "@/lib/monitoring";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { describeMigrationState, getMigrationState } from "@/lib/pending-migrations";
@@ -74,6 +75,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to fetch monitoring data",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Clear the error log now, when the owner asks. Guarded by settings:write —
+// the Owner alone, stricter than the security:read that GET uses — because it
+// deletes, even though it only ever touches the error table (no shop, stock,
+// sales or production data).
+export async function DELETE() {
+  try {
+    const adminUser = await requireAdminPermission("settings:write");
+    if (!adminUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { cleared } = await clearAllMonitoringErrors();
+    return NextResponse.json({ success: true, cleared });
+  } catch (error) {
+    console.error("Monitoring clear error:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Failed to clear monitoring errors",
       },
       { status: 500 }
     );

@@ -102,6 +102,32 @@ export default function MonitoringDashboard() {
     }
   }, []);
 
+  // Clear the error log on the owner's word — a clean slate after fixing what
+  // caused the errors. Only the error table is emptied; the speed and answering
+  // figures, and every shop/stock/sales record, are untouched. Confirmed first,
+  // then the list reloads to show it empty.
+  const [clearing, setClearing] = useState(false);
+  const clearErrors = useCallback(async () => {
+    if (clearing) return;
+    if (!window.confirm("Clear all logged errors? Speed, uptime and all shop data are untouched.")) {
+      return;
+    }
+    setClearing(true);
+    try {
+      const res = await fetch("/api/admin/monitoring", { method: "DELETE" });
+      if (res.ok) {
+        await loadMonitoring();
+      } else {
+        window.alert("Could not clear the errors. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to clear errors:", error);
+      window.alert("Could not clear the errors. Please try again.");
+    } finally {
+      setClearing(false);
+    }
+  }, [clearing, loadMonitoring]);
+
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadMonitoring(), 0);
     if (autoRefresh) {
@@ -383,9 +409,21 @@ export default function MonitoringDashboard() {
 
       {/* Top Errors */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
-        <h2 className="text-lg font-semibold text-brand-green-ink mb-4">
-          🚨 Top Errors
-        </h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-brand-green-ink">
+            🚨 Top Errors
+          </h2>
+          {monitoring.errors.topErrors.length > 0 ? (
+            <button
+              type="button"
+              onClick={clearErrors}
+              disabled={clearing}
+              className="shrink-0 rounded-lg border border-brand-green-line px-3 py-1.5 text-xs font-bold text-brand-muted transition hover:border-brand-clay hover:text-brand-clay disabled:opacity-50"
+            >
+              {clearing ? "Clearing…" : "🧹 Clear errors"}
+            </button>
+          ) : null}
+        </div>
         {monitoring.errors.topErrors.length === 0 ? (
           <div className="text-center py-8 text-green-600">
             ✨ No errors detected! System is healthy.
