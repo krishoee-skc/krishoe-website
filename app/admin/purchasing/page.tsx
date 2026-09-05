@@ -94,6 +94,16 @@ export default async function AdminPurchasingPage() {
   const productNames = [...new Set(products.map((product) => product.name))].sort((a, b) =>
     a.localeCompare(b),
   );
+  // Pairs on hand per design name, so the design picker can show "68 in stock"
+  // beside a suggestion the way the POS picker does — the buyer sees what is
+  // already on the shelf before ordering more. Summed across sizes/SKUs that
+  // share a name. Built from the same products list; no new data.
+  const productStockByName = new Map<string, number>();
+  for (const product of products) {
+    const pairs = Math.max(0, Math.round(Number(product.stock) || 0));
+    productStockByName.set(product.name, (productStockByName.get(product.name) ?? 0) + pairs);
+  }
+  const productStock = [...productStockByName.entries()].map(([name, stock]) => ({ name, stock }));
   const supplierAgingById = new Map(
     purchasing.reports.supplierAgingRows.map((row) => [row.supplierLedgerId, row]),
   );
@@ -167,6 +177,7 @@ export default async function AdminPurchasingPage() {
           supplierLedgers={purchasing.supplierLedgers}
           rawMaterials={operations.rawMaterials}
           productNames={productNames}
+          productStock={productStock}
         />
       </div>
 

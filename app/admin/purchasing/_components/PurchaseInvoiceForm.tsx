@@ -18,6 +18,9 @@ type PurchaseInvoiceFormProps = {
    *  finished stock, which is what the storefront catalog sync matches
    *  against — so a name typed a second way becomes a second product. */
   productNames: string[];
+  /** Pairs on hand per design name, to show "68 in stock" beside a design
+   *  suggestion so the buyer sees the shelf before ordering more. */
+  productStock: Array<{ name: string; stock: number }>;
 };
 
 /** One row as the form holds it. Everything is a string because that is what an
@@ -91,6 +94,7 @@ export default function PurchaseInvoiceForm({
   supplierLedgers,
   rawMaterials,
   productNames,
+  productStock,
 }: PurchaseInvoiceFormProps) {
   const { text } = useLanguage();
   // A one-line bill is as common as a twenty-five line one, so the form opens
@@ -394,8 +398,8 @@ export default function PurchaseInvoiceForm({
         ))}
       </datalist>
       <datalist id="purchase-designs">
-        {productNames.map((name) => (
-          <option key={name} value={name} />
+        {productStock.map(({ name, stock }) => (
+          <option key={name} value={name} label={stock > 0 ? `${stock} in stock` : "out of stock"} />
         ))}
       </datalist>
 
