@@ -7,7 +7,7 @@ import Link from "next/link";
 import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
-import { toBikramSambatNumeric } from "@/lib/bikram-sambat";
+import NepaliDateField from "@/components/admin/NepaliDateField";
 
 interface Worker {
   id: string;
@@ -385,23 +385,15 @@ export default function AddWorkPage() {
           </div>
         )}
 
-        {/* Date */}
+        {/* Date — picked in Bikram Sambat, stored as AD. The field shows the BS
+            date big and the AD date small, so both are on screen. */}
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">📅 {text("Date", "मिति")}</label>
-          <input
-            type="date"
+          <NepaliDateField
             value={formData.date}
-            onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
+            onChange={(adValue) => setFormData((prev) => ({ ...prev, date: adValue }))}
             required
           />
-          {/* The Nepali (Bikram Sambat) reading of the chosen day, 2083/05/19,
-              so the owner records work by the calendar they think in. */}
-          {formData.date ? (
-            <p className="mt-1 text-xs font-semibold text-brand-green">
-              {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(formData.date)}
-            </p>
-          ) : null}
         </div>
 
         {/* Worker + Product on one row on wider phones and up, so the two most

@@ -94,7 +94,9 @@ describe("mobile production contracts", () => {
   it("keeps the daily work entry fast on a phone", () => {
     const addWork = source("app/admin/factory/add-work/page.tsx");
 
-    expect(addWork).toContain('type="date"');
+    // The date is now the Bikram Sambat field (a tap-to-open BS calendar that
+    // stores AD), which replaced the native type="date" input.
+    expect(addWork).toContain("NepaliDateField");
     expect(addWork).toContain('type="number"');
     expect(addWork).toContain('text("Worker", "कामदार")');
     // The header carries the bilingual subtitle; it was reworded when the form

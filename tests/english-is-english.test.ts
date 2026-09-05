@@ -158,6 +158,10 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 1,
     why: "The word नेपाली on the button that switches to Nepali. A reader looking for it must find it whichever side they are on — that is the button's whole job.",
   },
+  "components/admin/NepaliDateField.tsx": {
+    lines: 7,
+    why: "The Bikram Sambat date picker: Nepali month names (भदौ, असोज…), weekday initials, digit glyphs and the आज / बन्द buttons. A BS calendar is Nepali by definition — rendering its own month names in English would defeat the point of showing the Nepali calendar at all.",
+  },
   "components/LanguageInvite.tsx": {
     lines: 4,
     why: "The offer of Nepali, shown to someone currently reading English. Written in English it would not reach the person it is for.",
