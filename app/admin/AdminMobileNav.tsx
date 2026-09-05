@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import LanguageSwitch from "@/components/LanguageSwitch";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -73,7 +72,8 @@ export default function AdminMobileNav({
           KRISHOE Admin
         </Link>
         <div className="flex items-center gap-1.5">
-          <LanguageSwitch />
+          {/* Language now lives in the search row just below on every screen, so
+              it is not repeated up here on the phone bar. */}
           <ThemeToggle />
           <button
             type="button"

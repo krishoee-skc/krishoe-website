@@ -72,9 +72,8 @@ export default function AdminCommandBar() {
         <span className="flex-1 truncate text-sm font-semibold">
           {text("Search or ask about the shop…", "खोज्नुहोस् वा शपबारे सोध्नुहोस्…")}
         </span>
-        <kbd className="hidden shrink-0 rounded border border-brand-green-line bg-brand-mist px-1.5 py-0.5 text-[10px] font-bold text-brand-muted sm:inline">
-          Ctrl K
-        </kbd>
+        {/* The Ctrl+K hint used to sit here; it read as clutter on the bar, and
+            the shortcut still works. Kept out for a cleaner, calmer field. */}
       </button>
 
       {open ? (

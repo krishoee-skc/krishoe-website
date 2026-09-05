@@ -42,9 +42,11 @@ describe("the admin screens on a phone", () => {
   });
 
   it("has the language switch on the bar that is on screen all day", async () => {
-    const mobileNav = await readFile("app/admin/AdminMobileNav.tsx", "utf8");
+    // The switch moved from the phone bar into the shared layout's top row,
+    // beside the search — still on screen all day, on the phone too.
+    const layout = await readFile("app/admin/layout.tsx", "utf8");
 
-    expect(mobileNav).toContain("LanguageSwitch");
+    expect(layout).toContain("LanguageSwitch");
   });
 
   it("sizes the day's takings to fit a narrow screen before growing", async () => {

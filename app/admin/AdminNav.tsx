@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import LanguageSwitch from "@/components/LanguageSwitch";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
@@ -134,14 +133,8 @@ export default function AdminNav({
           </nav>
         </div>
 
-        {/* The switch the shop has had for months and the people who run it
-            never did. Above Sign out, where a person already looks for the
-            things that are about them rather than about the work. */}
-        {!isCollapsed ? (
-          <div className="border-t border-admin-border px-3 py-3 dark:border-admin-border-dark">
-            <LanguageSwitch />
-          </div>
-        ) : null}
+        {/* The language toggle now lives in the top row beside the search, so
+            the shop's two words sit up top and the menu foot stays open. */}
 
         {/* Logout Button */}
         <div className="border-t border-admin-border px-3 py-3 dark:border-admin-border-dark">
