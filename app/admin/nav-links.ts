@@ -63,6 +63,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "factory",
     links: [
       { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: FactoryIcon },
+      // Wages, kharcha, work orders and cost cards — a daily-needed screen that
+      // had no menu link and could only be reached by typing its URL.
+      { href: "/admin/operations/production-accounts", label: "Factory Accounts", nepali: "कारखाना हिसाब", icon: CoinsIcon },
       { href: "/admin/operations", label: "Operations", nepali: "उत्पादन र स्टक", icon: PackageIcon },
       { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: LayersIcon },
     ],
