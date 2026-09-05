@@ -9,6 +9,7 @@ import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { MenuIcon, XIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
+import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
@@ -20,7 +21,17 @@ import { type AdminRole } from "@/lib/admin-role-permissions";
 // crowd the screen. This sticky top bar gives a permanent home link and a full
 // menu one tap away, and hides on wide screens (xl:) where the sidebar takes
 // over, and on paper (print:).
-export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) {
+export default function AdminMobileNav({
+  adminRole,
+  adminName,
+  adminEmail,
+  branchId,
+}: {
+  adminRole: AdminRole;
+  adminName?: string;
+  adminEmail?: string;
+  branchId?: string;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
@@ -88,6 +99,17 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
             aria-label="Admin"
             className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-brand-green-line bg-brand-paper px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
           >
+          {/* Same signed-in identity the desktop sidebar shows, so the phone
+              menu opens on who you are before the workspace switch. */}
+          <div className="mb-3">
+            <AdminIdentityCard
+              adminRole={adminRole}
+              adminName={adminName}
+              adminEmail={adminEmail}
+              branchId={branchId}
+            />
+          </div>
+
           <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
 
           {groups.map((group) => (

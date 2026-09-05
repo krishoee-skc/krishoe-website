@@ -25,7 +25,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           branchId={session?.branchId}
         />
         <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
-          <AdminMobileNav adminRole={adminRole} />
+          <AdminMobileNav
+            adminRole={adminRole}
+            adminName={session?.name}
+            adminEmail={session?.email}
+            branchId={session?.branchId}
+          />
           {/* The command bar — one search across every page, product, order,
               worker and bill, from the top of every admin screen. Read-only:
               it opens the same login-guarded search the search page uses. */}
