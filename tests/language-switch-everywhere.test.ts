@@ -43,12 +43,11 @@ describe("the language switch", () => {
 
   it("reaches every door — admin, factory, worker, on the computer and the phone", async () => {
     for (const file of [
-      // The admin, computer and phone alike: the switch sits in the shared
-      // layout's top row beside the search, so both the desktop rail and the
-      // phone bar carry it from one place.
+      // The admin, computer and phone alike — factory pages included, since they
+      // render inside this layout: the switch sits in the shared layout's top
+      // row beside the search, so the desktop rail, the phone bar and the
+      // factory header all carry it from this one place.
       "app/admin/layout.tsx",
-      // The factory, which runs in Nepali and had the English menu.
-      "app/admin/factory/_components/factory-nav.tsx",
       // The workers, who have the least English and were served last.
       "components/worker/WorkerPortalShell.tsx",
     ]) {
