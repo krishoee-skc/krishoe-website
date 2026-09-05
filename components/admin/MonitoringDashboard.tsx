@@ -631,8 +631,12 @@ export default function MonitoringDashboard() {
           {monitoring.performance.errorRate > 1 && (
             <li>✓ Error rate is high - check recent deployments</li>
           )}
-          {monitoring.performance.avgResponseTime > 1000 && (
-            <li>✓ Average response time is slow - optimize slow endpoints</li>
+          {/* These readings are page-paint times from shoppers' own phones (LCP
+              /FCP), not server timings, so the bar is Google's "good" LCP mark of
+              2.5s — below it a page is fine on real phones, and flagging 1s as
+              slow only cried wolf over ordinary mobile paints. */}
+          {monitoring.performance.avgResponseTime > 2500 && (
+            <li>✓ Average page-paint time is slow - optimize slow pages</li>
           )}
           {monitoring.errors.totalErrors > 50 && (
             <li>✓ Many errors in last 24h - urgent investigation needed</li>
