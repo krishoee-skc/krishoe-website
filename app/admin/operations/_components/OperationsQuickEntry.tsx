@@ -28,9 +28,17 @@ export default function OperationsQuickEntry({
   snapshot: OperationsSnapshot;
   workerNames?: string[];
 }) {
-  const stockDesignOptions = Array.from(
-    new Set(snapshot.finishedStock.map((stock) => stock.design).filter(Boolean)),
-  ).sort((left, right) => left.localeCompare(right));
+  // Pairs on hand per design, so the design picker shows "68 in stock" beside a
+  // suggestion the way the POS picker does — whoever is bringing stock in sees
+  // what is already there. Summed across the sizes that share a design name.
+  const pairsByDesign = new Map<string, number>();
+  for (const stock of snapshot.finishedStock) {
+    if (!stock.design) continue;
+    pairsByDesign.set(stock.design, (pairsByDesign.get(stock.design) ?? 0) + Math.max(0, stock.stockPairs));
+  }
+  const stockDesignOptions = [...pairsByDesign.entries()]
+    .map(([design, pairs]) => ({ design, pairs }))
+    .sort((left, right) => left.design.localeCompare(right.design));
 
   return (
     <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
@@ -42,8 +50,8 @@ export default function OperationsQuickEntry({
         detail="Factory, vehicle, and ledger entries. Saved to the KRISHOE database — a green message confirms each one, and it appears in the lists below."
       />
       <datalist id="stock-design-options">
-        {stockDesignOptions.map((design) => (
-          <option key={design} value={design} />
+        {stockDesignOptions.map(({ design, pairs }) => (
+          <option key={design} value={design} label={pairs > 0 ? `${pairs} in stock` : "out of stock"} />
         ))}
       </datalist>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -240,8 +248,8 @@ export default function OperationsQuickEntry({
               placeholder="Design if no batch — type or pick"
             />
             <datalist id="worker-design-options">
-              {stockDesignOptions.map((design) => (
-                <option key={design} value={design} />
+              {stockDesignOptions.map(({ design, pairs }) => (
+                <option key={design} value={design} label={pairs > 0 ? `${pairs} in stock` : "out of stock"} />
               ))}
             </datalist>
             <div className="grid grid-cols-2 gap-2">
