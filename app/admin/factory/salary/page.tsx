@@ -8,6 +8,7 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 
 interface StaffWorker {
@@ -261,7 +262,7 @@ export default function StaffSalaryPage() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Date
-                <input type="date" value={transactionDate} onChange={(event) => setTransactionDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
+                <NepaliDateField value={transactionDate} onChange={setTransactionDate} required />
                 {/* The picker chooses in the English calendar, but the owner
                     reads the day in Bikram Sambat (2083/05/19) right below it, so
                     the date they record is the one they think in. */}

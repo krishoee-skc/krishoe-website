@@ -8,6 +8,7 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
@@ -365,7 +366,7 @@ export default function LedgerPage() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment date", "कहिले दिइयो")}
-                <input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" />
+                <NepaliDateField value={paymentDate} onChange={setPaymentDate} required />
                 {/* The Bikram Sambat reading of the chosen day (2083/05/19), so
                     the owner records the payment by the Nepali calendar. */}
                 {paymentDate ? (
