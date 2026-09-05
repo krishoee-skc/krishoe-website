@@ -17,34 +17,32 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider>
-      <div className="grid min-h-screen w-full lg:grid-cols-[240px_1fr] print:block">
-        <AdminNav
+      <AdminNav
+        adminRole={adminRole}
+        adminName={session?.name}
+        adminEmail={session?.email}
+        branchId={session?.branchId}
+      />
+      <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
+        <AdminMobileNav
           adminRole={adminRole}
           adminName={session?.name}
           adminEmail={session?.email}
           branchId={session?.branchId}
         />
-        <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
-          <AdminMobileNav
-            adminRole={adminRole}
-            adminName={session?.name}
-            adminEmail={session?.email}
-            branchId={session?.branchId}
-          />
-          {/* The command bar — one search across every page, product, order,
-              worker and bill, from the top of every admin screen. Read-only:
-              it opens the same login-guarded search the search page uses. */}
-          <div className="px-4 pt-4 sm:px-6">
-            <AdminCommandBar />
-          </div>
-          {children}
-          <AdminQuickDock adminRole={adminRole} />
-          {/* Offered just after signing in, on the device being held. It
-              hides itself when this account already has a passkey, and once
-              declined it does not come back. */}
-          <PasskeyInvite />
-        </main>
-      </div>
+        {/* The command bar — one search across every page, product, order,
+            worker and bill, from the top of every admin screen. Read-only:
+            it opens the same login-guarded search the search page uses. */}
+        <div className="px-4 pt-4 sm:px-6">
+          <AdminCommandBar />
+        </div>
+        {children}
+        <AdminQuickDock adminRole={adminRole} />
+        {/* Offered just after signing in, on the device being held. It
+            hides itself when this account already has a passkey, and once
+            declined it does not come back. */}
+        <PasskeyInvite />
+      </main>
     </SidebarProvider>
   );
 }
