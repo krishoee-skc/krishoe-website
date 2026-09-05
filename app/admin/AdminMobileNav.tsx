@@ -13,11 +13,13 @@ import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 
-// Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
-// below 1024px there was no way to move between pages or get home — a real
-// problem because the owner runs the shop from a phone. This sticky top bar
-// gives a permanent home link and a full menu one tap away, and hides on
-// desktop (lg:) where the sidebar takes over, and on paper (print:).
+// Phone navigation for the admin. The desktop sidebar is `hidden xl:block`, so
+// below 1280px there was no way to move between pages or get home — a real
+// problem because the owner runs the shop from a phone, and at 125% display
+// scaling a laptop lands in the 1024–1280px band where a 280px sidebar would
+// crowd the screen. This sticky top bar gives a permanent home link and a full
+// menu one tap away, and hides on wide screens (xl:) where the sidebar takes
+// over, and on paper (print:).
 export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function AdminMobileNav({ adminRole }: { adminRole: AdminRole }) 
   }, [open]);
 
   return (
-    <div className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
+    <div className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:hidden print:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
           {/* A generic house icon stood where the shop's own mark belongs,

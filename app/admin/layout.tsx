@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider>
-      <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr] print:block">
+      <div className="grid min-h-screen w-full xl:grid-cols-[280px_1fr] print:block">
         <AdminNav
           adminRole={adminRole}
           adminName={session?.name}

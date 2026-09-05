@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "@/components/Icons";
 import { useSidebar } from "@/components/admin/SidebarProvider";
+import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -29,7 +30,7 @@ export default function AdminNav({
   const { language, text } = useLanguage();
 
   return (
-    <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 lg:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "lg:w-20" : "lg:w-[280px]"}`}>
+    <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 xl:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "xl:w-20" : "xl:w-[280px]"}`}>
       <div className="flex h-full max-h-screen flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
@@ -68,23 +69,12 @@ export default function AdminNav({
         {/* Admin Info Card */}
         {!isCollapsed && (
           <div className="border-b border-admin-border px-4 py-4 dark:border-admin-border-dark">
-            <div className="rounded-lg border border-admin-primary/20 bg-gradient-to-br from-admin-primary/5 to-admin-accent/5 px-3 py-3 dark:from-admin-primary/10 dark:to-admin-accent/10">
-              <p className="text-xs font-bold uppercase tracking-wider text-admin-primary dark:text-admin-primary-light">
-                Admin Role
-              </p>
-              <p className="mt-2 text-base font-bold text-brand-green-ink dark:text-white">{adminRole}</p>
-              {adminName ? (
-                <p className="mt-2 text-sm font-semibold text-brand-muted-deep dark:text-brand-muted-soft">{adminName}</p>
-              ) : null}
-              {adminEmail ? (
-                <p className="truncate text-xs text-brand-muted dark:text-white/60">{adminEmail}</p>
-              ) : null}
-              {branchId ? (
-                <p className="mt-2 truncate text-xs font-semibold uppercase tracking-wider text-admin-accent dark:text-admin-accent-light">
-                  {branchId}
-                </p>
-              ) : null}
-            </div>
+            <AdminIdentityCard
+              adminRole={adminRole}
+              adminName={adminName}
+              adminEmail={adminEmail}
+              branchId={branchId}
+            />
           </div>
         )}
 
@@ -116,7 +106,7 @@ export default function AdminNav({
                       title={isCollapsed ? text(label, `${nepali} · ${label}`) : undefined}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                         isActive
-                          ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-primary"
+                          ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-accent"
                           : "text-brand-muted hover:text-brand-green-ink hover:bg-admin-hover dark:text-white/60 dark:hover:text-white dark:hover:bg-admin-hover-dark"
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
