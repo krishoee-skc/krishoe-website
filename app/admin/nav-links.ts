@@ -10,6 +10,11 @@ import {
   SearchIcon,
   UserIcon,
   RobotIcon,
+  FactoryIcon,
+  LayersIcon,
+  CartPlusIcon,
+  TagIcon,
+  CoinsIcon,
 } from "@/components/Icons";
 
 /**
@@ -57,9 +62,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     titleNe: "काम",
     workspace: "factory",
     links: [
-      { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: PackageIcon },
+      { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: FactoryIcon },
       { href: "/admin/operations", label: "Operations", nepali: "उत्पादन र स्टक", icon: PackageIcon },
-      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
+      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: LayersIcon },
     ],
   },
   {
@@ -68,8 +73,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     titleNe: "लागत र किनमेल",
     workspace: "factory",
     links: [
-      { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CreditCardIcon },
-      { href: "/admin/purchasing", label: "Purchasing", nepali: "किनमेल", icon: PackageIcon },
+      { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CoinsIcon },
+      { href: "/admin/purchasing", label: "Purchasing", nepali: "किनमेल", icon: CartPlusIcon },
     ],
   },
   {
@@ -83,8 +88,8 @@ export const adminNavGroups: AdminNavGroup[] = [
       // Photos is reached from the Products screen, which is where a photo is
       // actually missing from and where the owner is already standing when
       // they notice.
-      { href: "/admin/products", label: "Products", nepali: "सामान · फोटो · मूल्य", icon: PackageIcon },
-      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: PackageIcon },
+      { href: "/admin/products", label: "Products", nepali: "सामान · फोटो · मूल्य", icon: TagIcon },
+      { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: LayersIcon },
     ],
   },
   {
@@ -109,8 +114,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "shop",
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
-      { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CreditCardIcon },
-      { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: CreditCardIcon },
+      { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CoinsIcon },
+      { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: TagIcon },
     ],
   },
   {

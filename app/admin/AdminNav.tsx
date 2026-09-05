@@ -89,9 +89,9 @@ export default function AdminNav({
 
         {/* Navigation Links */}
         <div className="flex-1 overflow-auto py-4">
-          <nav className={`grid items-start gap-4 font-medium ${isCollapsed ? "px-2" : "px-3"}`}>
+          <nav className={`grid items-start gap-5 font-medium ${isCollapsed ? "px-2" : "px-3"}`}>
             {groups.map((group) => (
-              <div key={group.id} className="grid gap-1">
+              <div key={group.id} className="grid gap-1.5">
                 {!isCollapsed && (
                   <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
                     {text(group.titleEn, group.titleNe)}
