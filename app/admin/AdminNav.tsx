@@ -30,7 +30,7 @@ export default function AdminNav({
   const { language, text } = useLanguage();
 
   return (
-    <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 xl:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "xl:w-20" : "xl:w-[280px]"}`}>
+    <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 lg:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
       <div className="flex h-full max-h-screen flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
