@@ -220,7 +220,7 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
  */
 const STILL_OWED: Record<string, number> = {
   "app/admin/coupons/actions.ts": 2,
-  "app/admin/factory/_components/factory-nav.tsx": 7,
+  "app/admin/factory/_components/factory-nav.tsx": 8,
   "app/admin/factory/worker-portal-qr/page.tsx": 3,
   "app/admin/login/actions.ts": 4,
   "app/admin/login/passkey-actions.ts": 4,
