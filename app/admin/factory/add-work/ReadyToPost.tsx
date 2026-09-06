@@ -145,6 +145,25 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                     {text(`${item.madePairs} pairs`, `${item.madePairs} जोडी`)}
                   </dd>
                 </div>
+                {/* A pair needs every stage. If a stage has fewer pairs than
+                    another (an upper made but its fiber not yet), posting the
+                    higher count sends half-made pairs to the shelf — name the
+                    lagging stages so the owner posts on purpose, not by accident. */}
+                {(() => {
+                  const maxStage = item.stages.reduce((m, s) => Math.max(m, s.pairs), 0);
+                  const lagging = item.stages.filter((s) => s.pairs < maxStage);
+                  if (lagging.length === 0 || maxStage === 0) return null;
+                  const names = lagging.map((s) => `${s.category} (${s.pairs})`).join(", ");
+                  return (
+                    <p className="mt-1 rounded-lg bg-amber-100 px-2 py-1.5 text-xs font-bold text-amber-900">
+                      ⚠️{" "}
+                      {text(
+                        `${names} is behind — a pair needs every stage. Post only what is truly finished.`,
+                        `${names} पछाडि छ — चप्पल तयार हुन हरेक चरण चाहिन्छ। साँच्चै तयार भएको मात्र चढाउनुहोस्।`,
+                      )}
+                    </p>
+                  );
+                })()}
                 <div className="flex justify-between">
                   <dt>{text("Already posted", "स्टकमा चढिसकेको")}</dt>
                   <dd className="font-bold tabular-nums">

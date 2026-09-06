@@ -104,11 +104,23 @@ export async function GET() {
     }
 
     const items = [...byItem.values()].map((entry) => {
-      // The smallest stage total, never the sum: 60 uppers and 60 bottoms are
-      // 60 finished pairs. Summing them is the mistake this whole screen
-      // exists to prevent.
-      const madePairs = entry.stages.reduce(
-        (least, stage) => Math.min(least, stage.pairs),
+      // A pair passes through both stages — Upper and Fibermen — so it is
+      // finished only when both have made it. The count is the smaller stage,
+      // never the sum: 60 uppers and 60 fibers are 60 finished pairs. And a
+      // stage with no entry at all counts as zero, not as "not required" — an
+      // upper made with no fiber yet is zero finished pairs, so posting is held
+      // back until the fiber is entered too. Summing, or ignoring a missing
+      // stage, is the mistake this screen exists to prevent.
+      const REQUIRED_STAGES = ["Upper", "Fibermen"];
+      const pairsByStage = new Map(entry.stages.map((s) => [s.category, s.pairs]));
+      // Only treat the two known stages as required; any extra category the
+      // shop uses is folded in through the min of what's present, so it never
+      // wrongly blocks a design that genuinely runs on one stage.
+      const relevant = REQUIRED_STAGES.some((s) => pairsByStage.has(s))
+        ? REQUIRED_STAGES.map((s) => pairsByStage.get(s) ?? 0)
+        : entry.stages.map((s) => s.pairs);
+      const madePairs = relevant.reduce(
+        (least, pairs) => Math.min(least, pairs),
         Number.POSITIVE_INFINITY,
       );
 

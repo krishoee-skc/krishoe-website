@@ -43,8 +43,13 @@ describe("counting a pair once", () => {
     const api = await readFile(API, "utf8");
     const made = api.slice(api.indexOf("const madePairs"));
 
-    expect(made.slice(0, 300)).toContain("Math.min(least, stage.pairs)");
-    expect(made.slice(0, 300)).not.toContain("least + stage.pairs");
+    // The finished count is the smallest of the stages (a min-reduce), never
+    // their sum. A missing required stage counts as zero, so posting is held
+    // back until both Upper and Fibermen have been entered.
+    expect(made.slice(0, 300)).toContain("Math.min(least, pairs)");
+    expect(made.slice(0, 300)).not.toContain("least + pairs");
+    expect(api).toContain('REQUIRED_STAGES = ["Upper", "Fibermen"]');
+    expect(api).toContain("pairsByStage.get(s) ?? 0");
   });
 
   it("counts every route stock has already come in by", async () => {
