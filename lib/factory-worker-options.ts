@@ -28,9 +28,11 @@ export const FACTORY_WORKER_TYPES = ["piece_rate", "monthly_staff", "daily_staff
 export type FactoryWorkerCategory = (typeof FACTORY_WORKER_CATEGORIES)[number];
 export type FactoryWorkerType = (typeof FACTORY_WORKER_TYPES)[number];
 
-/** What a pay type is called on screen. The stored values are snake_case. */
-export const FACTORY_WORKER_TYPE_LABELS: Record<FactoryWorkerType, string> = {
-  piece_rate: "जोडी अनुसार — piece rate",
-  monthly_staff: "मासिक तलब — monthly",
-  daily_staff: "दैनिक ज्याला — daily",
+/** What a pay type is called on screen, each side in its own language so the
+ *  English view stays English and the Nepali view Nepali. The stored values are
+ *  snake_case. */
+export const FACTORY_WORKER_TYPE_LABELS: Record<FactoryWorkerType, { en: string; ne: string }> = {
+  piece_rate: { en: "Piece rate", ne: "जोडी अनुसार" },
+  monthly_staff: { en: "Monthly", ne: "मासिक तलब" },
+  daily_staff: { en: "Daily wage", ne: "दैनिक ज्याला" },
 };

@@ -197,7 +197,15 @@ export default function WorkersPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{worker.name}</h2>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">{worker.category} · {worker.worker_type.replaceAll("_", " ")}</p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">
+                  {worker.category} ·{" "}
+                  {FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType]
+                    ? text(
+                        FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].en,
+                        FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].ne,
+                      )
+                    : worker.worker_type.replaceAll("_", " ")}
+                </p>
               </div>
               {worker.status !== "active" ? (
                 <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
@@ -262,7 +270,7 @@ export default function WorkersPage() {
                   aria-label={`Pay type for ${worker.name}`}
                 >
                   {FACTORY_WORKER_TYPES.map((option) => (
-                    <option key={option} value={option}>{FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType]}</option>
+                    <option key={option} value={option}>{text(FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].en, FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].ne)}</option>
                   ))}
                 </select>
               </label>

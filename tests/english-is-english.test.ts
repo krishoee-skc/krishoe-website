@@ -240,7 +240,6 @@ const STILL_OWED: Record<string, number> = {
   "app/worker/production/page.tsx": 8,
   "components/worker/WorkerPortalShell.tsx": 3,
   "components/worker/WorkerPortalUnavailable.tsx": 9,
-  "lib/factory-worker-options.ts": 3,
   "lib/google-analytics.ts": 10,
   "lib/login-alerts.ts": 2,
   "lib/passkeys.ts": 5,
