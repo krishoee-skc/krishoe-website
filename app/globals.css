@@ -747,3 +747,24 @@ table th,
 .admin-canvas h6 {
   font-family: var(--font-sans), var(--font-dev-sans), "Segoe UI", Arial, Helvetica, sans-serif;
 }
+
+/* Toast: slide in from the right and fade out on the way, so admin action
+   feedback appears the same, unobtrusive way everywhere. Honors reduced motion. */
+@keyframes krishoe-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.toast-in {
+  animation: krishoe-toast-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}

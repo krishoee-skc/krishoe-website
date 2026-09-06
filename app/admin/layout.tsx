@@ -4,6 +4,7 @@ import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
+import { ToastProvider } from "@/components/admin/ToastProvider";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
@@ -17,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const adminRole = getSessionAdminRole(session);
 
   return (
+    <ToastProvider>
     <SidebarProvider>
       <AdminNav
         adminRole={adminRole}
@@ -51,5 +53,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <PasskeyInvite />
       </main>
     </SidebarProvider>
+    </ToastProvider>
   );
 }

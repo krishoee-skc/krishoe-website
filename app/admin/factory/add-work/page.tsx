@@ -8,6 +8,7 @@ import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
+import { useToast } from "@/components/admin/ToastProvider";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 
 interface Worker {
@@ -43,6 +44,7 @@ interface WorkOrder {
 export default function AddWorkPage() {
   const router = useRouter();
   const { text } = useLanguage();
+  const toast = useToast();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -290,6 +292,7 @@ export default function AddWorkPage() {
               "Link the Worker and Item Master to synchronize production history."
             }`,
       );
+      toast.show(text("Work and wage saved", "काम र ज्याला टिपियो"), "success");
       setFormData({
         date: nepalDateKey(),
         worker_id: "",
