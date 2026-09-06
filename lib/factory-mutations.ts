@@ -162,6 +162,9 @@ export interface FactoryWorkInput {
   pairsCount: number;
   rejectPairs?: number;
   status: string;
+  /** The production stage this entry is for. When absent, falls back to the
+   *  worker's category, matching the pre-column behaviour. */
+  stage?: string | null;
 }
 
 function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
@@ -248,7 +251,10 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     );
     if (!items[0]) throw new FactoryMutationError("Active factory item not found.", 404);
 
-    const stage = productionStageForFactoryCategory(worker.category);
+    // Prefer the stage the form chose (fiber silai can be done by any worker);
+    // fall back to the worker's category when none was sent, so older callers
+    // and existing behaviour are unchanged.
+    const stage = input.stage?.trim() || productionStageForFactoryCategory(worker.category);
     let linkedWorkOrder: {
       id: string;
       plannedPairs: number;
@@ -376,9 +382,9 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     const inserted = await db.query<WorkRow>(
       `INSERT INTO factory_daily_work
        (id, submission_key, date, worker_id, item_id, color, size, pairs_count,
-        status, rate_applied, amount_earned, work_order_id, reject_pairs)
+        status, rate_applied, amount_earned, work_order_id, reject_pairs, stage)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               ROUND($10::numeric * $8::integer, 2), $11, $12)
+               ROUND($10::numeric * $8::integer, 2), $11, $12, $13)
        RETURNING id, date, worker_id, item_id, color, size, pairs_count, reject_pairs, status,
                  rate_applied, amount_earned, work_order_id`,
       [
@@ -394,6 +400,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         rate,
         input.workOrderId ?? null,
         Math.max(0, Math.min(input.pairsCount, Math.round(Number(input.rejectPairs) || 0))),
+        stage,
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);

@@ -7,6 +7,7 @@ import Link from "next/link";
 import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
+import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 
 interface Worker {
@@ -52,6 +53,11 @@ export default function AddWorkPage() {
     date: nepalDateKey(),
     worker_id: "",
     item_id: "",
+    // The production stage this entry is for — the work actually done, not the
+    // worker's fixed category, because fiber silai can be done by anyone. Blank
+    // until a worker is chosen, then it defaults to that worker's category and
+    // can be changed on the dropdown below.
+    stage: "",
     work_order_id: "",
     color: "",
     size: "",
@@ -109,7 +115,11 @@ export default function AddWorkPage() {
 
   const handleWorkerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const workerId = e.target.value;
-    setFormData((prev) => ({ ...prev, worker_id: workerId }));
+    // Default the stage to the chosen worker's category — the common case — but
+    // leave it changeable on the stage dropdown, since fiber silai can be done
+    // by an Upper man too.
+    const worker = workers.find((w) => w.id === workerId);
+    setFormData((prev) => ({ ...prev, worker_id: workerId, stage: worker?.category ?? "" }));
   };
 
   const handleItemChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -284,6 +294,7 @@ export default function AddWorkPage() {
         date: nepalDateKey(),
         worker_id: "",
         item_id: "",
+        stage: "",
         work_order_id: "",
         color: "",
         size: "",
@@ -447,6 +458,35 @@ export default function AddWorkPage() {
             );
           })()}
         </div>
+
+        {/* Stage — the work this entry is for. Defaults to the worker's category
+            but is changeable, because fiber silai can be done by anyone. Shown
+            once a worker is chosen. */}
+        {formData.worker_id ? (
+          <div>
+            <label className="block text-sm font-medium text-brand-green-ink mb-2">
+              🧵 {text("Which work", "कुन काम")}
+            </label>
+            <select
+              value={formData.stage}
+              onChange={(e) => setFormData((prev) => ({ ...prev, stage: e.target.value }))}
+              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
+              required
+            >
+              {FACTORY_WORKER_CATEGORIES.filter((c) => c !== "Staff").map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-brand-muted">
+              {text(
+                "Defaults to the worker's stage — change it if they did a different job today.",
+                "कामदारको सामान्य काम आउँछ — आज अर्को काम गरे बदल्नुहोस्।",
+              )}
+            </p>
+          </div>
+        ) : null}
 
         {/* Item/Product */}
         <div>

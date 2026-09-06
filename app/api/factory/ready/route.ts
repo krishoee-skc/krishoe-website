@@ -54,14 +54,19 @@ export async function GET() {
     const [stages, posted, products] = await Promise.all([
       queryPostgres<StageRow>(
         STORE,
-        `SELECT work.item_id, items.name AS item_name, workers.category,
+        // Group by the entry's own stage — the work actually done — falling
+        // back to the worker's category for old rows written before the stage
+        // column existed. So an Upper man who did fiber silai counts as Fiber
+        // Silai here, matching what was really made.
+        `SELECT work.item_id, items.name AS item_name,
+                COALESCE(NULLIF(work.stage, ''), workers.category) AS category,
                 SUM(work.pairs_count)::integer AS pairs
          FROM factory_daily_work work
          JOIN factory_items items ON items.id = work.item_id
          JOIN factory_workers workers ON workers.id = work.worker_id
          WHERE items.status = 'active'
-         GROUP BY work.item_id, items.name, workers.category
-         ORDER BY items.name ASC, workers.category ASC`,
+         GROUP BY work.item_id, items.name, COALESCE(NULLIF(work.stage, ''), workers.category)
+         ORDER BY items.name ASC, category ASC`,
       ),
       // Everything already turned into shelf stock for this design, by any
       // route — this screen, the Operations form, or Packing/QC.

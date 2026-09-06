@@ -46,6 +46,9 @@ export async function POST(request: NextRequest) {
         : null;
     const color = body.color;
     const size = body.size;
+    // The stage the work was done at, chosen on the form. Blank falls back to
+    // the worker's category inside createFactoryWork, so old callers still work.
+    const stage = typeof body.stage === "string" && body.stage.trim() ? body.stage.trim() : null;
     const status = typeof body.status === "string" && body.status ? body.status : "completed";
     const date = ymdDate(body.date);
     const pairsCount = positiveInteger(body.pairs_count);
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
       pairsCount,
       rejectPairs: Number(body.reject_pairs) || 0,
       status,
+      stage,
     });
 
     // Send WhatsApp notification if work entry was created successfully
