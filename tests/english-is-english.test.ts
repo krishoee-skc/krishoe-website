@@ -231,7 +231,6 @@ const STILL_OWED: Record<string, number> = {
   "app/admin/settings/actions.ts": 6,
   "app/admin/settings/whatsapp/page.tsx": 2,
   "app/admin/wholesale/actions.ts": 1,
-  "app/admin/workers/analytics/page.tsx": 5,
   "app/api/admin/push/route.ts": 2,
   "app/api/admin/search/route.ts": 3,
   "app/api/cron/checkout-reminders/route.ts": 6,

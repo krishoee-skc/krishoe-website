@@ -212,7 +212,10 @@ export async function getReportIndex(): Promise<{ cards: ReportCard[]; counts: C
     },
     {
       id: "workers",
-      href: "/admin/workers/analytics",
+      // Was /admin/workers/analytics, a mock-data page that never carried real
+      // figures. Points at the factory report, which shows the actual pairs and
+      // wages per worker from factory_*.
+      href: "/admin/factory/reports",
       titleNe: "कामदारको काम",
       titleEn: "How each worker is doing",
       detailNe: "कसले कति बनायो, कति कमायो",
