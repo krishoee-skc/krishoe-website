@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ExportButton from "@/components/admin/ExportButton";
+import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
@@ -74,12 +75,7 @@ export default async function WorkerProductionLedgerPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <form className="flex gap-2">
-              <input
-                name="date"
-                type="date"
-                defaultValue={selectedDate}
-                className="min-h-12 rounded-xl border border-brand-green-line px-3 text-sm"
-              />
+              <NepaliDateFieldUncontrolled name="date" defaultValue={selectedDate} />
               <button className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green">
                 View week
               </button>
@@ -163,13 +159,7 @@ export default async function WorkerProductionLedgerPage({
           </label>
           <label className="text-sm font-bold text-brand-green-ink">
             Payment date
-            <input
-              name="paymentDate"
-              type="date"
-              defaultValue={nepalToday()}
-              className="mt-2 min-h-12 w-full rounded-xl border border-brand-green-line px-3 text-sm"
-              required
-            />
+            <NepaliDateFieldUncontrolled name="paymentDate" defaultValue={nepalToday()} required />
           </label>
           <label className="text-sm font-bold text-brand-green-ink sm:col-span-2">
             Note (optional)

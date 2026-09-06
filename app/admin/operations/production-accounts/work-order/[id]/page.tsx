@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
   cancelWorkOrderAction,
@@ -92,7 +93,7 @@ export default async function WorkOrderDetailPage({
             <p className="mt-1 text-xs leading-5 text-brand-muted">Update planning details without changing item, sizes or production history.</p>
             <input type="hidden" name="workOrderId" value={order.id} />
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <input name="dueDate" type="date" defaultValue={order.dueDate} className="min-h-11 rounded-xl border border-brand-green-line px-3 text-sm" />
+              <NepaliDateFieldUncontrolled name="dueDate" defaultValue={order.dueDate} />
               <select name="priority" defaultValue={order.priority} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm">
                 <option>Normal</option><option>High</option><option>Urgent</option>
               </select>
@@ -279,7 +280,7 @@ export default async function WorkOrderDetailPage({
                     Wastage ({row.unit})
                     <input name="wastage" type="number" min="0" step="0.001" defaultValue="0" className="mt-1 min-h-11 w-full rounded-xl border border-emerald-200 bg-brand-paper px-3" />
                   </label>
-                  <input name="consumptionDate" type="date" defaultValue={nepalToday()} className="min-h-11 rounded-xl border border-emerald-200 bg-brand-paper px-3 text-sm" required />
+                  <NepaliDateFieldUncontrolled name="consumptionDate" defaultValue={nepalToday()} required />
                   <input name="note" className="min-h-11 rounded-xl border border-emerald-200 bg-brand-paper px-3 text-sm" placeholder="Issue/usage note" />
                   <FormSubmitButton className="min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white sm:col-span-2" pendingLabel="Recording material…">
                     Owner approve consumption

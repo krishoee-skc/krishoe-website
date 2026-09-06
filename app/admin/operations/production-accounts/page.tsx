@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import OfflineProductionWorkForm from "@/components/admin/OfflineProductionWorkForm";
 import {
   createProductionItemAction,
@@ -230,7 +231,7 @@ export default async function ProductionAccountsPage({
             </select>
             <select name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
             <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
-            <input name="effectiveFrom" type="date" className={input} defaultValue={date} required />
+            <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving rate…">Save wage rate</FormSubmitButton>
         </form>
@@ -263,7 +264,7 @@ export default async function ProductionAccountsPage({
             {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
           </select>
           <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
-          <input name="effectiveFrom" type="date" className={input} defaultValue={date} required />
+          <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           <input name="note" className={`${input} sm:col-span-2`} placeholder="Reason / agreement note (optional)" />
           <FormSubmitButton className={button} pendingLabel="Saving override…">Save special rate</FormSubmitButton>
         </div>
@@ -350,7 +351,7 @@ export default async function ProductionAccountsPage({
               <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
             ))}
           </select>
-          <input name="qcDate" type="date" className={input} defaultValue={date} required />
+          <NepaliDateFieldUncontrolled name="qcDate" defaultValue={date} required />
           <input name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
           <input name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
           <input name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
@@ -428,7 +429,7 @@ export default async function ProductionAccountsPage({
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-            <input name="effectiveFrom" type="date" className={input} defaultValue={date} required />
+            <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
             <input name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} placeholder="Other direct cost/pair" defaultValue="0" />
             <input name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} placeholder="Wholesale profit %" required />
             <input name="retailExtraAmount" type="number" min="0" step="0.01" className={input} placeholder="Retail extra Rs." required />
@@ -476,7 +477,7 @@ export default async function ProductionAccountsPage({
             <input name="colour" className={input} placeholder="Colour, e.g. Black" required />
             <input name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
             <input name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
-            <input name="dueDate" type="date" className={input} />
+            <NepaliDateFieldUncontrolled name="dueDate" />
             <select name="priority" className={input} defaultValue="Normal">
               <option>Normal</option><option>High</option><option>Urgent</option>
             </select>
@@ -530,7 +531,7 @@ export default async function ProductionAccountsPage({
             <select name="fromStage" className={input}>
               {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
             </select>
-            <input name="handoverDate" type="date" className={input} defaultValue={date} required />
+            <NepaliDateFieldUncontrolled name="handoverDate" defaultValue={date} required />
             <select name="fromEmployeeId" className={input} defaultValue="">
               <option value="">Sender not selected</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
@@ -616,7 +617,7 @@ export default async function ProductionAccountsPage({
               {workerPaymentTypes.filter((type) => type !== "Correction").map((type) => <option key={type}>{type}</option>)}
             </select>
             <input name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required />
-            <input name="paymentDate" type="date" className={input} defaultValue={date} required />
+            <NepaliDateFieldUncontrolled name="paymentDate" defaultValue={date} required />
             <input name="note" className={`${input} sm:col-span-2`} placeholder="Reason / note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Approving cash…">Owner approve cash</FormSubmitButton>
@@ -636,12 +637,7 @@ export default async function ProductionAccountsPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <form className="flex gap-2">
-              <input
-                name="settlementDate"
-                type="date"
-                defaultValue={reportDate}
-                className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-xs font-bold"
-              />
+              <NepaliDateFieldUncontrolled name="settlementDate" defaultValue={reportDate} />
               <button className="min-h-11 rounded-xl border border-brand-green px-3 text-xs font-black text-brand-green">
                 View week
               </button>
