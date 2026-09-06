@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import T from "@/components/T";
 import { saveCouponAction } from "./actions";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listCoupons } from "@/lib/coupons";
 import { formatAdminDate } from "@/lib/format-date";
@@ -120,12 +121,12 @@ export default async function CouponsPage({
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             <T en="Starts" ne="कहिलेदेखि" />
-            <input name="startsAt" type="date" className={inputClass} />
+            <NepaliDateFieldUncontrolled name="startsAt" />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             <T en="Ends" ne="कहिलेसम्म" />
-            <input name="expiresAt" type="date" className={inputClass} />
+            <NepaliDateFieldUncontrolled name="expiresAt" />
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">

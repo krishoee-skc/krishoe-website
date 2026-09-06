@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import NepaliDateField from "@/components/admin/NepaliDateField";
 
 type Option = { id: string; label: string };
 const storageKey = "krishoe-production-work-draft-v1";
@@ -28,6 +29,9 @@ export default function OfflineProductionWorkForm({
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   const [message, setMessage] = useState("");
+  // The work date, held in state so the Bikram Sambat picker (a controlled
+  // component) can drive it; starts at today and still posts as "workDate".
+  const [workDate, setWorkDate] = useState(today);
 
   function saveDraft(form = formRef.current) {
     if (!form) return;
@@ -103,7 +107,7 @@ export default function OfflineProductionWorkForm({
           {items.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
         </select>
         <select name="stage" className={input}>{stages.map((stage) => <option key={stage}>{stage}</option>)}</select>
-        <input name="workDate" type="date" className={input} defaultValue={today} required />
+        <NepaliDateField name="workDate" value={workDate} onChange={setWorkDate} required />
         <input name="totalPairs" type="number" min="1" className={input} placeholder="Total completed pairs" required />
         <input name="sizeBreakdown" className={input} placeholder="Optional: 36:10, 37:15" />
         <input name="rejectedPairs" type="number" min="0" className={input} placeholder="Rejected pairs" defaultValue="0" />

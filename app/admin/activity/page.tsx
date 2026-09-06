@@ -1,5 +1,6 @@
 import Link from "next/link";
 import StatCard from "@/components/admin/StatTile";
+import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import T from "@/components/T";
 import { nepalDate } from "@/lib/format-date";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -234,21 +235,11 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           </label>
           <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             From
-            <input
-              type="date"
-              name="from"
-              defaultValue={filters.from}
-              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
-            />
+            <NepaliDateFieldUncontrolled name="from" defaultValue={filters.from} />
           </label>
           <label className="grid gap-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-muted">
             To
-            <input
-              type="date"
-              name="to"
-              defaultValue={filters.to}
-              className="h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm font-semibold normal-case tracking-normal text-brand-green-ink outline-none focus:border-brand-green"
-            />
+            <NepaliDateFieldUncontrolled name="to" defaultValue={filters.to} />
           </label>
           <div className="flex items-end gap-2">
             <button
