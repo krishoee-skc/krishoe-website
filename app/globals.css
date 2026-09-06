@@ -797,3 +797,40 @@ table th,
     transform: none;
   }
 }
+
+/* Skeleton shimmer — a content-shaped placeholder that pulses while data loads,
+   so a page feels like it is filling in rather than sitting empty. Uses the
+   shop's paper tones so it reads as "this card, loading", not a grey box. */
+@keyframes krishoe-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(11, 46, 34, 0.06) 25%,
+    rgba(11, 46, 34, 0.12) 37%,
+    rgba(11, 46, 34, 0.06) 63%
+  );
+  background-size: 200% 100%;
+  animation: krishoe-shimmer 1.4s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+:root:not([data-theme="light"]) .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(233, 240, 235, 0.05) 25%,
+    rgba(233, 240, 235, 0.1) 37%,
+    rgba(233, 240, 235, 0.05) 63%
+  );
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ServiceStatus, UptimeEvidence } from "@/lib/monitoring";
 import AlertText from "@/components/admin/AlertText";
+import { SkeletonStatRow, SkeletonCard } from "@/components/admin/Skeleton";
 
 
 /**
@@ -141,9 +142,13 @@ export default function MonitoringDashboard() {
   }, [autoRefresh, loadMonitoring]);
 
   if (loading) {
+    // Content-shaped placeholders while the readings load, so the screen looks
+    // like it is filling in rather than sitting on a line of text.
     return (
-      <div className="p-6 text-center text-brand-muted">
-        Loading monitoring data...
+      <div className="space-y-5">
+        <SkeletonStatRow count={4} />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     );
   }
