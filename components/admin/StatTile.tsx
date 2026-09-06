@@ -12,6 +12,7 @@
  * the numbers do.
  */
 import type { ReactNode } from "react";
+import CountUp from "@/components/admin/CountUp";
 
 type Tone = "default" | "good" | "warn" | "danger";
 
@@ -37,10 +38,16 @@ export default function StatTile({
   tone?: Tone;
 }) {
   return (
-    <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+    <div className="hover-lift rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">{label}</p>
       <p className="mt-2 font-display text-2xl font-black leading-none tabular-nums text-brand-green-ink">
-        {value}
+        {/* A plain number rolls up on first view; anything with currency or
+            units (a string) is shown as given. */}
+        {typeof value === "number" ? (
+          <CountUp value={value} format={(n) => n.toLocaleString("en-IN")} />
+        ) : (
+          value
+        )}
       </p>
       {detail ? (
         <p className="mt-2 text-xs font-semibold leading-5 text-brand-muted-soft">{detail}</p>

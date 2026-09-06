@@ -768,3 +768,32 @@ table th,
     animation: none;
   }
 }
+
+/* Micro-interactions — small, tactile touches that make the admin feel alive:
+   a card lifts a hair on hover, a pressable element dips when pressed. Kept
+   subtle and reduced-motion aware. */
+.hover-lift {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+@media (hover: hover) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(11, 46, 34, 0.12);
+  }
+}
+.press-dip {
+  transition: transform 90ms ease;
+}
+.press-dip:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift,
+  .press-dip {
+    transition: none;
+  }
+  .hover-lift:hover,
+  .press-dip:active {
+    transform: none;
+  }
+}
