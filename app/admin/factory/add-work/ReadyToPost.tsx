@@ -145,21 +145,28 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                     {text(`${item.madePairs} pairs`, `${item.madePairs} जोडी`)}
                   </dd>
                 </div>
-                {/* A pair needs every stage. If a stage has fewer pairs than
-                    another (an upper made but its fiber not yet), posting the
-                    higher count sends half-made pairs to the shelf — name the
-                    lagging stages so the owner posts on purpose, not by accident. */}
+                {/* A pair passes through Upper and Fibermen and is finished only
+                    when both have made it. Name any required stage that is behind
+                    — including one with no entry at all (an upper made, no fiber
+                    yet) — so the owner sees the shoe is half-made before posting,
+                    not after. */}
                 {(() => {
+                  const REQUIRED = ["Upper", "Fibermen"];
+                  const byStage = new Map(item.stages.map((s) => [s.category, s.pairs]));
                   const maxStage = item.stages.reduce((m, s) => Math.max(m, s.pairs), 0);
-                  const lagging = item.stages.filter((s) => s.pairs < maxStage);
-                  if (lagging.length === 0 || maxStage === 0) return null;
-                  const names = lagging.map((s) => `${s.category} (${s.pairs})`).join(", ");
+                  if (maxStage === 0) return null;
+                  // A required stage counts even when it has no entry (zero).
+                  const lagging = REQUIRED
+                    .map((cat) => ({ cat, pairs: byStage.get(cat) ?? 0 }))
+                    .filter((s) => s.pairs < maxStage);
+                  if (lagging.length === 0) return null;
+                  const names = lagging.map((s) => `${s.cat} (${s.pairs})`).join(", ");
                   return (
                     <p className="mt-1 rounded-lg bg-amber-100 px-2 py-1.5 text-xs font-bold text-amber-900">
                       ⚠️{" "}
                       {text(
-                        `${names} is behind — a pair needs every stage. Post only what is truly finished.`,
-                        `${names} पछाडि छ — चप्पल तयार हुन हरेक चरण चाहिन्छ। साँच्चै तयार भएको मात्र चढाउनुहोस्।`,
+                        `${names} is behind — a pair needs both Upper and Fibermen. Post only what is truly finished.`,
+                        `${names} पछाडि छ — चप्पल तयार हुन Upper र Fiber दुबै चाहिन्छ। साँच्चै तयार भएको मात्र चढाउनुहोस्।`,
                       )}
                     </p>
                   );
