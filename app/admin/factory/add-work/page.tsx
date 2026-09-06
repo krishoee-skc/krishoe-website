@@ -14,6 +14,9 @@ interface Worker {
   name: string;
   category: string;
   worker_type: string;
+  today_pairs?: number;
+  week_pairs?: number;
+  week_earned?: number;
 }
 
 interface Item {
@@ -271,8 +274,8 @@ export default function AddWorkPage() {
       setWorkSaved((count) => count + 1);
       setSuccess(
         result.production_synced
-          ? "Work and wage saved. Production history synchronized."
-          : `Work and wage saved. ${
+          ? "✅ Work and wage saved. 📦 Next: switch to “Post to stock” above to send the finished pairs to the godown."
+          : `✅ Work and wage saved. 📦 Next: “Post to stock” above sends the pairs to the godown. ${
               result.production_sync_reason ||
               "Link the Worker and Item Master to synchronize production history."
             }`,
@@ -416,6 +419,33 @@ export default function AddWorkPage() {
               </option>
             ))}
           </select>
+
+          {/* The chosen worker's running week — pairs and wage so far — right
+              here, so the owner sees who they are paying without leaving the
+              entry screen for the ledger. Shown only once a worker is picked. */}
+          {(() => {
+            const w = workers.find((x) => x.id === formData.worker_id);
+            if (!w) return null;
+            const pairs = w.week_pairs ?? 0;
+            const earned = Math.round(w.week_earned ?? 0);
+            return (
+              <div className="mt-2 rounded-xl border border-brand-green-line bg-brand-green-wash px-3 py-2.5">
+                <p className="text-xs font-bold text-brand-green-ink">
+                  👷 {w.name} — {text("this week", "यो हप्ता")}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-brand-paper px-2 py-1.5 text-center">
+                    <p className="text-[10px] font-bold uppercase text-brand-muted">{text("pairs", "जोडी")}</p>
+                    <p className="text-sm font-black tabular-nums text-brand-green">{pairs}</p>
+                  </div>
+                  <div className="rounded-lg bg-brand-paper px-2 py-1.5 text-center">
+                    <p className="text-[10px] font-bold uppercase text-brand-muted">{text("earned", "कमाइ")}</p>
+                    <p className="text-sm font-black tabular-nums text-brand-gold-deep">Rs. {earned.toLocaleString("en-IN")}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Item/Product */}
