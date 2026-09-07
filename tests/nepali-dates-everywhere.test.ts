@@ -70,7 +70,7 @@ describe("dates shown to a person", () => {
   });
 
   it("reaches the worker's own ledger", async () => {
-    const ledger = await readFile("app/admin/factory/ledger/page.tsx", "utf8");
+    const ledger = await readFile("app/admin/factory/ledger/PieceLedger.tsx", "utf8");
 
     // Where a wage disagreement gets settled.
     expect(ledger).toContain("<DateDisplayAdmin date={entry.date} />");

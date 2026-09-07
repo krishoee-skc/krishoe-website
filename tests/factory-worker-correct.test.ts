@@ -121,7 +121,7 @@ describe("finding a retired worker again", () => {
     // active-only by default, and the filter is dropped only on request.
     const reader = code(await readFile("lib/factory-board-data.ts", "utf8"));
 
-    expect(reader).toContain(`options.includeRetired ? "" : "WHERE workers.status = 'active'"`);
+    expect(reader).toContain(`conditions.push("workers.status = 'active'")`);
   });
 });
 

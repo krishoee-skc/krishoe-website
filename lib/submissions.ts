@@ -289,11 +289,10 @@ async function getOrdersFromLocalJson() {
   return orders.map(normalizeOrder);
 }
 
-async function getOrdersFromPostgres() {
-  const rows = await queryPostgres<OrderRow>(
-    "orders",
-    `
-      SELECT
+// Every column an order is built from, written once. Two readers select it —
+// the list and the single order — and a column added to one and forgotten in
+// the other is a field that is simply missing on one screen.
+const ORDER_COLUMNS = `
         id,
         created_at,
         customer_user_id,
@@ -315,7 +314,48 @@ async function getOrdersFromPostgres() {
         payment_callback_id,
         payment_verified_at,
         payment_ledger_id,
-        payment_ledger_transaction_id
+        payment_ledger_transaction_id`;
+
+/** The items on one order, in the shape the app uses. */
+function orderItemsFromRows(rows: OrderItemRow[]): OrderItem[] {
+  return rows.map((row) => ({
+    productId: row.product_id,
+    productName: row.product_name,
+    size: row.size,
+    color: row.color,
+    quantity: Number(row.quantity) || 0,
+  }));
+}
+
+/** One order by id, with its items. Reads two rows-worth, not the whole shop. */
+async function getOrderByIdFromPostgres(id: string) {
+  const [rows, itemRows] = await Promise.all([
+    queryPostgres<OrderRow>(
+      "orders",
+      `SELECT ${ORDER_COLUMNS} FROM orders WHERE id = $1 LIMIT 1`,
+      [id],
+    ),
+    queryPostgres<OrderItemRow>(
+      "orders",
+      `SELECT order_id, product_id, product_name, size, color, quantity
+         FROM order_items
+        WHERE order_id = $1`,
+      [id],
+    ),
+  ]);
+
+  if (!rows[0]) {
+    return null;
+  }
+
+  return { ...orderFromRow(rows[0]), items: orderItemsFromRows(itemRows) };
+}
+
+async function getOrdersFromPostgres() {
+  const rows = await queryPostgres<OrderRow>(
+    "orders",
+    `
+      SELECT ${ORDER_COLUMNS}
       FROM orders
       -- Newest first, capped. The orders screen is read to see what needs
       -- doing, and what needs doing is always recent; a shop that reaches a
@@ -363,9 +403,25 @@ export async function getOrders() {
   });
 }
 
+/**
+ * One order, fetched as one order.
+ *
+ * This used to read the orders list and search it. That list is capped at the
+ * most recent thousand — right for the screen it was written for, wrong here:
+ * past a thousand orders every older one would come back as "not found", and
+ * this is what the customer's own order page, the review invite, and the
+ * payment-gateway verification all call. A shop's success would have quietly
+ * broken its oldest receipts.
+ */
 export async function getOrderById(id: string) {
-  const orders = await getOrders();
-  return orders.find((order) => order.id === id) ?? null;
+  return runWithDataBackend({
+    storeName: "orders",
+    localJson: async () => {
+      const orders = await getOrdersFromLocalJson();
+      return orders.find((order) => order.id === id) ?? null;
+    },
+    postgres: () => getOrderByIdFromPostgres(id),
+  });
 }
 
 export function orderMatchesCustomer(
@@ -410,8 +466,22 @@ export async function getOrderByPaymentReference(paymentReference: string) {
     return null;
   }
 
-  const orders = await getOrders();
-  return orders.find((order) => order.paymentReference === normalizedReference) ?? null;
+  return runWithDataBackend({
+    storeName: "orders",
+    localJson: async () => {
+      const orders = await getOrdersFromLocalJson();
+      return orders.find((order) => order.paymentReference === normalizedReference) ?? null;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ id: string }>(
+        "orders",
+        `SELECT id FROM orders WHERE payment_reference = $1 ORDER BY created_at DESC LIMIT 1`,
+        [normalizedReference],
+      );
+
+      return rows[0] ? getOrderByIdFromPostgres(rows[0].id) : null;
+    },
+  });
 }
 
 export async function saveOrder(

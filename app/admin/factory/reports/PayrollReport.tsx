@@ -16,9 +16,17 @@ import { useLanguage } from "@/components/LanguageProvider";
  * The payroll screen.
  *
  * The server hands over the month's payroll as it already stands, so the
- * numbers are on screen at first paint instead of after a rebuild. Rebuilding
- * is still a write, one worker at a time, and stays behind the Regenerate
- * button — and behind a change of month, where there may be nothing stored yet.
+ * numbers are on screen at first paint instead of after a rebuild.
+ *
+ * The rebuild still runs on arrival and on every change of month — a draft
+ * summary is a derived snapshot, and work entered since the last visit would
+ * otherwise show a stale total that looks perfectly plausible. What changed is
+ * that it no longer runs *instead of* showing the month.
+ *
+ * It remains a write per worker, which is the real cost: at the two to five
+ * hundred people this factory is built for, that is hundreds of serial
+ * transactions. Fixing it properly means one set-based recompute for the whole
+ * month, which is a change to the API, not to this screen.
  */
 export default function PayrollReport({
   initialMonth,

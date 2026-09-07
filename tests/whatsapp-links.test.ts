@@ -28,9 +28,13 @@ describe("links that open WhatsApp", () => {
   it("never strips the digits out of the number", async () => {
     const broken: string[] = [];
 
-    for (const file of [...(await sources("app")), ...(await sources("components")), ...(await sources("lib"))]) {
-      const source = await readFile(file, "utf8");
-      for (const line of source.split("\n")) {
+    // Read together rather than one after another: this walks the whole app,
+    // and a file at a time was slow enough to trip the test's own time limit.
+    const files = [...(await sources("app")), ...(await sources("components")), ...(await sources("lib"))];
+    const contents = await Promise.all(files.map((file) => readFile(file, "utf8")));
+
+    for (const [index, file] of files.entries()) {
+      for (const line of contents[index].split("\n")) {
         // The one that keeps only the letter d. The correct form is [^\d].
         if (/replace\(\/\[\^d\]\/g/.test(line)) broken.push(`${file} · ${line.trim().slice(0, 70)}`);
       }

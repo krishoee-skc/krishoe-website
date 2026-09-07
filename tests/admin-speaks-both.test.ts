@@ -28,7 +28,7 @@ const DAILY = [
   "app/admin/orders/page.tsx",
   "app/admin/stock/page.tsx",
   "app/admin/factory/workers/TeamList.tsx",
-  "app/admin/factory/salary/page.tsx",
+  "app/admin/factory/salary/StaffSalary.tsx",
 ];
 
 describe("the screens opened every day", () => {
@@ -119,7 +119,7 @@ describe("what must not move while the words do", () => {
 
   it("keeps the values that decide how a worker is paid", async () => {
     const workers = await readFile("app/admin/factory/workers/TeamList.tsx", "utf8");
-    const salary = await readFile("app/admin/factory/salary/page.tsx", "utf8");
+    const salary = await readFile("app/admin/factory/salary/StaffSalary.tsx", "utf8");
 
     for (const value of ['value="piece_rate"', 'value="daily_staff"', 'value="monthly_staff"']) {
       expect(workers, value).toContain(value);
@@ -169,7 +169,7 @@ const WEEKLY = [
   "app/admin/customers/page.tsx",
   "app/admin/purchasing/page.tsx",
   "app/admin/operations/page.tsx",
-  "app/admin/factory/ledger/page.tsx",
+  "app/admin/factory/ledger/PieceLedger.tsx",
   "app/admin/reports/page.tsx",
 ];
 
@@ -195,7 +195,7 @@ describe("the screens opened every week", () => {
   });
 
   it("gives a worker's ledger its Nepali, of all the screens", async () => {
-    const ledger = await readFile("app/admin/factory/ledger/page.tsx", "utf8");
+    const ledger = await readFile("app/admin/factory/ledger/PieceLedger.tsx", "utf8");
 
     // "How much have I earned, how much have I taken" — if one screen in this
     // app had to be readable by the person it is about, it was this one.
@@ -233,7 +233,7 @@ async function strandedStrings(file: string) {
 describe("no screen left half translated", () => {
   it("has nothing stranded on the worker ledger", async () => {
     // The screen a worker is shown when they ask what they have earned.
-    expect(await strandedStrings("app/admin/factory/ledger/page.tsx")).toEqual([]);
+    expect(await strandedStrings("app/admin/factory/ledger/PieceLedger.tsx")).toEqual([]);
   });
 
   it("shows one language at a time in the factory menu", async () => {

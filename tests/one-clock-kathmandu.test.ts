@@ -92,8 +92,12 @@ describe("every place that writes a date", () => {
     const files = [...(await walk("lib")), ...(await walk("app")), ...(await walk("components"))];
     const unpinned: string[] = [];
 
-    for (const file of files) {
-      const source = await readFile(file, "utf8");
+    // Read together rather than one after another: this walks the whole app,
+    // and a file at a time was slow enough to trip the test's own time limit.
+    const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
+
+    for (const [index, file] of files.entries()) {
+      const source = sources[index];
       // Calls that certainly format a date, rather than a rupee amount.
       const calls = /(new Intl\.DateTimeFormat\(|\.toLocaleDateString\(|\.toLocaleTimeString\()/g;
       let match: RegExpExecArray | null;

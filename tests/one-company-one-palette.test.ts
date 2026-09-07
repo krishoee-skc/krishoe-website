@@ -35,8 +35,12 @@ describe("one company, one palette", () => {
     const files = [...(await adminFiles("app")), ...(await adminFiles("components"))];
 
     const offenders: string[] = [];
-    for (const file of files) {
-      const found = (await readFile(file, "utf8")).match(BORROWED);
+    // Read together rather than one after another: this walks the whole app,
+    // and a file at a time was slow enough to trip the test's own time limit.
+    const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
+
+    for (const [index, file] of files.entries()) {
+      const found = sources[index].match(BORROWED);
       if (found) offenders.push(`${file}: ${[...new Set(found)].join(", ")}`);
     }
 

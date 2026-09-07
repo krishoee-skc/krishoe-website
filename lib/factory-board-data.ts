@@ -125,8 +125,24 @@ export async function getFactoryPayrollForMonth(
  * name means the same thing wherever it is shown.
  */
 export async function getFactoryWorkers(
-  options: { includeRetired?: boolean } = {},
+  options: { includeRetired?: boolean; workerType?: string } = {},
 ): Promise<FactoryWorker[]> {
+  // The piece-wage ledger wants piece-rate people and the salary screen wants
+  // monthly staff. Both used to read the whole team and drop two thirds of it
+  // in the browser; asked for here, the database sends only what is wanted.
+  const conditions: string[] = [];
+  const params: string[] = [];
+
+  if (!options.includeRetired) {
+    conditions.push("workers.status = 'active'");
+  }
+  if (options.workerType) {
+    params.push(options.workerType);
+    conditions.push(`workers.worker_type = $${params.length}`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
   const rows = await queryPostgres<Record<string, unknown>>(
     STORE,
     `SELECT workers.id, workers.name, workers.worker_type, workers.category,
@@ -150,8 +166,9 @@ export async function getFactoryWorkers(
          WHERE work.worker_id = workers.id
            AND work.date >= date_trunc('week', CURRENT_DATE)
        ) week_work ON true
-       ${options.includeRetired ? "" : "WHERE workers.status = 'active'"}
+       ${where}
        ORDER BY workers.status ASC, workers.name ASC`,
+    params,
   );
 
   return rows.map((row) => normaliseWorker(row as Partial<FactoryWorker>));

@@ -110,8 +110,8 @@ describe("what the factory counts a month as", () => {
 describe("the month picker", () => {
   it("replaced the browser's English one everywhere it stood", async () => {
     for (const file of [
-      "app/admin/factory/ledger/page.tsx",
-      "app/admin/factory/salary/page.tsx",
+      "app/admin/factory/ledger/PieceLedger.tsx",
+      "app/admin/factory/salary/StaffSalary.tsx",
       "app/admin/factory/reports/PayrollReport.tsx",
     ]) {
       const page = await readFile(file, "utf8");
