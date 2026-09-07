@@ -1,4 +1,5 @@
 import T from "@/components/T";
+import ProgressRing from "@/components/admin/ProgressRing";
 
 /**
  * Today's sales split across the three channels — Retail, Wholesale, Online —
@@ -30,13 +31,30 @@ export default function ChannelCompare({ rows }: { rows: ChannelRow[] }) {
   const busiest = Math.max(0, ...rows.map((row) => Math.max(0, row.netTotal)));
   // Sorted so the strongest channel sits on top — the shop's real picture.
   const sorted = [...rows].sort((a, b) => b.netTotal - a.netTotal);
+  // The leading channel's share of today's sales, drawn as a ring so the
+  // concentration reads at a glance — is one channel carrying the day, or is it
+  // spread evenly?
+  const topShare = total > 0 ? Math.round((busiest / total) * 100) : 0;
 
   return (
     <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-black text-brand-green-ink">
-          <T en="Sales by channel — today" ne="channel अनुसार बिक्री — आज" />
-        </h2>
+        <div className="flex items-center gap-3">
+          {total > 0 ? <ProgressRing percent={topShare} tone="good" /> : null}
+          <div>
+            <h2 className="font-display text-lg font-black text-brand-green-ink">
+              <T en="Sales by channel — today" ne="channel अनुसार बिक्री — आज" />
+            </h2>
+            {total > 0 ? (
+              <p className="text-xs text-brand-muted">
+                <T
+                  en={`Top channel is ${topShare}% of today`}
+                  ne={`मुख्य channel — आजको ${topShare}%`}
+                />
+              </p>
+            ) : null}
+          </div>
+        </div>
         <span className="text-sm font-black tabular-nums text-brand-green">{money(total)}</span>
       </div>
 

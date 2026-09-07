@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SearchIcon } from "@/components/Icons";
 import { useLanguage } from "@/components/LanguageProvider";
 import SearchAsYouType from "@/app/admin/search/SearchAsYouType";
@@ -25,6 +26,10 @@ export default function AdminCommandBar() {
   const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("find");
+  const router = useRouter();
+  // Remembers a just-pressed "g" so the next key completes a jump (g then d →
+  // dashboard). Cleared after a short beat so a stray g does not linger.
+  const goPrefix = useRef<number | null>(null);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -43,12 +48,37 @@ export default function AdminCommandBar() {
         setOpen(true);
       } else if (event.key === "Escape") {
         setOpen(false);
+      } else if (!isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        // Vim-style "g then <key>" jumps, the way GitHub and Linear move: press
+        // g, then d for the dashboard, w for work, s for stock, r for reports.
+        if (event.key === "g") {
+          if (goPrefix.current !== null) window.clearTimeout(goPrefix.current);
+          goPrefix.current = window.setTimeout(() => {
+            goPrefix.current = null;
+          }, 900);
+        } else if (goPrefix.current !== null) {
+          const routes: Record<string, string> = {
+            d: "/admin",
+            w: "/admin/factory/add-work",
+            s: "/admin/stock",
+            r: "/admin/reports",
+            p: "/admin/pos",
+            c: "/admin/customers",
+          };
+          const dest = routes[event.key];
+          window.clearTimeout(goPrefix.current);
+          goPrefix.current = null;
+          if (dest) {
+            event.preventDefault();
+            router.push(dest);
+          }
+        }
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!open) return;
