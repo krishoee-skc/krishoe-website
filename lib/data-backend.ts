@@ -18,6 +18,7 @@ const implementedPostgresStores = [
   "notification events",
   "rate limit attempts",
   "admin settings",
+  "customer voice",
 ] as const;
 const pendingPostgresStores = [] as const;
 

@@ -17,6 +17,8 @@
     "test:run": "vitest run",
     "test:all": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "npm run build:ci && playwright test",
+    "test:e2e:install": "playwright install chromium",
     "build:ci": "node scripts/build-ci.mjs",
     "backup:export": "node scripts/export-admin-backup.mjs",
     "db:schema": "node scripts/apply-postgres-schema.mjs",
@@ -53,6 +55,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
     "@types/pg": "8.23.1",
     "@types/react": "^18",

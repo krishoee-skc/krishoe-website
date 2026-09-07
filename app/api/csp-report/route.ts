@@ -38,6 +38,13 @@ function safeUri(value: unknown): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // The local-JSON backend is intentionally database-free (CI and browser
+    // checks use it). CSP reports are production observability, so do not turn
+    // a harmless local browser warning into a production-database connection.
+    if (process.env.DATA_BACKEND === "local-json") {
+      return new NextResponse(null, { status: 204 });
+    }
+
     const body = (await request.json().catch(() => null)) as
       | { "csp-report"?: Record<string, unknown> }
       | Record<string, unknown>[]

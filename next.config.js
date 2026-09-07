@@ -98,6 +98,10 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Playwright uses 127.0.0.1 while `next dev` initializes with localhost.
+  // Keep the dev server's cross-origin protection, but explicitly allow that
+  // loopback origin for the browser test runner.
+  allowedDevOrigins: ["127.0.0.1"],
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

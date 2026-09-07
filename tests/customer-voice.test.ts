@@ -125,6 +125,17 @@ describe("the inbox screen", () => {
     expect(lib).toContain("Math.min(Math.max(Math.trunc(options?.limit ?? 200), 1), 500)");
     expect(lib).toContain("COUNT(*)::int AS n FROM customer_voice GROUP BY kind, status");
   });
+
+  it("keeps the database-free backend honest", async () => {
+    const lib = await readFile(LIB, "utf8");
+
+    // CI must exercise the exact inbox API without needing a live database.
+    // The JSON store follows the same duplicate-review invariant as the
+    // production unique index, so a local pass cannot hide that failure.
+    expect(lib).toContain("runWithDataBackend");
+    expect(lib).toContain("customer-voice.json");
+    expect(lib).toContain("A verified purchase can only review a product once.");
+  });
 });
 
 describe("who may do what", () => {

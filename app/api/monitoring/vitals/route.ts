@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getDataBackend } from "@/lib/data-backend";
 import { logPerformanceMetric } from "@/lib/monitoring";
 
 /**
@@ -26,6 +27,13 @@ const MAX_PATH = 300;
 
 export async function POST(request: NextRequest) {
   try {
+    // Performance history is production observability. CI/browser tests run
+    // with the database-free backend, so accepting their beacons must not make
+    // a hidden connection to a developer's configured production database.
+    if (getDataBackend() === "local-json") {
+      return new NextResponse(null, { status: 204 });
+    }
+
     const body = await request.json();
 
     const metric = typeof body?.metric === "string" ? body.metric.trim().toUpperCase() : "";

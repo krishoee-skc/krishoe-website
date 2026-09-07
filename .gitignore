@@ -26,6 +26,7 @@
 /data/admin-audit.json
 /data/login-attempts.json
 /data/rate-limit-attempts.json
+/data/customer-voice.json
 
 # misc
 .DS_Store

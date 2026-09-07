@@ -239,13 +239,31 @@ describe("finding the Nepali", () => {
     expect(invite).toContain("} catch {");
   });
 
+  // The invite no longer sits in the layout by name. It is mounted through
+  // StorefrontEnhancements, which also keeps the shop's tools off the admin
+  // desk and the worker portal. What matters has not changed — the invite has
+  // to render inside LanguageProvider, or it cannot read or set the language —
+  // so the check follows the chain instead of looking for one tag.
   it("is mounted where it can reach the language", async () => {
     const layout = await readFile("app/layout.tsx", "utf8");
+    const enhancements = await readFile("components/StorefrontEnhancements.tsx", "utf8");
 
-    expect(layout).toContain("<LanguageInvite />");
-    expect(layout.indexOf("<LanguageInvite />")).toBeGreaterThan(
+    expect(enhancements).toContain("<LanguageInvite />");
+    expect(layout).toContain("<StorefrontEnhancements />");
+    expect(layout.indexOf("<StorefrontEnhancements />")).toBeGreaterThan(
       layout.indexOf("<LanguageProvider>"),
     );
+  });
+
+  // The shop's own tools, on the shop only. Loading the invite, the tab bar and
+  // the assistant onto the admin desk or the worker portal spends a phone's
+  // battery on people who are not shopping.
+  it("stays off the admin desk and the worker portal", async () => {
+    const enhancements = await readFile("components/StorefrontEnhancements.tsx", "utf8");
+
+    expect(enhancements).toContain("/admin");
+    expect(enhancements).toContain("/worker");
+    expect(enhancements).toContain("return null");
   });
 });
 

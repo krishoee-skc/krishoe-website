@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { writeFileAtomic } from "@/lib/atomic-json";
+import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
 
 /**
@@ -16,6 +20,8 @@ import { queryPostgres } from "@/lib/postgres/client";
  */
 
 const STORE = "customer voice";
+const dataDir = path.join(process.cwd(), "data");
+const customerVoiceFile = path.join(dataDir, "customer-voice.json");
 
 export type VoiceKind = "review" | "question" | "complaint";
 export type VoiceStatus = "new" | "answered" | "closed";
@@ -63,6 +69,9 @@ type VoiceRow = {
 const COLUMNS = `id, created_at, kind, customer_name, phone, email, product_id,
   product_name, order_id, rating, message, status, replied_at, reply_note, published, source`;
 
+const voiceKinds: VoiceKind[] = ["review", "question", "complaint"];
+const voiceStatuses: VoiceStatus[] = ["new", "answered", "closed"];
+
 function fromRow(row: VoiceRow): CustomerVoice {
   return {
     id: row.id,
@@ -84,11 +93,62 @@ function fromRow(row: VoiceRow): CustomerVoice {
   };
 }
 
+function cleanStoredVoice(value: unknown): CustomerVoice | null {
+  if (typeof value !== "object" || value === null) return null;
+
+  const voice = value as Partial<CustomerVoice>;
+  if (
+    typeof voice.id !== "string" ||
+    !voiceKinds.includes(voice.kind as VoiceKind) ||
+    !voiceStatuses.includes(voice.status as VoiceStatus)
+  ) {
+    return null;
+  }
+
+  const createdAt = new Date(voice.createdAt ?? "");
+  const repliedAt = voice.repliedAt ? new Date(voice.repliedAt) : null;
+
+  return {
+    id: voice.id,
+    createdAt: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
+    kind: voice.kind as VoiceKind,
+    customerName: typeof voice.customerName === "string" ? voice.customerName : "",
+    phone: typeof voice.phone === "string" ? voice.phone : "",
+    email: typeof voice.email === "string" ? voice.email : "",
+    productId: typeof voice.productId === "string" ? voice.productId : "",
+    productName: typeof voice.productName === "string" ? voice.productName : "",
+    orderId: typeof voice.orderId === "string" ? voice.orderId : "",
+    rating: Math.min(5, Math.max(0, Math.round(Number(voice.rating) || 0))),
+    message: typeof voice.message === "string" ? voice.message : "",
+    status: voice.status as VoiceStatus,
+    repliedAt: repliedAt && !Number.isNaN(repliedAt.getTime()) ? repliedAt.toISOString() : null,
+    replyNote: typeof voice.replyNote === "string" ? voice.replyNote : "",
+    published: Boolean(voice.published),
+    source: typeof voice.source === "string" ? voice.source : "site",
+  };
+}
+
+async function readCustomerVoiceLocal(): Promise<CustomerVoice[]> {
+  try {
+    const parsed = JSON.parse(await fs.readFile(customerVoiceFile, "utf8")) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.map(cleanStoredVoice).filter((voice): voice is CustomerVoice => Boolean(voice))
+      : [];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+async function writeCustomerVoiceLocal(voices: CustomerVoice[]) {
+  await writeFileAtomic(customerVoiceFile, `${JSON.stringify(voices, null, 2)}\n`);
+}
+
 /** A customer's own words, so length is capped rather than trusted. */
 const MESSAGE_MAX = 4000;
 const NAME_MAX = 120;
 
-export async function saveCustomerVoice(input: {
+type CustomerVoiceInput = {
   kind: VoiceKind;
   customerName?: string;
   phone?: string;
@@ -99,8 +159,59 @@ export async function saveCustomerVoice(input: {
   rating?: number;
   message?: string;
   source?: string;
-}): Promise<CustomerVoice> {
-  const id = `CV-${randomUUID()}`;
+};
+
+function newCustomerVoice(input: CustomerVoiceInput): CustomerVoice {
+  return {
+    id: `CV-${randomUUID()}`,
+    createdAt: new Date().toISOString(),
+    kind: input.kind,
+    customerName: (input.customerName ?? "").trim().slice(0, NAME_MAX),
+    phone: (input.phone ?? "").trim().slice(0, 40),
+    email: (input.email ?? "").trim().slice(0, NAME_MAX),
+    productId: (input.productId ?? "").trim(),
+    productName: (input.productName ?? "").trim().slice(0, NAME_MAX),
+    orderId: (input.orderId ?? "").trim(),
+    rating: Math.min(5, Math.max(0, Math.round(Number(input.rating) || 0))),
+    message: (input.message ?? "").trim().slice(0, MESSAGE_MAX),
+    status: "new",
+    repliedAt: null,
+    replyNote: "",
+    published: false,
+    source: (input.source ?? "site").trim().slice(0, 40),
+  };
+}
+
+function duplicateReviewError() {
+  return Object.assign(new Error("A verified purchase can only review a product once."), { code: "23505" });
+}
+
+async function saveCustomerVoiceLocal(input: CustomerVoiceInput): Promise<CustomerVoice> {
+  const voices = await readCustomerVoiceLocal();
+  const record = newCustomerVoice(input);
+
+  // The production database carries this as a unique index. Keep the dev/CI
+  // store honest too, otherwise local testing can accept a duplicate that the
+  // live shop rejects.
+  if (
+    record.kind === "review" &&
+    record.orderId &&
+    voices.some(
+      (voice) =>
+        voice.kind === "review" &&
+        voice.orderId === record.orderId &&
+        voice.productId === record.productId,
+    )
+  ) {
+    throw duplicateReviewError();
+  }
+
+  await writeCustomerVoiceLocal([record, ...voices]);
+  return record;
+}
+
+async function saveCustomerVoicePostgres(input: CustomerVoiceInput): Promise<CustomerVoice> {
+  const record = newCustomerVoice(input);
   const rows = await queryPostgres<VoiceRow>(
     STORE,
     `INSERT INTO customer_voice
@@ -109,20 +220,28 @@ export async function saveCustomerVoice(input: {
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING ${COLUMNS}`,
     [
-      id,
-      input.kind,
-      (input.customerName ?? "").trim().slice(0, NAME_MAX),
-      (input.phone ?? "").trim().slice(0, 40),
-      (input.email ?? "").trim().slice(0, NAME_MAX),
-      (input.productId ?? "").trim(),
-      (input.productName ?? "").trim().slice(0, NAME_MAX),
-      (input.orderId ?? "").trim(),
-      Math.min(5, Math.max(0, Math.round(Number(input.rating) || 0))),
-      (input.message ?? "").trim().slice(0, MESSAGE_MAX),
-      (input.source ?? "site").trim().slice(0, 40),
+      record.id,
+      record.kind,
+      record.customerName,
+      record.phone,
+      record.email,
+      record.productId,
+      record.productName,
+      record.orderId,
+      record.rating,
+      record.message,
+      record.source,
     ],
   );
   return fromRow(rows[0]);
+}
+
+export async function saveCustomerVoice(input: CustomerVoiceInput): Promise<CustomerVoice> {
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: () => saveCustomerVoiceLocal(input),
+    postgres: () => saveCustomerVoicePostgres(input),
+  });
 }
 
 /**
@@ -131,11 +250,17 @@ export async function saveCustomerVoice(input: {
  * Bounded, because an inbox that loads every message ever received gets slower
  * every day it succeeds.
  */
-export async function getCustomerVoice(options?: {
+type CustomerVoiceQuery = {
   kind?: VoiceKind;
   status?: VoiceStatus;
   limit?: number;
-}): Promise<CustomerVoice[]> {
+};
+
+function customerVoiceLimit(options?: CustomerVoiceQuery) {
+  return Math.min(Math.max(Math.trunc(options?.limit ?? 200), 1), 500);
+}
+
+async function getCustomerVoicePostgres(options?: CustomerVoiceQuery): Promise<CustomerVoice[]> {
   const limit = Math.min(Math.max(Math.trunc(options?.limit ?? 200), 1), 500);
   const where: string[] = [];
   const params: (string | number)[] = [];
@@ -160,6 +285,24 @@ export async function getCustomerVoice(options?: {
   return rows.map(fromRow);
 }
 
+/**
+ * The inbox, newest first. The local branch exists for development and the
+ * database-free CI build; production keeps this bounded SQL query.
+ */
+export async function getCustomerVoice(options?: CustomerVoiceQuery): Promise<CustomerVoice[]> {
+  const limit = customerVoiceLimit(options);
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () =>
+      (await readCustomerVoiceLocal())
+        .filter((voice) => !options?.kind || voice.kind === options.kind)
+        .filter((voice) => !options?.status || voice.status === options.status)
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .slice(0, limit),
+    postgres: () => getCustomerVoicePostgres(options),
+  });
+}
+
 export type VoiceCounts = {
   total: number;
   waiting: number;
@@ -168,41 +311,82 @@ export type VoiceCounts = {
 
 /** Counted in the database rather than by loading every row to count it. */
 export async function getVoiceCounts(): Promise<VoiceCounts> {
-  const rows = await queryPostgres<{ kind: VoiceKind; status: VoiceStatus; n: string }>(
-    STORE,
-    `SELECT kind, status, COUNT(*)::int AS n FROM customer_voice GROUP BY kind, status`,
-    [],
-  );
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => countCustomerVoice(await readCustomerVoiceLocal()),
+    postgres: async () => {
+      const rows = await queryPostgres<{ kind: VoiceKind; status: VoiceStatus; n: string }>(
+        STORE,
+        `SELECT kind, status, COUNT(*)::int AS n FROM customer_voice GROUP BY kind, status`,
+        [],
+      );
 
+      const counts: VoiceCounts = {
+        total: 0,
+        waiting: 0,
+        byKind: { review: 0, question: 0, complaint: 0 },
+      };
+
+      for (const row of rows) {
+        const n = Number(row.n) || 0;
+        counts.total += n;
+        if (row.status === "new") counts.waiting += n;
+        if (row.kind in counts.byKind) counts.byKind[row.kind] += n;
+      }
+      return counts;
+    },
+  });
+}
+
+function countCustomerVoice(voices: CustomerVoice[]): VoiceCounts {
   const counts: VoiceCounts = {
     total: 0,
     waiting: 0,
     byKind: { review: 0, question: 0, complaint: 0 },
   };
 
-  for (const row of rows) {
-    const n = Number(row.n) || 0;
-    counts.total += n;
-    if (row.status === "new") counts.waiting += n;
-    if (row.kind in counts.byKind) counts.byKind[row.kind] += n;
+  for (const voice of voices) {
+    counts.total += 1;
+    if (voice.status === "new") counts.waiting += 1;
+    counts.byKind[voice.kind] += 1;
   }
   return counts;
 }
 
 export async function setVoiceStatus(id: string, status: VoiceStatus, replyNote = "") {
-  await queryPostgres(
-    STORE,
-    `UPDATE customer_voice
-     SET status = $2,
-         reply_note = $3,
-         -- Stamped the first time it is answered, and left alone after: the
-         -- question is how long the customer waited, not when the row was last
-         -- touched.
-         replied_at = CASE WHEN $2 = 'new' THEN NULL ELSE COALESCE(replied_at, now()) END,
-         updated_at = now()
-     WHERE id = $1`,
-    [id, status, replyNote.trim().slice(0, MESSAGE_MAX)],
-  );
+  await runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      const voices = await readCustomerVoiceLocal();
+      await writeCustomerVoiceLocal(
+        voices.map((voice) =>
+          voice.id === id
+            ? {
+                ...voice,
+                status,
+                replyNote: replyNote.trim().slice(0, MESSAGE_MAX),
+                repliedAt: status === "new" ? null : voice.repliedAt ?? new Date().toISOString(),
+              }
+            : voice,
+        ),
+      );
+    },
+    postgres: async () => {
+      await queryPostgres(
+        STORE,
+        `UPDATE customer_voice
+         SET status = $2,
+             reply_note = $3,
+             -- Stamped the first time it is answered, and left alone after: the
+             -- question is how long the customer waited, not when the row was last
+             -- touched.
+             replied_at = CASE WHEN $2 = 'new' THEN NULL ELSE COALESCE(replied_at, now()) END,
+             updated_at = now()
+         WHERE id = $1`,
+        [id, status, replyNote.trim().slice(0, MESSAGE_MAX)],
+      );
+    },
+  });
 }
 
 /**
@@ -212,7 +396,15 @@ export async function setVoiceStatus(id: string, status: VoiceStatus, replyNote 
  * undo, so the button asks first.
  */
 export async function deleteVoice(id: string) {
-  await queryPostgres(STORE, `DELETE FROM customer_voice WHERE id = $1`, [id]);
+  await runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      await writeCustomerVoiceLocal((await readCustomerVoiceLocal()).filter((voice) => voice.id !== id));
+    },
+    postgres: async () => {
+      await queryPostgres(STORE, `DELETE FROM customer_voice WHERE id = $1`, [id]);
+    },
+  });
 }
 
 /**
@@ -226,14 +418,28 @@ export async function setVoicePublished(
   id: string,
   published: boolean,
 ): Promise<{ productId: string } | null> {
-  const rows = await queryPostgres<{ product_id: string }>(
-    STORE,
-    `UPDATE customer_voice SET published = $2, updated_at = now()
-     WHERE id = $1
-     RETURNING product_id`,
-    [id, published],
-  );
-  return rows[0] ? { productId: rows[0].product_id } : null;
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      const voices = await readCustomerVoiceLocal();
+      const voice = voices.find((candidate) => candidate.id === id);
+      if (!voice) return null;
+      await writeCustomerVoiceLocal(
+        voices.map((candidate) => (candidate.id === id ? { ...candidate, published } : candidate)),
+      );
+      return { productId: voice.productId };
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ product_id: string }>(
+        STORE,
+        `UPDATE customer_voice SET published = $2, updated_at = now()
+         WHERE id = $1
+         RETURNING product_id`,
+        [id, published],
+      );
+      return rows[0] ? { productId: rows[0].product_id } : null;
+    },
+  });
 }
 
 /**
@@ -244,14 +450,24 @@ export async function setVoicePublished(
  * behind.
  */
 export async function getPublishedReviews(productId: string): Promise<CustomerVoice[]> {
-  const rows = await queryPostgres<VoiceRow>(
-    STORE,
-    `SELECT ${COLUMNS} FROM customer_voice
-     WHERE product_id = $1 AND kind = 'review' AND published = true
-     ORDER BY created_at DESC LIMIT 50`,
-    [productId],
-  );
-  return rows.map(fromRow);
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () =>
+      (await readCustomerVoiceLocal())
+        .filter((voice) => voice.productId === productId && voice.kind === "review" && voice.published)
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .slice(0, 50),
+    postgres: async () => {
+      const rows = await queryPostgres<VoiceRow>(
+        STORE,
+        `SELECT ${COLUMNS} FROM customer_voice
+         WHERE product_id = $1 AND kind = 'review' AND published = true
+         ORDER BY created_at DESC LIMIT 50`,
+        [productId],
+      );
+      return rows.map(fromRow);
+    },
+  });
 }
 
 /** How long a message has been waiting, in whole days. */
@@ -271,21 +487,42 @@ export function daysWaiting(voice: CustomerVoice, now = new Date()): number {
 export async function getReviewSummaryByProduct(): Promise<
   Map<string, { count: number; average: number }>
 > {
-  const rows = await queryPostgres<{ product_id: string; n: string; avg: string }>(
-    STORE,
-    `SELECT product_id, COUNT(*)::int AS n, AVG(rating)::numeric(3,2) AS avg
-     FROM customer_voice
-     WHERE kind = 'review' AND published = true AND product_id <> ''
-     GROUP BY product_id`,
-    [],
-  );
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      const buckets = new Map<string, CustomerVoice[]>();
+      for (const voice of await readCustomerVoiceLocal()) {
+        if (voice.kind !== "review" || !voice.published || !voice.productId) continue;
+        buckets.set(voice.productId, [...(buckets.get(voice.productId) ?? []), voice]);
+      }
+      return new Map(
+        [...buckets.entries()].map(([productId, voices]) => [
+          productId,
+          {
+            count: voices.length,
+            average: voices.reduce((total, voice) => total + voice.rating, 0) / voices.length,
+          },
+        ]),
+      );
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ product_id: string; n: string; avg: string }>(
+        STORE,
+        `SELECT product_id, COUNT(*)::int AS n, AVG(rating)::numeric(3,2) AS avg
+         FROM customer_voice
+         WHERE kind = 'review' AND published = true AND product_id <> ''
+         GROUP BY product_id`,
+        [],
+      );
 
-  const summary = new Map<string, { count: number; average: number }>();
-  for (const row of rows) {
-    summary.set(row.product_id, {
-      count: Number(row.n) || 0,
-      average: Number(row.avg) || 0,
-    });
-  }
-  return summary;
+      const summary = new Map<string, { count: number; average: number }>();
+      for (const row of rows) {
+        summary.set(row.product_id, {
+          count: Number(row.n) || 0,
+          average: Number(row.avg) || 0,
+        });
+      }
+      return summary;
+    },
+  });
 }

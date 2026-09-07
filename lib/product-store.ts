@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { cache } from "react";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
@@ -484,13 +485,13 @@ async function syncProductCatalogStockWithFinishedStockPostgres(finishedStock: F
   return publicProductStockSyncResult(result);
 }
 
-export async function getProducts(options: { includeDrafts?: boolean } = {}) {
+export const getProducts = cache(async (options: { includeDrafts?: boolean } = {}) => {
   return runWithDataBackend({
     storeName: "products",
     localJson: () => getProductsFromLocalJson(options),
     postgres: () => getProductsFromPostgres(options),
   });
-}
+});
 
 // A new finished-goods design — a trading pair bought for the first time, or a
 // production run of a design not yet listed — becomes a catalog product so it

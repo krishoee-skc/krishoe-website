@@ -15,7 +15,6 @@ import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { CheckIcon, StarIcon } from "@/components/Icons";
 import ProductReviewsPanel from "@/components/ProductReviewsPanel";
-import { getPublishedReviews } from "@/lib/customer-voice";
 import { stockLevel } from "@/lib/stock-thresholds";
 import ShareProduct from "@/components/ShareProduct";
 import T from "@/components/T";
@@ -93,16 +92,18 @@ export default async function ProductPage({ params }: Props) {
   // The reviews the shop has published, from the one inbox the owner approves
   // in — the on-page form and the after-delivery invite both land there. Read
   // by product id, not by cookie, so the page stays statically cached.
-  const publishedReviews = (await getPublishedReviews(product.id)).map((review) => ({
-    id: review.id,
-    name: review.customerName,
-    comment: review.message,
-    rating: review.rating,
-    createdAt: review.createdAt,
+  const publishedReviews = product.reviews
+    .filter((review) => review.status === "approved")
+    .map((review) => ({
+      id: review.id,
+      name: review.name,
+      comment: review.comment,
+      rating: review.rating,
+      createdAt: review.createdAt,
     // A review carries an order id only when it came from a real, matched
     // purchase — that is exactly what earns the "verified" badge.
-    verifiedPurchase: review.orderId !== "",
-  }));
+      verifiedPurchase: Boolean(review.verifiedPurchase),
+    }));
 
   const level = stockLevel(product.stock);
   // The product's own name, description and highlights are catalog data the

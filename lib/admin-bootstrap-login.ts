@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getAdminSettings } from "@/lib/admin-settings";
+import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
 
 export function shouldAllowAdminBootstrapLogin(input: {
@@ -24,13 +25,25 @@ export function shouldAllowAdminBootstrapLogin(input: {
  */
 async function activeOwnerCount() {
   try {
-    const rows = await queryPostgres<{ owners: number | string }>(
-      "admin settings",
-      `SELECT count(*)::int AS owners
-         FROM admin_staff_accounts
-        WHERE status = 'Active' AND role = 'Owner'`,
-    );
-    return Number(rows[0]?.owners ?? 0);
+    return await runWithDataBackend({
+      storeName: "admin settings",
+      // CI and browser checks deliberately use the file-backed store. Asking
+      // Postgres here bypassed that contract and made the sign-in page depend
+      // on a database even when one was intentionally unavailable.
+      localJson: async () =>
+        (await getAdminSettings()).staff.filter(
+          (staff) => staff.status === "Active" && staff.role === "Owner",
+        ).length,
+      postgres: async () => {
+        const rows = await queryPostgres<{ owners: number | string }>(
+          "admin settings",
+          `SELECT count(*)::int AS owners
+             FROM admin_staff_accounts
+            WHERE status = 'Active' AND role = 'Owner'`,
+        );
+        return Number(rows[0]?.owners ?? 0);
+      },
+    });
   } catch {
     const settings = await getAdminSettings();
     return settings.staff.filter(

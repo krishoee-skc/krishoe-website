@@ -3,17 +3,11 @@ import { unstable_cache } from "next/cache";
 import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi, Orbitron } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
-import { Analytics } from "@/components/commerce/Analytics";
 import SkipToContent from "@/components/SkipToContent";
-import BottomTabBar from "@/components/BottomTabBar";
-import AiAssistant from "@/components/AiAssistant";
 import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import PwaInstallHelp from "@/components/PwaInstallHelp";
-import SpeedReporter from "@/components/SpeedReporter";
 import LanguageProvider from "@/components/LanguageProvider";
-import LanguageInvite from "@/components/LanguageInvite";
+import StorefrontEnhancements from "@/components/StorefrontEnhancements";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
@@ -201,17 +195,11 @@ export default async function RootLayout({
         <StructuredData metadata={metadata} products={products} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ServiceWorkerRegistration />
-        <Analytics />
         <LanguageProvider>
           <SkipToContent />
           <CommerceProvider catalogProducts={products}>
             {children}
-            <PwaInstallHelp />
-            <SpeedReporter />
-            <LanguageInvite />
-            <BottomTabBar />
-            <AiAssistant />
+            <StorefrontEnhancements />
           </CommerceProvider>
           {/* Passed the deployment that served this page, so a tab left open
               across a deploy can offer a reload instead of silently running old
