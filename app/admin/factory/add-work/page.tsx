@@ -235,7 +235,7 @@ export default function AddWorkPage() {
 
     const selectedWorker = workers.find((w) => w.id === formData.worker_id);
     if (!selectedWorker) {
-      setError("Please select a worker first");
+      setError(text("Please select a team member first", "पहिले टोली सदस्य छान्नुहोस्"));
       return;
     }
 
@@ -368,7 +368,7 @@ export default function AddWorkPage() {
             {text("Add work", "काम टिप्ने")}
           </h1>
           <p className="text-sm text-brand-muted">
-            {text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")}
+            {text("A team member, a product, the pairs — and the total.", "टोली सदस्य, सामान, जोडी — अनि जम्मा।")}
           </p>
         </div>
       </div>
@@ -442,14 +442,14 @@ export default function AddWorkPage() {
         <div className="grid gap-4 sm:grid-cols-2">
         {/* Worker */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Worker", "कामदार")}</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Team member", "टोली सदस्य")}</label>
           <select
             value={formData.worker_id}
             onChange={handleWorkerChange}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
             required
           >
-            <option value="">{text("Select a worker…", "कामदार छान्नुहोस्…")}</option>
+            <option value="">{text("Select a team member…", "टोली सदस्य छान्नुहोस्…")}</option>
             {workers.map((worker) => (
               <option key={worker.id} value={worker.id}>
                 {worker.name} ({worker.category})
@@ -507,8 +507,8 @@ export default function AddWorkPage() {
             </select>
             <p className="mt-1 text-xs text-brand-muted">
               {text(
-                "Defaults to the worker's stage — change it if they did a different job today.",
-                "कामदारको सामान्य काम आउँछ — आज अर्को काम गरे बदल्नुहोस्।",
+                "Defaults to the member's stage — change it if they did a different job today.",
+                "टोली सदस्यको सामान्य काम आउँछ — आज अर्को काम गरे बदल्नुहोस्।",
               )}
             </p>
           </div>

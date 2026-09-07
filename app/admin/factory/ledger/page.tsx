@@ -181,7 +181,7 @@ export default function LedgerPage() {
         {text("Piece-rate wages", "ज्यालाको हिसाब")}
       </p>
       <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
-        {text("Work and payment ledger", "कामदारको खाता")}
+        {text("Work and payment ledger", "टोली सदस्यको खाता")}
       </h1>
       <p className="mb-6 text-sm leading-6 text-brand-muted">
         {text(
@@ -203,13 +203,13 @@ export default function LedgerPage() {
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select worker", "कामदार छान्नुहोस्")}</label>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select team member", "टोली सदस्य छान्नुहोस्")}</label>
           <select
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg"
           >
-            <option value="">{text("Select a worker…", "कामदार छान्नुहोस्…")}</option>
+            <option value="">{text("Select a team member…", "टोली सदस्य छान्नुहोस्…")}</option>
             {workers.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.category})
@@ -333,7 +333,7 @@ export default function LedgerPage() {
                       <td colSpan={7} className="py-8 text-center text-brand-muted">
                         {text(
                           "No ledger entries for this month",
-                          "यो महिना यस कामदारको कुनै हिसाब छैन।",
+                          "यो महिना यस टोली सदस्यको कुनै हिसाब छैन।",
                         )}
                       </td>
                     </tr>
@@ -346,7 +346,7 @@ export default function LedgerPage() {
           <form onSubmit={handleRecordPayment} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-emerald-950">{text("Record worker payment", "कामदारलाई दिएको टिप्ने")}</h3>
+                <h3 className="text-lg font-black text-emerald-950">{text("Record member payment", "टोली सदस्यलाई दिएको टिप्ने")}</h3>
                 <p className="mt-1 text-sm leading-6 text-emerald-800">
                   {text(
                     "Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.",
@@ -390,7 +390,7 @@ export default function LedgerPage() {
           </form>
         </div>
       ) : (
-        <div className="text-center text-brand-muted">{text("Select a worker to view their ledger", "खाता हेर्न कामदार छान्नुहोस्")}</div>
+        <div className="text-center text-brand-muted">{text("Select a team member to view their ledger", "खाता हेर्न टोली सदस्य छान्नुहोस्")}</div>
       )}
     </div>
   );
