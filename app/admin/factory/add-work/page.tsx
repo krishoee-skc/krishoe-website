@@ -41,6 +41,19 @@ interface WorkOrder {
   due_date: string | null;
 }
 
+// The colours a shoe usually comes in, offered as one-tap chips so the same
+// colour is spelled the same way every time. Anything else is still typed.
+const COMMON_COLOURS = [
+  { en: "Black", ne: "कालो", hex: "#111111" },
+  { en: "Blue", ne: "निलो", hex: "#2456c7" },
+  { en: "Red", ne: "रातो", hex: "#c0392b" },
+  { en: "Brown", ne: "खैरो", hex: "#8b5e3c" },
+  { en: "White", ne: "सेतो", hex: "#e8e8e8" },
+] as const;
+
+// The sizes usually run, offered as toggle buttons that build the comma list.
+const COMMON_SIZES = ["6", "7", "8", "9", "10"] as const;
+
 export default function AddWorkPage() {
   const router = useRouter();
   const { text } = useLanguage();
@@ -573,17 +586,41 @@ export default function AddWorkPage() {
             fields that belong together, so the form does not run down the page.
             They stack on a narrow phone. */}
         <div className="grid gap-4 sm:grid-cols-3">
-        {/* Color */}
+        {/* Color — quick chips for the common colours (one tap, so nobody types
+            "कालो" one day and "Black" the next), with the free text kept below
+            for anything off the list. Tapping a chip fills the same field. */}
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
             🎨 {text("Colour (optional)", "रङ — नलेखे पनि हुन्छ")}
           </label>
+          {!selectedWorkOrder ? (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {COMMON_COLOURS.map((c) => {
+                const active = formData.color.trim() === c.ne || formData.color.trim() === c.en;
+                return (
+                  <button
+                    key={c.en}
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, color: text(c.en, c.ne) }))}
+                    className={`press-dip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold transition ${
+                      active
+                        ? "border-brand-green bg-brand-green-wash text-brand-green"
+                        : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
+                    }`}
+                  >
+                    <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full border border-black/15" style={{ background: c.hex }} />
+                    {text(c.en, c.ne)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <input
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
             readOnly={Boolean(selectedWorkOrder)}
-            placeholder={text("e.g. Black, Blue, Red", "जस्तै: कालो, निलो, रातो")}
+            placeholder={text("or type a colour", "वा रङ लेख्नुहोस्")}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
         </div>
@@ -606,13 +643,52 @@ export default function AddWorkPage() {
               ))}
             </select>
           ) : (
-            <input
-              type="text"
-              value={formData.size}
-              onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-              placeholder={text("e.g. 7, 8, 9", "जस्तै: ७, ८, ९")}
-              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
-            />
+            <>
+              {/* Tap the sizes made — each toggles in and out of the comma list,
+                  so a run like "7, 8, 9" is built without typing commas. The
+                  text field below still takes anything off these buttons. */}
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {COMMON_SIZES.map((size) => {
+                  const parts = formData.size
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  const active = parts.includes(size);
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => {
+                          const list = prev.size
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                          const next = active
+                            ? list.filter((s) => s !== size)
+                            : [...list, size];
+                          return { ...prev, size: next.join(", ") };
+                        })
+                      }
+                      className={`press-dip grid h-9 w-9 place-items-center rounded-lg border text-sm font-black transition ${
+                        active
+                          ? "border-brand-green bg-brand-green text-white"
+                          : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="text"
+                value={formData.size}
+                onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
+                placeholder={text("or type sizes", "वा साइज लेख्नुहोस्")}
+                className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
+              />
+            </>
           )}
         </div>
 
