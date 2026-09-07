@@ -6,6 +6,7 @@ import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { buildStockOverview, catalogStockWarnings, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
+import { findDesignDrift, type DesignRecord } from "@/lib/design-drift";
 import { outlookAdvice, stockOutlook, type StockOutlook } from "@/lib/stock-forecast";
 import { getStockByPlace, getStockTransfers } from "@/lib/stock-transfers";
 import { getAdminSession } from "@/lib/admin-auth";
@@ -248,6 +249,22 @@ async function loadStock() {
       // Products the shop would sell that trace to no ready-stock pool — the
       // catalog number promising pairs the stock count cannot account for.
       catalogWarnings: catalogStockWarnings(products, operations.finishedStock),
+      // Names close enough to be one shoe kept in two piles — the split that
+      // once had the shop apologise for a pair it had. Questions, not verdicts.
+      designDrift: findDesignDrift([
+        ...products
+          .filter((product) => product.status === "Active")
+          .map((product): DesignRecord => ({
+            name: product.name,
+            where: "catalog",
+            pairs: product.stock,
+          })),
+        ...operations.finishedStock.map((row): DesignRecord => ({
+          name: row.design,
+          where: "ready stock",
+          pairs: row.stockPairs,
+        })),
+      ]),
       outlook: stockOutlook(
         [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
         operations.stockMovements,
@@ -261,6 +278,7 @@ async function loadStock() {
       byPlace: [],
       transfers: [],
       catalogWarnings: [],
+      designDrift: [],
       outlook: [],
       error: saveFailureMessage(error, "Could not load stock control."),
     };
@@ -370,6 +388,60 @@ export default async function AdminStockPage() {
                     <T en="Edit product" ne="सामान मिलाउने" />
                   </Link>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Amber, not red: nothing here is known to be wrong. Each row is a
+          question only the owner can answer — is this one shoe or two? */}
+      {loaded.designDrift.length > 0 ? (
+        <div className="mt-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-black text-amber-900">
+                <T
+                  en="Two names that may be one shoe"
+                  ne="एउटै जुत्ताका दुई नाम हुन सक्ने"
+                />
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-amber-900">
+                <T
+                  en="These names are close enough that they may be the same shoe kept in two piles — which is how the shop once apologised for a pair it actually had. Nothing has been changed. If two names are one shoe, move the pairs onto the name you keep and retire the other; if they are genuinely different shoes, leave them."
+                  ne="यी नामहरू यति मिल्दा छन् कि एउटै जुत्ता दुई थाकमा राखिएको हुन सक्छ — यही कारण पसलले आफूसँग भएकै जुत्ताको लागि माफी मागेको थियो। केही पनि बदलिएको छैन। दुई नाम एउटै जुत्ता हो भने, राख्ने नाममा जोडी सार्नुहोस् र अर्को बन्द गर्नुहोस्; साँच्चै फरक जुत्ता हो भने छाडिदिनुहोस्।"
+                />
+              </p>
+            </div>
+            <span className="inline-flex rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-black text-amber-900">
+              {loaded.designDrift.length}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {loaded.designDrift.map((drift) => (
+              <div
+                key={`${drift.left.name}::${drift.right.name}`}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white p-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-black text-brand-green-ink">
+                    <span className="truncate">{drift.left.name}</span>
+                    <span className="mx-2 text-amber-700">·</span>
+                    <span className="truncate">{drift.right.name}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold text-brand-muted">
+                    <T
+                      en={`${drift.left.pairs} pairs in ${drift.left.where} · ${drift.right.pairs} pairs in ${drift.right.where}`}
+                      ne={`${drift.left.pairs} जोडी (${drift.left.where === "catalog" ? "सामान सूची" : "तयारी स्टक"}) · ${drift.right.pairs} जोडी (${drift.right.where === "catalog" ? "सामान सूची" : "तयारी स्टक"})`}
+                    />
+                  </p>
+                </div>
+                <Link
+                  href="/admin/operations"
+                  className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-black text-amber-900"
+                >
+                  <T en="Open stock" ne="स्टक खोल्ने" />
+                </Link>
               </div>
             ))}
           </div>
