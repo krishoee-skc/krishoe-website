@@ -55,6 +55,7 @@ function OrderStatusSelector({ order }: { order: OrderSubmission }) {
 
   return (
     <select
+      aria-label={`Status for order ${order.id}`}
       defaultValue={order.status}
       onChange={handleStatusChange}
       disabled={isPending}
@@ -144,7 +145,7 @@ function OrderPaymentForm({
       <form onSubmit={handleSubmit} className="grid gap-2">
         <input type="hidden" name="id" value={order.id} />
         <div className="grid grid-cols-3 gap-2">
-          <select
+          <select aria-label="Payment status"
             name="paymentStatus"
             defaultValue={order.paymentStatus}
             disabled={isPending}
@@ -156,7 +157,7 @@ function OrderPaymentForm({
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Payment provider"
             name="paymentProvider"
             defaultValue={order.paymentProvider}
             disabled={isPending}
@@ -179,7 +180,7 @@ function OrderPaymentForm({
           />
         </div>
         <div className="grid grid-cols-4 gap-2">
-          <select
+          <select aria-label="Account"
             name="ledgerId"
             defaultValue={order.paymentLedgerId ?? latestTransaction?.ledgerId ?? ""}
             disabled={isPending}
@@ -332,7 +333,7 @@ function OrderToPosForm({
     <form onSubmit={handleSubmit} className="grid min-w-[360px] gap-2">
       <input type="hidden" name="id" value={order.id} />
       <div className="grid grid-cols-3 gap-2">
-        <select
+        <select aria-label="Payment method"
           name="posPaymentMethod"
           defaultValue={defaultPosPaymentMethod(order)}
           disabled={isPending}
@@ -362,7 +363,7 @@ function OrderToPosForm({
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <select
+        <select aria-label="Account"
           name="ledgerId"
           defaultValue={order.paymentLedgerId ?? ""}
           disabled={isPending}

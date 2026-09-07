@@ -441,8 +441,9 @@ export default function AddWorkPage() {
         <div className="grid gap-4 sm:grid-cols-2">
         {/* Worker */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Team member", "टोली सदस्य")}</label>
+          <label htmlFor="work-worker" className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Team member", "टोली सदस्य")}</label>
           <select
+            id="work-worker"
             value={formData.worker_id}
             onChange={handleWorkerChange}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
@@ -493,6 +494,7 @@ export default function AddWorkPage() {
               🧵 {text("Which work", "कुन काम")}
             </label>
             <select
+              id="work-stage"
               value={formData.stage}
               onChange={(e) => setFormData((prev) => ({ ...prev, stage: e.target.value }))}
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
@@ -543,6 +545,7 @@ export default function AddWorkPage() {
             </div>
           </div>
           <select
+            id="work-item"
             value={formData.item_id}
             onChange={handleItemChange}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
@@ -562,9 +565,10 @@ export default function AddWorkPage() {
         {selectedItem?.production_item_id && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
             <label className="block text-sm font-bold text-emerald-950 mb-2">
-              Work Order / Lot
+              {text("Work order / lot", "कामको अर्डर / लट")}
             </label>
             <select
+              id="work-order"
               value={formData.work_order_id}
               onChange={handleWorkOrderChange}
               className="w-full min-h-12 rounded-lg border border-emerald-300 bg-brand-paper px-3 py-2"
@@ -640,11 +644,12 @@ export default function AddWorkPage() {
 
         {/* Size */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+          <label htmlFor="work-size" className="block text-sm font-medium text-brand-green-ink mb-2">
             📏 {text("Size (optional)", "साइज — नलेखे पनि हुन्छ")}
           </label>
           {selectedWorkOrder ? (
             <select
+              id="work-size"
               value={formData.size}
               onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
               className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
@@ -728,6 +733,7 @@ export default function AddWorkPage() {
             ❌ {text("Rejected pairs (QC)", "खराब जोडी (QC)")}
           </label>
           <input
+            id="work-reject"
             type="number"
             value={formData.reject_pairs}
             onChange={(e) => setFormData((prev) => ({ ...prev, reject_pairs: e.target.value }))}
@@ -797,8 +803,11 @@ export default function AddWorkPage() {
       {showAddProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-brand-paper rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-brand-green-ink mb-4">➕ Add New Product</h2>
+            <h2 className="text-xl font-bold text-brand-green-ink mb-4">
+              ➕ {text("Add new product", "नयाँ सामान थप्ने")}
+            </h2>
             <input
+              aria-label={text("New product name", "नयाँ सामानको नाम")}
               type="text"
               value={newProductName}
               onChange={(e) => setNewProductName(e.target.value)}
@@ -836,6 +845,7 @@ export default function AddWorkPage() {
               Rate not found for this product. Please enter the rate per pair.
             </p>
             <input
+              aria-label={text("Rate per pair", "प्रति जोडी दर")}
               type="number"
               value={newRate}
               onChange={(e) => setNewRate(e.target.value)}

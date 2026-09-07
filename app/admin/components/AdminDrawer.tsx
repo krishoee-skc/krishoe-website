@@ -49,8 +49,13 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
               />
               <span className="text-xl font-black tracking-wide text-brand-green-ink dark:text-white">KRISHOE</span>
             </Link>
+            {/* An X on its own is read out as "button" and nothing else, so
+                the one control that closes this menu had no name to a screen
+                reader. */}
             <button
+              type="button"
               onClick={onClose}
+              aria-label={text("Close the menu", "मेनु बन्द गर्ने")}
               className="rounded-lg p-2 hover:bg-admin-hover dark:hover:bg-admin-hover-dark"
             >
               <XIcon className="h-5 w-5" />

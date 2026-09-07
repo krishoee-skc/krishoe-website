@@ -94,7 +94,7 @@ export default async function WorkOrderDetailPage({
             <input type="hidden" name="workOrderId" value={order.id} />
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <NepaliDateFieldUncontrolled name="dueDate" defaultValue={order.dueDate} />
-              <select name="priority" defaultValue={order.priority} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm">
+              <select aria-label="Priority" name="priority" defaultValue={order.priority} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm">
                 <option>Normal</option><option>High</option><option>Urgent</option>
               </select>
             </div>
@@ -166,7 +166,7 @@ export default async function WorkOrderDetailPage({
         </div>
         <form action={createCctvReferenceAction} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <input type="hidden" name="workOrderId" value={order.id} />
-          <select name="stage" defaultValue={order.currentStage} className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm">
+          <select aria-label="Production stage" name="stage" defaultValue={order.currentStage} className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm">
             {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
               <option key={stage}>{stage}</option>
             ))}

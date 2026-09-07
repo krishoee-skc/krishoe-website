@@ -33,7 +33,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
     <form action={createSupplierTransactionAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
       <div className="mt-4 grid gap-3">
-        <select
+        <select aria-label="Supplier"
           name="supplierLedgerId"
           required
           className={inputClass}
@@ -47,7 +47,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
             </option>
           ))}
         </select>
-        <select name="type" className={inputClass} defaultValue="Cash Payment">
+        <select aria-label="Type" name="type" className={inputClass} defaultValue="Cash Payment">
           <option>Cash Payment</option>
           <option>Cheque Payment</option>
           <option>Bank Payment</option>

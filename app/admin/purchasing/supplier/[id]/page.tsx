@@ -190,7 +190,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <input type="hidden" name="supplierLedgerId" value={ledger.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
           <div className="grid gap-3 md:grid-cols-3">
-            <select name="type" className={inputClass} defaultValue="Cash Payment">
+            <select aria-label="Type" name="type" className={inputClass} defaultValue="Cash Payment">
               <option>Cash Payment</option>
               <option>Cheque Payment</option>
               <option>Bank Payment</option>

@@ -131,7 +131,7 @@ export default async function WholesaleEnquiriesPage({
 
               <form action={updateEnquiryStatusAction} className="mt-4 grid gap-2 sm:grid-cols-[auto_1fr_auto]">
                 <input type="hidden" name="id" value={enquiry.id} />
-                <select
+                <select aria-label="Status"
                   name="status"
                   defaultValue={enquiry.status}
                   className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green"

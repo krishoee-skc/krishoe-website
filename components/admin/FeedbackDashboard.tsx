@@ -127,6 +127,7 @@ export default function FeedbackDashboard() {
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <select
+          aria-label="Filter by type"
           value={filter.type || ""}
           onChange={(e) => setFilter({ ...filter, type: e.target.value || undefined })}
           className="px-3 py-2 border rounded-lg"
@@ -139,6 +140,7 @@ export default function FeedbackDashboard() {
         </select>
 
         <select
+          aria-label="Filter by status"
           value={filter.status || ""}
           onChange={(e) =>
             setFilter({ ...filter, status: e.target.value || undefined })

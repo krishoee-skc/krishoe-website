@@ -38,7 +38,7 @@ export default function LedgerTransactionFields({
 
   return (
     <>
-      <select
+      <select aria-label="Type"
         name="type"
         className={inputClass}
         value={type}

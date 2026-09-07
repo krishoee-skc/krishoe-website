@@ -94,19 +94,19 @@ export default function OfflineProductionWorkForm({
       </div>
       <input type="hidden" name="sourceSubmissionKey" defaultValue={newSubmissionKey()} />
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <select name="workOrderId" className={`${input} sm:col-span-2`} defaultValue="">
+        <select aria-label="Work order" name="workOrderId" className={`${input} sm:col-span-2`} defaultValue="">
           <option value="">No Work Order link (legacy/manual)</option>
           {workOrders.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
         </select>
-        <select name="employeeId" className={input} required defaultValue="">
+        <select aria-label="Worker" name="employeeId" className={input} required defaultValue="">
           <option value="" disabled>Select worker</option>
           {employees.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
         </select>
-        <select name="itemId" className={input} required defaultValue="">
+        <select aria-label="Item" name="itemId" className={input} required defaultValue="">
           <option value="" disabled>Select item</option>
           {items.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
         </select>
-        <select name="stage" className={input}>{stages.map((stage) => <option key={stage}>{stage}</option>)}</select>
+        <select aria-label="Production stage" name="stage" className={input}>{stages.map((stage) => <option key={stage}>{stage}</option>)}</select>
         <NepaliDateField name="workDate" value={workDate} onChange={setWorkDate} required />
         <input name="totalPairs" type="number" min="1" className={input} placeholder="Total completed pairs" required />
         <input name="sizeBreakdown" className={input} placeholder="Optional: 36:10, 37:15" />

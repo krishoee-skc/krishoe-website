@@ -238,7 +238,7 @@ export default function StaffAccessManager({
                   </form>
                   <form action={updateStaffStatusAction} className="flex gap-2 sm:col-span-2">
                     <input type="hidden" name="id" value={member.id} />
-                    <select name="status" defaultValue={member.status} className={inputClass}><option>Invited</option><option>Active</option><option>Locked</option><option>Disabled</option></select>
+                    <select aria-label="Status" name="status" defaultValue={member.status} className={inputClass}><option>Invited</option><option>Active</option><option>Locked</option><option>Disabled</option></select>
                     <ConfirmSubmitButton label="Save status" message={`Change status for ${staffSignInLabel(member)}? Disabled or locked accounts are signed out automatically.`} className={member.status === "Active" ? dangerButtonClass : neutralButtonClass} />
                   </form>
                 </div>

@@ -186,8 +186,9 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select team member", "टोली सदस्य छान्नुहोस्")}</label>
+          <label htmlFor="ledger-worker" className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select team member", "टोली सदस्य छान्नुहोस्")}</label>
           <select
+            id="ledger-worker"
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg"

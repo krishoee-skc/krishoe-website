@@ -203,13 +203,13 @@ export default async function ProductionAccountsPage({
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <input name="name" className={input} placeholder="Item name, e.g. Ladies Sandal" required />
             <input name="category" className={input} placeholder="Category, e.g. Sandal" />
-            <select name="productionType" className={input} defaultValue="Manufactured">
+            <select aria-label="Production type" name="productionType" className={input} defaultValue="Manufactured">
               <option>Manufactured</option><option>Resale</option><option>Mixed</option>
             </select>
-            <select name="sizeGroup" className={input} defaultValue="Ladies">
+            <select aria-label="Size group" name="sizeGroup" className={input} defaultValue="Ladies">
               <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
             </select>
-            <select name="catalogProductId" className={`${input} sm:col-span-2`} defaultValue="">
+            <select aria-label="Catalog product to link" name="catalogProductId" className={`${input} sm:col-span-2`} defaultValue="">
               <option value="">No catalog/stock link yet</option>
               {data.products.map((product) => (
                 <option key={product.id} value={product.id}>
@@ -225,11 +225,11 @@ export default async function ProductionAccountsPage({
           <h2 className="text-lg font-black text-brand-green-ink">2. Item-stage wage</h2>
           <p className="mt-1 text-sm text-brand-muted">Old entries keep their saved rate even after a future rate change.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select item</option>
               {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.sizeGroup}</option>)}
             </select>
-            <select name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
+            <select aria-label="Production stage" name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
             <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
             <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           </div>
@@ -250,17 +250,17 @@ export default async function ProductionAccountsPage({
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <select name="employeeId" className={input} required defaultValue="">
+          <select aria-label="Worker" name="employeeId" className={input} required defaultValue="">
             <option value="" disabled>Select worker</option>
             {data.employees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
             ))}
           </select>
-          <select name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
             <option value="" disabled>Select item</option>
             {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <select name="stage" className={input}>
+          <select aria-label="Production stage" name="stage" className={input}>
             {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
           </select>
           <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
@@ -291,13 +291,13 @@ export default async function ProductionAccountsPage({
           Link a factory item to the exact shop/POS product. This prepares safe QC-approved stock posting; it does not change stock yet.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <select name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
             <option value="" disabled>Select production item</option>
             {activeItems.map((item) => (
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
           </select>
-          <select name="catalogProductId" className={input} defaultValue="">
+          <select aria-label="Catalog product to link" name="catalogProductId" className={input} defaultValue="">
             <option value="">Remove catalog link</option>
             {data.products.map((product) => (
               <option key={product.id} value={product.id}>{product.name} · {product.sku || product.id}</option>
@@ -333,19 +333,19 @@ export default async function ProductionAccountsPage({
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <select name="workOrderId" className={input} defaultValue="">
+          <select aria-label="Work order" name="workOrderId" className={input} defaultValue="">
             <option value="">No Work Order link (legacy/manual)</option>
             {data.workOrders.filter((order) => order.status === "Ready for QC").map((order) => (
               <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
             ))}
           </select>
-          <select name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
             <option value="" disabled>Select mapped manufactured item</option>
             {activeItems
               .filter((item) => item.productionType !== "Resale" && item.catalogProductId)
               .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <select name="packingEmployeeId" className={input} defaultValue="">
+          <select aria-label="Packing worker" name="packingEmployeeId" className={input} defaultValue="">
             <option value="">Packing checker not selected</option>
             {data.employees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
@@ -396,13 +396,13 @@ export default async function ProductionAccountsPage({
             Quantity uses the material&apos;s purchase unit. Example: Rexine 0.40 meter or Buckle 2 pieces per pair.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-            <select name="materialId" className={input} required defaultValue="">
+            <select aria-label="Material" name="materialId" className={input} required defaultValue="">
               <option value="" disabled>Select raw material</option>
               {data.materials.map((material) => (
                 <option key={material.id} value={material.id}>
@@ -423,7 +423,7 @@ export default async function ProductionAccountsPage({
             Material cost + four stage wages + direct cost. Rent, electricity and salary are excluded.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -468,7 +468,7 @@ export default async function ProductionAccountsPage({
           <h2 className="text-lg font-black text-brand-green-ink">5. New Work Order / Lot</h2>
           <p className="mt-1 text-sm text-brand-muted">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -478,7 +478,7 @@ export default async function ProductionAccountsPage({
             <input name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
             <input name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
             <NepaliDateFieldUncontrolled name="dueDate" />
-            <select name="priority" className={input} defaultValue="Normal">
+            <select aria-label="Priority" name="priority" className={input} defaultValue="Normal">
               <option>Normal</option><option>High</option><option>Urgent</option>
             </select>
             <input name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
@@ -522,21 +522,21 @@ export default async function ProductionAccountsPage({
           <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
           <p className="mt-1 text-sm text-brand-muted">Record who sent, who received and any quantity difference.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
+            <select aria-label="Work order" name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
               <option value="" disabled>Select active Work Order</option>
               {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
                 <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
               ))}
             </select>
-            <select name="fromStage" className={input}>
+            <select aria-label="Handover from stage" name="fromStage" className={input}>
               {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
             </select>
             <NepaliDateFieldUncontrolled name="handoverDate" defaultValue={date} required />
-            <select name="fromEmployeeId" className={input} defaultValue="">
+            <select aria-label="Handover from worker" name="fromEmployeeId" className={input} defaultValue="">
               <option value="">Sender not selected</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
-            <select name="toEmployeeId" className={input} defaultValue="">
+            <select aria-label="Handover to worker" name="toEmployeeId" className={input} defaultValue="">
               <option value="">Receiver not selected</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
@@ -609,11 +609,11 @@ export default async function ProductionAccountsPage({
           <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>
           <p className="mt-1 text-sm text-brand-muted">Cash paid is separate from work earned and automatically reduces the balance.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select name="employeeId" className={input} required defaultValue="">
+            <select aria-label="Worker" name="employeeId" className={input} required defaultValue="">
               <option value="" disabled>Select worker/staff</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
-            <select name="paymentType" className={input} defaultValue="Saturday Kharcha">
+            <select aria-label="Payment type" name="paymentType" className={input} defaultValue="Saturday Kharcha">
               {workerPaymentTypes.filter((type) => type !== "Correction").map((type) => <option key={type}>{type}</option>)}
             </select>
             <input name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required />

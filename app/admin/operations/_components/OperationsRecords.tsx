@@ -161,7 +161,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                 <td data-label="Manage" className="min-w-80 py-3 pr-3">
                   <form action={updateProductionBatchAction} className="grid gap-2">
                     <input type="hidden" name="id" value={batch.id} />
-                    <input name="design" required className={compactInputClass} defaultValue={batch.design} />
+                    <input aria-label="Design name" name="design" required className={compactInputClass} defaultValue={batch.design} />
                     <div className="grid grid-cols-4 gap-2">
                       <input name="plannedPairs" type="number" min="0" className={compactInputClass} defaultValue={batch.plannedPairs} aria-label="Planned pairs" />
                       <input name="finishedPairs" type="number" min="0" className={compactInputClass} defaultValue={batch.finishedPairs} aria-label="Finished pairs" />
@@ -175,7 +175,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                       aria-label="Raw materials used"
                     />
                     <div className="flex flex-wrap gap-2">
-                      <select name="status" className={compactInputClass} defaultValue={batch.status}>
+                      <select aria-label="Status" name="status" className={compactInputClass} defaultValue={batch.status}>
                         <option>Planning</option>
                         <option>Cutting</option>
                         <option>Making</option>

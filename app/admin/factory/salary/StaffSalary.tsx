@@ -151,9 +151,10 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-semibold text-brand-green-ink mb-2">
-            Select Staff Member
+            {text("Select staff member", "कर्मचारी छान्नुहोस्")}
           </label>
           <select
+            id="salary-staff"
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full px-4 py-2 border border-brand-green-line rounded-lg"

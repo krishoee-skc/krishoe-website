@@ -123,10 +123,11 @@ export default function FeedbackForm() {
 
         {/* Name */}
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Name *
+          <label htmlFor="feedback-name" className="block text-sm font-semibold text-gray-900 mb-2">
+            {text("Name", "नाम")} *
           </label>
           <input
+            id="feedback-name"
             type="text"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
@@ -139,10 +140,11 @@ export default function FeedbackForm() {
         {/* Email & Phone */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Email
+            <label htmlFor="feedback-email" className="block text-sm font-semibold text-gray-900 mb-2">
+              {text("Email", "इमेल")}
             </label>
             <input
+              id="feedback-email"
               type="email"
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
@@ -151,10 +153,11 @@ export default function FeedbackForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Phone
+            <label htmlFor="feedback-phone" className="block text-sm font-semibold text-gray-900 mb-2">
+              {text("Phone", "फोन")}
             </label>
             <input
+              id="feedback-phone"
               type="tel"
               value={userPhone}
               onChange={(e) => setUserPhone(e.target.value)}
@@ -167,15 +170,17 @@ export default function FeedbackForm() {
         {/* Rating (if rating type) */}
         {type === "rating" && (
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Rating *
-            </label>
-            <div className="flex gap-2">
+            <span className="block text-sm font-semibold text-gray-900 mb-3">
+              {text("Rating", "मूल्याङ्कन")} *
+            </span>
+            <div className="flex gap-2" role="group" aria-label={text("Rating out of five", "पाँचमा मूल्याङ्कन")}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
+                  aria-label={text(`${star} of 5`, `${star} मा ५`)}
+                  aria-pressed={star <= rating}
                   className={`text-4xl transition ${
                     star <= rating ? "text-yellow-400" : "text-gray-300"
                   }`}
@@ -185,17 +190,20 @@ export default function FeedbackForm() {
               ))}
             </div>
             <div className="text-sm text-gray-600 mt-2">
-              {rating > 0 && `You rated: ${rating} star${rating !== 1 ? "s" : ""}`}
+              {rating > 0
+                ? text(`You rated ${rating} of 5`, `तपाईंले ५ मा ${rating} दिनुभयो`)
+                : null}
             </div>
           </div>
         )}
 
         {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Title *
+          <label htmlFor="feedback-title" className="block text-sm font-semibold text-gray-900 mb-2">
+            {text("Title", "शीर्षक")} *
           </label>
           <input
+            id="feedback-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -207,10 +215,11 @@ export default function FeedbackForm() {
 
         {/* Message */}
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Message *
+          <label htmlFor="feedback-message" className="block text-sm font-semibold text-gray-900 mb-2">
+            {text("Message", "सन्देश")} *
           </label>
           <textarea
+            id="feedback-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={text("Detailed explanation...", "विस्तारमा लेख्नुहोस्…")}

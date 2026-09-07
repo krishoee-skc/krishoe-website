@@ -81,13 +81,13 @@ export default function OperationsQuickEntry({
           </p>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
-            <select name="channel" className={inputClass} defaultValue="Factory">
+            <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
               <option>Factory</option>
               <option>Wholesale</option>
               <option>Retail</option>
               <option>Online</option>
             </select>
-            <select name="type" className={inputClass} defaultValue="Production In">
+            <select aria-label="Movement type" name="type" className={inputClass} defaultValue="Production In">
               <option>Production In</option>
               <option>Purchase In</option>
               <option>Dispatch Out</option>
@@ -116,7 +116,7 @@ export default function OperationsQuickEntry({
           <h3 className="font-black text-brand-green-ink">Finished stock</h3>
           <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
-            <select name="channel" className={inputClass} defaultValue="Factory">
+            <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
               <option>Factory</option>
               <option>Wholesale</option>
               <option>Retail</option>
@@ -142,7 +142,7 @@ export default function OperationsQuickEntry({
             <input name="rejectedPairs" type="number" min="0" className={inputClass} placeholder="Reject" />
           </div>
           <textarea name="rawMaterialUsed" className={textareaClass} placeholder="Raw materials, comma-separated" />
-          <select name="status" className={inputClass} defaultValue="Planning">
+          <select aria-label="Status" name="status" className={inputClass} defaultValue="Planning">
             <option>Planning</option>
             <option>Cutting</option>
             <option>Making</option>
@@ -173,7 +173,7 @@ export default function OperationsQuickEntry({
           <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Raw material</h3>
             <input name="name" required className={inputClass} placeholder="Material name" />
-            <select name="unit" className={inputClass} defaultValue="kg">
+            <select aria-label="Unit" name="unit" className={inputClass} defaultValue="kg">
               <option value="kg">kg</option>
               <option value="meter">meter</option>
               <option value="pair">pair</option>
@@ -189,7 +189,7 @@ export default function OperationsQuickEntry({
           <form action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Material consumption</h3>
             <input type="hidden" name="sourceSubmissionKey" value={`ops-use:${crypto.randomUUID()}`} />
-            <select name="batchId" required className={inputClass} defaultValue="">
+            <select aria-label="Batch" name="batchId" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select production batch
               </option>
@@ -199,7 +199,7 @@ export default function OperationsQuickEntry({
                 </option>
               ))}
             </select>
-            <select name="materialId" required className={inputClass} defaultValue="">
+            <select aria-label="Material" name="materialId" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select raw material
               </option>
@@ -233,7 +233,7 @@ export default function OperationsQuickEntry({
                 <option key={name} value={name} />
               ))}
             </datalist>
-            <select name="batchId" className={inputClass} defaultValue="">
+            <select aria-label="Batch" name="batchId" className={inputClass} defaultValue="">
               <option value="">Manual design / no batch</option>
               {snapshot.productionBatches.map((batch) => (
                 <option key={batch.id} value={batch.id}>
@@ -253,12 +253,12 @@ export default function OperationsQuickEntry({
               ))}
             </datalist>
             <div className="grid grid-cols-2 gap-2">
-              <select name="station" className={inputClass} defaultValue="Upper">
+              <select aria-label="Station" name="station" className={inputClass} defaultValue="Upper">
                 {workerStationOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
               </select>
-              <select name="status" className={inputClass} defaultValue="Not Started">
+              <select aria-label="Status" name="status" className={inputClass} defaultValue="Not Started">
                 {workerStatusOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
@@ -282,7 +282,7 @@ export default function OperationsQuickEntry({
               <input name="creditAmount" type="number" min="0" className={inputClass} placeholder="Credit" />
             </div>
             <input name="chequeCollected" type="number" min="0" className={inputClass} placeholder="Cheque" />
-            <select name="status" className={inputClass} defaultValue="Loading">
+            <select aria-label="Status" name="status" className={inputClass} defaultValue="Loading">
               <option>Loading</option>
               <option>In Market</option>
               <option>Returned</option>
@@ -293,7 +293,7 @@ export default function OperationsQuickEntry({
 
           <form action={createVehicleDispatchItemAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Dispatch item</h3>
-            <select name="dispatchId" required className={inputClass} defaultValue="">
+            <select aria-label="Dispatch" name="dispatchId" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select vehicle trip
               </option>
@@ -305,7 +305,7 @@ export default function OperationsQuickEntry({
             </select>
             <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
             <div className="grid grid-cols-2 gap-2">
-              <select name="channel" className={inputClass} defaultValue="Wholesale">
+              <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Wholesale">
                 <option>Wholesale</option>
                 <option>Retail</option>
                 <option>Online</option>
@@ -330,7 +330,7 @@ export default function OperationsQuickEntry({
             <h3 className="font-black text-brand-green-ink">Customer ledger</h3>
             <input name="customerName" required className={inputClass} placeholder="Customer/shop name" />
             <input name="phone" className={inputClass} placeholder="Phone" />
-            <select name="channel" className={inputClass} defaultValue="Wholesale">
+            <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Wholesale">
               <option>Wholesale</option>
               <option>Retail</option>
               <option>Online</option>
@@ -347,7 +347,7 @@ export default function OperationsQuickEntry({
 
           <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Ledger transaction</h3>
-            <select name="ledgerId" required className={inputClass} defaultValue="">
+            <select aria-label="Account" name="ledgerId" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select customer
               </option>
@@ -357,7 +357,7 @@ export default function OperationsQuickEntry({
                 </option>
               ))}
             </select>
-            <select name="type" className={inputClass} defaultValue="Cash Payment">
+            <select aria-label="Movement type" name="type" className={inputClass} defaultValue="Cash Payment">
               <option>Cash Payment</option>
               <option>Cheque Payment</option>
               <option>Credit Sale</option>
