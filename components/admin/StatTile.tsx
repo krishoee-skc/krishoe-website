@@ -44,7 +44,7 @@ export default function StatTile({
         {/* A plain number rolls up on first view; anything with currency or
             units (a string) is shown as given. */}
         {typeof value === "number" ? (
-          <CountUp value={value} format={(n) => n.toLocaleString("en-IN")} />
+          <CountUp value={value} locale />
         ) : (
           value
         )}

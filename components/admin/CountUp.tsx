@@ -15,14 +15,18 @@ import { useEffect, useRef, useState } from "react";
 export default function CountUp({
   value,
   durationMs = 900,
-  format = (n) => String(n),
+  locale = false,
   className,
 }: {
   value: number;
   durationMs?: number;
-  format?: (n: number) => string;
+  /** Render with a thousands separator (en-IN). A plain boolean, not a function,
+   *  so a server component can pass it across to this client component without
+   *  the non-serializable-prop error a function prop would cause. */
+  locale?: boolean;
   className?: string;
 }) {
+  const format = (n: number) => (locale ? n.toLocaleString("en-IN") : String(n));
   const ref = useRef<HTMLSpanElement>(null);
   const [display, setDisplay] = useState(value);
   const started = useRef(false);
