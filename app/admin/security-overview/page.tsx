@@ -68,7 +68,14 @@ export default async function SecurityOverviewPage() {
   return (
     <section className="p-4 pb-24 sm:p-6">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
+        {/* Where this page lives, since it is reached through Settings and not
+            the main menu — so "how did I get here" and "how do I go back" are
+            both answered at the top. */}
+        <p className="text-xs font-bold text-brand-muted">
+          <Link href="/admin/settings" className="text-brand-green hover:underline">
+            ⚙️ <T en="Settings" ne="सेटिङ" />
+          </Link>
+          {" › "}
           <T en="Security Center" ne="सुरक्षा केन्द्र" />
         </p>
         <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
