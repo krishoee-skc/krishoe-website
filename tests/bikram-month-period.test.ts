@@ -112,7 +112,7 @@ describe("the month picker", () => {
     for (const file of [
       "app/admin/factory/ledger/page.tsx",
       "app/admin/factory/salary/page.tsx",
-      "app/admin/factory/reports/page.tsx",
+      "app/admin/factory/reports/PayrollReport.tsx",
     ]) {
       const page = await readFile(file, "utf8");
 

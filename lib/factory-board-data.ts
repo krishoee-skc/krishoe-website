@@ -11,8 +11,10 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import {
   factoryTotalsFromRow,
+  normalisePayrollRow,
   normaliseWorkRow,
   type FactoryDayStats,
+  type FactoryPayrollRow,
   type FactoryWorkRow,
 } from "@/lib/factory-board";
 
@@ -75,6 +77,37 @@ export async function getFactoryDayTotals(date: string): Promise<FactoryDayStats
   );
 
   return factoryTotalsFromRow(rows[0] ?? {});
+}
+
+/**
+ * The payroll already worked out for a Bikram Sambat month.
+ *
+ * One query for the whole team, however many people that is. The reports
+ * screen rebuilds each worker's summary on demand — a write, one worker at a
+ * time — but opening the screen should not have to wait for that; it reads
+ * what is already there and offers to refresh.
+ *
+ * Bounded by headcount, which is a number of people rather than a table that
+ * grows every day, so there is nothing here to cap.
+ */
+export async function getFactoryPayrollForMonth(
+  startKey: string,
+  endKey: string,
+): Promise<FactoryPayrollRow[]> {
+  const rows = await queryPostgres<Record<string, unknown>>(
+    STORE,
+    `SELECT ms.worker_id, ms.total_pairs, ms.total_earned, ms.total_paid,
+            ms.final_balance, ms.status,
+            fw.name AS worker_name, fw.category
+       FROM factory_monthly_summary ms
+       JOIN factory_workers fw ON ms.worker_id = fw.id
+      WHERE ms.month >= $1::date AND ms.month < $2::date
+        AND fw.worker_type = 'piece_rate'
+      ORDER BY fw.name ASC`,
+    [startKey, endKey],
+  );
+
+  return rows.map((row) => normalisePayrollRow(row as Partial<FactoryPayrollRow>));
 }
 
 export type FactoryOwed = { totalOwed: number; workersOwed: number };

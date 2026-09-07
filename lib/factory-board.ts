@@ -153,6 +153,83 @@ export function factoryTotalsFromRow(row: Record<string, string | number | null 
   };
 }
 
+/** One worker's month, as the monthly-summary table keeps it. */
+export type FactoryPayrollRow = {
+  worker_id: string;
+  worker_name: string;
+  category: string;
+  total_pairs: number;
+  total_earned: number;
+  total_paid: number;
+  final_balance: number;
+  status: string;
+};
+
+export type FactoryPayrollTotals = {
+  totalPairs: number;
+  totalEarned: number;
+  totalPaid: number;
+  totalBalance: number;
+  workerCount: number;
+  /** How many are still owed something for the month. */
+  owedCount: number;
+};
+
+/**
+ * NUMERIC columns reach the browser as strings. A payroll total built by adding
+ * those with `+` is string concatenation — "250" + "200" is "250200" — so the
+ * month's wage bill is made of real numbers here before anything sums it.
+ */
+export function normalisePayrollRow(row: Partial<FactoryPayrollRow>): FactoryPayrollRow {
+  return {
+    worker_id: String(row.worker_id ?? ""),
+    worker_name: String(row.worker_name ?? ""),
+    category: String(row.category ?? ""),
+    total_pairs: Number(row.total_pairs) || 0,
+    total_earned: Number(row.total_earned) || 0,
+    total_paid: Number(row.total_paid) || 0,
+    final_balance: Number(row.final_balance) || 0,
+    status: String(row.status ?? ""),
+  };
+}
+
+/** The month's wage bill across the whole team. */
+export function payrollTotals(rows: FactoryPayrollRow[]): FactoryPayrollTotals {
+  let totalPairs = 0;
+  let totalEarned = 0;
+  let totalPaid = 0;
+  let totalBalance = 0;
+  let owedCount = 0;
+
+  for (const row of rows) {
+    totalPairs += row.total_pairs;
+    totalEarned += row.total_earned;
+    totalPaid += row.total_paid;
+    totalBalance += row.final_balance;
+    if (row.final_balance > 0) owedCount += 1;
+  }
+
+  return {
+    totalPairs,
+    // Wages are money: rounded to the paisa, so a month of fractions cannot
+    // drift into a total that no payslip adds up to.
+    totalEarned: Math.round(totalEarned * 100) / 100,
+    totalPaid: Math.round(totalPaid * 100) / 100,
+    totalBalance: Math.round(totalBalance * 100) / 100,
+    workerCount: rows.length,
+    owedCount,
+  };
+}
+
+/** Most earned first — the order a payroll is read in. */
+export function sortPayroll(rows: FactoryPayrollRow[]): FactoryPayrollRow[] {
+  return [...rows].sort(
+    (first, second) =>
+      second.total_earned - first.total_earned ||
+      first.worker_name.localeCompare(second.worker_name),
+  );
+}
+
 /** Who made the most today. Entries without a name are not a person. */
 export function topWorkers(works: FactoryWorkRow[], limit = 5): FactoryWorkerTotal[] {
   const byWorker = new Map<string, FactoryWorkerTotal>();

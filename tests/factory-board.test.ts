@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   factoryDayStats,
   factoryTotalsFromRow,
+  normalisePayrollRow,
   normaliseWorkRow,
+  payrollTotals,
   pieceWage,
+  sortPayroll,
   topProducts,
   topWorkers,
+  type FactoryPayrollRow,
   type FactoryWorkRow,
 } from "@/lib/factory-board";
 
@@ -192,6 +196,110 @@ describe("counting the day in the database and counting it in JavaScript", () =>
 
   it("holds the good-pair floor on the database road too", () => {
     expect(factoryTotalsFromRow({ total_pairs: 3, total_reject: 8 }).goodPairs).toBe(0);
+  });
+});
+
+/**
+ * The month's payroll is what the factory pays out. Its totals are checked
+ * here rather than by opening the reports screen and reading them.
+ */
+describe("the month's payroll", () => {
+  function payroll(over: Partial<FactoryPayrollRow> = {}): FactoryPayrollRow {
+    return normalisePayrollRow({
+      worker_id: "w1",
+      worker_name: "Ram",
+      category: "Upper",
+      total_pairs: 100,
+      total_earned: 2500,
+      total_paid: 2000,
+      final_balance: 500,
+      status: "draft",
+      ...over,
+    });
+  }
+
+  it("adds the team's pairs, earnings, payments and balance", () => {
+    const totals = payrollTotals([
+      payroll({ total_pairs: 100, total_earned: 2500, total_paid: 2000, final_balance: 500 }),
+      payroll({
+        worker_id: "w2",
+        worker_name: "Sita",
+        total_pairs: 80,
+        total_earned: 2000,
+        total_paid: 2000,
+        final_balance: 0,
+      }),
+    ]);
+
+    expect(totals.totalPairs).toBe(180);
+    expect(totals.totalEarned).toBe(4500);
+    expect(totals.totalPaid).toBe(4000);
+    expect(totals.totalBalance).toBe(500);
+    expect(totals.workerCount).toBe(2);
+  });
+
+  it("adds money as numbers when Postgres sends it as text", () => {
+    // The bug this prevents: "2500" + "2000" is "25002000", and the month's
+    // wage bill becomes a number nobody can explain.
+    const totals = payrollTotals([
+      normalisePayrollRow({ ...payroll(), total_earned: "2500" as unknown as number }),
+      normalisePayrollRow({ ...payroll(), total_earned: "2000.50" as unknown as number }),
+    ]);
+
+    expect(totals.totalEarned).toBe(4500.5);
+  });
+
+  it("counts who is still owed, not just how much", () => {
+    const totals = payrollTotals([
+      payroll({ final_balance: 500 }),
+      payroll({ worker_id: "w2", final_balance: 0 }),
+      payroll({ worker_id: "w3", final_balance: 250 }),
+    ]);
+
+    expect(totals.owedCount).toBe(2);
+    expect(totals.totalBalance).toBe(750);
+  });
+
+  it("keeps a month of fractions to the paisa", () => {
+    // Three payslips of 33.33 must not total 99.99000000000001 on screen.
+    const totals = payrollTotals([
+      payroll({ total_earned: 33.33, total_paid: 0, final_balance: 33.33 }),
+      payroll({ worker_id: "w2", total_earned: 33.33, total_paid: 0, final_balance: 33.33 }),
+      payroll({ worker_id: "w3", total_earned: 33.33, total_paid: 0, final_balance: 33.33 }),
+    ]);
+
+    expect(totals.totalEarned).toBe(99.99);
+    expect(totals.totalBalance).toBe(99.99);
+  });
+
+  it("reports an empty month as zero", () => {
+    const totals = payrollTotals([]);
+
+    expect(totals.totalEarned).toBe(0);
+    expect(totals.workerCount).toBe(0);
+    expect(totals.owedCount).toBe(0);
+  });
+
+  it("reads the payroll with the biggest earner first", () => {
+    const sorted = sortPayroll([
+      payroll({ worker_id: "w1", worker_name: "Ram", total_earned: 1500 }),
+      payroll({ worker_id: "w2", worker_name: "Sita", total_earned: 3000 }),
+      payroll({ worker_id: "w3", worker_name: "Hari", total_earned: 2000 }),
+    ]);
+
+    expect(sorted.map((row) => row.worker_name)).toEqual(["Sita", "Hari", "Ram"]);
+  });
+
+  it("leaves the caller's list alone when sorting", () => {
+    // The screen holds this list in state; sorting it in place would reorder
+    // what React is rendering from, under it.
+    const rows = [
+      payroll({ worker_id: "w1", worker_name: "Ram", total_earned: 1500 }),
+      payroll({ worker_id: "w2", worker_name: "Sita", total_earned: 3000 }),
+    ];
+    sortPayroll(rows);
+
+    expect(rows[0].worker_name).toBe("Ram");
   });
 });
 
