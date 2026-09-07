@@ -269,6 +269,86 @@ export default async function AdminPosPage() {
         <StatCard label="Credit from POS" value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
         <StatCard label="Needs review" value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
       </div>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <PosBillForm
+          ledgers={operations.customerLedgers.map((ledger) => ({
+            id: ledger.id,
+            label: `${ledger.customerName} (${ledger.channel})`,
+          }))}
+          catalog={catalog}
+          lastBill={lastBill}
+          canOpenLedger={canOpenLedger}
+        />
+
+        <div className="grid gap-6">
+          <ScannerPanel
+            knownInvoices={pos.invoices.map((invoice) => ({
+              id: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              barcodeValue: invoice.barcodeValue,
+              qrPayload: invoice.qrPayload,
+            }))}
+          />
+
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">Channel report</h2>
+            <div className="mt-4 divide-y divide-brand-green-line">
+              {pos.channelTotals.map((row) => (
+                <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
+                  <p className="font-black text-brand-green-ink">{row.channel}</p>
+                  <p className="text-brand-muted">{row.invoiceCount} bills</p>
+                  <p className="text-right font-bold text-brand-green">{money(row.netSales)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">Payment summary</h2>
+            <div className="mt-4 grid gap-2">
+              {pos.paymentTotals
+                .filter((row) => row.invoiceCount > 0 || row.paid > 0)
+                .map((row) => (
+                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-brand-paper-deep px-3 py-2 text-sm">
+                    <span className="font-bold text-brand-green-ink">{row.paymentMethod}</span>
+                    <span className="text-brand-muted">{money(row.paid)}</span>
+                  </div>
+                ))}
+              {pos.paymentTotals.every((row) => row.invoiceCount === 0) ? (
+                <p className="text-sm text-brand-muted">No POS payment recorded yet.</p>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
+            <p className="mt-1 text-sm text-brand-muted">
+              Stock movement, customer ledger, and payment reference check.
+            </p>
+            <div className="mt-4 divide-y divide-brand-green-line">
+              {pos.postingReviewRows.slice(0, 5).map((row) => (
+                <div key={row.id} className="py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-mono text-xs font-bold text-brand-green-ink">{row.invoiceNumber}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge className={postingTone(row.signal)}>{row.signal}</Badge>
+                      {row.signal !== "Posted" ? <RepairPostingButton invoiceId={row.id} /> : null}
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-brand-muted">
+                    Stock {row.linkedStockMovementCount}/{row.expectedStockMovementCount}
+                    {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
+                  </p>
+                  {row.issues ? <p className="mt-1 text-xs font-semibold text-brand-clay">{row.issues}</p> : null}
+                </div>
+              ))}
+              {pos.postingReviewRows.length === 0 ? (
+                <p className="py-3 text-sm text-brand-muted">No POS posting to review yet.</p>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      </div>
 
       <section className="mt-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -429,86 +509,6 @@ export default async function AdminPosPage() {
         </div>
       </section>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <PosBillForm
-          ledgers={operations.customerLedgers.map((ledger) => ({
-            id: ledger.id,
-            label: `${ledger.customerName} (${ledger.channel})`,
-          }))}
-          catalog={catalog}
-          lastBill={lastBill}
-          canOpenLedger={canOpenLedger}
-        />
-
-        <div className="grid gap-6">
-          <ScannerPanel
-            knownInvoices={pos.invoices.map((invoice) => ({
-              id: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              barcodeValue: invoice.barcodeValue,
-              qrPayload: invoice.qrPayload,
-            }))}
-          />
-
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Channel report</h2>
-            <div className="mt-4 divide-y divide-brand-green-line">
-              {pos.channelTotals.map((row) => (
-                <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
-                  <p className="font-black text-brand-green-ink">{row.channel}</p>
-                  <p className="text-brand-muted">{row.invoiceCount} bills</p>
-                  <p className="text-right font-bold text-brand-green">{money(row.netSales)}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Payment summary</h2>
-            <div className="mt-4 grid gap-2">
-              {pos.paymentTotals
-                .filter((row) => row.invoiceCount > 0 || row.paid > 0)
-                .map((row) => (
-                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-brand-paper-deep px-3 py-2 text-sm">
-                    <span className="font-bold text-brand-green-ink">{row.paymentMethod}</span>
-                    <span className="text-brand-muted">{money(row.paid)}</span>
-                  </div>
-                ))}
-              {pos.paymentTotals.every((row) => row.invoiceCount === 0) ? (
-                <p className="text-sm text-brand-muted">No POS payment recorded yet.</p>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
-            <p className="mt-1 text-sm text-brand-muted">
-              Stock movement, customer ledger, and payment reference check.
-            </p>
-            <div className="mt-4 divide-y divide-brand-green-line">
-              {pos.postingReviewRows.slice(0, 5).map((row) => (
-                <div key={row.id} className="py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-mono text-xs font-bold text-brand-green-ink">{row.invoiceNumber}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge className={postingTone(row.signal)}>{row.signal}</Badge>
-                      {row.signal !== "Posted" ? <RepairPostingButton invoiceId={row.id} /> : null}
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    Stock {row.linkedStockMovementCount}/{row.expectedStockMovementCount}
-                    {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
-                  </p>
-                  {row.issues ? <p className="mt-1 text-xs font-semibold text-brand-clay">{row.issues}</p> : null}
-                </div>
-              ))}
-              {pos.postingReviewRows.length === 0 ? (
-                <p className="py-3 text-sm text-brand-muted">No POS posting to review yet.</p>
-              ) : null}
-            </div>
-          </section>
-        </div>
-      </div>
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

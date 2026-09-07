@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import StatTile from "@/components/admin/StatTile";
 import { useLanguage } from "@/components/LanguageProvider";
 import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
 
@@ -109,7 +110,12 @@ export default function ReportsPage() {
     <div className="p-4 sm:p-6">
       <div className="mb-8">
         <h1 className="font-display text-2xl sm:text-3xl font-black text-brand-green-ink">{text("Monthly reports", "मासिक रिपोर्ट")}</h1>
-        <p className="mb-4 mt-1 text-sm text-brand-muted">Monthly reports</p>
+        <p className="mb-4 mt-1 text-sm text-brand-muted">
+          {text(
+            "What each team member made this month, what they were paid, and what is still owed.",
+            "यो महिना कसले कति बनायो, कति पायो, कति बाँकी छ।",
+          )}
+        </p>
 
         <div className="flex gap-3 mb-6">
           <BikramMonthPicker value={month} onChange={setMonth} label={text("Month", "महिना")} className="min-w-[180px]" />
@@ -117,63 +123,53 @@ export default function ReportsPage() {
             onClick={() => generateSummaries(month)}
             className="bg-brand-green hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12"
           >
-            🔄 Regenerate
+            🔄 {text("Regenerate", "फेरि गणना")}
           </button>
         </div>
       </div>
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-          {error} No partial report was shown.
+          {error} {text("No partial report was shown.", "अधुरो रिपोर्ट देखाइएन।")}
         </div>
       )}
 
       {loading ? (
-        <div className="text-center text-brand-muted">Loading reports...</div>
+        <div className="text-center text-brand-muted">{text("Loading reports…", "रिपोर्ट खुल्दै…")}</div>
       ) : (
         <div className="space-y-6">
           {/* Monthly Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Pairs</div>
-              <div className="text-2xl sm:text-3xl font-bold text-brand-green mt-2">{totalPairs}</div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Earned</div>
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
-                Rs. {totalEarned.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Total Paid</div>
-              <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
-                Rs. {totalPaid.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">Balance Due</div>
-              <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
-                Rs. {totalBalance.toLocaleString()}
-              </div>
-            </div>
+            <StatTile label={text("Total pairs", "जम्मा जोडी")} value={totalPairs} />
+            <StatTile
+              label={text("Total earned", "जम्मा कमाएको")}
+              value={`Rs. ${totalEarned.toLocaleString()}`}
+              tone="good"
+            />
+            <StatTile
+              label={text("Total paid", "जम्मा तिरेको")}
+              value={`Rs. ${totalPaid.toLocaleString()}`}
+            />
+            <StatTile
+              label={text("Balance due", "तिर्न बाँकी")}
+              value={`Rs. ${totalBalance.toLocaleString()}`}
+              tone={totalBalance > 0 ? "warn" : "good"}
+            />
           </div>
 
           {/* Payroll Table */}
           <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
-              <h2 className="text-lg font-bold text-brand-green-ink mb-4">💰 Payroll Summary</h2>
-              <table className="w-full text-sm">
+              <h2 className="text-lg font-bold text-brand-green-ink mb-4">💰 {text("Payroll summary", "ज्यालाको हिसाब")}</h2>
+              <table className="reflow-table w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
-                    <th className="text-left py-2 px-2 sm:px-4">Worker Name</th>
-                    <th className="text-left py-2 px-2 sm:px-4">Category</th>
-                    <th className="text-center py-2 px-2 sm:px-4">Pairs</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Earned</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Paid</th>
-                    <th className="text-right py-2 px-2 sm:px-4">Due</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Team member", "टोली सदस्य")}</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Category", "किसिम")}</th>
+                    <th className="text-center py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Earned", "कमाएको")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Paid", "तिरेको")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Due", "बाँकी")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,22 +178,22 @@ export default function ReportsPage() {
                       .sort((a, b) => b.total_earned - a.total_earned)
                       .map((summary, idx) => (
                         <tr key={idx} className="border-b border-brand-green-line hover:bg-brand-paper-deep">
-                          <td className="py-3 px-2 sm:px-4 font-medium text-brand-green-ink">
+                          <td className="reflow-primary py-3 px-2 sm:px-4 font-medium text-brand-green-ink">
                             {summary.worker_name}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-brand-muted">
+                          <td data-label={text("Category", "किसिम")} className="py-3 px-2 sm:px-4 text-brand-muted">
                             {summary.category}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-center text-brand-green-ink">
+                          <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-center text-brand-green-ink">
                             {summary.total_pairs}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-right text-green-600 font-semibold">
+                          <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-semibold">
                             Rs. {summary.total_earned.toLocaleString()}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-right text-purple-600 font-semibold">
+                          <td data-label={text("Paid", "तिरेको")} className="py-3 px-2 sm:px-4 text-right text-purple-600 font-semibold">
                             Rs. {summary.total_paid.toLocaleString()}
                           </td>
-                          <td className="py-3 px-2 sm:px-4 text-right font-bold">
+                          <td data-label={text("Due", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-bold">
                             <span
                               className={`${
                                 summary.final_balance > 0
@@ -213,7 +209,7 @@ export default function ReportsPage() {
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-brand-muted">
-                        No data for this month
+                        {text("No work recorded this month", "यो महिना कुनै काम टिपिएको छैन")}
                       </td>
                     </tr>
                   )}
@@ -249,13 +245,13 @@ export default function ReportsPage() {
               }}
               className="flex-1 bg-brand-muted-deep hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
-              📥 Export CSV
+              📥 {text("Export CSV", "CSV निकाल्ने")}
             </button>
             <button
               onClick={() => window.print()}
               className="flex-1 bg-brand-muted-deep hover:bg-brand-green-ink text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
-              🖨️ Print Report
+              🖨️ {text("Print report", "रिपोर्ट छाप्ने")}
             </button>
           </div>
         </div>

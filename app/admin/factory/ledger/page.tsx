@@ -8,6 +8,7 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import StatTile from "@/components/admin/StatTile";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -256,40 +257,28 @@ export default function LedgerPage() {
 
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">{text("Total pairs", "जम्मा जोडी")}</div>
-              <div className="text-2xl sm:text-3xl font-bold text-brand-green mt-2">
-                {ledgerData.summary.totalPairs}
-              </div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">{text("Total earned", "जम्मा कमाएको")}</div>
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">
-                Rs. {ledgerData.summary.totalEarned.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">{text("Total paid", "जम्मा पाएको")}</div>
-              <div className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
-                Rs. {ledgerData.summary.totalPaid.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg p-4 sm:p-6 border border-brand-green-line">
-              <div className="text-xs sm:text-sm text-brand-muted">{text("Current balance", "अहिलेको बाँकी")}</div>
-              <div className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">
-                Rs. {ledgerData.summary.currentBalance.toLocaleString()}
-              </div>
-            </div>
+            <StatTile label={text("Total pairs", "जम्मा जोडी")} value={ledgerData.summary.totalPairs} />
+            <StatTile
+              label={text("Total earned", "जम्मा कमाएको")}
+              value={`Rs. ${ledgerData.summary.totalEarned.toLocaleString()}`}
+              tone="good"
+            />
+            <StatTile
+              label={text("Total paid", "जम्मा पाएको")}
+              value={`Rs. ${ledgerData.summary.totalPaid.toLocaleString()}`}
+            />
+            <StatTile
+              label={text("Current balance", "अहिलेको बाँकी")}
+              value={`Rs. ${ledgerData.summary.currentBalance.toLocaleString()}`}
+              tone={ledgerData.summary.currentBalance > 0 ? "warn" : "good"}
+            />
           </div>
 
           {/* Ledger Entries */}
           <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
               <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
-              <table className="w-full text-sm">
+              <table className="reflow-table w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
                     <th className="text-left py-2 px-2 sm:px-4">{text("Date", "मिति")}</th>
@@ -305,27 +294,27 @@ export default function LedgerPage() {
                   {ledgerData.ledger.length > 0 ? (
                     ledgerData.ledger.map((entry, idx) => (
                       <tr key={idx} className="border-b border-brand-green-line hover:bg-brand-paper-deep">
-                        <td className="py-3 px-2 sm:px-4 text-brand-green-ink">
+                        <td className="reflow-primary py-3 px-2 sm:px-4 text-brand-green-ink">
                           <DateDisplayAdmin date={entry.date} />
                         </td>
-                        <td className="py-3 px-2 sm:px-4">
+                        <td data-label={text("Type", "के भयो")} className="py-3 px-2 sm:px-4">
                           <span className="text-xs sm:text-sm capitalize bg-brand-mist px-2 py-1 rounded">
                             {entry.entry_type}
                           </span>
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
+                        <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
                           {entry.work_pairs || "-"}
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
+                        <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
                           {entry.amount_earned ? `+${entry.amount_earned}` : "-"}
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right text-red-600 font-medium">
+                        <td data-label={text("Paid", "पाएको")} className="py-3 px-2 sm:px-4 text-right text-red-600 font-medium">
                           {entry.payment_given ? `-${entry.payment_given}` : "-"}
                         </td>
-                        <td className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink">
+                        <td data-label={text("Balance", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink">
                           Rs. {entry.running_balance.toLocaleString()}
                         </td>
-                        <td className="min-w-48 py-3 px-2 sm:px-4 text-xs text-brand-muted">{entry.notes || "-"}</td>
+                        <td data-label={text("Note", "टिपोट")} className="min-w-48 py-3 px-2 sm:px-4 text-xs text-brand-muted">{entry.notes || "-"}</td>
                       </tr>
                     ))
                   ) : (

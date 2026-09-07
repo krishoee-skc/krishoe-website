@@ -8,6 +8,7 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import StatTile from "@/components/admin/StatTile";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 
@@ -202,49 +203,27 @@ export default function StaffSalaryPage() {
       {summary ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <p className="text-xs text-brand-muted font-semibold">
-                Monthly Salary
-              </p>
-              <p className="text-2xl font-black text-brand-green mt-2">
-                Rs. {summary.total_salary.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <p className="text-xs text-brand-muted font-semibold">{text("Total paid", "जम्मा तिरेको")}</p>
-              <p className="text-2xl font-black text-brand-green mt-2">
-                Rs. {summary.total_paid.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <p className="text-xs text-brand-muted font-semibold">
-                Total Advance
-              </p>
-              <p className="text-2xl font-black text-amber-600 mt-2">
-                Rs. {summary.total_advance.toLocaleString()}
-              </p>
-            </div>
-
-            <div
-              className={`rounded-lg border p-4 ${
-                summary.remaining_balance >= 0
-                  ? "bg-green-50 border-green-200"
-                  : "bg-red-50 border-red-200"
-              }`}
-            >
-              <p className="text-xs font-semibold">{text("Balance", "बाँकी")}</p>
-              <p
-                className={`text-2xl font-black mt-2 ${
-                  summary.remaining_balance >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                Rs. {summary.remaining_balance.toLocaleString()}
-              </p>
-            </div>
+            <StatTile
+              label={text("Monthly salary", "मासिक तलब")}
+              value={`Rs. ${summary.total_salary.toLocaleString()}`}
+            />
+            <StatTile
+              label={text("Total paid", "जम्मा तिरेको")}
+              value={`Rs. ${summary.total_paid.toLocaleString()}`}
+              tone="good"
+            />
+            <StatTile
+              label={text("Total advance", "पेस्की")}
+              value={`Rs. ${summary.total_advance.toLocaleString()}`}
+              tone="warn"
+            />
+            {/* A balance below zero means more has gone out than the month
+                earned — the one number here that wants a red edge. */}
+            <StatTile
+              label={text("Balance", "बाँकी")}
+              value={`Rs. ${summary.remaining_balance.toLocaleString()}`}
+              tone={summary.remaining_balance >= 0 ? "good" : "danger"}
+            />
           </div>
 
           <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">

@@ -28,7 +28,7 @@ const factoryLinks = [
   { href: "/admin/factory/workers", label: "टोली", english: "Team", Icon: UserIcon },
   { href: "/admin/factory/worker-portal-qr", label: "QR पोस्टर", english: "Team QR", Icon: UserIcon },
   { href: "/admin/factory/items", label: "item र दर", english: "Items", Icon: PackageIcon },
-  { href: "/admin/factory/ledger", label: "कामदारको खाता", english: "Piece ledger", Icon: CreditCardIcon },
+  { href: "/admin/factory/ledger", label: "टोली सदस्यको खाता", english: "Piece ledger", Icon: CreditCardIcon },
   { href: "/admin/factory/reports", label: "रिपोर्ट", english: "Reports", Icon: InfoIcon },
   { href: "/admin/factory/salary", label: "तलब", english: "Staff salary", Icon: PackageIcon },
 ] as const;

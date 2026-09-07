@@ -8,6 +8,7 @@ import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
+import { pieceWage } from "@/lib/factory-board";
 import { useToast } from "@/components/admin/ToastProvider";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 
@@ -158,9 +159,11 @@ export default function AddWorkPage() {
           );
           const data = await res.json();
           if (data.rates && data.rates.length > 0) {
-            setSelectedRate(data.rates[0].rate_per_pair);
+            const rate = Number(data.rates[0].rate_per_pair) || 0;
+            setSelectedRate(rate);
             setSelectedRateSource(data.rates[0].rate_source || "Factory rate");
             setShowSetRate(false);
+            setCalculatedAmount(pieceWage(parseInt(formData.pairs_count) || 0, rate));
           } else {
             setSelectedRate(null);
             setSelectedRateSource("");
@@ -190,11 +193,7 @@ export default function AddWorkPage() {
     const pairs = parseInt(e.target.value) || 0;
     setFormData((prev) => ({ ...prev, pairs_count: e.target.value }));
 
-    if (selectedRate && pairs > 0) {
-      setCalculatedAmount(pairs * selectedRate);
-    } else {
-      setCalculatedAmount(0);
-    }
+    setCalculatedAmount(selectedRate ? pieceWage(pairs, selectedRate) : 0);
   };
 
   const handleAddProduct = async () => {
@@ -259,7 +258,7 @@ export default function AddWorkPage() {
       setSuccess("✅ Rate set! Amount will calculate now.");
 
       if (formData.pairs_count) {
-        setCalculatedAmount(parseFloat(formData.pairs_count) * parseFloat(newRate));
+        setCalculatedAmount(pieceWage(parseFloat(formData.pairs_count), parseFloat(newRate)));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to set rate");

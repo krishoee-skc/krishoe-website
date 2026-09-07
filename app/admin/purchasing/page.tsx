@@ -158,7 +158,10 @@ export default async function AdminPurchasingPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      {/* Seven tiles, seven columns — the sixth-column grid left the last one
+          ("Month profit signal") stranded alone on a second row. Matches the
+          seven-tile day-close row on the POS screen. */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <StatCard label="Today purchase" value={money(purchasing.summary.todayPurchase)} detail="raw material cost" />
         <StatCard label="Month purchase" value={money(purchasing.summary.monthPurchase)} detail={`${purchasing.summary.purchaseInvoiceCount} invoices`} />
         <StatCard label="Supplier due" value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
@@ -332,7 +335,7 @@ export default async function AdminPurchasingPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
@@ -346,7 +349,7 @@ export default async function AdminPurchasingPage() {
               <tbody className="divide-y">
                 {supplierPaymentRows.slice(0, 12).map((row) => (
                   <tr key={row.supplierLedgerId}>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3">
                       <Link
                         href={`/admin/purchasing/supplier/${row.supplierLedgerId}`}
                         className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -357,18 +360,18 @@ export default async function AdminPurchasingPage() {
                         {row.materialFocus || "General supply"} | {row.phone || "No phone"}
                       </p>
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Priority" className="py-3 pr-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentPriorityTone(row.priority)}`}>
                         {row.priority}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.balanceDue)}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(row.balanceDue)}</td>
+                    <td data-label="Aging" className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days oldest</p>
                       <p className="text-xs text-brand-muted">90+ {money(row.over90)}</p>
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-brand-green-ink">{row.paymentDueDate || "-"}</td>
-                    <td className="max-w-80 py-3 pr-3 text-xs font-semibold leading-5 text-brand-muted">
+                    <td data-label="Payment date" className="py-3 pr-3 font-semibold text-brand-green-ink">{row.paymentDueDate || "-"}</td>
+                    <td data-label="Next action" className="max-w-80 py-3 pr-3 text-xs font-semibold leading-5 text-brand-muted">
                       {row.nextAction}
                     </td>
                   </tr>
@@ -398,7 +401,7 @@ export default async function AdminPurchasingPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-brand-muted">
                 <tr>
                   <th className="py-2 pr-3">Supplier</th>
@@ -414,7 +417,7 @@ export default async function AdminPurchasingPage() {
               <tbody className="divide-y">
                 {dueAgingRows.slice(0, 12).map((row) => (
                   <tr key={row.supplierLedgerId}>
-                    <td className="py-3 pr-3">
+                    <td className="reflow-primary py-3 pr-3">
                       <Link
                         href={`/admin/purchasing/supplier/${row.supplierLedgerId}`}
                         className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -423,20 +426,20 @@ export default async function AdminPurchasingPage() {
                       </Link>
                       <p className="mt-1 text-xs text-brand-muted">{row.materialFocus || "General supply"}</p>
                     </td>
-                    <td className="py-3 pr-3">{money(row.current)}</td>
-                    <td className="py-3 pr-3">{money(row.days31To60)}</td>
-                    <td className="py-3 pr-3">{money(row.days61To90)}</td>
-                    <td className="py-3 pr-3 font-bold text-brand-clay">{money(row.over90)}</td>
-                    <td className="py-3 pr-3">
+                    <td data-label="0-30" className="py-3 pr-3">{money(row.current)}</td>
+                    <td data-label="31-60" className="py-3 pr-3">{money(row.days31To60)}</td>
+                    <td data-label="61-90" className="py-3 pr-3">{money(row.days61To90)}</td>
+                    <td data-label="90+" className="py-3 pr-3 font-bold text-brand-clay">{money(row.over90)}</td>
+                    <td data-label="Oldest" className="py-3 pr-3">
                       <p>{row.oldestOpenDays} days</p>
                       <p className="text-xs text-brand-muted">{row.oldestOpenDate || "-"}</p>
                     </td>
-                    <td className="py-3 pr-3">
+                    <td data-label="Risk" className="py-3 pr-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${agingTone(row.risk)}`}>
                         {row.risk}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceDue)}</td>
+                    <td data-label="Due" className="py-3 pr-3 font-black text-brand-green-ink">{money(row.balanceDue)}</td>
                   </tr>
                 ))}
               </tbody>

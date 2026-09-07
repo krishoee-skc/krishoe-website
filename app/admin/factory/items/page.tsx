@@ -205,7 +205,7 @@ export default function FactoryItemsPage() {
             Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, Work Orders, costing and finished-stock identity. Link them once so both systems refer to the same product.
           </p>
         </div>
-        <Link href="/admin/operations/production-accounts" className="min-h-11 rounded-full border border-brand-green px-5 py-3 text-sm font-black text-brand-green">Open Production Item Master</Link>
+        <Link href="/admin/operations/production-accounts" className="min-h-11 rounded-full border border-brand-green px-5 py-3 text-sm font-black text-brand-green">{text("Open Production Item Master", "उत्पादन item मास्टर खोल्ने")}</Link>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
@@ -218,7 +218,7 @@ export default function FactoryItemsPage() {
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900">{error}</p> : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-brand-muted">Loading Factory Items...</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">{text("Loading factory items…", "कारखानाका item खुल्दै…")}</p> : null}
         {!loading && items.length === 0 ? (
           <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">
             No Factory Item exists yet. Add the product while entering factory work, then return here to link it.
@@ -239,7 +239,7 @@ export default function FactoryItemsPage() {
             {item.status === "active" ? (
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select value={drafts[item.id] || ""} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))} className={inputClass} aria-label={`Production Item for ${item.name}`}>
-                <option value="">Not linked</option>
+                <option value="">{text("Not linked", "जोडिएको छैन")}</option>
                 {productionItems.filter((productionItem) => !linkedIds.has(productionItem.id) || productionItem.id === item.production_item_id).map((productionItem) => (
                   <option key={productionItem.id} value={productionItem.id}>{productionItem.name} · {productionItem.category} · {productionItem.size_group}</option>
                 ))}
