@@ -152,17 +152,17 @@ export default function WorkersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-            {text("Factory people", "कारखानाका मान्छे")}
+            {text("Our team", "हाम्रो टोली")}
           </p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-            {text("Workers and HR linkage", "कामदार")}
+            {text("Team members and HR linkage", "टोली सदस्य")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
           </p>
         </div>
         <button type="button" onClick={() => setShowForm((value) => !value)} className="min-h-11 rounded-full bg-brand-green px-5 text-sm font-black text-white">
-          {showForm ? "Close form" : "+ Add worker"}
+          {showForm ? "Close form" : text("+ Add member", "+ सदस्य थप्ने")}
         </button>
       </div>
 
@@ -190,8 +190,8 @@ export default function WorkersPage() {
       ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-brand-muted">{text("Loading workers…", "कामदार खुल्दैछन्…")}</p> : null}
-        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No factory workers yet.", "कारखानामा अझै कामदार थपिएको छैन।")}</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">{text("Loading team…", "टोली खुल्दैछ…")}</p> : null}
+        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No team members yet.", "अझै टोली सदस्य थपिएको छैन।")}</p> : null}
         {workers.map((worker) => (
           <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : "border-brand-green-line bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
