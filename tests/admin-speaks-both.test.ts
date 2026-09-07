@@ -27,7 +27,7 @@ const DAILY = [
   "app/admin/factory/add-work/page.tsx",
   "app/admin/orders/page.tsx",
   "app/admin/stock/page.tsx",
-  "app/admin/factory/workers/page.tsx",
+  "app/admin/factory/workers/TeamList.tsx",
   "app/admin/factory/salary/page.tsx",
 ];
 
@@ -118,7 +118,7 @@ describe("what must not move while the words do", () => {
   });
 
   it("keeps the values that decide how a worker is paid", async () => {
-    const workers = await readFile("app/admin/factory/workers/page.tsx", "utf8");
+    const workers = await readFile("app/admin/factory/workers/TeamList.tsx", "utf8");
     const salary = await readFile("app/admin/factory/salary/page.tsx", "utf8");
 
     for (const value of ['value="piece_rate"', 'value="daily_staff"', 'value="monthly_staff"']) {
@@ -146,7 +146,7 @@ describe("what must not move while the words do", () => {
   });
 
   it("says शनिबारको खर्च where English had to borrow the word anyway", async () => {
-    const workers = await readFile("app/admin/factory/workers/page.tsx", "utf8");
+    const workers = await readFile("app/admin/factory/workers/TeamList.tsx", "utf8");
 
     // "Usual Saturday kharcha" was an English label built around a Nepali word,
     // because English has none for it. That is the clearest sign the screen was

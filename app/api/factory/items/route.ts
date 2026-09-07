@@ -2,6 +2,7 @@ import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { addProductionItem } from "@/lib/production-accounting";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
+import { getFactoryItems } from "@/lib/factory-board-data";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -22,27 +23,6 @@ interface Item {
   production_item_name: string | null;
 }
 
-interface ProductionItemOption {
-  id: string;
-  name: string;
-  category: string;
-  production_type: string;
-  size_group: string;
-}
-
-interface WorkOrderOption {
-  id: string;
-  work_order_number: string;
-  item_id: string;
-  item_name_snapshot: string;
-  colour: string;
-  size_breakdown: Record<string, number> | string;
-  planned_pairs: number | string;
-  current_stage: string;
-  status: string;
-  due_date: string | Date | null;
-}
-
 export async function GET(request: NextRequest) {
   const denied = await authorizeFactoryApi("/api/factory/items", "GET");
   if (denied) return denied;
@@ -53,53 +33,10 @@ export async function GET(request: NextRequest) {
   const includeRetired = request.nextUrl.searchParams.get("include") === "retired";
 
   try {
-    const [items, productionItems, workOrders] = await Promise.all([
-      queryPostgres<Item>(
-        STORE,
-        `SELECT items.id, items.name, items.code, items.status, items.created_at,
-                items.material_cost_per_pair,
-                items.production_item_id, production.name AS production_item_name
-         FROM factory_items items
-         LEFT JOIN production_items production ON production.id = items.production_item_id
-         ${includeRetired ? "" : "WHERE items.status = 'active'"}
-         ORDER BY items.status ASC, items.name ASC`,
-      ),
-      queryPostgres<ProductionItemOption>(
-        STORE,
-        `SELECT id, name, category, production_type, size_group
-         FROM production_items
-         WHERE status = 'Active'
-         ORDER BY name ASC`,
-      ),
-      queryPostgres<WorkOrderOption>(
-        STORE,
-        `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
-                size_breakdown, planned_pairs, current_stage, status, due_date
-         FROM production_work_orders
-         WHERE status NOT IN ('Completed', 'Cancelled')
-         ORDER BY due_date NULLS LAST, created_at DESC
-         LIMIT 100`,
-      ),
-    ]);
-
-    return NextResponse.json({
-      items,
-      productionItems,
-      workOrders: workOrders.map((order) => ({
-        ...order,
-        planned_pairs: Number(order.planned_pairs),
-        size_breakdown:
-          typeof order.size_breakdown === "string"
-            ? JSON.parse(order.size_breakdown)
-            : order.size_breakdown,
-        due_date:
-          order.due_date instanceof Date
-            ? order.due_date.toISOString().slice(0, 10)
-            : order.due_date
-              ? String(order.due_date).slice(0, 10)
-              : null,
-      })),
-    });
+    // The three queries live in lib/factory-board-data, which the
+    // server-rendered item screen reads through as well — one definition of an
+    // item, its production link and the open work orders.
+    return NextResponse.json(await getFactoryItems({ includeRetired }));
   } catch (error) {
     console.error("Error fetching items:", error);
     return NextResponse.json({ error: "Failed to fetch items" }, { status: 500 });

@@ -153,6 +153,45 @@ export function factoryTotalsFromRow(row: Record<string, string | number | null 
   };
 }
 
+/** A person on the factory's books, with their running day and week. */
+export type FactoryWorker = {
+  id: string;
+  name: string;
+  worker_type: string;
+  category: string;
+  monthly_salary: number | null;
+  weekly_advance: number | null;
+  status: string;
+  created_at: string;
+  today_pairs: number;
+  week_pairs: number;
+  week_earned: number;
+};
+
+/**
+ * A salary or an advance that was never set is not zero — it is unset, and the
+ * forms show an empty box rather than a wage of nothing. Everything that is a
+ * count or an amount is made a real number, since NUMERIC arrives as text.
+ */
+export function normaliseWorker(row: Partial<FactoryWorker>): FactoryWorker {
+  const optionalMoney = (value: unknown) =>
+    value === null || value === undefined || value === "" ? null : Number(value) || 0;
+
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    worker_type: String(row.worker_type ?? ""),
+    category: String(row.category ?? ""),
+    monthly_salary: optionalMoney(row.monthly_salary),
+    weekly_advance: optionalMoney(row.weekly_advance),
+    status: String(row.status ?? ""),
+    created_at: String(row.created_at ?? ""),
+    today_pairs: Number(row.today_pairs) || 0,
+    week_pairs: Number(row.week_pairs) || 0,
+    week_earned: Number(row.week_earned) || 0,
+  };
+}
+
 /** One worker's month, as the monthly-summary table keeps it. */
 export type FactoryPayrollRow = {
   worker_id: string;

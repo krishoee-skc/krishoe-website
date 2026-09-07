@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
  */
 describe("creating the item to link to", () => {
   it("is offered from the screen where the link is made", async () => {
-    const page = await readFile("app/admin/factory/items/page.tsx", "utf8");
+    const page = await readFile("app/admin/factory/items/ItemList.tsx", "utf8");
 
     expect(page).toContain("create_production_item: true");
     // Only where it is needed: an item already linked has nothing to create,
@@ -59,7 +59,7 @@ describe("creating the item to link to", () => {
 
 describe("what linking does not do", () => {
   it("leaves stock to Packing/QC, as before", async () => {
-    const page = await readFile("app/admin/factory/items/page.tsx", "utf8");
+    const page = await readFile("app/admin/factory/items/ItemList.tsx", "utf8");
 
     // A wage entry must never create stock: pairs are counted for pay before
     // anyone has checked them, and counting both would double the shop's goods.

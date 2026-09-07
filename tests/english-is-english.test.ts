@@ -265,7 +265,7 @@ const DAILY = [
   "app/admin/factory/add-work/page.tsx",
   "app/admin/orders/page.tsx",
   "app/admin/stock/page.tsx",
-  "app/admin/factory/workers/page.tsx",
+  "app/admin/factory/workers/TeamList.tsx",
   "app/admin/factory/salary/page.tsx",
   "app/admin/dues/page.tsx",
   "app/admin/payments/page.tsx",

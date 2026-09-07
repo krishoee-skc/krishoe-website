@@ -5,6 +5,7 @@ import {
   FACTORY_WORKER_CATEGORIES,
   FACTORY_WORKER_TYPES,
 } from "@/lib/factory-worker-options";
+import { getFactoryWorkers } from "@/lib/factory-board-data";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -40,32 +41,10 @@ export async function GET(request: NextRequest) {
   const includeRetired = request.nextUrl.searchParams.get("include") === "retired";
 
   try {
-    const workers = await queryPostgres<Worker>(
-      STORE,
-      `SELECT workers.id, workers.name, workers.worker_type, workers.category,
-              workers.monthly_salary, workers.weekly_advance, workers.status,
-              workers.created_at,
-              COALESCE(today_work.today_pairs, 0)::integer AS today_pairs,
-              COALESCE(week_work.week_pairs, 0)::integer AS week_pairs,
-              COALESCE(week_work.week_earned, 0)::numeric AS week_earned
-       FROM factory_workers workers
-       LEFT JOIN LATERAL (
-         SELECT SUM(work.pairs_count)::integer AS today_pairs
-         FROM factory_daily_work work
-         WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
-       ) today_work ON true
-       -- This week's pairs and wage, Sunday to today, so the work-entry screen
-       -- can show the worker's running week beside their name.
-       LEFT JOIN LATERAL (
-         SELECT SUM(work.pairs_count)::integer AS week_pairs,
-                SUM(work.amount_earned)::numeric AS week_earned
-         FROM factory_daily_work work
-         WHERE work.worker_id = workers.id
-           AND work.date >= date_trunc('week', CURRENT_DATE)
-       ) week_work ON true
-       ${includeRetired ? "" : "WHERE workers.status = 'active'"}
-       ORDER BY workers.status ASC, workers.name ASC`,
-    );
+    // The query lives in lib/factory-board-data, which the server-rendered
+    // team screen reads through as well — one definition of a worker and
+    // their running week, not two that can drift.
+    const workers = await getFactoryWorkers({ includeRetired });
 
     return NextResponse.json({ workers });
   } catch (error) {

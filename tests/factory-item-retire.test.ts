@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const API = "app/api/factory/items/route.ts";
-const PAGE = "app/admin/factory/items/page.tsx";
+const PAGE = "app/admin/factory/items/ItemList.tsx";
 
 function code(source: string) {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*(?:\/\/|\{\/\*).*$/gm, "");
@@ -65,10 +65,12 @@ describe("finding a retired item again", () => {
   });
 
   it("keeps them hidden anywhere that did not ask", async () => {
-    const api = code(await readFile(API, "utf8"));
+    // The query moved into lib/factory-board-data, which the API and the
+    // server-rendered item screen both read through. The rule is unchanged:
+    // active-only by default, and the filter is dropped only on request.
+    const reader = code(await readFile("lib/factory-board-data.ts", "utf8"));
 
-    // The default is still active-only; the filter is dropped only on request.
-    expect(api).toContain(`includeRetired ? "" : "WHERE items.status = 'active'"`);
+    expect(reader).toContain(`options.includeRetired ? "" : "WHERE items.status = 'active'"`);
   });
 
   it("shows at a glance that it is out of use", async () => {

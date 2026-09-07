@@ -12,9 +12,11 @@ import { queryPostgres } from "@/lib/postgres/client";
 import {
   factoryTotalsFromRow,
   normalisePayrollRow,
+  normaliseWorker,
   normaliseWorkRow,
   type FactoryDayStats,
   type FactoryPayrollRow,
+  type FactoryWorker,
   type FactoryWorkRow,
 } from "@/lib/factory-board";
 
@@ -108,6 +110,183 @@ export async function getFactoryPayrollForMonth(
   );
 
   return rows.map((row) => normalisePayrollRow(row as Partial<FactoryPayrollRow>));
+}
+
+/**
+ * Everyone on the factory's books, with the pairs they have made today and
+ * this week.
+ *
+ * `includeRetired` is for the team screen, the only place that can bring
+ * someone back; every other list and form hides them.
+ *
+ * Bounded by headcount — a number of people, not a table that grows daily —
+ * so there is nothing here to cap. Both the /api/factory/workers GET and the
+ * server-rendered team screen read through this, so the running week beside a
+ * name means the same thing wherever it is shown.
+ */
+export async function getFactoryWorkers(
+  options: { includeRetired?: boolean } = {},
+): Promise<FactoryWorker[]> {
+  const rows = await queryPostgres<Record<string, unknown>>(
+    STORE,
+    `SELECT workers.id, workers.name, workers.worker_type, workers.category,
+            workers.monthly_salary, workers.weekly_advance, workers.status,
+            workers.created_at,
+            COALESCE(today_work.today_pairs, 0)::integer AS today_pairs,
+            COALESCE(week_work.week_pairs, 0)::integer AS week_pairs,
+            COALESCE(week_work.week_earned, 0)::numeric AS week_earned
+       FROM factory_workers workers
+       LEFT JOIN LATERAL (
+         SELECT SUM(work.pairs_count)::integer AS today_pairs
+         FROM factory_daily_work work
+         WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
+       ) today_work ON true
+       -- This week's pairs and wage, Sunday to today, so the work-entry screen
+       -- can show the worker's running week beside their name.
+       LEFT JOIN LATERAL (
+         SELECT SUM(work.pairs_count)::integer AS week_pairs,
+                SUM(work.amount_earned)::numeric AS week_earned
+         FROM factory_daily_work work
+         WHERE work.worker_id = workers.id
+           AND work.date >= date_trunc('week', CURRENT_DATE)
+       ) week_work ON true
+       ${options.includeRetired ? "" : "WHERE workers.status = 'active'"}
+       ORDER BY workers.status ASC, workers.name ASC`,
+  );
+
+  return rows.map((row) => normaliseWorker(row as Partial<FactoryWorker>));
+}
+
+export type FactoryItem = {
+  id: string;
+  name: string;
+  code: string | null;
+  status: string;
+  created_at: string;
+  material_cost_per_pair: number | null;
+  production_item_id: string | null;
+  production_item_name: string | null;
+};
+
+export type ProductionItemOption = {
+  id: string;
+  name: string;
+  category: string;
+  production_type: string;
+  size_group: string;
+};
+
+export type WorkOrderOption = {
+  id: string;
+  work_order_number: string;
+  item_id: string;
+  item_name_snapshot: string;
+  colour: string;
+  size_breakdown: Record<string, number>;
+  planned_pairs: number;
+  current_stage: string;
+  status: string;
+  due_date: string | null;
+};
+
+/**
+ * A work order as the screens want it: the size breakdown parsed, the pairs a
+ * number, the due date a plain day.
+ *
+ * Postgres hands JSONB back as an object through some drivers and a string
+ * through others, and a date as a Date. Settling all three here means neither
+ * the API nor the server-rendered screen has to remember to.
+ */
+function normaliseWorkOrder(row: Record<string, unknown>): WorkOrderOption {
+  const breakdown = row.size_breakdown;
+  const dueDate = row.due_date;
+
+  return {
+    id: String(row.id ?? ""),
+    work_order_number: String(row.work_order_number ?? ""),
+    item_id: String(row.item_id ?? ""),
+    item_name_snapshot: String(row.item_name_snapshot ?? ""),
+    colour: String(row.colour ?? ""),
+    size_breakdown:
+      typeof breakdown === "string"
+        ? (JSON.parse(breakdown) as Record<string, number>)
+        : ((breakdown ?? {}) as Record<string, number>),
+    planned_pairs: Number(row.planned_pairs) || 0,
+    current_stage: String(row.current_stage ?? ""),
+    status: String(row.status ?? ""),
+    due_date:
+      dueDate instanceof Date
+        ? dueDate.toISOString().slice(0, 10)
+        : dueDate
+          ? String(dueDate).slice(0, 10)
+          : null,
+  };
+}
+
+/**
+ * The factory's items, the production items they can point at, and the work
+ * orders still open.
+ *
+ * Read together because the item screen needs all three to draw one row — the
+ * item, what it is linked to, and what is being made from it — and the
+ * work-entry screen needs the last two. Both the /api/factory/items GET and
+ * the server-rendered item screen come through here.
+ */
+export async function getFactoryItems(
+  options: { includeRetired?: boolean } = {},
+): Promise<{
+  items: FactoryItem[];
+  productionItems: ProductionItemOption[];
+  workOrders: WorkOrderOption[];
+}> {
+  const [items, productionItems, workOrders] = await Promise.all([
+    queryPostgres<Record<string, unknown>>(
+      STORE,
+      `SELECT items.id, items.name, items.code, items.status, items.created_at,
+              items.material_cost_per_pair,
+              items.production_item_id, production.name AS production_item_name
+         FROM factory_items items
+         LEFT JOIN production_items production ON production.id = items.production_item_id
+         ${options.includeRetired ? "" : "WHERE items.status = 'active'"}
+        ORDER BY items.status ASC, items.name ASC`,
+    ),
+    queryPostgres<ProductionItemOption>(
+      STORE,
+      `SELECT id, name, category, production_type, size_group
+         FROM production_items
+        WHERE status = 'Active'
+        ORDER BY name ASC`,
+    ),
+    queryPostgres<Record<string, unknown>>(
+      STORE,
+      `SELECT id, work_order_number, item_id, item_name_snapshot, colour,
+              size_breakdown, planned_pairs, current_stage, status, due_date
+         FROM production_work_orders
+        WHERE status NOT IN ('Completed', 'Cancelled')
+        ORDER BY due_date NULLS LAST, created_at DESC
+        LIMIT 100`,
+    ),
+  ]);
+
+  return {
+    items: items.map((row) => ({
+      id: String(row.id ?? ""),
+      name: String(row.name ?? ""),
+      code: row.code ? String(row.code) : null,
+      status: String(row.status ?? ""),
+      created_at: String(row.created_at ?? ""),
+      // A material cost that was never set is unset, not free — the form shows
+      // an empty box rather than a cost of zero.
+      material_cost_per_pair:
+        row.material_cost_per_pair === null || row.material_cost_per_pair === undefined
+          ? null
+          : Number(row.material_cost_per_pair) || 0,
+      production_item_id: row.production_item_id ? String(row.production_item_id) : null,
+      production_item_name: row.production_item_name ? String(row.production_item_name) : null,
+    })),
+    productionItems,
+    workOrders: workOrders.map(normaliseWorkOrder),
+  };
 }
 
 export type FactoryOwed = { totalOwed: number; workersOwed: number };

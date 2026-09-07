@@ -6,7 +6,7 @@ import {
 } from "@/lib/factory-worker-options";
 
 const API = "app/api/factory/workers/route.ts";
-const PAGE = "app/admin/factory/workers/page.tsx";
+const PAGE = "app/admin/factory/workers/TeamList.tsx";
 const SCHEMA = "docs/schema.sql";
 
 function code(source: string) {
@@ -116,9 +116,12 @@ describe("finding a retired worker again", () => {
   });
 
   it("keeps them hidden anywhere that did not ask", async () => {
-    const api = code(await readFile(API, "utf8"));
+    // The query moved into lib/factory-board-data, which the API and the
+    // server-rendered team screen both read through. The rule is unchanged:
+    // active-only by default, and the filter is dropped only on request.
+    const reader = code(await readFile("lib/factory-board-data.ts", "utf8"));
 
-    expect(api).toContain(`includeRetired ? "" : "WHERE workers.status = 'active'"`);
+    expect(reader).toContain(`options.includeRetired ? "" : "WHERE workers.status = 'active'"`);
   });
 });
 
