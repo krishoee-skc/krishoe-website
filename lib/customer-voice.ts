@@ -206,6 +206,16 @@ export async function setVoiceStatus(id: string, status: VoiceStatus, replyNote 
 }
 
 /**
+ * Remove a message for good — for spam and cold sales pitches that reach the
+ * inbox and are not a real customer at all. Hiding a review only takes it off
+ * the storefront; this takes the row out entirely. Owner-only, and there is no
+ * undo, so the button asks first.
+ */
+export async function deleteVoice(id: string) {
+  await queryPostgres(STORE, `DELETE FROM customer_voice WHERE id = $1`, [id]);
+}
+
+/**
  * Whether a review appears on the storefront. Off until the owner says so.
  *
  * Returns the product id the review belongs to, so the caller can revalidate

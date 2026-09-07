@@ -10,7 +10,7 @@ import {
   type CustomerVoice,
   type VoiceKind,
 } from "@/lib/customer-voice";
-import { setPublishedAction, setStatusAction } from "./actions";
+import { deleteVoiceAction, setPublishedAction, setStatusAction } from "./actions";
 
 export const metadata: Metadata = { title: "Customer Voice | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -195,6 +195,19 @@ function Row({ voice }: { voice: CustomerVoice }) {
             </button>
           </form>
         ) : null}
+
+        {/* Delete — for spam and cold sales pitches that are not a real
+            customer. Sits to the right, away from the everyday buttons. Deleting
+            a published review also takes it off the shop. */}
+        <form action={deleteVoiceAction} className="ml-auto">
+          <input type="hidden" name="id" value={voice.id} />
+          <button
+            type="submit"
+            className="rounded-lg border border-brand-clay/40 px-3 py-1.5 text-xs font-bold text-brand-clay hover:bg-red-50"
+          >
+            🗑 <T en="Delete" ne="मेट्ने" />
+          </button>
+        </form>
       </div>
     </article>
   );

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { setVoicePublished, setVoiceStatus, type VoiceStatus } from "@/lib/customer-voice";
+import { deleteVoice, setVoicePublished, setVoiceStatus, type VoiceStatus } from "@/lib/customer-voice";
 import { reportError } from "@/lib/report-error";
 
 const STATUSES: VoiceStatus[] = ["new", "answered", "closed"];
@@ -49,6 +49,23 @@ export async function setPublishedAction(formData: FormData) {
     }
   } catch (error) {
     reportError("publish customer review", error);
+  }
+  revalidatePath("/admin/inbox");
+}
+
+// Deleting removes a message for good — kept for spam and cold sales pitches,
+// not real customers — so it takes the stricter reviews permission, the same
+// one publishing does.
+export async function deleteVoiceAction(formData: FormData) {
+  await requireAdminPermission("reviews:write");
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  try {
+    await deleteVoice(id);
+  } catch (error) {
+    reportError("delete customer voice", error);
   }
   revalidatePath("/admin/inbox");
 }
