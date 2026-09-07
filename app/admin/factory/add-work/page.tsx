@@ -415,6 +415,12 @@ export default function AddWorkPage() {
           </div>
         )}
 
+        {/* Section headings group the form into who/what, how many, and details,
+            so a long form reads as three short steps rather than one list. */}
+        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
+          {text("① Day", "① दिन")}
+        </p>
+
         {/* Date — picked in Bikram Sambat, stored as AD. The field shows the BS
             date big and the AD date small, so both are on screen. */}
         <div>
@@ -429,6 +435,10 @@ export default function AddWorkPage() {
         {/* Worker + Product on one row on wider phones and up, so the two most
             important choices sit together and the form is shorter to scroll. On
             a narrow phone they stack, one per line, as before. */}
+        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
+          {text("② Who & what", "② को र के")}
+        </p>
+
         <div className="grid gap-4 sm:grid-cols-2">
         {/* Worker */}
         <div>
@@ -585,6 +595,10 @@ export default function AddWorkPage() {
         {/* Colour, Size and Pairs on one row from small screens up — three short
             fields that belong together, so the form does not run down the page.
             They stack on a narrow phone. */}
+        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
+          {text("③ How many & details", "③ कति र विवरण")}
+        </p>
+
         <div className="grid gap-4 sm:grid-cols-3">
         {/* Color — quick chips for the common colours (one tap, so nobody types
             "कालो" one day and "Black" the next), with the free text kept below
