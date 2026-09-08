@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useToast } from "@/components/admin/ToastProvider";
 import { money } from "@/lib/format-money";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
@@ -53,6 +54,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   const workerId = searchParams.get("workerId");
 
   const { text } = useLanguage();
+  const toast = useToast();
 
   const workers = initialWorkers;
   // A staff link belongs on the Salary screen, not this piece-wage ledger, so a
@@ -143,13 +145,20 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       if (!reloadRes.ok) throw new Error("Payment saved, but the refreshed ledger could not load.");
       setLedgerData(await reloadRes.json());
       setPaymentAmount("");
+      toast.show(
+        response.production_payment_synced
+          ? text("Payment saved, and the production accounts agree.", "भुक्तानी टिपियो, उत्पादन खातासँग पनि मिल्यो।")
+          : text("Payment saved.", "भुक्तानी टिपियो।"),
+        "success",
+      );
       setSuccess(
         response.production_payment_synced
-          ? "Cash payment saved. Production Accounts synchronized."
-          : `Cash payment saved. ${
-              response.production_payment_sync_reason ||
-              "Link this Factory worker to HR to synchronize Production Accounts."
-            }`,
+          ? null
+          : response.production_payment_sync_reason ||
+            text(
+              "Link this team member to HR to keep the production accounts in step.",
+              "उत्पादन खाता मिलिरहोस् भन्नाका लागि यो टोली सदस्यलाई HR सँग जोड्नुहोस्।",
+            ),
       );
       setPaymentNote("");
     } catch (error) {

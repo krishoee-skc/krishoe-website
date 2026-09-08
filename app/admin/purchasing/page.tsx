@@ -1,6 +1,7 @@
 import Link from "next/link";
 import T from "@/components/T";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import EmptyState from "@/components/admin/EmptyState";
 import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/StatTile";
 import type { Metadata } from "next";
@@ -328,9 +329,16 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {supplierPaymentRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
-            No supplier payment follow-up is due right now.
-          </div>
+          <EmptyState
+            icon="🤝"
+            title={<T en="Nothing to chase today" ne="आज कसैलाई तिर्न बाँकी छैन" />}
+            detail={
+              <T
+                en="Suppliers appear here as their bills come due, most urgent first."
+                ne="साहुका बिल तिर्ने समय आएपछि यहाँ देखिन्छन् — सबैभन्दा जरुरी पहिले।"
+              />
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
@@ -394,9 +402,16 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {dueAgingRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
-            No supplier due is open right now.
-          </div>
+          <EmptyState
+            icon="✅"
+            title={<T en="Every supplier is settled" ne="सबै साहुको हिसाब मिलेको छ" />}
+            detail={
+              <T
+                en="An unpaid bill shows here as it ages, so nothing old goes unnoticed."
+                ne="नतिरेको बिल पुरानो हुँदै जाँदा यहाँ देखिन्छ, त्यसैले कुनै पनि छुट्दैन।"
+              />
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
@@ -458,9 +473,16 @@ export default async function AdminPurchasingPage() {
         </div>
 
         {purchasing.reports.recentInvoices.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
-            Purchase history is empty. Record the first raw material purchase above.
-          </div>
+          <EmptyState
+            icon="📦"
+            title={<T en="No purchases yet" ne="अहिलेसम्म कुनै किनाइ छैन" />}
+            detail={
+              <T
+                en="Record a purchase with the form above and it lands here, with what is paid and what is owed."
+                ne="माथिको फारमबाट किनाइ टिप्नुहोस् — कति तिरियो र कति बाँकी छ सहित यहाँ आउँछ।"
+              />
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">

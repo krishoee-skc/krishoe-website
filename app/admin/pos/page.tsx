@@ -1,5 +1,6 @@
 import Link from "next/link";
 import T from "@/components/T";
+import EmptyState from "@/components/admin/EmptyState";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
@@ -521,9 +522,16 @@ export default async function AdminPosPage() {
         </div>
 
         {pos.recentInvoices.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-brand-green-line p-6 text-sm text-brand-muted">
-            POS bill history is empty. Create the first bill from the form above.
-          </div>
+          <EmptyState
+            icon="🧾"
+            title={<T en="No bills yet" ne="अहिलेसम्म कुनै बिल छैन" />}
+            detail={
+              <T
+                en="Every sale billed at the counter shows here, with its stock movement and payment trail."
+                ne="पसलमा काटिएको हरेक बिल यहाँ देखिन्छ — स्टक कहाँ गयो र पैसा कसरी आयो सहित।"
+              />
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="reflow-table min-w-full text-sm">
