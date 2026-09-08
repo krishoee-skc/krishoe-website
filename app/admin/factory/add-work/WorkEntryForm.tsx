@@ -641,13 +641,36 @@ export default function WorkEntryForm({
           {text("③ How many & details", "③ कति र विवरण")}
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        {/* Pairs first, and on its own line: it is the one answer here that
+            is required, and the one that decides the wage. It used to sit in
+            a third of the row with its placeholder cut off mid-word. */}
+        <div>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            🔢 {text("Number of pairs", "कति जोडी")}
+          </label>
+          <input
+            type="number"
+            value={formData.pairs_count}
+            onChange={handlePairsChange}
+            placeholder="0"
+            min="1"
+            inputMode="numeric"
+            className="w-full min-h-14 rounded-lg border-2 border-brand-green-line px-3 py-2 text-2xl font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
+            required
+          />
+        </div>
+
+        {/* Colour and size are optional — a shoe is entered without them most
+            days — so they follow underneath rather than taking two thirds of
+            the row above. */}
+        <div className="grid gap-4 sm:grid-cols-2">
         {/* Color — quick chips for the common colours (one tap, so nobody types
             "कालो" one day and "Black" the next), with the free text kept below
             for anything off the list. Tapping a chip fills the same field. */}
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
-            🎨 {text("Colour (optional)", "रङ — नलेखे पनि हुन्छ")}
+            🎨 {text("Colour", "रङ")}{" "}
+            <span className="font-normal text-brand-muted">{text("(optional)", "— चाहिए मात्र")}</span>
           </label>
           {!selectedWorkOrder ? (
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -680,11 +703,11 @@ export default function WorkEntryForm({
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
         </div>
-
         {/* Size */}
         <div>
           <label htmlFor="work-size" className="block text-sm font-medium text-brand-green-ink mb-2">
-            📏 {text("Size (optional)", "साइज — नलेखे पनि हुन्छ")}
+            📏 {text("Size", "साइज")}{" "}
+            <span className="font-normal text-brand-muted">{text("(optional)", "— चाहिए मात्र")}</span>
           </label>
           {selectedWorkOrder ? (
             <select
@@ -727,7 +750,7 @@ export default function WorkEntryForm({
                           return { ...prev, size: next.join(", ") };
                         })
                       }
-                      className={`press-dip grid h-9 w-9 place-items-center rounded-lg border text-sm font-black transition ${
+                      className={`press-dip grid h-9 min-w-9 shrink-0 place-items-center rounded-lg border px-1.5 text-sm font-black transition ${
                         active
                           ? "border-brand-green bg-brand-green text-white"
                           : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
@@ -747,22 +770,6 @@ export default function WorkEntryForm({
               />
             </>
           )}
-        </div>
-
-        {/* Pairs */}
-        <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">
-            🔢 {text("Number of pairs", "कति जोडी")}
-          </label>
-          <input
-            type="number"
-            value={formData.pairs_count}
-            onChange={handlePairsChange}
-            placeholder={text("Enter number of pairs", "कति जोडी बनायो")}
-            min="1"
-            className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
-            required
-          />
         </div>
         </div>
 
