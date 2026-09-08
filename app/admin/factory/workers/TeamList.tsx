@@ -146,10 +146,10 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-            {text("Our team", "हाम्रो टोली")}
+            {text("Our workers", "हाम्रा कामदार")}
           </p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-            {text("Team members and HR linkage", "टोली सदस्य")}
+            {text("Workers and HR linkage", "कामदार")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
             Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
@@ -175,7 +175,7 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       {showForm ? (
         <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
           <label className="text-sm font-bold">{text("Name", "नाम")}<input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
-          <label className="text-sm font-bold">{text("Team member type", "कस्तो टोली सदस्य")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
+          <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
           <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
           <label className="text-sm font-bold">{text("Monthly salary", "मासिक तलब")}<input type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => setFormData((current) => ({ ...current, monthly_salary: event.target.value }))} className={`${inputClass} mt-2`} /></label>
           <label className="text-sm font-bold">{text("Usual Saturday kharcha", "शनिबारको खर्च")}<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
@@ -184,8 +184,8 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {loading ? <p className="text-sm text-brand-muted">{text("Loading team…", "टोली खुल्दैछ…")}</p> : null}
-        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No team members yet.", "अझै टोली सदस्य थपिएको छैन।")}</p> : null}
+        {loading ? <p className="text-sm text-brand-muted">{text("Loading workers…", "कामदार खुल्दैछ…")}</p> : null}
+        {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No workers yet.", "अझै कामदार थपिएको छैन।")}</p> : null}
         {workers.map((worker) => (
           <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : "border-brand-green-line bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">

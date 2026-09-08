@@ -208,7 +208,7 @@ export default function PayrollReport({
               <table className="reflow-table w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
-                    <th className="text-left py-2 px-2 sm:px-4">{text("Team member", "टोली सदस्य")}</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Worker", "कामदार")}</th>
                     <th className="text-left py-2 px-2 sm:px-4">{text("Category", "किसिम")}</th>
                     <th className="text-center py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Earned", "कमाएको")}</th>

@@ -42,11 +42,11 @@ export default async function WorkerPortalQrPage() {
     <main className="mx-auto max-w-3xl px-5 py-8 print:px-0 print:py-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
-          <h1 className="font-display text-2xl font-black text-brand-green-ink"><T en="Team portal poster" ne="टोलीको पोर्टर पोस्टर" /></h1>
+          <h1 className="font-display text-2xl font-black text-brand-green-ink"><T en="Worker portal poster" ne="कामदारको पोस्टर" /></h1>
           <p className="mt-1 text-sm text-brand-muted">
             <T
-              en="Print this and put it where the team gathers. One sheet works for everyone — the QR carries no password and no identity."
-              ne="यो छापेर टोली भेला हुने ठाउँमा टाँस्नुहोस्। एउटै पानाले सबैलाई पुग्छ — QR मा कसैको पासवर्ड वा नाम हुँदैन।"
+              en="Print this and put it where the workers gather. One sheet works for everyone — the QR carries no password and no identity."
+              ne="यो छापेर कामदार भेला हुने ठाउँमा टाँस्नुहोस्। एउटै पानाले सबैलाई पुग्छ — QR मा कसैको पासवर्ड वा नाम हुँदैन।"
             />
           </p>
         </div>
@@ -55,7 +55,7 @@ export default async function WorkerPortalQrPage() {
             href="/admin/factory/workers"
             className="inline-flex h-11 items-center rounded-full border border-brand-green-line px-5 text-sm font-bold text-brand-green-ink"
           >
-            <T en="Back to the team" ne="टोलीमा फर्कने" />
+            <T en="Back to the workers" ne="कामदारमा फर्कने" />
           </Link>
           <PrintButton className="inline-flex h-11 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white">
             <T en="Print poster" ne="पोस्टर छाप्ने" />

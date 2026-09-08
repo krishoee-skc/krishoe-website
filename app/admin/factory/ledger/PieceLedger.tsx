@@ -156,8 +156,8 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
           ? null
           : response.production_payment_sync_reason ||
             text(
-              "Link this team member to HR to keep the production accounts in step.",
-              "उत्पादन खाता मिलिरहोस् भन्नाका लागि यो टोली सदस्यलाई HR सँग जोड्नुहोस्।",
+              "Link this worker to HR to keep the production accounts in step.",
+              "उत्पादन खाता मिलिरहोस् भन्नाका लागि यो कामदारलाई HR सँग जोड्नुहोस्।",
             ),
       );
       setPaymentNote("");
@@ -174,7 +174,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
         {text("Piece-rate wages", "ज्यालाको हिसाब")}
       </p>
       <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black text-brand-green-ink mb-2">
-        {text("Work and payment ledger", "टोली सदस्यको खाता")}
+        {text("Work and payment ledger", "कामदारको खाता")}
       </h1>
       <p className="mb-6 text-sm leading-6 text-brand-muted">
         {text(
@@ -196,14 +196,14 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       {/* Worker Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label htmlFor="ledger-worker" className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select team member", "टोली सदस्य छान्नुहोस्")}</label>
+          <label htmlFor="ledger-worker" className="block text-sm font-medium text-brand-green-ink mb-2">{text("Select worker", "कामदार छान्नुहोस्")}</label>
           <select
             id="ledger-worker"
             value={selectedWorkerId}
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg"
           >
-            <option value="">{text("Select a team member…", "टोली सदस्य छान्नुहोस्…")}</option>
+            <option value="">{text("Select a worker…", "कामदार छान्नुहोस्…")}</option>
             {workers.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.category})
@@ -322,7 +322,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                       <td colSpan={7} className="py-8 text-center text-brand-muted">
                         {text(
                           "No ledger entries for this month",
-                          "यो महिना यस टोली सदस्यको कुनै हिसाब छैन।",
+                          "यो महिना यस कामदारको कुनै हिसाब छैन।",
                         )}
                       </td>
                     </tr>
@@ -387,7 +387,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
           </form>
         </div>
       ) : (
-        <div className="text-center text-brand-muted">{text("Select a team member to view their ledger", "खाता हेर्न टोली सदस्य छान्नुहोस्")}</div>
+        <div className="text-center text-brand-muted">{text("Select a worker to view their ledger", "खाता हेर्न कामदार छान्नुहोस्")}</div>
       )}
     </div>
   );

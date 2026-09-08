@@ -25,10 +25,10 @@ import {
 const factoryLinks = [
   { href: "/admin/factory", label: "कारखाना", english: "Overview", Icon: HomeIcon },
   { href: "/admin/factory/add-work", label: "काम टिप्ने", english: "Add work", Icon: PlusIcon },
-  { href: "/admin/factory/workers", label: "टोली", english: "Team", Icon: UserIcon },
-  { href: "/admin/factory/worker-portal-qr", label: "QR पोस्टर", english: "Team QR", Icon: UserIcon },
+  { href: "/admin/factory/workers", label: "कामदार", english: "Workers", Icon: UserIcon },
+  { href: "/admin/factory/worker-portal-qr", label: "QR पोस्टर", english: "Worker QR", Icon: UserIcon },
   { href: "/admin/factory/items", label: "item र दर", english: "Items", Icon: PackageIcon },
-  { href: "/admin/factory/ledger", label: "टोली सदस्यको खाता", english: "Piece ledger", Icon: CreditCardIcon },
+  { href: "/admin/factory/ledger", label: "कामदारको खाता", english: "Piece ledger", Icon: CreditCardIcon },
   { href: "/admin/factory/reports", label: "रिपोर्ट", english: "Reports", Icon: InfoIcon },
   { href: "/admin/factory/salary", label: "तलब", english: "Staff salary", Icon: PackageIcon },
 ] as const;

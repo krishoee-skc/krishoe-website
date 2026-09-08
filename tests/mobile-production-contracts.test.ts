@@ -98,11 +98,11 @@ describe("mobile production contracts", () => {
     // stores AD), which replaced the native type="date" input.
     expect(addWork).toContain("NepaliDateField");
     expect(addWork).toContain('type="number"');
-    expect(addWork).toContain('text("Team member", "टोली सदस्य")');
+    expect(addWork).toContain('text("Worker", "कामदार")');
     // The header carries the bilingual subtitle; it was reworded when the form
     // was given its factory-crest header, so match the current line.
     expect(addWork).toContain(
-      'text("A team member, a product, the pairs — and the total.", "टोली सदस्य, सामान, जोडी — अनि जम्मा।")',
+      'text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")',
     );
 
     // Every control on this form is thumb-height. A wage entry made standing

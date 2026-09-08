@@ -81,7 +81,7 @@ export default function FactoryBoard({
       >
         <div>
           <div className="text-xs font-medium text-brand-muted">
-            {text("Owed to team", "टोलीलाई तिर्न बाँकी")}
+            {text("Owed to workers", "कामदारलाई तिर्न बाँकी")}
           </div>
           <div className="mt-1 text-xl font-black text-brand-green-ink sm:text-2xl">
             Rs. {moneyFormatter.format(owed.totalOwed)}
@@ -90,7 +90,7 @@ export default function FactoryBoard({
         <div className="text-right">
           <div className="text-lg font-black text-brand-green-ink">{owed.workersOwed}</div>
           <div className="text-xs font-semibold text-brand-gold-deep">
-            {text("team to pay →", "जनालाई तिर्न →")}
+            {text("workers to pay →", "जनालाई तिर्न →")}
           </div>
         </div>
       </Link>
@@ -98,7 +98,7 @@ export default function FactoryBoard({
       <div className="grid flex-1 grid-cols-1 gap-2 sm:gap-3 lg:grid-cols-2">
         <div className="flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
           <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
-            {text("Top of the team", "अगाडि रहेका")}
+            {text("Top workers", "अगाडि रहेका")}
           </h2>
           <div className="space-y-1 overflow-y-auto">
             {topWorkers.length > 0 ? (
