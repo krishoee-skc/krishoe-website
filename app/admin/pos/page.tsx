@@ -1,4 +1,5 @@
 import Link from "next/link";
+import T from "@/components/T";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
@@ -223,7 +224,7 @@ export default async function AdminPosPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <AlertText en="Point of Sale" ne="बिल काट्ने" />
           </p>
-          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">POS and e-billing control</h1>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="POS and e-billing control" ne="बिल काट्ने र इ-बिलिङ" /></h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             Retail, wholesale, and online billing with stock movement, credit ledger,
             printable barcode, QR code, and scanner-ready invoice lookup.
@@ -264,10 +265,10 @@ export default async function AdminPosPage() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Today net sales" value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
-        <StatCard label="Month net sales" value={money(pos.summary.monthNetSales)} detail={`${pos.summary.invoiceCount} total bills`} />
-        <StatCard label="Credit from POS" value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
-        <StatCard label="Needs review" value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
+        <StatCard label={<T en="Today net sales" ne="आजको खुद बिक्री" />} value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
+        <StatCard label={<T en="Month net sales" ne="महिनाको खुद बिक्री" />} value={money(pos.summary.monthNetSales)} detail={`${pos.summary.invoiceCount} total bills`} />
+        <StatCard label={<T en="Credit from POS" ne="बिलबाट उधारो" />} value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
+        <StatCard label={<T en="Needs review" ne="हेर्न बाँकी" />} value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <PosBillForm
@@ -291,7 +292,7 @@ export default async function AdminPosPage() {
           />
 
           <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Channel report</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Channel report" ne="कुन बाटोबाट कति" /></h2>
             <div className="mt-4 divide-y divide-brand-green-line">
               {pos.channelTotals.map((row) => (
                 <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
@@ -304,7 +305,7 @@ export default async function AdminPosPage() {
           </section>
 
           <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Payment summary</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Payment summary" ne="भुक्तानीको सार" /></h2>
             <div className="mt-4 grid gap-2">
               {pos.paymentTotals
                 .filter((row) => row.invoiceCount > 0 || row.paid > 0)
@@ -321,7 +322,7 @@ export default async function AdminPosPage() {
           </section>
 
           <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Posting health" ne="चढेको ठीक छ कि" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Stock movement, customer ledger, and payment reference check.
             </p>
@@ -353,7 +354,7 @@ export default async function AdminPosPage() {
       <section className="mt-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Today day close</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Today day close" ne="आजको दिन बन्द" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Cash, cheque, QR, wallet, bank, credit, return, and posting review for today.
             </p>
@@ -364,13 +365,13 @@ export default async function AdminPosPage() {
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-          <StatCard label="Cash" value={money(pos.todayDayClose.cashAmount)} detail="counter cash" />
-          <StatCard label="Cheque" value={money(pos.todayDayClose.chequeAmount)} detail="cheque closing" />
+          <StatCard label={<T en="Cash" ne="नगद" />} value={money(pos.todayDayClose.cashAmount)} detail="counter cash" />
+          <StatCard label={<T en="Cheque" ne="चेक" />} value={money(pos.todayDayClose.chequeAmount)} detail="cheque closing" />
           <StatCard label="QR" value={money(pos.todayDayClose.qrAmount)} detail="QR scan" />
-          <StatCard label="eSewa/Khalti" value={money(pos.todayDayClose.eSewaAmount + pos.todayDayClose.khaltiAmount)} detail="wallet total" />
-          <StatCard label="Bank" value={money(pos.todayDayClose.bankAmount)} detail="bank transfer" />
-          <StatCard label="Credit" value={money(pos.todayDayClose.creditAmount)} detail="ledger due" />
-          <StatCard label="Net sales" value={money(pos.todayDayClose.netSales)} detail={`${money(pos.todayDayClose.returnsTotal)} return`} />
+          <StatCard label={<T en="eSewa/Khalti" ne="eSewa/Khalti" />} value={money(pos.todayDayClose.eSewaAmount + pos.todayDayClose.khaltiAmount)} detail="wallet total" />
+          <StatCard label={<T en="Bank" ne="बैंक" />} value={money(pos.todayDayClose.bankAmount)} detail="bank transfer" />
+          <StatCard label={<T en="Credit" ne="उधारो" />} value={money(pos.todayDayClose.creditAmount)} detail="ledger due" />
+          <StatCard label={<T en="Net sales" ne="खुद बिक्री" />} value={money(pos.todayDayClose.netSales)} detail={`${money(pos.todayDayClose.returnsTotal)} return`} />
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-3">
@@ -457,7 +458,7 @@ export default async function AdminPosPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Profit close</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Profit close" ne="नाफाको हिसाब" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Daily, monthly, and yearly POS revenue after estimated material, labor, and overhead COGS.
             </p>
@@ -513,7 +514,7 @@ export default async function AdminPosPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Recent bills</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent bills" ne="भर्खरका बिल" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Invoice, stock movement, payment, and ledger posting trail.
             </p>

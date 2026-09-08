@@ -162,13 +162,13 @@ export default async function AdminPurchasingPage() {
           ("Month profit signal") stranded alone on a second row. Matches the
           seven-tile day-close row on the POS screen. */}
       <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <StatCard label="Today purchase" value={money(purchasing.summary.todayPurchase)} detail="raw material cost" />
-        <StatCard label="Month purchase" value={money(purchasing.summary.monthPurchase)} detail={`${purchasing.summary.purchaseInvoiceCount} invoices`} />
-        <StatCard label="Supplier due" value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
-        <StatCard label="Over 90 due" value={money(purchasing.summary.supplierOver90Due)} detail={`${purchasing.summary.supplierAgingRiskCount} aging risk`} />
-        <StatCard label="Pay today" value={money(purchasing.reports.supplierPaymentSummary.immediateDue)} detail={`${purchasing.summary.supplierImmediatePaymentCount} immediate`} />
-        <StatCard label="Posting review" value={purchasing.summary.postingNeedsReview} detail={`${purchasing.summary.postedInvoiceCount} posted invoices`} />
-        <StatCard label="Month profit signal" value={money(purchasing.summary.monthProfitEstimate)} detail="POS net sales minus purchases" />
+        <StatCard label={<T en="Today purchase" ne="आजको किनाइ" />} value={money(purchasing.summary.todayPurchase)} detail="raw material cost" />
+        <StatCard label={<T en="Month purchase" ne="महिनाको किनाइ" />} value={money(purchasing.summary.monthPurchase)} detail={`${purchasing.summary.purchaseInvoiceCount} invoices`} />
+        <StatCard label={<T en="Supplier due" ne="साहुलाई तिर्न बाँकी" />} value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
+        <StatCard label={<T en="Over 90 due" ne="९० दिनभन्दा पुरानो" />} value={money(purchasing.summary.supplierOver90Due)} detail={`${purchasing.summary.supplierAgingRiskCount} aging risk`} />
+        <StatCard label={<T en="Pay today" ne="आज तिर्नुपर्ने" />} value={money(purchasing.reports.supplierPaymentSummary.immediateDue)} detail={`${purchasing.summary.supplierImmediatePaymentCount} immediate`} />
+        <StatCard label={<T en="Posting review" ne="चढेको हेर्न बाँकी" />} value={purchasing.summary.postingNeedsReview} detail={`${purchasing.summary.postedInvoiceCount} posted invoices`} />
+        <StatCard label={<T en="Month profit signal" ne="महिनाको नाफाको सङ्केत" />} value={money(purchasing.summary.monthProfitEstimate)} detail="POS net sales minus purchases" />
       </div>
 
       {/* The bill has the whole width now, and the whole job with it. The
@@ -216,7 +216,7 @@ export default async function AdminPurchasingPage() {
         </section>
 
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Material purchase</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Material purchase" ne="कच्चा पदार्थ किनाइ" /></h2>
           <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.materialTotals.slice(0, 6).map((row) => (
               <div key={row.materialName} className="grid grid-cols-3 gap-3 py-3 text-sm">
@@ -232,7 +232,7 @@ export default async function AdminPurchasingPage() {
         </section>
 
         <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Supplier ledgers</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier ledgers" ne="साहुका खाता" /></h2>
           <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
               const aging = supplierAgingById.get(supplier.id);
@@ -261,7 +261,7 @@ export default async function AdminPurchasingPage() {
         </section>
 
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">Posting health</h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Posting health" ne="चढेको ठीक छ कि" /></h2>
           <p className="mt-1 text-sm text-brand-muted">Supplier ledger, raw material link, and payment posting check.</p>
           <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.postingReviewRows.slice(0, 6).map((row) => (
@@ -289,7 +289,7 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Supplier payment queue</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier payment queue" ne="साहुलाई तिर्ने पालो" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Payable priority, due date, and next action for supplier relationship control.
             </p>
@@ -385,7 +385,7 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Supplier aging report</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier aging report" ne="साहुको पुरानो बाँकी" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Due amount grouped by age so old supplier payable is visible before it becomes risky.
             </p>
@@ -451,7 +451,7 @@ export default async function AdminPurchasingPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Recent purchase invoices</h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent purchase invoices" ne="भर्खरका किनाइ बिल" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Raw material stock receipt, supplier due, and payment trail.
             </p>
