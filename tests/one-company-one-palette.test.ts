@@ -50,16 +50,23 @@ describe("one company, one palette", () => {
   it("keeps the colours that carry meaning", async () => {
     const files = [...(await adminFiles("app")), ...(await adminFiles("components"))];
 
-    let count = 0;
-    for (const file of files) count += ((await readFile(file, "utf8")).match(SEMANTIC) ?? []).length;
+    const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
+    const counts = sources.map((source) => (source.match(SEMANTIC) ?? []).length);
 
     // A due date is red because it is late, not because of a palette. If this
     // ever collapses toward zero, somebody has repainted a warning.
     //
-    // Measured per file, not in total: deleting a screen lowers the total
-    // without repainting anything, and a guard that cannot tell removal from
-    // repainting fires on the wrong day.
-    expect(count / files.length).toBeGreaterThan(3.5);
+    // Averaged over the files that actually carry a meaning-colour, not over
+    // every admin file. Measuring across all of them made the number move for
+    // reasons that have nothing to do with repainting: deleting a screen lowers
+    // it, and so does adding one that is meant to be colourless — a loading
+    // skeleton is grey bars by design, and eight of them dragged this average
+    // under the line while every warning in the app stayed exactly as red.
+    const painted = counts.filter((count) => count > 0);
+    const total = painted.reduce((sum, count) => sum + count, 0);
+
+    expect(painted.length, "files carrying a meaning-colour").toBeGreaterThan(40);
+    expect(total / painted.length).toBeGreaterThan(5);
   });
 
   it("gives the admin tokens the brand's own colours", async () => {
