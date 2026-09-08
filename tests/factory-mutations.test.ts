@@ -395,6 +395,8 @@ describe("Factory mutation idempotency", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: "worker-1", category: "Staff", worker_type: "monthly_staff" }])
       .mockResolvedValueOnce([])
+      // The repeated-payment check: nothing paid to this worker minutes ago.
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ running_balance: "500.00" }])
       .mockResolvedValueOnce([
         {
@@ -428,7 +430,11 @@ describe("Factory mutation idempotency", () => {
 
     expect(result).toMatchObject({ payment_given: 100, running_balance: 400 });
     expect(String(dbQuery.mock.calls[1][0])).toContain("FOR UPDATE");
-    expect(String(dbQuery.mock.calls[3][0])).toContain("SUM(COALESCE(amount_earned, 0)");
+    const balanceRead = dbQuery.mock.calls
+      .map((call) => String(call[0]))
+      .find((sql) => sql.includes("SUM(COALESCE(amount_earned, 0)"));
+    expect(balanceRead, "the balance is derived from ledger facts").toBeTruthy();
+    expect(balanceRead).toContain("status <> 'reversed'");
   });
 
   it("synchronizes a linked piece-rate cash payment into Production Accounts", async () => {
@@ -443,6 +449,8 @@ describe("Factory mutation idempotency", () => {
         },
       ])
       .mockResolvedValueOnce([]) // no existing ledger submission
+      // The repeated-payment check: nothing paid to this worker minutes ago.
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ running_balance: "500.00" }])
       .mockResolvedValueOnce([
         {

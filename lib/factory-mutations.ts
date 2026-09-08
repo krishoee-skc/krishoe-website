@@ -636,6 +636,35 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
       };
     }
 
+    // The same worker paid the same amount on the same day, minutes ago. The
+    // idempotency key cannot see this — it guards a retry of one submission and
+    // rotates after a success, so a second press is a new key and, to the
+    // server, a new payment. This is the check that caught nothing the day a
+    // wage was recorded twice twenty-three seconds apart.
+    if (input.entryType === "payment" && input.paymentGiven > 0) {
+      const recent = await db.query<{ id: string; minutes_ago: number }>(
+        `SELECT id, EXTRACT(EPOCH FROM (now() - created_at)) / 60 AS minutes_ago
+         FROM factory_worker_ledger
+         WHERE worker_id = $1
+           AND entry_type = 'payment'
+           AND status <> 'reversed'
+           AND date = $2::date
+           AND payment_given = $3
+           AND created_at > now() - interval '10 minutes'
+         LIMIT 1`,
+        [input.workerId, input.date, input.paymentGiven],
+      );
+
+      if (recent[0]) {
+        const minutes = Math.max(1, Math.round(Number(recent[0].minutes_ago) || 1));
+        throw new FactoryMutationError(
+          `This worker was already paid this amount ${minutes} minute${minutes === 1 ? "" : "s"} ago today. ` +
+            "If that was this payment, it is already recorded. If it is a second, separate payment, wait a few minutes or add a note saying what it is for.",
+          409,
+        );
+      }
+    }
+
     const latest = await db.query<{ running_balance: DbNumeric }>(
       `SELECT COALESCE(
                 SUM(COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)),
