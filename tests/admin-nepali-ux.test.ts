@@ -40,14 +40,30 @@ describe("menu names", () => {
 });
 
 describe("what the app says back", () => {
-  it("confirms an operations save in Nepali", async () => {
+  // These used to be Nepali only, which meant an owner working in English saved
+  // a raw material and was told "कच्चा पदार्थ थपियो ✅". Both halves travel in
+  // the URL now and the page picks one — so the rule is no longer "is it
+  // Nepali" but "does it still say it in Nepali, and in English too".
+  it("confirms an operations save in both languages", async () => {
     const source = await readFile("app/admin/operations/actions.ts", "utf8");
-    const messages = [...source.matchAll(/refreshOperationsPage\("([^"]+)"/g)].map((m) => m[1]);
+    const messages = [
+      ...source.matchAll(/refreshOperationsPage\(\s*savedMessage\("([^"]+)",\s*"([^"]+)"/g),
+    ];
 
     expect(messages.length).toBeGreaterThan(15);
-    for (const message of messages) {
-      expect(message, message).toMatch(NEPALI);
+
+    for (const [, english, nepali] of messages) {
+      expect(nepali, nepali).toMatch(NEPALI);
+      expect(english, english).not.toMatch(NEPALI);
+      expect(english.trim().length, english).toBeGreaterThan(0);
     }
+  });
+
+  it("leaves no operations save speaking one language only", async () => {
+    const source = await readFile("app/admin/operations/actions.ts", "utf8");
+    const unpaired = [...source.matchAll(/refreshOperationsPage\("([^"]+)"/g)].map((m) => m[1]);
+
+    expect(unpaired.join("\n"), "wrap these in savedMessage(en, ne)").toBe("");
   });
 
   it("refuses a staff account in Nepali", async () => {

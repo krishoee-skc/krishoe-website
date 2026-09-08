@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import T from "@/components/T";
+import { readSavedMessage } from "@/lib/saved-message";
 import { money } from "@/lib/format-money";
 import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
@@ -22,7 +23,8 @@ export default async function AdminOperationsPage({
 }: {
   searchParams?: Promise<{ saved?: string }>;
 }) {
-  const saved = (await searchParams)?.saved?.trim() ?? "";
+  // The action wrote both languages into the URL; the reader picks one.
+  const saved = readSavedMessage((await searchParams)?.saved ?? "");
   const [snapshot, costing, productionControl] = await Promise.all([
     getOperationsSnapshot(),
     getCostingSnapshot(),
@@ -47,12 +49,12 @@ export default async function AdminOperationsPage({
       {/* Saving used to be silent: the row was written and the page came back
           looking identical, so there was no way to tell it apart from a button
           that did nothing. */}
-      {saved ? (
+      {saved.en || saved.ne ? (
         <p
           role="status"
           className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900"
         >
-          ✅ {saved}
+          ✅ <T en={saved.en} ne={saved.ne} />
         </p>
       ) : null}
       <div>

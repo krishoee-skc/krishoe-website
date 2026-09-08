@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { savedMessage } from "@/lib/saved-message";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
@@ -167,7 +168,7 @@ export async function createRawMaterialAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_raw_material", `Raw material ${name} created.`);
 
-  refreshOperationsPage("कच्चा पदार्थ थपियो ✅ तल Raw material सूचीमा छ।");
+  refreshOperationsPage(savedMessage("Raw material added ✅ It is in the Raw material list below.", "कच्चा पदार्थ थपियो ✅ तल Raw material सूचीमा छ।"));
 }
 
 export async function createProductionBatchAction(formData: FormData) {
@@ -190,7 +191,7 @@ export async function createProductionBatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_production_batch", `Production batch ${design} created.`);
 
-  refreshOperationsPage("उत्पादन lot थपियो ✅ तल Production batches मा छ।");
+  refreshOperationsPage(savedMessage("Production lot added ✅ It is in Production batches below.", "उत्पादन lot थपियो ✅ तल Production batches मा छ।"));
 }
 
 export async function createMaterialConsumptionAction(formData: FormData) {
@@ -218,7 +219,7 @@ export async function createMaterialConsumptionAction(formData: FormData) {
     `Batch ${batchId} material ${materialId}: ${quantity} used, ${wastage} wastage.`,
   );
 
-  refreshOperationsPage("खपत टिपियो ✅ तल Material consumption मा छ।");
+  refreshOperationsPage(savedMessage("Consumption recorded ✅ It is in Material consumption below.", "खपत टिपियो ✅ तल Material consumption मा छ।"));
 }
 
 export async function createVehicleDispatchAction(formData: FormData) {
@@ -247,7 +248,7 @@ export async function createVehicleDispatchAction(formData: FormData) {
     `Vehicle dispatch ${vehicleNumber} for ${driverName} created.`,
   );
 
-  refreshOperationsPage("गाडी थपियो ✅ तल Vehicle dispatch मा छ।");
+  refreshOperationsPage(savedMessage("Vehicle added ✅ It is in Vehicle dispatch below.", "गाडी थपियो ✅ तल Vehicle dispatch मा छ।"));
 }
 
 export async function createVehicleDispatchItemAction(formData: FormData) {
@@ -286,7 +287,7 @@ export async function createVehicleDispatchItemAction(formData: FormData) {
     `Dispatch ${dispatchId} item ${design}: loaded ${loadedPairs}, sold ${soldPairs}, returned ${returnedPairs}.`,
   );
 
-  refreshOperationsPage("गाडीको सामान थपियो ✅ तल Dispatch item history मा छ।");
+  refreshOperationsPage(savedMessage("Dispatch item added ✅ It is in Dispatch item history below.", "गाडीको सामान थपियो ✅ तल Dispatch item history मा छ।"));
 }
 
 export async function createCustomerLedgerAction(formData: FormData) {
@@ -310,7 +311,7 @@ export async function createCustomerLedgerAction(formData: FormData) {
   });
   await auditOperationsAction("operations_create_customer_ledger", `Customer ledger ${customerName} created.`);
 
-  refreshOperationsPage("ग्राहकको खाता खुल्यो ✅ तल Customer ledger मा छ।");
+  refreshOperationsPage(savedMessage("Customer account opened ✅ It is in the Customer ledger below.", "ग्राहकको खाता खुल्यो ✅ तल Customer ledger मा छ।"));
 }
 
 export async function createWorkerTaskAction(formData: FormData) {
@@ -339,7 +340,7 @@ export async function createWorkerTaskAction(formData: FormData) {
     `Worker task for ${workerName} on ${design || batchId} created.`,
   );
 
-  refreshOperationsPage("कामदारको काम थपियो ✅ तल Worker progress मा छ।");
+  refreshOperationsPage(savedMessage("Worker task added ✅ It is in Worker progress below.", "कामदारको काम थपियो ✅ तल Worker progress मा छ।"));
 }
 
 export async function createFinishedStockAction(formData: FormData) {
@@ -362,7 +363,7 @@ export async function createFinishedStockAction(formData: FormData) {
   await syncCatalogStock(`finished stock created for ${design}`);
   await auditOperationsAction("operations_create_finished_stock", `Finished stock ${design} created.`);
 
-  refreshOperationsPage("तयारी स्टक सुरक्षित भयो ✅ पसलमा पनि मिल्यो।");
+  refreshOperationsPage(savedMessage("Ready stock saved ✅ The shop count matches it.", "तयारी स्टक सुरक्षित भयो ✅ पसलमा पनि मिल्यो।"));
 }
 
 export async function updateRawMaterialAction(formData: FormData) {
@@ -385,7 +386,7 @@ export async function updateRawMaterialAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_raw_material", `Raw material ${id} updated.`);
 
-  refreshOperationsPage("कच्चा पदार्थ मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Raw material updated ✅", "कच्चा पदार्थ मिलाइयो ✅"));
 }
 
 export async function updateWorkerTaskAction(formData: FormData) {
@@ -412,7 +413,7 @@ export async function updateWorkerTaskAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_worker_task", `Worker task ${id} updated.`);
 
-  refreshOperationsPage("कामदारको काम मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Worker task updated ✅", "कामदारको काम मिलाइयो ✅"));
 }
 
 export async function updateFinishedStockAction(formData: FormData) {
@@ -436,7 +437,7 @@ export async function updateFinishedStockAction(formData: FormData) {
   await syncCatalogStock(`finished stock ${id} updated`);
   await auditOperationsAction("operations_update_finished_stock", `Finished stock ${id} updated.`);
 
-  refreshOperationsPage("तयारी स्टक मिलाइयो ✅ पसलमा पनि मिल्यो।");
+  refreshOperationsPage(savedMessage("Ready stock updated ✅ The shop count matches it.", "तयारी स्टक मिलाइयो ✅ पसलमा पनि मिल्यो।"));
 }
 
 export async function updateProductionBatchAction(formData: FormData) {
@@ -460,7 +461,7 @@ export async function updateProductionBatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_production_batch", `Production batch ${id} updated.`);
 
-  refreshOperationsPage("उत्पादन lot मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Production lot updated ✅", "उत्पादन lot मिलाइयो ✅"));
 }
 
 export async function updateVehicleDispatchAction(formData: FormData) {
@@ -487,7 +488,7 @@ export async function updateVehicleDispatchAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_vehicle_dispatch", `Vehicle dispatch ${id} updated.`);
 
-  refreshOperationsPage("गाडी मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Vehicle updated ✅", "गाडी मिलाइयो ✅"));
 }
 
 export async function updateCustomerLedgerAction(formData: FormData) {
@@ -512,7 +513,7 @@ export async function updateCustomerLedgerAction(formData: FormData) {
   });
   await auditOperationsAction("operations_update_customer_ledger", `Customer ledger ${id} updated.`);
 
-  refreshOperationsPage("ग्राहकको खाता मिलाइयो ✅", operationsReturnPath(formData));
+  refreshOperationsPage(savedMessage("Customer account updated ✅", "ग्राहकको खाता मिलाइयो ✅"), operationsReturnPath(formData));
 }
 
 export async function createStockMovementAction(formData: FormData) {
@@ -542,7 +543,7 @@ export async function createStockMovementAction(formData: FormData) {
   await syncCatalogStock(`stock movement for ${design}`);
   await auditOperationsAction("operations_create_stock_movement", `Stock movement for ${design} created.`);
 
-  refreshOperationsPage("स्टक चढ्यो ✅ तयारी स्टक र पसल दुवैमा मिल्यो।");
+  refreshOperationsPage(savedMessage("Stock posted ✅ Ready stock and the shop now agree.", "स्टक चढ्यो ✅ तयारी स्टक र पसल दुवैमा मिल्यो।"));
 }
 
 export async function createLedgerTransactionAction(formData: FormData) {
@@ -566,7 +567,7 @@ export async function createLedgerTransactionAction(formData: FormData) {
     `Ledger ${ledgerId} transaction recorded for Rs. ${amount}.`,
   );
 
-  refreshOperationsPage("कारोबार टिपियो ✅", operationsReturnPath(formData));
+  refreshOperationsPage(savedMessage("Transaction recorded ✅", "कारोबार टिपियो ✅"), operationsReturnPath(formData));
 }
 
 export async function updateProductionBatchStatusAction(formData: FormData) {
@@ -578,7 +579,7 @@ export async function updateProductionBatchStatusAction(formData: FormData) {
   await updateProductionBatchStatus(id, status);
   await auditOperationsAction("operations_update_production_status", `Production batch ${id} marked ${status}.`);
 
-  refreshOperationsPage("lot को चरण मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Lot stage updated ✅", "lot को चरण मिलाइयो ✅"));
 }
 
 export async function updateVehicleDispatchStatusAction(formData: FormData) {
@@ -590,7 +591,7 @@ export async function updateVehicleDispatchStatusAction(formData: FormData) {
   await updateVehicleDispatchStatus(id, status);
   await auditOperationsAction("operations_update_dispatch_status", `Vehicle dispatch ${id} marked ${status}.`);
 
-  refreshOperationsPage("गाडीको अवस्था मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Vehicle status updated ✅", "गाडीको अवस्था मिलाइयो ✅"));
 }
 
 export async function updateWorkerTaskStatusAction(formData: FormData) {
@@ -602,7 +603,7 @@ export async function updateWorkerTaskStatusAction(formData: FormData) {
   await updateWorkerTaskStatus(id, status);
   await auditOperationsAction("operations_update_worker_status", `Worker task ${id} marked ${status}.`);
 
-  refreshOperationsPage("कामदारको अवस्था मिलाइयो ✅");
+  refreshOperationsPage(savedMessage("Worker status updated ✅", "कामदारको अवस्था मिलाइयो ✅"));
 }
 
 export async function deleteOperationRecordAction(formData: FormData) {
@@ -622,5 +623,5 @@ export async function deleteOperationRecordAction(formData: FormData) {
   }
 
   await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);
-  refreshOperationsPage("हरफ मेटियो ✅", operationsReturnPath(formData));
+  refreshOperationsPage(savedMessage("Row deleted ✅", "हरफ मेटियो ✅"), operationsReturnPath(formData));
 }
