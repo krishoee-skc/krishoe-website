@@ -289,66 +289,82 @@ export default function WorkEntryForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError("");
     setSuccess("");
 
     if (!formData.worker_id || !formData.item_id || !formData.pairs_count) {
-      setError("Please fill in all required fields");
-      setSubmitting(false);
+      setError(
+        text("Please fill in all required fields", "सबै आवश्यक कुरा भर्नुहोस्"),
+      );
       return;
     }
 
+    // What is being sent, kept aside: the form is cleared immediately, and this
+    // is what goes back into it if the save fails.
+    const entry = { ...formData };
+    const keyScope = `work:${JSON.stringify(entry)}`;
+    const key = idempotencyKeys.get(keyScope);
+    idempotencyKeys.rotate(keyScope);
+
+    // Clear for the next row now, not when the server answers. The worker, the
+    // item and the stage stay: a person makes three or four rows of the same
+    // work, and re-picking them each time was most of the typing.
+    setFormData((current) => ({
+      ...current,
+      pairs_count: "",
+      reject_pairs: "",
+      size: "",
+      color: "",
+    }));
+    setCalculatedAmount(0);
+
+    setSubmitting(true);
+
     try {
-      const keyScope = `work:${JSON.stringify(formData)}`;
       const res = await fetch("/api/factory/work", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKeys.get(keyScope),
+          "Idempotency-Key": key,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(entry),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to save work entry");
       }
 
       const result = await res.json();
-      idempotencyKeys.rotate(keyScope);
       setWorkSaved((count) => count + 1);
-      setSuccess(
-        result.production_synced
-          ? "✅ Work and wage saved. 📦 Next: switch to “Post to stock” above to send the finished pairs to the godown."
-          : `✅ Work and wage saved. 📦 Next: “Post to stock” above sends the pairs to the godown. ${
-              result.production_sync_reason ||
-              "Link the Worker and Item Master to synchronize production history."
-            }`,
-      );
-      toast.show(text("Work and wage saved", "काम र ज्याला टिपियो"), "success");
-      setFormData({
-        date: nepalDateKey(),
-        worker_id: "",
-        item_id: "",
-        stage: "",
-        work_order_id: "",
-        color: "",
-        size: "",
-        pairs_count: "",
-        reject_pairs: "",
-        status: "completed",
-      });
-      setSelectedRate(null);
-      setSelectedRateSource("");
-      setCalculatedAmount(0);
 
-      // Redirect back to dashboard after 1.5 seconds
-      setTimeout(() => {
-        router.push("/admin/factory");
-      }, 1500);
+      const pairs = entry.pairs_count;
+      const worker = workers.find((entry_) => entry_.id === entry.worker_id);
+      toast.show(
+        text(
+          `Saved — ${pairs} pairs for ${worker?.name ?? "the worker"}`,
+          `टिपियो — ${worker?.name ?? "कामदार"} को ${pairs} जोडी`,
+        ),
+        "success",
+      );
+
+      if (!result.production_synced && result.production_sync_reason) {
+        setSuccess(result.production_sync_reason);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save work entry");
+      // Put it back exactly as typed. A wage entry that vanishes because the
+      // network blinked is a day's work the factory has to remember by hand.
+      setFormData(entry);
+      setCalculatedAmount(
+        priceFor(entry.worker_id, entry.item_id, entry.stage, parseInt(entry.pairs_count) || 0)
+          ?.amount ?? 0,
+      );
+      const message = err instanceof Error ? err.message : "Failed to save work entry";
+      setError(message);
+      toast.show(
+        text(`Not saved — ${message}`, `टिपिएन — ${message}`),
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -802,10 +818,12 @@ export default function WorkEntryForm({
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            disabled={submitting}
+
             className="flex-1 bg-brand-green hover:bg-brand-green-ink disabled:bg-brand-muted-soft text-white font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
           >
-            {submitting ? "Saving..." : "✅ Save Work Entry"}
+            {submitting
+              ? text("Saving… (carry on)", "टिप्दै… (अर्को हाल्न सक्नुहुन्छ)")
+              : text("✅ Save work entry", "✅ काम टिप्ने")}
           </button>
           <button
             type="button"
