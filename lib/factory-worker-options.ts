@@ -13,15 +13,46 @@
  * from them either offers something the write will reject or hides something
  * the shop is using. One list, imported by both sides, cannot drift.
  */
+/**
+ * The three jobs this shop's shoes pass through, plus the quality check and
+ * the salaried staff who are not on piece rate at all.
+ *
+ * Two more were offered once — Fiber Preparation and Bottom Final —
+ * and never used: no worker filed under them, no work entry carrying them, no
+ * rate set for them, checked against production before they were dropped. The
+ * database still accepts them, so an old row could not be orphaned by this.
+ */
 export const FACTORY_WORKER_CATEGORIES = [
   "Upper",
   "Fibermen",
-  "Fiber Preparation",
   "Fiber Silai",
-  "Bottom Final",
   "Packing / QC",
   "Staff",
 ] as const;
+
+/**
+ * What each stage is called on screen.
+ *
+ * The stored value stays what the database check constraint names — those are
+ * data, and renaming one would mean touching every worker filed under it. What
+ * the shop *says* is another matter: the fiber men are the bottom men, one job
+ * with two names on the workshop floor, and a dropdown that offers only one of
+ * them leaves the other half of the shop guessing. So the label carries both.
+ */
+export const FACTORY_WORKER_CATEGORY_LABELS: Record<string, { en: string; ne: string }> = {
+  Upper: { en: "Upper", ne: "अपर" },
+  Fibermen: { en: "Fibermen (bottom men)", ne: "फाइबर / बटम" },
+  "Fiber Silai": { en: "Fiber silai", ne: "फाइबर सिलाइ" },
+  "Packing / QC": { en: "Packing / QC", ne: "प्याकिङ / QC" },
+  Staff: { en: "Staff", ne: "कर्मचारी" },
+};
+
+/** The label for a stage, falling back to the stored value for anything older. */
+export function factoryCategoryLabel(category: string, nepali: boolean) {
+  const label = FACTORY_WORKER_CATEGORY_LABELS[category];
+  if (!label) return category;
+  return nepali ? label.ne : label.en;
+}
 
 export const FACTORY_WORKER_TYPES = ["piece_rate", "monthly_staff", "daily_staff"] as const;
 

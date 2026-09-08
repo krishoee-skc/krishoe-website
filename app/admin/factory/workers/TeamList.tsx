@@ -5,6 +5,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useCallback, useState } from "react";
 import {
   FACTORY_WORKER_CATEGORIES,
+  factoryCategoryLabel,
   FACTORY_WORKER_TYPES,
   FACTORY_WORKER_TYPE_LABELS,
   type FactoryWorkerType,
@@ -24,7 +25,7 @@ const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg
  * reloads through the API, which reads the very same query.
  */
 export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] }) {
-  const { text } = useLanguage();
+  const { text, language } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
   const [edits, setEdits] = useState<Record<string, { name: string; category: string; worker_type: string }>>({});
   const [loading, setLoading] = useState(false);
@@ -246,7 +247,9 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
                   aria-label={`Stage for ${worker.name}`}
                 >
                   {FACTORY_WORKER_CATEGORIES.map((option) => (
-                    <option key={option} value={option}>{option}</option>
+                    <option key={option} value={option}>
+                      {factoryCategoryLabel(option, language === "ne")}
+                    </option>
                   ))}
                 </select>
               </label>

@@ -7,7 +7,7 @@ import Link from "next/link";
 import ReadyToPost from "@/app/admin/factory/add-work/ReadyToPost";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
-import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
+import { FACTORY_WORKER_CATEGORIES, factoryCategoryLabel } from "@/lib/factory-worker-options";
 import { pieceWage } from "@/lib/factory-board";
 import { quoteWork, type FactoryRate } from "@/lib/factory-rate-book";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
@@ -69,7 +69,7 @@ export default function WorkEntryForm({
   initialRates: FactoryRate[];
 }) {
   const router = useRouter();
-  const { text } = useLanguage();
+  const { text, language } = useLanguage();
   const toast = useToast();
   const [workers] = useState<Worker[]>(initialWorkers);
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -540,7 +540,7 @@ export default function WorkEntryForm({
             >
               {FACTORY_WORKER_CATEGORIES.filter((c) => c !== "Staff").map((cat) => (
                 <option key={cat} value={cat}>
-                  {cat}
+                  {factoryCategoryLabel(cat, language === "ne")}
                 </option>
               ))}
             </select>
