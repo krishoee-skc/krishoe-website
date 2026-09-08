@@ -262,7 +262,7 @@ const DAILY = [
   "app/admin/ProductForm.tsx",
   "app/admin/products/page.tsx",
   "app/admin/pos/_components/PosBillForm.tsx",
-  "app/admin/factory/add-work/page.tsx",
+  "app/admin/factory/add-work/WorkEntryForm.tsx",
   "app/admin/orders/page.tsx",
   "app/admin/stock/page.tsx",
   "app/admin/factory/workers/TeamList.tsx",

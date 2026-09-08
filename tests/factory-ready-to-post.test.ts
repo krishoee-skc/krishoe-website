@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const API = "app/api/factory/ready/route.ts";
 const PANEL = "app/admin/factory/add-work/ReadyToPost.tsx";
-const PAGE = "app/admin/factory/add-work/page.tsx";
+const PAGE = "app/admin/factory/add-work/WorkEntryForm.tsx";
 const POLICY = "lib/factory-api-policy.ts";
 
 function code(source: string) {

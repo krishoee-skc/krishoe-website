@@ -9,6 +9,7 @@
  * and the API can never drift into reporting different days.
  */
 import { queryPostgres } from "@/lib/postgres/client";
+import type { FactoryRate } from "@/lib/factory-rate-book";
 import {
   factoryTotalsFromRow,
   normalisePayrollRow,
@@ -304,6 +305,70 @@ export async function getFactoryItems(
     productionItems,
     workOrders: workOrders.map(normaliseWorkOrder),
   };
+}
+
+/**
+ * Every wage rate in force, in one read.
+ *
+ * The work-entry screen used to ask the server for a rate each time a worker
+ * and an item were picked — a wait at the workbench per entry, for a figure
+ * that had not changed since the last one. Handed the book, it answers
+ * instantly and lib/factory-rate-book decides which rate wins, by exactly the
+ * rule the save applies.
+ *
+ * Bounded by items times stages times workers who have a personal rate: a
+ * catalogue, not a log. Rates that have expired or never started are left to
+ * the caller, which knows the day being entered.
+ */
+export async function getFactoryRateBook(): Promise<FactoryRate[]> {
+  const rows = await queryPostgres<Record<string, unknown>>(
+    STORE,
+    `SELECT fi.id AS item_id,
+            rates.employee_id AS worker_id,
+            rates.stage,
+            '' AS worker_category,
+            rates.rate_per_pair,
+            rates.effective_from AS effective_from,
+            'Worker override' AS source
+       FROM production_worker_stage_rates rates
+       JOIN factory_items fi ON fi.production_item_id = rates.item_id
+      WHERE rates.status = 'Active'
+      UNION ALL
+     SELECT fi.id AS item_id,
+            '' AS worker_id,
+            rates.stage,
+            '' AS worker_category,
+            rates.rate_per_pair,
+            rates.effective_from AS effective_from,
+            'Production stage' AS source
+       FROM production_stage_rates rates
+       JOIN factory_items fi ON fi.production_item_id = rates.item_id
+      WHERE rates.status = 'Active'
+      UNION ALL
+     SELECT legacy.item_id,
+            '' AS worker_id,
+            '' AS stage,
+            legacy.worker_category,
+            legacy.rate_per_pair,
+            legacy.effective_date AS effective_from,
+            'Factory rate' AS source
+       FROM factory_rates legacy`,
+  );
+
+  return rows.map((row) => ({
+    itemId: String(row.item_id ?? ""),
+    workerId: row.worker_id ? String(row.worker_id) : "",
+    stage: String(row.stage ?? ""),
+    workerCategory: String(row.worker_category ?? ""),
+    ratePerPair: Number(row.rate_per_pair) || 0,
+    // A date column arrives as a Date through some drivers and a string through
+    // others; the rate book compares days as text.
+    effectiveFrom:
+      row.effective_from instanceof Date
+        ? row.effective_from.toISOString().slice(0, 10)
+        : String(row.effective_from ?? "").slice(0, 10),
+    source: String(row.source) as FactoryRate["source"],
+  }));
 }
 
 export type FactoryOwed = { totalOwed: number; workersOwed: number };

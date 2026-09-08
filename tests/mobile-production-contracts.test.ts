@@ -92,7 +92,7 @@ describe("mobile production contracts", () => {
   });
 
   it("keeps the daily work entry fast on a phone", () => {
-    const addWork = source("app/admin/factory/add-work/page.tsx");
+    const addWork = source("app/admin/factory/add-work/WorkEntryForm.tsx");
 
     // The date is now the Bikram Sambat field (a tap-to-open BS calendar that
     // stores AD), which replaced the native type="date" input.

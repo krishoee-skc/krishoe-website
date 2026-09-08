@@ -1,5 +1,8 @@
 import { bikramMonthKeyOf, bikramMonthRange } from "@/lib/bikram-sambat";
 import { numeric, type DbNumeric } from "@/lib/factory-money";
+import { productionStageForFactoryCategory } from "@/lib/factory-stage";
+
+export { productionStageForFactoryCategory };
 import {
   transactionPostgres,
   type PostgresExecutor,
@@ -128,13 +131,7 @@ async function lockWorker(
   return rows[0];
 }
 
-export function productionStageForFactoryCategory(category: string) {
-  if (category === "Upper") return "Upper";
-  if (category === "Fibermen" || category === "Fiber Preparation") return "Fiber Preparation";
-  if (category === "Fiber Silai") return "Fiber Silai";
-  if (category === "Bottom Final") return "Bottom Final";
-  return null;
-}
+
 
 interface WorkRow {
   id: string;
