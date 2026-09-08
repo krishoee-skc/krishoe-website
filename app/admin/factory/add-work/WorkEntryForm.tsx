@@ -452,21 +452,22 @@ export default function WorkEntryForm({
           </div>
         )}
 
-        {/* Section headings group the form into who/what, how many, and details,
-            so a long form reads as three short steps rather than one list. */}
-        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
-          {text("① Day", "① दिन")}
-        </p>
-
-        {/* Date — picked in Bikram Sambat, stored as AD. The field shows the BS
-            date big and the AD date small, so both are on screen. */}
-        <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">📅 {text("Date", "मिति")}</label>
-          <NepaliDateField
-            value={formData.date}
-            onChange={(adValue) => setFormData((prev) => ({ ...prev, date: adValue }))}
-            required
-          />
+        {/* The day this work was done. One field, so it needs no section
+            heading over it — the label sits beside the picker and the whole
+            thing is one line instead of four. Picked in Bikram Sambat and
+            stored as AD; the field shows both. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <label htmlFor="work-date" className="text-sm font-medium text-brand-green-ink">
+            📅 {text("Work done on", "कामको मिति")}
+          </label>
+          <div className="min-w-[11rem] flex-1">
+            <NepaliDateField
+              id="work-date"
+              value={formData.date}
+              onChange={(adValue) => setFormData((prev) => ({ ...prev, date: adValue }))}
+              required
+            />
+          </div>
         </div>
 
         {/* Worker + Product on one row on wider phones and up, so the two most
