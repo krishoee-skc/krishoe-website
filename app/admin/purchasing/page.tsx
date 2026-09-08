@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
 import SupplierPaymentForm from "@/app/admin/purchasing/_components/SupplierPaymentForm";
 import LoadFailure from "@/components/admin/LoadFailure";
+import { money } from "@/lib/format-money";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
@@ -19,9 +20,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function invoiceTone(invoice: PurchaseInvoice) {
   if (invoice.status === "Credit") {

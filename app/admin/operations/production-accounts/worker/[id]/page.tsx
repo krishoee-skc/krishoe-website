@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ExportButton from "@/components/admin/ExportButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import { money } from "@/lib/format-money";
 import { getWorkerProductionAccount } from "@/lib/production-accounting";
 import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 import {
@@ -19,9 +20,6 @@ function nepalToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
 }
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-}
 
 function tone(value: number) {
   return value < 0 ? "text-brand-clay" : "text-brand-green";

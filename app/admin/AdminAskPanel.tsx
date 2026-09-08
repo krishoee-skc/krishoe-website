@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { AdminFacts } from "@/lib/ai/admin-assistant-prompt";
 
@@ -44,8 +45,9 @@ function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
 
 type Turn = { role: "owner" | "assistant"; text: string };
 
-const money = (v: number | null) =>
-  v === null ? null : `Rs. ${Math.round(v).toLocaleString("en-IN")}`;
+// A figure the assistant may not have: null stays null rather than being
+// shown as Rs. 0, which would be a number the owner could act on.
+const optionalMoney = (value: number | null) => (value === null ? null : money(value));
 
 function MicIcon({ className }: { className?: string }) {
   return (
@@ -288,10 +290,10 @@ export default function AdminAskPanel() {
 
   const factTiles: { label: string; value: string | null; href: string }[] = facts
     ? [
-        { label: text("Sold today", "आज बिक्री"), value: money(facts.todaySales), href: "/admin/reports" },
-        { label: text("Credit owed", "उधारो बाँकी"), value: money(facts.creditOwed), href: "/admin/dues" },
-        { label: text("Workers owed", "तलब बाँकी"), value: money(facts.workerOwed), href: "/admin/factory" },
-        { label: text("Month profit", "महिना नाफा"), value: money(facts.monthProfit), href: "/admin/purchasing" },
+        { label: text("Sold today", "आज बिक्री"), value: optionalMoney(facts.todaySales), href: "/admin/reports" },
+        { label: text("Credit owed", "उधारो बाँकी"), value: optionalMoney(facts.creditOwed), href: "/admin/dues" },
+        { label: text("Workers owed", "तलब बाँकी"), value: optionalMoney(facts.workerOwed), href: "/admin/factory" },
+        { label: text("Month profit", "महिना नाफा"), value: optionalMoney(facts.monthProfit), href: "/admin/purchasing" },
       ]
     : [];
 

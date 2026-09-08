@@ -1,5 +1,6 @@
 import Link from "next/link";
 import T from "@/components/T";
+import { money } from "@/lib/format-money";
 import { goalProgress, type BusinessGoal } from "@/lib/business-goals";
 
 /**
@@ -16,7 +17,6 @@ import { goalProgress, type BusinessGoal } from "@/lib/business-goals";
  * the goal. Nothing here writes.
  */
 
-const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
 
 function Bar({ percent }: { percent: number }) {
   // Cap the fill at 100% so an over-goal month does not overflow the track, but

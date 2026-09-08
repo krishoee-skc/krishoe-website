@@ -13,6 +13,7 @@ import {
 } from "@/components/Icons";
 import type { ReactNode } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { money } from "@/lib/format-money";
 
 interface QuickCardProps {
   // Already resolved to the reader's language at the call site, via text().
@@ -119,7 +120,7 @@ export default function QuickAdminHome({
   topWorker,
 }: AdminQuickHomeProps) {
   const { text } = useLanguage();
-  const formatMoney = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
+  const formatMoney = (value: number) => money(value);
   const pairs = (n: number) => text(`${n} pairs`, `${n} जोडी`);
 
   return (

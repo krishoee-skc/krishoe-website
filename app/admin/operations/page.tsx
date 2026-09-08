@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import T from "@/components/T";
+import { money } from "@/lib/format-money";
 import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
 import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQuickEntry";
@@ -96,7 +97,7 @@ export default async function AdminOperationsPage({
           {
             id: "wages",
             label: <T en="Worker balance due" ne="कामदारलाई तिर्न बाँकी" />,
-            value: `Rs. ${productionControl.workerBalanceDue.toLocaleString("en-IN")}`,
+            value: money(productionControl.workerBalanceDue),
             detail: <T en={`${productionControl.handoverMismatches} handover mismatch`} ne={`${productionControl.handoverMismatches} हस्तान्तरण मिलेन`} />,
           },
         ].map(({ id, label, value, detail }) => (

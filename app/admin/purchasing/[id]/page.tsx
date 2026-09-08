@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PrintButton from "@/components/admin/PrintButton";
+import { money } from "@/lib/format-money";
 import { getPurchaseInvoiceById } from "@/lib/purchasing";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
@@ -11,9 +12,6 @@ type PurchaseBillPageProps = {
 
 export const dynamic = "force-dynamic";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 export async function generateMetadata({ params }: PurchaseBillPageProps): Promise<Metadata> {
   const { id } = await params;

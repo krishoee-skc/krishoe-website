@@ -11,6 +11,7 @@ import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
 import PrintLedgerButton from "@/app/admin/operations/ledger/PrintLedgerButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import LedgerTransactionFields from "@/app/admin/operations/_components/LedgerTransactionFields";
+import { money } from "@/lib/format-money";
 import { getCustomerLedgerDetail, type LedgerTransaction } from "@/lib/operations";
 
 type LedgerDetailPageProps = {
@@ -22,9 +23,6 @@ const inputClass =
 const textareaClass =
   "min-h-24 rounded-md border border-brand-green-line px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function transactionEffect(type: LedgerTransaction["type"]) {
   if (type === "Cash Payment" || type === "Cheque Payment" || type === "Return Adjustment") {

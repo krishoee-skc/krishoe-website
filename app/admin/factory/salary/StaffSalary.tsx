@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { money } from "@/lib/format-money";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
@@ -178,23 +179,23 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatTile
               label={text("Monthly salary", "मासिक तलब")}
-              value={`Rs. ${summary.total_salary.toLocaleString()}`}
+              value={money(summary.total_salary)}
             />
             <StatTile
               label={text("Total paid", "जम्मा तिरेको")}
-              value={`Rs. ${summary.total_paid.toLocaleString()}`}
+              value={money(summary.total_paid)}
               tone="good"
             />
             <StatTile
               label={text("Total advance", "पेस्की")}
-              value={`Rs. ${summary.total_advance.toLocaleString()}`}
+              value={money(summary.total_advance)}
               tone="warn"
             />
             {/* A balance below zero means more has gone out than the month
                 earned — the one number here that wants a red edge. */}
             <StatTile
               label={text("Balance", "बाँकी")}
-              value={`Rs. ${summary.remaining_balance.toLocaleString()}`}
+              value={money(summary.remaining_balance)}
               tone={summary.remaining_balance >= 0 ? "good" : "danger"}
             />
           </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
+import { money } from "@/lib/format-money";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
 import StatTile from "@/components/admin/StatTile";
 import {
@@ -186,16 +187,16 @@ export default function PayrollReport({
             <StatTile label={text("Total pairs", "जम्मा जोडी")} value={totalPairs} />
             <StatTile
               label={text("Total earned", "जम्मा कमाएको")}
-              value={`Rs. ${totalEarned.toLocaleString()}`}
+              value={money(totalEarned)}
               tone="good"
             />
             <StatTile
               label={text("Total paid", "जम्मा तिरेको")}
-              value={`Rs. ${totalPaid.toLocaleString()}`}
+              value={money(totalPaid)}
             />
             <StatTile
               label={text("Balance due", "तिर्न बाँकी")}
-              value={`Rs. ${totalBalance.toLocaleString()}`}
+              value={money(totalBalance)}
               tone={totalBalance > 0 ? "warn" : "good"}
             />
           </div>

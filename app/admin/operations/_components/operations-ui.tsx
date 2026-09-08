@@ -1,6 +1,7 @@
 import { deleteOperationRecordAction } from "@/app/admin/operations/actions";
 import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import { money } from "@/lib/format-money";
 import type { OperationRecordKind } from "@/lib/operations";
 
 export const inputClass =
@@ -13,9 +14,9 @@ export const compactInputClass =
 export const workerStationOptions = ["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final"];
 export const workerStatusOptions = ["Not Started", "In Progress", "Paused", "Done"];
 
-export function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
+// Re-exported so the panels that already read `money` from this file keep
+// working, while there is still only one implementation of it.
+export { money };
 
 export function StatCard({
   label,

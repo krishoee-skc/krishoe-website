@@ -3,6 +3,7 @@ import T from "@/components/T";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
+import { money } from "@/lib/format-money";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { getPurchasingSnapshot, type SupplierAgingRisk } from "@/lib/purchasing";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -14,9 +15,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 // Customer aging buckets come straight from the ledger report as text; colour
 // them so an overdue account catches the eye without reading the number.

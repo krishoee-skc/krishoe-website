@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions";
+import { money } from "@/lib/format-money";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type SupplierOption = { id: string; name: string; due: number };
@@ -11,7 +12,6 @@ const inputClass =
 const textareaClass =
   "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-const money = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
 
 // Paying a supplier, the amount fills itself to what is owed the moment the
 // supplier is picked, so the common case — clearing the full due — is one tap.

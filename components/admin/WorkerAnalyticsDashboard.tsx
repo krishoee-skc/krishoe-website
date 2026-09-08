@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { UserIcon, CheckIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 
 interface WorkerMetrics {
   workerId: string;
@@ -39,7 +40,7 @@ interface WorkerAnalyticsDashboardProps {
   year?: string;
 }
 
-const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString("en-IN")}`;
+const formatCurrency = (amount: number) => money(amount);
 const formatNumber = (num: number) => num.toLocaleString("en-IN");
 
 export default function WorkerAnalyticsDashboard({

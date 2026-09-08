@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, PlusIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import T from "@/components/T";
 
 /**
@@ -31,8 +32,7 @@ export default function TodaySales({
   billCount: number;
   pairsSold: number;
 }) {
-  const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-  const owed = Math.max(0, Math.round(netSales - collected));
+    const owed = Math.max(0, Math.round(netSales - collected));
 
   return (
     <section className="krishoe-rise rounded-2xl bg-brand-green-ink p-6 text-white sm:p-8">

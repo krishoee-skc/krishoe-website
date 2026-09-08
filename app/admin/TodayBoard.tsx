@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, PackageIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import type { ComponentType } from "react";
 import T from "@/components/T";
 
@@ -29,8 +30,7 @@ export default function TodayBoard({
   lowStockNames: string[];
   workerDue: number;
 }) {
-  const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-
+  
   // Only what needs a decision. A day with nothing wrong shows nothing wrong,
   // rather than three green ticks that have to be read to be dismissed.
   const alerts = [

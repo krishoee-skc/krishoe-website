@@ -13,6 +13,7 @@ import {
   type DesignCostSource,
   type FinishedStockValuationRow,
 } from "@/lib/costing";
+import { money } from "@/lib/format-money";
 import { laborRateFieldName, productionStations, type CostingSettings } from "@/lib/costing-settings";
 
 export const metadata: Metadata = {
@@ -26,9 +27,6 @@ const inputClass =
 const textareaClass =
   "min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function rate(value: number) {
   return value.toLocaleString("en-IN", {

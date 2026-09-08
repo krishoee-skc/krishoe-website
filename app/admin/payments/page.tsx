@@ -1,6 +1,7 @@
 import Link from "next/link";
 import T from "@/components/T";
 import StatCard from "@/components/admin/StatTile";
+import { money } from "@/lib/format-money";
 import { getPaymentReconciliation, type PaymentReconciliationIssueSeverity } from "@/lib/payment-reconciliation";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
@@ -10,9 +11,6 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function severityClass(severity: PaymentReconciliationIssueSeverity) {
   if (severity === "high") {

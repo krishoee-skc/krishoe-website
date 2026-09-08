@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
 import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
 import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
+import { money } from "@/lib/format-money";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 
-function money(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 export default async function WorkerProductionPage() {
   const access = await getCurrentWorkerAccess();

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
+import { money } from "@/lib/format-money";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { posLineIssue } from "@/lib/pos-line-check";
@@ -65,9 +66,6 @@ function emptyRow(key: number): ItemRow {
 function rowIsTouched(row: ItemRow) {
   return Boolean(row.sku || row.design || row.quantity || row.rate);
 }
-
-const money = (value: number) =>
-  `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 // Wholesale gets its own price; retail and online sell at the shelf price.
 function rateForChannel(channel: string, item: SellableItem) {

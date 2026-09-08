@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
+import { money } from "@/lib/format-money";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
   cancelWorkOrderAction,
@@ -18,9 +19,6 @@ import {
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Work Order Tracking | KRISHOE Admin" };
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-}
 
 function nepalToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());

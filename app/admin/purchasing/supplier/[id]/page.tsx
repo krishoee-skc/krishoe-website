@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { money } from "@/lib/format-money";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -22,9 +23,6 @@ const inputClass =
 const textareaClass =
   "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function transactionTone(type: SupplierTransactionType) {
   if (type === "Purchase Bill" || type === "Manual Adjustment") {

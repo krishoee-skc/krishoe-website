@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { money } from "@/lib/format-money";
 import { useSearchParams } from "next/navigation";
 import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/idempotency-key";
 import {
@@ -243,16 +244,16 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
             <StatTile label={text("Total pairs", "जम्मा जोडी")} value={ledgerData.summary.totalPairs} />
             <StatTile
               label={text("Total earned", "जम्मा कमाएको")}
-              value={`Rs. ${ledgerData.summary.totalEarned.toLocaleString()}`}
+              value={money(ledgerData.summary.totalEarned)}
               tone="good"
             />
             <StatTile
               label={text("Total paid", "जम्मा पाएको")}
-              value={`Rs. ${ledgerData.summary.totalPaid.toLocaleString()}`}
+              value={money(ledgerData.summary.totalPaid)}
             />
             <StatTile
               label={text("Current balance", "अहिलेको बाँकी")}
-              value={`Rs. ${ledgerData.summary.currentBalance.toLocaleString()}`}
+              value={money(ledgerData.summary.currentBalance)}
               tone={ledgerData.summary.currentBalance > 0 ? "warn" : "good"}
             />
           </div>

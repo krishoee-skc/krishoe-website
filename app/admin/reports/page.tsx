@@ -3,6 +3,7 @@ import AlertText from "@/components/admin/AlertText";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { ArrowRightIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import { buildInsight, getReportIndex, type ReportCard } from "@/lib/reports";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
@@ -24,9 +25,6 @@ export const dynamic = "force-dynamic";
  * would fill it and offers the button that starts, so an empty screen becomes
  * the next thing to do rather than a dead end.
  */
-function money(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 function Card({ card }: { card: ReportCard }) {
   const shown = card.id === "dues" ? money(card.value) : card.value.toLocaleString("en-IN");

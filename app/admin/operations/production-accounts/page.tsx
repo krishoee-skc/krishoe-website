@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { money } from "@/lib/format-money";
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -48,9 +49,6 @@ function shiftDate(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-}
 
 export default async function ProductionAccountsPage({
   searchParams,

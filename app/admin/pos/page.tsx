@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PosBillForm from "@/app/admin/pos/_components/PosBillForm";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
+import { money } from "@/lib/format-money";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { canAdmin, getSessionAdminRole } from "@/lib/admin-permissions";
@@ -26,9 +27,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function statusTone(invoice: PosInvoice) {
   if (invoice.postingStatus === "Needs Review") {

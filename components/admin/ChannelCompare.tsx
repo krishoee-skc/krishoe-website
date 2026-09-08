@@ -1,4 +1,5 @@
 import T from "@/components/T";
+import { money } from "@/lib/format-money";
 import ProgressRing from "@/components/admin/ProgressRing";
 
 /**
@@ -18,7 +19,6 @@ type ChannelRow = {
   netTotal: number;
 };
 
-const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
 
 const CHANNEL_LABEL: Record<ChannelRow["channel"], { en: string; ne: string; icon: string }> = {
   Retail: { en: "Retail", ne: "खुद्रा", icon: "🛍️" },

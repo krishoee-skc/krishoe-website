@@ -2,11 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
 import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
+import { money } from "@/lib/format-money";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 
-function money(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 function monthKey() {
   const parts = new Intl.DateTimeFormat("en-CA", {

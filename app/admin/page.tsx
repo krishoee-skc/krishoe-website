@@ -8,6 +8,7 @@ import {
   SearchIcon,
   ShoppingCartIcon,
 } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import { getAdminSession } from "@/lib/admin-auth";
 import { canAdmin, getAdminPermissionSummary, getSessionAdminRole, requireAdminPermission } from "@/lib/admin-permissions";
 import { getPosSnapshot } from "@/lib/pos";
@@ -40,9 +41,6 @@ const GRAD = {
   deep: "linear-gradient(150deg,#3f6f5e,#2c5244)",
 } as const;
 
-function money(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 function readPath<T>(source: unknown, path: string, defaultVal: T): T {
   let value: unknown = source;

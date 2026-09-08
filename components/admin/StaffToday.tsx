@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, PlusIcon } from "@/components/Icons";
+import { money } from "@/lib/format-money";
 import T from "@/components/T";
 
 /**
@@ -32,8 +33,7 @@ export default function StaffToday({
   creditToday: number;
   ordersToSend: number;
 }) {
-  const money = (value: number) => `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-  const firstName = name.trim().split(" ")[0];
+    const firstName = name.trim().split(" ")[0];
 
   return (
     <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-6 sm:p-7">

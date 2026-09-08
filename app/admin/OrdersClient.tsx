@@ -7,6 +7,7 @@ import type {
   OnlineOrderConversionRow,
   OnlineOrderConversionSignal,
 } from "@/lib/order-pos";
+import { money } from "@/lib/format-money";
 import type { CustomerLedger } from "@/lib/operations";
 import type { PaymentTransaction } from "@/lib/payment-transactions";
 import type { OrderSubmission } from "@/lib/submissions";
@@ -74,9 +75,6 @@ function amountFromOrderTotal(total: string) {
   return parseOrderTotalRupees(total);
 }
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 function conversionTone(signal: OnlineOrderConversionSignal) {
   if (signal === "Converted") return "border-emerald-200 bg-emerald-50 text-emerald-800";

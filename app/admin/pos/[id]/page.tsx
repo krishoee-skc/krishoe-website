@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import { money } from "@/lib/format-money";
 import { getPosInvoiceById } from "@/lib/pos";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { amountInWords } from "@/lib/amount-in-words";
@@ -24,9 +25,6 @@ export const dynamic = "force-dynamic";
 const HS_CODE = "6402.99.90";
 const RETURN_NOTE = "Goods once sold will not be taken back.";
 
-function money(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
 
 // Plain rupees for the invoice columns (the sample prints amounts without the
 // "Rs." prefix, which sits in the header instead).

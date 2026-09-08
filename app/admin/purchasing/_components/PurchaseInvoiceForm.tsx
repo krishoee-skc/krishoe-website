@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPurchaseInvoiceAction } from "@/app/admin/purchasing/actions";
+import { money } from "@/lib/format-money";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -73,9 +74,6 @@ function itemNameOf(row: ItemRow, rawMaterials: RawMaterial[]) {
 function sameName(left: string, right: string) {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
-
-const money = (value: number) =>
-  `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 /**
  * The bill, written the way the paper one is read.
