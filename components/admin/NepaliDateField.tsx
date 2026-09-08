@@ -2,6 +2,7 @@
 
 import NepaliDate from "nepali-date-converter";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * A date field that speaks Bikram Sambat. The shop keeps its books in the Nepali
@@ -77,6 +78,10 @@ export default function NepaliDateField({
   id?: string;
   name?: string;
 }) {
+  // Three strings here are the app talking, and follow the reader. The month
+  // and weekday names do not: भदौ is the name of the month, not a translation
+  // of one, and spelling it in Latin letters would be a different calendar.
+  const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -207,7 +212,7 @@ export default function NepaliDateField({
         }
       >
         <span className="font-bold text-brand-green-ink">
-          {bsLabel ? bsLabel : "मिति छान्नुहोस्"}
+          {bsLabel ? bsLabel : text("Pick a date", "मिति छान्नुहोस्")}
         </span>
         <span aria-hidden="true">📅</span>
       </button>
@@ -280,10 +285,10 @@ export default function NepaliDateField({
               }}
               className="font-bold text-brand-green"
             >
-              आज
+              {text("Today", "आज")}
             </button>
             <button type="button" onClick={() => setOpen(false)} className="text-brand-muted">
-              बन्द
+              {text("Close", "बन्द")}
             </button>
           </div>
         </div>
