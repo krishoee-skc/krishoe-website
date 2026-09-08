@@ -212,12 +212,19 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
         <div className="text-center text-brand-muted">{text("Loading ledger…", "खाता खुल्दैछ…")}</div>
       ) : ledgerData ? (
         <div className="space-y-6">
-          {/* Worker Info */}
-          <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-brand-green-ink mb-4">
+          {/* Whose account this is.
+              The name used to sit at text-lg above figures set in text-2xl, so
+              the biggest thing on a page about one person was a number, and the
+              owner had to look for the name to be sure whose wages they were
+              about to pay. It leads now, and says what it is. */}
+          <div className="rounded-lg border-2 border-brand-gold/50 bg-brand-gold/10 p-4 sm:p-6">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+              {text("Account of", "यो खाता कसको")}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
               {ledgerData.worker.name}
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div>
                 <div className="text-xs sm:text-sm text-brand-muted">{text("Type", "किसिम")}</div>
                 <div className="font-semibold text-brand-green-ink capitalize">
@@ -319,7 +326,15 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
           <form onSubmit={handleRecordPayment} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-emerald-950">{text("Record member payment", "टोली सदस्यलाई दिएको टिप्ने")}</h3>
+                {/* Whose payment. Money handed to the wrong name is the one
+                    mistake this form can make, and the person picked at the
+                    top of the page is a long way above this box. */}
+                <h3 className="text-lg font-black text-emerald-950">
+                  {text("Pay", "पैसा दिने")}{" "}
+                  <span className="underline decoration-emerald-400 decoration-2 underline-offset-4">
+                    {ledgerData.worker.name}
+                  </span>
+                </h3>
                 <p className="mt-1 text-sm leading-6 text-emerald-800">
                   {text(
                     "Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.",

@@ -46,6 +46,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
   // The Bikram Sambat month, because that is the month wages are agreed in.
   // nepalMonthKey() gave the English month in Nepal's timezone, which is a
   // different thing and was never the one being asked about.
+  const selectedWorker = workers.find((worker) => worker.id === selectedWorkerId) ?? null;
   const [month, setMonth] = useState(() => bikramMonthKeyOf(new Date()));
   const [summary, setSummary] = useState<SalarySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +161,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
             onChange={(e) => setSelectedWorkerId(e.target.value)}
             className="w-full px-4 py-2 border border-brand-green-line rounded-lg"
           >
-            <option value="">-- Choose staff --</option>
+            <option value="">{text("Choose staff", "कर्मचारी छान्नुहोस्")}</option>
             {workers.map((worker) => (
               <option key={worker.id} value={worker.id}>
                 {worker.name} - Rs. {worker.monthly_salary}/month
@@ -176,6 +177,22 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
 
       {summary ? (
         <div className="space-y-6">
+          {/* Whose salary this is. Money paid against the wrong name is the
+              one mistake this screen can make. */}
+          {selectedWorker ? (
+            <div className="rounded-lg border-2 border-brand-gold/50 bg-brand-gold/10 p-4 sm:p-6">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+                {text("Salary of", "कसको तलब")}
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
+                {selectedWorker.name}
+              </h2>
+              <p className="mt-1 text-sm font-semibold text-brand-muted">
+                {selectedWorker.category}
+              </p>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatTile
               label={text("Monthly salary", "मासिक तलब")}
@@ -203,12 +220,20 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
           <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">
-                {text("Record cash transaction", "पैसाको लेनदेन टिप्ने")}
+                {text("Record cash for", "कसको पैसा टिप्ने")}{" "}
+                <span className="underline decoration-brand-gold decoration-2 underline-offset-4">
+                  {selectedWorker?.name}
+                </span>
               </h2>
-              <p className="mt-1 text-sm leading-6 text-brand-muted">Advance and salary payment are stored separately and both reduce the remaining salary balance for the selected month.</p>
+              <p className="mt-1 text-sm leading-6 text-brand-muted">
+                {text(
+                  "Advance and salary payment are stored separately, and both reduce what is left to pay for the month shown above.",
+                  "पेस्की र तलब छुट्टाछुट्टै टिपिन्छ, र दुवैले माथि देखाइएको महिनाको बाँकी घटाउँछ।",
+                )}
+              </p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Transaction type
+              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Transaction type", "के भयो")}
                 <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
                   <option value="advance">{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
                   <option value="payment">{text("Salary payment", "तलब भुक्तानी")}</option>
@@ -233,7 +258,11 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
               </label>
             </div>
             <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
-              {transactionSaving ? "Saving..." : transactionType === "advance" ? "Record advance" : "Record salary payment"}
+              {transactionSaving
+                ? text("Saving…", "राख्दै…")
+                : transactionType === "advance"
+                  ? text("Record advance", "पेस्की टिप्ने")
+                  : text("Record salary payment", "तलब टिप्ने")}
             </button>
           </form>
 
