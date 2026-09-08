@@ -775,17 +775,6 @@ table th,
 .hover-lift {
   transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
 }
-/* The lift itself, which was never written: the class only ever declared what
-   it would transition, so nothing moved. A single pixel and a slightly deeper
-   shadow — enough for a card to answer the pointer, far too little to be a
-   flourish. Only where a pointer can hover: on a phone this would fire on tap
-   and stay stuck until something else was touched. */
-@media (hover: hover) and (pointer: fine) {
-  .hover-lift:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 14px 34px rgba(16, 35, 29, 0.1);
-  }
-}
 @media (hover: hover) {
   .hover-lift:hover {
     transform: translateY(-2px);

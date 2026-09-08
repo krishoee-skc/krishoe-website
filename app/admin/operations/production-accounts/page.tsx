@@ -491,7 +491,7 @@ export default async function ProductionAccountsPage({
               <Link
                 key={order.id}
                 href={`/admin/operations/production-accounts/work-order/${encodeURIComponent(order.id)}`}
-                className="block rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm transition hover:border-brand-green"
+                className="hover-lift block rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm transition hover:border-brand-green"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -675,7 +675,7 @@ export default async function ProductionAccountsPage({
             <Link
               key={row.employeeId}
               href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}?date=${reportDate}`}
-              className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
+              className="hover-lift rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="font-black text-brand-green-ink">{row.employeeName}</p>
@@ -706,7 +706,7 @@ export default async function ProductionAccountsPage({
             <Link
               key={row.employeeId}
               href={`/admin/operations/production-accounts/worker/${encodeURIComponent(row.employeeId)}`}
-              className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
+              className="hover-lift rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
             >
               <p className="font-black text-brand-green-ink">{row.employeeName}</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs">

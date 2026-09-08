@@ -52,7 +52,7 @@ function Card({ card }: { card: ReportCard }) {
   return (
     <Link
       href={card.href}
-      className="group flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-5 transition hover:border-brand-gold"
+      className="hover-lift group flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-5 transition hover:border-brand-gold"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-black text-brand-green-ink">

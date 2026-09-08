@@ -364,7 +364,7 @@ export default function AdminAskPanel() {
                 <Link
                   key={tile.label}
                   href={tile.href}
-                  className="rounded-xl border border-brand-green-line bg-brand-paper p-3 transition hover:border-brand-green"
+                  className="hover-lift rounded-xl border border-brand-green-line bg-brand-paper p-3 transition hover:border-brand-green"
                 >
                   <span className="block text-[11px] font-bold uppercase tracking-wide text-brand-muted">
                     {tile.label}

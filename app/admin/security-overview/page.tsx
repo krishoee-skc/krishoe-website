@@ -95,7 +95,7 @@ export default async function SecurityOverviewPage() {
           <Link
             key={link.href}
             href={link.href}
-            className="group flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm transition hover:border-brand-green hover:shadow-md"
+            className="hover-lift group flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm transition hover:border-brand-green hover:shadow-md"
           >
             <span
               aria-hidden="true"

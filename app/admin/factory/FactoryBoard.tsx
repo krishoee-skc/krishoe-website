@@ -77,7 +77,7 @@ export default function FactoryBoard({
           asked for, so wages are never paid twice or missed. */}
       <Link
         href="/admin/factory/salary"
-        className="flex items-center justify-between rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] transition hover:border-brand-gold sm:p-4"
+        className="hover-lift flex items-center justify-between rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] transition hover:border-brand-gold sm:p-4"
       >
         <div>
           <div className="text-xs font-medium text-brand-muted">
@@ -182,7 +182,7 @@ export default function FactoryBoard({
         </Link>
         <Link
           href="/admin/factory/reports"
-          className="flex min-h-11 flex-1 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-paper px-3 py-2 text-center text-xs font-black text-brand-green transition hover:-translate-y-0.5 hover:border-brand-green hover:bg-brand-green-wash sm:text-sm"
+          className="hover-lift flex min-h-11 flex-1 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-paper px-3 py-2 text-center text-xs font-black text-brand-green transition hover:-translate-y-0.5 hover:border-brand-green hover:bg-brand-green-wash sm:text-sm"
         >
           {text("View reports", "रिपोर्ट हेर्ने")}
         </Link>
