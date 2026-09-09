@@ -25,6 +25,13 @@ interface WorkerLedger {
   running_balance: number;
   status: string;
   notes: string | null;
+  /** Which shoe this wage was for, read through the work row. Null on a
+   *  payment, and on work saved before that link existed. */
+  item_name: string | null;
+  color: string | null;
+  size: string | null;
+  rate_applied: number | string | null;
+  reject_pairs: number | null;
 }
 
 // One shape for a person on the books, defined where they are read.
@@ -283,6 +290,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
                     <th className="text-left py-2 px-2 sm:px-4">{text("Date", "मिति")}</th>
                     <th className="text-left py-2 px-2 sm:px-4">{text("Type", "के भयो")}</th>
+                    <th className="text-left py-2 px-2 sm:px-4">{text("Item", "के बनायो")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Earned", "कमाएको")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Paid", "पाएको")}</th>
@@ -302,8 +310,36 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             {entry.entry_type}
                           </span>
                         </td>
+                        <td data-label={text("Item", "के बनायो")} className="py-3 px-2 sm:px-4 text-brand-green-ink">
+                          {entry.item_name ? (
+                            <>
+                              <span className="font-bold">{entry.item_name}</span>
+                              {entry.color || entry.size ? (
+                                <span className="mt-0.5 block text-xs text-brand-muted">
+                                  {[entry.color, entry.size].filter(Boolean).join(" · ")}
+                                </span>
+                              ) : (
+                                <span className="mt-0.5 block text-xs text-brand-muted">
+                                  {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
                         <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
                           {entry.work_pairs || "-"}
+                          {entry.rate_applied ? (
+                            <span className="mt-0.5 block text-xs text-brand-muted">
+                              × Rs. {Number(entry.rate_applied)}
+                            </span>
+                          ) : null}
+                          {entry.reject_pairs ? (
+                            <span className="mt-0.5 block text-xs font-bold text-brand-clay">
+                              {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}
+                            </span>
+                          ) : null}
                         </td>
                         <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
                           {entry.amount_earned ? `+${entry.amount_earned}` : "-"}
@@ -319,7 +355,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-brand-muted">
+                      <td colSpan={8} className="py-8 text-center text-brand-muted">
                         {text(
                           "No ledger entries for this month",
                           "यो महिना यस कामदारको कुनै हिसाब छैन।",

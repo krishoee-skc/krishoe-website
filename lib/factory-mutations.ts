@@ -275,6 +275,17 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         409,
       );
     }
+
+    // Which pairs this wage was for. Without them the ledger shows several
+    // identical rows of one item at one rate, and neither the owner nor the
+    // worker can tell whether one of them is a duplicate. The screen asks for
+    // both, but the screen is not the only way into this API.
+    if (!input.color?.trim() || !input.size?.trim()) {
+      throw new FactoryMutationError(
+        "Colour and size are needed, so the ledger can say which pairs this wage was for.",
+        400,
+      );
+    }
     let linkedWorkOrder: {
       id: string;
       plannedPairs: number;

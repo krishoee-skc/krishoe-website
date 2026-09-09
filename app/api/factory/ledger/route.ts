@@ -30,6 +30,13 @@ interface LedgerEntry {
   status: string;
   notes: string | null;
   created_at: string;
+  /** Which shoe this wage was for — read through source_work_id. Null on a
+   *  payment row, and on work saved before that link existed. */
+  item_name: string | null;
+  color: string | null;
+  size: string | null;
+  rate_applied: DbNumeric | null;
+  reject_pairs: number | null;
 }
 
 interface Worker {
@@ -81,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Get ledger entries
     let ledgerQuery = `WITH balanced AS (
                          SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
-                                payment_given, status, notes, created_at,
+                                payment_given, status, notes, created_at, source_work_id,
                                 SUM(
                                   CASE WHEN status = 'reversed' THEN 0
                                   ELSE COALESCE(amount_earned, 0) - COALESCE(payment_given, 0)
@@ -94,9 +101,15 @@ export async function GET(request: NextRequest) {
                          FROM factory_worker_ledger
                          WHERE worker_id = $1
                        )
-                       SELECT id, worker_id, date, entry_type, work_pairs, amount_earned,
-                              payment_given, running_balance, status, notes, created_at
+                       SELECT balanced.id, balanced.worker_id, balanced.date,
+                              balanced.entry_type, balanced.work_pairs, balanced.amount_earned,
+                              balanced.payment_given, balanced.running_balance, balanced.status,
+                              balanced.notes, balanced.created_at,
+                              items.name AS item_name, work.color, work.size,
+                              work.rate_applied, work.reject_pairs
                        FROM balanced
+                       LEFT JOIN factory_daily_work work ON work.id = balanced.source_work_id
+                       LEFT JOIN factory_items items ON items.id = work.item_id
                        WHERE true`;
     const params: LedgerParam[] = [workerId];
 
@@ -105,11 +118,11 @@ export async function GET(request: NextRequest) {
       // August to 17 September and Asoj 17 September to 18 October — BS months
       // are 29 to 32 days, so the arithmetic that looks right for one month
       // drops a day of somebody's wages out of the next.
-      ledgerQuery += ` AND date >= $2::date AND date < $3::date`;
+      ledgerQuery += ` AND balanced.date >= $2::date AND balanced.date < $3::date`;
       params.push(range.startKey, range.endKey);
     }
 
-    ledgerQuery += ` ORDER BY created_at ASC, id ASC`;
+    ledgerQuery += ` ORDER BY balanced.created_at ASC, balanced.id ASC`;
 
     const ledger = await queryPostgres<LedgerEntry>(STORE, ledgerQuery, params);
     const balanceRows = await queryPostgres<{ current_balance: DbNumeric }>(

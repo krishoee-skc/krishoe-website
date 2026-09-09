@@ -323,6 +323,23 @@ export default function WorkEntryForm({
     setError("");
     setSuccess("");
 
+    if (!formData.color.trim() || !formData.size.trim()) {
+      // Which one, rather than "fill the form": the person is mid-entry with a
+      // worker waiting, and the two fields sit side by side.
+      const missing = !formData.color.trim() && !formData.size.trim()
+        ? text("colour and size", "रङ र साइज")
+        : !formData.color.trim()
+          ? text("colour", "रङ")
+          : text("size", "साइज");
+      setError(
+        text(
+          `Choose the ${missing} — the ledger has to say which pairs this wage was for.`,
+          `${missing} छान्नुहोस् — यो ज्याला कुन जुत्ताको हो खातामा देखिनुपर्छ।`,
+        ),
+      );
+      return;
+    }
+
     if (!formData.worker_id || !formData.item_id || !formData.pairs_count) {
       setError(
         text("Please fill in all required fields", "सबै आवश्यक कुरा भर्नुहोस्"),
@@ -689,9 +706,10 @@ export default function WorkEntryForm({
           ) : null}
         </div>
 
-        {/* Colour and size are optional — a shoe is entered without them most
-            days — so they follow underneath rather than taking two thirds of
-            the row above. */}
+        {/* Colour and size are required: two entries went in without either,
+            and three rows of one item at one rate could not be told apart
+            afterwards. The chips make each one tap, so this costs a moment
+            rather than a form. */}
         <div className="grid gap-4 sm:grid-cols-2">
         {/* Color — quick chips for the common colours (one tap, so nobody types
             "कालो" one day and "Black" the next), with the free text kept below
@@ -699,7 +717,7 @@ export default function WorkEntryForm({
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
             🎨 {text("Colour", "रङ")}{" "}
-            <span className="font-normal text-brand-muted">{text("(optional)", "— चाहिए मात्र")}</span>
+            <span className="font-normal text-brand-clay">{text("(required)", "— अनिवार्य")}</span>
           </label>
           {!selectedWorkOrder ? (
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -736,7 +754,7 @@ export default function WorkEntryForm({
         <div>
           <label htmlFor="work-size" className="block text-sm font-medium text-brand-green-ink mb-2">
             📏 {text("Size", "साइज")}{" "}
-            <span className="font-normal text-brand-muted">{text("(optional)", "— चाहिए मात्र")}</span>
+            <span className="font-normal text-brand-clay">{text("(required)", "— अनिवार्य")}</span>
           </label>
           {selectedWorkOrder ? (
             <select

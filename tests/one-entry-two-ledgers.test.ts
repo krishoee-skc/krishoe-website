@@ -129,3 +129,51 @@ describe("one entry reaches both ledgers", () => {
     await expect(createFactoryWork(entry)).rejects.toThrow(/Factory → Items/);
   });
 });
+
+/**
+ * Which pairs the wage was for.
+ *
+ * Colour and size were optional, and two of one day's five entries went in
+ * without either — three rows of the same item at the same rate, which neither
+ * the owner nor the worker could tell apart afterwards. The owner asked for
+ * them to be required.
+ */
+describe("colour and size", () => {
+  it("are required, so the ledger can name the pairs", async () => {
+    scriptUpToWorkRow({
+      id: "item-1",
+      production_item_id: "prod-1",
+      production_item_name: "bagopen",
+    });
+
+    await expect(
+      createFactoryWork({ ...entry, color: null, size: null }),
+    ).rejects.toThrow(/Colour and size/);
+  });
+
+  it("are checked before anything is written", async () => {
+    scriptUpToWorkRow({
+      id: "item-1",
+      production_item_id: "prod-1",
+      production_item_name: "bagopen",
+    });
+
+    await expect(createFactoryWork({ ...entry, color: null, size: null })).rejects.toThrow();
+
+    const statements = dbQuery.mock.calls.map(([sql]) => String(sql));
+    expect(statements.some((sql) => sql.includes("INSERT INTO factory_daily_work"))).toBe(false);
+  });
+
+  it("are refused when blank rather than absent", async () => {
+    // An empty string is what a form sends when the field was skipped.
+    scriptUpToWorkRow({
+      id: "item-1",
+      production_item_id: "prod-1",
+      production_item_name: "bagopen",
+    });
+
+    await expect(
+      createFactoryWork({ ...entry, color: "   ", size: "" }),
+    ).rejects.toThrow(/Colour and size/);
+  });
+});
