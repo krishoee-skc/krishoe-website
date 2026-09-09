@@ -215,3 +215,46 @@ describe("a reversed entry", () => {
     expect(balance.slice(0, 400)).not.toContain("reflow-blank");
   });
 });
+
+/**
+ * A dash is not an amount.
+ *
+ * Earned and Paid carried their colour on the cell, so the em-dash standing in
+ * for "nothing here" inherited it — four work rows showing a red mark in a
+ * column headed Paid. Red in a money column reads as money going out, and the
+ * eye kept stopping on rows where nothing had been paid at all.
+ */
+describe("the dash in a money column", () => {
+  it("is grey, while only real amounts carry colour", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    const earned = screen.slice(
+      screen.indexOf('data-label={text("Earned"'),
+      screen.indexOf('data-label={text("Paid"'),
+    );
+    const paid = screen.slice(
+      screen.indexOf('data-label={text("Paid"'),
+      screen.indexOf('data-label={text("Balance"'),
+    );
+
+    // The colour sits on the figure, not on the cell around it.
+    expect(earned).not.toMatch(/className=\{`py-3[^`]*text-green-600/);
+    expect(paid).not.toMatch(/className=\{`py-3[^`]*text-red-600/);
+    expect(earned).toContain("text-green-600");
+    expect(paid).toContain("text-red-600");
+    expect(paid).toContain("text-brand-muted-soft");
+  });
+
+  it("keeps the accounting order: earned, paid, then balance", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // In, out, result — moving Paid away from that would break the row's
+    // arithmetic as it is read left to right.
+    const earned = screen.indexOf('text("Earned", "कमाएको")');
+    const paid = screen.indexOf('text("Paid", "पाएको")');
+    const balance = screen.indexOf('text("Balance", "बाँकी")');
+
+    expect(earned).toBeLessThan(paid);
+    expect(paid).toBeLessThan(balance);
+  });
+});

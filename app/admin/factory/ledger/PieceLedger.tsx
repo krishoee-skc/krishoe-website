@@ -347,7 +347,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                 )}
                               </>
                             ) : (
-                              "—"
+                              <span className="text-brand-muted-soft">—</span>
                             )}
                           </span>
                         </td>
@@ -358,7 +358,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           }`}
                         >
                           <span className="block min-w-0">
-                            {entry.work_pairs || "—"}
+                            {entry.work_pairs || <span className="text-brand-muted-soft">—</span>}
                             {entry.rate_applied ? (
                               <span className="mt-0.5 block text-xs text-brand-muted">
                                 × Rs. {Number(entry.rate_applied)}
@@ -379,27 +379,33 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             existing rule hides an empty one. */}
                         <td
                           data-label={text("Earned", "कमाएको")}
-                          className={`py-3 px-2 sm:px-4 text-right text-green-600 font-medium ${
+                          className={`py-3 px-2 sm:px-4 text-right font-medium ${
                             Number(entry.amount_earned) > 0 ? "" : "reflow-blank"
                           }`}
                         >
-                          <span className={entry.status === "reversed" ? "line-through" : ""}>
-                            {Number(entry.amount_earned) > 0
-                              ? `+${Number(entry.amount_earned).toLocaleString("en-IN")}`
-                              : "—"}
-                          </span>
+                          {Number(entry.amount_earned) > 0 ? (
+                            <span className={`text-green-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                              +{Number(entry.amount_earned).toLocaleString("en-IN")}
+                            </span>
+                          ) : (
+                            /* Grey, not green: a dash is "nothing here", and a
+                               coloured one reads as money that moved. */
+                            <span className="text-brand-muted-soft">—</span>
+                          )}
                         </td>
                         <td
                           data-label={text("Paid", "पाएको")}
-                          className={`py-3 px-2 sm:px-4 text-right text-red-600 font-medium ${
+                          className={`py-3 px-2 sm:px-4 text-right font-medium ${
                             Number(entry.payment_given) > 0 ? "" : "reflow-blank"
                           }`}
                         >
-                          <span className={entry.status === "reversed" ? "line-through" : ""}>
-                            {Number(entry.payment_given) > 0
-                              ? `-${Number(entry.payment_given).toLocaleString("en-IN")}`
-                              : "—"}
-                          </span>
+                          {Number(entry.payment_given) > 0 ? (
+                            <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                              -{Number(entry.payment_given).toLocaleString("en-IN")}
+                            </span>
+                          ) : (
+                            <span className="text-brand-muted-soft">—</span>
+                          )}
                         </td>
                         <td
                           data-label={text("Balance", "बाँकी")}
@@ -423,7 +429,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           {entry.notes ? (
                             <span className="block min-w-0 break-words">{entry.notes}</span>
                           ) : (
-                            "—"
+                            <span className="text-brand-muted-soft">—</span>
                           )}
                         </td>
                       </tr>
