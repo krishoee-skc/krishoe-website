@@ -311,35 +311,42 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           </span>
                         </td>
                         <td data-label={text("Item", "के बनायो")} className="py-3 px-2 sm:px-4 text-brand-green-ink">
-                          {entry.item_name ? (
-                            <>
-                              <span className="font-bold">{entry.item_name}</span>
-                              {entry.color || entry.size ? (
-                                <span className="mt-0.5 block text-xs text-brand-muted">
-                                  {[entry.color, entry.size].filter(Boolean).join(" · ")}
-                                </span>
-                              ) : (
-                                <span className="mt-0.5 block text-xs text-brand-muted">
-                                  {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            "-"
-                          )}
+                          {/* One wrapper, so the phone card lays the label
+                              against a single block rather than against each
+                              line in turn. */}
+                          <span className="block min-w-0 text-right sm:text-left">
+                            {entry.item_name ? (
+                              <>
+                                <span className="block break-words font-bold">{entry.item_name}</span>
+                                {entry.color || entry.size ? (
+                                  <span className="mt-0.5 block break-words text-xs text-brand-muted">
+                                    {[entry.color, entry.size].filter(Boolean).join(" · ")}
+                                  </span>
+                                ) : (
+                                  <span className="mt-0.5 block text-xs text-brand-muted">
+                                    {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              "-"
+                            )}
+                          </span>
                         </td>
                         <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
-                          {entry.work_pairs || "-"}
-                          {entry.rate_applied ? (
-                            <span className="mt-0.5 block text-xs text-brand-muted">
-                              × Rs. {Number(entry.rate_applied)}
-                            </span>
-                          ) : null}
-                          {entry.reject_pairs ? (
-                            <span className="mt-0.5 block text-xs font-bold text-brand-clay">
-                              {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}
-                            </span>
-                          ) : null}
+                          <span className="block min-w-0">
+                            {entry.work_pairs || "-"}
+                            {entry.rate_applied ? (
+                              <span className="mt-0.5 block text-xs text-brand-muted">
+                                × Rs. {Number(entry.rate_applied)}
+                              </span>
+                            ) : null}
+                            {entry.reject_pairs ? (
+                              <span className="mt-0.5 block text-xs font-bold text-brand-clay">
+                                {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}
+                              </span>
+                            ) : null}
+                          </span>
                         </td>
                         <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
                           {entry.amount_earned ? `+${entry.amount_earned}` : "-"}
@@ -350,7 +357,12 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                         <td data-label={text("Balance", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink">
                           Rs. {entry.running_balance.toLocaleString()}
                         </td>
-                        <td data-label={text("Note", "टिपोट")} className="min-w-48 py-3 px-2 sm:px-4 text-xs text-brand-muted">{entry.notes || "-"}</td>
+                        {/* No minimum width: the note is empty on every work
+                            row, and 192px of it pushed the table wider than a
+                            tablet for the sake of one reversal message. */}
+                        <td data-label={text("Note", "टिपोट")} className="py-3 px-2 sm:px-4 text-xs text-brand-muted">
+                          <span className="block min-w-0 break-words">{entry.notes || "-"}</span>
+                        </td>
                       </tr>
                     ))
                   ) : (

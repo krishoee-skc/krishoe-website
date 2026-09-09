@@ -81,3 +81,47 @@ describe("what the owner sees", () => {
     expect(screen).toContain("colSpan={8}");
   });
 });
+
+/**
+ * The same rows, on a phone.
+ *
+ * Below 768px a reflow-table row becomes a card and each cell becomes a flex
+ * row: the column name on the left, the value pushed right. A cell holding one
+ * value reads fine. The item cell holds the shoe over its colour and size, and
+ * the pairs cell the count over the rate — as direct flex children those laid
+ * out beside the label instead of under one another, squashing three things
+ * onto one line on the screen this shop actually uses.
+ */
+describe("the ledger on a phone", () => {
+  it("wraps each stacked cell in one block, so the card lays out against it", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    const item = screen.slice(
+      screen.indexOf('data-label={text("Item"'),
+      screen.indexOf('data-label={text("Pairs"'),
+    );
+    const pairs = screen.slice(
+      screen.indexOf('data-label={text("Pairs"'),
+      screen.indexOf('data-label={text("Earned"'),
+    );
+
+    // One child for the flex row to place; the lines stack inside it.
+    expect(item).toContain('<span className="block min-w-0');
+    expect(pairs).toContain('<span className="block min-w-0');
+  });
+
+  it("lets a long item name wrap instead of widening the table", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(screen).toContain("break-words");
+  });
+
+  it("does not hold the note column open at 192px", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // The note is empty on every work row; its minimum pushed the table wider
+    // than a tablet for the sake of one reversal message.
+    const note = screen.slice(screen.indexOf('data-label={text("Note"'));
+    expect(note.slice(0, 200)).not.toContain("min-w-48");
+  });
+});
