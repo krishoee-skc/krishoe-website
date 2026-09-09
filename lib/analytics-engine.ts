@@ -1,3 +1,4 @@
+import { workerPerformance } from "@/lib/worker-performance";
 import { queryPostgres } from "@/lib/postgres/client";
 
 const STORE = "krishoe";
@@ -363,51 +364,53 @@ export async function getWorkerPerformanceMetrics(): Promise<WorkerPerformanceMe
     const workers = await queryPostgres<{
       worker_id: string;
       worker_name: string;
-      pairs_count: number;
+      pairs: number;
+      rejected_pairs: number;
       earnings: number;
-      quality_rate: number;
-      attendance_rate: number;
+      days_worked: number;
     }>(
       STORE,
       `SELECT
-        pwe.employee_id as worker_id,
-        pwe.employee_name_snapshot as worker_name,
-        SUM(pwe.total_pairs)::integer as pairs_count,
-        SUM(pwe.earned_wage)::numeric as earnings,
-        (100 - AVG(CASE WHEN pwe.rejected_pairs > 0 THEN (pwe.rejected_pairs::float / pwe.total_pairs::float) * 100 ELSE 0 END))::numeric as quality_rate,
-        -- Days this worker actually posted work in the window, out of the days
-        -- anybody did. The shop keeps no attendance register, so this counts
-        -- turning up by the work that arrived rather than inventing a figure.
-        (COUNT(DISTINCT pwe.work_date)::float
-          / NULLIF((SELECT COUNT(DISTINCT work_date)::float
-                    FROM production_work_entries
-                    WHERE work_date >= $1), 0) * 100)::numeric as attendance_rate
-      FROM production_work_entries pwe
-      WHERE pwe.work_date >= $1
-      GROUP BY pwe.employee_id, pwe.employee_name_snapshot
+        work.worker_id,
+        COALESCE(fw.name, 'Unknown worker') AS worker_name,
+        SUM(work.pairs_count)::integer AS pairs,
+        SUM(COALESCE(work.reject_pairs, 0))::integer AS rejected_pairs,
+        SUM(work.amount_earned)::numeric AS earnings,
+        COUNT(DISTINCT work.date)::integer AS days_worked
+      FROM factory_daily_work work
+      LEFT JOIN factory_workers fw ON fw.id = work.worker_id
+      WHERE work.date >= $1::date
+        AND work.status = 'completed'
+      GROUP BY work.worker_id, fw.name
       ORDER BY earnings DESC`,
       [monthStart.toISOString().split("T")[0]]
     );
 
-    return workers.map((w) => {
-      const qualityRate = Number(w.quality_rate) || 0;
-      const attendanceRate = Number(w.attendance_rate) || 0;
+    // The days the factory ran at all, which is what attendance is measured
+    // against. A day nobody posted work is a day the shop was closed, not a
+    // day everybody missed.
+    const [ran] = await queryPostgres<{ days: number }>(
+      STORE,
+      `SELECT COUNT(DISTINCT date)::integer AS days
+       FROM factory_daily_work
+       WHERE date >= $1::date AND status = 'completed'`,
+      [monthStart.toISOString().split("T")[0]],
+    );
+    const daysFactoryRan = Number(ran?.days) || 0;
 
-      // Bonus calculation: 5% if quality > 95% AND attendance > 90%
-      const bonusEligible = qualityRate > 95 && attendanceRate > 90;
-      const bonusAmount = bonusEligible ? Math.round(Number(w.earnings) * 0.05) : 0;
-
-      return {
-        workerId: w.worker_id,
-        workerName: w.worker_name,
-        pairsThisMonth: w.pairs_count,
-        earningsThisMonth: Math.round(Number(w.earnings)),
-        qualityRate: Math.round(qualityRate * 100) / 100,
-        attendanceRate: Math.round(attendanceRate * 100) / 100,
-        bonusEligible,
-        bonusAmount,
-      };
-    });
+    return workers.map((w) =>
+      workerPerformance(
+        {
+          workerId: w.worker_id,
+          workerName: w.worker_name,
+          pairs: Number(w.pairs) || 0,
+          rejectedPairs: Number(w.rejected_pairs) || 0,
+          earnings: Number(w.earnings) || 0,
+          daysWorked: Number(w.days_worked) || 0,
+        },
+        daysFactoryRan,
+      ),
+    );
   } catch (error) {
     console.error("Failed to get worker performance metrics:", error);
     return [];
