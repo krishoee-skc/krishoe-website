@@ -8,7 +8,6 @@ import { queryPostgres } from "@/lib/postgres/client";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
-  addApprovedWorkEntry,
   addProductionCctvReference,
   addProductionItem,
   addWorkOrderMaterialConsumption,
@@ -347,29 +346,9 @@ export async function reverseHandoverAction(formData: FormData) {
   refresh();
 }
 
-export async function createWorkEntryAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
-  const employee = await activeEmployee(text(formData, "employeeId"));
-  const result = await addApprovedWorkEntry({
-    employee,
-    workOrderId: text(formData, "workOrderId"),
-    itemId: text(formData, "itemId"),
-    stage: option<ProductionStage>(text(formData, "stage"), productionStages, "Upper"),
-    workDate: text(formData, "workDate"),
-    totalPairs: integer(formData, "totalPairs"),
-    rejectedPairs: integer(formData, "rejectedPairs"),
-    reworkPairs: integer(formData, "reworkPairs"),
-    sizeBreakdown: sizeBreakdown(text(formData, "sizeBreakdown")),
-    approvedBy,
-    note: text(formData, "note"),
-    sourceSubmissionKey: text(formData, "sourceSubmissionKey"),
-  });
-  await recordAdminAuditEvent(
-    "production_work_approve",
-    `${employee.name} work approved; earned wage Rs. ${result.earned}.`,
-  );
-  refresh();
-}
+// Work is entered once, on the work-entry screen, which writes the factory
+// ledger and this screen's figures in one transaction. The form that used to
+// stand here was the second way to type the same day's work.
 
 export async function createMaterialConsumptionAction(formData: FormData) {
   const { approvedBy } = await ownerContext();

@@ -58,7 +58,9 @@ describe("Factory mutation idempotency", () => {
       .mockResolvedValueOnce([]) // advisory idempotency lock
       .mockResolvedValueOnce([]) // no previous work with this key
       .mockResolvedValueOnce([{ id: "worker-1", category: "Upper", worker_type: "piece_rate" }])
-      .mockResolvedValueOnce([{ id: "item-1" }])
+      .mockResolvedValueOnce([
+        { id: "item-1", production_item_id: "prod-1", production_item_name: "Sandal" },
+      ])
       .mockResolvedValueOnce([{ rate_per_pair: "12.50" }])
       .mockResolvedValueOnce([
         {
@@ -74,6 +76,7 @@ describe("Factory mutation idempotency", () => {
           amount_earned: "125.00",
         },
       ])
+      .mockResolvedValueOnce([]) // production_work_entries insert
       .mockResolvedValueOnce([]) // no ledger-key collision
       .mockResolvedValueOnce([{ running_balance: "50.00" }])
       .mockResolvedValueOnce([]);
@@ -95,7 +98,8 @@ describe("Factory mutation idempotency", () => {
       amount_earned: 125,
       submission_key: "work-key-1",
       replayed: false,
-      production_synced: false,
+      // The work reached both ledgers, inside this one transaction.
+      production_synced: true,
     });
 
     const sql = dbQuery.mock.calls.map(([statement]) => String(statement)).join("\n");
@@ -120,7 +124,9 @@ describe("Factory mutation idempotency", () => {
       .mockResolvedValueOnce([]) // advisory idempotency lock
       .mockResolvedValueOnce([]) // no previous work with this key
       .mockResolvedValueOnce([{ id: "worker-1", category: "Upper", worker_type: "piece_rate" }])
-      .mockResolvedValueOnce([{ id: "item-1" }])
+      .mockResolvedValueOnce([
+        { id: "item-1", production_item_id: "prod-1", production_item_name: "Sandal" },
+      ])
       .mockResolvedValueOnce([{ rate_per_pair: "12.50" }])
       .mockResolvedValueOnce([
         {

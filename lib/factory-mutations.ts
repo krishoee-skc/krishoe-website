@@ -180,6 +180,11 @@ function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
     status: row.status,
     submission_key: submissionKey,
     replayed,
+    // Always true: work reaches factory_daily_work, the worker ledger and
+    // production_work_entries in one transaction, or the save is refused
+    // before anything is written.
+    production_synced: true,
+    production_sync_reason: "Saved to the factory ledger and the wages screen.",
   };
 }
 
@@ -252,6 +257,24 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     // fall back to the worker's category when none was sent, so older callers
     // and existing behaviour are unchanged.
     const stage = input.stage?.trim() || productionStageForFactoryCategory(worker.category);
+
+    // Both ledgers or neither. This work has to reach the wages screen and the
+    // Saturday payment centre, which read production_work_entries; an item with
+    // no production link cannot get there. That used to be a silent skip, so
+    // the entry saved and the wage screen never showed it. Refuse instead, and
+    // name the screen that fixes it.
+    if (!items[0].production_item_id || !items[0].production_item_name) {
+      throw new FactoryMutationError(
+        "Link this item to the Production Item Master first, so its wage reaches the Wages & kharcha screen. Open Factory → Items and set the production item.",
+        409,
+      );
+    }
+    if (!stage) {
+      throw new FactoryMutationError(
+        "Choose the work stage for this entry (Upper, Fibermen, Fiber Silai or Packing / QC).",
+        409,
+      );
+    }
     let linkedWorkOrder: {
       id: string;
       plannedPairs: number;
@@ -259,12 +282,6 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     } | null = null;
 
     if (input.workOrderId) {
-      if (!items[0].production_item_id || !stage) {
-        throw new FactoryMutationError(
-          "Link this item to the Production Item Master before selecting a Work Order.",
-          409,
-        );
-      }
       const orders = await db.query<{
         id: string;
         item_id: string;
@@ -401,13 +418,11 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);
-    let productionSynced = false;
 
-    if (
-      items[0].production_item_id &&
-      items[0].production_item_name &&
-      stage
-    ) {
+    // The wages screen and the Saturday payment centre read this table. It is
+    // written inside the same transaction as the factory rows, so if it fails
+    // the whole save rolls back and the two ledgers cannot disagree.
+    {
       const sizeLabel = input.size?.trim() || "Mixed";
       await db.query(
         `INSERT INTO production_work_entries (
@@ -427,8 +442,6 @@ export async function createFactoryWork(input: FactoryWorkInput) {
           input.workOrderId ?? "",
         ],
       );
-      productionSynced = true;
-
       if (linkedWorkOrder) {
         const stageComplete =
           linkedWorkOrder.completedBefore + input.pairsCount >= linkedWorkOrder.plannedPairs;
@@ -507,13 +520,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     // shop had already closed.
     await writeMonthlySummary(db, input.workerId, bikramMonthKeyOf(input.date));
 
-    return {
-      ...workResponse(inserted[0], input.submissionKey, false),
-      production_synced: productionSynced,
-      production_sync_reason: productionSynced
-        ? "Linked HR worker, Production Item, stage and wage snapshot saved."
-        : "Link this Factory worker and item to HR and Production Item Master for production-history sync.",
-    };
+    return workResponse(inserted[0], input.submissionKey, false);
   });
 }
 

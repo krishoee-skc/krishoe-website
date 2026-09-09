@@ -4,10 +4,8 @@ import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
-import OfflineProductionWorkForm from "@/components/admin/OfflineProductionWorkForm";
 import {
   createProductionItemAction,
-  createWorkEntryAction,
   createWorkerPaymentAction,
   mapProductionItemAction,
   approvePackingQcAction,
@@ -75,7 +73,7 @@ export default async function ProductionAccountsPage({
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory accounts</p>
-        <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Production, wages & kharcha</h1>
+        <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Wages &amp; kharcha</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
           Owner-approved work, item/stage wage, midweek advance and Saturday kharcha—without mixing work earned with cash paid.
         </p>
@@ -168,6 +166,7 @@ export default async function ProductionAccountsPage({
             ["QC-stock links", acceptance.qcWithoutStockMovement],
             ["Active order links", acceptance.activeOrderItemMismatch],
             ["Duplicate submissions", acceptance.duplicateSubmissionKeys],
+            ["Workers whose two ledgers disagree", acceptance.ledgerMismatchWorkers],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl bg-brand-paper p-3 text-sm">
               <p className="text-xs font-bold text-brand-muted">{label}</p>
@@ -583,25 +582,25 @@ export default async function ProductionAccountsPage({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <OfflineProductionWorkForm
-          action={createWorkEntryAction}
-          className={card}
-          today={date}
-          stages={[...productionStages]}
-          workOrders={data.workOrders
-            .filter((order) => !["Completed", "Cancelled"].includes(order.status))
-            .map((order) => ({
-              id: order.id,
-              label: `${order.workOrderNumber} · ${order.itemName} · ${order.colour} · current ${order.currentStage}`,
-            }))}
-          employees={data.employees.map((employee) => ({
-            id: employee.id,
-            label: `${employee.name} · ${employee.id}`,
-          }))}
-          items={activeItems
-            .filter((item) => item.productionType !== "Resale")
-            .map((item) => ({ id: item.id, label: item.name }))}
-        />
+        {/* Work is typed once, on the work-entry screen, which writes the
+            factory ledger and this screen's figures in a single transaction.
+            A second form here meant the same day's work could land twice. */}
+        <div className={card} id="work-entries">
+          <h2 className="text-lg font-black text-brand-green-ink">6. Work &amp; wage</h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            Work is entered once, on the work-entry screen. It reaches this screen and the
+            worker&rsquo;s ledger together, so the two always agree.
+          </p>
+          <Link
+            href="/admin/factory/add-work"
+            className={`${button} mt-4 inline-flex items-center justify-center`}
+          >
+            Open work entry
+          </Link>
+          <p className="mt-3 text-xs text-brand-muted">
+            Recent approved work is listed below, and every entry is in the CSV export above.
+          </p>
+        </div>
 
         <form action={createWorkerPaymentAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>

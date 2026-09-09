@@ -494,6 +494,7 @@ export async function getProductionAcceptanceAudit() {
     items_missing_rates: number | string;
     items_missing_bom: number | string;
     items_missing_catalog: number | string;
+    ledger_mismatch_workers: number | string;
   }>(
     "production acceptance audit",
     `SELECT
@@ -532,7 +533,20 @@ export async function getProductionAcceptanceAudit() {
           )) AS items_missing_bom,
        (SELECT count(*) FROM production_items items
         WHERE items.status = 'Active' AND items.production_type <> 'Resale'
-          AND items.catalog_product_id IS NULL) AS items_missing_catalog`,
+          AND items.catalog_product_id IS NULL) AS items_missing_catalog,
+       -- Workers whose two ledgers no longer tell the same story. Rounded to
+       -- the paisa before comparing, because one side stores numeric and the
+       -- other sums it, and a half-paisa difference is not a mismatch worth
+       -- turning the board red over.
+       (SELECT count(*) FROM factory_workers workers
+        WHERE round(coalesce((
+                SELECT sum(entries.earned_wage) FROM production_work_entries entries
+                WHERE entries.employee_id = workers.id AND entries.status = 'Approved'
+              ), 0), 2)
+           <> round(coalesce((
+                SELECT sum(work.amount_earned) FROM factory_daily_work work
+                WHERE work.worker_id = workers.id AND work.status = 'completed'
+              ), 0), 2)) AS ledger_mismatch_workers`,
   );
   const row = rows[0];
   const count = (value: number | string | undefined) => Number(value ?? 0);
@@ -541,7 +555,8 @@ export async function getProductionAcceptanceAudit() {
     count(row?.completed_without_qc) +
     count(row?.qc_without_stock_movement) +
     count(row?.active_order_item_mismatch) +
-    count(row?.duplicate_submission_keys);
+    count(row?.duplicate_submission_keys) +
+    count(row?.ledger_mismatch_workers);
   return {
     integrityIssues,
     orphanWorkEntries: count(row?.orphan_work_entries),
@@ -552,6 +567,7 @@ export async function getProductionAcceptanceAudit() {
     itemsMissingRates: count(row?.items_missing_rates),
     itemsMissingBom: count(row?.items_missing_bom),
     itemsMissingCatalog: count(row?.items_missing_catalog),
+    ledgerMismatchWorkers: count(row?.ledger_mismatch_workers),
   };
 }
 

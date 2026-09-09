@@ -64,8 +64,10 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: FactoryIcon },
       // Wages, kharcha, work orders and cost cards — a daily-needed screen that
-      // had no menu link and could only be reached by typing its URL.
-      { href: "/admin/operations/production-accounts", label: "Cost & profit", nepali: "लागत र नाफा", icon: CoinsIcon },
+      // had no menu link and could only be reached by typing its URL. It read
+      // "Cost & profit", which is the costing screen further down this file:
+      // the owner opened it looking for profit and found wages.
+      { href: "/admin/operations/production-accounts", label: "Wages & kharcha", nepali: "ज्याला र खर्च", icon: CoinsIcon },
       { href: "/admin/operations", label: "Operations", nepali: "उत्पादन र स्टक", icon: PackageIcon },
       { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: LayersIcon },
     ],

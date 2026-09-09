@@ -347,7 +347,7 @@ export default function WorkEntryForm({
         throw new Error(errorData.error || "Failed to save work entry");
       }
 
-      const result = await res.json();
+      await res.json().catch(() => ({}));
       setWorkSaved((count) => count + 1);
 
       const pairs = entry.pairs_count;
@@ -359,10 +359,6 @@ export default function WorkEntryForm({
         ),
         "success",
       );
-
-      if (!result.production_synced && result.production_sync_reason) {
-        setSuccess(result.production_sync_reason);
-      }
     } catch (err) {
       // Put it back exactly as typed. A wage entry that vanishes because the
       // network blinked is a day's work the factory has to remember by hand.
