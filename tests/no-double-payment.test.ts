@@ -130,3 +130,52 @@ describe("the balance a reversed entry leaves behind", () => {
     }
   });
 });
+
+/**
+ * The third way money leaves the shop.
+ *
+ * A staff salary advance is cash handed over, and the salary screen subtracts
+ * advances from what is still owed for the month — so entering one twice tells
+ * the owner they owe a staff member less than they do. Same shape as the
+ * Rs. 9,720 double entry, on the salary side rather than the piece side.
+ *
+ * No advance had been entered when this was written, so nothing was being
+ * corrected: this is the trap closed before the shop walks into it.
+ */
+describe("giving the same staff advance twice", () => {
+  async function advanceGuard() {
+    const source = await readFile(MUTATIONS, "utf8");
+    return source.slice(
+      source.indexOf("export async function createFactoryAdvance"),
+      source.indexOf("interface SummaryRow"),
+    );
+  }
+
+  it("is refused when the same advance was given minutes ago", async () => {
+    const guard = await advanceGuard();
+
+    expect(guard, "no guard on staff advances").toContain("interval '10 minutes'");
+    expect(guard).toContain("worker_id = $1");
+    expect(guard).toContain("date_given = $2::date");
+    expect(guard).toContain("advance_amount = $3");
+  });
+
+  it("checks before it writes, inside the transaction already open", async () => {
+    const guard = await advanceGuard();
+
+    const check = guard.indexOf("interval '10 minutes'");
+    const insert = guard.indexOf("INSERT INTO factory_weekly_advance");
+    // Two quick presses can both pass a check that runs after the insert, or
+    // one held outside the transaction.
+    expect(check).toBeGreaterThan(-1);
+    expect(insert).toBeGreaterThan(check);
+  });
+
+  it("names the worker and how long ago", async () => {
+    const guard = await advanceGuard();
+
+    // The staff member is standing there with their hand out.
+    expect(guard).toContain("was already given this advance");
+    expect(guard).toContain("minute");
+  });
+});

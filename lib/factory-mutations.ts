@@ -821,6 +821,28 @@ export async function createFactoryAdvance(input: FactoryAdvanceInput) {
         409,
       );
     }
+    // The same worker, the same amount, the same day, minutes apart is one
+    // advance recorded twice. The salary screen subtracts advances from what
+    // is still owed, so a duplicate quietly shrinks a staff member's wage.
+    const recentAdvance = await db.query<{ id: string; minutes_ago: number }>(
+      `SELECT id, EXTRACT(EPOCH FROM (now() - created_at)) / 60 AS minutes_ago
+       FROM factory_weekly_advance
+       WHERE worker_id = $1
+         AND date_given = $2::date
+         AND advance_amount = $3
+         AND created_at > now() - interval '10 minutes'
+       LIMIT 1`,
+      [input.workerId, input.date, input.amount],
+    );
+    if (recentAdvance[0]) {
+      const minutes = Math.max(1, Math.round(Number(recentAdvance[0].minutes_ago) || 1));
+      throw new FactoryMutationError(
+        `${worker.name} was already given this advance ${minutes} minute${minutes === 1 ? "" : "s"} ago today. ` +
+          "If that was this advance, it is already recorded. If it is a second, separate advance, wait a few minutes or add a note saying what it is for.",
+        409,
+      );
+    }
+
     const advanceId = crypto.randomUUID();
     const inserted = await db.query<AdvanceRow>(
       `INSERT INTO factory_weekly_advance
