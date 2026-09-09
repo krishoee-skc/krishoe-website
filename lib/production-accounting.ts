@@ -2271,19 +2271,45 @@ export async function addWorkerPayment(input: {
   note: string;
 }) {
   const receiptNumber = `KR-PAY-${input.paymentDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-  await queryPostgres(
-    "create worker payment",
-    `INSERT INTO worker_payments (
-       id, payment_date, employee_id, employee_name_snapshot, payment_type,
-       direction, amount, payment_method, receipt_number, approved_by, note
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'Cash', $8, $9, $10)`,
-    [
-      id("wpay"), input.paymentDate, input.employee.id, input.employee.name,
-      input.paymentType, input.direction, input.amount, receiptNumber,
-      input.approvedBy, input.note,
-    ],
-  );
-  return receiptNumber;
+  return transactionPostgres("create worker payment", async (db) => {
+    // The same worker, the same amount, the same day, entered minutes apart is
+    // one payment recorded twice — a worker's Rs. 9,720 was entered here twice
+    // twenty-three seconds apart and the screen then read Rs. 19,440 paid
+    // against Rs. 9,720 earned. The check and the insert share a transaction so
+    // a second press arriving mid-check cannot slip between them.
+    const recent = await db.query<{ receipt_number: string; minutes_ago: number }>(
+      `SELECT receipt_number, EXTRACT(EPOCH FROM (now() - created_at)) / 60 AS minutes_ago
+       FROM worker_payments
+       WHERE employee_id = $1
+         AND payment_date = $2::date
+         AND amount = $3
+         AND payment_type = $4
+         AND reversed_at IS NULL
+         AND created_at > now() - interval '10 minutes'
+       LIMIT 1`,
+      [input.employee.id, input.paymentDate, input.amount, input.paymentType],
+    );
+    if (recent[0]) {
+      const minutes = Math.max(1, Math.round(Number(recent[0].minutes_ago) || 1));
+      throw new Error(
+        `${input.employee.name} was already given this amount ${minutes} minute${minutes === 1 ? "" : "s"} ago today (${recent[0].receipt_number}). ` +
+          "If that was this payment, it is already recorded. If it is a second, separate payment, wait a few minutes or add a note saying what it is for.",
+      );
+    }
+
+    await db.query(
+      `INSERT INTO worker_payments (
+         id, payment_date, employee_id, employee_name_snapshot, payment_type,
+         direction, amount, payment_method, receipt_number, approved_by, note
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'Cash', $8, $9, $10)`,
+      [
+        id("wpay"), input.paymentDate, input.employee.id, input.employee.name,
+        input.paymentType, input.direction, input.amount, receiptNumber,
+        input.approvedBy, input.note,
+      ],
+    );
+    return receiptNumber;
+  });
 }
 
 export async function reverseWorkerPayment(input: {

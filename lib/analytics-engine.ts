@@ -188,6 +188,7 @@ export async function getKeyMetrics(): Promise<AnalyticsMetric[]> {
         COALESCE(SUM(CASE WHEN work_date >= date_trunc('month', CURRENT_DATE)::date THEN total_pairs ELSE 0 END), 0)::integer,
         COALESCE(SUM(CASE WHEN work_date >= $1 AND work_date < date_trunc('month', CURRENT_DATE)::date THEN total_pairs ELSE 0 END), 0)::integer
       FROM production_work_entries
+      WHERE status = 'Approved'
       UNION ALL
       SELECT
         'Workers',
@@ -309,7 +310,8 @@ export async function getGoalTrackers(): Promise<GoalTracker[]> {
         COALESCE(SUM(CAST(SUBSTRING(o.total FROM '[0-9]+') AS INTEGER)), 0)::integer as revenue
       FROM production_work_entries pwe
       RIGHT OUTER JOIN orders o ON true
-      WHERE pwe.work_date >= $1 AND pwe.work_date <= $2
+      WHERE pwe.status = 'Approved'
+      AND pwe.work_date >= $1 AND pwe.work_date <= $2
       AND o.created_at >= $1 AND o.created_at <= $2
       AND o.status IN ('Closed', 'Contacted')`,
       [monthStart.toISOString().split("T")[0], monthEnd.toISOString().split("T")[0]]

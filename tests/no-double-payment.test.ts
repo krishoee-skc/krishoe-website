@@ -58,6 +58,62 @@ describe("paying the same worker twice by accident", () => {
   });
 });
 
+/**
+ * The other way the shop pays a worker.
+ *
+ * The wages screen's "Worker cash" form writes to worker_payments, not to
+ * factory_worker_ledger, so the guard above never saw it. That is the path the
+ * duplicate Rs. 9,720 came through, and it sat live until it was reversed by
+ * hand. Two ways to pay means two guards.
+ */
+const ACCOUNTING = "lib/production-accounting.ts";
+
+describe("paying the same worker twice through the cash form", () => {
+  it("is refused when the same amount was paid minutes ago", async () => {
+    const source = await readFile(ACCOUNTING, "utf8");
+    const guard = source.slice(
+      source.indexOf("export async function addWorkerPayment"),
+      source.indexOf("export async function reverseWorkerPayment"),
+    );
+
+    expect(guard, "no guard on the cash form").toContain("interval '10 minutes'");
+    expect(guard).toContain("employee_id = $1");
+    expect(guard).toContain("payment_date = $2::date");
+    expect(guard).toContain("amount = $3");
+  });
+
+  it("does not count a payment that was already reversed", async () => {
+    const source = await readFile(ACCOUNTING, "utf8");
+    const guard = source.slice(
+      source.indexOf("export async function addWorkerPayment"),
+      source.indexOf("export async function reverseWorkerPayment"),
+    );
+
+    // Reversing is how a wrong entry is corrected. The corrected payment has to
+    // be enterable again straight away.
+    expect(guard).toContain("reversed_at IS NULL");
+  });
+
+  it("checks and inserts in one transaction", async () => {
+    const source = await readFile(ACCOUNTING, "utf8");
+    const guard = source.slice(
+      source.indexOf("export async function addWorkerPayment"),
+      source.indexOf("export async function reverseWorkerPayment"),
+    );
+
+    // Two quick presses can both pass a check that is not held with its insert.
+    expect(guard).toContain("transactionPostgres");
+  });
+
+  it("says who, how long ago, and which receipt", async () => {
+    const source = await readFile(ACCOUNTING, "utf8");
+
+    // The owner is standing there with the cash in hand.
+    expect(source).toContain("was already given this amount");
+    expect(source).toContain("receipt_number");
+  });
+});
+
 describe("the balance a reversed entry leaves behind", () => {
   it("is left out of every sum that decides what is owed", async () => {
     const source = await readFile(MUTATIONS, "utf8");
