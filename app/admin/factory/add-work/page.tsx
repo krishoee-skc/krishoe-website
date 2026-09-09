@@ -20,7 +20,13 @@ export const dynamic = "force-dynamic";
 
 type Loaded = {
   workers: FactoryWorker[] | null;
-  items: { id: string; name: string; code: string | null; production_item_id: string | null }[];
+  items: {
+    id: string;
+    name: string;
+    code: string | null;
+    sizes: string[];
+    production_item_id: string | null;
+  }[];
   workOrders: WorkOrderOption[];
   rates: FactoryRate[];
   error: string;
@@ -49,6 +55,9 @@ async function loadEntryScreen(): Promise<Loaded> {
         id: item.id,
         name: item.name,
         code: item.code,
+        // The sizes this shoe is made in, so the form offers its real run
+        // rather than a list written into the code.
+        sizes: item.sizes,
         production_item_id: item.production_item_id,
       })),
       workOrders: catalogue.workOrders,

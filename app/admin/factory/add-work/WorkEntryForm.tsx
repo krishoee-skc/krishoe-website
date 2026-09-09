@@ -10,6 +10,7 @@ import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 import { FACTORY_WORKER_CATEGORIES, factoryCategoryLabel } from "@/lib/factory-worker-options";
 import { pieceWage } from "@/lib/factory-board";
 import { quoteWork, type FactoryRate } from "@/lib/factory-rate-book";
+import { SIZE_RUNS, addRun, sizeRunLabel, toggleSize } from "@/lib/shoe-sizes";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
 import NepaliDateField from "@/components/admin/NepaliDateField";
@@ -28,6 +29,9 @@ interface Item {
   id: string;
   name: string;
   code: string | null;
+  /** The sizes this shoe is made in. Empty when the item is not yet linked to
+   *  a catalogue product, which is when the size runs are offered instead. */
+  sizes: string[];
   production_item_id: string | null;
 }
 
@@ -55,7 +59,8 @@ const COMMON_COLOURS = [
 ] as const;
 
 // The sizes usually run, offered as toggle buttons that build the comma list.
-const COMMON_SIZES = ["6", "7", "8", "9", "10"] as const;
+// Sizes are no longer a fixed list — they come from the chosen item, or from
+// the runs in lib/shoe-sizes when the item has none on file yet.
 
 export default function WorkEntryForm({
   initialWorkers,
@@ -220,7 +225,7 @@ export default function WorkEntryForm({
       const data = await res.json();
       setItems([
         ...items,
-        { id: data.id, name: data.name, code: "", production_item_id: null },
+        { id: data.id, name: data.name, code: "", sizes: [], production_item_id: null },
       ]);
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
@@ -286,6 +291,13 @@ export default function WorkEntryForm({
       setError(err instanceof Error ? err.message : "Failed to set rate");
     }
   };
+
+  // The sizes this shoe is made in, and which of them are already chosen.
+  const itemSizes = items.find((item) => item.id === formData.item_id)?.sizes ?? [];
+  const chosenSizes = formData.size
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,7 +402,7 @@ export default function WorkEntryForm({
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+    <div className="mx-auto max-w-5xl p-4 sm:p-6">
       {/* A small factory-crest header, the same monogram the shop signs itself
           with, so the busiest screen in the building reads as KRISHOE's own. */}
       <div className="flex items-center gap-3">
@@ -456,28 +468,25 @@ export default function WorkEntryForm({
             heading over it — the label sits beside the picker and the whole
             thing is one line instead of four. Picked in Bikram Sambat and
             stored as AD; the field shows both. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <label htmlFor="work-date" className="text-sm font-medium text-brand-green-ink">
+        {/* Which entry this is: the day, the person, the shoe. One control
+            each, so they sit on one row and the form starts with a single
+            glance rather than a scroll. */}
+        <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label htmlFor="work-date" className="mb-2 block text-sm font-medium text-brand-green-ink">
             📅 {text("Work done on", "कामको मिति")}
           </label>
-          <div className="min-w-[11rem] flex-1">
-            <NepaliDateField
-              id="work-date"
-              value={formData.date}
-              onChange={(adValue) => setFormData((prev) => ({ ...prev, date: adValue }))}
-              required
-            />
-          </div>
+          <NepaliDateField
+            id="work-date"
+            value={formData.date}
+            onChange={(adValue) => setFormData((prev) => ({ ...prev, date: adValue }))}
+            required
+          />
         </div>
 
         {/* Worker + Product on one row on wider phones and up, so the two most
             important choices sit together and the form is shorter to scroll. On
             a narrow phone they stack, one per line, as before. */}
-        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
-          {text("② Who & what", "② को र के")}
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-2">
         {/* Worker */}
         <div>
           <label htmlFor="work-worker" className="block text-sm font-medium text-brand-green-ink mb-2">👤 {text("Worker", "कामदार")}</label>
@@ -637,9 +646,6 @@ export default function WorkEntryForm({
         {/* Colour, Size and Pairs on one row from small screens up — three short
             fields that belong together, so the form does not run down the page.
             They stack on a narrow phone. */}
-        <p className="border-b border-brand-green-line pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">
-          {text("③ How many & details", "③ कति र विवरण")}
-        </p>
 
         {/* Pairs first, and on its own line: it is the one answer here that
             is required, and the one that decides the wage. It used to sit in
@@ -658,6 +664,14 @@ export default function WorkEntryForm({
             className="w-full min-h-14 rounded-lg border-2 border-brand-green-line px-3 py-2 text-2xl font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
             required
           />
+          {calculatedAmount > 0 ? (
+            <p className="mt-1.5 text-sm font-black text-brand-green">
+              = Rs. {calculatedAmount.toLocaleString()}{" "}
+              <span className="font-semibold text-brand-muted">
+                {text(`at Rs. ${selectedRate}/pair`, `प्रति जोडी रु. ${selectedRate}`)}
+              </span>
+            </p>
+          ) : null}
         </div>
 
         {/* Colour and size are optional — a shoe is entered without them most
@@ -727,40 +741,51 @@ export default function WorkEntryForm({
               {/* Tap the sizes made — each toggles in and out of the comma list,
                   so a run like "7, 8, 9" is built without typing commas. The
                   text field below still takes anything off these buttons. */}
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {COMMON_SIZES.map((size) => {
-                  const parts = formData.size
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                  const active = parts.includes(size);
-                  return (
+              {/* The sizes this shoe is made in, when the item is linked to a
+                  catalogue product — so "hill sandel" offers 36–40 and a
+                  child's shoe offers 25–30, with nothing to keep in step by
+                  hand. Each chip toggles in and out of the comma list. */}
+              {itemSizes.length > 0 ? (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {itemSizes.map((size) => {
+                    const active = chosenSizes.includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, size: toggleSize(prev.size, size) }))
+                        }
+                        className={`press-dip grid h-9 min-w-9 shrink-0 place-items-center rounded-lg border px-1.5 text-sm font-black transition ${
+                          active
+                            ? "border-brand-green bg-brand-green text-white"
+                            : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* No sizes on file for this item yet. A whole run in one tap
+                   beats typing six numbers — and beats a fixed list of five
+                   that was right for nothing this shop makes. */
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {SIZE_RUNS.map((run) => (
                     <button
-                      key={size}
+                      key={run.en}
                       type="button"
                       onClick={() =>
-                        setFormData((prev) => {
-                          const list = prev.size
-                            .split(",")
-                            .map((s) => s.trim())
-                            .filter(Boolean);
-                          const next = active
-                            ? list.filter((s) => s !== size)
-                            : [...list, size];
-                          return { ...prev, size: next.join(", ") };
-                        })
+                        setFormData((prev) => ({ ...prev, size: addRun(prev.size, run) }))
                       }
-                      className={`press-dip grid h-9 min-w-9 shrink-0 place-items-center rounded-lg border px-1.5 text-sm font-black transition ${
-                        active
-                          ? "border-brand-green bg-brand-green text-white"
-                          : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
-                      }`}
+                      className="press-dip inline-flex h-9 shrink-0 items-center rounded-full border border-brand-green-line px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green"
                     >
-                      {size}
+                      + {sizeRunLabel(run, language === "ne")}
                     </button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
               <input
                 type="text"
                 value={formData.size}

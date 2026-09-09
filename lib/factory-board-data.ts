@@ -9,6 +9,7 @@
  * and the API can never drift into reporting different days.
  */
 import { queryPostgres } from "@/lib/postgres/client";
+import { productSizes } from "@/lib/shoe-sizes";
 import type { FactoryRate } from "@/lib/factory-rate-book";
 import {
   factoryTotalsFromRow,
@@ -179,6 +180,9 @@ export type FactoryItem = {
   id: string;
   name: string;
   code: string | null;
+  /** The sizes this shoe is made in, reached through the production item to a
+   *  catalogue product. Empty when that link is not set. */
+  sizes: string[];
   status: string;
   created_at: string;
   material_cost_per_pair: number | null;
@@ -262,9 +266,11 @@ export async function getFactoryItems(
       STORE,
       `SELECT items.id, items.name, items.code, items.status, items.created_at,
               items.material_cost_per_pair,
-              items.production_item_id, production.name AS production_item_name
+              items.production_item_id, production.name AS production_item_name,
+              product.sizes AS product_sizes
          FROM factory_items items
          LEFT JOIN production_items production ON production.id = items.production_item_id
+         LEFT JOIN products product ON product.id = production.catalog_product_id
          ${options.includeRetired ? "" : "WHERE items.status = 'active'"}
         ORDER BY items.status ASC, items.name ASC`,
     ),
@@ -299,6 +305,7 @@ export async function getFactoryItems(
         row.material_cost_per_pair === null || row.material_cost_per_pair === undefined
           ? null
           : Number(row.material_cost_per_pair) || 0,
+      sizes: productSizes(row.product_sizes as string[] | null),
       production_item_id: row.production_item_id ? String(row.production_item_id) : null,
       production_item_name: row.production_item_name ? String(row.production_item_name) : null,
     })),
