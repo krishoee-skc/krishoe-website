@@ -274,10 +274,27 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
               label={text("Total paid", "जम्मा पाएको")}
               value={money(ledgerData.summary.totalPaid)}
             />
+            {/* Owing a worker mid-week is the ordinary state, not a
+                warning — the week's work is cleared on Saturday. Nil is
+                settled; a negative balance means the worker was paid ahead of
+                their work, which is the one worth marking. */}
             <StatTile
               label={text("Current balance", "अहिलेको बाँकी")}
               value={money(ledgerData.summary.currentBalance)}
-              tone={ledgerData.summary.currentBalance > 0 ? "warn" : "good"}
+              detail={
+                ledgerData.summary.currentBalance > 0
+                  ? text("to pay on Saturday", "शनिबार दिनुपर्ने")
+                  : ledgerData.summary.currentBalance < 0
+                    ? text("paid ahead — recover from future work", "बढी दिइएको — पछिको कामबाट कट्ने")
+                    : text("settled", "चुक्ता")
+              }
+              tone={
+                ledgerData.summary.currentBalance < 0
+                  ? "warn"
+                  : ledgerData.summary.currentBalance === 0
+                    ? "good"
+                    : "default"
+              }
             />
           </div>
 
@@ -292,8 +309,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                     <th className="text-left py-2 px-2 sm:px-4">{text("Type", "के भयो")}</th>
                     <th className="text-left py-2 px-2 sm:px-4">{text("Item", "के बनायो")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
-                    <th className="text-right py-2 px-2 sm:px-4">{text("Earned", "कमाएको")}</th>
-                    <th className="text-right py-2 px-2 sm:px-4">{text("Paid", "पाएको")}</th>
+                    <th className="text-right py-2 px-2 sm:px-4">{text("Amount", "रकम")}</th>
                     <th className="text-right py-2 px-2 sm:px-4">{text("Balance", "बाँकी")}</th>
                     <th className="text-left py-2 px-2 sm:px-4">{text("Note", "टिपोट")}</th>
                   </tr>
@@ -377,31 +393,21 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             Empty rather than a dash on a phone, where the
                             reflow gives each cell its own labelled line and an
                             existing rule hides an empty one. */}
+                        {/* One column, because no row is ever both: a row has
+                            pairs and a wage, or it has cash handed over. Two
+                            columns left one of them empty on every row. The
+                            sign says which, the way a passbook does. */}
                         <td
-                          data-label={text("Earned", "कमाएको")}
-                          className={`py-3 px-2 sm:px-4 text-right font-medium ${
-                            Number(entry.amount_earned) > 0 ? "" : "reflow-blank"
-                          }`}
-                        >
-                          {Number(entry.amount_earned) > 0 ? (
-                            <span className={`text-green-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
-                              +{Number(entry.amount_earned).toLocaleString("en-IN")}
-                            </span>
-                          ) : (
-                            /* Grey, not green: a dash is "nothing here", and a
-                               coloured one reads as money that moved. */
-                            <span className="text-brand-muted-soft">—</span>
-                          )}
-                        </td>
-                        <td
-                          data-label={text("Paid", "पाएको")}
-                          className={`py-3 px-2 sm:px-4 text-right font-medium ${
-                            Number(entry.payment_given) > 0 ? "" : "reflow-blank"
-                          }`}
+                          data-label={text("Amount", "रकम")}
+                          className="py-3 px-2 sm:px-4 text-right font-bold"
                         >
                           {Number(entry.payment_given) > 0 ? (
                             <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
-                              -{Number(entry.payment_given).toLocaleString("en-IN")}
+                              −{Number(entry.payment_given).toLocaleString("en-IN")}
+                            </span>
+                          ) : Number(entry.amount_earned) > 0 ? (
+                            <span className={`text-green-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                              +{Number(entry.amount_earned).toLocaleString("en-IN")}
                             </span>
                           ) : (
                             <span className="text-brand-muted-soft">—</span>
@@ -436,7 +442,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-brand-muted">
+                      <td colSpan={7} className="py-8 text-center text-brand-muted">
                         {text(
                           "No ledger entries for this month",
                           "यो महिना यस कामदारको कुनै हिसाब छैन।",

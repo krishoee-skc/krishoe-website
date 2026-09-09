@@ -74,11 +74,11 @@ describe("what the owner sees", () => {
     expect(screen).toContain("entry.rate_applied");
   });
 
-  it("widens the empty row to match the new column count", async () => {
+  it("spans the empty row across every column", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
-    // A colSpan left at 7 leaves the "no entries" message short of the table.
-    expect(screen).toContain("colSpan={8}");
+    // Seven now: Earned and Paid became one Amount column.
+    expect(screen).toContain("colSpan={7}");
   });
 });
 
@@ -215,46 +215,80 @@ describe("a reversed entry", () => {
     expect(balance.slice(0, 400)).not.toContain("reflow-blank");
   });
 });
-
 /**
- * A dash is not an amount.
+ * One money column, because no row is ever both.
  *
- * Earned and Paid carried their colour on the cell, so the em-dash standing in
- * for "nothing here" inherited it — four work rows showing a red mark in a
- * column headed Paid. Red in a money column reads as money going out, and the
- * eye kept stopping on rows where nothing had been paid at all.
+ * Checked against the shop's own ledger before changing anything: nine rows are
+ * work — pairs and a wage, never a payment — and two are payments, with no
+ * pairs and no wage. Two money columns therefore left one of them empty on
+ * every single row, which is what the owner kept reading as wrong: a column of
+ * dashes under a heading that says Paid.
  */
-describe("the dash in a money column", () => {
-  it("is grey, while only real amounts carry colour", async () => {
+describe("the amount column", () => {
+  it("is one column, not an earned and a paid", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
-    const earned = screen.slice(
-      screen.indexOf('data-label={text("Earned"'),
-      screen.indexOf('data-label={text("Paid"'),
-    );
-    const paid = screen.slice(
-      screen.indexOf('data-label={text("Paid"'),
+    expect(screen).toContain('text("Amount", "रकम")');
+    expect(screen).not.toContain('text("Earned", "कमाएको")');
+    expect(screen).not.toContain('text("Paid", "पाएको")');
+  });
+
+  it("signs it: work adds, cash handed over takes away", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+    const amount = screen.slice(
+      screen.indexOf('data-label={text("Amount"'),
       screen.indexOf('data-label={text("Balance"'),
     );
 
-    // The colour sits on the figure, not on the cell around it.
-    expect(earned).not.toMatch(/className=\{`py-3[^`]*text-green-600/);
-    expect(paid).not.toMatch(/className=\{`py-3[^`]*text-red-600/);
-    expect(earned).toContain("text-green-600");
-    expect(paid).toContain("text-red-600");
-    expect(paid).toContain("text-brand-muted-soft");
+    expect(amount).toContain("text-green-600");
+    expect(amount).toContain("text-red-600");
+    // Payment is tested first, so a row can never try to show both.
+    expect(amount.indexOf("payment_given")).toBeLessThan(amount.indexOf("amount_earned"));
   });
 
-  it("keeps the accounting order: earned, paid, then balance", async () => {
+  it("colours the figure, never the cell around it", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+    const amount = screen.slice(
+      screen.indexOf('data-label={text("Amount"'),
+      screen.indexOf('data-label={text("Balance"'),
+    );
+
+    // A red dash in a money column reads as money going out.
+    expect(amount).toContain("text-brand-muted-soft");
+    expect(amount).not.toContain('className="py-3 px-2 sm:px-4 text-right text-red-600');
+  });
+
+  it("puts the balance after the amount that produced it", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
-    // In, out, result — moving Paid away from that would break the row's
-    // arithmetic as it is read left to right.
-    const earned = screen.indexOf('text("Earned", "कमाएको")');
-    const paid = screen.indexOf('text("Paid", "पाएको")');
-    const balance = screen.indexOf('text("Balance", "बाँकी")');
+    expect(screen.indexOf('text("Amount", "रकम")')).toBeLessThan(
+      screen.indexOf('text("Balance", "बाँकी")'),
+    );
+  });
+});
 
-    expect(earned).toBeLessThan(paid);
-    expect(paid).toBeLessThan(balance);
+/**
+ * A wage still owed is not a problem.
+ *
+ * The balance tile turned amber the moment a worker was owed anything, so a
+ * normal Wednesday looked like something had gone wrong. Work is done through
+ * the week and cleared on Saturday — the owner's own words: "बाँकी देखिए पनि
+ * केही हुन्न, पछि पैसा दिएर क्लियर गर्छौं".
+ */
+describe("the balance tile", () => {
+  it("does not warn about wages owed mid-week", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+    const tile = screen.slice(screen.indexOf('text("Current balance"'), screen.indexOf("Ledger Entries"));
+
+    expect(tile).toContain('text("to pay on Saturday", "शनिबार दिनुपर्ने")');
+    expect(tile).not.toContain('currentBalance > 0 ? "warn"');
+  });
+
+  it("marks a worker paid ahead of their work", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+    const tile = screen.slice(screen.indexOf('text("Current balance"'), screen.indexOf("Ledger Entries"));
+
+    // Money to recover from future work is the case worth flagging.
+    expect(tile).toContain("currentBalance < 0");
   });
 });
