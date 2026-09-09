@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 const API = "app/api/factory/items/route.ts";
 const RULES = "lib/production-accounting-rules.ts";
-const QC_SCREEN = "app/admin/operations/production-accounts/page.tsx";
+// Wages & kharcha was split into four pages; the Packing/QC form moved to the
+// one that holds lots and cost, away from the daily path.
+const QC_SCREEN = "app/admin/operations/production-accounts/lots/page.tsx";
 
 function code(source: string) {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*(?:\/\/|\{\/\*).*$/gm, "");

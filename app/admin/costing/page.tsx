@@ -296,7 +296,7 @@ export default async function AdminCostingPage() {
           </p>
         </div>
         <Link
-          href="/admin/operations/production-accounts"
+          href="/admin/operations/production-accounts/rates"
           className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-brand-green px-4 text-sm font-black text-white"
         >
           Open item-stage rates
