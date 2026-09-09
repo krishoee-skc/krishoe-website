@@ -189,6 +189,11 @@ export default function ItemList({
   }
 
   const linkedCount = items.filter((item) => item.production_item_id).length;
+  // Only active items reach the work-entry form, so only an active unlinked
+  // item actually blocks anything. A switched-off one is not in the dropdown.
+  const blockedCount = items.filter(
+    (item) => item.status === "active" && !item.production_item_id,
+  ).length;
 
   return (
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
@@ -210,6 +215,15 @@ export default function ItemList({
         <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">{items.length - linkedCount} need linking</span>
         <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted-deep">{productionItems.length} active Production Items</span>
       </div>
+
+      {blockedCount > 0 ? (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-900">
+          {text(
+            `Work cannot be entered for ${blockedCount} item(s) waiting to be linked — the wage would not reach the Wages & kharcha screen. Each card below links in one tap.`,
+            `जोड्न बाँकी ${blockedCount} item मा काम टिप्न मिल्दैन — ज्याला "ज्याला र खर्च" स्क्रिनमा पुग्दैन। तल हरेक कार्डमा एकै थिचाइमा जोड्ने बटन छ।`,
+          )}
+        </p>
+      ) : null}
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900">{error}</p> : null}

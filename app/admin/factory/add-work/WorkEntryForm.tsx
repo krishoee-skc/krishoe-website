@@ -223,9 +223,28 @@ export default function WorkEntryForm({
       if (!res.ok) throw new Error("Failed to add product");
 
       const data = await res.json();
+
+      // Link it to the Production Item Master now, so work on it saves. An
+      // unlinked item is refused at save time, and being sent to another
+      // screen with a worker standing there is not a thing to discover later.
+      let productionItemId: string | null = null;
+      try {
+        const linkRes = await fetch("/api/factory/items", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item_id: data.id, create_production_item: true }),
+        });
+        if (linkRes.ok) {
+          const linked = await linkRes.json();
+          productionItemId = linked?.item?.production_item_id ?? null;
+        }
+      } catch {
+        // Leave it unlinked; the items screen links it in one tap.
+      }
+
       setItems([
         ...items,
-        { id: data.id, name: data.name, code: "", sizes: [], production_item_id: null },
+        { id: data.id, name: data.name, code: "", sizes: [], production_item_id: productionItemId },
       ]);
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
