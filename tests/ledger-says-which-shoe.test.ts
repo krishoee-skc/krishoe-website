@@ -125,3 +125,93 @@ describe("the ledger on a phone", () => {
     expect(note.slice(0, 200)).not.toContain("min-w-48");
   });
 });
+
+/**
+ * Money that did not move is not printed.
+ *
+ * Every work row read "-0.00" under Paid and every payment "+0.00" under
+ * Earned — eleven rows of figures that say nothing. The dash was meant to be
+ * there already, but Postgres returns numeric as a string and Boolean("0.00")
+ * is true, so the check never fired once.
+ */
+describe("zero columns", () => {
+  it("compares the number, not the string Postgres sends", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(screen).toContain("Number(entry.amount_earned) > 0");
+    expect(screen).toContain("Number(entry.payment_given) > 0");
+  });
+
+  it("drops the whole cell on a phone rather than leaving a labelled blank", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+    const css = await readFile("app/globals.css", "utf8");
+
+    // On the phone card each cell is its own labelled line, so "PAID —" on
+    // every wage row is most of the screen. A hidden span is not an empty cell
+    // as far as td:empty is concerned, so the cell itself carries the mark.
+    expect(screen).toContain("reflow-blank");
+    expect(css).toContain(".reflow-table td.reflow-blank");
+  });
+
+  it("keeps a dash on a desktop, where a blank column reads as a fault", async () => {
+    const css = await readFile("app/globals.css", "utf8");
+
+    // The rule lives inside the phone-only media block.
+    const phoneBlock = css.slice(
+      css.indexOf("@media screen and (max-width: 767px)"),
+      css.indexOf("@media print"),
+    );
+    expect(phoneBlock).toContain(".reflow-table td.reflow-blank");
+  });
+
+  it("does not print the currency twice", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // Balance already says "Rs."; money() would make the row read "+Rs. 2,400".
+    expect(screen).not.toContain("+${money(");
+    expect(screen).not.toContain("-${money(");
+  });
+});
+
+/**
+ * A reversed row that looks reversed.
+ *
+ * The ledger showed two identical Rs. 9,720 payments on one day — one live, one
+ * reversed as a duplicate — separated only by a sentence at the end of a note
+ * column that runs off the side of a phone. Both read "-9,720" in the same red,
+ * and both showed a balance, so the second looked like it also took money out.
+ *
+ * `status` was on every row from the API and had never been rendered. The
+ * summary tiles were already right (Total paid reads Rs. 9,720, not 19,440) —
+ * it was only the rows that lied.
+ */
+describe("a reversed entry", () => {
+  it("says so beside the type", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(screen).toContain('entry.status === "reversed"');
+    expect(screen).toContain('text("reversed", "फिर्ता")');
+  });
+
+  it("strikes through the money it no longer moves", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(screen).toContain("line-through");
+  });
+
+  it("says the balance did not change, rather than repeating it", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // Showing Rs. 0 again beside the live row reads as a second movement.
+    expect(screen).toContain('text("no change", "फेरबदल छैन")');
+  });
+
+  it("keeps that line on a phone, where it matters most", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    const balance = screen.slice(screen.indexOf('data-label={text("Balance"'));
+    // The note column carrying the reversal reason runs off a phone; hiding
+    // the balance line too would leave nothing saying the row is void.
+    expect(balance.slice(0, 400)).not.toContain("reflow-blank");
+  });
+});

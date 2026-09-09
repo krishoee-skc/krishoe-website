@@ -412,6 +412,14 @@ table th,
     display: none;
   }
 
+  /* The same, for a cell whose content is deliberately nothing: a wage row has
+     no payment, a payment row no pairs. On a desktop those keep a dash, since a
+     blank in a column reads as a fault; on the card the line is simply not
+     worth its space, and eleven rows of "PAID —" is most of the screen. */
+  .reflow-table td.reflow-blank {
+    display: none;
+  }
+
   /* Empty-state rows span the whole table with one colspan cell ("No records
      yet"). Let those read as a plain full-width line, not a labelled card row. */
   .reflow-table td[colspan] {

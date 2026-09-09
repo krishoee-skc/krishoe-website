@@ -301,7 +301,12 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                 <tbody>
                   {ledgerData.ledger.length > 0 ? (
                     ledgerData.ledger.map((entry, idx) => (
-                      <tr key={idx} className="border-b border-brand-green-line hover:bg-brand-paper-deep">
+                      <tr
+                        key={idx}
+                        className={`border-b border-brand-green-line hover:bg-brand-paper-deep ${
+                          entry.status === "reversed" ? "opacity-70" : ""
+                        }`}
+                      >
                         <td className="reflow-primary py-3 px-2 sm:px-4 text-brand-green-ink">
                           <DateDisplayAdmin date={entry.date} />
                         </td>
@@ -309,8 +314,21 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           <span className="text-xs sm:text-sm capitalize bg-brand-mist px-2 py-1 rounded">
                             {entry.entry_type}
                           </span>
+                          {/* Two identical Rs. 9,720 payments sat here, one of
+                              them reversed, told apart only by a sentence at
+                              the end of a note column. */}
+                          {entry.status === "reversed" ? (
+                            <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
+                              {text("reversed", "फिर्ता")}
+                            </span>
+                          ) : null}
                         </td>
-                        <td data-label={text("Item", "के बनायो")} className="py-3 px-2 sm:px-4 text-brand-green-ink">
+                        <td
+                          data-label={text("Item", "के बनायो")}
+                          className={`py-3 px-2 sm:px-4 text-brand-green-ink ${
+                            entry.item_name ? "" : "reflow-blank"
+                          }`}
+                        >
                           {/* One wrapper, so the phone card lays the label
                               against a single block rather than against each
                               line in turn. */}
@@ -329,13 +347,18 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                 )}
                               </>
                             ) : (
-                              "-"
+                              "—"
                             )}
                           </span>
                         </td>
-                        <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-right text-brand-green-ink">
+                        <td
+                          data-label={text("Pairs", "जोडी")}
+                          className={`py-3 px-2 sm:px-4 text-right text-brand-green-ink ${
+                            entry.work_pairs ? "" : "reflow-blank"
+                          }`}
+                        >
                           <span className="block min-w-0">
-                            {entry.work_pairs || "-"}
+                            {entry.work_pairs || "—"}
                             {entry.rate_applied ? (
                               <span className="mt-0.5 block text-xs text-brand-muted">
                                 × Rs. {Number(entry.rate_applied)}
@@ -348,20 +371,60 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             ) : null}
                           </span>
                         </td>
-                        <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-medium">
-                          {entry.amount_earned ? `+${entry.amount_earned}` : "-"}
+                        {/* Number(), not the raw value: Postgres returns
+                            numeric as a string and "0.00" is truthy, so every
+                            work row printed "-0.00" and every payment "+0.00".
+                            Empty rather than a dash on a phone, where the
+                            reflow gives each cell its own labelled line and an
+                            existing rule hides an empty one. */}
+                        <td
+                          data-label={text("Earned", "कमाएको")}
+                          className={`py-3 px-2 sm:px-4 text-right text-green-600 font-medium ${
+                            Number(entry.amount_earned) > 0 ? "" : "reflow-blank"
+                          }`}
+                        >
+                          <span className={entry.status === "reversed" ? "line-through" : ""}>
+                            {Number(entry.amount_earned) > 0
+                              ? `+${Number(entry.amount_earned).toLocaleString("en-IN")}`
+                              : "—"}
+                          </span>
                         </td>
-                        <td data-label={text("Paid", "पाएको")} className="py-3 px-2 sm:px-4 text-right text-red-600 font-medium">
-                          {entry.payment_given ? `-${entry.payment_given}` : "-"}
+                        <td
+                          data-label={text("Paid", "पाएको")}
+                          className={`py-3 px-2 sm:px-4 text-right text-red-600 font-medium ${
+                            Number(entry.payment_given) > 0 ? "" : "reflow-blank"
+                          }`}
+                        >
+                          <span className={entry.status === "reversed" ? "line-through" : ""}>
+                            {Number(entry.payment_given) > 0
+                              ? `-${Number(entry.payment_given).toLocaleString("en-IN")}`
+                              : "—"}
+                          </span>
                         </td>
-                        <td data-label={text("Balance", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink">
-                          Rs. {entry.running_balance.toLocaleString()}
+                        <td
+                          data-label={text("Balance", "बाँकी")}
+                          className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink"
+                        >
+                          {entry.status === "reversed" ? (
+                            <span className="font-normal text-brand-muted">{text("no change", "फेरबदल छैन")}</span>
+                          ) : (
+                            money(entry.running_balance)
+                          )}
                         </td>
                         {/* No minimum width: the note is empty on every work
                             row, and 192px of it pushed the table wider than a
                             tablet for the sake of one reversal message. */}
-                        <td data-label={text("Note", "टिपोट")} className="py-3 px-2 sm:px-4 text-xs text-brand-muted">
-                          <span className="block min-w-0 break-words">{entry.notes || "-"}</span>
+                        <td
+                          data-label={text("Note", "टिपोट")}
+                          className={`py-3 px-2 sm:px-4 text-xs text-brand-muted ${
+                            entry.notes ? "" : "reflow-blank"
+                          }`}
+                        >
+                          {entry.notes ? (
+                            <span className="block min-w-0 break-words">{entry.notes}</span>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     ))
