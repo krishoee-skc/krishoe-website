@@ -105,6 +105,7 @@ export async function getFactoryWorkerPortalDetail(
        FROM factory_daily_work w
        LEFT JOIN factory_items i ON i.id = w.item_id
        WHERE w.worker_id = $1
+         AND w.status <> 'reversed'
        ORDER BY w.date DESC, w.created_at DESC
        LIMIT 60`,
       [workerId],

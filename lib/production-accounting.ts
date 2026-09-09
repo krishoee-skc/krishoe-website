@@ -2192,8 +2192,11 @@ export async function reverseProductionWorkEntry(input: {
       work_order_id: string | null;
       earned_wage: number | string;
       status: WorkEntry["status"];
+      source_submission_key: string | null;
+      work_date: Date | string;
     }>(
-      `SELECT id, employee_id, employee_name_snapshot, work_order_id, earned_wage, status
+      `SELECT id, employee_id, employee_name_snapshot, work_order_id, earned_wage, status,
+              source_submission_key, work_date
        FROM production_work_entries WHERE id = $1 FOR UPDATE`,
       [input.entryId],
     );
@@ -2219,6 +2222,36 @@ export async function reverseProductionWorkEntry(input: {
        WHERE id = $1`,
       [input.entryId, `${input.reason} · Reversed by ${input.reversedBy}`],
     );
+
+    // The same work on the factory side. One save wrote all three rows under
+    // this key; undoing the work has to undo all three, or the wages screen
+    // and the worker's balance disagree about whether it happened.
+    let factoryWorkReversed = false;
+    if (entry.source_submission_key) {
+      const work = await db.query<{ id: string }>(
+        `UPDATE factory_daily_work
+         SET status = 'reversed', updated_at = now()
+         WHERE submission_key = $1 AND status <> 'reversed'
+         RETURNING id`,
+        [entry.source_submission_key],
+      );
+      factoryWorkReversed = work.length > 0;
+
+      // The ledger row too, so the worker's running balance stops counting a
+      // wage that is no longer owed. Every sum that decides what is owed
+      // already skips a reversed row. Only the work row: cash handed over is
+      // not undone by undoing the work it was against.
+      await db.query(
+        `UPDATE factory_worker_ledger
+         SET status = 'reversed', updated_at = now(),
+             notes = concat_ws(' · ', nullif(notes, ''), $2)
+         WHERE submission_key = $1 AND entry_type = 'work' AND status <> 'reversed'`,
+        [
+          entry.source_submission_key,
+          `Work reversed: ${input.reason} · by ${input.reversedBy}`,
+        ],
+      );
+    }
 
     if (entry.work_order_id) {
       const orderRows = await db.query<{ planned_pairs: number | string; status: ProductionWorkOrder["status"] }>(
@@ -2257,6 +2290,14 @@ export async function reverseProductionWorkEntry(input: {
       employeeName: entry.employee_name_snapshot,
       workOrderId: entry.work_order_id ?? "",
       earnedWage: numeric(entry.earned_wage),
+      factoryWorkReversed,
+      // So the caller can rebuild the worker's month once this transaction has
+      // committed and let go of the worker lock.
+      workDate:
+        entry.work_date instanceof Date
+          ? entry.work_date.toISOString().slice(0, 10)
+          : String(entry.work_date).slice(0, 10),
+      submissionKey: entry.source_submission_key ?? "",
     };
   });
 }

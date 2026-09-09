@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { bikramMonthKeyOf } from "@/lib/bikram-sambat";
+import { refreshFactoryMonthlySummary } from "@/lib/factory-mutations";
 import { queryPostgres } from "@/lib/postgres/client";
 
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
@@ -468,9 +470,21 @@ export async function reverseProductionWorkEntryAction(formData: FormData) {
     reason,
     reversedBy: approvedBy,
   });
+  // The month the wage is paid from still counted the reversed work. Rebuild
+  // it here, after the reversal has committed: refreshFactoryMonthlySummary
+  // opens its own transaction and takes the worker lock the reversal held.
+  if (result.factoryWorkReversed && result.submissionKey) {
+    await refreshFactoryMonthlySummary({
+      submissionKey: `reverse:${result.submissionKey}`,
+      month: bikramMonthKeyOf(result.workDate),
+      workerId: result.employeeId,
+    });
+  }
   await recordAdminAuditEvent(
     "production_work_reverse",
-    `${result.employeeName} wage Rs. ${result.earnedWage} reversed: ${reason}.`,
+    `${result.employeeName} wage Rs. ${result.earnedWage} reversed: ${reason}${
+      result.factoryWorkReversed ? "; factory work entry and worker ledger reversed too" : ""
+    }.`,
   );
   revalidatePath(`/admin/operations/production-accounts/worker/${result.employeeId}`);
   if (result.workOrderId) {

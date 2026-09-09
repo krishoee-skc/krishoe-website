@@ -1167,7 +1167,7 @@ CREATE TABLE IF NOT EXISTS factory_daily_work (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT factory_daily_work_status_check
-    CHECK (status IN ('in_progress', 'completed', 'rework'))
+    CHECK (status IN ('in_progress', 'completed', 'rework', 'reversed'))
 );
 
 CREATE TABLE IF NOT EXISTS factory_worker_ledger (

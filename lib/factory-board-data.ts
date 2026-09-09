@@ -48,6 +48,7 @@ export async function getFactoryWorkForDate(date: string): Promise<FactoryWorkRo
        LEFT JOIN factory_workers fw ON w.worker_id = fw.id
        LEFT JOIN factory_items fi ON w.item_id = fi.id
       WHERE fw.worker_type = 'piece_rate' AND w.date = $1
+        AND w.status <> 'reversed'
       ORDER BY w.created_at DESC
       LIMIT ${MAX_DAY_ENTRIES}`,
     [date],
@@ -76,7 +77,8 @@ export async function getFactoryDayTotals(date: string): Promise<FactoryDayStats
             COUNT(*) FILTER (WHERE w.status = 'rework') AS rework_entries
        FROM factory_daily_work w
        LEFT JOIN factory_workers fw ON w.worker_id = fw.id
-      WHERE fw.worker_type = 'piece_rate' AND w.date = $1`,
+      WHERE fw.worker_type = 'piece_rate' AND w.date = $1
+        AND w.status <> 'reversed'`,
     [date],
   );
 
@@ -158,6 +160,7 @@ export async function getFactoryWorkers(
          SELECT SUM(work.pairs_count)::integer AS today_pairs
          FROM factory_daily_work work
          WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
+           AND work.status <> 'reversed'
        ) today_work ON true
        -- This week's pairs and wage, Sunday to today, so the work-entry screen
        -- can show the worker's running week beside their name.
@@ -167,6 +170,7 @@ export async function getFactoryWorkers(
          FROM factory_daily_work work
          WHERE work.worker_id = workers.id
            AND work.date >= date_trunc('week', CURRENT_DATE)
+           AND work.status <> 'reversed'
        ) week_work ON true
        ${where}
        ORDER BY workers.status ASC, workers.name ASC`,
