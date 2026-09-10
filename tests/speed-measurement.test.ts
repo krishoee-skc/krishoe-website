@@ -160,9 +160,14 @@ describe("what the speed panel claims", () => {
 
     // Google's own Largest Contentful Paint thresholds — 2.5s good, 4s needs
     // work. The old rule called everything over one second a warning.
-    expect(dashboard).toContain("endpoint.avgTime <= 2500");
-    expect(dashboard).toContain("endpoint.avgTime <= 4000");
+    expect(dashboard).toContain("typical <= 2500");
+    expect(dashboard).toContain("typical <= 4000");
     expect(dashboard).not.toContain("endpoint.avgTime > 1000");
+
+    // "typical" is the median, not the average. The home page was reported at
+    // 40.7s off one reading in ten whose TTFB alone was 31 seconds; an average
+    // carries that into the verdict, a median does not.
+    expect(dashboard).toContain("const typical = endpoint.medianTime");
   });
 
   it("keeps the rating out of the page address", async () => {

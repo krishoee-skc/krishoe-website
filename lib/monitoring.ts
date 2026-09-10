@@ -491,6 +491,16 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
     /** good, needs-improvement or poor — the browser's own verdict. */
     rating: string;
     avgTime: number;
+    /**
+     * The middle reading, which is what a typical shopper actually waited.
+     *
+     * The home page was reported at 40.7 seconds off a single reading whose
+     * TTFB alone was 31 seconds — one phone on a bad connection, between a
+     * 1.1s and a 1.4s reading of the same page. An average of ten cannot
+     * survive that; the median does not move.
+     */
+    medianTime: number;
+    slowest: number;
     count: number;
   }>;
   errorRate: number;
@@ -561,22 +571,31 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
 
     const slowest = await queryPostgres<{
       path: string;
-      method: string;
+      rating_rank: number;
       avg_time: number;
+      median_time: number;
+      max_time: number;
       count: number;
     }>(
       STORE,
       `SELECT
         path,
-        method,
+        -- The worst rating the page earned, so a page that was ever poor still
+        -- says so. It is no longer part of the grouping: splitting on it put
+        -- the home page in the table twice, once as nine good readings and
+        -- once as a single 40.7s one, and that second row read as the speed of
+        -- the page rather than as one phone on a bad connection.
+        MIN(CASE method WHEN 'poor' THEN 1 WHEN 'needs-improvement' THEN 2 ELSE 3 END) AS rating_rank,
         ROUND(AVG(duration))::integer as avg_time,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration))::integer as median_time,
+        MAX(duration)::integer as max_time,
         COUNT(*)::integer as count
       FROM monitoring_performance
       WHERE created_at > NOW() - ($1 * INTERVAL '1 hour')
         AND COALESCE(metric, 'LCP') = 'LCP'
         AND environment = 'production'
-      GROUP BY path, method
-      ORDER BY avg_time DESC
+      GROUP BY path
+      ORDER BY median_time DESC, avg_time DESC
       LIMIT 10`,
       [safeHours]
     );
@@ -590,8 +609,10 @@ export async function getPerformanceStats(hours: number = 24): Promise<{
         // The column holds the browser's rating for these rows, not an HTTP
         // verb. It was being drawn glued to the path — "good /account/reset-
         // password" — which reads as part of the address.
-        rating: s.method,
+        rating: s.rating_rank === 1 ? "poor" : s.rating_rank === 2 ? "needs-improvement" : "good",
         avgTime: s.avg_time,
+        medianTime: s.median_time,
+        slowest: s.max_time,
         count: s.count,
       })),
       errorRate:

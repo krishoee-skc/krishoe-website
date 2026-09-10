@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ServiceStatus, UptimeEvidence } from "@/lib/monitoring";
 import AlertText from "@/components/admin/AlertText";
 import { SkeletonStatRow, SkeletonCard } from "@/components/admin/Skeleton";
+import { pageName } from "@/lib/internal-paths";
 
 
 /**
@@ -47,6 +48,10 @@ interface MonitoringData {
       path: string;
       rating: string;
       avgTime: number;
+      /** The middle reading — what a typical shopper waited. */
+      medianTime: number;
+      /** The worst single reading, kept visible rather than averaged away. */
+      slowest: number;
       count: number;
     }>;
     errorRate: number;
@@ -584,7 +589,10 @@ export default function MonitoringDashboard() {
                       <AlertText en="Page" ne="पाना" />
                     </th>
                     <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
-                      <AlertText en="Time" ne="समय" />
+                      <AlertText en="Usual time" ne="सामान्य समय" />
+                    </th>
+                    <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
+                      <AlertText en="Slowest once" ne="एकपटक सबैभन्दा ढिलो" />
                     </th>
                     <th className="px-4 py-2 text-left font-semibold text-brand-green-ink">
                       <AlertText en="How it reads" ne="कस्तो" />
@@ -596,24 +604,62 @@ export default function MonitoringDashboard() {
                 </thead>
                 <tbody className="divide-y divide-brand-green-line">
                   {monitoring.performance.slowestEndpoints.map((endpoint) => {
+                    // Judged on the middle reading, not the average. The home
+                    // page read 40.7s off one phone whose TTFB alone was 31
+                    // seconds, taken between a 1.1s and a 1.4s reading of the
+                    // same page — an average of ten cannot survive that, and
+                    // the owner was sent looking for a fault that did not
+                    // exist. The worst reading is still shown, in its own
+                    // column, because a shopper did wait that long.
+                    const typical = endpoint.medianTime || endpoint.avgTime;
                     const verdict =
-                      endpoint.avgTime <= 2500
+                      typical <= 2500
                         ? { label: { en: "🟢 Good", ne: "🟢 राम्रो" }, tone: "text-green-700" }
-                        : endpoint.avgTime <= 4000
+                        : typical <= 4000
                           ? { label: { en: "🟡 Needs work", ne: "🟡 सुधार चाहिन्छ" }, tone: "text-yellow-700" }
                           : { label: { en: "🔴 Slow", ne: "🔴 सुस्त" }, tone: "text-red-700" };
+                    const label = pageName(endpoint.path);
+                    // One reading far above the usual is a connection, not the
+                    // page. Said plainly so it is not read as a fault.
+                    const oneOff = endpoint.count > 2 && endpoint.slowest > typical * 4;
                     return (
-                      <tr key={`${endpoint.path}-${endpoint.rating}`} className="hover:bg-brand-paper-deep">
+                      // One row per page now, so the path is the key.
+                      <tr key={endpoint.path} className="hover:bg-brand-paper-deep">
                         <td className="px-4 py-2 text-brand-green-ink">
-                          {/* The rating used to be printed against the path —
-                              "good /account/reset-password" — where it read as
-                              part of the address. */}
-                          <span className="rounded bg-brand-mist px-2 py-1 font-mono text-xs">
+                          {/* The name first, because "/" named nothing and the
+                              owner had to ask which page it was. The address
+                              stays underneath, since it is what identifies the
+                              page. */}
+                          {label ? (
+                            <span className="block font-semibold">
+                              <AlertText en={label.en} ne={label.ne} />
+                            </span>
+                          ) : null}
+                          <span className="mt-0.5 inline-block rounded bg-brand-mist px-2 py-1 font-mono text-xs">
                             {endpoint.path}
                           </span>
                         </td>
                         <td className={`px-4 py-2 font-medium tabular-nums ${verdict.tone}`}>
-                          {(endpoint.avgTime / 1000).toFixed(1)}s
+                          {(typical / 1000).toFixed(1)}s
+                        </td>
+                        <td className="px-4 py-2 text-xs tabular-nums text-brand-muted">
+                          {(endpoint.slowest / 1000).toFixed(1)}s
+                          {/* The browser's own verdict on its worst visit, which
+                              is what that rating actually describes — not the
+                              page's usual speed. */}
+                          {endpoint.rating === "poor" ? (
+                            <span className="ml-1 font-semibold text-red-700">
+                              <AlertText en="poor" ne="नराम्रो" />
+                            </span>
+                          ) : null}
+                          {oneOff ? (
+                            <span className="ml-1 block text-[11px] leading-4">
+                              <AlertText
+                                en="one phone on a slow connection"
+                                ne="एउटा फोन, सुस्त नेटमा"
+                              />
+                            </span>
+                          ) : null}
                         </td>
                         <td className={`px-4 py-2 text-xs font-bold ${verdict.tone}`}>
                           <AlertText en={verdict.label.en} ne={verdict.label.ne} />
