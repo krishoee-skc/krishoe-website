@@ -33,7 +33,14 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
     // the same premium family as /enter, wearing a "secure" mark, so signing in
     // as the owner feels like stepping through a guarded door. The form itself
     // (email, password, passkey, 2FA) is unchanged: only the shell is new.
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-5 py-14 text-white">
+    <main
+      // min-h-dvh, not min-h-screen with py-14: that made the page 112px taller
+      // than the window before anything was drawn, so signing in meant
+      // scrolling on a monitor with room to spare. The padding is a floor now,
+      // not an addition. dvh because 100vh on a phone is the height with the
+      // address bar hidden, which is more than is actually visible.
+      className="relative grid min-h-dvh place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-5 py-8 text-white sm:py-10"
+    >
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-40 h-[55vh] bg-[radial-gradient(50%_100%_at_50%_0%,rgba(201,162,75,0.22),transparent)]" />
       <div
         aria-hidden="true"
@@ -45,7 +52,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         }}
       />
 
-      <div className="krishoe-enter relative z-10 flex w-full max-w-md flex-col items-center gap-5">
+      <div className="krishoe-enter relative z-10 flex w-full max-w-md flex-col items-center gap-4">
         {/* Robotic monogram + wordmark. */}
         <div className="flex items-center justify-center gap-3">
           <span className="krishoe-mono grid h-14 w-14 place-items-center overflow-hidden rounded-[15px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-tech text-2xl font-black leading-none text-[#0b2e22] shadow-[0_10px_28px_-10px_rgba(201,162,75,0.8),inset_0_1px_0_rgba(255,255,255,0.6)]">

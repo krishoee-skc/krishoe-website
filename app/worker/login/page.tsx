@@ -17,7 +17,7 @@ export default async function WorkerLoginPage() {
     // sandal texture — but wearing the worker door's sage-green accent, and with
     // no heavy photograph, so the fields load first on the cheapest phones. The
     // form (AdminLoginForm, portal="worker") is unchanged.
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-5 py-14 text-white">
+    <main className="relative grid min-h-dvh place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-5 py-14 text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-40 h-[55vh] bg-[radial-gradient(50%_100%_at_50%_0%,rgba(79,158,120,0.22),transparent)]" />
       <div
         aria-hidden="true"

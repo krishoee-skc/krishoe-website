@@ -150,7 +150,7 @@ export default function EnterPage() {
     // The whole screen is the threshold now — deep green edge to edge, with the
     // content held in the centre — so on a wide monitor it reads as a grand
     // doorway rather than a small card floating on cream.
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-4 py-10 text-white">
+    <main className="relative grid min-h-dvh place-items-center overflow-hidden bg-[linear-gradient(180deg,#0b2e22,#0e3527_55%,#123f30)] px-4 py-10 text-white">
       {/* Ambient light: a warm gold pool from the top, a cooler one low-left, and
           a faint footwear-tread texture — enough to feel crafted, never busy. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-40 h-[60vh] bg-[radial-gradient(50%_100%_at_50%_0%,rgba(201,162,75,0.22),transparent)]" />

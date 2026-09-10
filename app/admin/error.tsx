@@ -23,7 +23,7 @@ export default function AdminErrorPage({
   reset: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-16">
+    <main className="flex min-h-dvh items-center justify-center px-5 py-16">
       <section className="w-full max-w-2xl rounded-2xl border border-black/10 bg-brand-paper p-8 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           KRISHOE Admin
