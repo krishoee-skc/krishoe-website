@@ -28,24 +28,26 @@ async function tsxFiles(dir: string): Promise<string[]> {
 
 describe("a page that fills the screen", () => {
   it("does not add its own padding on top of a full-screen minimum", async () => {
-    const files = await tsxFiles("app");
+    // Both trees: the first version of this walked app/ only and missed two
+    // components. And every padded box, not only centred ones — padding inside
+    // a full-screen minimum overflows either way.
+    const files = [...(await tsxFiles("app")), ...(await tsxFiles("components"))];
     const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
     const offenders: string[] = [];
 
     files.forEach((file, index) => {
-      for (const match of sources[index].matchAll(/className="([^"]*min-h-screen[^"]*)"/g)) {
+      const pattern = /className="([^"]*(?:min-h-screen|h-screen|min-h-\[100vh\])[^"]*)"/g;
+      for (const match of sources[index].matchAll(pattern)) {
         const classes = match[1];
-        // Only a centred box: one that fills the screen and scrolls its own
-        // content is doing something different and is fine.
-        const centred = /place-items-center|items-center/.test(classes);
-        const padded = /\bpy-\d+/.test(classes);
-        if (centred && padded) offenders.push(`${file}: ${classes}`);
+        // py, pt, pb or the all-round p — anything that adds height.
+        const padded = /\b(?:py|pt|pb|p)-\d+/.test(classes);
+        if (padded) offenders.push(`${file}: ${classes}`);
       }
     });
 
     expect(
       offenders.join("\n"),
-      "min-h-screen plus py-* makes the page taller than the window — use min-h-dvh",
+      "a full-screen box plus padding is taller than the window — use min-h-dvh",
     ).toBe("");
   });
 

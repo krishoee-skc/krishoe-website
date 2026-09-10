@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function FeedbackPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
+    <div className="min-h-dvh bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
       <FeedbackForm />
     </div>
   );

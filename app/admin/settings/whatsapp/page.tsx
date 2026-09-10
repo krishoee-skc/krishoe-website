@@ -46,7 +46,7 @@ export default function WhatsAppSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-paper-deep p-4 md:p-8">
+    <div className="min-h-dvh bg-brand-paper-deep p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">

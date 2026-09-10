@@ -20,7 +20,7 @@ export default function OfflinePage() {
   }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
+    <main className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
       <div className="max-w-md text-center">
         <div aria-hidden="true" className="mb-6 text-6xl">📡</div>
         <h1 className="mb-2 text-3xl font-bold text-gray-900">

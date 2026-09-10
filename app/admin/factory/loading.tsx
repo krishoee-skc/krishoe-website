@@ -12,7 +12,7 @@
  */
 export default function FactoryLoading() {
   return (
-    <div className="flex min-h-screen flex-col space-y-3 p-3 sm:p-5 lg:p-6">
+    <div className="flex min-h-dvh flex-col space-y-3 p-3 sm:p-5 lg:p-6">
       <div className="mb-1 space-y-2">
         <div className="h-7 w-48 max-w-full animate-pulse rounded bg-black/10" />
         <div className="h-4 w-64 max-w-full animate-pulse rounded bg-black/10" />

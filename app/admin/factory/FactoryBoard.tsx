@@ -38,7 +38,7 @@ export default function FactoryBoard({
   const { text } = useLanguage();
 
   return (
-    <div className="flex min-h-screen flex-col space-y-3 p-3 sm:p-5 lg:p-6">
+    <div className="flex min-h-dvh flex-col space-y-3 p-3 sm:p-5 lg:p-6">
       <div className="mb-1">
         <h1 className="font-display text-xl font-black text-brand-green-ink sm:text-2xl">
           {text("Factory today", "कारखाना आज")}
