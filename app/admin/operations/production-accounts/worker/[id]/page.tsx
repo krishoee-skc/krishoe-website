@@ -209,13 +209,24 @@ export default async function WorkerProductionLedgerPage({
                   </p>
                 ) : (
                   <details className="mt-3 border-t border-brand-green-line pt-3">
+                    {/* Says what the form does. It reverses — the wage is
+                        taken back, not fixed — and reading "Correct" here sent
+                        the owner looking for the piece ledger's Correct
+                        button. */}
                     <summary className="cursor-pointer text-xs font-black text-brand-clay">
-                      Correct a mistaken work entry
+                      Reverse this work entry
                     </summary>
                     <form action={reverseProductionWorkEntryAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                       <input type="hidden" name="entryId" value={row.id} />
                       <p className="text-xs leading-5 text-red-900">
                         This removes the wage and recalculates the linked Work Order stage. Finished-stock lots cannot be reversed here.
+                      </p>
+                      <p className="text-xs leading-5 text-brand-muted">
+                        To change the colour, size, pairs or rate instead, open{" "}
+                        <Link href="/admin/factory/ledger" className="font-black text-brand-green underline underline-offset-2">
+                          the piece ledger
+                        </Link>{" "}
+                        and use Correct there.
                       </p>
                       <input
                         name="reason"
@@ -260,7 +271,7 @@ export default async function WorkerProductionLedgerPage({
                 </div>
                 <details className="mt-3 border-t border-brand-green-line pt-3">
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">
-                    Correct a mistaken cash entry
+                    Reverse this cash entry
                   </summary>
                   <form action={reverseWorkerPaymentAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="paymentId" value={row.id} />

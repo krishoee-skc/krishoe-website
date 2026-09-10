@@ -312,7 +312,7 @@ export default async function WorkOrderDetailPage({
                   <p className="font-black text-brand-clay">−{row.total} {row.unit}</p>
                 </div>
                 <details className="mt-3 border-t border-brand-green-line pt-3">
-                  <summary className="cursor-pointer text-xs font-black text-brand-clay">Correct this material entry</summary>
+                  <summary className="cursor-pointer text-xs font-black text-brand-clay">Reverse this material entry</summary>
                   <form action={reverseMaterialConsumptionAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="consumptionId" value={row.id} />
                     <input name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for reversal" required />
@@ -393,7 +393,7 @@ export default async function WorkOrderDetailPage({
                 </div>
                 <details className="mt-3 border-t border-brand-green-line pt-3">
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">
-                    Correct this handover
+                    Reverse this handover
                   </summary>
                   <form action={reverseHandoverAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="handoverId" value={row.id} />
@@ -435,7 +435,7 @@ export default async function WorkOrderDetailPage({
               </p>
               <details className="mt-3 border-t border-brand-green-line pt-3">
                 <summary className="cursor-pointer text-xs font-black text-brand-clay">
-                  Correct this QC/stock posting
+                  Reverse this QC/stock posting
                 </summary>
                 <form action={reversePackingQcAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                   <input type="hidden" name="postingId" value={row.id} />
