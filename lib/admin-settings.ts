@@ -35,6 +35,14 @@ export type CompanySettings = {
    *  means "don't offer it", and every rating still reaches the owner in admin. */
   googleReviewUrl: string;
   facebookReviewUrl: string;
+  /** Where a customer sends a bank transfer or QR payment. Shown on checkout
+   *  only when the account number is filled in — an empty one means the shop
+   *  is not ready to take transfers, and showing half an account is worse than
+   *  showing none. */
+  bankName: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  bankBranch: string;
   updatedAt: string;
 };
 
@@ -125,6 +133,10 @@ type CompanySettingsRow = {
   promo_enabled: boolean;
   google_review_url: string;
   facebook_review_url: string;
+  bank_name: string;
+  bank_account_name: string;
+  bank_account_number: string;
+  bank_branch: string;
   updated_at: Date | string;
 };
 
@@ -203,6 +215,25 @@ export function reviewUrl(value: string | undefined) {
   } catch {
     return "";
   }
+}
+
+/**
+ * The shop's own bank account number, as a customer will type it into their
+ * banking app.
+ *
+ * Digits, spaces and dashes only — a bank account is not free text, and letters
+ * here mean something was pasted in by mistake. Empty is fine and means the
+ * shop is not taking transfers yet; checkout then shows no bank panel at all.
+ *
+ * The checkout page carried `12345678901234` for months, hard-coded, because
+ * there was nowhere for the real number to live. A shopper about to send money
+ * saw an obviously invented account, and that one line undoes the credibility
+ * of every honest thing on the page.
+ */
+function bankAccountNumber(value: string | undefined) {
+  const trimmed = (value ?? "").trim().slice(0, 40);
+  if (!trimmed) return "";
+  return /^[0-9][0-9 -]*$/.test(trimmed) ? trimmed : "";
 }
 
 function normalizeEmail(email: string) {
@@ -290,6 +321,10 @@ function createDefaultSettings(): AdminSettingsStore {
       promoEnabled: false,
       googleReviewUrl: "",
       facebookReviewUrl: "",
+      bankName: "",
+      bankAccountName: "",
+      bankAccountNumber: "",
+      bankBranch: "",
       updatedAt: stamp,
     },
     branches,
@@ -354,6 +389,10 @@ function companyFromRow(row: CompanySettingsRow, defaultBranchId: string): Compa
     promoEnabled: Boolean(row.promo_enabled),
     googleReviewUrl: row.google_review_url ?? "",
     facebookReviewUrl: row.facebook_review_url ?? "",
+    bankName: row.bank_name ?? "",
+    bankAccountName: row.bank_account_name ?? "",
+    bankAccountNumber: row.bank_account_number ?? "",
+    bankBranch: row.bank_branch ?? "",
     updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
@@ -399,6 +438,10 @@ function normalizeStore(value: unknown): AdminSettingsStore {
       promoEnabled: Boolean(source.company?.promoEnabled),
       googleReviewUrl: optionalText(source.company?.googleReviewUrl),
       facebookReviewUrl: optionalText(source.company?.facebookReviewUrl),
+      bankName: optionalText(source.company?.bankName),
+      bankAccountName: optionalText(source.company?.bankAccountName),
+      bankAccountNumber: optionalText(source.company?.bankAccountNumber),
+      bankBranch: optionalText(source.company?.bankBranch),
       updatedAt: source.company?.updatedAt ? new Date(source.company.updatedAt).toISOString() : nowIso(),
     },
     branches,
@@ -496,7 +539,8 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     `
       SELECT id, company_name, legal_name, phone, email, address, pan_vat_number,
         currency, timezone, default_branch_id, promo_text, promo_enabled,
-        google_review_url, facebook_review_url, updated_at
+        google_review_url, facebook_review_url,
+        bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
       FROM company_settings
       WHERE id = 'default'
       LIMIT 1
@@ -592,6 +636,12 @@ async function saveCompanySettingsToLocalJson(input: Partial<CompanySettings>) {
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
     facebookReviewUrl: reviewUrl(input.facebookReviewUrl ?? settings.company.facebookReviewUrl),
+    bankName: optionalText(input.bankName ?? settings.company.bankName),
+    bankAccountName: optionalText(input.bankAccountName ?? settings.company.bankAccountName),
+    bankAccountNumber: bankAccountNumber(
+      input.bankAccountNumber ?? settings.company.bankAccountNumber,
+    ),
+    bankBranch: optionalText(input.bankBranch ?? settings.company.bankBranch),
     updatedAt: nowIso(),
   };
   await writeSettingsToLocalJson(settings);
@@ -618,6 +668,12 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
     facebookReviewUrl: reviewUrl(input.facebookReviewUrl ?? settings.company.facebookReviewUrl),
+    bankName: optionalText(input.bankName ?? settings.company.bankName),
+    bankAccountName: optionalText(input.bankAccountName ?? settings.company.bankAccountName),
+    bankAccountNumber: bankAccountNumber(
+      input.bankAccountNumber ?? settings.company.bankAccountNumber,
+    ),
+    bankBranch: optionalText(input.bankBranch ?? settings.company.bankBranch),
     updatedAt: nowIso(),
   };
   const defaultBranch = settings.branches.find((branch) => branch.id === defaultBranchId);
@@ -632,9 +688,10 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
       INSERT INTO company_settings (
         id, company_name, legal_name, phone, email, address, pan_vat_number,
         currency, timezone, default_branch_id, promo_text, promo_enabled,
-        google_review_url, facebook_review_url, updated_at
+        google_review_url, facebook_review_url,
+        bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
       )
-      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       ON CONFLICT (id) DO UPDATE SET
         company_name = EXCLUDED.company_name,
         legal_name = EXCLUDED.legal_name,
@@ -649,10 +706,15 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
         promo_enabled = EXCLUDED.promo_enabled,
         google_review_url = EXCLUDED.google_review_url,
         facebook_review_url = EXCLUDED.facebook_review_url,
+        bank_name = EXCLUDED.bank_name,
+        bank_account_name = EXCLUDED.bank_account_name,
+        bank_account_number = EXCLUDED.bank_account_number,
+        bank_branch = EXCLUDED.bank_branch,
         updated_at = EXCLUDED.updated_at
       RETURNING id, company_name, legal_name, phone, email, address, pan_vat_number,
         currency, timezone, default_branch_id, promo_text, promo_enabled,
-        google_review_url, facebook_review_url, updated_at
+        google_review_url, facebook_review_url,
+        bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
     `,
     [
       nextCompany.companyName,
@@ -668,6 +730,10 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
       nextCompany.promoEnabled,
       nextCompany.googleReviewUrl,
       nextCompany.facebookReviewUrl,
+      nextCompany.bankName,
+      nextCompany.bankAccountName,
+      nextCompany.bankAccountNumber,
+      nextCompany.bankBranch,
       new Date(nextCompany.updatedAt),
     ],
   );

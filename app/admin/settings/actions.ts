@@ -167,6 +167,10 @@ export async function saveCompanySettingsAction(formData: FormData) {
       promoEnabled: textValue(formData, "promoEnabled") === "on",
       googleReviewUrl: textValue(formData, "googleReviewUrl"),
       facebookReviewUrl: textValue(formData, "facebookReviewUrl"),
+      bankName: textValue(formData, "bankName"),
+      bankAccountName: textValue(formData, "bankAccountName"),
+      bankAccountNumber: textValue(formData, "bankAccountNumber"),
+      bankBranch: textValue(formData, "bankBranch"),
     });
     await recordAdminAuditEvent("settings_company_update", `Company settings updated for ${companyName}.`);
   } catch (error) {

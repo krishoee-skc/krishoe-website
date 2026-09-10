@@ -5,6 +5,39 @@ import CheckoutClient from "@/components/CheckoutClient";
 import { CheckIcon } from "@/components/Icons";
 import T from "@/components/T";
 import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getAdminSettings } from "@/lib/admin-settings";
+import { reportError } from "@/lib/report-error";
+import type { BankDetails } from "@/components/PaymentInstructions";
+
+const NO_BANK: BankDetails = {
+  bankName: "",
+  bankAccountName: "",
+  bankAccountNumber: "",
+  bankBranch: "",
+};
+
+/**
+ * The owner's bank details for the transfer panel.
+ *
+ * A settings hiccup must not take checkout down — the rest of the page still
+ * takes the order, and Cash on delivery does not need a bank account. Falling
+ * back to empty hides the panel, which is the honest failure: better to show no
+ * account than a wrong one.
+ */
+async function loadBankDetails(): Promise<BankDetails> {
+  try {
+    const { company } = await getAdminSettings();
+    return {
+      bankName: company.bankName,
+      bankAccountName: company.bankAccountName,
+      bankAccountNumber: company.bankAccountNumber,
+      bankBranch: company.bankBranch,
+    };
+  } catch (error) {
+    reportError("load checkout bank details", error);
+    return NO_BANK;
+  }
+}
 
 export const metadata: Metadata = {
   title: "Checkout | KRISHOE",
@@ -12,7 +45,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage() {
-  const user = await getCurrentCustomer();
+  const [user, bank] = await Promise.all([getCurrentCustomer(), loadBankDetails()]);
   const trustItems = [
     { en: "Stock confirmed before payment", ne: "भुक्तानीअघि स्टक पक्का" },
     { en: "Cash on delivery available", ne: "सामान बुझ्दा नगद सुविधा" },
@@ -42,7 +75,7 @@ export default async function CheckoutPage() {
             ))}
           </div>
         </div>
-        <CheckoutClient user={user} />
+        <CheckoutClient user={user} bank={bank} />
       </section>
       <Footer />
     </main>

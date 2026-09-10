@@ -315,6 +315,64 @@ export default async function AdminSettingsPage({
                 Your KRISHOE Facebook page address with /reviews on the end.
               </span>
             </label>
+
+            {/* Bank details for customer transfers. Checkout showed an invented
+                account number for months because there was nowhere for the real
+                one to live. The account number is what makes the panel useful,
+                so leaving it blank hides the whole bank panel at checkout —
+                better than showing half an account to someone about to send
+                money. Cash on delivery is unaffected either way. */}
+            <div className="md:col-span-2">
+              <h3 className="text-sm font-black text-brand-green-ink">Bank details for customer payments</h3>
+              <p className="mt-1 text-xs font-semibold text-brand-muted">
+                Shown on checkout for bank transfer / QR. Leave the account number blank and the bank
+                panel is hidden completely — customers then see only Cash on delivery and the other options.
+              </p>
+            </div>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Bank name
+              <input
+                name="bankName"
+                defaultValue={settings.company.bankName}
+                maxLength={120}
+                placeholder="e.g. Nabil Bank Ltd."
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Account name
+              <input
+                name="bankAccountName"
+                defaultValue={settings.company.bankAccountName}
+                maxLength={120}
+                placeholder="The name on the account"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Account number
+              <input
+                name="bankAccountNumber"
+                inputMode="numeric"
+                defaultValue={settings.company.bankAccountNumber}
+                maxLength={40}
+                placeholder="Digits only (leave blank to hide the bank panel)"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+              <span className="text-xs font-semibold text-brand-muted">
+                Check this digit by digit — a customer types it into their banking app.
+              </span>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Branch
+              <input
+                name="bankBranch"
+                defaultValue={settings.company.bankBranch}
+                maxLength={120}
+                placeholder="e.g. Narayangadh, Chitwan"
+                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+            </label>
           </div>
           <div className="mt-5">
             <SubmitButton label="Save company settings" />

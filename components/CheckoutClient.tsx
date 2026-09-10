@@ -11,7 +11,7 @@ import { submitCheckout, type FormState } from "@/app/actions";
 import type { SafeUser } from "@/lib/user-store";
 import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
 import OrderSummary from "@/components/OrderSummary";
-import PaymentInstructions from "@/components/PaymentInstructions";
+import PaymentInstructions, { type BankDetails } from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
@@ -470,9 +470,12 @@ function CheckoutSuccess({
 
 type CheckoutClientProps = {
   user?: SafeUser | null;
+  /** The owner's real bank details, from Settings. Read on the server, because
+   *  this is a client component. */
+  bank: BankDetails;
 };
 
-export default function CheckoutClient({ user = null }: CheckoutClientProps) {
+export default function CheckoutClient({ user = null, bank }: CheckoutClientProps) {
   const { text } = useLanguage();
   const { cartItems, subtotal, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
   const [state, setState] = useState<FormState>(initialState);
@@ -595,7 +598,7 @@ export default function CheckoutClient({ user = null }: CheckoutClientProps) {
           subtotalLabel={subtotalLabel}
           itemsJson={itemsJson}
         />
-        <PaymentInstructions />
+        <PaymentInstructions bank={bank} />
       </div>
       <OrderSummary />
     </div>
