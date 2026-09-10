@@ -164,6 +164,26 @@ export interface FactoryWorkInput {
   stage?: string | null;
 }
 
+/** What the owner may correct on a saved entry. Everything that describes the
+ *  work; never the date it was done or the money already handed over. */
+export interface FactoryWorkEditInput {
+  /** The factory_daily_work row being corrected. */
+  workId: string;
+  workerId: string;
+  itemId: string;
+  color: string;
+  size: string;
+  pairsCount: number;
+  rejectPairs: number;
+  /** Blank asks for the rate on file for the new item and worker, which is what
+   *  the owner wants when they have corrected the item. */
+  ratePerPair?: number | null;
+  /** Why. It stays on the entry, so a worker asking what changed has an
+   *  answer. */
+  reason: string;
+  editedBy: string;
+}
+
 function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
   return {
     id: row.id,
@@ -532,6 +552,223 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     await writeMonthlySummary(db, input.workerId, bikramMonthKeyOf(input.date));
 
     return workResponse(inserted[0], input.submissionKey, false);
+  });
+}
+
+/**
+ * Correct a saved work entry everywhere it is recorded.
+ *
+ * The three rows move together or not at all. The month is rebuilt from the
+ * corrected figures, so the screen the wage is paid from never keeps the old
+ * ones. A locked month refuses the edit: once a month is closed and paid, it is
+ * history, and reversing is the honest way to change it.
+ */
+export async function editFactoryWork(input: FactoryWorkEditInput) {
+  if (!input.reason?.trim() || input.reason.trim().length < 5) {
+    throw new FactoryMutationError(
+      "Write a clear reason for the correction — it stays on the entry.",
+      400,
+    );
+  }
+  if (!(input.pairsCount > 0)) {
+    throw new FactoryMutationError("Pairs must be more than zero.", 400);
+  }
+
+  return transactionPostgres(STORE, async (db) => {
+    const existing = await db.query<{
+      id: string;
+      submission_key: string;
+      date: string | Date;
+      worker_id: string;
+      item_id: string;
+      color: string | null;
+      size: string | null;
+      pairs_count: number;
+      reject_pairs: number | null;
+      rate_applied: DbNumeric;
+      amount_earned: DbNumeric;
+      status: string;
+      stage: string | null;
+      work_order_id: string | null;
+    }>(
+      `SELECT id, submission_key, date, worker_id, item_id, color, size, pairs_count,
+              reject_pairs, rate_applied, amount_earned, status, stage, work_order_id
+       FROM factory_daily_work
+       WHERE id = $1
+       FOR UPDATE`,
+      [input.workId],
+    );
+    const before = existing[0];
+    if (!before) throw new FactoryMutationError("That work entry was not found.", 404);
+    if (before.status === "reversed") {
+      throw new FactoryMutationError(
+        "This entry was reversed. Enter the work again rather than correcting a reversed row.",
+        409,
+      );
+    }
+    if (before.work_order_id) {
+      // A Work Order counts planned pairs per stage and size; changing an entry
+      // under it would need that plan re-checked, which is a different piece of
+      // work from correcting a colour.
+      throw new FactoryMutationError(
+        "This entry belongs to a Work Order. Reverse it and enter it again.",
+        409,
+      );
+    }
+
+    const workDate = dbDate(before.date);
+    // A month that has been closed and paid is history. Reversing says so
+    // plainly; a silent edit does not.
+    const monthKey = bikramMonthKeyOf(workDate);
+    const locked = await db.query<{ id: string }>(
+      `SELECT id FROM factory_monthly_summary
+       WHERE worker_id = $1 AND month = $2::date AND status = 'locked'
+       LIMIT 1`,
+      [before.worker_id, `${monthKey}-01`],
+    );
+    if (locked[0]) {
+      throw new FactoryMutationError(
+        "That month is closed. Reverse this entry instead of correcting it.",
+        409,
+      );
+    }
+
+    const worker = await lockWorker(db, input.workerId);
+    if (worker.worker_type !== "piece_rate") {
+      throw new FactoryMutationError(
+        "Factory work entries are only for piece-rate workers.",
+        409,
+      );
+    }
+
+    const items = await db.query<{
+      id: string;
+      production_item_id: string | null;
+      production_item_name: string | null;
+    }>(
+      `SELECT items.id, items.production_item_id,
+              production.name AS production_item_name
+       FROM factory_items items
+       LEFT JOIN production_items production
+         ON production.id = items.production_item_id AND production.status = 'Active'
+       WHERE items.id = $1 AND items.status = 'active'
+       FOR SHARE OF items`,
+      [input.itemId],
+    );
+    if (!items[0]) throw new FactoryMutationError("Active factory item not found.", 404);
+    if (!items[0].production_item_id || !items[0].production_item_name) {
+      throw new FactoryMutationError(
+        "Link this item to the Production Item Master first, so its wage reaches the Wages & kharcha screen.",
+        409,
+      );
+    }
+
+    const stage = before.stage?.trim() || productionStageForFactoryCategory(worker.category);
+    if (!stage) {
+      throw new FactoryMutationError("This entry has no work stage to price it by.", 409);
+    }
+    if (!input.color.trim() || !input.size.trim()) {
+      throw new FactoryMutationError(
+        "Colour and size are needed, so the ledger can say which pairs this wage was for.",
+        400,
+      );
+    }
+
+    // A rate the owner typed wins; otherwise the rate on file for this item,
+    // worker and date — which is what they want after correcting the item.
+    let rate = Number(input.ratePerPair) || 0;
+    if (!(rate > 0)) {
+      const rates = await db.query<{ rate_per_pair: DbNumeric }>(
+        `SELECT rate_per_pair
+         FROM (
+           SELECT rate_per_pair, effective_from AS effective_date, created_at, 0 AS priority
+           FROM production_worker_stage_rates
+           WHERE employee_id = $4 AND item_id = $5 AND stage = $6
+             AND status = 'Active' AND effective_from <= $3::date
+           UNION ALL
+           SELECT rate_per_pair, effective_from AS effective_date, created_at, 1 AS priority
+           FROM production_stage_rates
+           WHERE item_id = $5 AND stage = $6
+             AND status = 'Active' AND effective_from <= $3::date
+           UNION ALL
+           SELECT rate_per_pair, effective_date, created_at, 2 AS priority
+           FROM factory_rates
+           WHERE item_id = $1 AND worker_category = $2 AND effective_date <= $3::date
+         ) available_rates
+         ORDER BY priority, effective_date DESC, created_at DESC
+         LIMIT 1`,
+        [input.itemId, worker.category, workDate, worker.id, items[0].production_item_id, stage],
+      );
+      rate = numeric(rates[0]?.rate_per_pair);
+    }
+    if (!(rate > 0)) {
+      throw new FactoryMutationError(
+        "No wage rate on file for this item and worker. Set the rate, or type one here.",
+        409,
+      );
+    }
+
+    const rejectPairs = Math.max(0, Math.min(input.pairsCount, Math.round(input.rejectPairs || 0)));
+    const amountEarned = money(rate * input.pairsCount);
+    const note = `Corrected ${new Date().toISOString().slice(0, 10)}: ${input.reason.trim()} · ${input.editedBy}`;
+
+    // 1 — the work itself.
+    await db.query(
+      `UPDATE factory_daily_work
+       SET worker_id = $2, item_id = $3, color = $4, size = $5, pairs_count = $6,
+           reject_pairs = $7, rate_applied = $8, amount_earned = $9, updated_at = now()
+       WHERE id = $1`,
+      [
+        input.workId, worker.id, input.itemId, input.color.trim(), input.size.trim(),
+        input.pairsCount, rejectPairs, rate, amountEarned,
+      ],
+    );
+
+    // 2 — the worker's account. running_balance is recomputed on read, so the
+    // stored value is left to the summary refresh below rather than cascaded
+    // through every later row.
+    await db.query(
+      `UPDATE factory_worker_ledger
+       SET worker_id = $2, work_pairs = $3, amount_earned = $4, updated_at = now(),
+           notes = concat_ws(' · ', nullif(notes, ''), $5::text)
+       WHERE source_work_id = $1 AND entry_type = 'work' AND status <> 'reversed'`,
+      [input.workId, worker.id, input.pairsCount, amountEarned, note],
+    );
+
+    // 3 — the wages screen.
+    const sizeLabel = input.size.trim() || "Mixed";
+    await db.query(
+      `UPDATE production_work_entries
+       SET employee_id = $2, employee_name_snapshot = $3, item_id = $4,
+           item_name_snapshot = $5, total_pairs = $6, size_breakdown = $7::jsonb,
+           rejected_pairs = $8, rate_per_pair_snapshot = $9, earned_wage = $10,
+           note = concat_ws(' · ', nullif(note, ''), $11::text)
+       WHERE source_submission_key = $1 AND status = 'Approved'`,
+      [
+        before.submission_key, worker.id, worker.name, items[0].production_item_id,
+        items[0].production_item_name, input.pairsCount,
+        JSON.stringify({ [sizeLabel]: input.pairsCount }), rejectPairs,
+        rate, amountEarned, note,
+      ],
+    );
+
+    // The month the wage is paid from, rebuilt from the corrected rows. Both
+    // workers' months when the entry moved between them.
+    await writeMonthlySummary(db, worker.id, monthKey);
+    if (before.worker_id !== worker.id) {
+      await writeMonthlySummary(db, before.worker_id, monthKey);
+    }
+
+    return {
+      id: input.workId,
+      worker_name: worker.name,
+      pairs_count: input.pairsCount,
+      rate,
+      amount_earned: amountEarned,
+      amount_before: numeric(before.amount_earned),
+      worker_changed: before.worker_id !== worker.id,
+      item_changed: before.item_id !== input.itemId,
+    };
   });
 }
 

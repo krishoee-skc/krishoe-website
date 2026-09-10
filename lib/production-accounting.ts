@@ -2244,7 +2244,7 @@ export async function reverseProductionWorkEntry(input: {
       await db.query(
         `UPDATE factory_worker_ledger
          SET status = 'reversed', updated_at = now(),
-             notes = concat_ws(' · ', nullif(notes, ''), $2)
+             notes = concat_ws(' · ', nullif(notes, ''), $2::text)
          WHERE submission_key = $1 AND entry_type = 'work' AND status <> 'reversed'`,
         [
           entry.source_submission_key,
