@@ -229,21 +229,27 @@ export default function PayrollReport({
                           <td data-label={text("Pairs", "जोडी")} className="py-3 px-2 sm:px-4 text-center text-brand-green-ink">
                             {summary.total_pairs}
                           </td>
-                          <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right text-green-600 font-semibold">
-                            Rs. {summary.total_earned.toLocaleString()}
+                          <td data-label={text("Earned", "कमाएको")} className="py-3 px-2 sm:px-4 text-right font-semibold tabular-nums text-green-600">
+                            {money(summary.total_earned)}
                           </td>
-                          <td data-label={text("Paid", "तिरेको")} className="py-3 px-2 sm:px-4 text-right text-purple-600 font-semibold">
-                            Rs. {summary.total_paid.toLocaleString()}
+                          {/* Clay, not purple: the ledger writes money out in
+                              this colour, and the same fact in two colours on
+                              two screens teaches an owner to trust neither. */}
+                          <td data-label={text("Paid", "तिरेको")} className="py-3 px-2 sm:px-4 text-right font-semibold tabular-nums text-brand-clay">
+                            {money(summary.total_paid)}
                           </td>
-                          <td data-label={text("Due", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-bold">
+                          {/* A wage owed mid-week is the ordinary state — the
+                              week is cleared on Saturday. Only a worker paid
+                              ahead of their work is worth marking. */}
+                          <td data-label={text("Due", "बाँकी")} className="py-3 px-2 sm:px-4 text-right font-bold tabular-nums">
                             <span
-                              className={`${
-                                summary.final_balance > 0
-                                  ? "text-amber-600"
-                                  : "text-brand-muted"
-                              }`}
+                              className={
+                                summary.final_balance < 0
+                                  ? "text-brand-clay"
+                                  : "text-brand-green-ink"
+                              }
                             >
-                              Rs. {summary.final_balance.toLocaleString()}
+                              {money(summary.final_balance)}
                             </span>
                           </td>
                         </tr>
