@@ -32,9 +32,6 @@ interface WorkerLedger {
   size: string | null;
   rate_applied: number | string | null;
   reject_pairs: number | null;
-  /** The production entry this row reverses through. Null on a payment, and on
-   *  work saved before the two sides were linked. */
-  reversible_entry_id: string | null;
   /** The factory_daily_work row this line came from, which is what a
    *  correction rewrites, and the item it was for. Null on a payment. */
   source_work_id: string | null;
@@ -81,12 +78,12 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Which row has its reverse box open, and the reason typed into it. One at a
-  // time: this takes a wage back, and a screen of open confirm boxes invites a
-  // mis-tap.
-  const [reversingId, setReversingId] = useState<string | null>(null);
-  const [reverseReason, setReverseReason] = useState("");
-  const [reverseBusy, setReverseBusy] = useState(false);
+  // Which row has its delete box open, and the reason typed into it. One at a
+  // time: this removes a wage from the books, and a screen of open confirm
+  // boxes invites a mis-tap.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
   // The row being corrected and what is typed into it. One at a time, like the
   // reverse box: both rewrite a wage.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -134,14 +131,15 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   }, [selectedWorkerId, month, refreshTick]);
 
   /**
-   * Take back a wage that should not have been recorded.
+   * Remove an entry that should not exist.
    *
-   * The row is not deleted — it stays struck through with the reason beside it,
-   * and the factory row, the worker's ledger and the wages screen are all
-   * reversed together by the one call.
+   * The row goes from all three tables at once and the month is rebuilt from
+   * what is left. What was deleted — worker, shoe, pairs, wage, reason — is
+   * written to the admin audit first, so a worker asking where their wage went
+   * can still be answered.
    */
-  const handleReverse = async (entryId: string) => {
-    if (reverseReason.trim().length < 5) {
+  const handleDelete = async (workId: string) => {
+    if (deleteReason.trim().length < 5) {
       setError(text(
         "Write a clear reason — it stays on the entry.",
         "कारण लेख्नुहोस् — यो entry मै रहन्छ।",
@@ -149,33 +147,33 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       return;
     }
 
-    setReverseBusy(true);
+    setDeleteBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/factory/ledger/reverse", {
+      const res = await fetch("/api/factory/ledger/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entry_id: entryId, reason: reverseReason.trim() }),
+        body: JSON.stringify({ work_id: workId, reason: deleteReason.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not reverse this entry");
+      if (!res.ok) throw new Error(data.error || "Could not delete this entry");
 
       toast.show(
         text(
-          `Reversed — Rs. ${Number(data.amount ?? 0).toLocaleString("en-IN")} taken back`,
-          `फिर्ता भयो — रु. ${Number(data.amount ?? 0).toLocaleString("en-IN")} घटाइयो`,
+          `Deleted — Rs. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} removed`,
+          `मेटियो — रु. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} हट्यो`,
         ),
         "success",
       );
-      setReversingId(null);
-      setReverseReason("");
+      setDeletingId(null);
+      setDeleteReason("");
       setRefreshTick((tick) => tick + 1);
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "Could not reverse this entry";
+      const message = reason instanceof Error ? reason.message : "Could not delete this entry";
       setError(message);
       toast.show(message, "error");
     } finally {
-      setReverseBusy(false);
+      setDeleteBusy(false);
     }
   };
 
@@ -561,42 +559,44 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           {/* Reversing lives here, where the mistake is read,
                               rather than on another screen the owner has to go
                               and find the same row on. */}
-                          {entry.reversible_entry_id && entry.status !== "reversed" ? (
-                            reversingId === entry.reversible_entry_id ? (
+                          {entry.source_work_id ? (
+                            deletingId === entry.source_work_id ? (
                               <div className="mt-1 space-y-2 rounded-lg bg-brand-clay-tint p-2">
                                 <input
-                                  value={reverseReason}
-                                  onChange={(event) => setReverseReason(event.target.value)}
-                                  placeholder={text("Why? e.g. colour and size missing", "किन? जस्तै रङ र साइज छुटेको")}
-                                  aria-label={text("Reason for reversing", "फिर्ता गर्ने कारण")}
+                                  value={deleteReason}
+                                  onChange={(event) => setDeleteReason(event.target.value)}
+                                  placeholder={text("Why? e.g. entered twice", "किन? जस्तै दुई पटक टिपिएको")}
+                                  aria-label={text("Reason for deleting", "मेट्ने कारण")}
                                   className="min-h-10 w-full rounded-lg border border-brand-clay/30 bg-brand-paper px-2 text-xs"
                                 />
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => void handleReverse(entry.reversible_entry_id!)}
-                                    disabled={reverseBusy}
+                                    onClick={() => void handleDelete(entry.source_work_id!)}
+                                    disabled={deleteBusy}
                                     className="min-h-10 flex-1 rounded-lg bg-brand-clay px-2 text-xs font-black text-white disabled:opacity-60"
                                   >
-                                    {reverseBusy
-                                      ? text("Reversing…", "फिर्ता गर्दै…")
-                                      : text("Reverse", "फिर्ता गर्ने")}
+                                    {deleteBusy
+                                      ? text("Deleting…", "मेट्दै…")
+                                      : text("Delete", "मेट्ने")}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setReversingId(null);
-                                      setReverseReason("");
+                                      setDeletingId(null);
+                                      setDeleteReason("");
                                     }}
                                     className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
                                   >
                                     {text("Cancel", "रद्द")}
                                   </button>
                                 </div>
+                                {/* This does not come back. The audit keeps what
+                                    was removed, but the ledger will not. */}
                                 <p className="text-[11px] leading-4 text-brand-clay">
                                   {text(
-                                    "The entry stays, struck through, with this reason on it.",
-                                    "Entry रहन्छ — कटेको लाइनमा, यही कारण सहित।",
+                                    "This entry goes for good. What was removed is kept in the audit.",
+                                    "यो entry सधैँलाई जान्छ। के हट्यो भन्ने audit मा रहन्छ।",
                                   )}
                                 </p>
                               </div>
@@ -676,9 +676,9 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                 </div>
                               </div>
                             ) : (
-                              /* Correcting says the work happened and the
-                                 details were wrong; reversing says the entry
-                                 should not exist. Both belong on the row. */
+                              /* Correct the details, or remove the entry.
+                                 Both belong on the row where the mistake is
+                                 read. */
                               <span className="mt-1 flex flex-wrap gap-3">
                                 {entry.source_work_id ? (
                                   <button
@@ -701,12 +701,12 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setReversingId(entry.reversible_entry_id);
-                                    setReverseReason("");
+                                    setDeletingId(entry.source_work_id);
+                                    setDeleteReason("");
                                   }}
                                   className="text-xs font-black text-brand-clay underline underline-offset-2"
                                 >
-                                  {text("Reverse", "फिर्ता गर्ने")}
+                                  {text("Delete", "मेट्ने")}
                                 </button>
                               </span>
                             )

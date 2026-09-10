@@ -772,6 +772,111 @@ export async function editFactoryWork(input: FactoryWorkEditInput) {
   });
 }
 
+/**
+ * Remove a work entry from every table that holds it.
+ *
+ * Returns what was deleted so the caller can write it to the audit — once the
+ * rows are gone this is the only record that the work was ever entered.
+ */
+export async function deleteFactoryWork(input: {
+  workId: string;
+  reason: string;
+  deletedBy: string;
+}) {
+  if (!input.reason?.trim() || input.reason.trim().length < 5) {
+    throw new FactoryMutationError(
+      "Write a clear reason for deleting this entry — it is kept in the audit.",
+      400,
+    );
+  }
+
+  return transactionPostgres(STORE, async (db) => {
+    const rows = await db.query<{
+      id: string;
+      submission_key: string;
+      date: string | Date;
+      worker_id: string;
+      item_id: string;
+      color: string | null;
+      size: string | null;
+      pairs_count: number;
+      rate_applied: DbNumeric;
+      amount_earned: DbNumeric;
+      work_order_id: string | null;
+      worker_name: string | null;
+      item_name: string | null;
+    }>(
+      `SELECT w.id, w.submission_key, w.date, w.worker_id, w.item_id, w.color, w.size,
+              w.pairs_count, w.rate_applied, w.amount_earned, w.work_order_id,
+              fw.name AS worker_name, fi.name AS item_name
+       FROM factory_daily_work w
+       LEFT JOIN factory_workers fw ON fw.id = w.worker_id
+       LEFT JOIN factory_items fi ON fi.id = w.item_id
+       WHERE w.id = $1
+       FOR UPDATE OF w`,
+      [input.workId],
+    );
+    const entry = rows[0];
+    if (!entry) throw new FactoryMutationError("That work entry was not found.", 404);
+
+    if (entry.work_order_id) {
+      // A Work Order counts planned pairs per stage and size. Removing an entry
+      // under one would leave that plan counting work that no longer exists.
+      throw new FactoryMutationError(
+        "This entry belongs to a Work Order. Cancel the Work Order first.",
+        409,
+      );
+    }
+
+    const workDate = dbDate(entry.date);
+    const monthKey = bikramMonthKeyOf(workDate);
+
+    // A month that has been closed and paid is history. Deleting from it would
+    // change a figure the worker has already been paid against.
+    const locked = await db.query<{ id: string }>(
+      `SELECT id FROM factory_monthly_summary
+       WHERE worker_id = $1 AND month = $2::date AND status = 'locked'
+       LIMIT 1`,
+      [entry.worker_id, `${monthKey}-01`],
+    );
+    if (locked[0]) {
+      throw new FactoryMutationError(
+        "That month is closed and paid. This entry can no longer be deleted.",
+        409,
+      );
+    }
+
+    // The wages screen first, then the ledger, then the work — the ledger holds
+    // a RESTRICT key onto the work row, so the work cannot go first.
+    await db.query(
+      `DELETE FROM production_work_entries WHERE source_submission_key = $1`,
+      [entry.submission_key],
+    );
+    await db.query(
+      `DELETE FROM factory_worker_ledger WHERE source_work_id = $1 AND entry_type = 'work'`,
+      [input.workId],
+    );
+    await db.query(`DELETE FROM factory_daily_work WHERE id = $1`, [input.workId]);
+
+    // The month, rebuilt from what is left.
+    await writeMonthlySummary(db, entry.worker_id, monthKey);
+
+    return {
+      workerId: entry.worker_id,
+      workerName: entry.worker_name ?? "Unknown worker",
+      itemName: entry.item_name ?? "Unknown item",
+      date: workDate,
+      color: entry.color,
+      size: entry.size,
+      pairsCount: Number(entry.pairs_count),
+      rate: numeric(entry.rate_applied),
+      amountEarned: numeric(entry.amount_earned),
+      reason: input.reason.trim(),
+      deletedBy: input.deletedBy,
+    };
+  });
+}
+
 interface LedgerRow {
   id: string;
   worker_id: string;

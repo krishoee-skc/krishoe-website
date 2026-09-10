@@ -41,10 +41,6 @@ interface LedgerEntry {
    *  needs to send back. */
   item_id: string | null;
   source_work_id: string | null;
-  /** The production entry this row can be reversed through. Null on a payment,
-   *  and on work saved before the two sides were linked — the screen shows the
-   *  button only where there is something to reverse. */
-  reversible_entry_id: string | null;
 }
 
 interface Worker {
@@ -115,14 +111,10 @@ export async function GET(request: NextRequest) {
                               balanced.notes, balanced.created_at,
                               items.name AS item_name, work.color, work.size,
                               work.rate_applied, work.reject_pairs,
-                              work.item_id, work.id AS source_work_id,
-                              entry.id AS reversible_entry_id
+                              work.item_id, work.id AS source_work_id
                        FROM balanced
                        LEFT JOIN factory_daily_work work ON work.id = balanced.source_work_id
                        LEFT JOIN factory_items items ON items.id = work.item_id
-                       LEFT JOIN production_work_entries entry
-                         ON entry.source_submission_key = work.submission_key
-                        AND entry.status = 'Approved'
                        WHERE true`;
     const params: LedgerParam[] = [workerId];
 

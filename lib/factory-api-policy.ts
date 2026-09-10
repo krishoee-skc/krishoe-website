@@ -23,14 +23,14 @@ const factoryApiPolicies: Record<string, Partial<Record<string, FactoryApiPolicy
     GET: { permissions: wagesOnly },
     POST: { permissions: ["wages:write"], ownerOnly: true },
   },
+  // Deleting an entry removes a wage from the books. Same bar, and what was
+  // removed is written to the audit before it goes.
+  "/api/factory/ledger/delete": {
+    POST: { permissions: ["wages:write"], ownerOnly: true },
+  },
   // Correcting a saved entry rewrites a wage, so it is held to the same bar as
   // approving one. A closed month refuses it inside the mutation.
   "/api/factory/ledger/edit": {
-    POST: { permissions: ["wages:write"], ownerOnly: true },
-  },
-  // Taking a wage back is the same act as approving one, held to the same bar.
-  // Nothing is deleted: the entry stays, struck through, with its reason.
-  "/api/factory/ledger/reverse": {
     POST: { permissions: ["wages:write"], ownerOnly: true },
   },
   "/api/factory/monthly-summary": {
