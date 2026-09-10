@@ -72,6 +72,35 @@ export async function GET(request: NextRequest) {
       [workerId, range.startKey, range.endKey]
     );
 
+    // The month's entries, in the order they happened. Salary payments and
+    // advances live in different tables because they are different things; the
+    // screen wants one list, so they are unioned with a kind on each row.
+    const entries = await queryPostgres<{
+      kind: string;
+      date: string;
+      amount: DbNumeric;
+      notes: string | null;
+      status: string;
+    }>(
+      STORE,
+      `SELECT 'payment' AS kind, date::text AS date, payment_given AS amount, notes, status
+         FROM factory_worker_ledger
+        WHERE worker_id = $1
+          AND entry_type = 'payment'
+          AND COALESCE(salary_period_month, date)::date >= $2::date
+          AND COALESCE(salary_period_month, date)::date < $3::date
+        UNION ALL
+       SELECT 'advance' AS kind, date_given::text AS date, advance_amount AS amount, notes,
+              'settled' AS status
+         FROM factory_weekly_advance
+        WHERE worker_id = $1
+          AND COALESCE(salary_period_month, date_given)::date >= $2::date
+          AND COALESCE(salary_period_month, date_given)::date < $3::date
+        ORDER BY date ASC
+        LIMIT 200`,
+      [workerId, range.startKey, range.endKey],
+    );
+
     const totalSalary = numeric(worker.monthly_salary);
     const totalPaid = numeric(payments?.[0]?.total_paid);
     const totalAdvance = numeric(advances?.[0]?.total_advance);
@@ -84,6 +113,13 @@ export async function GET(request: NextRequest) {
       total_paid: totalPaid,
       total_advance: totalAdvance,
       remaining_balance: remainingBalance,
+      entries: entries.map((row) => ({
+        kind: row.kind,
+        date: row.date,
+        amount: numeric(row.amount),
+        notes: row.notes,
+        status: row.status,
+      })),
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

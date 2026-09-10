@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
 import { useSearchParams } from "next/navigation";
@@ -22,6 +23,18 @@ interface SalarySummary {
   total_paid: number;
   total_advance: number;
   remaining_balance: number;
+  /** The month's payments and advances in date order, so the totals above can
+   *  be checked against what actually happened. */
+  entries?: SalaryEntry[];
+}
+
+interface SalaryEntry {
+  /** "payment" for salary, "advance" for Saturday kharcha. */
+  kind: string;
+  date: string;
+  amount: number;
+  notes: string | null;
+  status: string;
 }
 
 /**
@@ -215,6 +228,81 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
               value={money(summary.remaining_balance)}
               tone={summary.remaining_balance >= 0 ? "good" : "danger"}
             />
+          </div>
+
+          {/* What the totals above are made of. Without this the screen asks
+              the owner to trust four numbers with nothing behind them. */}
+          <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              {text("This month's entries", "यो महिनाका entry")}
+            </h2>
+            {summary.entries && summary.entries.length > 0 ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="reflow-table w-full text-sm">
+                  <thead className="border-b border-brand-green-line">
+                    <tr className="text-xs font-black uppercase tracking-wider text-brand-muted">
+                      <th className="py-2 pe-3 text-left">{text("Date", "मिति")}</th>
+                      <th className="py-2 px-3 text-left">{text("Type", "के भयो")}</th>
+                      <th className="py-2 px-3 text-right">{text("Amount", "रकम")}</th>
+                      <th className="py-2 ps-3 text-left">{text("Note", "टिपोट")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.entries.map((entry, index) => (
+                      <tr
+                        key={`${entry.kind}-${entry.date}-${index}`}
+                        className={`border-b border-brand-green-line ${
+                          entry.status === "reversed" ? "opacity-70" : ""
+                        }`}
+                      >
+                        <td className="reflow-primary py-3 pe-3 text-brand-green-ink">
+                          <DateDisplayAdmin date={entry.date} />
+                        </td>
+                        <td data-label={text("Type", "के भयो")} className="py-3 px-3">
+                          <span className="rounded bg-brand-mist px-2 py-1 text-xs font-bold">
+                            {entry.kind === "advance"
+                              ? text("Advance / kharcha", "पेस्की / खर्च")
+                              : text("Salary payment", "तलब")}
+                          </span>
+                          {entry.status === "reversed" ? (
+                            <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
+                              {text("reversed", "फिर्ता")}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td
+                          data-label={text("Amount", "रकम")}
+                          className="py-3 px-3 text-right font-bold tabular-nums"
+                        >
+                          {/* Both kinds are money going out, so both are a
+                              minus — the type column says which. */}
+                          <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                            −{entry.amount.toLocaleString("en-IN")}
+                          </span>
+                        </td>
+                        <td
+                          data-label={text("Note", "टिपोट")}
+                          className={`py-3 ps-3 text-xs text-brand-muted ${entry.notes ? "" : "reflow-blank"}`}
+                        >
+                          {entry.notes ? (
+                            <span className="block min-w-0 break-words">{entry.notes}</span>
+                          ) : (
+                            <span className="text-brand-muted-soft">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-brand-muted">
+                {text(
+                  "Nothing paid or advanced this month yet. Anything recorded below appears here.",
+                  "यो महिना अझै केही दिइएको छैन। तल टिपेको यहीँ देखिन्छ।",
+                )}
+              </p>
+            )}
           </div>
 
           <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
