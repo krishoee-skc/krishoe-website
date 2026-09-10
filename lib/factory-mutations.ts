@@ -1103,11 +1103,18 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
     // A payment carries its own salary period when one was chosen (a wage for
     // last month, handed over this month); otherwise the month its date falls
     // in.
-    await writeMonthlySummary(
-      db,
-      worker.id,
-      input.salaryPeriodMonth ?? bikramMonthKeyOf(input.date),
-    );
+    //
+    // Piece-rate only. This path also takes monthly staff, from the salary
+    // screen, and factory_monthly_summary counts pairs and piece wages — a row
+    // for a salaried person would read "0 pairs, Rs. 0 earned, Rs. 12,000 paid"
+    // and show them owing the shop a month's salary on the Reports payroll.
+    if (worker.worker_type === "piece_rate") {
+      await writeMonthlySummary(
+        db,
+        worker.id,
+        input.salaryPeriodMonth ?? bikramMonthKeyOf(input.date),
+      );
+    }
 
     return {
       ...ledgerResponse(inserted[0], input.submissionKey, false),
@@ -1235,10 +1242,11 @@ export async function createFactoryAdvance(input: FactoryAdvanceInput) {
         `${input.periodMonth}-01`,
       ],
     );
-    // Advances reduce what is left to pay for the month, so the month has to
-    // be rebuilt here too.
-    await writeMonthlySummary(db, worker.id, input.periodMonth);
-
+    // No piece summary here: this path is monthly staff only, and
+    // factory_monthly_summary counts pairs and piece wages. The salary screen
+    // reads advances straight from factory_weekly_advance and subtracts them
+    // from what is left to pay for the month, so they already arrive where
+    // they belong.
     return advanceResponse(inserted[0], input.submissionKey, false);
   });
 }
