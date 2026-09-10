@@ -34,7 +34,8 @@
     "business:clean-start": "node scripts/clean-business-start.mjs"
   },
   "overrides": {
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "qs": "^6.16.0"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -46,7 +47,7 @@
     "@zxing/library": "^0.23.0",
     "bwip-js": "^4.11.2",
     "nepali-date-converter": "^3.4.0",
-    "next": "^16.3.0",
+    "next": "^16.3.4",
     "pg": "^8.22.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
