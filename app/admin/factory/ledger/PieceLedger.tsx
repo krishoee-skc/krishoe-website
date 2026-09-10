@@ -35,6 +35,10 @@ interface WorkerLedger {
   /** The production entry this row reverses through. Null on a payment, and on
    *  work saved before the two sides were linked. */
   reversible_entry_id: string | null;
+  /** The factory_daily_work row this line came from, which is what a
+   *  correction rewrites, and the item it was for. Null on a payment. */
+  source_work_id: string | null;
+  item_id: string | null;
 }
 
 // One shape for a person on the books, defined where they are read.
@@ -83,6 +87,11 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [reverseReason, setReverseReason] = useState("");
   const [reverseBusy, setReverseBusy] = useState(false);
+  // The row being corrected and what is typed into it. One at a time, like the
+  // reverse box: both rewrite a wage.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ color: "", size: "", pairs: "", rate: "", reason: "" });
+  const [editBusy, setEditBusy] = useState(false);
   // Bumped after a reversal so the month reloads with the row struck through.
   const [refreshTick, setRefreshTick] = useState(0);
   // The Bikram Sambat month, because that is the month wages are agreed in.
@@ -167,6 +176,65 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       toast.show(message, "error");
     } finally {
       setReverseBusy(false);
+    }
+  };
+
+  /**
+   * Correct the details of a saved entry.
+   *
+   * The wage is worked out on the server from the pairs and the rate, not here
+   * — the screen sends what was typed and shows what comes back.
+   */
+  const handleEdit = async (entry: WorkerLedger) => {
+    if (!entry.source_work_id) return;
+    if (editForm.reason.trim().length < 5) {
+      setError(text(
+        "Write a clear reason — it stays on the entry.",
+        "कारण लेख्नुहोस् — यो entry मै रहन्छ।",
+      ));
+      return;
+    }
+
+    setEditBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/factory/ledger/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          work_id: entry.source_work_id,
+          worker_id: selectedWorkerId,
+          item_id: entry.item_id,
+          color: editForm.color,
+          size: editForm.size,
+          pairs_count: Number(editForm.pairs) || entry.work_pairs,
+          reject_pairs: entry.reject_pairs ?? 0,
+          // Blank leaves the rate alone: the server falls back to the one on
+          // file for this item and worker.
+          rate_per_pair: editForm.rate ? Number(editForm.rate) : null,
+          reason: editForm.reason.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not correct this entry");
+
+      toast.show(
+        Number(data.amount_moved ?? 0) === 0
+          ? text("Corrected — the wage is unchanged", "सच्चियो — ज्याला उही")
+          : text(
+              `Corrected — wage now Rs. ${Number(data.amount_earned).toLocaleString("en-IN")}`,
+              `सच्चियो — ज्याला अब रु. ${Number(data.amount_earned).toLocaleString("en-IN")}`,
+            ),
+        "success",
+      );
+      setEditingId(null);
+      setRefreshTick((tick) => tick + 1);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Could not correct this entry";
+      setError(message);
+      toast.show(message, "error");
+    } finally {
+      setEditBusy(false);
     }
   };
 
@@ -532,17 +600,115 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                   )}
                                 </p>
                               </div>
+                            ) : editingId === entry.source_work_id ? (
+                              <div className="mt-1 space-y-2 rounded-lg bg-brand-green-tint p-2">
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <input
+                                    value={editForm.color}
+                                    onChange={(event) => setEditForm((form) => ({ ...form, color: event.target.value }))}
+                                    placeholder={text("Colour", "रङ")}
+                                    aria-label={text("Colour", "रङ")}
+                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+                                  />
+                                  <input
+                                    value={editForm.size}
+                                    onChange={(event) => setEditForm((form) => ({ ...form, size: event.target.value }))}
+                                    placeholder={text("Size", "साइज")}
+                                    aria-label={text("Size", "साइज")}
+                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+                                  />
+                                  <input
+                                    value={editForm.pairs}
+                                    onChange={(event) => setEditForm((form) => ({ ...form, pairs: event.target.value }))}
+                                    type="number"
+                                    min="1"
+                                    inputMode="numeric"
+                                    placeholder={text("Pairs", "जोडी")}
+                                    aria-label={text("Pairs", "जोडी")}
+                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
+                                  />
+                                  <input
+                                    value={editForm.rate}
+                                    onChange={(event) => setEditForm((form) => ({ ...form, rate: event.target.value }))}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    placeholder={text("Rate", "दर")}
+                                    aria-label={text("Rate per pair", "प्रति जोडी दर")}
+                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
+                                  />
+                                </div>
+                                <input
+                                  value={editForm.reason}
+                                  onChange={(event) => setEditForm((form) => ({ ...form, reason: event.target.value }))}
+                                  placeholder={text("Why? e.g. colour was missing", "किन? जस्तै रङ छुटेको")}
+                                  aria-label={text("Reason for correcting", "सच्याउने कारण")}
+                                  className="min-h-10 w-full rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+                                />
+                                {/* What the wage becomes, before it is saved —
+                                    a correction that moves money should say so
+                                    first. */}
+                                <p className="text-[11px] leading-4 text-brand-green-ink">
+                                  {editForm.pairs && editForm.rate
+                                    ? text(
+                                        `Wage becomes Rs. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
+                                        `ज्याला हुन्छ रु. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
+                                      )
+                                    : text("Leave the rate blank to keep the one on file.", "दर खाली छोडे पहिलेकै दर रहन्छ।")}
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleEdit(entry)}
+                                    disabled={editBusy}
+                                    className="min-h-10 flex-1 rounded-lg bg-brand-green px-2 text-xs font-black text-white disabled:opacity-60"
+                                  >
+                                    {editBusy ? text("Saving…", "सच्याउँदै…") : text("Correct", "सच्याउने")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingId(null)}
+                                    className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
+                                  >
+                                    {text("Cancel", "रद्द")}
+                                  </button>
+                                </div>
+                              </div>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReversingId(entry.reversible_entry_id);
-                                  setReverseReason("");
-                                }}
-                                className="mt-1 text-xs font-black text-brand-clay underline underline-offset-2"
-                              >
-                                {text("Reverse", "फिर्ता गर्ने")}
-                              </button>
+                              /* Correcting says the work happened and the
+                                 details were wrong; reversing says the entry
+                                 should not exist. Both belong on the row. */
+                              <span className="mt-1 flex flex-wrap gap-3">
+                                {entry.source_work_id ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingId(entry.source_work_id);
+                                      setEditForm({
+                                        color: entry.color ?? "",
+                                        size: entry.size ?? "",
+                                        pairs: String(entry.work_pairs ?? ""),
+                                        rate: entry.rate_applied ? String(Number(entry.rate_applied)) : "",
+                                        reason: "",
+                                      });
+                                    }}
+                                    className="text-xs font-black text-brand-green underline underline-offset-2"
+                                  >
+                                    {text("Correct", "सच्याउने")}
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReversingId(entry.reversible_entry_id);
+                                    setReverseReason("");
+                                  }}
+                                  className="text-xs font-black text-brand-clay underline underline-offset-2"
+                                >
+                                  {text("Reverse", "फिर्ता गर्ने")}
+                                </button>
+                              </span>
                             )
                           ) : entry.notes ? null : (
                             <span className="text-brand-muted-soft">—</span>

@@ -122,3 +122,107 @@ describe("what the owner sees", () => {
     expect(screen).toContain("[selectedWorkerId, month, refreshTick]");
   });
 });
+
+/**
+ * Correcting an entry rather than reversing it.
+ *
+ * Reversing leaves two lines for one piece of work and means entering it twice.
+ * For a colour that was missed or a rate typed wrong, the owner asked for the
+ * row itself to be corrected — all four tables kept in step, nothing anywhere
+ * left saying the old thing.
+ */
+const EDIT_ROUTE = "app/api/factory/ledger/edit/route.ts";
+const MUTATION = "lib/factory-mutations.ts";
+
+describe("correcting an entry in place", () => {
+  it("rewrites all three tables that hold it", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const edit = source.slice(
+      source.indexOf("export async function editFactoryWork"),
+      source.indexOf("interface LedgerRow"),
+    );
+
+    expect(edit).toContain("UPDATE factory_daily_work");
+    expect(edit).toContain("UPDATE factory_worker_ledger");
+    expect(edit).toContain("UPDATE production_work_entries");
+  });
+
+  it("does it in one transaction, so none can move without the others", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const edit = source.slice(
+      source.indexOf("export async function editFactoryWork"),
+      source.indexOf("interface LedgerRow"),
+    );
+
+    expect(edit).toContain("transactionPostgres");
+  });
+
+  it("rebuilds the month the wage is paid from", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const edit = source.slice(
+      source.indexOf("export async function editFactoryWork"),
+      source.indexOf("interface LedgerRow"),
+    );
+
+    // And both workers' months when the entry moved between them.
+    expect(edit).toContain("writeMonthlySummary(db, worker.id, monthKey)");
+    expect(edit).toContain("before.worker_id !== worker.id");
+  });
+
+  it("refuses a month that has been closed and paid", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const edit = source.slice(
+      source.indexOf("export async function editFactoryWork"),
+      source.indexOf("interface LedgerRow"),
+    );
+
+    // Once a month is paid it is history; reversing says so plainly, a silent
+    // edit does not.
+    expect(edit).toContain("status = 'locked'");
+    expect(edit).toContain("That month is closed");
+  });
+
+  it("refuses an entry under a Work Order", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const edit = source.slice(
+      source.indexOf("export async function editFactoryWork"),
+      source.indexOf("interface LedgerRow"),
+    );
+
+    // That plan counts pairs per stage and size and would need re-checking.
+    expect(edit).toContain("belongs to a Work Order");
+  });
+
+  it("is the owner's decision, through the policy map", async () => {
+    const route = await readFile(EDIT_ROUTE, "utf8");
+    const policy = await readFile("lib/factory-api-policy.ts", "utf8");
+
+    expect(route.indexOf("await authorizeFactoryApi(")).toBeLessThan(route.indexOf("try {"));
+    expect(policy).toContain('"/api/factory/ledger/edit"');
+  });
+
+  it("asks why, and keeps the answer on the entry", async () => {
+    const source = await readFile(MUTATION, "utf8");
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(source).toContain("input.reason.trim().length < 5");
+    // Appended, not replaced: an entry corrected twice keeps both notes.
+    expect(source).toContain("concat_ws(' · ', nullif(notes, ''), $5::text)");
+    expect(screen).toContain("editForm.reason.trim().length < 5");
+  });
+
+  it("shows what the wage becomes before it is saved", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // A correction that moves money should say so first.
+    expect(screen).toContain("Wage becomes Rs.");
+  });
+
+  it("offers Correct only on a row that has work behind it", async () => {
+    const api = await readFile(API, "utf8");
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(api).toContain("work.id AS source_work_id");
+    expect(screen).toContain("entry.source_work_id ? (");
+  });
+});
