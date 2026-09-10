@@ -14,11 +14,24 @@ const initialState: FormState = {
   message: "",
 };
 
-/** Shared with the standalone review page, so both star rows behave alike. */
+/**
+ * The star row, shared with the standalone review page so both behave alike.
+ *
+ * The stars themselves are 28px, which is the right size to look at and the
+ * wrong size to hit: a thumb covers about 45px, so aiming for 4 and landing on
+ * 3 was easy — and the form gives no second chance to notice, because the only
+ * feedback is the very star you mis-tapped. The button around each star is
+ * therefore 44px square (the tap target), while the star drawn inside it stays
+ * 28px (the look).
+ *
+ * Each button also says which rating it sets, so this is usable without sight;
+ * before, a screen reader read five buttons with no names at all.
+ */
 export function StarRatingInput({ rating, setRating }: { rating: number; setRating: (r: number) => void }) {
+  const { text } = useLanguage();
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center" role="group" aria-label={text("Your rating", "तपाईंको मूल्याङ्कन")}>
       {[...Array(5)].map((_, index) => {
         const ratingValue = index + 1;
         return (
@@ -28,7 +41,9 @@ export function StarRatingInput({ rating, setRating }: { rating: number; setRati
             onClick={() => setRating(ratingValue)}
             onMouseEnter={() => setHover(ratingValue)}
             onMouseLeave={() => setHover(0)}
-            className="text-2xl"
+            aria-label={text(`${ratingValue} of 5`, `५ मध्ये ${ratingValue}`)}
+            aria-pressed={ratingValue === rating}
+            className="grid h-11 w-11 place-items-center rounded-full transition hover:bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
           >
             <StarIcon
               className={`h-7 w-7 transition-colors ${

@@ -254,7 +254,7 @@ export default async function AdminSettingsPage({
                 name="address"
                 defaultValue={settings.company.address}
                 rows={3}
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
 
@@ -268,7 +268,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.promoText}
                 maxLength={160}
                 placeholder="e.g. First order? Use WELCOME10 for 10% off — write it in any language"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
               <span className="flex items-center gap-2 text-xs font-semibold text-brand-muted">
                 <input
@@ -295,7 +295,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.googleReviewUrl}
                 maxLength={400}
                 placeholder="From Google Business, e.g. https://g.page/r/… (leave blank to skip)"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
               <span className="text-xs font-semibold text-brand-muted">
                 On Google, search your shop → your business profile → &ldquo;Ask for reviews&rdquo; → copy the link.
@@ -309,7 +309,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.facebookReviewUrl}
                 maxLength={400}
                 placeholder="https://www.facebook.com/krishoe.np/reviews (leave blank to skip)"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
               <span className="text-xs font-semibold text-brand-muted">
                 Your KRISHOE Facebook page address with /reviews on the end.
@@ -336,7 +336,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.bankName}
                 maxLength={120}
                 placeholder="e.g. Nabil Bank Ltd."
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
@@ -346,7 +346,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.bankAccountName}
                 maxLength={120}
                 placeholder="The name on the account"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
@@ -357,7 +357,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.bankAccountNumber}
                 maxLength={40}
                 placeholder="Digits only (leave blank to hide the bank panel)"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
               <span className="text-xs font-semibold text-brand-muted">
                 Check this digit by digit — a customer types it into their banking app.
@@ -370,7 +370,7 @@ export default async function AdminSettingsPage({
                 defaultValue={settings.company.bankBranch}
                 maxLength={120}
                 placeholder="e.g. Narayangadh, Chitwan"
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
@@ -450,7 +450,7 @@ export default async function AdminSettingsPage({
               <textarea
                 name="address"
                 rows={3}
-                className="rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
               />
             </label>
           </div>
