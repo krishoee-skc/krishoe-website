@@ -32,6 +32,9 @@ interface WorkerLedger {
   size: string | null;
   rate_applied: number | string | null;
   reject_pairs: number | null;
+  /** The production entry this row reverses through. Null on a payment, and on
+   *  work saved before the two sides were linked. */
+  reversible_entry_id: string | null;
 }
 
 // One shape for a person on the books, defined where they are read.
@@ -74,6 +77,14 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which row has its reverse box open, and the reason typed into it. One at a
+  // time: this takes a wage back, and a screen of open confirm boxes invites a
+  // mis-tap.
+  const [reversingId, setReversingId] = useState<string | null>(null);
+  const [reverseReason, setReverseReason] = useState("");
+  const [reverseBusy, setReverseBusy] = useState(false);
+  // Bumped after a reversal so the month reloads with the row struck through.
+  const [refreshTick, setRefreshTick] = useState(0);
   // The Bikram Sambat month, because that is the month wages are agreed in.
   // nepalMonthKey() gave the English month in Nepal's timezone, which is a
   // different thing and was never the one being asked about.
@@ -111,7 +122,53 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
     };
 
     loadLedger();
-  }, [selectedWorkerId, month]);
+  }, [selectedWorkerId, month, refreshTick]);
+
+  /**
+   * Take back a wage that should not have been recorded.
+   *
+   * The row is not deleted — it stays struck through with the reason beside it,
+   * and the factory row, the worker's ledger and the wages screen are all
+   * reversed together by the one call.
+   */
+  const handleReverse = async (entryId: string) => {
+    if (reverseReason.trim().length < 5) {
+      setError(text(
+        "Write a clear reason — it stays on the entry.",
+        "कारण लेख्नुहोस् — यो entry मै रहन्छ।",
+      ));
+      return;
+    }
+
+    setReverseBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/factory/ledger/reverse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entry_id: entryId, reason: reverseReason.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not reverse this entry");
+
+      toast.show(
+        text(
+          `Reversed — Rs. ${Number(data.amount ?? 0).toLocaleString("en-IN")} taken back`,
+          `फिर्ता भयो — रु. ${Number(data.amount ?? 0).toLocaleString("en-IN")} घटाइयो`,
+        ),
+        "success",
+      );
+      setReversingId(null);
+      setReverseReason("");
+      setRefreshTick((tick) => tick + 1);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Could not reverse this entry";
+      setError(message);
+      toast.show(message, "error");
+    } finally {
+      setReverseBusy(false);
+    }
+  };
 
   const handleRecordPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -428,13 +485,66 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             tablet for the sake of one reversal message. */}
                         <td
                           data-label={text("Note", "टिपोट")}
-                          className={`py-3 px-2 sm:px-4 text-xs text-brand-muted ${
-                            entry.notes ? "" : "reflow-blank"
-                          }`}
+                          className="py-3 px-2 sm:px-4 text-xs text-brand-muted"
                         >
                           {entry.notes ? (
                             <span className="block min-w-0 break-words">{entry.notes}</span>
-                          ) : (
+                          ) : null}
+                          {/* Reversing lives here, where the mistake is read,
+                              rather than on another screen the owner has to go
+                              and find the same row on. */}
+                          {entry.reversible_entry_id && entry.status !== "reversed" ? (
+                            reversingId === entry.reversible_entry_id ? (
+                              <div className="mt-1 space-y-2 rounded-lg bg-brand-clay-tint p-2">
+                                <input
+                                  value={reverseReason}
+                                  onChange={(event) => setReverseReason(event.target.value)}
+                                  placeholder={text("Why? e.g. colour and size missing", "किन? जस्तै रङ र साइज छुटेको")}
+                                  aria-label={text("Reason for reversing", "फिर्ता गर्ने कारण")}
+                                  className="min-h-10 w-full rounded-lg border border-brand-clay/30 bg-brand-paper px-2 text-xs"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleReverse(entry.reversible_entry_id!)}
+                                    disabled={reverseBusy}
+                                    className="min-h-10 flex-1 rounded-lg bg-brand-clay px-2 text-xs font-black text-white disabled:opacity-60"
+                                  >
+                                    {reverseBusy
+                                      ? text("Reversing…", "फिर्ता गर्दै…")
+                                      : text("Reverse", "फिर्ता गर्ने")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReversingId(null);
+                                      setReverseReason("");
+                                    }}
+                                    className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
+                                  >
+                                    {text("Cancel", "रद्द")}
+                                  </button>
+                                </div>
+                                <p className="text-[11px] leading-4 text-brand-clay">
+                                  {text(
+                                    "The entry stays, struck through, with this reason on it.",
+                                    "Entry रहन्छ — कटेको लाइनमा, यही कारण सहित।",
+                                  )}
+                                </p>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReversingId(entry.reversible_entry_id);
+                                  setReverseReason("");
+                                }}
+                                className="mt-1 text-xs font-black text-brand-clay underline underline-offset-2"
+                              >
+                                {text("Reverse", "फिर्ता गर्ने")}
+                              </button>
+                            )
+                          ) : entry.notes ? null : (
                             <span className="text-brand-muted-soft">—</span>
                           )}
                         </td>
