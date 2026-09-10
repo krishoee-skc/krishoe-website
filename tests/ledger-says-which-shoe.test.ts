@@ -92,18 +92,29 @@ describe("what the owner sees", () => {
  * out beside the label instead of under one another, squashing three things
  * onto one line on the screen this shop actually uses.
  */
+/**
+ * Cut one cell out of the file, and say so when the cut fails.
+ *
+ * indexOf returns -1 for a boundary that has stopped existing, and
+ * slice(start, -1) then hands back nearly the whole file — an assertion against
+ * that finds its string somewhere else and passes with the cell deleted. This
+ * happened: a slice ended at `text("Earned"`, which went away when Earned and
+ * Paid merged into Amount.
+ */
+function cell(screen: string, label: string, nextLabel: string) {
+  const start = screen.indexOf(`data-label={text("${label}"`);
+  const end = screen.indexOf(`data-label={text("${nextLabel}"`);
+  expect(start, `no cell labelled ${label}`).toBeGreaterThan(-1);
+  expect(end, `no cell labelled ${nextLabel} after ${label}`).toBeGreaterThan(start);
+  return screen.slice(start, end);
+}
+
 describe("the ledger on a phone", () => {
   it("wraps each stacked cell in one block, so the card lays out against it", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
-    const item = screen.slice(
-      screen.indexOf('data-label={text("Item"'),
-      screen.indexOf('data-label={text("Pairs"'),
-    );
-    const pairs = screen.slice(
-      screen.indexOf('data-label={text("Pairs"'),
-      screen.indexOf('data-label={text("Earned"'),
-    );
+    const item = cell(screen, "Item", "Pairs");
+    const pairs = cell(screen, "Pairs", "Amount");
 
     // One child for the flex row to place; the lines stack inside it.
     expect(item).toContain('<span className="block min-w-0');
@@ -235,10 +246,7 @@ describe("the amount column", () => {
 
   it("signs it: work adds, cash handed over takes away", async () => {
     const screen = await readFile(SCREEN, "utf8");
-    const amount = screen.slice(
-      screen.indexOf('data-label={text("Amount"'),
-      screen.indexOf('data-label={text("Balance"'),
-    );
+    const amount = cell(screen, "Amount", "Balance");
 
     expect(amount).toContain("text-green-600");
     expect(amount).toContain("text-red-600");
@@ -248,10 +256,7 @@ describe("the amount column", () => {
 
   it("colours the figure, never the cell around it", async () => {
     const screen = await readFile(SCREEN, "utf8");
-    const amount = screen.slice(
-      screen.indexOf('data-label={text("Amount"'),
-      screen.indexOf('data-label={text("Balance"'),
-    );
+    const amount = cell(screen, "Amount", "Balance");
 
     // A red dash in a money column reads as money going out.
     expect(amount).toContain("text-brand-muted-soft");

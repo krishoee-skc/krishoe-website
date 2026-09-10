@@ -141,7 +141,7 @@ export default async function WagesPaymentsPage({
                   {row.closingBalance >= 0 ? money(row.payable) : `Advance ${money(row.advanceBalance)}`}
                 </p>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs tabular-nums sm:grid-cols-3">
                 <div><span className="text-brand-muted">Opening</span><p className="mt-1 font-black">{money(row.openingBalance)}</p></div>
                 <div><span className="text-brand-muted">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
                 <div><span className="text-brand-muted">Cash</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
@@ -168,7 +168,7 @@ export default async function WagesPaymentsPage({
               className="hover-lift rounded-xl border border-brand-green-line bg-brand-paper-deep p-4 transition hover:border-brand-green"
             >
               <p className="font-black text-brand-green-ink">{row.employeeName}</p>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs tabular-nums sm:grid-cols-3">
                 <div><span className="text-brand-muted">Earned</span><p className="mt-1 font-black">{money(row.earned)}</p></div>
                 <div><span className="text-brand-muted">Cash/adjustment</span><p className="mt-1 font-black">{money(row.paid)}</p></div>
                 <div><span className="text-brand-muted">Balance</span><p className={`mt-1 font-black ${row.balance < 0 ? "text-brand-clay" : "text-brand-green"}`}>{money(row.balance)}</p></div>
