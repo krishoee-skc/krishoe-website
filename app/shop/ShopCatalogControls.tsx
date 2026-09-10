@@ -138,7 +138,7 @@ export default function ShopCatalogControls({
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
           <Link
             href="/shop"
-            className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${
+            className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm font-bold transition ${
               !activeCategory
                 ? "border-brand-green bg-brand-green text-white"
                 : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
@@ -150,7 +150,7 @@ export default function ShopCatalogControls({
             <Link
               key={item.slug}
               href={`/shop/${item.slug}`}
-              className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm font-bold transition ${
                 activeCategory?.slug === item.slug
                   ? "border-brand-green bg-brand-green text-white"
                   : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
@@ -221,7 +221,7 @@ export default function ShopCatalogControls({
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-black/10 px-3 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
             >
               <XIcon className="h-4 w-4" />
               Clear

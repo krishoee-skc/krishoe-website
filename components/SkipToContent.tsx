@@ -33,7 +33,7 @@ export default function SkipToContent() {
     <a
       href="#main"
       onClick={skip}
-      className="sr-only rounded-lg font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:bg-brand-green focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg"
+      className="sr-only rounded-lg font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:inline-flex focus:min-h-11 focus:items-center focus:bg-brand-green focus:px-4 focus:text-sm focus:shadow-lg"
     >
       {text("Skip to content", "मुख्य सामग्रीमा जानुहोस्")}
     </a>

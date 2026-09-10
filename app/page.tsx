@@ -143,7 +143,7 @@ export default async function Home() {
             <Link
               key={chip.href + chip.en}
               href={chip.href}
-              className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-xs font-semibold text-brand-green-ink shadow-sm transition hover:border-brand-purple hover:text-brand-purple"
+              className="inline-flex min-h-11 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-semibold text-brand-green-ink shadow-sm transition hover:border-brand-purple hover:text-brand-purple"
             >
               <T en={chip.en} ne={chip.ne} />
             </Link>

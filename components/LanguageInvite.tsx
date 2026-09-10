@@ -101,7 +101,7 @@ export default function LanguageInvite() {
           type="button"
           onClick={() => answer(null)}
           aria-label="बन्द गर्ने · Close"
-          className="-mr-1 -mt-1 rounded-lg px-2 py-1 text-lg leading-none text-brand-muted hover:bg-brand-mist"
+          className="-mr-1 -mt-1 grid h-11 w-11 flex-none place-items-center rounded-lg text-lg leading-none text-brand-muted hover:bg-brand-mist"
         >
           ✕
         </button>

@@ -171,7 +171,7 @@ export default async function ProductPage({ params }: Props) {
                     to the very bottom to find the form. */}
                 <a
                   href="#reviews"
-                  className="flex items-center gap-1 rounded-full bg-brand-green-ink px-3 py-1 text-sm font-semibold text-white transition hover:bg-brand-green"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-green-ink px-4 text-sm font-semibold text-white transition hover:bg-brand-green"
                 >
                   <StarIcon className="h-4 w-4 text-brand-gold-bright" />
                   {product.rating}

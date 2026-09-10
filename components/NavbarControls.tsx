@@ -222,7 +222,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                     key={entry.slug}
                     href={`/shop/${entry.slug}`}
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                   >
                     <span aria-hidden="true">{entry.emoji}</span>
                     {text(entry.en, entry.ne)}
@@ -242,7 +242,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 <Link
                   href="/return-policy"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                 >
                   <span aria-hidden="true">📜</span>
                   {text("Return policy", "फिर्ता नीति")}
@@ -250,7 +250,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 <Link
                   href="/track-order"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                 >
                   <span aria-hidden="true">📦</span>
                   {text("Track an order", "अर्डर खोज्ने")}
@@ -258,7 +258,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 <Link
                   href="/wholesale"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+                  className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                 >
                   <span aria-hidden="true">🏪</span>
                   {text("Wholesale", "थोकमा किन्ने")}
