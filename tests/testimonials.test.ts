@@ -37,9 +37,25 @@ describe("which reviews reach the storefront", () => {
     }
   });
 
-  it("renders nothing rather than an empty heading when there are none", async () => {
+  it("asks for the first review rather than showing an empty row of quotes", async () => {
     const source = await readFile("components/Testimonials.tsx", "utf8");
-    expect(source).toContain("if (reviews.length === 0) return null;");
+    const empty = source.slice(
+      source.indexOf("if (reviews.length === 0)"),
+      source.indexOf("return (\n    <section className=\"bg-brand-paper py-20\">\n      <div className=\"mx-auto max-w-7xl"),
+    );
+
+    expect(empty.length, "the empty-state branch is missing").toBeGreaterThan(0);
+
+    // It used to return null. That was right about the quotes and wrong about
+    // the door: on the day the shop has no reviews — the day it most needs one
+    // — the home page offered no way to leave one, and customers told the owner
+    // they could not find where. So the section stays and asks.
+    expect(empty).toContain("Be the first to write one");
+    expect(empty).toContain(`href="/review"`);
+
+    // What must never come back: praise nobody said, to fill the space.
+    expect(empty).not.toContain("★★★★★");
+    expect(empty).not.toContain("review.comment");
   });
 
   it("passes a real review through", () => {

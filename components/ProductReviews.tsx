@@ -14,7 +14,8 @@ const initialState: FormState = {
   message: "",
 };
 
-function StarRatingInput({ rating, setRating }: { rating: number; setRating: (r: number) => void }) {
+/** Shared with the standalone review page, so both star rows behave alike. */
+export function StarRatingInput({ rating, setRating }: { rating: number; setRating: (r: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
     <div className="flex items-center gap-1">

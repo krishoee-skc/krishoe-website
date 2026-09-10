@@ -198,6 +198,10 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 1,
     why: "The browser tab on a per-customer link, chosen before the page runs.",
   },
+  "app/review/page.tsx": {
+    lines: 1,
+    why: "Search-result text. A customer who wants to leave a review searches in Nepali, and this address is also what a shop-counter QR code points at.",
+  },
   "app/wholesale/actions.ts": {
     lines: 10,
     why: "The enquiry email, which goes to the owner and nobody else. One reader, who reads Nepali, and no switch involved.",

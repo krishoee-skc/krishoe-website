@@ -1,3 +1,4 @@
+import Link from "next/link";
 import T from "@/components/T";
 import type { Product, Review } from "@/lib/products";
 
@@ -75,9 +76,33 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
   const reviews = approvedReviews(products);
   const summary = reviewSummary(products);
 
-  // Nothing to show yet. The section removes itself rather than standing empty
-  // with a heading over a blank row.
-  if (reviews.length === 0) return null;
+  // Nothing published yet. The section used to remove itself entirely — which
+  // meant that on the day the shop most needs reviews, the home page offered no
+  // way to leave one. So it stays, as an invitation rather than an empty row of
+  // quotes: no invented praise, just the door.
+  if (reviews.length === 0) {
+    return (
+      <section className="bg-brand-paper py-20">
+        <div className="mx-auto max-w-2xl px-6 text-center">
+          <h2 className="font-display text-4xl font-bold text-brand-green">
+            <T en="Be the first to write one" ne="पहिलो राय तपाईंकै होस्" />
+          </h2>
+          <p className="mt-3 text-brand-muted">
+            <T
+              en="Nobody has left a review yet. If you have worn a KRISHOE pair, two lines would help the next person choose."
+              ne="अहिलेसम्म कसैले राय दिनुभएको छैन। तपाईंले KRISHOE जुत्ता लगाउनुभएको छ भने, दुई हरफले अर्को ग्राहकलाई छान्न सजिलो हुन्छ।"
+            />
+          </p>
+          <Link
+            href="/review"
+            className="mt-7 inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-7 font-bold text-white transition hover:bg-brand-green-ink"
+          >
+            <T en="★ Leave a review" ne="★ राय दिनुहोस्" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-brand-paper py-20">
@@ -146,6 +171,17 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
               <h3 className="mt-6 font-bold text-brand-green">{review.name}</h3>
             </div>
           ))}
+        </div>
+
+        {/* The door, directly under the reviews — where a reader who has just
+            been persuaded by other customers is most likely to add their own. */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/review"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-7 font-bold text-white transition hover:bg-brand-green-ink"
+          >
+            <T en="★ Leave a review" ne="★ राय दिनुहोस्" />
+          </Link>
         </div>
       </div>
     </section>

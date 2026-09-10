@@ -277,7 +277,22 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                     ))}
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                // The block above needs a signed-in customer and a Closed
+                // order. A guest who ordered by phone, or someone whose pairs
+                // are still on the way, would otherwise see no way to write
+                // about a shoe at all — the very gap customers complained
+                // about. One quiet line, and the page itself picks the shoe.
+                <p className="mt-5 text-sm text-brand-muted">
+                  <T en="Already wearing a KRISHOE pair? " ne="KRISHOE जुत्ता लगाइसक्नुभयो? " />
+                  <Link
+                    href="/review"
+                    className="font-bold text-brand-green underline underline-offset-2 transition hover:text-brand-green-ink"
+                  >
+                    <T en="Leave a review" ne="राय दिनुहोस्" />
+                  </Link>
+                </p>
+              )}
             </>
           ) : null}
 
