@@ -228,3 +228,35 @@ describe("the wages screen keeps its own reversal", () => {
     expect(actions).toContain("reverseProductionWorkEntry");
   });
 });
+
+/**
+ * An error that says what actually went wrong.
+ *
+ * The red box was written for one case — the ledger failing to load — and then
+ * reused for every error, so a reason left too short read:
+ *
+ *   Write a clear reason — it stays on the entry.
+ *   Database may be temporarily unavailable. Try refreshing the page.
+ *
+ * The owner was told to refresh a page that was working, over a message that
+ * already said what to do. It also made a real outage look like a typo.
+ */
+describe("the error box", () => {
+  it("only suggests refreshing when the ledger would not load", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    expect(screen).toContain("loadFailed");
+    expect(screen).toContain("setLoadFailed(true)");
+    // The old line said this on every error, including ones the owner caused.
+    expect(screen).not.toContain("Database may be temporarily unavailable");
+  });
+
+  it("clears that flag before an action the owner took", async () => {
+    const screen = await readFile(SCREEN, "utf8");
+
+    // A short reason is not a database problem, and must not inherit the
+    // advice left over from a failed load.
+    const del = screen.slice(screen.indexOf("const handleDelete"), screen.indexOf("const handleRecordPayment"));
+    expect(del).toContain("setLoadFailed(false)");
+  });
+});

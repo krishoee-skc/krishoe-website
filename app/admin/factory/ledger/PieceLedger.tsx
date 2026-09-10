@@ -78,6 +78,9 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Whether the error came from loading the ledger, which is the only case
+  // where "try refreshing" is useful advice.
+  const [loadFailed, setLoadFailed] = useState(false);
   // Which row has its delete box open, and the reason typed into it. One at a
   // time: this removes a wage from the books, and a screen of open confirm
   // boxes invites a mis-tap.
@@ -109,6 +112,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
     const loadLedger = async () => {
       setLoading(true);
       setError(null);
+      setLoadFailed(false);
       try {
         const res = await fetch(
           `/api/factory/ledger?workerId=${selectedWorkerId}&bsMonth=${month}`,
@@ -120,6 +124,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         setError(`Failed to load ledger: ${msg}`);
+        setLoadFailed(true);
         setLedgerData(null);
         console.error("Error loading ledger:", error);
       } finally {
@@ -139,6 +144,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
    * can still be answered.
    */
   const handleDelete = async (workId: string) => {
+    setLoadFailed(false);
     if (deleteReason.trim().length < 5) {
       setError(text(
         "Write a clear reason — it stays on the entry.",
@@ -184,6 +190,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
    * — the screen sends what was typed and shows what comes back.
    */
   const handleEdit = async (entry: WorkerLedger) => {
+    setLoadFailed(false);
     if (!entry.source_work_id) return;
     if (editForm.reason.trim().length < 5) {
       setError(text(
@@ -314,11 +321,19 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
       </p>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 font-medium">{error}</p>
-          <p className="text-red-700 text-sm mt-1">
-            Database may be temporarily unavailable. Try refreshing the page.
-          </p>
+        <div className="mb-6 rounded-lg border border-brand-clay/30 bg-brand-clay-tint p-4">
+          <p className="font-medium text-brand-clay">{error}</p>
+          {/* Only when the ledger itself would not load. Telling someone to
+              refresh over "write a clear reason" sends them away from the fix,
+              and makes a real outage look like a typo. */}
+          {loadFailed ? (
+            <p className="mt-1 text-sm text-brand-clay">
+              {text(
+                "Try refreshing the page.",
+                "पाना फेरि खोल्नुहोस्।",
+              )}
+            </p>
+          ) : null}
         </div>
       )}
       {success ? <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 font-semibold text-emerald-800">{success}</div> : null}
