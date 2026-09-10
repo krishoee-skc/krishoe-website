@@ -15,7 +15,12 @@ describe("entering the next row without waiting", () => {
 
     // The clearing happens before the fetch, not in its .then — that is the
     // whole point. If these ever swap order the wait comes back.
-    const clearAt = source.indexOf('pairs_count: "",\n      reject_pairs: "",');
+    // The pairs box resets to "60" rather than empty: every entry this shop
+    // makes is sixty pairs, so the common case starts filled in. The order is
+    // what matters here, not the value.
+    const clearAt = source.indexOf(
+      "pairs_count: String(DEFAULT_PAIRS),\n      reject_pairs: \"\",",
+    );
     const fetchAt = source.indexOf('await fetch("/api/factory/work"');
 
     expect(clearAt, "the form should clear on submit").toBeGreaterThan(0);

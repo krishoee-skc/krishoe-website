@@ -62,6 +62,13 @@ const COMMON_COLOURS = [
 // Sizes are no longer a fixed list — they come from the chosen item, or from
 // the runs in lib/shoe-sizes when the item has none on file yet.
 
+/** Where the pair count starts, and what it returns to after a save: every
+ *  entry this shop has made is sixty pairs. */
+const DEFAULT_PAIRS = 60;
+/** A size run is six sizes, so a dozen is two of each and sixty is half a case
+ *  — the amounts this shop counts in. */
+const PAIRS_STEP = 12;
+
 export default function WorkEntryForm({
   initialWorkers,
   initialItems,
@@ -97,7 +104,9 @@ export default function WorkEntryForm({
     work_order_id: "",
     color: "",
     size: "",
-    pairs_count: "",
+    // Sixty: every entry this shop has ever made is sixty pairs. Typing over
+    // it is one action; typing it out is two.
+    pairs_count: String(DEFAULT_PAIRS),
     reject_pairs: "",
     status: "completed",
   });
@@ -206,6 +215,30 @@ export default function WorkEntryForm({
 
     setCalculatedAmount(selectedRate ? pieceWage(pairs, selectedRate) : 0);
   };
+
+  /**
+   * Step the pair count by a dozen, without reaching for the keyboard.
+   *
+   * From sixty when the box is empty rather than from zero: an empty field
+   * parses to nothing, so + used to land on 12 instead of near the usual count,
+   * and minus sat disabled because 0 is under the floor.
+   *
+   * Rounded to the dozen, so the buttons always land on a quantity the shop
+   * actually makes — a hand-typed 5 pressing + gave 17, which fits no run.
+   * Typing any number by hand still works; this is only what the buttons do.
+   */
+  const stepPairs = (by: number) => {
+    const typed = parseInt(formData.pairs_count);
+    const from = Number.isFinite(typed) && typed > 0 ? typed : DEFAULT_PAIRS;
+    const next = Math.max(PAIRS_STEP, Math.round((from + by) / PAIRS_STEP) * PAIRS_STEP);
+
+    setFormData((prev) => ({ ...prev, pairs_count: String(next) }));
+    setCalculatedAmount(selectedRate ? pieceWage(next, selectedRate) : 0);
+  };
+
+  // Only when the box actually holds the floor. An empty box steps from sixty,
+  // so minus has somewhere to go and must stay live.
+  const pairsAtFloor = parseInt(formData.pairs_count) === PAIRS_STEP;
 
   const handleAddProduct = async () => {
     if (!newProductName.trim()) {
@@ -359,7 +392,7 @@ export default function WorkEntryForm({
     // work, and re-picking them each time was most of the typing.
     setFormData((current) => ({
       ...current,
-      pairs_count: "",
+      pairs_count: String(DEFAULT_PAIRS),
       reject_pairs: "",
       size: "",
       color: "",
@@ -686,16 +719,38 @@ export default function WorkEntryForm({
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
             🔢 {text("Number of pairs", "कति जोडी")}
           </label>
-          <input
-            type="number"
-            value={formData.pairs_count}
-            onChange={handlePairsChange}
-            placeholder="0"
-            min="1"
-            inputMode="numeric"
-            className="w-full min-h-14 rounded-lg border-2 border-brand-green-line px-3 py-2 text-2xl font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
-            required
-          />
+          {/* A button either side of the number. The browser's own spinners
+              are a few pixels tall and step by one, which is not a control for
+              a phone held in a workshop. */}
+          <div className="flex items-stretch gap-2">
+            <button
+              type="button"
+              onClick={() => stepPairs(-PAIRS_STEP)}
+              aria-label={text("Twelve fewer pairs", "बाह्र जोडी घटाउने")}
+              disabled={pairsAtFloor}
+              className="press-dip grid min-h-14 w-14 shrink-0 place-items-center rounded-lg border-2 border-brand-green-line text-2xl font-black text-brand-green-ink transition hover:border-brand-green disabled:opacity-40"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              value={formData.pairs_count}
+              onChange={handlePairsChange}
+              placeholder="0"
+              min="1"
+              inputMode="numeric"
+              className="min-h-14 w-full rounded-lg border-2 border-brand-green-line px-3 py-2 text-center text-2xl font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => stepPairs(PAIRS_STEP)}
+              aria-label={text("Twelve more pairs", "बाह्र जोडी थप्ने")}
+              className="press-dip grid min-h-14 w-14 shrink-0 place-items-center rounded-lg border-2 border-brand-green-line text-2xl font-black text-brand-green-ink transition hover:border-brand-green"
+            >
+              +
+            </button>
+          </div>
           {calculatedAmount > 0 ? (
             <p className="mt-1.5 text-sm font-black text-brand-green">
               = Rs. {calculatedAmount.toLocaleString()}{" "}
