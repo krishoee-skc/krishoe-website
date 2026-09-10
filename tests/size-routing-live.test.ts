@@ -6,6 +6,10 @@ const D = "ZZ size routing probe";
 afterAll(async () => {
   await queryPostgres("t", `DELETE FROM stock_movements WHERE design = $1`, [D]);
   await queryPostgres("t", `DELETE FROM finished_stock WHERE design = $1`, [D]);
+  // This test seeds finished stock too, and the catalog sync turns a design
+  // with finished stock into a product. Removed here so it can never be left
+  // in the shop's own catalogue, the way two other probes were.
+  await queryPostgres("t", `DELETE FROM products WHERE name = $1`, [D]);
 });
 
 describe.skipIf(!process.env.DATABASE_URL)("size routing", () => {

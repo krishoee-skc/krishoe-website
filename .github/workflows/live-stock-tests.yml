@@ -1,0 +1,85 @@
+name: Live stock tests
+
+# The eight tests that move real pairs through the real database.
+#
+# Everything else runs on every push in ci.yml, which deliberately has no
+# DATABASE_URL so a routine gate can never touch the shop's data. That is
+# right, and it means these five files skip themselves there — a challan
+# leaving the factory, a Damage Out, a POS return going back to stock, size
+# routing, and a shoe's whole life from made to sold.
+#
+# They are also the tests that once caught a challan inserting its lines before
+# the challan they belong to, and a join turning 54 pairs into 108. The owner
+# should not have to remember to run those by hand, so this runs them.
+#
+# WHY WEEKLY, AND NOT ON EVERY PUSH
+#
+# This repository is private, and GitHub gives a private repo 2,000 free Action
+# minutes a month, billed by the whole minute. uptime.yml already spends about
+# 1,320 of them and CI takes most of the rest (see the arithmetic in
+# uptime.yml). A run on every push would take what CI needs and stop both.
+#
+# Weekly costs about 20 minutes a month and still answers the question these
+# tests exist to answer: is the shop's stock arithmetic still sound? The stock
+# code changes rarely; a week is a short time to carry a fault nobody has hit
+# yet, and the run can be started by hand the moment it matters.
+#
+# Sunday 02:00 UTC is 07:45 Nepal time on Sunday — before the shop opens, so a
+# test that seeds and deletes its own design never runs beside a real sale.
+
+on:
+  schedule:
+    - cron: "0 2 * * 0"
+  # So it can be run the moment stock code changes, without waiting for Sunday.
+  workflow_dispatch:
+
+concurrency:
+  group: live-stock-tests
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATA_BACKEND: postgres
+      ADMIN_PASSWORD: ci-placeholder-password
+      ADMIN_SESSION_SECRET: ci-placeholder-admin-session-secret-value
+      CUSTOMER_SESSION_SECRET: ci-placeholder-customer-session-secret-value
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      PAYMENT_MODE: manual
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Said out loud rather than failing red every Sunday. Without the secret
+      # the tests would skip themselves and the run would go green having
+      # checked nothing, which is the worse outcome of the two.
+      - name: Check the database secret is set
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL is not set in this repository's Actions secrets, so the live stock tests did not run. Add it under Settings → Secrets and variables → Actions."
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "DATABASE_URL is set; the live tests will run."
+        id: secret
+
+      # These tests seed a design of their own and delete it afterwards; the
+      # shop's own rows are never read or written.
+      # The file list lives in package.json, named once. test:live:ci is the
+      # same list without --env-file, because DATABASE_URL arrives from the
+      # secret above rather than from a .env.local that does not exist here.
+      - name: Live stock tests
+        if: steps.secret.outputs.skipped != 'true'
+        run: npm run test:live:ci

@@ -23,6 +23,10 @@ afterAll(async () => {
   await queryPostgres("t", `DELETE FROM stock_transfers WHERE note = 'zz-probe'`);
   await queryPostgres("t", `DELETE FROM stock_locations WHERE design = $1`, [D]);
   await queryPostgres("t", `DELETE FROM finished_stock WHERE design = $1`, [D]);
+  // Seeding finished stock makes the catalog sync create a product for the
+  // design. Without this the row stayed in the shop's own catalogue, a Draft
+  // carrying 54 pairs that no stock movement stood behind.
+  await queryPostgres("t", `DELETE FROM products WHERE name = $1`, [D]);
 });
 
 const only = (rows: Awaited<ReturnType<typeof getStockByPlace>>) => rows.find((r) => r.design === D)!;

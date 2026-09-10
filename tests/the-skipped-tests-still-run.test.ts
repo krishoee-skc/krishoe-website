@@ -58,22 +58,76 @@ describe("the tests that need a real database", () => {
     ]);
   });
 
-  it("every one of them is in the script that runs them", async () => {
+  it("every one of them is in both scripts that run them", async () => {
     const pkg = JSON.parse(await readFile("package.json", "utf8"));
-    const script: string = pkg.scripts["test:live"] ?? "";
+    const live: string = pkg.scripts["test:live"] ?? "";
+    const ci: string = pkg.scripts["test:live:ci"] ?? "";
     const missing: string[] = [];
 
-    expect(script, "npm run test:live is missing").not.toBe("");
+    expect(live, "npm run test:live is missing").not.toBe("");
+    expect(ci, "npm run test:live:ci is missing").not.toBe("");
 
     for (const file of await filesThatSkipWithoutADatabase()) {
-      // Compare on the basename: the script writes forward slashes, and this
+      // Compare on the basename: the scripts write forward slashes, and this
       // repo is worked on from Windows.
-      if (!script.includes(path.basename(file))) missing.push(path.basename(file));
+      const name = path.basename(file);
+      if (!live.includes(name)) missing.push(`${name} (test:live)`);
+      if (!ci.includes(name)) missing.push(`${name} (test:live:ci)`);
     }
 
     expect(
       missing.join(", "),
-      "a live test exists that nothing runs — add it to the test:live script",
+      "a live test exists that one of the two scripts does not run",
+    ).toBe("");
+  });
+
+  it("runs itself every week, so nobody has to remember", async () => {
+    const workflow = await readFile(".github/workflows/live-stock-tests.yml", "utf8");
+
+    // The owner said plainly that they will forget. A test that depends on
+    // being remembered is a test that eventually stops running.
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain("npm run test:live:ci");
+    // And can be started by hand the moment stock code changes.
+    expect(workflow).toContain("workflow_dispatch:");
+  });
+
+  it("says so instead of going green when the database secret is missing", async () => {
+    const workflow = await readFile(".github/workflows/live-stock-tests.yml", "utf8");
+
+    // Without DATABASE_URL the files skip themselves, and a run that checked
+    // nothing would otherwise report success — the worst of both.
+    expect(workflow).toContain("::warning::");
+  });
+
+  it("runs the files one at a time, because they share one database", async () => {
+    const pkg = JSON.parse(await readFile("package.json", "utf8"));
+
+    // Run in parallel these failed about one time in three with "duplicate key
+    // value violates unique constraint products_name_unique_idx". The catalog
+    // sync reads EVERY design's finished stock, so one file's sync would see
+    // another file's freshly seeded design and both would insert the same
+    // product. Serial, they passed five runs out of five.
+    expect(pkg.scripts["test:live"]).toContain("--no-file-parallelism");
+    expect(pkg.scripts["test:live:ci"]).toContain("--no-file-parallelism");
+  });
+
+  it("has every live test remove the product its stock created", async () => {
+    const files = await filesThatSkipWithoutADatabase();
+    const missing: string[] = [];
+
+    for (const file of files) {
+      const source = await readFile(file, "utf8");
+      // Seeding finished_stock makes the catalog sync create a products row.
+      // Two of these tests were not deleting it, and the shop's live catalogue
+      // held "ZZ probe design" with 54 pairs and "ZZ damage probe design" with
+      // 20 — unbacked stock of exactly the kind just cleaned out of it.
+      if (!source.includes("DELETE FROM products")) missing.push(path.basename(file));
+    }
+
+    expect(
+      missing.join(", "),
+      "a live test seeds stock but never removes the product the catalog sync makes from it",
     ).toBe("");
   });
 

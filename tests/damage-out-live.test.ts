@@ -20,6 +20,11 @@ async function seed() {
 afterAll(async () => {
   await queryPostgres("t", `DELETE FROM stock_movements WHERE design = $1`, [D]);
   await queryPostgres("t", `DELETE FROM finished_stock WHERE design = $1`, [D]);
+  // The catalog sync creates a products row for any design that has finished
+  // stock, so seeding stock here also created a product — and it was never
+  // removed. It sat in the shop's live catalogue as a Draft carrying 20 pairs
+  // that no stock movement stood behind.
+  await queryPostgres("t", `DELETE FROM products WHERE name = $1`, [D]);
 });
 
 async function shelf() {
