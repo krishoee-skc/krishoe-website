@@ -416,7 +416,7 @@ describe("Factory mutation idempotency", () => {
           running_balance: "400.00",
           status: "settled",
           notes: "Factory salary payment",
-          salary_period_month: "2026-07-01",
+          salary_period_month: "2026-07-17",
         },
       ]);
 
@@ -430,7 +430,7 @@ describe("Factory mutation idempotency", () => {
       paymentGiven: 100,
       status: "settled",
       notes: "Factory salary payment",
-      salaryPeriodMonth: "2026-07",
+      salaryPeriodMonth: "2083-04",
       allowedWorkerTypes: ["monthly_staff"],
     });
 
@@ -525,7 +525,7 @@ describe("Factory mutation idempotency", () => {
       running_balance: "400.00",
       status: "settled",
       notes: "Factory salary payment",
-      salary_period_month: "2026-07-01",
+      salary_period_month: "2026-07-17",
     };
     dbQuery
       .mockResolvedValueOnce([])
@@ -542,7 +542,7 @@ describe("Factory mutation idempotency", () => {
       paymentGiven: 100,
       status: "settled",
       notes: "Factory salary payment",
-      salaryPeriodMonth: "2026-07",
+      salaryPeriodMonth: "2083-04",
       allowedWorkerTypes: ["monthly_staff"],
     });
     expect(replay).toMatchObject({ id: "payment-1", replayed: true });
@@ -564,7 +564,7 @@ describe("Factory mutation idempotency", () => {
         paymentGiven: 125,
         status: "settled",
         notes: "Factory salary payment",
-        salaryPeriodMonth: "2026-07",
+        salaryPeriodMonth: "2083-04",
         allowedWorkerTypes: ["monthly_staff"],
       }),
     ).rejects.toMatchObject({ status: 409 });

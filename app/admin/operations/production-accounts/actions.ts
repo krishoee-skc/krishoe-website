@@ -426,6 +426,26 @@ export async function createWorkerPaymentAction(formData: FormData) {
     approvedBy,
     note: [statementNote, suppliedNote].filter(Boolean).join(" · "),
   });
+  // The month this cash belongs to, so the figure Saturday's payment is read
+  // from moves with it. Outside addWorkerPayment: refreshFactoryMonthlySummary
+  // opens its own transaction and takes the worker lock that one holds.
+  //
+  // Piece-rate only — monthly staff have no piece summary, and asking for one
+  // is refused.
+  if (employee.department !== "Staff") {
+    try {
+      await refreshFactoryMonthlySummary({
+        submissionKey: `cash:${receipt}`,
+        month: bikramMonthKeyOf(text(formData, "paymentDate")),
+        workerId: employee.id,
+      });
+    } catch {
+      // A locked month refuses the rebuild, which is correct — the cash is
+      // recorded either way, and a closed month is not rewritten behind the
+      // owner's back.
+    }
+  }
+
   await recordAdminAuditEvent(
     "worker_cash_approve",
     `${paymentType} Rs. ${paymentAmount} approved for ${employee.name}; ${receipt}.`,

@@ -936,8 +936,15 @@ function assertSameLedger(row: LedgerRow, input: FactoryLedgerInput) {
     sameNumber(row.payment_given, input.paymentGiven) &&
     row.status === input.status &&
     sameText(row.notes, input.notes) &&
-    (row.salary_period_month ? dbDate(row.salary_period_month).slice(0, 7) : null) ===
-      (input.salaryPeriodMonth ?? null);
+    // Both sides in the same calendar. The row holds the A.D. day the Bikram
+    // month opens (2026-07-17 for Shrawan 2083); the input holds the Bikram key
+    // itself. Slicing the stored date to "2026-07" and comparing it to
+    // "2083-04" never matched, so a genuine retry was refused as a different
+    // entry — the one case idempotency is for.
+    (row.salary_period_month ? dbDate(row.salary_period_month) : null) ===
+      (input.salaryPeriodMonth
+        ? (bikramMonthRange(input.salaryPeriodMonth)?.startKey ?? null)
+        : null);
 
   if (!matches) {
     throw new FactoryMutationError(
@@ -1089,6 +1096,19 @@ export async function createFactoryLedgerEntry(input: FactoryLedgerInput) {
       productionPaymentSynced = true;
     }
 
+    // The month this payment belongs to, rebuilt in the transaction that made
+    // it. Without this the ledger went to nil while the monthly summary — the
+    // figure the wage is actually paid from — still showed the old balance.
+    //
+    // A payment carries its own salary period when one was chosen (a wage for
+    // last month, handed over this month); otherwise the month its date falls
+    // in.
+    await writeMonthlySummary(
+      db,
+      worker.id,
+      input.salaryPeriodMonth ?? bikramMonthKeyOf(input.date),
+    );
+
     return {
       ...ledgerResponse(inserted[0], input.submissionKey, false),
       production_payment_synced: productionPaymentSynced,
@@ -1215,6 +1235,10 @@ export async function createFactoryAdvance(input: FactoryAdvanceInput) {
         `${input.periodMonth}-01`,
       ],
     );
+    // Advances reduce what is left to pay for the month, so the month has to
+    // be rebuilt here too.
+    await writeMonthlySummary(db, worker.id, input.periodMonth);
+
     return advanceResponse(inserted[0], input.submissionKey, false);
   });
 }
