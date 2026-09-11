@@ -17,6 +17,7 @@ import { CheckIcon, StarIcon } from "@/components/Icons";
 import ProductReviewsPanel from "@/components/ProductReviewsPanel";
 import { stockLevel } from "@/lib/stock-thresholds";
 import ShareProduct from "@/components/ShareProduct";
+import TrustStrip from "@/components/TrustStrip";
 import T from "@/components/T";
 import {
   absoluteUrl,
@@ -114,11 +115,6 @@ export default async function ProductPage({ params }: Props) {
       : level === "low"
         ? { en: `Only ${product.stock} left`, ne: `${product.stock} जोडी मात्र बाँकी` }
         : { en: "Ready stock", ne: "स्टकमा उपलब्ध" };
-  const serviceItems = [
-    { en: "Stock checked before payment", ne: "भुक्तानीअघि स्टक जाँचिन्छ" },
-    { en: "Cash on delivery available", ne: "सामान बुझ्दा नगद सुविधा" },
-    { en: "WhatsApp support for sizing", ne: "साइजका लागि WhatsApp मा सोध्नुहोस्" },
-  ];
 
   return (
     <>
@@ -195,17 +191,13 @@ export default async function ProductPage({ params }: Props) {
                 <ProductText en={product.description} ne={product.descriptionNe} />
               </p>
 
-              <div className="mt-6 grid gap-2 sm:grid-cols-3">
-                {serviceItems.map((item) => (
-                  <div
-                    key={item.en}
-                    className="flex min-h-12 items-center gap-2 rounded-lg border border-brand-green/15 bg-brand-mist px-3 text-sm font-bold text-brand-green-ink"
-                  >
-                    <CheckIcon className="h-4 w-4 shrink-0 text-brand-green" />
-                    <T en={item.en} ne={item.ne} />
-                  </div>
-                ))}
-              </div>
+              {/* Four answers where the questions are actually asked. The old
+                  strip said "Cash on delivery available" and "WhatsApp support
+                  for sizing" — true, but a shopper wants the number: how many
+                  days to arrive, how many days to send it back. Both numbers
+                  already existed, in the FAQ and the return policy, just not
+                  at the moment of deciding. */}
+              <TrustStrip />
 
               <div className="mt-8">
                 <ProductDetailActions product={product} soldOutSizes={soldOutSizes} />

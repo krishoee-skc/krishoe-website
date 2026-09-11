@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import StatTile from "@/components/admin/StatTile";
+import ShareBar from "@/components/admin/ShareBar";
 import { formatAdminDate } from "@/lib/format-date";
 import type {
   FactoryDayStats,
   FactoryProductTotal,
+  FactoryStageTotal,
   FactoryWorkerTotal,
 } from "@/lib/factory-board";
 import type { FactoryOwed } from "@/lib/factory-board-data";
@@ -28,11 +30,13 @@ export default function FactoryBoard({
   stats,
   topWorkers,
   products,
+  stages,
   owed,
 }: {
   stats: FactoryDayStats;
   topWorkers: FactoryWorkerTotal[];
   products: FactoryProductTotal[];
+  stages: FactoryStageTotal[];
   owed: FactoryOwed;
 }) {
   const { text } = useLanguage();
@@ -73,6 +77,26 @@ export default function FactoryBoard({
         />
       </div>
 
+      {/* Where the pairs have reached.
+          A shoe passes four stages, and the number that matters is how many
+          have come out of the last one — that is what can actually be sold.
+          Every stage is drawn even at zero, because "420 at Upper, nothing
+          after it" is the finding, and a chart of only the filled stage would
+          have hidden it. */}
+      <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
+        <h2 className="mb-1 text-sm font-bold text-brand-green-ink sm:text-base">
+          {text("Where the pairs are", "जोडी कहाँ पुग्यो")}
+        </h2>
+        <p className="mb-3 text-xs text-brand-muted">
+          {text("A shoe is finished only after the last stage.", "अन्तिम चरण सकिएपछि मात्र जुत्ता तयार हुन्छ।")}
+        </p>
+        <ShareBar
+          layout="stack"
+          rows={stages.map((row) => ({ label: row.stage, value: row.pairs }))}
+          emptyLabel={text("No work entered yet", "अहिलेसम्म काम चढेको छैन")}
+        />
+      </div>
+
       {/* Owed to the team — the "how much is still to pay" glance the counter
           asked for, so wages are never paid twice or missed. */}
       <Link
@@ -100,29 +124,18 @@ export default function FactoryBoard({
           <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
             {text("Top workers", "अगाडि रहेका")}
           </h2>
-          <div className="space-y-1 overflow-y-auto">
-            {topWorkers.length > 0 ? (
-              topWorkers.map((worker) => (
-                <div
-                  key={worker.name}
-                  className="flex items-center justify-between rounded bg-brand-paper-deep p-2 text-xs sm:text-sm"
-                >
-                  <div>
-                    <div className="font-medium text-brand-green-ink">{worker.name}</div>
-                    <div className="text-xs text-brand-muted">
-                      {worker.pairs} {text("pairs", "जोडी")}
-                    </div>
-                  </div>
-                  <div className="text-right font-semibold text-brand-green-ink">
-                    Rs. {moneyFormatter.format(worker.amount)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="py-2 text-center text-xs text-brand-muted">
-                {text("No entries yet", "अहिलेसम्म केही छैन")}
-              </div>
-            )}
+          {/* Bars rather than a list, so who did the most is seen before it is
+              read. The wage rides the right-hand end, since that is the figure
+              the counter is actually looking for. */}
+          <div className="overflow-y-auto">
+            <ShareBar
+              rows={topWorkers.map((worker) => ({
+                label: worker.name,
+                value: worker.pairs,
+                hint: `Rs. ${moneyFormatter.format(worker.amount)}`,
+              }))}
+              emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
+            />
           </div>
         </div>
 
@@ -130,24 +143,18 @@ export default function FactoryBoard({
           <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
             {text("Products today", "आजका सामान")}
           </h2>
-          <div className="space-y-1 overflow-y-auto">
-            {products.length > 0 ? (
-              products.map((product) => (
-                <div
-                  key={product.name}
-                  className="flex items-center justify-between rounded bg-brand-paper-deep p-2 text-xs sm:text-sm"
-                >
-                  <div className="font-medium text-brand-green-ink">{product.name}</div>
-                  <div className="font-semibold text-brand-green-ink">
-                    {product.pairs} {text("pairs", "जोडी")}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="py-2 text-center text-xs text-brand-muted">
-                {text("No entries yet", "अहिलेसम्म केही छैन")}
-              </div>
-            )}
+          {/* A list of numbers made every shoe look alike; as bars the biggest
+              is obvious without reading. Longest first, name and count on every
+              row, so it is never colour alone. */}
+          <div className="overflow-y-auto">
+            <ShareBar
+              rows={products.map((product) => ({
+                label: product.name,
+                value: product.pairs,
+                hint: `${product.pairs.toLocaleString("en-IN")} ${text("pairs", "जोडी")}`,
+              }))}
+              emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
+            />
           </div>
         </div>
       </div>

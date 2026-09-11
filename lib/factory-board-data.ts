@@ -42,6 +42,7 @@ export async function getFactoryWorkForDate(date: string): Promise<FactoryWorkRo
   const rows = await queryPostgres<Record<string, unknown>>(
     STORE,
     `SELECT w.worker_id, w.item_id, w.pairs_count, w.reject_pairs, w.status, w.amount_earned,
+            w.stage,
             COALESCE(fw.name, 'Unknown Worker') AS worker_name,
             COALESCE(fi.name, 'Unknown Item') AS item_name
        FROM factory_daily_work w

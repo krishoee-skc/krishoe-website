@@ -21,6 +21,8 @@ export type FactoryWorkRow = {
   reject_pairs: number;
   amount_earned: number;
   status: string;
+  /** Which of the four making stages this entry was for. */
+  stage: string;
 };
 
 export type FactoryDayStats = {
@@ -41,6 +43,43 @@ export type FactoryDayStats = {
 export type FactoryWorkerTotal = { name: string; pairs: number; amount: number };
 export type FactoryProductTotal = { name: string; pairs: number };
 
+export type FactoryStageTotal = { stage: string; pairs: number };
+
+/**
+ * The four stages a shoe passes through, in order.
+ *
+ * Taken from the sequence factory-mutations advances a work order along
+ * (Upper → Fiber Preparation → Fiber Silai → Bottom Final), so the board and
+ * the work order cannot disagree about what comes next.
+ */
+export const FACTORY_STAGES = [
+  "Upper",
+  "Fiber Preparation",
+  "Fiber Silai",
+  "Bottom Final",
+] as const;
+
+/**
+ * Pairs at each stage, every stage present even at zero.
+ *
+ * The zeroes are the point. All 420 pairs in the shop today are at Upper, the
+ * first of four, and a chart that listed only the stages with work would read
+ * "one stage, all done" — the opposite of the truth, which is that nothing has
+ * moved on yet and no finished pair exists.
+ */
+export function stageTotals(works: FactoryWorkRow[]): FactoryStageTotal[] {
+  const byStage = new Map<string, number>(FACTORY_STAGES.map((stage) => [stage, 0]));
+
+  for (const work of works) {
+    if (!work.stage) continue;
+    // An unknown stage is counted rather than dropped: losing pairs from the
+    // total would make the whole bar lie.
+    byStage.set(work.stage, (byStage.get(work.stage) ?? 0) + work.pairs_count);
+  }
+
+  return [...byStage.entries()].map(([stage, pairs]) => ({ stage, pairs }));
+}
+
 /**
  * Postgres hands NUMERIC columns over as strings, and a missing column as null.
  * Everything downstream does arithmetic, so the numbers are made real here —
@@ -53,6 +92,7 @@ export function normaliseWorkRow(row: Partial<FactoryWorkRow>): FactoryWorkRow {
     worker_name: String(row.worker_name ?? ""),
     item_id: String(row.item_id ?? ""),
     item_name: String(row.item_name ?? ""),
+    stage: String(row.stage ?? ""),
     pairs_count: Number(row.pairs_count) || 0,
     reject_pairs: Number(row.reject_pairs) || 0,
     amount_earned: Number(row.amount_earned) || 0,

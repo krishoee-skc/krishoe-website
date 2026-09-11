@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import FactoryBoard from "@/app/admin/factory/FactoryBoard";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
-import { topProducts, topWorkers } from "@/lib/factory-board";
+import { stageTotals, topProducts, topWorkers } from "@/lib/factory-board";
 import {
   getFactoryDayTotals,
   getFactoryOwed,
@@ -62,6 +62,7 @@ export default async function FactoryDashboardPage() {
       stats={loaded.stats}
       topWorkers={topWorkers(loaded.works)}
       products={topProducts(loaded.works)}
+      stages={stageTotals(loaded.works)}
       owed={loaded.owed}
     />
   );
