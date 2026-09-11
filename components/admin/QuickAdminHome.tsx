@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NowClock from "@/components/admin/NowClock";
 import {
   ArrowRightIcon,
   BellIcon,
@@ -136,6 +137,10 @@ export default function QuickAdminHome({
         <p className="mt-2 text-sm text-brand-muted">
           {text("Factory, sales and bookings — all at a glance", "कारखाना, बिक्रय र बुकिङ - सबै एक नजरमा")}
         </p>
+        {/* The heading says "today" and nothing said which day, or what hour of
+            it. Both calendars, because the shop keeps its books in one and
+            talks to the world in the other. */}
+        <NowClock className="mt-3 block text-xs font-semibold text-brand-muted" />
       </div>
 
       {/* Main Cards Grid */}

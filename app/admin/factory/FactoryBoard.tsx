@@ -5,7 +5,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import StatTile from "@/components/admin/StatTile";
 import ShareBar from "@/components/admin/ShareBar";
 import { ENOUGH, judge } from "@/lib/enough-to-judge";
-import { formatAdminDate } from "@/lib/format-date";
+import NowClock from "@/components/admin/NowClock";
 import type {
   FactoryDayStats,
   FactoryProductTotal,
@@ -52,7 +52,11 @@ export default function FactoryBoard({
         <h1 className="font-display text-xl font-black text-brand-green-ink sm:text-2xl">
           {text("Factory today", "कारखाना आज")}
         </h1>
-        <p className="text-xs text-brand-muted sm:text-sm">{formatAdminDate(new Date())}</p>
+        {/* The clock, not only the date. Work is entered here against a
+            particular hour, and the day is closed here — so the time the shop
+            records by should be on the same screen as the wall clock it is
+            read against. */}
+        <NowClock className="text-xs text-brand-muted sm:text-sm" />
       </div>
 
       {/* Today's summary — the same tile the rest of the admin uses, so the
