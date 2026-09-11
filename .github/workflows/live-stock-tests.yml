@@ -65,14 +65,27 @@ jobs:
       # Said out loud rather than failing red every Sunday. Without the secret
       # the tests would skip themselves and the run would go green having
       # checked nothing, which is the worse outcome of the two.
-      - name: Check the database secret is set
+      - name: Check the database secret is set and is a connection string
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::warning::DATABASE_URL is not set in this repository's Actions secrets, so the live stock tests did not run. Add it under Settings → Secrets and variables → Actions."
             echo "skipped=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "DATABASE_URL is set; the live tests will run."
+          # A secret that is not a URL is read by the Postgres driver as a host
+          # called "base" (out of the middle of data-BASE), and every test then
+          # fails with "getaddrinfo EAI_AGAIN base" — which names neither the
+          # setting nor the mistake. Caught here, once, in plain words.
+          case "$DATABASE_URL" in
+            postgresql://*|postgres://*)
+              echo "DATABASE_URL is a connection string; the live tests will run."
+              ;;
+            *)
+              echo "::error::The DATABASE_URL secret is not a connection string — it must start with postgresql:// . Open Settings → Secrets and variables → Actions, update DATABASE_URL, and paste the whole value from .env.local starting at postgresql:// (do not include the DATABASE_URL= part, and no quotes)."
+              echo "skipped=true" >> "$GITHUB_OUTPUT"
+              exit 1
+              ;;
+          esac
         id: secret
 
       # These tests seed a design of their own and delete it afterwards; the

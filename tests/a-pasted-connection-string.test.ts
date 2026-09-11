@@ -84,3 +84,36 @@ describe("what it must not touch", () => {
     expect(getDataBackendConfig().hasDatabaseUrl).toBe(false);
   });
 });
+
+/**
+ * When the paste is not a URL at all.
+ *
+ * The first two scheduled runs both failed with `getaddrinfo EAI_AGAIN base`.
+ * The word "base" is not a typo of anything in this shop — it is what
+ * pg-connection-string returns as the HOST when the value it is given is the
+ * bare word "database", or any bare word: it reads "data" as a scheme-less
+ * prefix and "base" as a hostname.
+ *
+ * Repairing that is impossible — there is no URL in it to recover. So it is
+ * refused by name, at the moment the pool is built, rather than becoming a DNS
+ * lookup for a host nobody typed.
+ */
+describe("a secret that is not a connection string at all", () => {
+  it("is what makes the driver look for a host called base", async () => {
+    const { parse } = await import("pg-connection-string");
+
+    // The evidence, kept in the test so the next person does not have to
+    // rediscover where "base" comes from.
+    expect(parse("database").host).toBe("base");
+  });
+
+  it("is refused with a message that names the setting and the fix", async () => {
+    process.env.DATABASE_URL = "database";
+    process.env.DATA_BACKEND = "postgres";
+
+    const { queryPostgres } = await import("@/lib/postgres/client");
+
+    await expect(queryPostgres("t", "SELECT 1")).rejects.toThrow(/DATABASE_URL does not look like/);
+    await expect(queryPostgres("t", "SELECT 1")).rejects.toThrow(/postgresql:\/\//);
+  });
+});

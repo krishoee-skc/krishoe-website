@@ -50,12 +50,39 @@ function getSslConfig(connectionString: string): SslConfig {
   return { rejectUnauthorized: true };
 }
 
+/**
+ * Refuse a DATABASE_URL that is not a connection string, and say why.
+ *
+ * A secret box holding the word "database" — or any bare word — is read by
+ * pg-connection-string as a HOST called "base", out of the middle of
+ * data-BASE. The only symptom is `getaddrinfo EAI_AGAIN base`, which names
+ * neither the setting nor the mistake, and it cost the owner two failed runs
+ * and an evening before the word "base" was traced back to its source.
+ *
+ * A real connection string starts with postgres:// or postgresql://. Anything
+ * else is a paste that went wrong, and is better refused by name here than
+ * turned into a DNS lookup for a host that was never typed.
+ */
+function assertLooksLikeAConnectionString(value: string) {
+  if (/^postgres(ql)?:\/\//i.test(value)) return;
+
+  const shown = value.length > 12 ? `${value.slice(0, 12)}…` : value;
+  throw new Error(
+    `DATABASE_URL does not look like a connection string (it starts "${shown}"). ` +
+      "It must begin with postgresql:// — copy the whole value, from postgresql:// " +
+      "to the end of the line. A bare word here is read as a host called \"base\", " +
+      "which is where \"getaddrinfo EAI_AGAIN base\" comes from.",
+  );
+}
+
 function getPool(storeName: string) {
   const config = getDataBackendConfig();
 
   if (!config.hasDatabaseUrl) {
     throw createPostgresAdapterPendingError(storeName);
   }
+
+  assertLooksLikeAConnectionString(config.databaseUrl);
 
   if (!globalThis.krishoePgPool) {
     const pool = new Pool({
