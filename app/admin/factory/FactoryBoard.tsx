@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import StatTile from "@/components/admin/StatTile";
 import ShareBar from "@/components/admin/ShareBar";
+import { ENOUGH, judge } from "@/lib/enough-to-judge";
 import { formatAdminDate } from "@/lib/format-date";
 import type {
   FactoryDayStats,
@@ -40,6 +41,10 @@ export default function FactoryBoard({
   owed: FactoryOwed;
 }) {
   const { text } = useLanguage();
+  // Every entry made today, whatever its state — the denominator the success
+  // rate is a percentage of.
+  const entriesToday =
+    stats.completedEntries + stats.inProgressEntries + stats.reworkEntries;
 
   return (
     <div className="flex min-h-dvh flex-col space-y-3 p-3 sm:p-5 lg:p-6">
@@ -69,11 +74,23 @@ export default function FactoryBoard({
           value={stats.workersActive}
           detail={text("Today", "आज")}
         />
+        {/* A rate needs enough entries behind it to mean anything. One entry
+            still in progress is "0% success", and this tile painted that red —
+            a crisis announced from a single row. The figure is still shown;
+            only the verdict waits until it is earned. */}
         <StatTile
           label={text("Success rate", "सफल दर")}
           value={`${stats.successRate}%`}
-          detail={text("Completed", "पूरा भएको")}
-          tone={stats.successRate >= 90 ? "good" : stats.successRate >= 70 ? "warn" : "danger"}
+          detail={
+            entriesToday >= ENOUGH
+              ? text("Completed", "पूरा भएको")
+              : text(`${entriesToday} entries so far`, `अहिलेसम्म ${entriesToday} entry`)
+          }
+          tone={
+            judge(entriesToday, () =>
+              stats.successRate >= 90 ? "good" : stats.successRate >= 70 ? "warn" : "danger",
+            ).verdict ?? "default"
+          }
         />
       </div>
 
