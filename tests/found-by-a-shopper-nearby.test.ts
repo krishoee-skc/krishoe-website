@@ -17,10 +17,9 @@ import { businessContact, localBusinessJsonLd } from "@/lib/seo";
  *   which words brought a shopper in, or ask Google to look again after a new
  *   shoe goes up
  *
- * A third is waiting on the owner: the Google Business Profile, the thing that
- * puts a shop in the map box above the ordinary results. The slot for it is
- * here and deliberately empty, because a sameAs pointing at nothing is worse
- * than no sameAs at all.
+ * A third was waiting on the owner: the Google Business Profile, the thing that
+ * puts a shop in the map box above the ordinary results. It exists now —
+ * created, verified, and its duplicate listing removed — and the link is set.
  */
 describe("where the shop is, as a point on the map", () => {
   it("carries coordinates, not only an address", () => {
@@ -82,13 +81,14 @@ describe("letting Google report back", () => {
   });
 });
 
-describe("the Google Business Profile, once it exists", () => {
-  it("has a slot that stays empty until there is one", () => {
+describe("the Google Business Profile slot", () => {
+  it("never lets an empty or broken link into sameAs", () => {
     const schema = localBusinessJsonLd() as Record<string, unknown>;
     const sameAs = (schema.sameAs ?? []) as string[];
 
-    // Empty today. A sameAs pointing at nothing is worse than none: it tells
-    // Google the shop claims a profile it does not have.
+    // A sameAs pointing at nothing is worse than none: it tells Google the shop
+    // claims a profile it does not have. This held while the slot was empty and
+    // still has to hold now that it is filled.
     expect(sameAs.every((url) => url.startsWith("http"))).toBe(true);
     expect(sameAs.some((url) => url.trim() === "")).toBe(false);
   });
@@ -109,5 +109,41 @@ describe("the Google Business Profile, once it exists", () => {
 
     expect(socials.length, "the social list moved").toBeGreaterThan(0);
     expect(socials).not.toContain("googleBusiness");
+  });
+});
+
+/**
+ * The profile, now that it exists.
+ *
+ * The owner created and verified the Google Business Profile, removed a
+ * duplicate listing Google had made alongside it, and sent the link. Two
+ * earlier attempts were share.google short links — they resolve to the right
+ * shop but are the wrong thing to hardcode, because they expire, and a sameAs
+ * that stops resolving tells Google the shop claims a profile it does not have.
+ *
+ * This one is a maps.app.goo.gl link, and following it lands on
+ * "KRISHOE, Kamalnagar, Bharatpur" with a permanent Google place id
+ * (0x3994fbf8537757cf:0x40ebb0e47783919e) — checked before it went in.
+ */
+describe("the profile the owner created", () => {
+  it("is named in sameAs, so Google knows the shop and the site are one", () => {
+    const schema = localBusinessJsonLd() as Record<string, unknown>;
+    const sameAs = (schema.sameAs ?? []) as string[];
+
+    expect(sameAs.some((url) => url.includes("maps.app.goo.gl"))).toBe(true);
+  });
+
+  it("is a durable Maps link, not a share.google one", () => {
+    // share.google links resolve today and may not next month. Two were sent
+    // before this one, and both were turned down for that reason.
+    expect(businessContact.googleBusiness).not.toContain("share.google");
+    expect(businessContact.googleBusiness).toMatch(/^https:\/\/maps\.app\.goo\.gl\//);
+  });
+
+  it("can still be replaced from the environment", async () => {
+    const source = await readFile("lib/seo.ts", "utf8");
+
+    // If the profile ever moves, this changes without a deploy.
+    expect(source).toContain("NEXT_PUBLIC_GOOGLE_BUSINESS_URL");
   });
 });

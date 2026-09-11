@@ -89,7 +89,9 @@ export const businessContact = {
    * kept out of businessSocialProfiles() on purpose — that list draws the
    * footer's social icons, and a map is not a social account.
    */
-  googleBusiness: process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL ?? "",
+  googleBusiness:
+    process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL ??
+    "https://maps.app.goo.gl/gkZXYXWtKZcLVYdk9",
 };
 
 /**
