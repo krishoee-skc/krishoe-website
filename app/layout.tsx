@@ -117,12 +117,30 @@ export const metadata: Metadata = {
   // need. The code is a string Meta generates in Business Settings → Brand
   // Safety → Domains; paste it into FACEBOOK_DOMAIN_VERIFICATION and it appears
   // here with no code change. Absent, no tag is emitted — nothing breaks.
-  ...(process.env.FACEBOOK_DOMAIN_VERIFICATION
+  //
+  // Google Search Console wants its own tag, and it is the one that pays for
+  // itself: without it the shop is indexed but silent — nobody can see which
+  // words brought a shopper in, which pages Google is skipping, or ask it to
+  // look again after a new shoe goes up. GOOGLE_SITE_VERIFICATION takes the
+  // code from Search Console's HTML-tag method (the content="..." value, not
+  // the whole tag).
+  //
+  // Both are optional and independent: set either, neither, or both. Absent,
+  // no tag is emitted and nothing breaks.
+  ...(process.env.FACEBOOK_DOMAIN_VERIFICATION || process.env.GOOGLE_SITE_VERIFICATION
     ? {
         verification: {
-          other: {
-            "facebook-domain-verification": process.env.FACEBOOK_DOMAIN_VERIFICATION.trim(),
-          },
+          ...(process.env.GOOGLE_SITE_VERIFICATION
+            ? { google: process.env.GOOGLE_SITE_VERIFICATION.trim() }
+            : {}),
+          ...(process.env.FACEBOOK_DOMAIN_VERIFICATION
+            ? {
+                other: {
+                  "facebook-domain-verification":
+                    process.env.FACEBOOK_DOMAIN_VERIFICATION.trim(),
+                },
+              }
+            : {}),
         },
       }
     : {}),

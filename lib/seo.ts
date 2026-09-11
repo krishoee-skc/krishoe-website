@@ -37,6 +37,21 @@ export const businessContact = {
   addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION ?? "Chitwan",
   postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL ?? "44200",
   openingHours: "Mo-Sa 10:00-19:00",
+  /**
+   * Where the shop is, as a point on the map.
+   *
+   * The address alone tells a search engine the town; the coordinates tell it
+   * the distance. "Shoe shop near me", typed by somebody standing in Bharatpur,
+   * is ranked on that distance — so an address without a point competes from
+   * behind against every shop that has one.
+   *
+   * The default is Narayangadh's own centre (27.6956, 84.4232), looked up
+   * rather than guessed. It is the town, not the doorway: set
+   * NEXT_PUBLIC_BUSINESS_LAT and _LNG to the exact pin from Google Maps —
+   * right-click the shop, and the first two numbers in the menu are these.
+   */
+  latitude: process.env.NEXT_PUBLIC_BUSINESS_LAT ?? "27.6956",
+  longitude: process.env.NEXT_PUBLIC_BUSINESS_LNG ?? "84.4232",
   // Canonical profile URLs, deliberately without the tracking parameters that
   // come attached to a shared or QR-scanned link (?mibextid, ?igsi, ?_t and
   // friends). Those are per-share tokens: noise in the footer, and the wrong
@@ -59,6 +74,22 @@ export const businessContact = {
   // actually posts from.
   instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/krishoe.np",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",
+  /**
+   * The shop's Google Business Profile, once it exists.
+   *
+   * This is the single strongest local signal there is — it is what puts a shop
+   * in the map box above the ordinary results, and it carries the reviews,
+   * photos and opening hours a shopper reads before deciding to come. Named in
+   * sameAs, it tells Google that the profile and this website are one business
+   * rather than two things with the same name.
+   *
+   * Deliberately empty until the owner creates the profile: a sameAs pointing
+   * at nothing is worse than no sameAs. Set NEXT_PUBLIC_GOOGLE_BUSINESS_URL to
+   * the profile's share link and it joins the schema with no code change. It is
+   * kept out of businessSocialProfiles() on purpose — that list draws the
+   * footer's social icons, and a map is not a social account.
+   */
+  googleBusiness: process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL ?? "",
 };
 
 /**
@@ -265,7 +296,10 @@ export function organizationJsonLd() {
 }
 
 export function localBusinessJsonLd() {
-  const sameAs = businessSocialLinks();
+  // The Google Business Profile belongs here but not in the footer's icon row,
+  // so it is added to sameAs directly rather than through the social list.
+  const profile = businessContact.googleBusiness.trim();
+  const sameAs = [...businessSocialLinks(), ...(profile ? [profile] : [])];
 
   return {
     "@context": "https://schema.org",
@@ -280,6 +314,15 @@ export function localBusinessJsonLd() {
     currenciesAccepted: siteConfig.currency,
     areaServed: siteConfig.countryCode,
     openingHours: businessContact.openingHours,
+    // Distance is how "near me" is ranked, and an address is not a distance.
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: businessContact.latitude,
+      longitude: businessContact.longitude,
+    },
+    // The map link a shopper actually taps, and a second signal to Google that
+    // this address and this point are the same shop.
+    hasMap: `https://www.google.com/maps/search/?api=1&query=${businessContact.latitude},${businessContact.longitude}`,
     address: {
       "@type": "PostalAddress",
       streetAddress: businessContact.streetAddress,
