@@ -622,6 +622,14 @@ export default function MonitoringDashboard() {
                     // One reading far above the usual is a connection, not the
                     // page. Said plainly so it is not read as a fault.
                     const oneOff = endpoint.count > 2 && endpoint.slowest > typical * 4;
+                    // The same rule the whole table already states — under ten
+                    // readings the order is chance — applied to the row, which
+                    // is where it is actually read. /review sat at the top
+                    // marked Slow on two readings, one of which spent 8.3 of
+                    // its 8.7 seconds waiting for the server to answer at all:
+                    // a page being rebuilt after its cache window, not a slow
+                    // page. Asked for directly it serves in a quarter-second.
+                    const thin = endpoint.count < 5;
                     return (
                       // One row per page now, so the path is the key.
                       <tr key={endpoint.path} className="hover:bg-brand-paper-deep">
@@ -661,8 +669,12 @@ export default function MonitoringDashboard() {
                             </span>
                           ) : null}
                         </td>
-                        <td className={`px-4 py-2 text-xs font-bold ${verdict.tone}`}>
-                          <AlertText en={verdict.label.en} ne={verdict.label.ne} />
+                        <td className={`px-4 py-2 text-xs font-bold ${thin ? "text-brand-muted" : verdict.tone}`}>
+                          {thin ? (
+                            <AlertText en="Too few readings" ne="नाप थोरै" />
+                          ) : (
+                            <AlertText en={verdict.label.en} ne={verdict.label.ne} />
+                          )}
                         </td>
                         <td className="px-4 py-2 tabular-nums text-brand-muted">{endpoint.count}</td>
                       </tr>

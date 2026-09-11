@@ -105,3 +105,33 @@ describe("naming the page", () => {
     expect(dash).toContain("{endpoint.path}");
   });
 });
+
+/**
+ * A verdict on two readings is not a verdict.
+ *
+ * /review appeared at the top of the table marked "🔴 Slow, 6.0s" on exactly
+ * two readings. One of them spent 8.3 of its 8.7 seconds on TTFB — waiting for
+ * the server to answer at all, which is a page being rebuilt after its
+ * ten-minute cache window, not a slow page. Asked for directly it serves in a
+ * quarter of a second, faster than /shop, which the same table called Good.
+ *
+ * The table already said, at the top, that "under ten readings the order is
+ * chance". It said it about the whole table and then printed a confident red
+ * verdict on each row anyway. The rule now reaches the row, which is where it
+ * is read.
+ */
+describe("a row with barely any readings", () => {
+  it("says so instead of printing a colour-coded verdict", async () => {
+    const dash = await readFile(DASHBOARD, "utf8");
+
+    expect(dash).toContain("const thin = endpoint.count < 5");
+    expect(dash).toContain("Too few readings");
+  });
+
+  it("drops the verdict's colour too, not only its words", async () => {
+    const dash = await readFile(DASHBOARD, "utf8");
+
+    // Red text saying "Too few readings" would still read as a fault.
+    expect(dash).toContain(`thin ? "text-brand-muted" : verdict.tone`);
+  });
+});
