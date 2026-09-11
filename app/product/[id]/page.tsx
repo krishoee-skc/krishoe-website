@@ -3,7 +3,7 @@ import ProductText from "@/components/commerce/ProductText";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById, getProducts } from "@/lib/product-store";
-import { getProductByIdFromList, getRelatedProductsFromList } from "@/lib/products";
+import { getProductByIdFromList, getRelatedProductsFromList, productReviewStats } from "@/lib/products";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -106,6 +106,11 @@ export default async function ProductPage({ params }: Props) {
       verifiedPurchase: Boolean(review.verifiedPurchase),
     }));
 
+  // The real average, from reviews the shop has published — the same helper
+  // ProductCard uses, so a shoe cannot show one score in the grid and another
+  // on its own page.
+  const reviewStats = productReviewStats(product.reviews);
+
   const level = stockLevel(product.stock);
   // The product's own name, description and highlights are catalog data the
   // owner types in; only KRISHOE's own wording is translated here.
@@ -161,27 +166,41 @@ export default async function ProductPage({ params }: Props) {
               </h1>
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <span className="text-3xl font-bold text-brand-green">{product.price}</span>
-                {/* The rating badge jumps straight to the reviews, and a plain
-                    "leave a review" link sits beside it — so a shopper can read
-                    or write a review from the top of the page, without scrolling
-                    to the very bottom to find the form. */}
-                <a
-                  href="#reviews"
-                  className="inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-green-ink px-4 text-sm font-semibold text-white transition hover:bg-brand-green"
-                >
-                  <StarIcon className="h-4 w-4 text-brand-gold-bright" />
-                  {product.rating}
-                  {publishedReviews.length > 0 ? (
-                    <span className="ml-1 font-normal text-white/70">
-                      ({publishedReviews.length})
-                    </span>
-                  ) : null}
-                </a>
+                {/* The star, only when customers have actually given one.
+                    This badge used to print product.rating — a 4.8 typed into
+                    the catalogue by hand, shown on every shoe while not one
+                    review had been published for any of them. ProductCard and
+                    the home page had both been fixed to read real reviews; this
+                    line was missed, so the shop told a shopper one thing and
+                    Google another. Search Console reports "Review snippets: 0"
+                    for exactly that reason — the schema was honest and the page
+                    was not.
+
+                    With no reviews it says "New" and asks for the first one,
+                    which is true and is also what the shop wants. */}
+                {reviewStats.count > 0 ? (
+                  <a
+                    href="#reviews"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-green-ink px-4 text-sm font-semibold text-white transition hover:bg-brand-green"
+                  >
+                    <StarIcon className="h-4 w-4 text-brand-gold-bright" />
+                    {reviewStats.average.toFixed(1)}
+                    <span className="ml-1 font-normal text-white/70">({reviewStats.count})</span>
+                  </a>
+                ) : (
+                  <span className="inline-flex min-h-11 items-center rounded-full bg-brand-green-tint px-4 text-sm font-bold text-brand-green">
+                    <T en="New" ne="नयाँ" />
+                  </span>
+                )}
                 <a
                   href="#reviews"
                   className="text-sm font-bold text-brand-green underline underline-offset-2 transition hover:text-brand-green-ink"
                 >
-                  <T en="Leave a review" ne="राय दिनुहोस्" />
+                  {reviewStats.count > 0 ? (
+                    <T en="Read the reviews" ne="राय पढ्ने" />
+                  ) : (
+                    <T en="Be the first to review" ne="पहिलो राय तपाईंकै" />
+                  )}
                 </a>
               </div>
               {/* The wholesale price is a trade rate, used only at the POS
