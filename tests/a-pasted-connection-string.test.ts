@@ -117,3 +117,53 @@ describe("a secret that is not a connection string at all", () => {
     await expect(queryPostgres("t", "SELECT 1")).rejects.toThrow(/postgresql:\/\//);
   });
 });
+
+/**
+ * A value copied only as far as the eye could see.
+ *
+ * The third run got past "base" and failed with:
+ *
+ *   getaddrinfo ENOTFOUND ep-proud-cherry-aozsz6ma-pooler.c-2.ap-
+ *
+ * That is a real prefix of the shop's real host, stopping mid-word in
+ * "ap-southeast-1" — character 82 of 154. Notepad wraps a long line, and
+ * dragging the mouse across what is visible selects about half of it. The
+ * hostname looks plausible enough to read past, which is exactly what makes it
+ * expensive.
+ *
+ * A host that ends in a hyphen or a dot, or carries no domain at all, was cut.
+ */
+describe("a connection string copied only halfway", () => {
+  it("is refused, naming the host it was cut to", async () => {
+    process.env.DATABASE_URL =
+      "postgresql://u:p@ep-proud-cherry-aozsz6ma-pooler.c-2.ap-/neondb";
+    process.env.DATA_BACKEND = "postgres";
+
+    const { queryPostgres } = await import("@/lib/postgres/client");
+
+    await expect(queryPostgres("t", "SELECT 1")).rejects.toThrow(/cut short/);
+    await expect(queryPostgres("t", "SELECT 1")).rejects.toThrow(/Shift\+End/);
+  });
+
+  it("accepts the same string once it is complete", async () => {
+    process.env.DATABASE_URL =
+      "postgresql://u:p@ep-proud-cherry-aozsz6ma-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require";
+    process.env.DATA_BACKEND = "postgres";
+
+    const { queryPostgres } = await import("@/lib/postgres/client");
+
+    // It gets past the check and fails on the network instead, which is the
+    // proof that the guard is not what stopped it.
+    await expect(queryPostgres("t", "SELECT 1")).rejects.not.toThrow(/cut short/);
+  });
+
+  it("leaves a password ending in a hyphen alone", async () => {
+    process.env.DATABASE_URL = "postgresql://u:secret-@host.example.com/db";
+    process.env.DATA_BACKEND = "postgres";
+
+    const { queryPostgres } = await import("@/lib/postgres/client");
+
+    // The check reads the host, not the credentials.
+    await expect(queryPostgres("t", "SELECT 1")).rejects.not.toThrow(/cut short/);
+  });
+});

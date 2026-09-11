@@ -78,7 +78,26 @@ jobs:
           # setting nor the mistake. Caught here, once, in plain words.
           case "$DATABASE_URL" in
             postgresql://*|postgres://*)
-              echo "DATABASE_URL is a connection string; the live tests will run."
+              # A half-copied value passes the test above and still fails, with
+              # ENOTFOUND on a hostname that is a real prefix of the real one —
+              # a long line wraps on screen and the mouse stops halfway. The
+              # host must end in a proper domain, not a hyphen or a bare word.
+              HOST=$(printf '%s' "$DATABASE_URL" | sed -n 's#^[^@]*@\([^/:?]*\).*#\1#p')
+              case "$HOST" in
+                *-|*.)
+                  echo "::error::The DATABASE_URL secret is cut short — its host reads \"$HOST\", which ends mid-word. Open .env.local, click just before postgresql://, press Shift+End to select the whole line to its end, copy, and paste that as the secret. A long line wraps on screen, so dragging with the mouse usually stops halfway."
+                  echo "skipped=true" >> "$GITHUB_OUTPUT"
+                  exit 1
+                  ;;
+                *.*)
+                  echo "DATABASE_URL is a connection string with a complete host; the live tests will run."
+                  ;;
+                *)
+                  echo "::error::The DATABASE_URL secret is cut short — its host reads \"$HOST\", which has no domain in it. Copy the whole line from .env.local: click before postgresql://, press Shift+End, then copy."
+                  echo "skipped=true" >> "$GITHUB_OUTPUT"
+                  exit 1
+                  ;;
+              esac
               ;;
             *)
               echo "::error::The DATABASE_URL secret is not a connection string — it must start with postgresql:// . Open Settings → Secrets and variables → Actions, update DATABASE_URL, and paste the whole value from .env.local starting at postgresql:// (do not include the DATABASE_URL= part, and no quotes)."

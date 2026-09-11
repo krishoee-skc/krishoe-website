@@ -64,15 +64,38 @@ function getSslConfig(connectionString: string): SslConfig {
  * turned into a DNS lookup for a host that was never typed.
  */
 function assertLooksLikeAConnectionString(value: string) {
-  if (/^postgres(ql)?:\/\//i.test(value)) return;
+  if (!/^postgres(ql)?:\/\//i.test(value)) {
+    const shown = value.length > 12 ? `${value.slice(0, 12)}…` : value;
+    throw new Error(
+      `DATABASE_URL does not look like a connection string (it starts "${shown}"). ` +
+        "It must begin with postgresql:// — copy the whole value, from postgresql:// " +
+        "to the end of the line. A bare word here is read as a host called \"base\", " +
+        "which is where \"getaddrinfo EAI_AGAIN base\" comes from.",
+    );
+  }
 
-  const shown = value.length > 12 ? `${value.slice(0, 12)}…` : value;
-  throw new Error(
-    `DATABASE_URL does not look like a connection string (it starts "${shown}"). ` +
-      "It must begin with postgresql:// — copy the whole value, from postgresql:// " +
-      "to the end of the line. A bare word here is read as a host called \"base\", " +
-      "which is where \"getaddrinfo EAI_AGAIN base\" comes from.",
-  );
+  // A half-copied value. The owner's second attempt stopped at character 82 of
+  // 154, in the middle of "ap-southeast-1", leaving the host
+  // "ep-proud-cherry-…-pooler.c-2.ap-" — which is a real prefix of a real
+  // hostname and therefore looks convincing, right up to ENOTFOUND. Notepad
+  // wraps a long line and it is easy to select only the part you can see.
+  //
+  // A hostname whose last label is not a domain suffix was cut. Checked on the
+  // host only, so a password ending in a hyphen is none of its business.
+  const host = value.match(/@([^/:?]+)/)?.[1] ?? "";
+  const bareHost = host.replace(/:\d+$/, "");
+  const cutMidWord = bareHost.endsWith("-") || bareHost.endsWith(".");
+  const hasNoDot = bareHost.length > 0 && !bareHost.includes(".");
+  const localish = /^(localhost|127\.0\.0\.1|\[?::1\]?)$/i.test(bareHost);
+
+  if (!localish && (cutMidWord || hasNoDot)) {
+    throw new Error(
+      `DATABASE_URL looks cut short — its host reads "${bareHost}", which is not a complete ` +
+        "address. Copy the whole line in one go: click at postgresql://, then press " +
+        "Shift+End to select to the end of the line (a long line wraps on screen, so " +
+        "dragging with the mouse often stops halfway).",
+    );
+  }
 }
 
 function getPool(storeName: string) {
