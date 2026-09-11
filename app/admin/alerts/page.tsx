@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import AlertText from "@/components/admin/AlertText";
+import { runShopSelfCheck, type SelfCheck } from "@/lib/shop-self-check";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { ArrowRightIcon } from "@/components/Icons";
 import { requireAdminPermission } from "@/lib/admin-permissions";
@@ -104,6 +105,46 @@ function AlertRow({ alert }: { alert: OperationalAlert }) {
   );
 }
 
+/**
+ * One thing the shop found wrong with itself.
+ *
+ * Deliberately the same shape as an AlertRow — a shopkeeper should not have to
+ * learn two ways of reading a warning — but it says what was counted and links
+ * to the screen that fixes it, because the complaint about the old reports was
+ * that they announced a problem and left you to find it.
+ */
+function SelfCheckRow({ check }: { check: SelfCheck }) {
+  const tone = SEVERITY[check.severity];
+
+  return (
+    <Link
+      href={check.href}
+      className={`group flex flex-col gap-3 rounded-2xl border ${tone.ring} ${tone.fill} p-5 transition hover:-translate-y-0.5 sm:flex-row sm:items-start sm:gap-5`}
+    >
+      <span className="flex items-center gap-2.5 sm:mt-1 sm:w-36 sm:shrink-0">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
+        <span className={`text-[11px] font-black uppercase tracking-[0.14em] ${tone.text}`}>
+          {tone.ne} · <AlertText en="in the app" ne="app भित्र" />
+        </span>
+      </span>
+
+      <span className="min-w-0 flex-grow">
+        <span className="block text-base font-black leading-snug text-brand-green-ink">
+          <AlertText en={check.title} ne={check.titleNe} />
+        </span>
+        <span className="mt-1 block text-sm leading-6 text-brand-muted">
+          <AlertText en={check.detail} ne={check.detailNe} />
+        </span>
+      </span>
+
+      <span className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-full border border-brand-green px-4 text-sm font-black text-brand-green transition group-hover:bg-brand-green group-hover:text-white">
+        <AlertText en={check.action} ne={check.actionNe} />
+        <ArrowRightIcon className="h-4 w-4" />
+      </span>
+    </Link>
+  );
+}
+
 export default async function AlertsPage() {
   await requireAdminPermission("notifications:read");
 
@@ -124,6 +165,19 @@ export default async function AlertsPage() {
         retryHref="/admin/alerts"
       />
     );
+  }
+
+  // Separately from the alert centre above, and never allowed to take the page
+  // down: if the shop cannot check itself, the business alerts are still worth
+  // showing. An empty list here means the checks ran and found nothing — which
+  // the section says out loud rather than simply drawing nothing.
+  let selfChecks: SelfCheck[] = [];
+  let selfCheckFailed = false;
+  try {
+    selfChecks = await runShopSelfCheck();
+  } catch (error) {
+    reportError("run the shop self check", error);
+    selfCheckFailed = true;
   }
 
   const { alerts, summary } = centre;
@@ -199,6 +253,47 @@ export default async function AlertsPage() {
           ) : null}
         </>
       )}
+
+      {/* What the shop found wrong with itself.
+          Every check here is a mistake that was found by hand first — invented
+          stock, a star with no review behind it, a factory item joined to
+          nothing. Those took an evening each to notice. The noticing is the
+          part worth automating. */}
+      <div className="mt-8 border-t border-brand-green-line pt-6">
+        <h2 className="font-display text-xl font-black text-brand-green-ink">
+          <AlertText en="What the app found in itself" ne="app ले आफैंमा भेटेको" />
+        </h2>
+
+        {selfCheckFailed ? (
+          <p className="mt-3 rounded-2xl border border-brand-clay/30 bg-brand-clay-tint p-4 text-sm font-semibold leading-6 text-brand-clay">
+            <AlertText
+              en="These checks could not be run. That is not the same as all clear."
+              ne="यी जाँच चल्न सकेनन्। यसको अर्थ सबै ठीक छ भन्ने होइन।"
+            />
+          </p>
+        ) : selfChecks.length === 0 ? (
+          <p className="mt-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-sm leading-6 text-brand-green-ink">
+            <AlertText
+              en="Stock without a record behind it, test products, star ratings with no review, factory items joined to no shoe, salaried staff in the piece-wage summary, a checkout with no bank account, reviews for a deleted shoe — seven checks, nothing found."
+              ne="आधार नभएको स्टक, test सामान, राय नभई तारा, नजोडिएका कारखानाका सामान, piece-wage मा तलब पाउने, bank खाता नभएको checkout, हटाइएको जुत्ताका राय — सात जाँच, केही भेटिएन।"
+            />
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-brand-muted">
+              <AlertText
+                en="Found by the shop itself, not by reading a screen and noticing."
+                ne="पसल आफैंले भेटेको — कसैले screen हेरेर पत्ता लगाउनु परेन।"
+              />
+            </p>
+            <div className="mt-4 grid gap-3">
+              {selfChecks.map((check) => (
+                <SelfCheckRow key={check.id} check={check} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       <p className="mt-6 text-xs leading-6 text-brand-muted">
         <AlertText

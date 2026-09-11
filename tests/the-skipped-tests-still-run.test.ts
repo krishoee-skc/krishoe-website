@@ -46,13 +46,14 @@ async function filesThatSkipWithoutADatabase() {
 }
 
 describe("the tests that need a real database", () => {
-  it("are exactly the five that move real pairs", async () => {
+  it("are the five that move real pairs, and the one that only reads", async () => {
     const found = (await filesThatSkipWithoutADatabase()).map((file) => path.basename(file)).sort();
 
     expect(found).toEqual([
       "damage-out-live.test.ts",
       "e2e-lifecycle-live.test.ts",
       "pos-return-to-stock-live.test.ts",
+      "shop-self-check-live.test.ts",
       "size-routing-live.test.ts",
       "stock-transfer-challan.test.ts",
     ]);
@@ -118,6 +119,10 @@ describe("the tests that need a real database", () => {
 
     for (const file of files) {
       const source = await readFile(file, "utf8");
+      // A read-only check writes nothing, so it has nothing to clean up. Named
+      // rather than pattern-matched: "does it look read-only" is exactly the
+      // kind of guess that lets a writing test slip through.
+      if (path.basename(file) === "shop-self-check-live.test.ts") continue;
       // Seeding finished_stock makes the catalog sync create a products row.
       // Two of these tests were not deleting it, and the shop's live catalogue
       // held "ZZ probe design" with 54 pairs and "ZZ damage probe design" with
