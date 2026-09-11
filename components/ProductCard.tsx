@@ -47,9 +47,15 @@ export default function ProductCard({
           loading={eager ? "eager" : "lazy"}
           className="object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute left-4 top-4 rounded-full bg-brand-paper px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-green shadow-sm">
-          {product.badge ?? product.category}
-        </div>
+        {/* Only a real badge — "limited", "new" — earns a corner. It used to
+            fall back to the category, which is already printed in gold under
+            the photo, so two of the shop's three shoes said "Ladies Sandals"
+            twice on one card. A label repeated is a label unread. */}
+        {product.badge?.trim() ? (
+          <div className="absolute left-4 top-4 rounded-full bg-brand-paper/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-green shadow-sm backdrop-blur-sm">
+            {product.badge}
+          </div>
+        ) : null}
         {outOfStock ? (
           <div className="absolute right-4 top-4 rounded-full bg-brand-danger px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
             <T en="Sold out" ne="बिक्री सकियो" />
@@ -93,9 +99,17 @@ export default function ProductCard({
           )}
         </div>
 
-        <p className={`line-clamp-2 min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : "mt-4"}`}>
-          {product.description}
-        </p>
+        {/* The height is reserved so cards in a row keep one baseline — but
+            only when there is something to hold. "bag open" has no description
+            yet, and an empty reserved band under its name read as a broken
+            card rather than a quiet one. */}
+        {product.description?.trim() ? (
+          <p className={`line-clamp-2 min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : "mt-4"}`}>
+            {product.description}
+          </p>
+        ) : (
+          <div className={compact ? "hidden md:block md:min-h-12" : "mt-4 min-h-12"} aria-hidden="true" />
+        )}
 
         <div
           className={`mt-auto flex items-center justify-between border-t border-black/10 ${

@@ -6,6 +6,7 @@ import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { trackCommerceEvent } from "@/lib/analytics-events";
+import { whatsappOrderUrl } from "@/lib/commerce";
 
 import { useLanguage } from "@/components/LanguageProvider";
 type ProductCardActionsProps = {
@@ -53,6 +54,32 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
       >
         <HeartIcon className="h-5 w-5" />
       </button>
+      {/* Sold out is not the end of the conversation.
+          A greyed-out button ends the shopper's journey on the card: nothing to
+          press, nothing to ask, no reason to come back. The shop makes these
+          shoes itself, so "when will it be back" has a real answer — and the
+          shopkeeper would rather be asked than let a customer leave. Every shoe
+          in the shop reads Sold out today, which is exactly when this matters.
+
+          Not a wishlist: the heart beside it already does that quietly. This is
+          the one that reaches a person. */}
+      {outOfStock ? (
+        <a
+          href={whatsappOrderUrl(
+            text(
+              `Namaste KRISHOE — when will "${product.name}" be back in stock?`,
+              `नमस्ते KRISHOE — "${product.name}" कहिले आउँछ?`,
+            ),
+          )}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackCommerceEvent("contact")}
+          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-brand-green bg-brand-green-tint px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white md:h-11"
+        >
+          <span aria-hidden="true">💬</span>
+          {text("Ask when it's back", "कहिले आउँछ सोध्ने")}
+        </a>
+      ) : (
       <button
         type="button"
         onClick={addDefaultItem}
@@ -83,6 +110,7 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
               : text("Add", "थप्ने")}
         </span>
       </button>
+      )}
     </div>
   );
 }
