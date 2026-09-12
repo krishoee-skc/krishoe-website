@@ -4,6 +4,7 @@ import { put } from "@vercel/blob";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { databaseImagesAvailable, saveDatabaseImage } from "@/lib/image-store";
+import { prepareProductPhoto } from "@/lib/prepare-product-photo";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -140,33 +141,49 @@ export async function POST(request: Request) {
     );
   }
 
-  const safeName = safeFileName(file.name);
+  // Square the frame, turn it the right way up, and re-encode as WebP before
+  // it is stored. Every photo the shop takes comes through this one route, so
+  // doing it here means none is missed.
+  //
+  // It returns null rather than throwing on anything it cannot handle, and
+  // then the original is stored untouched: the shopkeeper is holding a shoe in
+  // one hand and a phone in the other, and a failed upload at that moment is
+  // worse than an unoptimised picture.
+  const original = Buffer.from(await file.arrayBuffer());
+  const prepared = await prepareProductPhoto(original, file.type);
+
+  const bytes = prepared ? prepared.bytes : original;
+  const contentType = prepared ? prepared.contentType : file.type;
+  const safeName = prepared
+    ? safeFileName(file.name).replace(/\.[a-z0-9]+$/, "") + "." + prepared.extension
+    : safeFileName(file.name);
 
   try {
     let url: string;
     let storedTo: string;
 
     if (storage === "blob") {
-      const blob = await put(`products/${safeName}`, file, {
+      const blob = await put(`products/${safeName}`, bytes, {
         access: "public",
         addRandomSuffix: true,
-        contentType: file.type,
+        contentType,
       });
       url = blob.url;
       storedTo = "Vercel Blob";
     } else if (storage === "database") {
-      const bytes = Buffer.from(await file.arrayBuffer());
-      const saved = await saveDatabaseImage({ bytes, contentType: file.type });
+      const saved = await saveDatabaseImage({ bytes, contentType });
       url = saved.url;
       storedTo = "database";
     } else {
-      url = await saveLocally(file, safeName);
+      url = await saveLocally(new File([new Uint8Array(bytes)], safeName, { type: contentType }), safeName);
       storedTo = "local dev folder";
     }
 
     await recordAdminAuditEvent(
       "product_photo_upload",
-      `Uploaded product photo ${safeName} to ${storedTo}.`,
+      prepared
+        ? `Uploaded product photo ${safeName} to ${storedTo} — ${prepared.note}.`
+        : `Uploaded product photo ${safeName} to ${storedTo} unchanged.`,
     );
 
     // Only the dev filesystem photo fails to load on the live shop, so only that
