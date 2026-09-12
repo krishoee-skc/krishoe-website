@@ -35,7 +35,11 @@ export default function ProductCard({
       id={product.id}
       className="krishoe-rise group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-brand-paper shadow-[0_18px_40px_rgba(11,77,59,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,77,59,0.14)]"
     >
-      <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-brand-silver-lt to-brand-mist">
+      {/* Cream into the shop's own green, not the blue-grey this used to be.
+          Every other colour in the shop sits at 37-43° on the wheel; silver-lt
+          is 216°, and it was the only cool note — the eye cannot name that but
+          reads it as cheap. */}
+      <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-[radial-gradient(120%_100%_at_30%_10%,#FBF4E6,#E8F2EC)]">
         <SafeImage
           src={product.image}
           // The name alone leaves out what kind of shoe it is and where it
@@ -57,8 +61,11 @@ export default function ProductCard({
           </div>
         ) : null}
         {outOfStock ? (
-          <div className="absolute right-4 top-4 rounded-full bg-brand-danger px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-            <T en="Sold out" ne="बिक्री सकियो" />
+          /* Deep green, not red. Red is the colour this shop uses for a
+             fault, and selling out is not one — it is the opposite. The pair
+             below it offers a way to ask when it returns. */
+          <div className="absolute right-3 top-3 rounded-full bg-brand-green-ink/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm">
+            <T en="Sold out" ne="अहिले सकियो" />
           </div>
         ) : lowStock ? (
           <div className="absolute right-4 top-4 rounded-full bg-brand-gold-dark px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
@@ -71,15 +78,21 @@ export default function ProductCard({
       </Link>
 
       <div className={compact ? "flex flex-1 flex-col p-3 md:p-5" : "flex flex-1 flex-col p-5"}>
-        <div className="flex min-h-[5.75rem] items-start justify-between gap-2 md:gap-4">
+        {/* No reserved block. This row held 5.75rem so cards in a row kept one
+            baseline, but a two-word name left most of it empty — 376px of card
+            on a 360px phone, of which only 116px was the photo. The grid keeps
+            the cards even now; the card itself no longer pays for it. */}
+        <div className="flex items-start justify-between gap-2 md:gap-4">
           <div className="min-w-0">
             <p className="line-clamp-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold-deep">
               {product.category}
             </p>
             <Link href={href}>
+              {/* The display face, which the shop already loads and had never
+                  used on a product. Nothing new is downloaded. */}
               <h3
-                className={`mt-1 line-clamp-2 min-h-12 font-semibold leading-6 text-brand-green-ink transition hover:text-brand-green md:mt-2 md:min-h-14 md:leading-7 ${
-                  compact ? "text-base md:text-xl" : "text-xl"
+                className={`mt-1 line-clamp-2 font-display font-semibold leading-snug tracking-tight text-brand-green-ink transition hover:text-brand-green md:mt-1.5 ${
+                  compact ? "text-[15px] md:text-lg" : "text-lg md:text-xl"
                 }`}
               >
                 <ProductText en={product.name} ne={product.nameNe} />
@@ -103,21 +116,30 @@ export default function ProductCard({
             only when there is something to hold. "bag open" has no description
             yet, and an empty reserved band under its name read as a broken
             card rather than a quiet one. */}
+        {/* Shown when there is one, and taking no room when there is not. The
+            reserved band used to be drawn either way, which on a phone spent
+            48px per card to hold nothing. */}
         {product.description?.trim() ? (
-          <p className={`line-clamp-2 min-h-12 text-sm leading-6 text-brand-muted ${compact ? "hidden md:block" : "mt-4"}`}>
+          <p className={`line-clamp-2 text-sm leading-6 text-brand-muted ${compact ? "mt-2 hidden md:block" : "mt-3"}`}>
             {product.description}
           </p>
-        ) : (
-          <div className={compact ? "hidden md:block md:min-h-12" : "mt-4 min-h-12"} aria-hidden="true" />
-        )}
+        ) : null}
 
         <div
           className={`mt-auto flex items-center justify-between border-t border-black/10 ${
             compact ? "pt-2 md:pt-4" : "pt-4"
           }`}
         >
-          <span className={`font-bold text-brand-green ${compact ? "text-lg md:text-2xl" : "text-2xl"}`}>
-            {product.price}
+          {/* The figure a shopper looks for first, set in the display face. It
+              used to be smaller than the shoe's own name. "प्रति जोडी" is here
+              because this shop also sells wholesale, where the unit matters. */}
+          <span className="flex items-baseline gap-1.5">
+            <span className={`font-display font-black tracking-tight text-brand-green-ink ${compact ? "text-xl md:text-2xl" : "text-2xl md:text-3xl"}`}>
+              {product.price}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-muted">
+              <T en="per pair" ne="प्रति जोडी" />
+            </span>
           </span>
           <Link
             href={href}

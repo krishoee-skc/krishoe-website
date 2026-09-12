@@ -79,12 +79,14 @@ describe("the card itself", () => {
     expect(source.match(/\{product\.category\}/g)?.length ?? 0).toBe(1);
   });
 
-  it("reserves the description's height without drawing an empty band", async () => {
+  it("takes no room at all when there is no description", async () => {
     const source = await readFile(CARD, "utf8");
 
-    // Cards in a row have to keep one baseline, so the space is held — but held
-    // empty, not filled with a paragraph that has nothing in it.
+    // This first held the space and drew it empty, so a row of cards kept one
+    // baseline. Measured on a 360px phone that cost 48px of every card to hold
+    // nothing, and the grid already keeps the row even — so now it renders
+    // nothing and the card is shorter.
     expect(source).toContain("product.description?.trim() ?");
-    expect(source).toContain('aria-hidden="true"');
+    expect(source).toContain(") : null}");
   });
 });

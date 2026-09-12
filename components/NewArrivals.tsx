@@ -12,9 +12,9 @@ export default async function NewArrivals({ products }: NewArrivalsProps = {}) {
   const newArrivalProducts = (products ?? await getProducts()).filter((product) => product.newArrival).slice(0, 4);
 
   return (
-    <section className="bg-brand-paper py-20">
+    <section className="bg-brand-paper py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-brand-green">
+        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl text-brand-green">
           <T en="New Arrivals" ne="नयाँ आएका" />
         </h2>
 

@@ -14,7 +14,7 @@ export default async function BestSeller({ products }: BestSellerProps = {}) {
   const newArrivals = all.filter((product) => product.newArrival);
 
   return (
-    <section className="bg-brand-mist py-20">
+    <section className="bg-brand-mist py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">

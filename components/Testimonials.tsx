@@ -82,9 +82,9 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
   // quotes: no invented praise, just the door.
   if (reviews.length === 0) {
     return (
-      <section className="bg-brand-paper py-20">
+      <section className="bg-brand-paper py-14 md:py-20">
         <div className="mx-auto max-w-2xl px-6 text-center">
-          <h2 className="font-display text-4xl font-bold text-brand-green">
+          <h2 className="font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
             <T en="Be the first to write one" ne="पहिलो राय तपाईंकै होस्" />
           </h2>
           <p className="mt-3 text-brand-muted">
@@ -105,9 +105,9 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
   }
 
   return (
-    <section className="bg-brand-paper py-20">
+    <section className="bg-brand-paper py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center font-display text-4xl font-bold text-brand-green">
+        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
           <T en="What Our Customers Say" ne="ग्राहकहरूले के भन्नुहुन्छ" />
         </h2>
 

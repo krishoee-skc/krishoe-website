@@ -12,14 +12,14 @@ export default async function FeaturedProducts({ products }: FeaturedProductsPro
   const featuredProducts = (products ?? await getProducts()).filter((product) => product.featured);
 
   return (
-    <section className="bg-brand-paper py-20">
+    <section className="bg-brand-paper py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
               <T en="Featured Collection" ne="छानिएका जुत्ता" />
             </p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
+            <h2 className="mt-3 font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
               <T en="Polished pairs for daily confidence." ne="दिनहुँ लगाउन मिल्ने, हेर्दा राम्रो।" />
             </h2>
           </div>

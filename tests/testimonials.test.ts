@@ -41,7 +41,7 @@ describe("which reviews reach the storefront", () => {
     const source = await readFile("components/Testimonials.tsx", "utf8");
     const empty = source.slice(
       source.indexOf("if (reviews.length === 0)"),
-      source.indexOf("return (\n    <section className=\"bg-brand-paper py-20\">\n      <div className=\"mx-auto max-w-7xl"),
+      source.indexOf("return (\n    <section className=\"bg-brand-paper py-14 md:py-20\">\n      <div className=\"mx-auto max-w-7xl"),
     );
 
     expect(empty.length, "the empty-state branch is missing").toBeGreaterThan(0);

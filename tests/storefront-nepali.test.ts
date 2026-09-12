@@ -14,7 +14,7 @@ describe("the product card", () => {
   it("speaks Nepali on the labels a shopper reads first", async () => {
     const card = await readFile("components/ProductCard.tsx", "utf8");
 
-    expect(card).toContain('ne="बिक्री सकियो"');
+    expect(card).toContain('ne="अहिले सकियो"');
     expect(card).toContain("जोडी मात्र बाँकी");
     expect(card).toContain('ne="हेर्नुहोस्"');
   });

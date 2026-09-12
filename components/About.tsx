@@ -24,7 +24,7 @@ const promises = [
 
 export default function About() {
   return (
-    <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#F8F5EC_0%,#FFFFFF_48%,#EEF5F1_100%)] py-20 sm:py-28">
+    <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#F8F5EC_0%,#FFFFFF_48%,#EEF5F1_100%)] py-14 md:py-20 sm:py-28">
       <div
         className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-brand-gold-bright/10 blur-3xl"
         aria-hidden
@@ -76,7 +76,7 @@ export default function About() {
             <T en="About KRISHOE" ne="KRISHOE बारे" />
           </div>
 
-          <h2 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
+          <h2 className="mt-6 max-w-3xl font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl leading-[1.02] tracking-tight text-brand-green-ink sm:text-5xl lg:text-6xl">
             <T en="Shaped by Nepali hands." ne="नेपाली हातले बनेको।" />
             <span className="mt-1 block text-brand-green">
               <T en="Made to move Nepal." ne="नेपाल हिँडाउन बनेको।" />

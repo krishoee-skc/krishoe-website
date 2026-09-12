@@ -41,9 +41,9 @@ export default function WhyChoose() {
   ];
 
   return (
-    <section className="bg-brand-mist py-20">
+    <section className="bg-brand-mist py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center text-4xl font-bold text-brand-green">
+        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl text-brand-green">
           <T en="Why Choose KRISHOE?" ne="किन KRISHOE?" />
         </h2>
 
