@@ -70,12 +70,23 @@ export default async function Home() {
       </Link>
 
       {/* One complete branded banner — crest, Made in Nepal, tagline and the
-          product all in the artwork, so nothing is typed over it. */}
+          product all in the artwork, so nothing is typed over it.
+          
+          Held to 768px wide rather than 1152. The artwork is 3:2, so full
+          width made it 768px tall on a laptop — with the top strip, the nav
+          and the promo line above it, the banner ended 932px down a 780px
+          screen and a shopper saw no shoes at all before scrolling. Narrower
+          brings it to 512px and puts the first row of shoes on the first
+          screen.
+          
+          Narrower rather than cropped on purpose: the crest, "MADE IN NEPAL"
+          and the sandal are all inside the picture, and the sandal sits low —
+          a height crop would have cut its base off. */}
       <section className="bg-brand-paper px-4 pt-4 md:px-8 md:pt-6">
         <Link
           href="/shop"
           aria-label="Shop KRISHOE — Made in Nepal premium footwear"
-          className="group relative mx-auto block max-w-6xl overflow-hidden rounded-[1.75rem] shadow-[0_22px_70px_rgba(59,42,24,0.18)] ring-1 ring-brand-gold/25 transition hover:shadow-[0_30px_90px_rgba(11,77,59,0.22)] md:rounded-[2rem]"
+          className="group relative mx-auto block max-w-2xl overflow-hidden rounded-[1.75rem] shadow-[0_22px_70px_rgba(59,42,24,0.18)] ring-1 ring-brand-gold/25 transition hover:shadow-[0_30px_90px_rgba(11,77,59,0.22)] md:max-w-3xl md:rounded-[2rem]"
         >
           <Image
             src="https://scx7x508oyhat5zs.public.blob.vercel-storage.com/products/chatgpt-image-aug-28-2026-11_07_14-pm-RYHCtnMXhx6h6X9XfHX7gWj2kHfWj6.png"
@@ -83,7 +94,7 @@ export default async function Home() {
             width={1536}
             height={1024}
             priority
-            sizes="(min-width: 1152px) 1152px, 100vw"
+            sizes="(min-width: 768px) 768px, 100vw"
             className="h-auto w-full"
           />
           <h1 className="sr-only text-brand-green-ink">KRISHOE — Made in Nepal premium footwear. Walk with Authority.</h1>
