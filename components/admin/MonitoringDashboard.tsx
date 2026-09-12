@@ -166,6 +166,17 @@ export default function MonitoringDashboard() {
     );
   }
 
+  // Whether any recommendation below will render. Kept in step with the list
+  // by hand — a mismatch would either hide real advice or print "nothing needs
+  // attention" above a warning, and the second is worse than the first.
+  const hasAdvice =
+    monitoring.performance.errorRate > 1 ||
+    monitoring.performance.avgResponseTime > 2500 ||
+    monitoring.errors.totalErrors > 50 ||
+    monitoring.uptime.outside.checks === 0 ||
+    Boolean(monitoring.uptime.outside.lastFailureAt) ||
+    Object.values(monitoring.health).some((value) => value === "down");
+
   // Grey for "not set up", so the eye stops treating it as a fault.
   const getHealthColor = (status: ServiceStatus) =>
     status === "up"
@@ -575,8 +586,8 @@ export default function MonitoringDashboard() {
               <p className="mt-4 rounded-lg border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-semibold leading-6 text-brand-green">
                 🔵{" "}
                 <AlertText
-                  en="Too few readings yet — a dependable ranking needs at least ten. What is below is everything there is, not an order of merit."
-                  ne="अझै थोरै नाप — भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ। तल क्रम होइन, भएको जति देखाइएको हो।"
+                  en="Most rows say “Too few readings” because few shoppers have opened those pages yet — a reading is only made when somebody visits. Nothing is broken; this fills in as the shop gets visitors."
+                  ne="धेरै पङ्क्तिमा “नाप थोरै” लेखिनुको कारण — ती पाना अझै थोरै ग्राहकले मात्र खोलेका छन्। कसैले खोलेपछि मात्र नाप बन्छ। केही बिग्रेको होइन; ग्राहक बढ्दै जाँदा आफैं भरिन्छ।"
                 />
               </p>
             ) : null}
@@ -687,10 +698,22 @@ export default function MonitoringDashboard() {
         )}
       </div>
 
-      {/* Recommendations */}
+      {/* Recommendations.
+          Every line here is conditional, which is right — advice nobody needs
+          is noise. But that left the box drawing a heading over nothing
+          whenever the shop was healthy, which reads as a screen that failed to
+          load rather than as good news. So the quiet case says so. */}
       <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
         <h3 className="font-semibold text-brand-green mb-2">💡 Recommendations</h3>
         <ul className="text-sm text-brand-green space-y-1">
+          {!hasAdvice ? (
+            <li>
+              <AlertText
+                en="✓ Nothing needs attention: no errors, every service answering, and page-paint times inside Google's good mark."
+                ne="✓ अहिले केही गर्नुपर्ने छैन — कुनै गल्ती छैन, सबै सेवा चलिरहेका छन्, र पाना खुल्ने समय Google कै राम्रो सीमाभित्र छ।"
+              />
+            </li>
+          ) : null}
           {monitoring.performance.errorRate > 1 && (
             <li>✓ Error rate is high - check recent deployments</li>
           )}

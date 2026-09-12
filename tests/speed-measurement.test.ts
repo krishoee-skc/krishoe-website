@@ -144,7 +144,13 @@ describe("what the speed panel claims", () => {
     const dashboard = await readFile(DASHBOARD, "utf8");
 
     expect(dashboard).toContain("monitoring.performance.samples < 10");
-    expect(dashboard).toContain("भरपर्दो क्रम देखाउन कम्तीमा १० चाहिन्छ");
+
+    // The note used to say only that a dependable ranking needs ten readings,
+    // which reads as a fault in the shop. It is not one: a reading is made only
+    // when somebody opens the page, and few people have opened those pages yet.
+    // The threshold is unchanged; the sentence now says why.
+    expect(dashboard).toContain("few shoppers have opened those pages yet");
+    expect(dashboard).toContain("ग्राहक बढ्दै जाँदा आफैं भरिन्छ");
   });
 
   it("says how many readings it rests on", async () => {

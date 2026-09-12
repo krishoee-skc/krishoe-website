@@ -48,7 +48,12 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
 
       <div className="border-b border-black/[0.08]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-3.5 md:px-8">
-          <Link href="/" className="flex min-w-0 shrink items-center gap-3">
+          {/* The shop's own name does not shrink. With `shrink` on this link it
+              was the item that gave way when the search box and the buttons
+              wanted room, and on a wide laptop the brand rendered as "K .."
+              beside its own crest — the one piece of text on the page that
+              must always be readable. The search box yields instead. */}
+          <Link href="/" className="flex shrink-0 items-center gap-3">
             {/* The shop's own mark, set in a gold hairline ring. A stamped seal
                 rather than a picture pasted on a page — one distinctive detail,
                 and everything around it stays quiet. */}
@@ -73,14 +78,17 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
                 className="h-full w-full object-contain"
               />
             </span>
-            <span className="min-w-0">
+            <span>
               {/* Tighter letter-spacing on the phone so the full name fits
                   beside the crest instead of truncating to "KRISH…"; the wide,
                   premium spacing returns once there is room. */}
-              <span className="block truncate text-lg font-black uppercase tracking-[0.12em] text-brand-green-ink sm:text-xl sm:tracking-[0.26em]">
+              <span className="block whitespace-nowrap text-lg font-black uppercase tracking-[0.12em] text-brand-green-ink sm:text-xl sm:tracking-[0.24em]">
                 KRISHOE
               </span>
-              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-gold-deep sm:block">
+              {/* whitespace-nowrap: at this letter-spacing the line is wider
+                  than the column it sat in, so it broke into "WALK / WITH /
+                  AUTHORITY" stacked under the name. */}
+              <span className="hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.28em] text-brand-gold-deep sm:block">
                 Walk with Authority
               </span>
             </span>
