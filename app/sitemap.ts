@@ -61,6 +61,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
+      // "Can I send it back" is asked before the order, not after, so this is
+      // a page that sells rather than a policy that files. It was missing from
+      // the sitemap while /privacy and /terms were in it — the one of the
+      // three a shopper actually searches for was the one Google was not told
+      // about.
+      url: `${baseUrl}/return-policy`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      // Customers said they could not find where to leave a review. This is
+      // that page, and a page Google has never been shown is a page nobody can
+      // search their way to.
+      url: `${baseUrl}/review`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: `${baseUrl}/privacy`,
       lastModified: now,
       changeFrequency: "yearly",
