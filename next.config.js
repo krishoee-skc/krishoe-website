@@ -112,6 +112,17 @@ const nextConfig = {
         hostname: "**.public.blob.vercel-storage.com",
         pathname: "/**",
       },
+      {
+        // YouTube's own thumbnails, for ShopVideo. The component shows this
+        // one image instead of loading the player, so a visitor who scrolls
+        // past a video pays for a picture rather than a megabyte of iframe.
+        // Narrowed to the thumbnail path: this host serves nothing else we
+        // want, and a wildcard here would let any ytimg URL through the
+        // optimiser.
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        pathname: "/vi/**",
+      },
     ],
     // Optimize images for better performance
     formats: ["image/avif", "image/webp"],

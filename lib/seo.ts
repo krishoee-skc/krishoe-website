@@ -75,6 +75,21 @@ export const businessContact = {
   instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://www.instagram.com/krishoe.np",
   tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://www.tiktok.com/@s.k.c.shoes666",
   /**
+   * The shop's YouTube channel, once it exists.
+   *
+   * Empty on purpose, and the one difference from the three above: those carry
+   * a default because the accounts are real and the owner posts from them. No
+   * KRISHOE channel had been created when this was written, and a footer icon
+   * leading to a 404 — or a `sameAs` naming a channel that is not the shop's —
+   * is worse than no icon at all. Google reads `sameAs` as a claim of identity.
+   *
+   * Set NEXT_PUBLIC_YOUTUBE_URL to the channel address and it appears in the
+   * footer and the schema with no code change; businessSocialProfiles() drops
+   * anything empty. Use the channel's own URL (youtube.com/@handle), not a
+   * single video's.
+   */
+  youtube: process.env.NEXT_PUBLIC_YOUTUBE_URL ?? "",
+  /**
    * The shop's Google Business Profile, once it exists.
    *
    * This is the single strongest local signal there is — it is what puts a shop
@@ -111,6 +126,7 @@ export function businessSocialProfiles() {
     { label: "Facebook", url: businessContact.facebook },
     { label: "Instagram", url: businessContact.instagram },
     { label: "TikTok", url: businessContact.tiktok },
+    { label: "YouTube", url: businessContact.youtube },
   ]
     .map((profile) => ({ ...profile, url: profile.url.trim() }))
     .filter((profile) => profile.url.length > 0);
