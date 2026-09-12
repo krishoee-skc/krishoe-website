@@ -24,7 +24,9 @@ import { describe, expect, it } from "vitest";
  * half true on the day it shipped and false the day a bought-in pair arrived.
  */
 const SECTIONS = [
-  "components/Categories.tsx",
+  // Lowercase on disk and in its import. Windows does not care; Linux does,
+  // and CI runs on Linux — this read threw ENOENT there while passing here.
+  "components/categories.tsx",
   "components/BestSeller.tsx",
   "components/NewArrivals.tsx",
   "components/FeaturedProducts.tsx",
