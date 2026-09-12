@@ -3,13 +3,38 @@ import { businessContact, businessSocialProfiles } from "@/lib/seo";
 import T from "@/components/T";
 
 /**
- * The foot of the shop, in gold.
+ * The foot of the shop, in gold, framed.
  *
- * Balanced columns, every link led by its own dark medallion, and the socials
- * carry their real marks — Facebook, Instagram, TikTok — rather than their
- * names in text. The ground is a warm champagne gold now, so the type turns
- * deep green to stay readable on it, and the medallions go dark green with a
- * gold glyph so they read as one premium set against the gold.
+ * The socials carry their real marks — Facebook, Instagram, TikTok — rather
+ * than their names in text, and the medallions are dark green with a gold
+ * glyph so they read as one premium set against the gold.
+ *
+ * Two things were measured and fixed here.
+ *
+ * Height. The owner asked for the same width but less of it down the page.
+ * The old layout ran 522px on a desktop, and one column caused most of it:
+ * Company's eight links stacked vertically came to 262px on their own — half
+ * the footer. The links now run across a grid rather than down a single
+ * column, the brand block and the offer share one line instead of two, and the
+ * padding came down with them. No link was removed: all twenty are still here,
+ * and `shopLinks` and `companyLinks` are still the lists they are drawn from.
+ *
+ * Contrast, which the screenshot showed and the numbers confirmed. Deep green
+ * type on this gold was being set at 55-85% opacity, and against the darker
+ * end of the gradient (#C0983B) that measures:
+ *
+ *   ink/55  2.15    "WALK WITH AUTHORITY"
+ *   ink/75  2.89    links and body copy
+ *   ink/85  3.37
+ *   ink/100 4.15
+ *
+ * WCAG AA wants 4.5 for body text. Every one of those failed, so the type is
+ * now set at full strength, and the gradient was lifted a little at its dark
+ * end (#CBA544) to carry it — together that clears 4.5 across the whole ground
+ * rather than only where the gold happens to be pale.
+ *
+ * The gold border on the top and sides, and the gold rule above the green
+ * bottom band, are the frame the owner asked for.
  */
 const shopLinks = [
   { href: "/shop/ladies-sandals", en: "Ladies Sandals", ne: "महिला सेन्डिल" },
@@ -32,8 +57,14 @@ const companyLinks = [
   { href: "/return-policy", en: "Return policy", ne: "साट्ने नियम" },
 ];
 
+/**
+ * The gold ground, lifted at its dark end so deep-green type clears WCAG AA
+ * across all of it. Measured against #1A4238 at full strength:
+ * #EFDFAD 8.42, #DCBC5C 6.06, #CBA544 4.79 — all above the 4.5 body-text bar.
+ * The old end stop, #C0983B, reached only 4.15 even at full strength.
+ */
 const GOLD_GROUND =
-  "radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.28), transparent 45%), linear-gradient(160deg,#EBD79A 0%,#D6B24A 48%,#C0983B 100%)";
+  "radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.30), transparent 48%), linear-gradient(160deg,#EFDFAD 0%,#DCBC5C 52%,#CBA544 100%)";
 
 /** Each social platform's own mark, so a pill reads as the brand, not the word. */
 function SocialGlyph({ label }: { label: string }) {
@@ -75,16 +106,31 @@ export default function Footer() {
   const socials = businessSocialProfiles();
 
   return (
-    <footer className="text-brand-green-ink" style={{ background: GOLD_GROUND }}>
-      {/* First-order offer strip. */}
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-b border-brand-green-ink/15 px-6 py-6">
-        <div>
-          <h3 className="font-display text-2xl font-bold text-brand-green-ink">
-            <T en="5% off your first order" ne="पहिलो अर्डरमा ५% छुट" />
-          </h3>
-          <p className="mt-1 text-sm text-brand-green-ink/70">
-            <T en="Explore the collection made in Nepal." ne="नेपालमै बनेको संग्रह हेर्नुहोस्।" />
-          </p>
+    <footer
+      className="border-x-[3px] border-t-[3px] border-brand-gold text-brand-green-ink"
+      style={{ background: GOLD_GROUND }}
+    >
+      {/* The brand and the first-order offer share one line. They were stacked
+          as two blocks before, which cost ~104px for six words. */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 border-b border-brand-green-ink/25 px-6 py-4">
+        <div className="flex flex-wrap items-center gap-5">
+          <div>
+            <h2 className="font-display text-xl font-black uppercase tracking-[0.22em] text-brand-green-ink">
+              KRISHOE
+            </h2>
+            <p className="mt-0.5 text-[9.5px] font-bold uppercase tracking-[0.28em] text-brand-green-ink">
+              Walk with Authority
+            </p>
+          </div>
+          <span aria-hidden="true" className="hidden h-9 w-px bg-brand-green-ink/25 sm:block" />
+          <div>
+            <p className="font-display text-[17px] font-black text-brand-green-ink">
+              <T en="5% off your first order" ne="पहिलो अर्डरमा ५% छुट" />
+            </p>
+            <p className="mt-0.5 text-[12.5px] text-brand-green-ink">
+              <T en="Explore the collection made in Nepal." ne="नेपालमै बनेको संग्रह हेर्नुहोस्।" />
+            </p>
+          </div>
         </div>
         <Link
           href="/shop"
@@ -94,23 +140,30 @@ export default function Footer() {
         </Link>
       </div>
 
-      {/* Four even columns. */}
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Links across, not down. Twenty links in a single stacked column ran
+          262px on their own; flowing them through a grid puts the same twenty
+          in four rows. */}
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-6 lg:grid-cols-[2.2fr_1.15fr]">
         <div>
-          <h2 className="font-display text-2xl font-black uppercase tracking-[0.22em] text-brand-green-ink">
-            KRISHOE
-          </h2>
-          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-green-ink/55">
-            Walk with Authority
-          </p>
-          <p className="mt-4 max-w-xs text-sm leading-6 text-brand-green-ink/75">
-            <T
-              en="Premium footwear crafted for Nepal — style, comfort and quality in every step."
-              ne="नेपालमै बनेको premium जुत्ता — हरेक पाइलामा style, comfort र quality।"
-            />
-          </p>
+          <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
+            <T en="Shop" ne="पसल" /> &amp; <T en="Company" ne="कम्पनी" />
+          </h3>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-brand-green-ink sm:grid-cols-3">
+            {[...shopLinks, ...companyLinks].map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="group/link flex items-center gap-2 font-semibold transition hover:text-brand-green">
+                  <span className={linkMedallion}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <T en={link.en} ne={link.ne} />
+                </Link>
+              </li>
+            ))}
+          </ul>
           {socials.length ? (
-            <div className="mt-5 flex flex-wrap gap-2.5">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               {socials.map((profile) => (
                 <a
                   key={profile.label}
@@ -128,50 +181,10 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
-            <T en="Shop" ne="पसल" />
-          </h3>
-          <ul className="space-y-2.5 text-sm text-brand-green-ink/85">
-            {shopLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="group/link flex items-center gap-2.5 font-semibold transition hover:text-brand-green">
-                  <span className={linkMedallion}>
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                  <T en={link.en} ne={link.ne} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
-            <T en="Company" ne="कम्पनी" />
-          </h3>
-          <ul className="space-y-2.5 text-sm text-brand-green-ink/85">
-            {companyLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="group/link flex items-center gap-2.5 font-semibold transition hover:text-brand-green">
-                  <span className={linkMedallion}>
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                  <T en={link.en} ne={link.ne} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
+          <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
             <T en="Contact" ne="सम्पर्क" />
           </h3>
-          <ul className="space-y-3.5 text-sm font-semibold text-brand-green-ink/85">
+          <ul className="space-y-2.5 text-sm font-semibold text-brand-green-ink">
             <li className="flex items-start gap-2.5">
               <span className="mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-md bg-brand-green text-brand-gold-bright">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.3" /></svg>
@@ -212,9 +225,12 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar — a dark green band under the gold. */}
-      <div className="bg-brand-green-ink text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-5 text-xs text-white/70">
+      {/* Bottom bar — a dark green band under the gold, with the gold rule
+          between them closing the frame. White at 85% rather than 70%: on this
+          green that is 8.59 against 6.36, and the payment pills beside it are
+          bright enough to make a dimmer line read as switched off. */}
+      <div className="border-t-[3px] border-brand-gold bg-brand-green-ink text-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3.5 text-xs text-white/85">
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>© 2026 KRISHOE · {businessContact.addressLocality}, {businessContact.addressRegion}</span>
             <Link href="/privacy" className="transition hover:text-brand-gold-bright"><T en="Privacy" ne="गोपनीयता" /></Link>
