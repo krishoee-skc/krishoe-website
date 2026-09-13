@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { businessContact, getSiteUrl } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -23,7 +24,6 @@ export const dynamic = "force-dynamic";
 // bill the way the sample invoice carries it. Per-product codes can replace this
 // later without touching the layout.
 const HS_CODE = "6402.99.90";
-const RETURN_NOTE = "Goods once sold will not be taken back.";
 
 
 // Plain rupees for the invoice columns (the sample prints amounts without the
@@ -52,6 +52,12 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
   // The seller block on the bill — legal name, address, phone and PAN — comes
   // from the shop's own company settings, so one edit there updates every bill.
   const company = (await getAdminSettings()).company;
+
+  // Just the domain — a bill has no room for https:// and the customer does
+  // not type that part anyway.
+  const shopDomain = getSiteUrl()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
   const sellerName = company.legalName || company.companyName || "KRISHOE";
 
   // A ready-to-send bill summary for the customer's WhatsApp. Kept short — the
@@ -202,9 +208,16 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           <span className="italic text-brand-muted">{amountInWords(invoice.total)}</span>
         </div>
 
+        {/* The bill used to carry "Goods once sold will not be taken back"
+            here, which contradicts the shop: /return-policy and the storefront
+            trust strip both promise seven days to exchange or return. A
+            customer holding a bill that says the opposite of the website has
+            been told two different things by the same shop, and the one on
+            paper is the one they will believe.
+
+            The shop's own line now prints at the foot instead, from Settings. */}
         <div className="mt-2 text-xs text-brand-muted">
           <p>Remarks: {invoice.note || "—"}</p>
-          <p className="mt-0.5">Note: {RETURN_NOTE}</p>
         </div>
 
         {invoice.creditAmount > 0 ? (
@@ -237,8 +250,31 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           ) : null}
         </div>
 
-        <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-[11px] text-brand-muted">
-          Billed by {invoice.cashier} · This is a computer generated invoice · KRISHOE POS
+        {/* What the customer can actually use, on the paper they take home.
+            The bill is the one thing they still have three days later, when
+            the shoe turns out to be a size small — and until now the foot of
+            it said "This is a computer generated invoice", which tells them
+            nothing.
+
+            The return line is the shop's own, from Settings, so the window
+            stays the shop's decision. Blank prints nothing rather than an
+            empty box. The phone and web address come from what the shop
+            already knows about itself, so there is no second place to keep
+            them in step. */}
+        {company.billFooterNote ? (
+          <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-[11px] font-bold text-brand-green-ink">
+            {company.billFooterNote}
+          </p>
+        ) : null}
+
+        <p className={`text-center text-[11px] text-brand-muted ${company.billFooterNote ? "mt-1" : "mt-3 border-t border-brand-green-line pt-2"}`}>
+          {company.phone ? <>☎ {company.phone} · </> : null}
+          {businessContact.whatsappDisplay ? <>WhatsApp {businessContact.whatsappDisplay} · </> : null}
+          <span className="font-bold">{shopDomain}</span>
+        </p>
+
+        <p className="mt-1 text-center text-[11px] text-brand-muted">
+          Billed by {invoice.cashier} · KRISHOE POS
         </p>
       </div>
     </section>

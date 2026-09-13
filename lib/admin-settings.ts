@@ -28,6 +28,9 @@ export type CompanySettings = {
   timezone: string;
   defaultBranchId: string;
   /** The owner's own line for the storefront top bar. Empty falls back to the built-in one. */
+  /** The line the shop prints at the foot of every POS bill. Empty prints
+   *  nothing — the bill then reads exactly as it did before. */
+  billFooterNote: string;
   promoText: string;
   /** Whether the owner's promo line is shown at all. */
   promoEnabled: boolean;
@@ -129,6 +132,7 @@ type CompanySettingsRow = {
   currency: string;
   timezone: string;
   default_branch_id: string;
+  bill_footer_note: string;
   promo_text: string;
   promo_enabled: boolean;
   google_review_url: string;
@@ -317,6 +321,7 @@ function createDefaultSettings(): AdminSettingsStore {
       currency: "NPR",
       timezone: "Asia/Kathmandu",
       defaultBranchId: branches[0]?.id ?? "",
+      billFooterNote: "",
       promoText: "",
       promoEnabled: false,
       googleReviewUrl: "",
@@ -385,6 +390,7 @@ function companyFromRow(row: CompanySettingsRow, defaultBranchId: string): Compa
     currency: row.currency,
     timezone: row.timezone,
     defaultBranchId: row.default_branch_id || defaultBranchId,
+    billFooterNote: row.bill_footer_note ?? "",
     promoText: row.promo_text ?? "",
     promoEnabled: Boolean(row.promo_enabled),
     googleReviewUrl: row.google_review_url ?? "",
@@ -434,6 +440,7 @@ function normalizeStore(value: unknown): AdminSettingsStore {
       currency: requiredText(source.company?.currency, "NPR").toUpperCase().slice(0, 3),
       timezone: requiredText(source.company?.timezone, "Asia/Kathmandu"),
       defaultBranchId,
+      billFooterNote: optionalText(source.company?.billFooterNote),
       promoText: optionalText(source.company?.promoText),
       promoEnabled: Boolean(source.company?.promoEnabled),
       googleReviewUrl: optionalText(source.company?.googleReviewUrl),
@@ -538,7 +545,7 @@ async function readSettingsFromPostgres(): Promise<AdminSettingsStore> {
     "admin settings",
     `
       SELECT id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        currency, timezone, default_branch_id, bill_footer_note, promo_text, promo_enabled,
         google_review_url, facebook_review_url,
         bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
       FROM company_settings
@@ -632,6 +639,7 @@ async function saveCompanySettingsToLocalJson(input: Partial<CompanySettings>) {
     currency: requiredText(input.currency, settings.company.currency).toUpperCase().slice(0, 3),
     timezone: requiredText(input.timezone, settings.company.timezone),
     defaultBranchId,
+    billFooterNote: (input.billFooterNote ?? settings.company.billFooterNote ?? "").trim().slice(0, 200),
     promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
@@ -664,6 +672,7 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     currency: requiredText(input.currency, settings.company.currency).toUpperCase().slice(0, 3),
     timezone: requiredText(input.timezone, settings.company.timezone),
     defaultBranchId,
+    billFooterNote: (input.billFooterNote ?? settings.company.billFooterNote ?? "").trim().slice(0, 200),
     promoText: (input.promoText ?? settings.company.promoText ?? "").trim().slice(0, 160),
     promoEnabled: input.promoEnabled ?? settings.company.promoEnabled ?? false,
     googleReviewUrl: reviewUrl(input.googleReviewUrl ?? settings.company.googleReviewUrl),
@@ -687,11 +696,11 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
     `
       INSERT INTO company_settings (
         id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        currency, timezone, default_branch_id, bill_footer_note, promo_text, promo_enabled,
         google_review_url, facebook_review_url,
         bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
       )
-      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       ON CONFLICT (id) DO UPDATE SET
         company_name = EXCLUDED.company_name,
         legal_name = EXCLUDED.legal_name,
@@ -702,6 +711,7 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
         currency = EXCLUDED.currency,
         timezone = EXCLUDED.timezone,
         default_branch_id = EXCLUDED.default_branch_id,
+        bill_footer_note = EXCLUDED.bill_footer_note,
         promo_text = EXCLUDED.promo_text,
         promo_enabled = EXCLUDED.promo_enabled,
         google_review_url = EXCLUDED.google_review_url,
@@ -712,7 +722,7 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
         bank_branch = EXCLUDED.bank_branch,
         updated_at = EXCLUDED.updated_at
       RETURNING id, company_name, legal_name, phone, email, address, pan_vat_number,
-        currency, timezone, default_branch_id, promo_text, promo_enabled,
+        currency, timezone, default_branch_id, bill_footer_note, promo_text, promo_enabled,
         google_review_url, facebook_review_url,
         bank_name, bank_account_name, bank_account_number, bank_branch, updated_at
     `,
@@ -726,6 +736,7 @@ async function saveCompanySettingsToPostgres(input: Partial<CompanySettings>) {
       nextCompany.currency,
       nextCompany.timezone,
       nextCompany.defaultBranchId,
+      nextCompany.billFooterNote,
       nextCompany.promoText,
       nextCompany.promoEnabled,
       nextCompany.googleReviewUrl,

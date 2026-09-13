@@ -1,0 +1,27 @@
+-- The line the shop prints at the foot of every bill.
+--
+-- A POS bill leaves in the customer's bag and is the one piece of paper they
+-- still have three days later, when the shoe turns out to be a size small.
+-- What the foot of it says today is:
+--
+--   Billed by <cashier> · This is a computer generated invoice · KRISHOE POS
+--
+-- None of which the customer can use. What they would look for is whether the
+-- pair can be exchanged, and how to reach the shop. The return window is
+-- already written on /return-policy and in the trust strip — seven days — but
+-- nowhere on the paper they are holding.
+--
+-- Kept in settings rather than hard-coded because the window is the shop's
+-- decision, not the software's. Seven days today; if it ever becomes fifteen,
+-- the owner changes it here rather than asking anyone to edit code.
+--
+-- Empty means the shop has not written one, and the bill then prints exactly
+-- as it does now — no empty box, no half a sentence. The phone, WhatsApp and
+-- web address are not stored here: those the shop already knows about itself,
+-- and duplicating them would be one more place to keep in step.
+--
+-- Additive, defaulted, reversible — like the columns before it, and applied to
+-- the database before the code that reads it ships, so no deployment ever
+-- selects a column that is not there.
+
+ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS bill_footer_note text NOT NULL DEFAULT '';

@@ -258,6 +258,29 @@ export default async function AdminSettingsPage({
               />
             </label>
 
+            {/* The line printed at the foot of every POS bill.
+                The bill leaves in the customer's bag and is the paper they
+                still have three days later, when the shoe turns out to be a
+                size small — so the return window belongs on it, not only on
+                the website. Kept here rather than in the code because the
+                window is the shop's decision: seven days today, and if it ever
+                becomes fifteen the owner changes it here.
+                Blank prints nothing, and the bill reads as it did before. */}
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
+              Bill footer note
+              <input
+                name="billFooterNote"
+                defaultValue={settings.company.billFooterNote}
+                maxLength={200}
+                placeholder="e.g. Exchange or return within 7 days — unworn, with tags and box"
+                className="min-h-11 rounded-lg border border-brand-green-line px-3 py-2 text-sm font-normal outline-none focus:border-brand-green"
+              />
+              <span className="text-xs font-semibold text-brand-muted">
+                Printed at the foot of every bill, above the shop&apos;s phone and web
+                address. Leave blank to print nothing.
+              </span>
+            </label>
+
             {/* The line shown across the top of the shop. The owner writes it —
                 a welcome code, a Dashain offer, a delivery line — and turns it on
                 or off. Off or blank shows the built-in line instead. */}

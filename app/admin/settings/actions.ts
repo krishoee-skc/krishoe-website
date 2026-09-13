@@ -163,6 +163,7 @@ export async function saveCompanySettingsAction(formData: FormData) {
       currency: textValue(formData, "currency"),
       timezone: textValue(formData, "timezone"),
       defaultBranchId: textValue(formData, "defaultBranchId"),
+      billFooterNote: textValue(formData, "billFooterNote"),
       promoText: textValue(formData, "promoText"),
       promoEnabled: textValue(formData, "promoEnabled") === "on",
       googleReviewUrl: textValue(formData, "googleReviewUrl"),
