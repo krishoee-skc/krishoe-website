@@ -102,6 +102,16 @@ const nextConfig = {
   // Keep the dev server's cross-origin protection, but explicitly allow that
   // loopback origin for the browser test runner.
   allowedDevOrigins: ["127.0.0.1"],
+  // onnxruntime-node loads a native binary at runtime, which a bundler cannot
+  // follow — it has to stay a real package on disk. The background-removal
+  // route is the only thing that imports it.
+  serverExternalPackages: ["onnxruntime-node", "sharp"],
+  outputFileTracingIncludes: {
+    // The model file is data, not code, so nothing imports it and tracing
+    // would leave it behind.
+    "/api/admin/remove-background": ["./models/u2netp.onnx"],
+  },
+
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

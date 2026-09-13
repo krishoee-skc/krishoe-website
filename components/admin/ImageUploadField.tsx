@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import RemoveBackgroundButton from "@/components/admin/RemoveBackgroundButton";
 
 type UploadStatus = "checking" | "blob" | "database" | "local" | "none";
 
@@ -152,9 +153,16 @@ export default function ImageUploadField({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          // Each type listed rather than a wildcard. A wildcard here opens a
+          // sequence that reads as the start of a block comment to anything
+          // scanning this file for markup, and everything after it — including
+          // the hidden flag and the label below — is then treated as comment
+          // and ignored. These are also exactly the types the upload route
+          // accepts, so the picker offers nothing that would be refused.
+          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
           multiple={multiple}
           hidden
+          aria-label={multiple ? "Photos to upload" : "Photo to upload"}
           onChange={(event) => uploadFiles(event.target.files)}
         />
         <span className="text-xs text-brand-muted">or paste a URL above</span>
@@ -202,6 +210,18 @@ export default function ImageUploadField({
             </span>
           ))}
         </div>
+      ) : null}
+
+      {/* Offered only where photos can actually be stored — on a dev machine
+          with no blob store the result would be a URL the live shop cannot
+          load, and the panel would promise something it cannot deliver. */}
+      {status === "blob" || status === "database" ? (
+        <RemoveBackgroundButton
+          currentUrl={urls.filter(isPreviewable)[0] ?? ""}
+          onKeep={(url) =>
+            setValue((previous) => (multiple ? [...splitUrls(previous), url].join(", ") : url))
+          }
+        />
       ) : null}
     </div>
   );
