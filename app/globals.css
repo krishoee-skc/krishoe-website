@@ -741,6 +741,72 @@ table th,
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
+
+  /* A report that runs past one sheet — a worker's ledger, the dues list, a
+     stock count. The receipt rules above assume one short page; these are the
+     opposite, and the things that go wrong on paper are different.
+
+     `.report-print` marks the sheet. What it fixes:
+
+     - A table splitting mid-row, so half a line is on one page and half on the
+       next, and the reader cannot tell which number belongs to which name.
+     - The header row appearing only on page one, leaving pages two and three
+       as columns of unlabelled figures. `thead` repeats on every sheet.
+     - The totals row breaking away from the rows it totals.
+     - Colour: a screen's tinted rows and coloured badges either cost the shop
+       ink or come out as grey mud on a mono printer. On paper the sheet is
+       black on white, with hairlines instead of fills. */
+  .report-print {
+    font-size: 11.5px;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .report-print table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .report-print thead {
+    display: table-header-group;
+  }
+
+  .report-print tfoot {
+    display: table-footer-group;
+  }
+
+  .report-print tr,
+  .report-print img,
+  .report-print svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-print th,
+  .report-print td {
+    padding: 5px 7px !important;
+    border-bottom: 1px solid #999 !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .report-print thead th {
+    border-bottom: 1.5px solid #000 !important;
+    font-weight: 800 !important;
+  }
+
+  /* The sheet's own heading block stays with the first rows rather than
+     stranding itself at the foot of a page. */
+  .report-print .report-head {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Anything that only makes sense on a screen — filters, buttons, tabs. */
+  .print\:hidden,
+  .report-print .no-print {
+    display: none !important;
+  }
 }
 
 /* The serif is the shop's voice, not the back office's.

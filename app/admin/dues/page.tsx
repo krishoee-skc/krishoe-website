@@ -1,4 +1,7 @@
 import Link from "next/link";
+import PrintButton from "@/components/admin/PrintButton";
+import PrintedOn from "@/components/admin/PrintedOn";
+import { businessContact } from "@/lib/seo";
 import T from "@/components/T";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -101,16 +104,34 @@ export default async function AdminDuesPage() {
   const payable = purchasing.summary.supplierDue;
 
   return (
-    <section className="p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    // `report-print` is what makes this list work on paper: the header row
+    // repeats on every sheet, so page two is not a column of unlabelled
+    // figures, and no row splits across the fold. This is the sheet the owner
+    // carries when going to collect what is owed.
+    <section className="report-print p-4 sm:p-6">
+      <div className="report-head flex flex-wrap items-start justify-between gap-4">
         <div>
+          {/* Paper only — on screen the shop's name is already in the nav. */}
+          <div className="mb-2 hidden border-b border-brand-green-line pb-2 print:block">
+            <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">KRISHOE</p>
+            <p className="text-[11px] text-brand-muted">
+              {businessContact.streetAddress}, {businessContact.addressLocality} · {businessContact.phoneDisplay}
+            </p>
+            <p className="mt-1 text-[11px] text-brand-muted">
+              <T en="Printed" ne="छापिएको" />: <PrintedOn />
+            </p>
+          </div>
+
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">Credit control</p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl"><T en="Customer and supplier ledgers" ne="ग्राहक र साहुको खाता" /></h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted print:hidden">
             Customer receivable means money KRISHOE must collect. Supplier payable means money KRISHOE must pay.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <PrintButton className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink">
+            🖨️ <T en="Print" ne="छाप्ने" />
+          </PrintButton>
           <Link href="/admin/operations#customer-ledgers" className="rounded-full border border-brand-green bg-brand-paper px-4 py-2 text-sm font-black text-brand-green">All customer ledgers</Link>
           <Link href="/admin/purchasing#supplier-ledgers" className="rounded-full bg-brand-green px-4 py-2 text-sm font-black text-white">All supplier ledgers</Link>
         </div>

@@ -223,7 +223,11 @@ async function strandedStrings(file: string) {
     // Anything already inside a pair is not stranded.
     .replace(/\btext\(\s*(["'`])[\s\S]*?\1\s*,\s*(["'`])[\s\S]*?\2\s*,?\s*\)/g, "")
     .replace(/<T\s[\s\S]*?\/>/g, "")
-    .replace(/<AlertText[\s\S]*?\/>/g, "");
+    .replace(/<AlertText[\s\S]*?\/>/g, "")
+    // The shop's own name. It is the same word in both languages — it is not
+    // a label waiting to be translated, and the printed sheets carry it as a
+    // masthead so a loose page can be traced back to where it came from.
+    .replace(/>\s*KRISHOE\s*</g, "><");
 
   const between = source.match(/>[\s]*[A-Z][A-Za-z ,.'’()/-]{3,60}[\s]*</g) ?? [];
   const placeholders = source.match(/placeholder="[A-Z][^"]{3,60}"/g) ?? [];

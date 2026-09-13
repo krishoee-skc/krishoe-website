@@ -10,6 +10,9 @@ import {
   nepalDateKey,
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
+import PrintButton from "@/components/admin/PrintButton";
+import PrintedOn from "@/components/admin/PrintedOn";
+import { businessContact } from "@/lib/seo";
 import StatTile from "@/components/admin/StatTile";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
@@ -375,9 +378,16 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-gold-deep">
               {text("Account of", "यो खाता कसको")}
             </p>
-            <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
-              {ledgerData.worker.name}
-            </h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
+                {ledgerData.worker.name}
+              </h2>
+              {/* A worker asking what they have earned should be able to be
+                  handed the sheet, not shown a screen. */}
+              <PrintButton className="no-print mt-1 inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink print:hidden">
+                🖨️ {text("Print this ledger", "यो खाता छाप्ने")}
+              </PrintButton>
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div>
                 <div className="text-xs sm:text-sm text-brand-muted">{text("Type", "किसिम")}</div>
@@ -436,9 +446,40 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
             />
           </div>
 
-          {/* Ledger Entries */}
-          <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
+          {/* Ledger Entries.
+              `report-print` is what makes this readable on paper: the header
+              row repeats on every sheet, rows do not split across the fold,
+              and the screen's tinted cells drop out so a mono printer gives
+              black on white. A worker is shown this sheet next to their own
+              name, so it has to carry the shop's name and the date — the
+              print-only header below does that. */}
+          <div className="report-print bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
+              {/* Paper only: on screen the worker's name and the month are
+                  already above this table. */}
+              <div className="report-head mb-3 hidden border-b border-brand-green-line pb-2 print:block">
+                <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">
+                  KRISHOE
+                </p>
+                <p className="text-[11px] text-brand-muted">
+                  {businessContact.streetAddress}, {businessContact.addressLocality} ·{" "}
+                  {businessContact.phoneDisplay}
+                </p>
+                <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <p className="text-base font-black text-brand-green-ink">
+                      {ledgerData.worker.name}
+                    </p>
+                    <p className="text-[12px] text-brand-muted">
+                      {text("Worker ledger", "कामदारको खाता")} · {month}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-brand-muted">
+                    {text("Printed:", "छापिएको:")} <PrintedOn />
+                  </p>
+                </div>
+              </div>
+
               <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
               <table className="reflow-table w-full text-sm">
                 <thead className="border-b border-brand-green-line">
