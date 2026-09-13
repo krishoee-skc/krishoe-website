@@ -57,6 +57,9 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
   const [image, setImage] = useState(product.image);
   const [state, setState] = useState<PhotoActionState | null>(null);
   const [sizeWarning, setSizeWarning] = useState<{ en: string; ne: string } | null>(null);
+  // A cut-out waiting to be kept or discarded. Held here rather than saved,
+  // because whether it worked is something only the owner can see.
+  const [cutout, setCutout] = useState<{ url: string; keptPercent: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -112,6 +115,74 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
       setBusy(false);
       if (cameraRef.current) cameraRef.current.value = "";
       if (galleryRef.current) galleryRef.current.value = "";
+    }
+  }
+
+  /**
+   * Lift the shoe off the photo that is already on this card.
+   *
+   * Sends the URL rather than a file: the photo has been uploaded, and asking
+   * the shopkeeper to find the original on their phone again to do this would
+   * be the long way round from the screen they are already on.
+   *
+   * The result is shown and not saved. `cutout` holds it until they press keep,
+   * because the model does well on a plain background and keeps the hand when
+   * the shoe is being held — that is a judgement, not something to write over
+   * their photo unasked.
+   */
+  async function removeBackground() {
+    setBusy(true);
+    setState(null);
+    setSizeWarning(null);
+    setCutout(null);
+
+    try {
+      const body = new FormData();
+      body.append("url", image);
+
+      const response = await fetch("/api/admin/remove-background", { method: "POST", body });
+      const data = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        keptPercent?: number;
+        error?: string;
+      };
+
+      if (!response.ok || !data.url) {
+        throw new Error(
+          data.error ||
+            text("The background could not be removed.", "पृष्ठभूमि हटाउन सकिएन।"),
+        );
+      }
+
+      setCutout({ url: data.url, keptPercent: data.keptPercent ?? 0 });
+    } catch (error) {
+      // An error that came back from the route already carries its own
+      // sentence; when it carries none, this pair supplies both halves.
+      const failed = error instanceof Error ? error.message : "";
+      const fallback = { en: "The background could not be removed.", ne: "पृष्ठभूमि हटाउन सकिएन।" };
+      setState({ ok: false, en: failed || fallback.en, ne: failed || fallback.ne });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Keep the cut-out: save it over the main photo, the same way an upload does. */
+  async function keepCutout() {
+    if (!cutout) return;
+
+    setBusy(true);
+    try {
+      const save = new FormData();
+      save.append("productId", product.id);
+      save.append("image", cutout.url);
+      save.append("slot", "main");
+
+      const result = await saveProductPhotoAction(null, save);
+      setState(result);
+      if (result.ok) setImage(cutout.url);
+      setCutout(null);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -174,6 +245,72 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           🖼️ {text("From a file", "फाइलबाट")}
         </button>
       </div>
+
+      {/* Offered only once there is a real photo to work on — on a card still
+          showing a sample there is nothing to lift a shoe out of. */}
+      {product.hasRealPhoto && previewable ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={removeBackground}
+          className="min-h-11 rounded-xl border border-brand-gold bg-brand-cream-soft px-2 text-sm font-black text-brand-gold-ink transition hover:border-brand-gold-deep disabled:opacity-60"
+        >
+          ✂️ {text("Remove the background", "पृष्ठभूमि हटाउने")}
+        </button>
+      ) : null}
+
+      {cutout ? (
+        <div className="grid gap-2 rounded-xl border border-brand-gold/40 bg-brand-paper-deep p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <figure className="m-0">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-brand-mist">
+                <Image src={image} alt="" fill sizes="110px" className="object-contain" />
+              </div>
+              <figcaption className="mt-1 text-center text-[10px] font-bold text-brand-muted">
+                {text("Now", "अहिले")}
+              </figcaption>
+            </figure>
+            <figure className="m-0">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-brand-mist">
+                <Image src={cutout.url} alt="" fill sizes="110px" className="object-contain" />
+              </div>
+              <figcaption className="mt-1 text-center text-[10px] font-bold text-brand-green">
+                {text("After", "पछि")}
+              </figcaption>
+            </figure>
+          </div>
+
+          {/* A cut-out that kept most of the frame removed almost nothing —
+              usually a busy background the model could not separate. */}
+          {cutout.keptPercent > 60 ? (
+            <p className="rounded-lg bg-brand-cream px-2.5 py-1.5 text-[11px] font-bold text-brand-gold-ink">
+              {/* Both halves on one line: the shop's English-mode test reads a
+                  line at a time, so a wrapped pair looks like a bare Nepali
+                  string to it. */}
+              {text("Little was removed. A plain background behind the shoe would do better.", "थोरै मात्र हट्यो। जुत्ताको पछाडि सादा पृष्ठभूमि राखे राम्रो हुन्छ।")}
+            </p>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={keepCutout}
+              className="min-h-11 rounded-xl bg-brand-green px-2 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
+            >
+              {text("Keep this one", "यही राख्ने")}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setCutout(null)}
+              className="min-h-11 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-green-ink transition hover:bg-brand-mist disabled:opacity-60"
+            >
+              {text("Discard", "नराख्ने")}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* capture asks the phone for the rear camera; a desktop ignores it and
           opens the file picker, which is the right fallback either way. */}

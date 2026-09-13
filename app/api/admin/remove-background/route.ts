@@ -14,6 +14,46 @@ const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 /**
+ * Accept a photo URL only if it is one of the shop's own.
+ *
+ * The Add photos screen sends a URL rather than a file, because the photo it
+ * wants the background off is already uploaded. That turns this route into one
+ * that fetches a URL somebody else supplied, which is the shape of a
+ * server-side request forgery: without this check, anyone who could reach the
+ * route could make the server open addresses only the server can see — a cloud
+ * metadata endpoint, an internal service, a database admin page — and the
+ * error message would report back what it found.
+ *
+ * So: HTTPS only, and only the Vercel blob host the shop's own photos live on.
+ * Not a substring test — "vercel-storage.com.attacker.net" contains that name
+ * and is not that host. The URL is parsed and the hostname compared as a whole.
+ *
+ * Returns the parsed URL when it is ours, and null for everything else.
+ */
+function safeShopPhotoUrl(value: string): URL | null {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "https:") return null;
+
+  // The shop's photos are served from <store>.public.blob.vercel-storage.com.
+  const host = parsed.hostname.toLowerCase();
+  if (!host.endsWith(".public.blob.vercel-storage.com")) return null;
+
+  // A bare ".public.blob.vercel-storage.com" with nothing before it is not a
+  // real store, and neither is one with credentials or a port attached.
+  if (host === ".public.blob.vercel-storage.com") return null;
+  if (parsed.username || parsed.password || parsed.port) return null;
+
+  return parsed;
+}
+
+/**
  * Cut the background out of one photo, on request.
  *
  * Deliberately its own route rather than part of the upload. Background
@@ -33,23 +73,64 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const file = formData.get("file");
+  const url = formData.get("url");
 
-  if (!(file instanceof File)) {
+  let input: Buffer;
+
+  if (file instanceof File) {
+    // A photo being chosen now, from the product form.
+    if (!ALLOWED.includes(file.type)) {
+      return Response.json(
+        { error: "Only JPEG, PNG, WebP or AVIF photos can have their background removed." },
+        { status: 415 },
+      );
+    }
+
+    if (file.size > MAX_BYTES) {
+      return Response.json({ error: "That photo is too large." }, { status: 413 });
+    }
+
+    input = Buffer.from(await file.arrayBuffer());
+  } else if (typeof url === "string" && url.trim()) {
+    // A photo already on the shop, from the Add photos screen — the shopkeeper
+    // has uploaded it and now wants the background off it, without finding the
+    // original on their phone again.
+    //
+    // Only ever our own blob store. Fetching an arbitrary URL a form asked for
+    // would let anyone who reaches this route make the server open addresses of
+    // their choosing, including ones only the server can see.
+    const target = safeShopPhotoUrl(url.trim());
+    if (!target) {
+      return Response.json(
+        { error: "That photo is not one of the shop's own." },
+        { status: 400 },
+      );
+    }
+
+    const fetched = await fetch(target);
+    if (!fetched.ok) {
+      return Response.json({ error: "That photo could not be read." }, { status: 400 });
+    }
+
+    const type = fetched.headers.get("content-type") ?? "";
+    if (!ALLOWED.some((allowed) => type.startsWith(allowed))) {
+      return Response.json(
+        { error: "Only JPEG, PNG, WebP or AVIF photos can have their background removed." },
+        { status: 415 },
+      );
+    }
+
+    const bytes = Buffer.from(await fetched.arrayBuffer());
+    if (bytes.length > MAX_BYTES) {
+      return Response.json({ error: "That photo is too large." }, { status: 413 });
+    }
+
+    input = bytes;
+  } else {
     return Response.json({ error: "No image was received." }, { status: 400 });
   }
 
-  if (!ALLOWED.includes(file.type)) {
-    return Response.json(
-      { error: "Only JPEG, PNG, WebP or AVIF photos can have their background removed." },
-      { status: 415 },
-    );
-  }
-
-  if (file.size > MAX_BYTES) {
-    return Response.json({ error: "That photo is too large." }, { status: 413 });
-  }
-
-  const cut = await removePhotoBackground(Buffer.from(await file.arrayBuffer()));
+  const cut = await removePhotoBackground(input);
 
   if (!cut) {
     // Every failure path lands here: an unreadable file, a model that could not
