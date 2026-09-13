@@ -384,7 +384,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
               </h2>
               {/* A worker asking what they have earned should be able to be
                   handed the sheet, not shown a screen. */}
-              <PrintButton className="no-print mt-1 inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink print:hidden">
+              <PrintButton className="mt-1 inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink print:hidden">
                 🖨️ {text("Print this ledger", "यो खाता छाप्ने")}
               </PrintButton>
             </div>

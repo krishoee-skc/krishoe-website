@@ -802,9 +802,12 @@ table th,
     page-break-after: avoid;
   }
 
-  /* Anything that only makes sense on a screen — filters, buttons, tabs. */
-  .print\:hidden,
-  .report-print .no-print {
+  /* Anything that only makes sense on a screen — filters, buttons, tabs.
+     Tailwind already emits `print:hidden`; this repeats it with !important so
+     it wins against a utility on the same element. A second `no-print` class
+     was written here and never used anywhere — two names for one thing is how
+     a page ends up carrying the wrong one. */
+  .print\:hidden {
     display: none !important;
   }
 }
