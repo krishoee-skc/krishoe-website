@@ -129,6 +129,7 @@ export async function createPurchaseInvoiceAction(
       paidAmount: numberValue(formData, "paidAmount"),
       paymentMethod: optionValue(textValue(formData, "paymentMethod"), paymentMethods, "Cash"),
       paymentReference: textValue(formData, "paymentReference"),
+      supplierBillNo: textValue(formData, "supplierBillNo"),
       note: textValue(formData, "note"),
     });
   } catch (error) {

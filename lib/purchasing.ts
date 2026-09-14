@@ -147,6 +147,10 @@ export type PurchaseInvoice = {
   status: PurchaseInvoiceStatus;
   postingStatus: PurchasePostingStatus;
   supplierTransactionIds: string[];
+  /** The number printed on the supplier's own bill — theirs, not ours.
+   *  Optional: small suppliers here often hand over goods with no
+   *  printed bill, and requiring it would block a real delivery. */
+  supplierBillNo: string;
   note: string;
 };
 
@@ -207,6 +211,7 @@ export type CreatePurchaseInvoiceInput = {
   paidAmount: number;
   paymentMethod: SupplierPaymentMethod;
   paymentReference: string;
+  supplierBillNo?: string;
   note: string;
 };
 
@@ -396,6 +401,7 @@ function normalizePurchaseInvoice(invoice: Partial<PurchaseInvoice>): PurchaseIn
     supplierTransactionIds: Array.isArray(invoice.supplierTransactionIds)
       ? invoice.supplierTransactionIds.map(cleanText).filter(Boolean)
       : [],
+    supplierBillNo: cleanText(invoice.supplierBillNo ?? ""),
     note: cleanText(invoice.note ?? ""),
   };
 }
@@ -808,6 +814,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
         status: purchaseStatus(totals.total, paidAmount),
         postingStatus: "Posted",
         supplierTransactionIds,
+        supplierBillNo: normalizedInput.supplierBillNo ?? "",
         note: normalizedInput.note,
       };
 

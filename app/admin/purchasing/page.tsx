@@ -513,6 +513,23 @@ export default async function AdminPurchasingPage() {
                         >
                           {invoice.purchaseNumber}
                         </Link>
+                        {/* The supplier's own number, beneath ours. It is the
+                            one they quote on the phone, so reconciling an
+                            account means reading it off this row rather than
+                            opening every bill. Said plainly when it is absent,
+                            because a missing one is worth noticing. */}
+                        {invoice.supplierBillNo ? (
+                          <p className="mt-0.5 text-xs text-brand-muted">
+                            <T en="Their bill" ne="साहुको बिल" />:{" "}
+                            <span className="font-mono font-bold text-brand-green-ink">
+                              {invoice.supplierBillNo}
+                            </span>
+                          </p>
+                        ) : (
+                          <p className="mt-0.5 text-xs text-brand-muted-soft">
+                            <T en="No bill no." ne="बिल नं. छैन" />
+                          </p>
+                        )}
                         <p className="mt-1 text-xs text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Supplier" className="py-3 pr-3">

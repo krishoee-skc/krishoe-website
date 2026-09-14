@@ -40,6 +40,8 @@ function invoice(overrides: Partial<PurchaseInvoice> = {}): PurchaseInvoice {
     status: "Paid",
     postingStatus: "Posted",
     supplierTransactionIds: [],
+    supplierBillNo: "",
+
     note: "",
     ...overrides,
   };

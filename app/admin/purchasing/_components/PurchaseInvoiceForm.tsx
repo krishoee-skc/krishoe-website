@@ -455,6 +455,27 @@ export default function PurchaseInvoiceForm({
                 )}
               </p>
             ) : null}
+
+            {/* The number printed on the supplier's own bill — theirs, not the
+                KR-PUR- one this shop generates. It is the number they quote:
+                "the payment for bill 4521". Until now it had to be squeezed
+                into the note along with the vehicle and the gate pass, where
+                it could not be searched or matched against.
+
+                Optional on purpose: small suppliers here often hand goods over
+                with no printed bill, and requiring it would mean a real
+                delivery could not be recorded at all. */}
+            <label className="mt-3 block">
+              <span className="text-xs font-bold text-brand-muted">
+                {text("Supplier's bill no.", "साहुको बिल नं.")}
+              </span>
+              <input
+                name="supplierBillNo"
+                maxLength={60}
+                className={`${plain} mt-1`}
+                placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
+              />
+            </label>
           </section>
 
           {/* ── What came in ─────────────────────────────────────────── */}

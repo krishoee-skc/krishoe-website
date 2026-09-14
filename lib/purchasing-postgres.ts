@@ -55,6 +55,7 @@ type PurchaseInvoiceRow = {
   credit_amount: number | string;
   payment_method: SupplierPaymentMethod;
   payment_reference: string;
+  supplier_bill_no: string | null;
   status: PurchaseInvoice["status"];
   posting_status: PurchaseInvoice["postingStatus"];
   supplier_transaction_ids: string[] | null;
@@ -228,6 +229,7 @@ function purchaseInvoiceFromRow(
     supplierTransactionIds: Array.isArray(row.supplier_transaction_ids)
       ? row.supplier_transaction_ids
       : [],
+    supplierBillNo: row.supplier_bill_no ?? "",
     note: row.note,
   };
 }
@@ -262,7 +264,7 @@ export async function getPurchasingDataFromPostgres(): Promise<PurchasingData> {
           kind, material_id, material_name, design, channel, size_run, unit,
           quantity, rate, discount, tax, total,
           paid_amount, credit_amount, payment_method, payment_reference, status,
-          posting_status, supplier_transaction_ids, note
+          posting_status, supplier_transaction_ids, supplier_bill_no, note
         FROM purchase_invoices
         ORDER BY created_at DESC
       `,
@@ -630,18 +632,18 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           kind, material_id, material_name, design, channel, size_run,
           unit, quantity, rate, discount, tax,
           total, paid_amount, credit_amount, payment_method, payment_reference,
-          status, posting_status, supplier_transaction_ids, note
+          status, posting_status, supplier_transaction_ids, supplier_bill_no, note
         )
         VALUES (
           $1, $2, now(), $3, $4, $5, $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-          $21, 'Posted', $22, $23
+          $21, 'Posted', $22, $23, $24
         )
         RETURNING id, purchase_number, created_at, supplier_ledger_id, supplier_name,
           kind, material_id, material_name, design, channel, size_run, unit,
           quantity, rate, discount, tax, total,
           paid_amount, credit_amount, payment_method, payment_reference, status,
-          posting_status, supplier_transaction_ids, note
+          posting_status, supplier_transaction_ids, supplier_bill_no, note
       `,
       [
         invoiceId,
@@ -669,6 +671,7 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
         paymentReference,
         purchaseStatus(total, paidAmount),
         transactionIds,
+        cleanText(input.supplierBillNo ?? ""),
         cleanText(input.note),
       ],
     );
