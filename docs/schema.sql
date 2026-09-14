@@ -101,6 +101,9 @@ CREATE TABLE IF NOT EXISTS orders (
   payment TEXT NOT NULL DEFAULT '',
   order_text TEXT NOT NULL DEFAULT '',
   total TEXT NOT NULL DEFAULT '',
+  subtotal_paisa BIGINT NOT NULL DEFAULT 0 CHECK (subtotal_paisa >= 0),
+  total_paisa BIGINT NOT NULL DEFAULT 0 CHECK (total_paisa >= 0),
+  checkout_submission_key TEXT,
   -- 'Cancelled' is distinct from 'Closed': both release reserved stock, but
   -- only Closed means the order was actually fulfilled.
   status TEXT NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Contacted', 'Closed', 'Cancelled')),
@@ -125,7 +128,10 @@ ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS payment_callback_id TEXT,
   ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS payment_ledger_id TEXT,
-  ADD COLUMN IF NOT EXISTS payment_ledger_transaction_id TEXT;
+  ADD COLUMN IF NOT EXISTS payment_ledger_transaction_id TEXT,
+  ADD COLUMN IF NOT EXISTS subtotal_paisa BIGINT NOT NULL DEFAULT 0 CHECK (subtotal_paisa >= 0),
+  ADD COLUMN IF NOT EXISTS total_paisa BIGINT NOT NULL DEFAULT 0 CHECK (total_paisa >= 0),
+  ADD COLUMN IF NOT EXISTS checkout_submission_key TEXT;
 
 -- 'Cancelled' did not exist while Closed covered both fulfilled and abandoned.
 ALTER TABLE orders
@@ -146,8 +152,14 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_name TEXT NOT NULL DEFAULT '',
   size TEXT NOT NULL DEFAULT '',
   color TEXT NOT NULL DEFAULT '',
-  quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity > 0)
+  quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity > 0),
+  unit_price_paisa BIGINT NOT NULL DEFAULT 0 CHECK (unit_price_paisa >= 0),
+  line_total_paisa BIGINT NOT NULL DEFAULT 0 CHECK (line_total_paisa >= 0)
 );
+
+ALTER TABLE order_items
+  ADD COLUMN IF NOT EXISTS unit_price_paisa BIGINT NOT NULL DEFAULT 0 CHECK (unit_price_paisa >= 0),
+  ADD COLUMN IF NOT EXISTS line_total_paisa BIGINT NOT NULL DEFAULT 0 CHECK (line_total_paisa >= 0);
 
 CREATE INDEX IF NOT EXISTS order_items_order_id_idx ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS order_items_product_id_idx ON order_items(product_id);
@@ -158,6 +170,9 @@ CREATE INDEX IF NOT EXISTS orders_status_idx ON orders(status);
 CREATE INDEX IF NOT EXISTS orders_payment_status_idx ON orders(payment_status);
 CREATE INDEX IF NOT EXISTS orders_payment_provider_idx ON orders(payment_provider);
 CREATE INDEX IF NOT EXISTS orders_payment_ledger_id_idx ON orders(payment_ledger_id);
+CREATE UNIQUE INDEX IF NOT EXISTS orders_checkout_submission_key_unique_idx
+  ON orders(checkout_submission_key)
+  WHERE checkout_submission_key IS NOT NULL AND checkout_submission_key <> '';
 CREATE UNIQUE INDEX IF NOT EXISTS orders_payment_callback_id_unique_idx
   ON orders(payment_callback_id)
   WHERE payment_callback_id IS NOT NULL AND payment_callback_id <> '';

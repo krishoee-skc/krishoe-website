@@ -1,4 +1,5 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import type { PostgresExecutor } from "@/lib/postgres/client";
 import { getSafeUserById } from "@/lib/user-store";
 import { normalizeCouponCode, saveCoupon, type Coupon } from "@/lib/coupons";
 
@@ -198,6 +199,24 @@ export async function recordReferralClaim(input: {
 }) {
   await queryPostgres(
     STORE,
+    `INSERT INTO referral_claims (order_id, code, referrer_user_id, friend_user_id)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (order_id) DO NOTHING`,
+    [input.orderId, input.code, input.referrerUserId, input.friendUserId ?? null],
+  );
+}
+
+/** Writes a referral claim in the same transaction as its order. */
+export async function recordReferralClaimWithExecutor(
+  db: PostgresExecutor,
+  input: {
+    orderId: string;
+    code: string;
+    referrerUserId: string;
+    friendUserId?: string;
+  },
+) {
+  await db.query(
     `INSERT INTO referral_claims (order_id, code, referrer_user_id, friend_user_id)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (order_id) DO NOTHING`,

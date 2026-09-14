@@ -4,26 +4,20 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { validateDeliveryArea } from "@/lib/commerce";
 import { markCheckoutRecovered } from "@/lib/checkout-attempts";
-import { evaluateCoupon, getCoupon, normalizeCouponCode, redeemCoupon } from "@/lib/coupons";
+import { normalizeCouponCode } from "@/lib/coupons";
 import {
   findReferralCode,
-  recordReferralClaim,
-  referralAsCoupon,
   referralIsSelfUse,
 } from "@/lib/referrals";
-import { formatPrice } from "@/lib/products";
 import { getCurrentCustomer, getCustomerSession } from "@/lib/customer-auth";
 import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
-import {
-  computeAuthoritativeOrderTotal,
-  describeStockShortfalls,
-  parseCheckoutItems,
-} from "@/lib/order-pricing";
+import { parseCheckoutItems } from "@/lib/order-pricing";
+import { placeCheckoutOrder } from "@/lib/checkout-order";
 import { getProductById } from "@/lib/product-store";
 import { saveCustomerVoice } from "@/lib/customer-voice";
 import { reportError, reportingErrors } from "@/lib/report-error";
-import { getOrdersForCustomer, saveContactMessage, saveOrder } from "@/lib/submissions";
+import { getOrdersForCustomer, saveContactMessage } from "@/lib/submissions";
 import { notifyOrderConfirmation } from "@/lib/notifications";
 import { getSiteUrl } from "@/lib/seo";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
@@ -120,14 +114,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   const email = textValue(formData, "email");
   const phone = textValue(formData, "phone");
   const address = textValue(formData, "address");
-  const order = textValue(formData, "order");
   const delivery = textValue(formData, "delivery");
   const payment = textValue(formData, "payment");
-  const total = textValue(formData, "total");
-
-  if (!order) {
-    return errorState("Please complete customer details before submitting the order request.");
-  }
+  const checkoutSubmissionKey = textValue(formData, "checkoutSubmissionKey");
 
   const customerProfile = validateCustomerProfileInput(
     { name, phone, address },
@@ -144,11 +133,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return errorState(deliveryError);
   }
 
-  if (
-    (email && tooLong(email, 120)) ||
-    tooLong(order, 4000) ||
-    tooLong(total, 80)
-  ) {
+  if (email && tooLong(email, 120)) {
     return errorState("Please shorten the order details and try again.");
   }
 
@@ -158,31 +143,15 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return rateLimitError;
   }
 
-  // Never trust the client-submitted total: recompute it from catalog prices
-  // using only the submitted product ids + quantities. This blocks a tampered
-  // total (e.g. paying Rs.1 for a Rs.9,999 cart).
+  // Product ids and quantities are the only cart facts accepted from the
+  // browser. Names, line totals, subtotal and final total are rebuilt while
+  // the catalog rows are locked in placeCheckoutOrder.
   const items = parseCheckoutItems(textValue(formData, "items"));
 
   if (items.length === 0) {
     return errorState("We couldn't read your cart. Please refresh the page and try again.");
   }
 
-  const pricing = await computeAuthoritativeOrderTotal(items);
-
-  if (pricing.matchedItems === 0) {
-    return errorState("We couldn't verify the items in your cart. Please refresh and try again.");
-  }
-
-  // Block the order rather than take one we cannot fill.
-  if (pricing.shortfalls.length > 0) {
-    return errorState(
-      `${describeStockShortfalls(pricing.shortfalls)}. Please update your cart and try again.`,
-    );
-  }
-
-  // The code is the only thing taken from the form. What it is worth is decided
-  // here, against the total this server just computed — a discount submitted by
-  // the browser would be a price the customer chose for themselves.
   const submittedCode = normalizeCouponCode(textValue(formData, "couponCode"));
   const checkoutSession = await getCustomerSession();
 
@@ -195,71 +164,37 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // Signed in, the user id settles whether this is the referrer's own code.
   // Signed out it cannot, and that was the loophole — so the phone and email on
   // this very order are compared with the referrer's account as well.
-  const referralCoupon =
+  const eligibleReferral =
     referral &&
     !(await referralIsSelfUse(referral, {
       userId: checkoutSession?.userId,
       email,
       phone,
     }))
-      ? referralAsCoupon(referral, checkoutSession?.userId)
-      : null;
-
-  const couponCheck = submittedCode
-    ? evaluateCoupon(referralCoupon ?? (await getCoupon(submittedCode)), pricing.totalPaisa)
-    : null;
-
-  if (submittedCode && couponCheck && !couponCheck.ok) {
-    return errorState(couponCheck.reason);
-  }
-
-  const discountPaisa = couponCheck?.ok ? couponCheck.discountPaisa : 0;
-  const payablePaisa = Math.max(0, pricing.totalPaisa - discountPaisa);
-  const authoritativeTotal = formatPrice(payablePaisa);
+      ? referral
+      : undefined;
 
   const session = checkoutSession;
   const profile = customerProfile.profile;
-  const record = await saveOrder(
-    {
-      name: profile.name,
-      email: email || undefined,
-      phone: profile.phone ?? "",
-      address: profile.address ?? "",
-      delivery,
-      payment,
-      order,
-      // The structured list, so the order can hold stock. `order` above is the
-      // same thing as a sentence, which nothing can count.
-      items: pricing.orderItems,
-      total: authoritativeTotal,
-      couponCode: couponCheck?.ok ? couponCheck.coupon.code : undefined,
-      discountPaisa,
-    },
-    session?.userId,
-  );
+  const placement = await placeCheckoutOrder({
+    checkoutSubmissionKey,
+    name: profile.name,
+    email: email || undefined,
+    phone: profile.phone ?? "",
+    address: profile.address ?? "",
+    delivery,
+    payment,
+    items,
+    submittedCode,
+    customerUserId: session?.userId,
+    referral: eligibleReferral,
+  });
 
-  // Counted only once the order exists. Counting at validation time would burn
-  // a use every time someone typed a code and then changed their mind, and a
-  // hundred-use launch code would be gone before a hundred orders.
-  if (couponCheck?.ok && !referralCoupon) {
-    await reportingErrors(`redeem coupon ${couponCheck.coupon.code}`, () =>
-      redeemCoupon(couponCheck.coupon.code),
-    );
+  if (!placement.ok) {
+    return errorState(placement.message);
   }
 
-  // A referral code has no use counter to burn — it is meant to be passed to
-  // many people. What is recorded instead is the claim, which is what the
-  // referrer eventually gets paid on, and only once the order is delivered.
-  if (couponCheck?.ok && referral && referralCoupon) {
-    await reportingErrors(`record referral claim for ${record.id}`, () =>
-      recordReferralClaim({
-        orderId: record.id,
-        code: referral.code,
-        referrerUserId: referral.referrerUserId,
-        friendUserId: session?.userId,
-      }),
-    );
-  }
+  const record = placement.order;
 
   // Whether or not a reminder was ever sent. An attempt that turned into an
   // order on its own must stop being a candidate — nobody should be chased for
@@ -277,6 +212,16 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       // Checkout success should not be blocked by optional profile sync.
       reportError(`sync profile for user ${session.userId} after order ${record.id}`, error);
     }
+  }
+
+  // A lost response can make the browser retry a checkout that already
+  // committed. Return the same order, but do not send every notification twice.
+  if (placement.replayed) {
+    return successState(
+      `Order request already saved. Reference: ${record.id}.`,
+      record.id,
+      record.total,
+    );
   }
 
   // The order is already saved. If telling the admin about it fails, the
@@ -326,7 +271,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   return successState(
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,
     record.id,
-    authoritativeTotal,
+    record.total,
   );
 }
 

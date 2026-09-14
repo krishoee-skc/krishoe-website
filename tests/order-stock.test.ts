@@ -188,6 +188,8 @@ describe("computeAuthoritativeOrderTotal stock reporting", () => {
         size: "40",
         color: "Black",
         quantity: 2,
+        unitPricePaisa: 199900,
+        lineTotalPaisa: 399800,
       },
     ]);
   });

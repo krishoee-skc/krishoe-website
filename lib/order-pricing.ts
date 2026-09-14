@@ -69,6 +69,8 @@ export async function computeAuthoritativeOrderTotal(items: CheckoutItemInput[])
       size: item.size ?? "",
       color: item.color ?? "",
       quantity: item.quantity,
+      unitPricePaisa: product.priceValue,
+      lineTotalPaisa: product.priceValue * item.quantity,
     });
   }
 

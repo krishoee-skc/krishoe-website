@@ -1,6 +1,6 @@
 import OrdersClient from "@/app/admin/OrdersClient";
 import T from "@/components/T";
-import { buildOnlineOrderConversionReport, parseOnlineOrderItems, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
+import { buildOnlineOrderConversionReport, onlineOrderItemsForPos, posInvoiceMatchesOnlineOrder } from "@/lib/order-pos";
 import { getOperationsDataForReports } from "@/lib/operations";
 import { getPaymentTransactionsByOrderIds } from "@/lib/payment-transactions";
 import { getPosInvoices } from "@/lib/pos";
@@ -49,7 +49,7 @@ export default async function AdminOrdersPage() {
   const parsedItemsByOrderId = Object.fromEntries(
     orders.map((order) => [
       order.id,
-      parseOnlineOrderItems(order.order, products).map((item) => ({
+      onlineOrderItemsForPos(order, products).map((item) => ({
         design: item.design,
         sizeRun: item.sizeRun,
         color: item.color,

@@ -102,27 +102,28 @@ describe("when a code is refused", () => {
 
 describe("the checkout", () => {
   it("takes the code from the form and decides the discount on the server", async () => {
-    const source = await readFile("app/actions.ts", "utf8");
+    const action = await readFile("app/actions.ts", "utf8");
+    const checkout = await readFile("lib/checkout-order.ts", "utf8");
 
     // A discount submitted by the browser would be a price the customer chose
     // for themselves — the same reason the total is recomputed here.
-    expect(source).toContain('normalizeCouponCode(textValue(formData, "couponCode"))');
+    expect(action).toContain('normalizeCouponCode(textValue(formData, "couponCode"))');
     // Checked as intent rather than as one expression: a referral code is now
     // resolved through the same call, deliberately, so that there stays exactly
     // one place where a price can fall. What must hold is that the worth of the
     // code is decided here, against the total this server computed.
-    expect(source).toContain("evaluateCoupon(");
-    expect(source).toContain("pricing.totalPaisa)");
-    expect(source).toContain("getCoupon(submittedCode)");
-    expect(source).not.toContain('textValue(formData, "discount')
+    expect(checkout).toContain("evaluateCoupon(coupon, priced.subtotalPaisa)");
+    expect(checkout).toContain("getCouponForUpdate(db, input.submittedCode)");
+    expect(action).not.toContain('textValue(formData, "discount')
   });
 
-  it("counts a use only once the order exists", async () => {
-    const source = await readFile("app/actions.ts", "utf8");
-    const body = source.slice(source.indexOf("const record = await saveOrder"));
+  it("counts a use only when its order commits", async () => {
+    const source = await readFile("lib/checkout-order.ts", "utf8");
     // Counting at validation time would burn a use every time somebody typed a
     // code and changed their mind.
-    expect(body).toContain("redeemCoupon(couponCheck.coupon.code)");
+    expect(source).toContain("transactionPostgres(STORE");
+    expect(source).toContain("redeemCouponWithExecutor(db, couponCheck.coupon.code)");
+    expect(source).toContain("insertOrderWithExecutor(db, record)");
   });
 
   it("stores what the code took, so a campaign can be measured", async () => {

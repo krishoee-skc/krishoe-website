@@ -14,6 +14,10 @@ export type OrderItem = {
   size: string;
   color: string;
   quantity: number;
+  /** Catalog price captured when checkout committed. Older orders omit it. */
+  unitPricePaisa?: number;
+  /** quantity × unitPricePaisa, captured with the order. */
+  lineTotalPaisa?: number;
 };
 
 // An order holds its pairs from the moment it is placed until it is resolved.

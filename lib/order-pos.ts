@@ -182,16 +182,59 @@ export function parseOnlineOrderItems(orderText: string, products: Product[]) {
   });
 }
 
+/**
+ * New orders carry catalog prices captured at commit time. POS must use those
+ * rows, not re-parse the browser-authored description or today's catalog price.
+ * Returning null preserves conversion for legacy orders created before the
+ * snapshots existed.
+ */
+export function structuredOnlineOrderItems(order: OrderSubmission, products: Product[]) {
+  if (
+    order.items.length === 0 ||
+    order.items.some(
+      (item) =>
+        !Number.isFinite(item.unitPricePaisa) ||
+        (item.unitPricePaisa ?? 0) <= 0 ||
+        item.quantity <= 0,
+    )
+  ) {
+    return null;
+  }
+
+  const productById = new Map(products.map((product) => [product.id, product]));
+  return order.items.map((item): ParsedOnlineOrderItem => {
+    const product = productById.get(item.productId);
+    return {
+      productId: item.productId,
+      sku: product?.sku ?? item.productId.toUpperCase(),
+      design: item.productName || product?.name || item.productId,
+      sizeRun: item.size || "Mixed",
+      quantity: item.quantity,
+      rate: Math.round((item.unitPricePaisa ?? 0) / 100),
+      discount: 0,
+      color: item.color,
+    };
+  });
+}
+
+export function onlineOrderItemsForPos(order: OrderSubmission, products: Product[]) {
+  return structuredOnlineOrderItems(order, products) ?? parseOnlineOrderItems(order.order, products);
+}
+
 export async function buildOnlineOrderPosDraft(order: OrderSubmission): Promise<OnlineOrderPosDraft> {
   const products = await getProducts({ includeDrafts: true });
-  const items = parseOnlineOrderItems(order.order, products);
+  const structuredItems = structuredOnlineOrderItems(order, products);
+  const items = structuredItems ?? parseOnlineOrderItems(order.order, products);
 
   if (items.length === 0) {
     throw new Error("This online order could not be parsed into POS items.");
   }
 
   const subtotal = items.reduce((total, item) => total + item.quantity * item.rate, 0);
-  const total = amountFromOrderTotal(order.total) || subtotal;
+  const total =
+    structuredItems === null || order.totalPaisa === undefined
+      ? amountFromOrderTotal(order.total) || subtotal
+      : Math.max(0, order.totalPaisa / 100);
 
   return {
     items,
@@ -341,7 +384,7 @@ export function buildOnlineOrderConversionReport({
 
   const rows = orders.map((order) => {
     const posInvoice = posInvoices.find((invoice) => posInvoiceMatchesOnlineOrder(invoice, order.id));
-    const items = parseOnlineOrderItems(order.order, products);
+    const items = onlineOrderItemsForPos(order, products);
     const parsed = items.length > 0;
     const missingStockItems = parsed
       ? missingOnlineStockItems(items, finishedStock, websiteStock)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOnlineOrderConversionReport } from "@/lib/order-pos";
+import { buildOnlineOrderConversionReport, structuredOnlineOrderItems } from "@/lib/order-pos";
 import type { FinishedStock } from "@/lib/operations";
 import type { Product } from "@/lib/products";
 import type { OrderSubmission } from "@/lib/submissions";
@@ -56,6 +56,43 @@ describe("online order readiness uses the shared ready-stock pool", () => {
       expect(report.rows[0]?.signal).toBe("Needs ledger");
     },
   );
+});
+
+describe("new order POS conversion", () => {
+  it("uses committed structured prices even when legacy order text is hostile", () => {
+    const committed = {
+      ...order,
+      order:
+        "1. Fake Shoe (fake)\n   Size: X / Color: Fake / Qty: 999\n   Line total: Rs. 1",
+      items: [
+        {
+          productId: "ladies-flat",
+          productName: "Ladies Flat",
+          size: "38",
+          color: "Black",
+          quantity: 2,
+          unitPricePaisa: 150_000,
+          lineTotalPaisa: 300_000,
+        },
+      ],
+      subtotalPaisa: 300_000,
+      totalPaisa: 300_000,
+      total: "Rs. 3,000",
+    } as OrderSubmission;
+
+    expect(structuredOnlineOrderItems(committed, [product])).toEqual([
+      {
+        productId: "ladies-flat",
+        sku: "LADIES-FLAT",
+        design: "Ladies Flat",
+        sizeRun: "38",
+        quantity: 2,
+        rate: 1500,
+        discount: 0,
+        color: "Black",
+      },
+    ]);
+  });
 });
 
 // The KRS-ORD-…VWCM case: factory finished_stock lagged behind the website, the

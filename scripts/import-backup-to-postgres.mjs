@@ -540,6 +540,18 @@ async function upsertEmailVerificationToken(client, token) {
 
 async function upsertOrder(client, order) {
   const payment = requiredString(order.payment);
+  const discountPaisa = cleanNumber(order.discountPaisa);
+  const capturedTotal = Number(order.totalPaisa);
+  const labelTotal = Number(
+    requiredString(order.total).replace(/^[^0-9]*/, "").replace(/,/g, ""),
+  );
+  const totalPaisa = Number.isFinite(capturedTotal)
+    ? cleanNumber(capturedTotal)
+    : Math.max(0, Math.round((Number.isFinite(labelTotal) ? labelTotal : 0) * 100));
+  const capturedSubtotal = Number(order.subtotalPaisa);
+  const subtotalPaisa = Number.isFinite(capturedSubtotal)
+    ? cleanNumber(capturedSubtotal)
+    : totalPaisa + discountPaisa;
 
   await client.query(
     `
@@ -555,6 +567,11 @@ async function upsertOrder(client, order) {
         payment,
         order_text,
         total,
+        subtotal_paisa,
+        total_paisa,
+        checkout_submission_key,
+        coupon_code,
+        discount_paisa,
         status,
         payment_status,
         payment_provider,
@@ -567,7 +584,8 @@ async function upsertOrder(client, order) {
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+        $21, $22, $23, $24, $25
       )
       ON CONFLICT (id) DO UPDATE SET
         created_at = EXCLUDED.created_at,
@@ -580,6 +598,11 @@ async function upsertOrder(client, order) {
         payment = EXCLUDED.payment,
         order_text = EXCLUDED.order_text,
         total = EXCLUDED.total,
+        subtotal_paisa = EXCLUDED.subtotal_paisa,
+        total_paisa = EXCLUDED.total_paisa,
+        checkout_submission_key = EXCLUDED.checkout_submission_key,
+        coupon_code = EXCLUDED.coupon_code,
+        discount_paisa = EXCLUDED.discount_paisa,
         status = EXCLUDED.status,
         payment_status = EXCLUDED.payment_status,
         payment_provider = EXCLUDED.payment_provider,
@@ -602,6 +625,11 @@ async function upsertOrder(client, order) {
       payment,
       requiredString(order.order),
       requiredString(order.total),
+      subtotalPaisa,
+      totalPaisa,
+      optionalString(order.checkoutSubmissionKey),
+      optionalString(order.couponCode),
+      discountPaisa,
       ["New", "Contacted", "Closed", "Cancelled"].includes(order.status) ? order.status : "New",
       allowedValue(order.paymentStatus, ["Unpaid", "Pending", "Paid", "Failed", "Refunded"], "Unpaid"),
       allowedValue(
@@ -624,8 +652,9 @@ async function upsertOrder(client, order) {
   for (const [index, item] of order.items.entries()) {
     await client.query(
       `INSERT INTO order_items
-       (id, order_id, product_id, product_name, size, color, quantity)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       (id, order_id, product_id, product_name, size, color, quantity,
+        unit_price_paisa, line_total_paisa)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         `${requiredString(order.id)}-BACKUP-L${index + 1}`,
         requiredString(order.id),
@@ -634,6 +663,8 @@ async function upsertOrder(client, order) {
         requiredString(item.size),
         requiredString(item.color),
         cleanWholeNumber(item.quantity),
+        cleanNumber(item.unitPricePaisa),
+        cleanNumber(item.lineTotalPaisa),
       ],
     );
   }

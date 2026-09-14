@@ -82,8 +82,8 @@ describe("the preview and the order agree", () => {
     expect(preview).toContain("evaluateCoupon");
     expect(preview).toContain("referralAsCoupon");
 
-    const submit = await readFile("app/actions.ts", "utf8");
-    expect(submit).toContain("computeAuthoritativeOrderTotal");
+    const submit = await readFile("lib/checkout-order.ts", "utf8");
+    expect(submit).toContain("priceLockedCheckoutItems");
     expect(submit).toContain("evaluateCoupon");
     expect(submit).toContain("referralAsCoupon");
   });

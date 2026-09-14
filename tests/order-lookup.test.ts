@@ -53,14 +53,14 @@ describe("looking one order up", () => {
   });
 
   it("selects the same columns as the list, from one place", async () => {
-    // Two readers building an order from different column lists is how a field
+    // Readers building an order from different column lists is how a field
     // ends up present on one screen and missing on another.
     const source = await readFile("lib/submissions.ts", "utf8");
 
     expect(source).toContain("const ORDER_COLUMNS");
     expect(source).toContain("SELECT ${ORDER_COLUMNS} FROM orders WHERE id = $1");
-    // Both readers select it, so neither can drift from the other.
-    expect(source.match(/SELECT \$\{ORDER_COLUMNS\}/g) ?? []).toHaveLength(2);
+    // List, id lookup and checkout-key replay all select it, so none can drift.
+    expect(source.match(/SELECT \$\{ORDER_COLUMNS\}/g) ?? []).toHaveLength(3);
   });
 
   it("keeps the local-json backend working the same way", async () => {

@@ -112,9 +112,9 @@ describe("the code itself", () => {
   });
 
   it("does not burn a coupon use when it is not a coupon", async () => {
-    const checkout = await readFile("app/actions.ts", "utf8");
+    const checkout = await readFile("lib/checkout-order.ts", "utf8");
     expect(checkout).toContain("couponCheck?.ok && !referralCoupon");
-    expect(checkout).toContain("recordReferralClaim");
+    expect(checkout).toContain("recordReferralClaimWithExecutor");
   });
 });
 

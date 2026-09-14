@@ -109,7 +109,7 @@ describe("when it is sent", () => {
     const actions = await readFile(ACTIONS, "utf8");
     const checkout = actions.slice(actions.indexOf("export async function submitCheckout"));
 
-    const saved = checkout.indexOf("await saveOrder(");
+    const saved = checkout.indexOf("await placeCheckoutOrder(");
     const confirmed = checkout.indexOf("notifyOrderConfirmation({");
 
     expect(saved).toBeGreaterThan(-1);

@@ -481,6 +481,7 @@ export default function CheckoutClient({ user = null, bank }: CheckoutClientProp
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
+  const checkoutSubmissionKey = useRef("");
 
   const orderItemsForDb = useMemo(
     () =>
@@ -522,7 +523,12 @@ export default function CheckoutClient({ user = null, bank }: CheckoutClientProp
     const submittedWhatsappMessage = whatsappMessage;
 
     try {
-      const result = await submitCheckout(state, new FormData(event.currentTarget));
+      if (!checkoutSubmissionKey.current) {
+        checkoutSubmissionKey.current = crypto.randomUUID();
+      }
+      const formData = new FormData(event.currentTarget);
+      formData.set("checkoutSubmissionKey", checkoutSubmissionKey.current);
+      const result = await submitCheckout(state, formData);
       setState(result);
 
       if (result.ok && result.reference) {

@@ -4,6 +4,7 @@ import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { saveCustomerVoice } from "@/lib/customer-voice";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import type { PostgresExecutor } from "@/lib/postgres/client";
 import type { OrderItem } from "@/lib/order-stock";
 
 export type { OrderItem };
@@ -32,6 +33,12 @@ export type OrderSubmission = {
   items: OrderItem[];
   // What was charged after any discount — the figure the customer pays.
   total: string;
+  /** Catalog subtotal captured by the server, before discount. */
+  subtotalPaisa?: number;
+  /** Charged total captured by the server, after discount. */
+  totalPaisa?: number;
+  /** Browser-generated retry key. One committed order per key. */
+  checkoutSubmissionKey?: string;
   /** The code used, uppercase. Absent when the order carried none. */
   couponCode?: string;
   /** What the code took off, in paisa. Kept so a campaign can be measured. */
@@ -80,6 +87,8 @@ type OrderItemRow = {
   size: string;
   color: string;
   quantity: number | string;
+  unit_price_paisa: number | string | null;
+  line_total_paisa: number | string | null;
 };
 
 type OrderRow = {
@@ -94,6 +103,9 @@ type OrderRow = {
   payment: string;
   order_text: string;
   total: string;
+  subtotal_paisa: number | string | null;
+  total_paisa: number | string | null;
+  checkout_submission_key: string | null;
   coupon_code: string | null;
   discount_paisa: number | string | null;
   status: string;
@@ -211,12 +223,16 @@ export function normalizeOrderItems(value: unknown): OrderItem[] {
   return value
     .map((entry) => {
       const record = (entry ?? {}) as Record<string, unknown>;
+      const unitPricePaisa = Math.max(0, Math.round(Number(record.unitPricePaisa) || 0));
+      const lineTotalPaisa = Math.max(0, Math.round(Number(record.lineTotalPaisa) || 0));
       return {
         productId: typeof record.productId === "string" ? record.productId.trim() : "",
         productName: typeof record.productName === "string" ? record.productName.trim() : "",
         size: typeof record.size === "string" ? record.size.trim() : "",
         color: typeof record.color === "string" ? record.color.trim() : "",
         quantity: Math.max(0, Math.round(Number(record.quantity) || 0)),
+        ...(unitPricePaisa > 0 ? { unitPricePaisa } : {}),
+        ...(lineTotalPaisa > 0 ? { lineTotalPaisa } : {}),
       };
     })
     // A line with no product or no pairs reserves nothing and would only skew
@@ -228,6 +244,15 @@ function normalizeOrder(order: OrderSubmission): OrderSubmission {
   return {
     ...order,
     customerUserId: optionalText(order.customerUserId),
+    checkoutSubmissionKey: optionalText(order.checkoutSubmissionKey),
+    subtotalPaisa:
+      order.subtotalPaisa === undefined
+        ? undefined
+        : Math.max(0, Math.round(Number(order.subtotalPaisa) || 0)),
+    totalPaisa:
+      order.totalPaisa === undefined
+        ? undefined
+        : Math.max(0, Math.round(Number(order.totalPaisa) || 0)),
     items: normalizeOrderItems(order.items),
     status: normalizeOrderStatus(order.status),
     paymentStatus: normalizePaymentStatus(order.paymentStatus),
@@ -259,6 +284,9 @@ function orderFromRow(row: OrderRow): OrderSubmission {
     couponCode: row.coupon_code ?? undefined,
     discountPaisa: Math.max(0, Math.round(Number(row.discount_paisa) || 0)),
     total: row.total,
+    subtotalPaisa: Math.max(0, Math.round(Number(row.subtotal_paisa) || 0)),
+    totalPaisa: Math.max(0, Math.round(Number(row.total_paisa) || 0)),
+    checkoutSubmissionKey: optionalText(row.checkout_submission_key),
     status: normalizeOrderStatus(row.status),
     paymentStatus: normalizePaymentStatus(row.payment_status),
     paymentProvider: normalizePaymentProvider(row.payment_provider, row.payment),
@@ -304,6 +332,9 @@ const ORDER_COLUMNS = `
         payment,
         order_text,
         total,
+        subtotal_paisa,
+        total_paisa,
+        checkout_submission_key,
         coupon_code,
         discount_paisa,
         status,
@@ -324,6 +355,12 @@ function orderItemsFromRows(rows: OrderItemRow[]): OrderItem[] {
     size: row.size,
     color: row.color,
     quantity: Number(row.quantity) || 0,
+    ...(Number(row.unit_price_paisa) > 0
+      ? { unitPricePaisa: Math.round(Number(row.unit_price_paisa)) }
+      : {}),
+    ...(Number(row.line_total_paisa) > 0
+      ? { lineTotalPaisa: Math.round(Number(row.line_total_paisa)) }
+      : {}),
   }));
 }
 
@@ -337,7 +374,8 @@ async function getOrderByIdFromPostgres(id: string) {
     ),
     queryPostgres<OrderItemRow>(
       "orders",
-      `SELECT order_id, product_id, product_name, size, color, quantity
+      `SELECT order_id, product_id, product_name, size, color, quantity,
+              unit_price_paisa, line_total_paisa
          FROM order_items
         WHERE order_id = $1`,
       [id],
@@ -370,7 +408,8 @@ async function getOrdersFromPostgres() {
   const itemRows = await queryPostgres<OrderItemRow>(
     "orders",
     `
-      SELECT order_id, product_id, product_name, size, color, quantity
+      SELECT order_id, product_id, product_name, size, color, quantity,
+             unit_price_paisa, line_total_paisa
       FROM order_items
     `,
   );
@@ -385,6 +424,12 @@ async function getOrdersFromPostgres() {
       size: row.size,
       color: row.color,
       quantity: Number(row.quantity) || 0,
+      ...(Number(row.unit_price_paisa) > 0
+        ? { unitPricePaisa: Math.round(Number(row.unit_price_paisa)) }
+        : {}),
+      ...(Number(row.line_total_paisa) > 0
+        ? { lineTotalPaisa: Math.round(Number(row.line_total_paisa)) }
+        : {}),
     });
     itemsByOrderId.set(row.order_id, items);
   }
@@ -484,25 +529,28 @@ export async function getOrderByPaymentReference(paymentReference: string) {
   });
 }
 
-export async function saveOrder(
-  order: Omit<
-    OrderSubmission,
-    | "id"
-    | "createdAt"
-    | "customerUserId"
-    | "status"
-    | "paymentStatus"
-    | "paymentProvider"
-    | "paymentReference"
-    | "paymentTransactionId"
-    | "paymentCallbackId"
-    | "paymentVerifiedAt"
-    | "paymentLedgerId"
-    | "paymentLedgerTransactionId"
-  >,
+export type NewOrderInput = Omit<
+  OrderSubmission,
+  | "id"
+  | "createdAt"
+  | "customerUserId"
+  | "status"
+  | "paymentStatus"
+  | "paymentProvider"
+  | "paymentReference"
+  | "paymentTransactionId"
+  | "paymentCallbackId"
+  | "paymentVerifiedAt"
+  | "paymentLedgerId"
+  | "paymentLedgerTransactionId"
+>;
+
+/** Builds the one canonical record used by JSON storage and Postgres checkout. */
+export function createNewOrderRecord(
+  order: NewOrderInput,
   customerUserId?: string,
-) {
-  const record: OrderSubmission = {
+): OrderSubmission {
+  return normalizeOrder({
     ...order,
     id: createId("KRS-ORD"),
     createdAt: new Date().toISOString(),
@@ -510,7 +558,105 @@ export async function saveOrder(
     status: "New",
     paymentStatus: "Unpaid",
     paymentProvider: paymentProviderFromPreference(order.payment),
-  };
+  });
+}
+
+/** Finds a retry of checkout without leaving the active transaction. */
+export async function getOrderByCheckoutSubmissionKeyWithExecutor(
+  db: PostgresExecutor,
+  checkoutSubmissionKey: string,
+) {
+  const rows = await db.query<OrderRow>(
+    `SELECT ${ORDER_COLUMNS}
+       FROM orders
+      WHERE checkout_submission_key = $1
+      LIMIT 1`,
+    [checkoutSubmissionKey],
+  );
+  if (!rows[0]) return null;
+
+  const itemRows = await db.query<OrderItemRow>(
+    `SELECT order_id, product_id, product_name, size, color, quantity,
+            unit_price_paisa, line_total_paisa
+       FROM order_items
+      WHERE order_id = $1`,
+    [rows[0].id],
+  );
+  return { ...orderFromRow(rows[0]), items: orderItemsFromRows(itemRows) };
+}
+
+/** Inserts an order and every reserving item through the caller's transaction. */
+export async function insertOrderWithExecutor(db: PostgresExecutor, record: OrderSubmission) {
+  const rows = await db.query<OrderRow>(
+    `INSERT INTO orders (
+       id, created_at, customer_user_id, name, email, phone, address, delivery,
+       payment, order_text, total, subtotal_paisa, total_paisa,
+       checkout_submission_key, coupon_code, discount_paisa, status,
+       payment_status, payment_provider, payment_reference,
+       payment_transaction_id, payment_callback_id, payment_verified_at,
+       payment_ledger_id, payment_ledger_transaction_id
+     )
+     VALUES (
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+       $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+       $21, $22, $23, $24, $25
+     )
+     RETURNING ${ORDER_COLUMNS}`,
+    [
+      record.id,
+      new Date(record.createdAt),
+      record.customerUserId ?? null,
+      record.name,
+      record.email ?? null,
+      record.phone,
+      record.address,
+      record.delivery,
+      record.payment,
+      record.order,
+      record.total,
+      Math.max(0, Math.round(record.subtotalPaisa ?? 0)),
+      Math.max(0, Math.round(record.totalPaisa ?? 0)),
+      record.checkoutSubmissionKey ?? null,
+      record.couponCode ?? null,
+      Math.max(0, Math.round(record.discountPaisa ?? 0)),
+      record.status,
+      record.paymentStatus,
+      record.paymentProvider,
+      record.paymentReference ?? "",
+      record.paymentTransactionId ?? "",
+      record.paymentCallbackId ?? null,
+      record.paymentVerifiedAt ? new Date(record.paymentVerifiedAt) : null,
+      record.paymentLedgerId ?? null,
+      record.paymentLedgerTransactionId ?? null,
+    ],
+  );
+
+  for (const item of record.items) {
+    await db.query(
+      `INSERT INTO order_items (
+         id, order_id, product_id, product_name, size, color, quantity,
+         unit_price_paisa, line_total_paisa
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        createId("KRS-ITEM"),
+        record.id,
+        item.productId,
+        item.productName,
+        item.size,
+        item.color,
+        item.quantity,
+        Math.max(0, Math.round(item.unitPricePaisa ?? 0)),
+        Math.max(0, Math.round(item.lineTotalPaisa ?? 0)),
+      ],
+    );
+  }
+
+  return { ...orderFromRow(rows[0]), items: record.items };
+}
+
+export async function saveOrder(order: NewOrderInput, customerUserId?: string) {
+  const record = createNewOrderRecord(order, customerUserId);
 
   return runWithDataBackend({
     storeName: "orders",
@@ -519,111 +665,8 @@ export async function saveOrder(
       await writeJsonFile(ordersPath, [record, ...orders]);
       return record;
     },
-    postgres: async () =>
-      // The items are what reserve stock, so an order must never land without
-      // them. One transaction keeps the pair whole.
-      transactionPostgres("orders", async (db) => {
-      const rows = await db.query<OrderRow>(
-        `
-          INSERT INTO orders (
-            id,
-            created_at,
-            customer_user_id,
-            name,
-            email,
-            phone,
-            address,
-            delivery,
-            payment,
-            order_text,
-            total,
-            coupon_code,
-            discount_paisa,
-            status,
-            payment_status,
-            payment_provider,
-            payment_reference,
-            payment_transaction_id,
-            payment_callback_id,
-            payment_verified_at,
-            payment_ledger_id,
-            payment_ledger_transaction_id
-          )
-          VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-            $21, $22
-          )
-          RETURNING
-            id,
-            created_at,
-            customer_user_id,
-            name,
-            email,
-            phone,
-            address,
-            delivery,
-            payment,
-            order_text,
-            total,
-            coupon_code,
-            discount_paisa,
-            status,
-            payment_status,
-            payment_provider,
-            payment_reference,
-            payment_transaction_id,
-            payment_callback_id,
-            payment_verified_at,
-            payment_ledger_id,
-            payment_ledger_transaction_id
-        `,
-        [
-          record.id,
-          new Date(record.createdAt),
-          record.customerUserId ?? null,
-          record.name,
-          record.email ?? null,
-          record.phone,
-          record.address,
-          record.delivery,
-          record.payment,
-          record.order,
-          record.total,
-          record.couponCode ?? null,
-          Math.max(0, Math.round(record.discountPaisa ?? 0)),
-          record.status,
-          record.paymentStatus,
-          record.paymentProvider,
-          record.paymentReference ?? "",
-          record.paymentTransactionId ?? "",
-          record.paymentCallbackId ?? null,
-          record.paymentVerifiedAt ? new Date(record.paymentVerifiedAt) : null,
-          record.paymentLedgerId ?? null,
-          record.paymentLedgerTransactionId ?? null,
-        ],
-      );
-
-      for (const item of record.items) {
-        await db.query(
-          `
-            INSERT INTO order_items (id, order_id, product_id, product_name, size, color, quantity)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `,
-          [
-            createId("KRS-ITEM"),
-            record.id,
-            item.productId,
-            item.productName,
-            item.size,
-            item.color,
-            item.quantity,
-          ],
-        );
-      }
-
-      return { ...orderFromRow(rows[0]), items: record.items };
-      }),
+    postgres: () =>
+      transactionPostgres("orders", (db) => insertOrderWithExecutor(db, record)),
   });
 }
 
@@ -671,29 +714,7 @@ export async function attachOrderToCustomer(
           UPDATE orders
           SET customer_user_id = $2
           WHERE id = $1 AND (customer_user_id IS NULL OR customer_user_id = $2)
-          RETURNING
-            id,
-            created_at,
-            customer_user_id,
-            name,
-            email,
-            phone,
-            address,
-            delivery,
-            payment,
-            order_text,
-            total,
-            coupon_code,
-            discount_paisa,
-            status,
-            payment_status,
-            payment_provider,
-            payment_reference,
-            payment_transaction_id,
-            payment_callback_id,
-            payment_verified_at,
-            payment_ledger_id,
-            payment_ledger_transaction_id
+          RETURNING ${ORDER_COLUMNS}
         `,
         [cleanOrderId, cleanCustomerUserId],
       );
@@ -815,28 +836,7 @@ export async function updateOrderPayment(id: string, payment: OrderPaymentUpdate
               ELSE coalesce($9, payment_ledger_transaction_id)
             END
           WHERE id = $1
-          RETURNING
-            id,
-            created_at,
-            name,
-            email,
-            phone,
-            address,
-            delivery,
-            payment,
-            order_text,
-            total,
-            coupon_code,
-            discount_paisa,
-            status,
-            payment_status,
-            payment_provider,
-            payment_reference,
-            payment_transaction_id,
-            payment_callback_id,
-            payment_verified_at,
-            payment_ledger_id,
-            payment_ledger_transaction_id
+          RETURNING ${ORDER_COLUMNS}
         `,
         [
           id,

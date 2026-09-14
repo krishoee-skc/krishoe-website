@@ -1,4 +1,5 @@
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import type { PostgresExecutor } from "@/lib/postgres/client";
 
 export type CouponKind = "percent" | "amount";
 export type CouponStatus = "Active" | "Disabled";
@@ -90,6 +91,18 @@ export async function getCoupon(code: string) {
   return rows[0] ? couponFromRow(rows[0]) : null;
 }
 
+/** Reads and locks a coupon for the lifetime of the caller's transaction. */
+export async function getCouponForUpdate(db: PostgresExecutor, code: string) {
+  const normalized = normalizeCouponCode(code);
+  if (!normalized) return null;
+
+  const rows = await db.query<CouponRow>(
+    `SELECT ${COLUMNS} FROM coupons WHERE code = $1 LIMIT 1 FOR UPDATE`,
+    [normalized],
+  );
+  return rows[0] ? couponFromRow(rows[0]) : null;
+}
+
 export type CouponCheck =
   | { ok: true; coupon: Coupon; discountPaisa: number }
   | { ok: false; reason: string };
@@ -169,18 +182,24 @@ export async function redeemCoupon(code: string) {
   const normalized = normalizeCouponCode(code);
   if (!normalized) return false;
 
-  return transactionPostgres(STORE, async (db) => {
-    const rows = await db.query<{ code: string }>(
-      `UPDATE coupons
-       SET used_count = used_count + 1, updated_at = now()
-       WHERE code = $1
-         AND status = 'Active'
-         AND (max_uses IS NULL OR used_count < max_uses)
-       RETURNING code`,
-      [normalized],
-    );
-    return rows.length > 0;
-  });
+  return transactionPostgres(STORE, (db) => redeemCouponWithExecutor(db, normalized));
+}
+
+/** Redeems inside an existing transaction, so the order and use count commit together. */
+export async function redeemCouponWithExecutor(db: PostgresExecutor, code: string) {
+  const normalized = normalizeCouponCode(code);
+  if (!normalized) return false;
+
+  const rows = await db.query<{ code: string }>(
+    `UPDATE coupons
+     SET used_count = used_count + 1, updated_at = now()
+     WHERE code = $1
+       AND status = 'Active'
+       AND (max_uses IS NULL OR used_count < max_uses)
+     RETURNING code`,
+    [normalized],
+  );
+  return rows.length > 0;
 }
 
 export async function saveCoupon(input: {
