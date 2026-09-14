@@ -638,7 +638,7 @@ CREATE TABLE IF NOT EXISTS production_stage_rates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
-  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
   rate_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_pair >= 0),
   effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
   status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
@@ -656,7 +656,7 @@ CREATE TABLE IF NOT EXISTS production_worker_stage_rates (
   employee_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
   employee_name_snapshot TEXT NOT NULL,
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE CASCADE,
-  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
   rate_per_pair NUMERIC NOT NULL DEFAULT 0 CHECK (rate_per_pair >= 0),
   effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
   status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
@@ -717,7 +717,7 @@ CREATE TABLE IF NOT EXISTS production_work_orders (
   due_date DATE,
   priority TEXT NOT NULL DEFAULT 'Normal' CHECK (priority IN ('Normal', 'High', 'Urgent')),
   current_stage TEXT NOT NULL DEFAULT 'Upper' CHECK (
-    current_stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+    current_stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff', 'Packing / QC')
   ),
   status TEXT NOT NULL DEFAULT 'Planning' CHECK (
     status IN ('Planning', 'In Progress', 'Ready for QC', 'Completed', 'Cancelled')
@@ -742,7 +742,7 @@ CREATE TABLE IF NOT EXISTS production_cctv_references (
   work_order_id TEXT NOT NULL REFERENCES production_work_orders(id) ON DELETE RESTRICT,
   work_order_number_snapshot TEXT NOT NULL,
   stage TEXT NOT NULL CHECK (
-    stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+    stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff', 'Packing / QC')
   ),
   camera_zone TEXT NOT NULL,
   window_start TIMESTAMPTZ NOT NULL,
@@ -787,10 +787,10 @@ CREATE TABLE IF NOT EXISTS production_stage_handovers (
   work_order_id TEXT NOT NULL REFERENCES production_work_orders(id) ON DELETE RESTRICT,
   work_order_number_snapshot TEXT NOT NULL,
   from_stage TEXT NOT NULL CHECK (
-    from_stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')
+    from_stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')
   ),
   to_stage TEXT NOT NULL CHECK (
-    to_stage IN ('Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC')
+    to_stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')
   ),
   from_employee_id TEXT REFERENCES factory_workers(id) ON DELETE SET NULL,
   from_employee_name_snapshot TEXT NOT NULL DEFAULT '',
@@ -820,7 +820,7 @@ CREATE TABLE IF NOT EXISTS production_work_entries (
   employee_name_snapshot TEXT NOT NULL,
   item_id TEXT NOT NULL REFERENCES production_items(id) ON DELETE RESTRICT,
   item_name_snapshot TEXT NOT NULL,
-  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final')),
+  stage TEXT NOT NULL CHECK (stage IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
   total_pairs INTEGER NOT NULL CHECK (total_pairs > 0),
   size_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
   rejected_pairs INTEGER NOT NULL DEFAULT 0 CHECK (rejected_pairs >= 0),
