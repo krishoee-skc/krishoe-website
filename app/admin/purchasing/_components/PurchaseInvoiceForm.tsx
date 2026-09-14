@@ -44,6 +44,32 @@ const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"];
 const WALK = ["item", "quantity", "rate"] as const;
 type WalkField = (typeof WALK)[number];
 
+/**
+ * The boxes outside the item table, in the order a paper bill is read.
+ *
+ * Not the order they sit on screen. Discount and VAT are typed before the
+ * amount paid, because that is the order they are printed on the supplier's
+ * bill and the order the arithmetic runs — following the screen would send the
+ * cursor back up the page halfway through.
+ *
+ * The item rows sit between the bill number and the discount: Enter on the
+ * bill number drops into the first line, and Enter on the last rate of the
+ * last line comes back out to the discount.
+ *
+ * Every name here is the input's own `name`, so the walk and the form cannot
+ * drift apart — a renamed field breaks the type, not the cursor.
+ */
+const FIELD_WALK = [
+  "supplierName",
+  "phone",
+  "supplierBillNo",
+  "discount",
+  "tax",
+  "paidAmount",
+  "paymentReference",
+] as const;
+type FormField = (typeof FIELD_WALK)[number];
+
 function emptyRow(key: number): ItemRow {
   return {
     key,
@@ -130,6 +156,50 @@ export default function PurchaseInvoiceForm({
     return `${rowKey}:${field}`;
   }
 
+  /**
+   * Enter and Shift+Enter along the boxes outside the item table.
+   *
+   * Three rules, and the first is the one that matters: Enter never saves the
+   * bill. In a browser Enter in a text box submits the form, and a half-typed
+   * purchase filed by a mis-hit is worse than any amount of saved keystrokes —
+   * so every path here calls preventDefault, and the last box simply stops.
+   * The Save button remains the only way a bill is filed.
+   *
+   * Shift+Enter walks back, because a shopkeeper who has overshot a box should
+   * not have to reach for the mouse to correct it. Tab is untouched and still
+   * works for anyone who has that habit.
+   */
+  function handleFieldWalk(event: React.KeyboardEvent<HTMLInputElement>, field: FormField) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+
+    const at = FIELD_WALK.indexOf(field);
+
+    if (event.shiftKey) {
+      // Backwards out of the discount lands on the last line's rate, the box
+      // the forward walk arrived from.
+      if (field === "discount" && rows.length > 0) {
+        pendingFocus.current = boxKey(rows[rows.length - 1].key, "rate");
+        return;
+      }
+      if (at > 0) pendingFocus.current = FIELD_WALK[at - 1];
+      return;
+    }
+
+    // The bill number is the last box before the goods: drop into line one.
+    if (field === "supplierBillNo" && rows.length > 0) {
+      pendingFocus.current = boxKey(rows[0].key, "item");
+      return;
+    }
+
+    // The reference is the last box on the walk, and the walk simply stops
+    // there. The note below it is a textarea, where Enter has to keep meaning
+    // "new line" — a vehicle number and a gate pass belong on separate lines.
+    if (at < FIELD_WALK.length - 1) {
+      pendingFocus.current = FIELD_WALK[at + 1];
+    }
+  }
+
   function handleWalk(event: React.KeyboardEvent<HTMLInputElement>, index: number, field: WalkField) {
     if (event.key !== "Enter") return;
     // Enter in a form submits it. Here it means "next box", which is what it
@@ -137,6 +207,20 @@ export default function PurchaseInvoiceForm({
     event.preventDefault();
 
     const at = WALK.indexOf(field);
+
+    // Shift+Enter retraces the forward walk exactly: back along the row, up to
+    // the previous row's rate, and out of the first item box to the bill
+    // number it came from.
+    if (event.shiftKey) {
+      if (at > 0) {
+        pendingFocus.current = boxKey(rows[index].key, WALK[at - 1]);
+        return;
+      }
+      const previousRow = rows[index - 1];
+      pendingFocus.current = previousRow ? boxKey(previousRow.key, "rate") : "supplierBillNo";
+      return;
+    }
+
     if (at < WALK.length - 1) {
       pendingFocus.current = boxKey(rows[index].key, WALK[at + 1]);
       return;
@@ -148,6 +232,15 @@ export default function PurchaseInvoiceForm({
     const nextRow = rows[index + 1];
     if (nextRow) {
       pendingFocus.current = boxKey(nextRow.key, "item");
+      return;
+    }
+
+    // Enter on the rate of an untouched last row means the goods are finished.
+    // Growing another empty line here would leave the cursor circling in a row
+    // nobody is going to type into; the discount is what comes next on the
+    // bill, so go there instead.
+    if (!rowIsTouched(rows[index])) {
+      pendingFocus.current = "discount";
       return;
     }
 
@@ -437,12 +530,20 @@ export default function PurchaseInvoiceForm({
               </select>
               <input
                 name="supplierName"
+                ref={(element) => {
+                  boxes.current.set("supplierName", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "supplierName")}
                 className={fieldClass(supplierError)}
                 placeholder={text("New supplier name", "नयाँ साहुको नाम")}
                 onChange={() => setSupplierError(false)}
               />
               <input
                 name="phone"
+                ref={(element) => {
+                  boxes.current.set("phone", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "phone")}
                 className={plain}
                 placeholder={text("Supplier phone", "साहुको फोन")}
               />
@@ -471,6 +572,10 @@ export default function PurchaseInvoiceForm({
               </span>
               <input
                 name="supplierBillNo"
+                ref={(element) => {
+                  boxes.current.set("supplierBillNo", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "supplierBillNo")}
                 maxLength={60}
                 className={`${plain} mt-1`}
                 placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
@@ -774,6 +879,10 @@ export default function PurchaseInvoiceForm({
                 <input
                   id="purchase-paid"
                   name="paidAmount"
+                ref={(element) => {
+                  boxes.current.set("paidAmount", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "paidAmount")}
                   type="number"
                   min="0"
                   step="any"
@@ -795,6 +904,10 @@ export default function PurchaseInvoiceForm({
                 <input
                   id="purchase-reference"
                   name="paymentReference"
+                ref={(element) => {
+                  boxes.current.set("paymentReference", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "paymentReference")}
                   className={`${plain} mt-1 w-full`}
                   placeholder={
                     paymentMethod === "QR" ? "eSewa / Khalti / Fonepay" : text("Reference no.", "रेफरेन्स नं.")
@@ -835,6 +948,10 @@ export default function PurchaseInvoiceForm({
               <dd>
                 <input
                   name="discount"
+                ref={(element) => {
+                  boxes.current.set("discount", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "discount")}
                   type="number"
                   min="0"
                   step="any"
@@ -852,6 +969,10 @@ export default function PurchaseInvoiceForm({
               <dd>
                 <input
                   name="tax"
+                ref={(element) => {
+                  boxes.current.set("tax", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "tax")}
                   type="number"
                   min="0"
                   step="any"
