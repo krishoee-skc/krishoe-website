@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -69,6 +69,22 @@ const DEFAULT_PAIRS = 60;
  *  — the amounts this shop counts in. */
 const PAIRS_STEP = 12;
 
+/**
+ * The typed boxes Enter walks along, in the order the work is counted out.
+ *
+ * Only four, and only the ones that are typed. The worker, the stage, the
+ * product and the lot are all chosen from lists — a dropdown answers Enter by
+ * opening or closing itself, and taking that over would make choosing a worker
+ * harder than it is now. The colour and size have buttons above them too; the
+ * boxes here are the "or type it" ones beside those buttons.
+ *
+ * Rejected pairs comes last because it is usually left at zero: the walk ends
+ * on the box most days do not need, which means most days the walk ends at the
+ * size.
+ */
+const WORK_WALK = ["pairs", "colour", "size", "rejected"] as const;
+type WorkField = (typeof WORK_WALK)[number];
+
 export default function WorkEntryForm({
   initialWorkers,
   initialItems,
@@ -84,6 +100,49 @@ export default function WorkEntryForm({
   const { text, language } = useLanguage();
   const toast = useToast();
   const [workers] = useState<Worker[]>(initialWorkers);
+
+  // Enter moves the cursor along the four typed boxes, so it has to be able to
+  // find the box it is moving to.
+  const boxes = useRef(new Map<string, HTMLInputElement | null>());
+  // A ref rather than state: the box to move to is decided in a key handler
+  // and acted on after the next render, which is a note-to-self rather than
+  // something the screen is drawn from.
+  const pendingFocus = useRef<string | null>(null);
+
+  useEffect(() => {
+    const key = pendingFocus.current;
+    if (!key) return;
+    const box = boxes.current.get(key);
+    if (!box) return;
+    pendingFocus.current = null;
+    box.focus();
+    box.select();
+  });
+
+  /**
+   * Enter and Shift+Enter along the four typed boxes.
+   *
+   * Enter never saves. In a browser Enter in a text box submits the form —
+   * W3C records it as failure F36 — and this form pays a worker: a half-typed
+   * entry filed by a mis-hit puts a wrong number in somebody's wages. Every
+   * path calls preventDefault and the last box simply stops. Save stays the
+   * only way an entry is filed.
+   */
+  function handleFieldWalk(event: React.KeyboardEvent<HTMLInputElement>, field: WorkField) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+
+    const at = WORK_WALK.indexOf(field);
+
+    if (event.shiftKey) {
+      if (at > 0) pendingFocus.current = WORK_WALK[at - 1];
+      return;
+    }
+
+    if (at < WORK_WALK.length - 1) {
+      pendingFocus.current = WORK_WALK[at + 1];
+    }
+  }
   const [items, setItems] = useState<Item[]>(initialItems);
   const [workOrders] = useState<WorkOrder[]>(initialWorkOrders);
   // Every rate in force, so picking an item prices the work with no round trip.
@@ -733,6 +792,10 @@ export default function WorkEntryForm({
               −
             </button>
             <input
+              ref={(element) => {
+                boxes.current.set("pairs", element);
+              }}
+              onKeyDown={(event) => handleFieldWalk(event, "pairs")}
               type="number"
               value={formData.pairs_count}
               onChange={handlePairsChange}
@@ -797,6 +860,10 @@ export default function WorkEntryForm({
             </div>
           ) : null}
           <input
+            ref={(element) => {
+              boxes.current.set("colour", element);
+            }}
+            onKeyDown={(event) => handleFieldWalk(event, "colour")}
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
@@ -875,6 +942,10 @@ export default function WorkEntryForm({
                 </div>
               )}
               <input
+                ref={(element) => {
+                  boxes.current.set("size", element);
+                }}
+                onKeyDown={(event) => handleFieldWalk(event, "size")}
                 type="text"
                 value={formData.size}
                 onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
@@ -892,6 +963,10 @@ export default function WorkEntryForm({
             ❌ {text("Rejected pairs (QC)", "खराब जोडी (QC)")}
           </label>
           <input
+            ref={(element) => {
+              boxes.current.set("rejected", element);
+            }}
+            onKeyDown={(event) => handleFieldWalk(event, "rejected")}
             id="work-reject"
             type="number"
             value={formData.reject_pairs}
