@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import { money } from "@/lib/format-money";
@@ -77,6 +77,35 @@ const inputClass = `${inputBase} border-brand-green-line bg-brand-paper`;
 const textareaClass =
   "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
+/**
+ * The bill's own boxes, in the order they are filled at the counter.
+ *
+ * The goods come first and they are scanned, not typed, so the scan box is not
+ * on this walk at all — there Enter has to keep meaning "add this item", which
+ * is how a scanner works and how several items go in without a hand leaving
+ * the counter. This walk is what comes after: who is buying, then what the
+ * bill comes to.
+ *
+ * Discount and VAT before the amount paid, because the amount paid is settled
+ * against a total that already has them in it. The cashier's name leads, since
+ * it is the first thing typed on a fresh bill.
+ *
+ * Every name here is the input's own `name`, so the walk and the form cannot
+ * drift apart.
+ */
+const BILL_WALK = [
+  "cashier",
+  "customerName",
+  "phone",
+  "customerAddress",
+  "customerPan",
+  "invoiceDiscount",
+  "tax",
+  "paidAmount",
+  "paymentReference",
+] as const;
+type BillField = (typeof BILL_WALK)[number];
+
 function fieldClass(hasError: boolean) {
   return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"}`;
 }
@@ -119,6 +148,54 @@ export default function PosBillForm({
   const [isSaving, startSaving] = useTransition();
   const submitStartedRef = useRef(false);
   const router = useRouter();
+
+  // Enter moves the cursor along the bill, so it has to be able to find the
+  // box it is moving to. Keyed by the input's own `name`.
+  const boxes = useRef(new Map<string, HTMLInputElement | null>());
+  // A ref rather than state: the box to move to is decided in a key handler
+  // and acted on after the next render. Kept as state it would render twice
+  // to move a cursor.
+  const pendingFocus = useRef<string | null>(null);
+
+  useEffect(() => {
+    const key = pendingFocus.current;
+    if (!key) return;
+    const box = boxes.current.get(key);
+    if (!box) return;
+    pendingFocus.current = null;
+    box.focus();
+    box.select();
+  });
+
+  /**
+   * Enter and Shift+Enter along the bill's own boxes.
+   *
+   * Enter never saves. In a browser Enter in a text box submits the form —
+   * W3C records it as failure F36 — and at a counter, with a customer waiting,
+   * a bill filed half-typed by a mis-hit is the worst thing this form could
+   * do. Every path calls preventDefault and the last box simply stops; Save
+   * stays the only way a bill is filed.
+   *
+   * The scan box is deliberately not on this walk. A barcode scanner types a
+   * code and presses Enter, and there Enter has to keep meaning "add this item
+   * to the bill" — the counter scans several items in a row without touching
+   * the keyboard between them.
+   */
+  function handleFieldWalk(event: React.KeyboardEvent<HTMLInputElement>, field: BillField) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+
+    const at = BILL_WALK.indexOf(field);
+
+    if (event.shiftKey) {
+      if (at > 0) pendingFocus.current = BILL_WALK[at - 1];
+      return;
+    }
+
+    if (at < BILL_WALK.length - 1) {
+      pendingFocus.current = BILL_WALK[at + 1];
+    }
+  }
 
   // Look a design up by name, case-insensitively, so a picked or typed item
   // finds its stock and price.
@@ -470,12 +547,20 @@ export default function PosBillForm({
           <option>Khalti</option>
           <option value="Bank">{text("Bank", "बैंक")}</option>
         </select>
-        <input name="cashier" className={inputClass} placeholder={text("Cashier / counter", "कसले बेच्यो")} />
+        <input name="cashier"
+          ref={(element) => {
+            boxes.current.set("cashier", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "cashier")} className={inputClass} placeholder={text("Cashier / counter", "कसले बेच्यो")} />
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-4">
         <input
           name="customerName"
+          ref={(element) => {
+            boxes.current.set("customerName", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "customerName")}
           className={inputClass}
           placeholder={text("Customer name", "ग्राहकको नाम")}
           value={customerName}
@@ -483,6 +568,10 @@ export default function PosBillForm({
         />
         <input
           name="phone"
+          ref={(element) => {
+            boxes.current.set("phone", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "phone")}
           className={inputClass}
           placeholder={text("Phone", "फोन नम्बर")}
           value={phone}
@@ -490,11 +579,19 @@ export default function PosBillForm({
         />
         <input
           name="customerAddress"
+          ref={(element) => {
+            boxes.current.set("customerAddress", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "customerAddress")}
           className={inputClass}
           placeholder={text("Customer address", "ग्राहकको ठेगाना")}
         />
         <input
           name="customerPan"
+          ref={(element) => {
+            boxes.current.set("customerPan", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "customerPan")}
           className={inputClass}
           placeholder={text("Customer PAN (wholesale)", "ग्राहकको PAN (थोक)")}
         />
@@ -516,7 +613,11 @@ export default function PosBillForm({
             </option>
           ))}
         </select>
-        <input name="paymentReference" className={inputClass} placeholder={text("Cheque/QR/ref no.", "चेक/QR को नम्बर")} />
+        <input name="paymentReference"
+          ref={(element) => {
+            boxes.current.set("paymentReference", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "paymentReference")} className={inputClass} placeholder={text("Cheque/QR/ref no.", "चेक/QR को नम्बर")} />
       </div>
 
       {/* The bill is not yet paid in full, so it owes somebody. Said here, while
@@ -811,6 +912,10 @@ export default function PosBillForm({
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         <input
           name="invoiceDiscount"
+          ref={(element) => {
+            boxes.current.set("invoiceDiscount", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "invoiceDiscount")}
           type="number"
           min="0"
           className={inputClass}
@@ -820,6 +925,10 @@ export default function PosBillForm({
         />
         <input
           name="tax"
+          ref={(element) => {
+            boxes.current.set("tax", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "tax")}
           type="number"
           min="0"
           className={inputClass}
@@ -830,6 +939,10 @@ export default function PosBillForm({
         <div className="grid gap-1">
           <input
             name="paidAmount"
+          ref={(element) => {
+            boxes.current.set("paidAmount", element);
+          }}
+          onKeyDown={(event) => handleFieldWalk(event, "paidAmount")}
             type="number"
             min="0"
             className={inputClass}
