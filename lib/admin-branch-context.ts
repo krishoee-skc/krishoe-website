@@ -6,6 +6,16 @@ export type AdminBranchContext = {
   staffId: string;
 };
 
+/**
+ * The staff role the app lets read past its own branch.
+ *
+ * It lives here, beside the context it sets, so that the monitoring screen
+ * reports the exemption from the same constant that grants it. A screen that
+ * described this from a second copy would keep saying "Owner" on the day
+ * somebody changed the first one.
+ */
+export const allBranchAdminRole = "Owner" as const;
+
 declare global {
   var krishoeAdminBranchContext: AsyncLocalStorage<AdminBranchContext> | undefined;
 }

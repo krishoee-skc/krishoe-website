@@ -6,7 +6,7 @@ import {
   type AdminSessionPayload,
 } from "@/lib/admin-session";
 import { validateAdminStaffSession } from "@/lib/admin-staff-security";
-import { activateAdminBranchContext } from "@/lib/admin-branch-context";
+import { activateAdminBranchContext, allBranchAdminRole } from "@/lib/admin-branch-context";
 
 export async function getAdminSession(): Promise<AdminSessionPayload | null> {
   const cookieStore = await cookies();
@@ -27,10 +27,21 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
 
   activateAdminBranchContext({
     branchId: session.branchId ?? "",
-    // Real staff accounts, including Owners, operate inside their selected
-    // branch. The legacy environment-password bootstrap has no staff/branch
-    // identity and remains a temporary all-branch recovery account.
-    bypass: !session.staffId,
+    // Who may read past their own branch. Two accounts may: the legacy
+    // environment-password bootstrap, which carries no staff or branch identity
+    // at all, and the Owner, who owns every branch and is the one person who
+    // has to be able to add them up. Staff below Owner stay inside the branch
+    // they signed into, which is the whole point of the wall.
+    //
+    // This exemption decides nothing today. The app connects to Neon as
+    // neondb_owner, a role with rolbypassrls, so Postgres skips every policy
+    // before reading it and everyone already sees every branch. It matters on
+    // the day the app is given a NOBYPASSRLS role — and on that day it is the
+    // difference between isolation starting to work and the Owner opening an
+    // empty shop, because his staff account sits in one branch and the rows sit
+    // in another. The exemption is reported on the monitoring screen beside the
+    // role, so it can never be mistaken for a wall that is standing.
+    bypass: !session.staffId || session.role === allBranchAdminRole,
     staffId: session.staffId ?? "bootstrap-owner",
   });
 

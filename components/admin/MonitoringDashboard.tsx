@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ServiceStatus, UptimeEvidence } from "@/lib/monitoring";
+import type { BranchIsolationStatus } from "@/lib/branch-isolation-status";
 import AlertText from "@/components/admin/AlertText";
 import { SkeletonStatRow, SkeletonCard } from "@/components/admin/Skeleton";
 import { pageName } from "@/lib/internal-paths";
@@ -70,6 +71,10 @@ interface MonitoringData {
     sms: ServiceStatus;
     storage: ServiceStatus;
   };
+  // The API has sent this since the day it was written and no screen read it,
+  // so the promise that branch isolation was "shown where somebody opens it"
+  // was not true. The library type again, not a copy.
+  branchIsolation?: BranchIsolationStatus;
 }
 
 /** Nepal time, as a clock reads it. The column stores UTC. */
@@ -427,6 +432,46 @@ export default function MonitoringDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Who can see which branch. Written on every branch table, enforced by
+          none of them while the app connects as a role that bypasses row-level
+          security — and the Owner is exempt in the app on top of that. Both
+          halves belong on the screen: the database can only report the first,
+          and a wall with a door should be described as a wall with a door. */}
+      {monitoring.branchIsolation ? (
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+          <h2 className="text-lg font-semibold text-brand-green-ink">
+            🔐 <AlertText en="Who can see which branch" ne="कसले कुन शाखा देख्न सक्छ" />
+          </h2>
+          <p
+            className={`mt-3 rounded-lg border px-4 py-3 text-sm font-semibold leading-6 ${
+              monitoring.branchIsolation.effective
+                ? "border-brand-green-line bg-brand-green-wash text-brand-green"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            {monitoring.branchIsolation.effective ? (
+              <AlertText
+                en={`Branch separation is working on ${monitoring.branchIsolation.policies} table(s). Owner accounts are exempt by design and still see every branch.`}
+                ne={`${monitoring.branchIsolation.policies} वटा तालिकामा शाखा छुट्याउने काम गरिरहेको छ। Owner खातालाई जानाजान छुट दिइएको छ — उहाँले सबै शाखा देख्नुहुन्छ।`}
+              />
+            ) : (
+              <AlertText
+                en={`Branch separation is written on ${monitoring.branchIsolation.policies} table(s) but is NOT working: the app connects as ${monitoring.branchIsolation.role}, which skips it. Everyone signed in sees every branch.`}
+                ne={`${monitoring.branchIsolation.policies} वटा तालिकामा शाखा छुट्याउने लेखिएको छ तर काम गरिरहेको छैन: app ${monitoring.branchIsolation.role} भएर जोडिन्छ, जसले यसलाई छल्छ। साइन इन गरेका सबैले सबै शाखा देख्छन्।`}
+              />
+            )}
+          </p>
+          {monitoring.branchIsolation.ownerExempt ? (
+            <p className="mt-3 text-sm leading-6 text-brand-muted">
+              <AlertText
+                en="The Owner reads every branch on purpose — he owns them and has to add them up. Staff below Owner stay in the branch they signed into, on the day the connecting role stops skipping this."
+                ne="Owner ले जानाजान सबै शाखा हेर्न पाउनुहुन्छ — सबै उहाँकै हुन्, जोड्न पनि उहाँले नै पर्छ। Owner भन्दा तलका कर्मचारी आफू साइन इन गरेकै शाखामा सीमित रहन्छन् — जुन दिन जोड्ने role ले यो छल्न छोड्छ।"
+              />
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Top Errors */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">

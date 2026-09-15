@@ -15,12 +15,22 @@ import { readFile } from "node:fs/promises";
  * A wall that is drawn but not built is worse than an open room: people put
  * valuables against it.
  *
- * So this file does not switch the wall on. Turning it on today would show the
- * Owner zero orders, zero invoices, zero workers and zero stock, because his
- * staff account sits in the office branch and every row in the shop belongs to
- * the factory branch. It holds the two things that keep the situation honest:
- * the design stays intact for the day it is wanted, and nothing in the app
- * claims a protection that is not there.
+ * So this file does not switch the wall on. That is a decision about the
+ * connecting role, made in Neon, and it belongs to the owner of the shop.
+ *
+ * What the app has settled is the door: the Owner role reads past its branch.
+ * Without it, the day the wall starts standing is the day the Owner opens an
+ * empty shop — his staff account sits in the office branch and every row in the
+ * shop belongs to the factory branch. The exemption costs nothing today, since
+ * neondb_owner already lets everybody through, and it is the difference between
+ * isolation arriving as a feature and arriving as an outage.
+ *
+ * The risk it brings is that the wall can look switched on while the person
+ * most likely to test it walks through. That is a reporting problem, so it is
+ * answered by reporting: the exemption is stated beside the role on the
+ * monitoring screen, in the summary sentence, from the same constant that
+ * grants it. This file holds the design intact for the day it is wanted, and
+ * holds the app to describing a wall with a door as a wall with a door.
  */
 
 describe("the wall is still drawn, correctly", () => {
@@ -73,13 +83,34 @@ describe("nothing claims the wall is standing", () => {
     expect(settings).not.toMatch(/cannot see other branches/i);
   });
 
-  it("gives Owners no bypass, so switching it on stays a real decision", async () => {
+  it("lets the Owner read every branch, so switching it on is not an outage", async () => {
     const auth = await readFile("lib/admin-auth.ts", "utf8");
 
-    // bypass is for the environment-password recovery account and nothing else.
-    // An Owner exemption would make the wall look switched on while the person
-    // most likely to test it walked through — the worst of both.
-    expect(auth).toContain("bypass: !session.staffId");
+    // The Owner owns every branch and is the one person who has to add them up.
+    // Without this, the day the connecting role stops bypassing RLS is the day
+    // he opens a shop with zero orders, zero stock and zero workers in it.
+    expect(auth).toContain("bypass: !session.staffId || session.role === allBranchAdminRole");
+  });
+
+  it("grants and reports the exemption from one constant", async () => {
+    const context = await readFile("lib/admin-branch-context.ts", "utf8");
+    const status = await readFile("lib/branch-isolation-status.ts", "utf8");
+
+    // Two copies of "Owner" would drift, and the screen would keep describing an
+    // exemption the app had stopped granting — the confident wrong answer this
+    // whole file exists to prevent.
+    expect(context).toContain('export const allBranchAdminRole = "Owner" as const');
+    expect(status).toContain("allBranchAdminRole");
+  });
+
+  it("says the wall has a door in it, not that it has no door", async () => {
+    const status = await readFile("lib/branch-isolation-status.ts", "utf8");
+
+    // An exemption is invisible from the database side: Postgres can report the
+    // policies are on and still every Owner request arrives carrying permission
+    // to read past them. So the sentence a person reads has to carry it.
+    expect(status).toContain("ownerExempt");
+    expect(status).toContain("are exempt by design and still see every branch");
   });
 });
 
@@ -108,6 +139,15 @@ describe("and the shop can ask whether it is standing", () => {
 
     expect(route).toContain("getBranchIsolationStatus");
     expect(route).toContain("branchIsolation");
+
+    // The API had been sending this since the day it was written and the
+    // dashboard never read it, so "shown where somebody opens it" was false for
+    // weeks and this test passed anyway — it only ever asked the sender. An
+    // answer nobody renders is not an answer.
+    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
+
+    expect(dashboard).toContain("monitoring.branchIsolation");
+    expect(dashboard).toContain("ownerExempt");
   });
 
   it("says it does not know rather than guessing", async () => {

@@ -1,4 +1,5 @@
 import { queryPostgres } from "@/lib/postgres/client";
+import { allBranchAdminRole } from "@/lib/admin-branch-context";
 
 const STORE = "branch isolation";
 
@@ -14,6 +15,13 @@ export type BranchIsolationStatus = {
    * policy above decoration, however correctly it is written.
    */
   bypassed: boolean;
+  /**
+   * True while the app exempts the Owner role from branch scoping. Reported
+   * because an exemption is invisible from the database side: Postgres can say
+   * the policies are on, and still every Owner request arrives carrying
+   * permission to read past them.
+   */
+  ownerExempt: boolean;
   effective: boolean;
   summary: string;
 };
@@ -31,10 +39,15 @@ export type BranchIsolationStatus = {
  * room, because people put valuables against it. So the shop can ask, and the
  * monitoring screen shows the answer beside the things that are working.
  *
- * Switching it on is deliberately not what this does. Today it would show the
- * Owner zero orders, zero invoices, zero workers and zero stock: his staff
- * account sits in the office branch and every row in the shop belongs to the
- * factory branch. That is a decision with a data move attached, not a flag.
+ * Switching it on is deliberately not what this does. That stays a decision
+ * about the connecting role, made in Neon, not a flag in here.
+ *
+ * What the app decides is who is exempt. The Owner is: he owns every branch and
+ * is the one person who has to be able to add them up, and without that
+ * exemption the day isolation starts working is the day he opens an empty shop.
+ * The exemption is reported alongside the role for a reason — it is the half
+ * the database cannot see, and a wall with a door in it should be described as
+ * a wall with a door, not as a wall.
  */
 export async function getBranchIsolationStatus(): Promise<BranchIsolationStatus> {
   try {
@@ -66,11 +79,12 @@ export async function getBranchIsolationStatus(): Promise<BranchIsolationStatus>
       forced,
       role: who?.role ?? "unknown",
       bypassed,
+      ownerExempt: true,
       effective,
       summary: effective
-        ? `Branch isolation is enforced on ${policies} table(s).`
+        ? `Branch isolation is enforced on ${policies} table(s). ${allBranchAdminRole} accounts are exempt by design and still see every branch.`
         : bypassed
-          ? `Branch isolation is written on ${policies} table(s) but NOT enforced: the app connects as ${who?.role ?? "this role"}, which bypasses row-level security. Everyone signed in sees every branch.`
+          ? `Branch isolation is written on ${policies} table(s) but NOT enforced: the app connects as ${who?.role ?? "this role"}, which bypasses row-level security. Everyone signed in sees every branch. Separately, ${allBranchAdminRole} accounts are exempt in the app, so they would still see every branch on the day the connecting role stops bypassing.`
           : "No branch isolation policies are installed.",
     };
   } catch {
@@ -79,6 +93,9 @@ export async function getBranchIsolationStatus(): Promise<BranchIsolationStatus>
       forced: 0,
       role: "unknown",
       bypassed: false,
+      // The exemption is the app's own rule, not something the failed query was
+      // going to tell us, so it stays true even when the database is unreachable.
+      ownerExempt: true,
       effective: false,
       // Not knowing is its own answer, and a better one than a confident guess.
       summary: "Could not read whether branch isolation is enforced.",
