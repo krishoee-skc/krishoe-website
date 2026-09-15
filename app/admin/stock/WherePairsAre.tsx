@@ -8,6 +8,7 @@ import type { ActionState } from "@/app/admin/actions";
 import {
   createStockTransferAction,
   receiveStockTransferAction,
+  setPlaceCountAction,
 } from "@/app/admin/stock/actions";
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 
@@ -50,6 +51,14 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
   const [openChallan, setOpenChallan] = useState<string | null>(null);
   const [receiveState, setReceiveState] = useState<ActionState | null>(null);
   const [receiving, startReceiving] = useTransition();
+
+  // The stocktake box. Its own state, because counting pairs in is a different
+  // act from sending them: nothing moves, somebody counted what is on a shelf.
+  const [countKey, setCountKey] = useState("");
+  const [countPlace, setCountPlace] = useState<"Factory" | "Shop">("Shop");
+  const [countPairs, setCountPairs] = useState("");
+  const [countState, setCountState] = useState<ActionState | null>(null);
+  const [counting, startCounting] = useTransition();
 
   const to = from === "Factory" ? "Shop" : "Factory";
 
@@ -133,6 +142,53 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
     });
   }
 
+  /**
+   * Count pairs in at a place.
+   *
+   * Not a challan: nothing moved. These are pairs that were made or bought
+   * before anyone was asked where they went, and this says where they are.
+   *
+   * The count replaces that place's number rather than adding to it, which is
+   * what a stocktake means — you counted the shelf, and that is what is on it.
+   */
+  function handleCount(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    const counted = rows.find((row) => `${row.design}::${row.sizeRun}` === countKey);
+    if (!counted) {
+      setCountState({
+        ok: false,
+        message: text("Choose a shoe to count.", "गन्ने जुत्ता छान्नुहोस्।"),
+      });
+      return;
+    }
+
+    // Caught here rather than after a round trip. Counting 60 pairs of a shoe
+    // the stock says has 48 would leave the row reading -12 under "No place",
+    // which is a worse lie than the blank it replaced.
+    const pairs = Number(countPairs);
+    if (pairs > counted.total) {
+      setCountState({
+        ok: false,
+        message: text(
+          `${counted.design}: stock says ${counted.total} pair(s) in all, so ${pairs} cannot be at one place.`,
+          `${counted.design}: स्टकमा जम्मा ${counted.total} जोडी छ, त्यसैले एकै ठाउँमा ${pairs} हुन सक्दैन।`,
+        ),
+      });
+      return;
+    }
+
+    startCounting(async () => {
+      const result = await setPlaceCountAction(null, formData);
+      setCountState(result);
+      if (result.ok) {
+        setCountPairs("");
+        router.refresh();
+      }
+    });
+  }
+
   function handleReceive(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -189,6 +245,80 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
             )}
           </p>
         ) : null}
+
+        {/* ── Count pairs in ───────────────────────────────────────────
+            Directly under the warning that sends the owner here, because
+            "count them in below" pointed at nothing for as long as this
+            box did not exist. */}
+        <form onSubmit={handleCount} className="mt-3 rounded-xl border border-brand-green-line bg-brand-paper p-3">
+          <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
+          <input type="hidden" name="design" value={countKey.split("::")[0] ?? ""} />
+          <input type="hidden" name="location" value={countPlace} />
+
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.1em] text-brand-muted-soft">
+            {text("Count pairs in", "गनेर ठाउँ राख्ने")}
+          </p>
+
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_110px_auto] sm:items-center">
+            <select
+              className={box}
+              value={countKey}
+              onChange={(event) => setCountKey(event.target.value)}
+              aria-label={text("Shoe to count", "गन्ने जुत्ता")}
+            >
+              <option value="">{text("Choose a shoe…", "जुत्ता छान्नुहोस्…")}</option>
+              {/* Every shoe, not only the unplaced ones: a shelf can be
+                  recounted after it was first placed. The ones that need it
+                  most are marked, so they are easy to find in the list. */}
+              {rows.map((row) => (
+                <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
+                  {row.design}
+                  {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""}
+                  {row.unplaced !== 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className={box}
+              value={countPlace}
+              onChange={(event) => setCountPlace(event.target.value as "Factory" | "Shop")}
+              aria-label={text("Place", "ठाउँ")}
+            >
+              <option value="Factory">🏭 {placeLabel("Factory")}</option>
+              <option value="Shop">🛒 {placeLabel("Shop")}</option>
+            </select>
+
+            <input
+              name="pairs"
+              type="number"
+              min="0"
+              inputMode="numeric"
+              className={`${box} text-right tabular-nums`}
+              placeholder={text("Pairs", "जोडी")}
+              value={countPairs}
+              onChange={(event) => setCountPairs(event.target.value)}
+              aria-label={text("Pairs counted", "गनेको जोडी")}
+            />
+
+            <button
+              type="submit"
+              disabled={counting || !countKey || countPairs === ""}
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition disabled:opacity-50"
+            >
+              {counting ? text("Saving…", "राख्दै…") : text("Save count", "गन्ती राख्ने")}
+            </button>
+          </div>
+
+          <p className="mt-2 text-xs leading-5 text-brand-muted">
+            {text(
+              "This replaces what that place holds — it is a count, not a delivery. Nothing is sold and no challan is written.",
+              "यसले त्यो ठाउँको अंक बदल्छ — यो गन्ती हो, ढुवानी होइन। केही बिक्री हुँदैन, चलान पनि बन्दैन।",
+            )}
+          </p>
+
+          <ActionMessage state={countState} />
+        </form>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
