@@ -125,6 +125,28 @@ describe("what the write must not do", () => {
     expect(place).toContain("stock_locations.pairs + EXCLUDED.pairs");
   });
 
+  it("places under the spelling the stock row was filed as", async () => {
+    const postgres = await readFile(POSTGRES, "utf8");
+
+    const loop = postgres.slice(
+      postgres.indexOf("for (const row of resolved) {"),
+      postgres.indexOf("INSERT INTO purchase_invoices"),
+    );
+
+    expect(loop.length, "the posting loop moved").toBeGreaterThan(0);
+    // insertStockMovement canonicalises the design against the names already on
+    // record, so a line typed "Bag Open" is filed under the existing "bag open".
+    // Placing the typed spelling instead would write a stock_locations row that
+    // the Stock screen's join never matches — the pairs would land, and still
+    // read as "No place". So the place follows the movement's own name.
+    expect(loop, "the movement's canonical name must be captured").toMatch(
+      /const\s+\w+\s*=\s*await\s+insertStockMovement\(/,
+    );
+    expect(loop, "placePairs must not use the raw typed design").not.toMatch(
+      /placePairs\(\s*db\s*,\s*row\.line\.design/,
+    );
+  });
+
   it("shares the bill's transaction", async () => {
     const postgres = await readFile(POSTGRES, "utf8");
 

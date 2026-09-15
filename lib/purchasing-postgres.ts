@@ -615,7 +615,7 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           [row.material.id, row.line.quantity],
         );
       } else {
-        await insertStockMovement(db, {
+        const movement = await insertStockMovement(db, {
           design: row.line.design,
           channel: row.line.channel as BusinessChannel,
           sizeRun: row.line.sizeRun,
@@ -628,10 +628,16 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
         // pairs arrived; without this the pairs sit in the Stock screen's
         // "No place" column until somebody cuts a challan for goods that never
         // travelled. Additive, so two lines of the same shoe on one bill add up.
+        //
+        // Under the movement's own design, not the typed one: a line typed
+        // "Bag Open" is filed against the existing "bag open", and the Stock
+        // screen joins the two tables on that name. Placing the typed spelling
+        // would write a row the join never matches, so the pairs would land and
+        // still read as "No place" — the exact bug this call exists to fix.
         await placePairs(
           db,
-          row.line.design,
-          row.line.sizeRun,
+          movement.design,
+          movement.sizeRun,
           row.line.place ?? "Factory",
           row.line.quantity,
         );
