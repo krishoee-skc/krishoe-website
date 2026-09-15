@@ -30,7 +30,11 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { rewardReferrerForDeliveredOrder } from "@/lib/referrals";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
-import { requireAdminPermission } from "@/lib/admin-permissions";
+import { requireAdminPermission, getSessionAdminRole } from "@/lib/admin-permissions";
+import { cookies } from "next/headers";
+import { getAdminSession, viewingBranchCookieName } from "@/lib/admin-auth";
+import { allBranchAdminRole } from "@/lib/admin-branch-context";
+import { getAdminSettings } from "@/lib/admin-settings";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
 export type ActionState = {
@@ -491,4 +495,58 @@ export async function deleteProductAction(
   revalidatePath("/", "layout");
 
   return { ok: true, message: "Product deleted." };
+}
+
+/**
+ * Look at one branch, or at all of them.
+ *
+ * Writes the cookie lib/admin-auth.ts consults; everything else follows from
+ * there, because the branch id it sets is the one every admin query already
+ * carries into Postgres. Choosing "all" deletes the cookie rather than storing
+ * an empty string, so a later read cannot mistake "" for a real branch.
+ *
+ * Guarded by the same rule that grants the exemption in the first place: only
+ * somebody already entitled to every branch may narrow to one. For anybody else
+ * this is refused here and ignored again when the cookie is read, because a
+ * Manager posted to one branch must not reach another by setting one.
+ */
+export async function setViewingBranchAction(branchId: string): Promise<ActionState> {
+  const session = await getAdminSession();
+  if (!session) return { ok: false, message: "Please sign in again." };
+
+  const role = getSessionAdminRole(session);
+  if (session.staffId && role !== allBranchAdminRole) {
+    return { ok: false, message: "Only the owner can look across branches." };
+  }
+
+  const cookieStore = await cookies();
+  const chosen = branchId.trim();
+
+  if (!chosen) {
+    cookieStore.delete(viewingBranchCookieName);
+  } else {
+    // Must name a real branch. A typo would otherwise scope every query to an
+    // id nothing matches, and every screen would read as an empty business.
+    const settings = await getAdminSettings().catch(() => null);
+    if (!settings?.branches.some((branch) => branch.id === chosen)) {
+      return { ok: false, message: "That branch was not found." };
+    }
+
+    cookieStore.set({
+      name: viewingBranchCookieName,
+      value: chosen,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      // A viewing preference, not a credential: it may outlive a single visit,
+      // but it should not outlive the person's interest in it.
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
+  // Every admin page reads branch-scoped data, so all of them are now stale.
+  revalidatePath("/admin", "layout");
+
+  return { ok: true, message: chosen ? "Now showing one branch." : "Now showing all branches." };
 }

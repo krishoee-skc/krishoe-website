@@ -21,6 +21,7 @@ export default function AdminNav({
   branchType,
   seesAllBranches,
   branchCount,
+  branchSwitch,
 }: {
   adminRole: AdminRole;
   adminName?: string;
@@ -30,6 +31,7 @@ export default function AdminNav({
   branchType?: string;
   seesAllBranches?: boolean;
   branchCount?: number;
+  branchSwitch?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
@@ -85,6 +87,7 @@ export default function AdminNav({
               branchType={branchType}
               seesAllBranches={seesAllBranches}
               branchCount={branchCount}
+              branchSwitch={branchSwitch}
             />
           </div>
         )}

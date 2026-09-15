@@ -31,6 +31,7 @@ export default function AdminIdentityCard({
   branchType,
   seesAllBranches,
   branchCount,
+  branchSwitch,
 }: {
   adminRole: AdminRole;
   adminName?: string;
@@ -44,6 +45,8 @@ export default function AdminIdentityCard({
   seesAllBranches?: boolean;
   /** How many branches that is, when it is all of them. */
   branchCount?: number;
+  /** The branch chooser, passed in so this stays a server component. */
+  branchSwitch?: React.ReactNode;
 }) {
   const isOwner = adminRole === "Owner";
   // The avatar letter: the name's initial, else the role's — never empty.
@@ -95,6 +98,9 @@ export default function AdminIdentityCard({
             {/* break-all only matters in the fallback, where this is a long id. */}
             <span className="min-w-0 break-all">{branchLabel}</span>
           </p>
+
+          {/* The chooser, for those who may narrow to one branch. */}
+          {branchSwitch ? <div className="mt-1.5">{branchSwitch}</div> : null}
 
           {/* What is actually on screen. The app connects as a role that
               bypasses the branch policies, so every branch's rows are readable

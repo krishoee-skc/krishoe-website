@@ -89,7 +89,17 @@ describe("nothing claims the wall is standing", () => {
     // The Owner owns every branch and is the one person who has to add them up.
     // Without this, the day the connecting role stops bypassing RLS is the day
     // he opens a shop with zero orders, zero stock and zero workers in it.
-    expect(auth).toContain("bypass: !session.staffId || session.role === allBranchAdminRole");
+    //
+    // Asserted on the entitlement rather than one spelling of the line: the
+    // branch switcher named this `seesEveryBranch` so the cookie read could be
+    // gated on it too. The rule is what matters — the bootstrap login and the
+    // Owner, nobody else.
+    expect(auth).toContain("!session.staffId || session.role === allBranchAdminRole");
+
+    // And the bypass must still follow that entitlement. It is now also turned
+    // off while the Owner has narrowed to a single branch, which only ever
+    // narrows — it can never grant the bypass to someone without it.
+    expect(auth).toMatch(/bypass:\s*seesEveryBranch(\s*&&\s*!viewingBranchId)?/);
   });
 
   it("grants and reports the exemption from one constant", async () => {

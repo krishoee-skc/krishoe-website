@@ -29,6 +29,7 @@ export default function AdminMobileNav({
   branchType,
   seesAllBranches,
   branchCount,
+  branchSwitch,
 }: {
   adminRole: AdminRole;
   adminName?: string;
@@ -38,6 +39,7 @@ export default function AdminMobileNav({
   branchType?: string;
   seesAllBranches?: boolean;
   branchCount?: number;
+  branchSwitch?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -119,6 +121,7 @@ export default function AdminMobileNav({
               branchType={branchType}
               seesAllBranches={seesAllBranches}
               branchCount={branchCount}
+              branchSwitch={branchSwitch}
             />
           </div>
 
