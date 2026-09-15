@@ -13,6 +13,14 @@
 // direction would put this module back inside the cycle it exists to avoid.
 export type BusinessChannel = "Factory" | "Wholesale" | "Retail" | "Online";
 
+// The two places a pair of shoes can physically sit. Here rather than in
+// lib/stock-transfers.ts because the purchase form is a client component and
+// needs the names: importing them from stock-transfers would pull the Postgres
+// client — and with it next/server — into the browser bundle.
+export type StockPlace = "Factory" | "Shop";
+
+export const stockPlaces: StockPlace[] = ["Factory", "Shop"];
+
 export type StockMovementType =
   | "Production In"
   | "Purchase In"

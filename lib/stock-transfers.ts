@@ -3,12 +3,16 @@ import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
 const STORE = "stock transfers";
 
-export type StockPlace = "Factory" | "Shop";
+// Defined in lib/stock-rules.ts, which imports nothing, and re-exported here so
+// every existing caller keeps its import. Client components must take them from
+// stock-rules directly: this module pulls in the Postgres client.
+export { stockPlaces, type StockPlace } from "@/lib/stock-rules";
+import type { StockPlace } from "@/lib/stock-rules";
+
 export type TransferStatus = "Sent" | "Received" | "Cancelled";
 /** The same three words the factory floor already uses for a stage handover. */
 export type TransferSignal = "Matched" | "Short" | "Excess";
 
-export const stockPlaces: StockPlace[] = ["Factory", "Shop"];
 
 export type StockAtPlace = {
   design: string;
@@ -392,8 +396,14 @@ export async function createStockTransfer(input: CreateTransferInput) {
   });
 }
 
-/** Add pairs to a place, creating the row the first time a design lands there. */
-async function placePairs(
+/**
+ * Add pairs to a place, creating the row the first time a design lands there.
+ *
+ * Exported because a purchase places goods too: buying shoes puts them in the
+ * factory or the shop just as surely as a challan does, and both must add to
+ * whatever is already there rather than replace it.
+ */
+export async function placePairs(
   db: { query: <T extends Record<string, unknown>>(sql: string, params?: (string | number)[]) => Promise<T[]> },
   design: string,
   sizeRun: string,

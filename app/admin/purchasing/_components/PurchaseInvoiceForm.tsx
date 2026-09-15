@@ -10,6 +10,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import { purchaseLineIssue } from "@/lib/purchase-line-check";
 import type { PurchaseKind, SupplierLedger, SupplierPaymentMethod } from "@/lib/purchasing";
+import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -34,6 +35,8 @@ type ItemRow = {
   materialUnit: string;
   design: string;
   sizeRun: string;
+  /** Where the pairs were put. Trading lines only; raw material has no pairs. */
+  place: StockPlace;
   quantity: string;
   rate: string;
 };
@@ -79,6 +82,9 @@ function emptyRow(key: number): ItemRow {
     materialUnit: "piece",
     design: "",
     sizeRun: "Mixed",
+    // Goods arrive at the factory unless the owner says otherwise, so the
+    // common case needs no extra tap.
+    place: "Factory",
     quantity: "",
     rate: "",
   };
@@ -629,6 +635,7 @@ export default function PurchaseInvoiceForm({
                       <>
                         <input type="hidden" name={`item${index}Design`} value={row.design} />
                         <input type="hidden" name={`item${index}SizeRun`} value={row.sizeRun} />
+                        <input type="hidden" name={`item${index}Place`} value={row.place} />
                       </>
                     ) : (
                       <>
@@ -756,6 +763,28 @@ export default function PurchaseInvoiceForm({
                               onChange={(event) => updateRow(row.key, { sizeRun: event.target.value })}
                               aria-label={text(`Item ${index + 1} size run`, `क्र.सं. ${index + 1} को साइज`)}
                             />
+                            <span className="text-[11px] font-bold text-brand-muted-soft">
+                              {text("Put where", "कहाँ राख्ने")}
+                            </span>
+                            <select
+                              className={`${plain} h-9 w-32 text-[13px]`}
+                              value={row.place}
+                              onChange={(event) =>
+                                updateRow(row.key, { place: event.target.value as StockPlace })
+                              }
+                              aria-label={text(
+                                `Item ${index + 1} place`,
+                                `क्र.सं. ${index + 1} कहाँ राख्ने`,
+                              )}
+                            >
+                              {stockPlaces.map((stockPlace) => (
+                                <option key={stockPlace} value={stockPlace}>
+                                  {stockPlace === "Factory"
+                                    ? text("Factory", "कारखाना")
+                                    : text("Shop", "पसल")}
+                                </option>
+                              ))}
+                            </select>
                             <span className="text-[11px] font-bold text-brand-green">
                               {text("→ straight to sellable stock", "→ सिधै बिक्रीयोग्य स्टकमा")}
                             </span>

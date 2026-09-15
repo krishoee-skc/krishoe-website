@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { writeFileAtomic } from "@/lib/atomic-json";
+import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import {
@@ -110,6 +111,11 @@ export type CreatePurchaseInvoiceItemInput = {
   design: string;
   channel: BusinessChannel | "";
   sizeRun: string;
+  // Where the pairs were put — factory or shop. Trading goods only; a raw
+  // material has no pairs to place. Optional, and Factory when omitted: goods
+  // arrive at the factory unless the owner says otherwise, and every caller
+  // that predates this field keeps working unchanged.
+  place?: StockPlace;
   quantity: number;
   rate: number;
   note: string;
@@ -586,6 +592,9 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
       design: kind === "Trading Goods" ? cleanText(item.design) : "",
       channel: kind === "Trading Goods" ? item.channel : ("" as BusinessChannel | ""),
       sizeRun: (kind === "Trading Goods" ? cleanText(item.sizeRun) : "") || "Mixed",
+      // Narrowed to a real place. An unrecognised value would otherwise create
+      // a stock_locations row no screen can show, so it falls back to Factory.
+      place: item.place && stockPlaces.includes(item.place) ? item.place : "Factory",
       quantity: cleanNumber(item.quantity),
       rate: cleanNumber(item.rate),
       note: cleanText(item.note),

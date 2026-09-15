@@ -17,6 +17,7 @@ import {
   type SupplierTransactionType,
 } from "@/lib/purchasing";
 import type { BusinessChannel } from "@/lib/operations";
+import { stockPlaces } from "@/lib/stock-transfers";
 
 const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit", "QR"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
@@ -96,6 +97,7 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
           ? optionValue(textValue(formData, `item${index}Channel`), tradingChannels, "Wholesale")
           : ("" as const),
       sizeRun: textValue(formData, `item${index}SizeRun`),
+      place: optionValue(textValue(formData, `item${index}Place`), stockPlaces, "Factory"),
       quantity: numberValue(formData, `item${index}Quantity`),
       rate: numberValue(formData, `item${index}Rate`),
       note: textValue(formData, `item${index}Note`),

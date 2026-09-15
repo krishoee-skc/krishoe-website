@@ -7,6 +7,7 @@ import {
 } from "@/lib/purchasing-rules";
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 import { insertStockMovement } from "@/lib/operations-postgres";
+import { placePairs } from "@/lib/stock-transfers";
 import type { BusinessChannel } from "@/lib/operations";
 import { billKindFromLines, billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import type {
@@ -622,6 +623,18 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           pairs: row.line.quantity,
           note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,
         });
+
+        // And say where they were put. The movement above records how many
+        // pairs arrived; without this the pairs sit in the Stock screen's
+        // "No place" column until somebody cuts a challan for goods that never
+        // travelled. Additive, so two lines of the same shoe on one bill add up.
+        await placePairs(
+          db,
+          row.line.design,
+          row.line.sizeRun,
+          row.line.place ?? "Factory",
+          row.line.quantity,
+        );
       }
     }
 
