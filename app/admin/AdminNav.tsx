@@ -17,11 +17,19 @@ export default function AdminNav({
   adminName,
   adminEmail,
   branchId,
+  branchName,
+  branchType,
+  seesAllBranches,
+  branchCount,
 }: {
   adminRole: AdminRole;
   adminName?: string;
   adminEmail?: string;
   branchId?: string;
+  branchName?: string;
+  branchType?: string;
+  seesAllBranches?: boolean;
+  branchCount?: number;
 }) {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
@@ -73,6 +81,10 @@ export default function AdminNav({
               adminName={adminName}
               adminEmail={adminEmail}
               branchId={branchId}
+              branchName={branchName}
+              branchType={branchType}
+              seesAllBranches={seesAllBranches}
+              branchCount={branchCount}
             />
           </div>
         )}

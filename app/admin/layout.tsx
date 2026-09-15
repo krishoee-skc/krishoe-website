@@ -8,6 +8,8 @@ import { ToastProvider } from "@/components/admin/ToastProvider";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
+import { allBranchAdminRole } from "@/lib/admin-branch-context";
+import { getAdminSettings } from "@/lib/admin-settings";
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +19,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   const adminRole = getSessionAdminRole(session);
 
+  // The branch's name for the menu. Never let this break the whole admin: a
+  // settings read that fails should cost the label, not the page, so the card
+  // falls back to the id it was already showing.
+  const settings = await getAdminSettings().catch(() => null);
+  const branch = settings?.branches.find((row) => row.id === session.branchId);
+
+  // Whether every branch is on screen, decided the same two ways the database
+  // access is: the legacy environment-password login carries no staff identity,
+  // and the Owner is exempt by the rule in lib/admin-auth.ts. Read from
+  // allBranchAdminRole rather than spelled again, so the screen cannot keep
+  // saying "Owner" on the day that rule changes.
+  const seesAllBranches = !session.staffId || adminRole === allBranchAdminRole;
+
   return (
     <ToastProvider>
     <SidebarProvider>
@@ -25,6 +40,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         adminName={session?.name}
         adminEmail={session?.email}
         branchId={session?.branchId}
+        branchName={branch?.name}
+        branchType={branch?.type}
+        seesAllBranches={seesAllBranches}
+        branchCount={settings?.branches.length}
       />
       <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
         <AdminMobileNav
@@ -32,6 +51,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           adminName={session?.name}
           adminEmail={session?.email}
           branchId={session?.branchId}
+          branchName={branch?.name}
+          branchType={branch?.type}
+          seesAllBranches={seesAllBranches}
+          branchCount={settings?.branches.length}
         />
         {/* The top row: the command bar — one search across every page,
             product, order, worker and bill — with the language toggle beside

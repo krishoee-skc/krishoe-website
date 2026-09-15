@@ -247,6 +247,9 @@ table th,
 .dark .bg-brand-green-tint,
 .dark .bg-brand-green-wash { background-color: #16302a; }
 .dark .bg-brand-cream-soft { background-color: #2c2617; }
+/* The gold counterpart of green-wash, used by the chip that warns a Manager
+   they are seeing every branch. Warm enough to stay a caution at night. */
+.dark .bg-brand-gold-wash { background-color: #322813; }
 /* The phone hero on the shop front. Cream is the point of it in daylight; at
    night it is a bright card filling most of the first screen. */
 .dark .bg-brand-cream-hero { background-color: #241f13; }
