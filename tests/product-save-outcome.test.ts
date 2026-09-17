@@ -181,12 +181,29 @@ describe("prices are entered in rupees", () => {
   });
 
   it("refuses to read a negative or nonsense price as a price", async () => {
+    // Saved as a Draft, because that is now the only way an unpriced product
+    // can be saved at all: an Active row priced at zero would be billed at zero
+    // by checkout, so upsertProductAction refuses it. What this test is about
+    // is the parsing — "-500" and "abc" are not prices and must read as 0, not
+    // as -500 paisa or NaN — and a Draft is where an unpriced product belongs
+    // while it is still being written.
     for (const entered of ["-500", "abc"]) {
       upsertProduct.mockClear();
-      await upsertProductAction(null, productForm({ priceRupees: entered }));
+      await upsertProductAction(null, productForm({ priceRupees: entered, status: "Draft" }));
 
       expect(upsertProduct.mock.calls[0][0]).toMatchObject({ priceValue: 0 });
     }
+  });
+
+  it("will not put an unpriced shoe on sale", async () => {
+    upsertProduct.mockClear();
+    const state = await upsertProductAction(null, productForm({ priceRupees: "0" }));
+
+    // Checkout multiplies price_value by the quantity and asks nothing else, so
+    // an Active row at zero ships real pairs and bills nothing.
+    expect(state.ok).toBe(false);
+    expect(state.message).toMatch(/price/i);
+    expect(upsertProduct).not.toHaveBeenCalled();
   });
 
   // What the owner actually typed, and what it must now mean.

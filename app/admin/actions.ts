@@ -375,6 +375,25 @@ export async function upsertProductAction(
   const categorySlug = textValue(formData, "categorySlug") || categories[0].slug;
   const category = categories.find((item) => item.slug === categorySlug) ?? categories[0];
   const priceValue = paisaFromRupees(formData, "priceRupees");
+  const status = textValue(formData, "status") === "Draft" ? "Draft" : "Active";
+
+  // A shoe on sale must have a price. Checkout reads price_value straight off
+  // the product and multiplies it by the quantity — lib/checkout-order.ts asks
+  // nothing beyond `status === "Active"` — so an Active row priced at zero
+  // bills the customer nothing, ships real pairs, and files the order as a sale
+  // worth nothing. Refused here, where the owner can still fix it.
+  //
+  // Draft is deliberately exempt: starting a product and pricing it later is
+  // the normal way to add one, and blocking that would break the form's main
+  // use. The rule is only that it cannot go on sale unpriced.
+  if (status === "Active" && priceValue <= 0) {
+    return {
+      ok: false,
+      message:
+        "Set a selling price before making this product Active — or save it as a Draft for now.",
+    };
+  }
+
   const image = textValue(formData, "image") || category.image;
   const id = textValue(formData, "id") || crypto.randomUUID();
   const name = textValue(formData, "name") || "Untitled Product";
@@ -422,7 +441,7 @@ export async function upsertProductAction(
     highlights: listValue(formData, "highlights"),
     care: listValue(formData, "care"),
     reviews: [],
-    status: textValue(formData, "status") === "Draft" ? "Draft" : "Active",
+    status,
     featured: formData.get("featured") === "on",
     bestSeller: formData.get("bestSeller") === "on",
     newArrival: formData.get("newArrival") === "on",
