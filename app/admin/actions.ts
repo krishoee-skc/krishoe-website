@@ -501,6 +501,23 @@ export async function deleteProductAction(
     return { ok: false, message: "Product id is required." };
   }
 
+  // Pairs on the shelf outlive the catalog row. Deleting a product that still
+  // has stock leaves those pairs in the godown with nothing pointing at them —
+  // the Stock screen goes on counting them, the shop cannot sell them, and the
+  // only way back is re-creating the product under exactly the same spelling.
+  //
+  // Drafts are included in the lookup on purpose: they are the rows most likely
+  // to be tidied away, and a Draft can hold stock just as an Active one can.
+  // Nothing here stops an empty product from being deleted.
+  const doomed = await getProductById(id, { includeDrafts: true });
+
+  if (doomed && doomed.stock > 0) {
+    return {
+      ok: false,
+      message: `${doomed.name} still has ${doomed.stock} pair(s) in stock. Move or sell them first, or set it to Draft to take it off the shop.`,
+    };
+  }
+
   try {
     await removeProduct(id);
   } catch (error) {
