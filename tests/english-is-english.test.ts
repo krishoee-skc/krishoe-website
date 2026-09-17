@@ -214,6 +214,10 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 4,
     why: "Thrown to whoever is typing a coupon on an admin screen. An exception carries no language context, so both sentences travel together.",
   },
+  "app/worker/error.tsx": {
+    lines: 7,
+    why: "The worker portal's own error screen. Its five pages are Nepali-only — the workers never touch the English/Nepali switch — so an error shown inside that portal is read by the same people in the same language. A bilingual page here would be the only English a worker ever met, on the worst day to meet it.",
+  },
 };
 
 /**
