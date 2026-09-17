@@ -93,10 +93,19 @@ export default function AdminIdentityCard({
 
       {branchLabel ? (
         <div className="mt-2 border-t border-admin-border/60 pt-2 dark:border-admin-border-dark/60">
-          <p className="flex items-center gap-1.5 text-xs font-black text-brand-green-ink dark:text-white">
-            <span aria-hidden="true">{branchMark}</span>
-            {/* break-all only matters in the fallback, where this is a long id. */}
-            <span className="min-w-0 break-all">{branchLabel}</span>
+          <p className="flex items-start gap-1.5 text-sm font-black leading-snug text-brand-green-ink dark:text-white">
+            {/* shrink-0, or flex squeezes the symbol before it wraps the name
+                beside it, and the mark reads as a smudge. */}
+            <span aria-hidden="true" className="shrink-0">
+              {branchMark}
+            </span>
+            {/* break-words, not break-all. break-all splits any word wherever
+                the line runs out — "narayangadh kamalnagar" came out as
+                "…kamalnaga" with a lone "r" on the next line, which reads as
+                broken software on a screen the owner sees all day. break-words
+                wraps between words and only splits a single unbreakable run,
+                which is exactly the fallback case: a 45-character branch id. */}
+            <span className="min-w-0 break-words">{branchLabel}</span>
           </p>
 
           {/* The chooser, for those who may narrow to one branch. */}
