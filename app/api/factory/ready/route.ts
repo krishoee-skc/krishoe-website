@@ -74,7 +74,24 @@ export async function GET() {
         `SELECT work.item_id, items.name AS item_name,
                 COALESCE(NULLIF(work.stage, ''), workers.category) AS category,
                 work.color AS colour, work.size,
-                SUM(work.pairs_count)::integer AS pairs
+                -- Pairs that failed QC are not pairs the shop can sell. The
+                -- form has asked for them since it was written and nothing
+                -- downstream read the answer: sixty uppers with five spoiled
+                -- still counted as sixty. Harmless while the owner walked to
+                -- the godown and typed what was on the shelf; not harmless now
+                -- that the number is pre-filled and one press posts it.
+                --
+                -- Taken off at the stage that rejected them, so five spoiled at
+                -- Upper leaves fifty-five uppers and the smallest-stage rule
+                -- below decides what that costs in finished pairs.
+                --
+                -- GREATEST keeps a stage at zero: more rejects than pairs is a
+                -- typing slip, and a negative stage would raise the minimum and
+                -- overstate what is finished.
+                GREATEST(
+                  SUM(work.pairs_count - COALESCE(work.reject_pairs, 0)),
+                  0
+                )::integer AS pairs
          FROM factory_daily_work work
          JOIN factory_items items ON items.id = work.item_id
          JOIN factory_workers workers ON workers.id = work.worker_id
