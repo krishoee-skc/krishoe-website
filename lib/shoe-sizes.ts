@@ -119,3 +119,58 @@ export function addRun(current: string, run: Pick<SizeRun, "from" | "to">): stri
 
   return productSizes([...list, ...sizesInRun(run)]).join(", ");
 }
+
+/**
+ * The sizes a run names, whichever way the run was written.
+ *
+ * The same run reaches this app in three shapes, and all three are in the
+ * factory's records today: "36/41" typed on one entry, "36, 37, 38, 39, 40, 41"
+ * tapped from the chips on another, "36-41" from a phone keyboard. A person
+ * reads those as one thing; the app read them as three, which is why sixty
+ * uppers and sixty bottoms of the same shoe could not be matched to each other.
+ *
+ * A range is expanded into the sizes it covers; a list is taken as the sizes it
+ * names. Nothing is invented: "36, 38, 40" stays three sizes, because two of
+ * them were never made.
+ */
+export function expandSizeRun(value: string | null | undefined): string[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+
+  // A range: two numbers with a slash, dash, en-dash or "to" between them.
+  const range = raw.match(/^(\d+)\s*(?:\/|-|–|—|to)\s*(\d+)$/i);
+  if (range) {
+    const from = Number(range[1]);
+    const to = Number(range[2]);
+    // Backwards ("41/36") is a typo, not a range. Kept as written rather than
+    // silently reversed, so the person who typed it sees their own mistake.
+    if (Number.isFinite(from) && Number.isFinite(to) && from <= to) {
+      return sizesInRun({ from, to });
+    }
+  }
+
+  // Otherwise a list — productSizes already trims, de-duplicates and sorts
+  // numerically, so "9, 10" does not come back as "10, 9".
+  return productSizes(raw.split(","));
+}
+
+/**
+ * One comparable key for a set of sizes, however it was written.
+ *
+ * Two runs match when they name exactly the same sizes. That is deliberately
+ * strict: "36/42" and "36/41" are different runs and must stay different —
+ * fom close shoes really was made 36–42 on the upper and 36–41 on the bottom,
+ * and treating those as one would post a pair that does not exist.
+ *
+ * Blank stays blank rather than becoming a wildcard, and "Mixed" — what the app
+ * writes when no size was given — keeps to itself for the same reason.
+ */
+export function sizeRunKey(value: string | null | undefined): string {
+  return expandSizeRun(value).join(",");
+}
+
+/** Whether two size runs name the same sizes, however each was typed. */
+export function sameSizeRun(left: string | null | undefined, right: string | null | undefined) {
+  const key = sizeRunKey(left);
+  return key.length > 0 && key === sizeRunKey(right);
+}
