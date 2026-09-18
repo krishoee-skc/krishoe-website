@@ -26,6 +26,17 @@ import type { ReadyItem } from "@/app/api/factory/ready/route";
  * counted in the godown, which is the owner's rule and the only one that is
  * ever true.
  */
+/**
+ * One row per item, colour and size run — so the helper that identifies a row
+ * has to carry all three. The item id alone was enough while a shoe was made in
+ * one colour; now black 36/41 and cherry 36/41 are two rows of the same shoe,
+ * and keying on the item would give them the same React key, the same draft box
+ * and the same spinner.
+ */
+function groupKeyOf(item: { itemId: string; colour: string; sizeRun: string }) {
+  return `${item.itemId}|${item.colour}|${item.sizeRun}`;
+}
+
 export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
   const { text } = useLanguage();
   const [items, setItems] = useState<ReadyItem[] | null>(null);
@@ -52,15 +63,19 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
   }, [load, refreshKey]);
 
   async function post(item: ReadyItem) {
-    const pairs = Number(drafts[item.itemId] ?? item.pendingPairs);
-    setBusy(item.itemId);
+    const rowKey = groupKeyOf(item);
+    const pairs = Number(drafts[rowKey] ?? item.pendingPairs);
+    setBusy(rowKey);
     setMessage("");
     setError("");
     try {
       const response = await fetch("/api/factory/ready", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ item_id: item.itemId, pairs }),
+        // The size run travels with the pairs, so stock lands under the run it
+        // was made in rather than as "Mixed" — which the Stock screen cannot
+        // place.
+        body: JSON.stringify({ item_id: item.itemId, pairs, size_run: item.sizeRun }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || text("Could not post this.", "चढाउन सकिएन।"));
@@ -70,7 +85,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
           `${item.name} — ${pairs} जोडी स्टकमा चढ्यो। पसलमा तुरुन्तै देखिन्छ।`,
         ),
       );
-      setDrafts((current) => ({ ...current, [item.itemId]: "" }));
+      setDrafts((current) => ({ ...current, [rowKey]: "" }));
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : text("Could not post this.", "चढाउन सकिएन।"));
@@ -121,12 +136,29 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
         <div className="mt-4 space-y-4">
           {items.map((item) => (
             <article
-              key={item.itemId}
+              key={groupKeyOf(item)}
               className={`rounded-xl border p-4 ${
                 item.pendingPairs > 0 ? "border-amber-300 bg-amber-50" : "border-brand-green-line bg-brand-paper"
               }`}
             >
               <h3 className="text-base font-black text-brand-green-ink">{item.name}</h3>
+
+              {/* Which pairs these are. One shoe can now be several rows — black
+                  36/41 and cherry 36/41 are different pairs — so without this
+                  the owner would be asked to press a button on two rows that
+                  look identical. Wraps rather than truncating on a phone:
+                  half a size run is worse than a second line. */}
+              {item.colour || item.sizeRun ? (
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-brand-muted">
+                  {item.colour ? <span>{item.colour}</span> : null}
+                  {item.colour && item.sizeRun ? (
+                    <span aria-hidden="true" className="text-brand-muted-soft">
+                      ·
+                    </span>
+                  ) : null}
+                  {item.sizeRun ? <span className="tabular-nums">{item.sizeRun}</span> : null}
+                </p>
+              ) : null}
 
               <dl className="mt-2 grid gap-1 text-sm text-brand-muted-deep">
                 {item.stages.map((stage) => (
@@ -193,7 +225,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       type="number"
                       min={1}
                       inputMode="numeric"
-                      value={drafts[item.itemId] ?? String(item.pendingPairs)}
+                      value={drafts[groupKeyOf(item)] ?? String(item.pendingPairs)}
                       onChange={(event) =>
                         setDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))
                       }
@@ -206,10 +238,10 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                     <button
                       type="button"
                       onClick={() => void post(item)}
-                      disabled={busy === item.itemId}
+                      disabled={busy === groupKeyOf(item)}
                       className="min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
                     >
-                      {busy === item.itemId
+                      {busy === groupKeyOf(item)
                         ? text("Posting…", "चढाउँदैछौँ…")
                         : text("Post to stock", "स्टकमा चढाउने")}
                     </button>

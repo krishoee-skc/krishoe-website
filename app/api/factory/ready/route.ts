@@ -5,6 +5,8 @@ import { addStockMovement } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
+import { colourKey } from "@/lib/colour-name";
+import { sizeRunKey } from "@/lib/shoe-sizes";
 
 const STORE = "krishoe";
 
@@ -27,13 +29,24 @@ const STORE = "krishoe";
  * the owner's own rule, and the only number that is ever true.
  */
 
-type StageRow = { item_id: string; item_name: string; category: string; pairs: number };
+type StageRow = {
+  item_id: string;
+  item_name: string;
+  category: string;
+  colour: string | null;
+  size: string | null;
+  pairs: number;
+};
 type PostedRow = { design: string; pairs: number };
 type ProductRow = { id: string; name: string; status: string; stock: number };
 
 export type ReadyItem = {
   itemId: string;
   name: string;
+  /** The colour these pairs were made in, as it was written on the work. */
+  colour: string;
+  /** The size run these pairs were made in. */
+  sizeRun: string;
   /** Pairs recorded per factory stage, all time. */
   stages: { category: string; pairs: number }[];
   /** A pair is finished only once every stage has had it, so the smallest wins. */
@@ -60,13 +73,16 @@ export async function GET() {
         // Silai here, matching what was really made.
         `SELECT work.item_id, items.name AS item_name,
                 COALESCE(NULLIF(work.stage, ''), workers.category) AS category,
+                work.color AS colour, work.size,
                 SUM(work.pairs_count)::integer AS pairs
          FROM factory_daily_work work
          JOIN factory_items items ON items.id = work.item_id
          JOIN factory_workers workers ON workers.id = work.worker_id
-         WHERE items.status = 'active'
-         GROUP BY work.item_id, items.name, COALESCE(NULLIF(work.stage, ''), workers.category)
-         ORDER BY items.name ASC, category ASC`,
+         WHERE items.status = 'active' AND work.status <> 'Reversed'
+         GROUP BY work.item_id, items.name,
+                  COALESCE(NULLIF(work.stage, ''), workers.category),
+                  work.color, work.size
+         ORDER BY items.name ASC, work.color ASC, category ASC`,
       ),
       // Everything already turned into shelf stock for this design, by any
       // route — this screen, the Operations form, or Packing/QC.
@@ -91,10 +107,23 @@ export async function GET() {
     const byItem = new Map<string, ReadyItem>();
 
     for (const row of stages) {
-      const existing = byItem.get(row.item_id);
+      // Grouped by what the pairs actually are, not by the shoe's name alone.
+      // Sixty black uppers and sixty cherry bottoms under one name read as
+      // "sixty ready" and would post sixty pairs of nothing.
+      //
+      // The two keys are what make that grouping hold: this shop's own records
+      // carry "Black" against "black" and "36/41" against the chips'
+      // "36, 37, 38, 39, 40, 41", and without them each spelling becomes its
+      // own half-sized group.
+      const groupKey = `${row.item_id}|${colourKey(row.colour)}|${sizeRunKey(row.size)}`;
+      const existing = byItem.get(groupKey);
       const entry: ReadyItem = existing ?? {
         itemId: row.item_id,
         name: row.item_name,
+        // Kept as written, so the row can name itself on screen; the keys above
+        // are for matching, never for display.
+        colour: (row.colour ?? "").trim(),
+        sizeRun: (row.size ?? "").trim(),
         stages: [],
         madePairs: 0,
         postedPairs: postedByDesign.get(key(row.item_name)) ?? 0,
@@ -105,7 +134,7 @@ export async function GET() {
       };
 
       entry.stages.push({ category: row.category, pairs: Number(row.pairs) || 0 });
-      byItem.set(row.item_id, entry);
+      byItem.set(groupKey, entry);
     }
 
     const items = [...byItem.values()].map((entry) => {
@@ -173,10 +202,20 @@ export async function POST(request: NextRequest) {
     // sync matches products on. Where no product carries that name yet, the
     // sync creates a Draft one rather than losing the pairs — the same door
     // every other stock movement uses.
+    // Posted under the size run the pairs were actually made in, not "Mixed".
+    // The Stock screen joins finished_stock to stock_locations on design *and*
+    // size run, so a run of 36/41 filed as "Mixed" lands in a row nothing
+    // matches — the pairs count, but the screen cannot say where they are.
+    // Falls back to "Mixed" when the caller sends none, which is what every
+    // older caller does.
+    const sizeRun = typeof body.size_run === "string" && body.size_run.trim()
+      ? body.size_run.trim()
+      : "Mixed";
+
     const movement = await addStockMovement({
       design: items[0].name,
       channel: "Factory",
-      sizeRun: "Mixed",
+      sizeRun,
       type: "Production In",
       pairs,
       note: note || "कारखानाबाट तयार",
