@@ -11,6 +11,7 @@ import { FACTORY_WORKER_CATEGORIES, factoryCategoryLabel } from "@/lib/factory-w
 import { pieceWage } from "@/lib/factory-board";
 import { quoteWork, type FactoryRate } from "@/lib/factory-rate-book";
 import { SIZE_RUNS, addRun, sizeRunLabel, toggleSize } from "@/lib/shoe-sizes";
+import { stageNeedingUpperFirst } from "@/lib/stage-order";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
 import NepaliDateField from "@/components/admin/NepaliDateField";
@@ -28,6 +29,8 @@ interface Worker {
 interface Item {
   id: string;
   name: string;
+  /** Uppers made for this shoe with no bottom on them yet, net of QC. */
+  uppersWaiting: number;
   code: string | null;
   /** The sizes this shoe is made in. Empty when the item is not yet linked to
    *  a catalogue product, which is when the size runs are offered instead. */
@@ -348,7 +351,16 @@ export default function WorkEntryForm({
 
       setItems([
         ...items,
-        { id: data.id, name: data.name, code: "", sizes: [], production_item_id: productionItemId },
+        {
+          id: data.id,
+          name: data.name,
+          // A shoe created from this form has no work behind it yet, so no
+          // uppers are waiting. It refreshes with the page.
+          uppersWaiting: 0,
+          code: "",
+          sizes: [],
+          production_item_id: productionItemId,
+        },
       ]);
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
@@ -757,9 +769,25 @@ export default function WorkEntryForm({
             required
           >
             <option value="">{text("Select a product…", "जुत्ता छान्नुहोस्…")}</option>
+            {/* How many uppers are waiting, shown where the choice is made.
+                Only for the stages done on an upper: Upper work is where a new
+                shoe starts, and "0 waiting" beside it would read as a fault
+                rather than a beginning.
+
+                Every item stays in the list. Filtering the empty ones out
+                would make it impossible to record the first upper of anything
+                — the factory could never begin a new design. */}
             {items.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
+                {stageNeedingUpperFirst(formData.stage)
+                  ? item.uppersWaiting > 0
+                    ? text(
+                        ` — ${item.uppersWaiting} uppers waiting`,
+                        ` — ${item.uppersWaiting} upper पर्खिरहेको`,
+                      )
+                    : text(" — no uppers waiting", " — upper पर्खिरहेको छैन")
+                  : ""}
               </option>
             ))}
           </select>
