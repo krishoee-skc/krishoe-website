@@ -178,6 +178,18 @@ export default function WorkEntryForm({
   const [workSaved, setWorkSaved] = useState(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  /**
+   * What the save noticed about the uppers behind this bottom work.
+   *
+   * createFactoryWork counts them and puts a shortfall on the response; it has
+   * travelled here since it was written and nothing read it, which made the
+   * check worse than none — it counted quietly, saved anyway, and told nobody.
+   *
+   * Its own state rather than folded into `success`, because the entry did
+   * save: the wage is earned and the work is recorded, and the note sits
+   * beside that rather than replacing it.
+   */
+  const [upperWarning, setUpperWarning] = useState<string>("");
   const [showAddProduct, setShowAddProduct] = useState(false);
   // Which half of the screen is showing: the entry form, or the post-to-stock
   // list. Only one at a time, so the page is short. "entry" first — that is what
@@ -414,6 +426,9 @@ export default function WorkEntryForm({
     e.preventDefault();
     setError("");
     setSuccess("");
+    // A warning left from the last entry would be read as belonging to this
+    // one — and the next entry is usually the one that was corrected.
+    setUpperWarning("");
 
     if (!formData.color.trim() || !formData.size.trim()) {
       // Which one, rather than "fill the form": the person is mid-entry with a
@@ -475,7 +490,10 @@ export default function WorkEntryForm({
         throw new Error(errorData.error || "Failed to save work entry");
       }
 
-      await res.json().catch(() => ({}));
+      const saved = await res.json().catch(() => ({}));
+      // The shortfall the save worked out, if any. Empty on an ordinary entry,
+      // so the note only appears on the day something needs looking at.
+      setUpperWarning(typeof saved?.upper_warning === "string" ? saved.upper_warning : "");
       setWorkSaved((count) => count + 1);
 
       const pairs = entry.pairs_count;
@@ -587,6 +605,21 @@ export default function WorkEntryForm({
             {success}
           </div>
         )}
+
+        {/* More bottoms than there are uppers behind them.
+            Amber, not red: the entry saved and the wage is earned, so this is
+            something to check rather than something that failed. It names the
+            counts and the two fields most likely to be wrong, and wraps rather
+            than truncating — cut short on a factory phone it would show a
+            number and nothing about what to look at. */}
+        {upperWarning ? (
+          <div
+            role="status"
+            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
+          >
+            ⚠️ {upperWarning}
+          </div>
+        ) : null}
 
         {/* The day this work was done. One field, so it needs no section
             heading over it — the label sits beside the picker and the whole
