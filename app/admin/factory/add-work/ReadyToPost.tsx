@@ -37,6 +37,22 @@ function groupKeyOf(item: { itemId: string; colour: string; sizeRun: string }) {
   return `${item.itemId}|${item.colour}|${item.sizeRun}`;
 }
 
+/**
+ * The number this row will post if the button is pressed now.
+ *
+ * Whatever the box holds, or the pairs the row found when nothing has been
+ * typed — so the button reads the same number the box shows, including after a
+ * correction. A half-typed or cleared box falls back to the row's own count
+ * rather than offering to post nothing.
+ */
+function postablePairs(
+  item: { itemId: string; colour: string; sizeRun: string; pendingPairs: number },
+  drafts: Record<string, string>,
+) {
+  const typed = Number(drafts[groupKeyOf(item)]);
+  return Number.isFinite(typed) && typed > 0 ? typed : item.pendingPairs;
+}
+
 export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
   const { text } = useLanguage();
   const [items, setItems] = useState<ReadyItem[] | null>(null);
@@ -227,7 +243,13 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       inputMode="numeric"
                       value={drafts[groupKeyOf(item)] ?? String(item.pendingPairs)}
                       onChange={(event) =>
-                        setDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))
+                        setDrafts((current) => ({
+                          // The same key the value is read from. Written under
+                          // the item id, a keystroke landed where the row never
+                          // looked and the box appeared to reject every digit.
+                          ...current,
+                          [groupKeyOf(item)]: event.target.value,
+                        }))
                       }
                       aria-label={text(
                         `How many pairs of ${item.name} are ready`,
@@ -241,9 +263,17 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       disabled={busy === groupKeyOf(item)}
                       className="min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
                     >
+                      {/* The count is on the button, not only in the box beside
+                          it. With the walk to the godown gone, the number and
+                          the action have to be readable in one glance — and the
+                          number is whatever the box currently holds, so it
+                          follows a correction rather than the estimate. */}
                       {busy === groupKeyOf(item)
                         ? text("Posting…", "चढाउँदैछौँ…")
-                        : text("Post to stock", "स्टकमा चढाउने")}
+                        : text(
+                            `Post ${postablePairs(item, drafts)} pairs`,
+                            `${postablePairs(item, drafts)} जोडी चढाउने`,
+                          )}
                     </button>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-brand-muted">
