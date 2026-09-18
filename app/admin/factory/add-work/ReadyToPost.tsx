@@ -91,7 +91,17 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
         // The size run travels with the pairs, so stock lands under the run it
         // was made in rather than as "Mixed" — which the Stock screen cannot
         // place.
-        body: JSON.stringify({ item_id: item.itemId, pairs, size_run: item.sizeRun }),
+        body: JSON.stringify({
+          item_id: item.itemId,
+          pairs,
+          size_run: item.sizeRun,
+          // Same row, same count, same key — so a retried request replays
+          // instead of posting the pairs twice. Change the count and it is a
+          // different key, because that is the owner correcting themselves and
+          // a genuinely different post. The already-posted total is in it too,
+          // so tomorrow's sixty against today's sixty is not read as a retry.
+          submission_key: `ready:${rowKey}:${item.postedPairs}:${pairs}`,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || text("Could not post this.", "चढाउन सकिएन।"));

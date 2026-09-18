@@ -182,6 +182,34 @@ export async function POST(request: NextRequest) {
     const pairs = Math.trunc(Number(body.pairs));
     const note = typeof body.note === "string" ? body.note.trim() : "";
 
+    // The caller's own key, reused on a retry. A double tap on a factory phone,
+    // a slow request the browser sent twice, or a back-and-forward each arrive
+    // here as a second post — and each would have added another sixty pairs to
+    // a godown that has sixty. Optional, so every older caller (the Operations
+    // form, Packing/QC, the purchase posting) keeps working untouched.
+    const submissionKey =
+      typeof body.submission_key === "string" ? body.submission_key.trim().slice(0, 200) : "";
+
+    if (submissionKey) {
+      const seen = await queryPostgres<{ id: string; pairs: number; design: string }>(
+        STORE,
+        `SELECT id, pairs, design FROM stock_movements WHERE submission_key = $1 LIMIT 1`,
+        [submissionKey],
+      );
+
+      // A replay is a success, not an error: the pairs the caller asked for are
+      // in stock, which is what they wanted to know. Saying "already posted"
+      // with a failure code would send the owner looking for a problem.
+      if (seen[0]) {
+        return NextResponse.json({
+          movementId: seen[0].id,
+          pairs: Number(seen[0].pairs) || 0,
+          design: seen[0].design,
+          replayed: true,
+        });
+      }
+    }
+
     if (!itemId) {
       return NextResponse.json({ error: "item_id is required" }, { status: 400 });
     }
@@ -220,6 +248,35 @@ export async function POST(request: NextRequest) {
       pairs,
       note: note || "कारखानाबाट तयार",
     });
+
+    // Stamped on the movement just written rather than threaded through
+    // addStockMovement, which four other callers share and none of them needs
+    // this. The unique index is what actually refuses a second press: two
+    // landing in the same instant both read "no movement yet" above, and one of
+    // them loses here. Losing means the pairs are already in — so it is
+    // reported as the replay it is, not as a failure.
+    if (submissionKey) {
+      try {
+        await queryPostgres(
+          STORE,
+          `UPDATE stock_movements SET submission_key = $2 WHERE id = $1`,
+          [movement.id, submissionKey],
+        );
+      } catch {
+        await queryPostgres(STORE, `DELETE FROM stock_movements WHERE id = $1`, [movement.id]);
+        const winner = await queryPostgres<{ id: string; pairs: number; design: string }>(
+          STORE,
+          `SELECT id, pairs, design FROM stock_movements WHERE submission_key = $1 LIMIT 1`,
+          [submissionKey],
+        );
+        return NextResponse.json({
+          movementId: winner[0]?.id ?? movement.id,
+          pairs: Number(winner[0]?.pairs) || pairs,
+          design: winner[0]?.design ?? items[0].name,
+          replayed: true,
+        });
+      }
+    }
 
     await reportingErrors("sync catalog stock after factory ready posting", () =>
       syncProductCatalogStockWithFinishedStock(),
