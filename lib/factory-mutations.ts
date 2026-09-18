@@ -1,6 +1,9 @@
 import { bikramMonthKeyOf, bikramMonthRange } from "@/lib/bikram-sambat";
 import { numeric, type DbNumeric } from "@/lib/factory-money";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
+import { stageNeedingUpperFirst, upperShortfall } from "@/lib/stage-order";
+import { colourKey } from "@/lib/colour-name";
+import { sizeRunKey } from "@/lib/shoe-sizes";
 
 export { productionStageForFactoryCategory };
 import {
@@ -184,7 +187,7 @@ export interface FactoryWorkEditInput {
   editedBy: string;
 }
 
-function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
+function workResponse(row: WorkRow, submissionKey: string, replayed: boolean, upperWarning = "") {
   return {
     id: row.id,
     date: dbDate(row.date),
@@ -205,6 +208,9 @@ function workResponse(row: WorkRow, submissionKey: string, replayed: boolean) {
     // before anything is written.
     production_synced: true,
     production_sync_reason: "Saved to the factory ledger and the wages screen.",
+    // Empty unless more bottoms were recorded than there are uppers behind
+    // them. The entry saved either way; this is what the screen shows.
+    upper_warning: upperWarning,
   };
 }
 
@@ -305,6 +311,66 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         "Colour and size are needed, so the ledger can say which pairs this wage was for.",
         400,
       );
+    }
+
+    // A bottom cannot be made for an upper that does not exist.
+    //
+    // The owner's rule: fibre and bottom work is only ever done on uppers
+    // already made. Upper itself is never checked — it is the first stage, and
+    // holding it back would stop the factory — so the read below only runs for
+    // the stages that sit on an upper.
+    //
+    // Matched on item, colour and size run together. The item alone would let a
+    // black 36/41 upper pay for a cherry 36/42 bottom, and the two keys are
+    // what make "Black" match "black" and "36/41" match the size chips'
+    // "36, 37, 38, 39, 40, 41".
+    //
+    // Read through db, inside the transaction that writes, so two entries saved
+    // in the same moment cannot each see uppers the other is about to spend.
+    let upperWarning = "";
+
+    if (stageNeedingUpperFirst(stage)) {
+      const sameItem = await db.query<{ stage: string; color: string; size: string; pairs: number | string }>(
+        `SELECT stage, color, size, pairs_count AS pairs
+         FROM factory_daily_work
+         WHERE item_id = $1 AND status <> 'Reversed'
+         FOR UPDATE`,
+        [input.itemId],
+      );
+
+      const wantedColour = colourKey(input.color);
+      const wantedRun = sizeRunKey(input.size);
+      let uppersMade = 0;
+      let bottomsAlready = 0;
+
+      for (const row of sameItem) {
+        if (colourKey(row.color) !== wantedColour) continue;
+        if (sizeRunKey(row.size) !== wantedRun) continue;
+
+        const pairs = Number(row.pairs) || 0;
+        if ((row.stage ?? "").trim() === "Upper") uppersMade += pairs;
+        else if (stageNeedingUpperFirst(row.stage)) bottomsAlready += pairs;
+      }
+
+      const shortfall = upperShortfall({
+        uppersMade,
+        bottomsAlready,
+        wanted: Number(input.pairsCount) || 0,
+      });
+
+      // Warned, not refused — and that is the owner's decision, not a
+      // half-measure. Turning this into a refusal on the day it shipped would
+      // have blocked two of the factory's own entries, both of which turned out
+      // to be typing slips rather than real work. The rule is right; what it is
+      // allowed to do to a worker standing at the screen is a separate call.
+      //
+      // So the entry saves and the wage is paid, and the count is recorded for
+      // the screen to show. When the shop has lived with the warning for a
+      // while and it stops appearing, refusing becomes safe.
+      upperWarning =
+        shortfall > 0
+          ? `${shortfall} pair(s) more than the uppers made: ${uppersMade} upper(s) in this colour and size, ${bottomsAlready} already fitted. Check the colour, the size and the count.`
+          : "";
     }
     let linkedWorkOrder: {
       id: string;
@@ -551,7 +617,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     // shop had already closed.
     await writeMonthlySummary(db, input.workerId, bikramMonthKeyOf(input.date));
 
-    return workResponse(inserted[0], input.submissionKey, false);
+    return workResponse(inserted[0], input.submissionKey, false, upperWarning);
   });
 }
 
