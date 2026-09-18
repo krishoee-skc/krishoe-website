@@ -151,17 +151,26 @@ export default function AdminNav({
         {/* The language toggle now lives in the top row beside the search, so
             the shop's two words sit up top and the menu foot stays open. */}
 
-        {/* Logout Button */}
-        <div className="border-t border-admin-border px-3 py-3 dark:border-admin-border-dark">
+        {/* Sign out.
+            A quiet row rather than a button. It used to be a full-width
+            bordered slab with padding above and below, costing about sixty
+            pixels — a whole menu row — to the one action on this screen nobody
+            comes here to perform. It keeps its place at the foot, where people
+            look for it and where flex-1 above already pins it, but reads at the
+            weight of a caption and only turns red when pointed at.
+
+            min-h-11 so losing the slab does not make it harder to hit on a
+            phone: 44px is the tap target the rest of the admin holds to. */}
+        <div className="border-t border-admin-border px-3 py-1.5 dark:border-admin-border-dark">
           <form action={logoutAdminAction} className="w-full">
             <button
               type="submit"
               title={isCollapsed ? "Sign out" : undefined}
-              className={`w-full flex items-center justify-center gap-2 rounded-md border border-admin-border bg-brand-paper px-3 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-50 hover:border-red-200 dark:border-admin-border-dark dark:bg-admin-sidebar-dark dark:text-red-400 dark:hover:bg-red-950/20 ${
-                isCollapsed ? "p-2" : ""
+              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-xs font-bold text-brand-muted transition hover:bg-red-50 hover:text-red-600 dark:text-white/50 dark:hover:bg-red-950/20 dark:hover:text-red-400 ${
+                isCollapsed ? "justify-center" : ""
               }`}
             >
-              <LogOutIcon className="h-4 w-4" />
+              <LogOutIcon className="h-4 w-4 shrink-0" />
               {!isCollapsed && <span>Sign out</span>}
             </button>
           </form>
