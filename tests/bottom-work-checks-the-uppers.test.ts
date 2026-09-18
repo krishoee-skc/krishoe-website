@@ -46,7 +46,7 @@ describe("the rule is asked before a bottom entry is saved", () => {
 
     const guard = source.slice(
       source.indexOf("stageNeedingUpperFirst(stage)"),
-      source.indexOf("stageNeedingUpperFirst(stage)") + 1600,
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
     );
     expect(guard.length, "the guard moved").toBeGreaterThan(0);
 
@@ -67,7 +67,7 @@ describe("the rule is asked before a bottom entry is saved", () => {
     const source = await readFile(MUTATIONS, "utf8");
     const guard = source.slice(
       source.indexOf("stageNeedingUpperFirst("),
-      source.indexOf("stageNeedingUpperFirst(") + 1600,
+      source.indexOf("stageNeedingUpperFirst(") + 3000,
     );
 
     expect(guard.length, "the guard moved").toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe("it warns rather than refuses", () => {
     const source = await readFile(MUTATIONS, "utf8");
     const guard = source.slice(
       source.indexOf("stageNeedingUpperFirst(stage)"),
-      source.indexOf("stageNeedingUpperFirst(stage)") + 2200,
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
     );
 
     expect(guard.length, "the guard moved").toBeGreaterThan(0);
@@ -98,7 +98,7 @@ describe("it warns rather than refuses", () => {
     const source = await readFile(MUTATIONS, "utf8");
     const guard = source.slice(
       source.indexOf("stageNeedingUpperFirst(stage)"),
-      source.indexOf("stageNeedingUpperFirst(stage)") + 2200,
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
     );
 
     // A bare "check this" leaves the worker guessing. The count, and the two
@@ -121,11 +121,54 @@ describe("it warns rather than refuses", () => {
     const source = await readFile(MUTATIONS, "utf8");
     const guard = source.slice(
       source.indexOf("stageNeedingUpperFirst(stage)"),
-      source.indexOf("stageNeedingUpperFirst(stage)") + 2200,
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
     );
 
     // Most entries are fine. A warning that shows on all of them is ignored on
     // the one that matters.
     expect(guard).toMatch(/shortfall > 0[\s\S]{0,400}?:\s*""/);
+  });
+});
+
+/**
+ * The guard and the ready screen must count the same pairs.
+ *
+ * B4 taught the ready screen that a pair which failed QC is not a pair: sixty
+ * uppers with five spoiled are fifty-five uppers. The guard was written before
+ * that and still counted pairs_count raw, so the two disagreed by exactly the
+ * rejects — the screen would say fifty-five finished while the guard allowed a
+ * sixtieth bottom to be fitted to an upper that had been thrown away.
+ *
+ * Neither number is wrong on its own. Two different answers to "how many uppers
+ * are there" is what makes it a bug.
+ */
+describe("the guard counts what the ready screen counts", () => {
+  it("takes rejected pairs off both sides", async () => {
+    const source = await readFile(MUTATIONS, "utf8");
+    const guard = source.slice(
+      source.indexOf("stageNeedingUpperFirst(stage)"),
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
+    );
+
+    expect(guard.length, "the guard moved").toBeGreaterThan(0);
+    // Read from the same column the ready route subtracts.
+    expect(guard, "rejects must be read").toMatch(/reject_pairs/);
+    // And actually subtracted, not merely selected — a SELECT that reads the
+    // column and then ignores it is the shape this test exists to catch.
+    expect(guard, "rejects must be subtracted").toMatch(
+      /Number\(row\.pairs\)[^;]*-[^;]*Number\(row\.rejects\)/,
+    );
+  });
+
+  it("never lets a stage count go negative", async () => {
+    const source = await readFile(MUTATIONS, "utf8");
+    const guard = source.slice(
+      source.indexOf("stageNeedingUpperFirst(stage)"),
+      source.indexOf("stageNeedingUpperFirst(stage)") + 3000,
+    );
+
+    // More rejects than pairs is a typing slip. A negative upper count would
+    // make the shortfall larger than it is and warn on honest work.
+    expect(guard).toMatch(/Math\.max\(\s*0\s*,/);
   });
 });

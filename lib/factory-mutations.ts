@@ -330,8 +330,15 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     let upperWarning = "";
 
     if (stageNeedingUpperFirst(stage)) {
-      const sameItem = await db.query<{ stage: string; color: string; size: string; pairs: number | string }>(
-        `SELECT stage, color, size, pairs_count AS pairs
+      const sameItem = await db.query<{
+        stage: string;
+        color: string;
+        size: string;
+        pairs: number | string;
+        rejects: number | string;
+      }>(
+        `SELECT stage, color, size, pairs_count AS pairs,
+                COALESCE(reject_pairs, 0) AS rejects
          FROM factory_daily_work
          WHERE item_id = $1 AND status <> 'Reversed'
          FOR UPDATE`,
@@ -347,7 +354,16 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         if (colourKey(row.color) !== wantedColour) continue;
         if (sizeRunKey(row.size) !== wantedRun) continue;
 
-        const pairs = Number(row.pairs) || 0;
+        // Net of QC, matching what the ready screen counts. A pair that failed
+        // is not a pair, so sixty uppers with five spoiled are fifty-five — and
+        // without this the two disagree by exactly the rejects: the screen says
+        // fifty-five finished while this allows a sixtieth bottom to be fitted
+        // to an upper that was thrown away.
+        //
+        // Math.max keeps a row at zero. More rejects than pairs is a typing
+        // slip, and a negative row would make the shortfall larger than it is
+        // and warn on honest work.
+        const pairs = Math.max(0, (Number(row.pairs) || 0) - (Number(row.rejects) || 0));
         if ((row.stage ?? "").trim() === "Upper") uppersMade += pairs;
         else if (stageNeedingUpperFirst(row.stage)) bottomsAlready += pairs;
       }
@@ -355,7 +371,12 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       const shortfall = upperShortfall({
         uppersMade,
         bottomsAlready,
-        wanted: Number(input.pairsCount) || 0,
+        // This entry's own rejects come off too, on the same rule: a bottom
+        // that failed QC was never fitted to an upper, so it does not need one.
+        wanted: Math.max(
+          0,
+          (Number(input.pairsCount) || 0) - (Number(input.rejectPairs) || 0),
+        ),
       });
 
       // Warned, not refused — and that is the owner's decision, not a
