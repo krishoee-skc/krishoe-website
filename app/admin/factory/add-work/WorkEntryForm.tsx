@@ -993,9 +993,17 @@ export default function WorkEntryForm({
             fields that belong together, so the form does not run down the page.
             They stack on a narrow phone. */}
 
-        {/* Pairs first, and on its own line: it is the one answer here that
-            is required, and the one that decides the wage. It used to sit in
-            a third of the row with its placeholder cut off mid-word. */}
+        {/* The count and the wage it decides, side by side.
+            "60" had the full width of the form to itself — about 450px for two
+            characters — while the money it works out sat underneath in small
+            text. They are one fact: sixty pairs at forty rupees IS two
+            thousand four hundred, so changing the count now shows the amount
+            move beside it.
+            The colour and the size could not take that space: both carry a row
+            of chips above a text box and would break on a phone. The QC box is
+            blank most days, and an empty field every morning is worse than an
+            empty half-row. */}
+        <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-brand-green-ink mb-2">
             🔢 {text("Number of pairs", "कति जोडी")}
@@ -1036,15 +1044,6 @@ export default function WorkEntryForm({
               +
             </button>
           </div>
-          {calculatedAmount > 0 ? (
-            <p className="mt-1.5 text-sm font-black text-brand-green">
-              = Rs. {calculatedAmount.toLocaleString()}{" "}
-              <span className="font-semibold text-brand-muted">
-                {text(`at Rs. ${selectedRate}/pair`, `प्रति जोडी रु. ${selectedRate}`)}
-              </span>
-            </p>
-          ) : null}
-
           {/* How many in each size.
               The owner's question: a 36–41 run where 38 was made twice. One
               total cannot say it. Offered rather than imposed — most runs are
@@ -1108,6 +1107,35 @@ export default function WorkEntryForm({
               </button>
             )
           ) : null}
+        </div>
+
+        {/* The wage, in the space the pair count was not using.
+            A field of its own now that it sits beside another: an unlabelled
+            number next to a labelled one reads as part of it. */}
+        <div>
+          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            💰 {text("Wage", "ज्याला")}
+          </label>
+          {calculatedAmount > 0 ? (
+            <div className="rounded-lg bg-brand-green/10 px-3 py-2.5">
+              <p className="text-2xl font-black tabular-nums text-brand-green-ink">
+                Rs. {calculatedAmount.toLocaleString()}
+              </p>
+              <p className="text-xs font-semibold text-brand-muted">
+                {text(`at Rs. ${selectedRate}/pair`, `प्रति जोडी रु. ${selectedRate}`)}
+              </p>
+            </div>
+          ) : (
+            /* Before a worker and an item are chosen there is no rate to
+               quote. The box keeps its place rather than appearing later and
+               pushing the fields below it down mid-entry. */
+            <div className="rounded-lg border border-dashed border-brand-green-line px-3 py-2.5">
+              <p className="text-sm font-semibold text-brand-muted">
+                {text("Choose a worker and a product", "कामदार र जुत्ता छान्नुहोस्")}
+              </p>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Colour and size are required: two entries went in without either,
