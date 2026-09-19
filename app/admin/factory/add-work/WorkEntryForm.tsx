@@ -10,7 +10,13 @@ import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 import { FACTORY_WORKER_CATEGORIES, factoryCategoryLabel } from "@/lib/factory-worker-options";
 import { pieceWage } from "@/lib/factory-board";
 import { quoteWork, type FactoryRate } from "@/lib/factory-rate-book";
-import { SIZE_RUNS, addRun, sizeRunLabel, toggleSize } from "@/lib/shoe-sizes";
+import {
+  SIZE_RUNS,
+  addRun,
+  compactSizeRun,
+  sizeRunLabel,
+  toggleSize,
+} from "@/lib/shoe-sizes";
 import { stageNeedingUpperFirst } from "@/lib/stage-order";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
@@ -106,18 +112,30 @@ type WorkField = (typeof WORK_WALK)[number];
  * total. The wording around them belongs in text(), where the English and
  * Nepali halves sit together and the language check can see them paired.
  */
-function waitingCounts(
+export function waitingCounts(
   runs: { colour: string; sizeRun: string; pairs: number }[],
   total: number,
 ) {
   const named = runs.filter((run) => run.colour);
 
-  // One or two runs are named — "60 Black", or "60 Black + 40 cherry". Beyond
-  // that the line stops fitting a phone, so the total carries it and the colour
-  // chips below the box name the rest.
+  // One or two runs are named — "60 Black · 36-41". Beyond that the line stops
+  // fitting a phone, so the total carries it and the colour chips below the box
+  // name the rest.
   if (named.length === 0 || named.length > 2) return String(total);
 
-  return named.map((run) => `${run.pairs} ${run.colour}`).join(" + ");
+  // The size is what the owner's bachha sandil entry needed and did not have:
+  // its uppers were recorded 31–35 when they were made 25–30, and the screen
+  // where the bottom work is chosen could not show it.
+  //
+  // Compacted, because spelled out it does not fit — "25, 26, 27, 28, 29, 30"
+  // is 22 characters against a phone's 38 for the whole label, and "25-30" is
+  // five. Two runs name the size only when they share one, which is the case
+  // where naming it twice would say the same thing twice and overflow anyway.
+  const sizes = new Set(named.map((run) => compactSizeRun(run.sizeRun)).filter(Boolean));
+  const shared = sizes.size === 1 ? [...sizes][0] : "";
+
+  const colours = named.map((run) => `${run.pairs} ${run.colour}`).join(" + ");
+  return shared ? `${colours} · ${shared}` : colours;
 }
 
 export default function WorkEntryForm({
@@ -822,8 +840,8 @@ export default function WorkEntryForm({
                       // also what stops the option disagreeing with the save,
                       // since the save counts one run at a time.
                       text(
-                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)} waiting`,
-                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)} पर्खिरहेको`,
+                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)}`,
+                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)}`,
                       )
                     : text(" — no uppers waiting", " — upper पर्खिरहेको छैन")
                   : ""}
