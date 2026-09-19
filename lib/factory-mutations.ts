@@ -3,7 +3,7 @@ import { numeric, type DbNumeric } from "@/lib/factory-money";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { stageNeedingUpperFirst, upperShortfall } from "@/lib/stage-order";
 import { colourKey } from "@/lib/colour-name";
-import { sizeRunKey } from "@/lib/shoe-sizes";
+import { normaliseSizeCounts, sizeCountsTotal, sizeRunKey } from "@/lib/shoe-sizes";
 
 export { productionStageForFactoryCategory };
 import {
@@ -165,6 +165,15 @@ export interface FactoryWorkInput {
   /** The production stage this entry is for. When absent, falls back to the
    *  worker's category, matching the pre-column behaviour. */
   stage?: string | null;
+  /**
+   * Pairs made per size — {"36": 1, "38": 2}.
+   *
+   * Absent on an entry that did not record it, which is every entry made
+   * before the boxes existed and any made with them left empty. When present
+   * it decides pairsCount, rather than sitting beside a separately typed
+   * number that could disagree with it.
+   */
+  sizeCounts?: Record<string, unknown> | null;
 }
 
 /** What the owner may correct on a saved entry. Everything that describes the
@@ -313,6 +322,23 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       );
     }
 
+    // How many pairs in each size, when the entry says.
+    //
+    // The owner's question: a 36-41 run where 38 was made twice. Stored as a
+    // total and a piece of text, seven pairs across six sizes and six pairs
+    // across six sizes look identical.
+    //
+    // The boxes decide the count when they are filled, rather than being kept
+    // beside a separately typed total that could disagree with them. That is
+    // the whole reason to have them: the wage is paid on pairsCount, the ready
+    // screen counts it and the upper guard matches on it, so a breakdown
+    // saying seven next to a total saying sixty is a lie the ledger cannot
+    // resolve. Left empty, nothing changes and the typed total stands.
+    const sizeCounts = normaliseSizeCounts(input.sizeCounts ?? {});
+    const countedPairs = sizeCountsTotal(sizeCounts);
+    const hasCounts = countedPairs > 0;
+    const pairsCount = hasCounts ? countedPairs : input.pairsCount;
+
     // A bottom cannot be made for an upper that does not exist.
     //
     // The owner's rule: fibre and bottom work is only ever done on uppers
@@ -375,7 +401,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         // that failed QC was never fitted to an upper, so it does not need one.
         wanted: Math.max(
           0,
-          (Number(input.pairsCount) || 0) - (Number(input.rejectPairs) || 0),
+          (Number(pairsCount) || 0) - (Number(input.rejectPairs) || 0),
         ),
       });
 
@@ -451,13 +477,13 @@ export async function createFactoryWork(input: FactoryWorkInput) {
       );
       const completedPairs = Number(completed[0]?.completed_pairs ?? 0);
       const completedSizePairs = Number(completed[0]?.completed_size_pairs ?? 0);
-      if (completedSizePairs + input.pairsCount > Number(sizePlan[sizeLabel])) {
+      if (completedSizePairs + pairsCount > Number(sizePlan[sizeLabel])) {
         throw new FactoryMutationError(
           `${sizeLabel} exceeds its planned ${Number(sizePlan[sizeLabel])} pairs for this stage.`,
           409,
         );
       }
-      if (completedPairs + input.pairsCount > Number(order.planned_pairs)) {
+      if (completedPairs + pairsCount > Number(order.planned_pairs)) {
         throw new FactoryMutationError("This entry exceeds the Work Order planned pairs.", 409);
       }
       linkedWorkOrder = {
@@ -514,9 +540,10 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     const inserted = await db.query<WorkRow>(
       `INSERT INTO factory_daily_work
        (id, submission_key, date, worker_id, item_id, color, size, pairs_count,
-        status, rate_applied, amount_earned, work_order_id, reject_pairs, stage)
+        status, rate_applied, amount_earned, work_order_id, reject_pairs, stage,
+        size_counts)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               ROUND($10::numeric * $8::integer, 2), $11, $12, $13)
+               ROUND($10::numeric * $8::integer, 2), $11, $12, $13, $14::jsonb)
        RETURNING id, date, worker_id, item_id, color, size, pairs_count, reject_pairs, status,
                  rate_applied, amount_earned, work_order_id`,
       [
@@ -527,12 +554,16 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         input.itemId,
         input.color,
         input.size,
-        input.pairsCount,
+        pairsCount,
         input.status,
         rate,
         input.workOrderId ?? null,
-        Math.max(0, Math.min(input.pairsCount, Math.round(Number(input.rejectPairs) || 0))),
+        Math.max(0, Math.min(pairsCount, Math.round(Number(input.rejectPairs) || 0))),
         stage,
+        // NULL rather than {} when the boxes were left empty, so an entry that
+        // did not record its breakdown reads as "not recorded" instead of "no
+        // pairs in any size" — which is what {} would claim.
+        hasCounts ? JSON.stringify(sizeCounts) : null,
       ],
     );
     const amountEarned = numeric(inserted[0].amount_earned);
@@ -541,7 +572,12 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     // written inside the same transaction as the factory rows, so if it fails
     // the whole save rolls back and the two ledgers cannot disagree.
     {
+      // The real breakdown when the entry has one, rather than the whole run
+      // as a single key. This column has always been written {"36/41": 60} —
+      // six sizes and a number, the same non-answer in JSON — and the sizewise
+      // production reports read it.
       const sizeLabel = input.size?.trim() || "Mixed";
+      const breakdown = hasCounts ? sizeCounts : { [sizeLabel]: pairsCount };
       await db.query(
         `INSERT INTO production_work_entries (
            id, work_date, employee_id, employee_name_snapshot, work_order_id,
@@ -555,14 +591,14 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         [
           crypto.randomUUID(), input.date, worker.id, worker.name,
           items[0].production_item_id, items[0].production_item_name, stage,
-          input.pairsCount, JSON.stringify({ [sizeLabel]: input.pairsCount }),
+          pairsCount, JSON.stringify(breakdown),
           rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
           input.workOrderId ?? "",
         ],
       );
       if (linkedWorkOrder) {
         const stageComplete =
-          linkedWorkOrder.completedBefore + input.pairsCount >= linkedWorkOrder.plannedPairs;
+          linkedWorkOrder.completedBefore + pairsCount >= linkedWorkOrder.plannedPairs;
         await db.query(
           `UPDATE production_work_orders SET
              status = CASE WHEN $3 THEN

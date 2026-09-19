@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
       rejectPairs: Number(body.reject_pairs) || 0,
       status,
       stage,
+      // How many pairs in each size, when the screen sent them. Cleaned and
+      // reconciled against pairsCount inside createFactoryWork, so an object
+      // of any shape arriving here cannot put a wrong total in the ledger.
+      sizeCounts:
+        body.size_counts && typeof body.size_counts === "object" && !Array.isArray(body.size_counts)
+          ? (body.size_counts as Record<string, unknown>)
+          : null,
     });
 
     // Send WhatsApp notification if work entry was created successfully
