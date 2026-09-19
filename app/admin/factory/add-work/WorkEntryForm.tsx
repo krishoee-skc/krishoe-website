@@ -112,6 +112,40 @@ type WorkField = (typeof WORK_WALK)[number];
  * total. The wording around them belongs in text(), where the English and
  * Nepali halves sit together and the language check can see them paired.
  */
+/**
+ * The colour and size to open the boxes with, given what is waiting.
+ *
+ * The option says "bachha sandil — 60 Black · 25-30" and then the boxes below
+ * it open empty. That gap cost the owner sixty pairs: the uppers were made
+ * 25–30, the bottom entry was typed 31–35, and the pairs could not be posted
+ * until the size was corrected in the database by hand. The screen knew the
+ * answer — it had just printed it.
+ *
+ * Only when there is exactly one run waiting. Two colours waiting is a real
+ * choice, and filling one in would have to be noticed to be corrected, which
+ * is worse than an empty box a person has to fill.
+ *
+ * The size goes in as it was recorded, not compacted: "36/41" is what the save
+ * guard matches the uppers on, and the short form is only for reading.
+ */
+export function fillFromWaitingRun(
+  runs: { colour: string; sizeRun: string; pairs: number }[],
+  stage: string,
+): { color: string; size: string } {
+  const empty = { color: "", size: "" };
+
+  // Upper work starts a shoe: nothing is waiting behind it, and the last run's
+  // colour is not this run's answer.
+  if (!stageNeedingUpperFirst(stage)) return empty;
+
+  // A colour is what makes a run identifiable. Entries made before colour was
+  // required have none, and "" in the box only looks like a filled field.
+  const named = runs.filter((run) => run.colour.trim() && run.pairs > 0);
+  if (named.length !== 1) return empty;
+
+  return { color: named[0].colour, size: named[0].sizeRun };
+}
+
 export function waitingCounts(
   runs: { colour: string; sizeRun: string; pairs: number }[],
   total: number,
@@ -282,12 +316,17 @@ export default function WorkEntryForm({
 
   const handleItemChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const itemId = e.target.value;
+    // Open the colour and size with what this shoe is actually waiting in,
+    // rather than empty. Both stay editable — this is the answer for the
+    // ordinary case, not a lock.
+    const waiting = items.find((item) => item.id === itemId)?.waitingRuns ?? [];
+    const filled = fillFromWaitingRun(waiting, formData.stage);
     setFormData((prev) => ({
       ...prev,
       item_id: itemId,
       work_order_id: "",
-      color: "",
-      size: "",
+      color: filled.color,
+      size: filled.size,
     }));
     setError("");
 
