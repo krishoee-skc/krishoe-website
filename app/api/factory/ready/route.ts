@@ -5,6 +5,7 @@ import { addStockMovement } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
+import { placePairs } from "@/lib/stock-transfers";
 import { colourKey } from "@/lib/colour-name";
 import { sizeRunKey } from "@/lib/shoe-sizes";
 
@@ -294,6 +295,34 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    // And say where those pairs are, not only that they exist.
+    //
+    // finished_stock answers "how many"; stock_locations answers "where". This
+    // route wrote only the first, so three hundred pairs sat under "in stock
+    // without a place" and the FACTORY tile read zero with five runs of sixty
+    // in the godown. Nothing was lost — selling draws on the total — but the
+    // owner could not see their own stock, and the only remedy was to walk
+    // over and count pairs that had never moved.
+    //
+    // A purchase already places what it buys and a challan places what it
+    // sends; production was the one inflow that placed nothing. The answer was
+    // never in doubt: pairs made at the factory are at the factory until
+    // something moves them.
+    //
+    // After the replay guard, so a double tap does not place the pairs twice —
+    // the same double-count the submission key exists to prevent, one table
+    // along. Reported but not fatal: the pairs and the wage are already safely
+    // in, and a failure to note the shelf they sit on must not fail the post.
+    await reportingErrors("place factory pairs after posting", () =>
+      placePairs(
+        { query: (sql, params) => queryPostgres(STORE, sql, params) },
+        items[0].name,
+        sizeRun,
+        "Factory",
+        pairs,
+      ),
+    );
 
     await reportingErrors("sync catalog stock after factory ready posting", () =>
       syncProductCatalogStockWithFinishedStock(),
