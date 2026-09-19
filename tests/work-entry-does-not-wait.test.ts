@@ -61,7 +61,12 @@ describe("entering the next row without waiting", () => {
 
     // A wage entry that vanishes because the network blinked is a day's work
     // the factory has to remember by hand.
-    expect(failure).toContain("setFormData(entry)");
+    //
+    // The fields go back, not the whole payload: the per-size counts travel
+    // with the entry but live in their own state, so they are restored
+    // separately just below rather than pushed into the form data.
+    expect(failure).toMatch(/setFormData\((entry|formFields)\)/);
+    expect(failure, "the per-size boxes come back too").toContain("setSizeCounts(");
     expect(failure).toContain('"error"');
   });
 

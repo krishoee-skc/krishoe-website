@@ -14,6 +14,10 @@ import {
   SIZE_RUNS,
   addRun,
   compactSizeRun,
+  countsFromSizeRun,
+  expandSizeRun,
+  normaliseSizeCounts,
+  sizeCountsTotal,
   sizeRunLabel,
   toggleSize,
 } from "@/lib/shoe-sizes";
@@ -277,6 +281,18 @@ export default function WorkEntryForm({
    * beside that rather than replacing it.
    */
   const [upperWarning, setUpperWarning] = useState<string>("");
+  /**
+   * How many pairs in each size, when the entry says.
+   *
+   * The owner's question: a 36–41 run where 38 was made twice. One total and
+   * one piece of text cannot record it, so the screen asks the way the question
+   * is asked — a box per size, and the total adds itself up.
+   *
+   * Empty until the boxes are opened. An entry that never opens them behaves
+   * exactly as it did, with the typed total standing on its own.
+   */
+  const [sizeCounts, setSizeCounts] = useState<Record<string, string>>({});
+  const [showSizeCounts, setShowSizeCounts] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   // Which half of the screen is showing: the entry form, or the post-to-stock
   // list. Only one at a time, so the page is short. "entry" first — that is what
@@ -524,6 +540,34 @@ export default function WorkEntryForm({
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+  // The sizes the boxes are drawn for, in the order they are made. Read from
+  // the size field itself so a run typed "36/41" gets the same six boxes as one
+  // tapped out size by size.
+  const countableSizes = expandSizeRun(formData.size);
+  const countedPairs = sizeCountsTotal(normaliseSizeCounts(sizeCounts));
+
+  /**
+   * Open the boxes, pre-filled from the run.
+   *
+   * Sixty over six sizes is ten of each, which is what every row in the factory
+   * already means by "60 pairs, 36/41". Opening on that rather than on six
+   * empty boxes keeps the ordinary entry to no typing at all, and leaves the
+   * uneven one a single box to change.
+   */
+  const openSizeCounts = () => {
+    const seeded = countsFromSizeRun(formData.size, parseInt(formData.pairs_count) || 0);
+    setSizeCounts(
+      Object.fromEntries(Object.entries(seeded).map(([size, pairs]) => [size, String(pairs)])),
+    );
+    setShowSizeCounts(true);
+  };
+
+  /** Put the count back to one typed number, leaving the total as it stands. */
+  const closeSizeCounts = () => {
+    setShowSizeCounts(false);
+    setSizeCounts({});
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -558,8 +602,20 @@ export default function WorkEntryForm({
 
     // What is being sent, kept aside: the form is cleared immediately, and this
     // is what goes back into it if the save fails.
-    const entry = { ...formData };
-    const keyScope = `work:${JSON.stringify(entry)}`;
+    //
+    // When the boxes are open they carry the count: the server takes the total
+    // from them, so sending a separately typed pairs_count beside them is the
+    // disagreement this change exists to remove.
+    const counted = showSizeCounts ? normaliseSizeCounts(sizeCounts) : {};
+    const hasCounted = sizeCountsTotal(counted) > 0;
+    // The form's own fields, which is what goes back on a failure.
+    const entry = {
+      ...formData,
+      pairs_count: hasCounted ? String(sizeCountsTotal(counted)) : formData.pairs_count,
+    };
+    // And what is sent: the same fields, plus the breakdown when there is one.
+    const payload = hasCounted ? { ...entry, size_counts: counted } : entry;
+    const keyScope = `work:${JSON.stringify(payload)}`;
     const key = idempotencyKeys.get(keyScope);
     idempotencyKeys.rotate(keyScope);
 
@@ -574,6 +630,8 @@ export default function WorkEntryForm({
       color: "",
     }));
     setCalculatedAmount(0);
+    // The size is cleared, so boxes for it would be boxes for nothing.
+    closeSizeCounts();
 
     setSubmitting(true);
 
@@ -584,7 +642,7 @@ export default function WorkEntryForm({
           "Content-Type": "application/json",
           "Idempotency-Key": key,
         },
-        body: JSON.stringify(entry),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -609,8 +667,15 @@ export default function WorkEntryForm({
       );
     } catch (err) {
       // Put it back exactly as typed. A wage entry that vanishes because the
-      // network blinked is a day's work the factory has to remember by hand.
+      // network blinked is a day's work the factory has to remember by hand —
+      // the per-size boxes included, which are the slowest part to retype.
       setFormData(entry);
+      if (hasCounted) {
+        setSizeCounts(
+          Object.fromEntries(Object.entries(counted).map(([size, pairs]) => [size, String(pairs)])),
+        );
+        setShowSizeCounts(true);
+      }
       setCalculatedAmount(
         priceFor(entry.worker_id, entry.item_id, entry.stage, parseInt(entry.pairs_count) || 0)
           ?.amount ?? 0,
@@ -978,6 +1043,70 @@ export default function WorkEntryForm({
                 {text(`at Rs. ${selectedRate}/pair`, `प्रति जोडी रु. ${selectedRate}`)}
               </span>
             </p>
+          ) : null}
+
+          {/* How many in each size.
+              The owner's question: a 36–41 run where 38 was made twice. One
+              total cannot say it. Offered rather than imposed — most runs are
+              even, and six boxes on every entry would slow the ordinary case
+              down to answer a question it does not have. */}
+          {countableSizes.length > 1 ? (
+            showSizeCounts ? (
+              <div className="mt-3 rounded-xl border-2 border-brand-green bg-brand-green/5 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wide text-brand-green-ink">
+                    {text("Pairs in each size", "कुन साइजको कति जोडी")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={closeSizeCounts}
+                    className="press-dip rounded-lg border border-brand-green-line px-2.5 py-1 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
+                  >
+                    {text("Use one total", "जम्मा मात्र लेख्ने")}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {countableSizes.map((size) => (
+                    <label key={size} className="block">
+                      <span className="block text-center text-[11px] font-bold text-brand-muted">
+                        {size}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        aria-label={text(`Pairs in size ${size}`, `साइज ${size} को जोडी`)}
+                        value={sizeCounts[size] ?? ""}
+                        onChange={(event) =>
+                          setSizeCounts((current) => ({
+                            ...current,
+                            [size]: event.target.value,
+                          }))
+                        }
+                        className="min-h-11 w-full rounded-lg border-2 border-brand-green-line px-1 py-1 text-center text-lg font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
+                      />
+                    </label>
+                  ))}
+                </div>
+                {/* The total, added up rather than asked for again. Two numbers
+                    for one quantity is how a breakdown ends up disagreeing with
+                    the wage it was paid on. */}
+                <p className="mt-2 text-sm font-black text-brand-green-ink">
+                  {text(
+                    `Total ${countedPairs} pairs — added up`,
+                    `जम्मा ${countedPairs} जोडी — आफैँ जोडिएको`,
+                  )}
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openSizeCounts}
+                className="press-dip mt-2 inline-flex min-h-11 items-center rounded-lg border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+              >
+                {text("Sizes are not equal?", "साइज बराबर छैन?")}
+              </button>
+            )
           ) : null}
         </div>
 
