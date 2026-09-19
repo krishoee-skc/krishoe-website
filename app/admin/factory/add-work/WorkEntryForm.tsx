@@ -31,6 +31,8 @@ interface Item {
   name: string;
   /** Uppers made for this shoe with no bottom on them yet, net of QC. */
   uppersWaiting: number;
+  /** The same, split by the colour and size run they were made in. */
+  waitingRuns: { colour: string; sizeRun: string; pairs: number }[];
   code: string | null;
   /** The sizes this shoe is made in. Empty when the item is not yet linked to
    *  a catalogue product, which is when the size runs are offered instead. */
@@ -87,6 +89,36 @@ const PAIRS_STEP = 12;
  */
 const WORK_WALK = ["pairs", "colour", "size", "rejected"] as const;
 type WorkField = (typeof WORK_WALK)[number];
+
+/**
+ * What is waiting on a shoe, said in words rather than one number.
+ *
+ * "60 uppers waiting" was the owner's own question back at us: sixty of which
+ * colour? One run answers it outright. Several are listed, because the save
+ * counts one run at a time — a total across colours would promise a hundred
+ * and then warn at sixty, the option and the save disagreeing about the same
+ * pairs on the same click.
+ *
+ * Capped at two named runs so the option stays one readable line on a phone;
+ * beyond that the total carries it, and the colour chips below name the rest.
+ *
+ * Returns the counts only — "60 Black", "60 Black + 40 cherry", or a bare
+ * total. The wording around them belongs in text(), where the English and
+ * Nepali halves sit together and the language check can see them paired.
+ */
+function waitingCounts(
+  runs: { colour: string; sizeRun: string; pairs: number }[],
+  total: number,
+) {
+  const named = runs.filter((run) => run.colour);
+
+  // One or two runs are named — "60 Black", or "60 Black + 40 cherry". Beyond
+  // that the line stops fitting a phone, so the total carries it and the colour
+  // chips below the box name the rest.
+  if (named.length === 0 || named.length > 2) return String(total);
+
+  return named.map((run) => `${run.pairs} ${run.colour}`).join(" + ");
+}
 
 export default function WorkEntryForm({
   initialWorkers,
@@ -357,6 +389,7 @@ export default function WorkEntryForm({
           // A shoe created from this form has no work behind it yet, so no
           // uppers are waiting. It refreshes with the page.
           uppersWaiting: 0,
+          waitingRuns: [],
           code: "",
           sizes: [],
           production_item_id: productionItemId,
@@ -782,9 +815,15 @@ export default function WorkEntryForm({
                 {item.name}
                 {stageNeedingUpperFirst(formData.stage)
                   ? item.uppersWaiting > 0
-                    ? text(
-                        ` — ${item.uppersWaiting} uppers waiting`,
-                        ` — ${item.uppersWaiting} upper पर्खिरहेको`,
+                    ? // Named, not just counted. "Sixty waiting" leaves the
+                      // question the owner asked — which colour? — and the
+                      // entry that follows has to answer it. With one run the
+                      // label says it; with several it lists them, which is
+                      // also what stops the option disagreeing with the save,
+                      // since the save counts one run at a time.
+                      text(
+                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)} waiting`,
+                        ` — ${waitingCounts(item.waitingRuns, item.uppersWaiting)} पर्खिरहेको`,
                       )
                     : text(" — no uppers waiting", " — upper पर्खिरहेको छैन")
                   : ""}

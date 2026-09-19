@@ -49,11 +49,13 @@ describe("the count that reaches the screen", () => {
     // both words in the file, so a name check passes on the bug: bagopen would
     // read "60 uppers waiting" when every one of them already has a bottom.
     expect(code, "uppers are added").toMatch(
-      /stage\s*===\s*"Upper"[\s\S]{0,120}running\s*\+\s*pairs/,
+      /stage\s*===\s*"Upper"\)\s*running\.pairs\s*\+=\s*pairs/,
     );
     expect(code, "fitted bottoms are taken off").toMatch(
-      /stageNeedingUpperFirst\(stage\)[\s\S]{0,120}running\s*-\s*pairs/,
+      /stageNeedingUpperFirst\(stage\)\)\s*running\.pairs\s*-=\s*pairs/,
     );
+    // And a run with nothing left is dropped rather than shown as waiting.
+    expect(code, "spent runs are dropped").toMatch(/run\.pairs\s*<=\s*0/);
   });
 
   it("excludes reversed work", async () => {
@@ -88,5 +90,55 @@ describe("what the option shows", () => {
     const options = code.slice(code.indexOf("Select a product"), code.indexOf("Select a product") + 900);
     expect(options.length, "the product list moved").toBeGreaterThan(0);
     expect(options, "no item is filtered out").not.toMatch(/items\s*\.filter\(/);
+  });
+});
+
+/**
+ * The count on the option and the count in the guard must agree.
+ *
+ * The option adds up every upper of a shoe regardless of colour or size; the
+ * save guard counts only the uppers matching the colour and size run being
+ * entered. While each shoe is made in one colour those are the same number, and
+ * they are today — no item in the factory's records has two.
+ *
+ * They stop being the same the day one does. Sixty black uppers and forty
+ * cherry would show "100 uppers waiting" on the option and warn at sixty on the
+ * save: the screen saying one thing and the save saying another, about the same
+ * pairs, on the same click.
+ *
+ * So the option carries the split rather than a total. With one colour it reads
+ * exactly as before; with two it names them, which is also the answer to "which
+ * colour are those sixty" — the question the total could never answer.
+ */
+describe("the option and the guard count the same pairs", () => {
+  it("groups the count by colour and size, not by item alone", async () => {
+    const page = await readFile(PAGE, "utf8");
+
+    // The guard matches on item, colour and size run together. A total across
+    // colours cannot agree with it.
+    expect(page, "colour must be read").toMatch(/work\.color/);
+    expect(page, "size must be read").toMatch(/work\.size/);
+  });
+
+  it("uses the same two keys the guard uses", async () => {
+    const page = await readFile(PAGE, "utf8");
+
+    // Asserted as the key the grouping is built from, not as the presence of
+    // the words: reverting to `key = row.item_id` leaves both imports in place,
+    // so a name check passes on exactly the bug it exists to catch.
+    //
+    // "Black" and "black" are one colour to the guard; they must be one here
+    // too, or the option splits a single batch into two half-sized ones.
+    expect(page, "the group key must carry all three").toMatch(
+      /key\s*=\s*`\$\{row\.item_id\}[\s\S]{0,40}colourKey\([\s\S]{0,40}sizeRunKey\(/,
+    );
+  });
+
+  it("names the colour, which a total never could", async () => {
+    const form = await readFile(FORM, "utf8");
+
+    // The owner's question: sixty uppers are waiting — which colour? A single
+    // number cannot say, and the entry that follows has to name one.
+    expect(form).toMatch(/waitingRuns|uppersWaitingBy/);
   });
 });
