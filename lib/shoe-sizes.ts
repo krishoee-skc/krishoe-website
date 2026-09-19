@@ -174,3 +174,136 @@ export function sameSizeRun(left: string | null | undefined, right: string | nul
   const key = sizeRunKey(left);
   return key.length > 0 && key === sizeRunKey(right);
 }
+
+/**
+ * A run written as short as it can honestly be written.
+ *
+ * The work-entry dropdown has to name the colour, the count and the size on one
+ * line, and a phone gives it about 32 to 38 characters. Spelled out, that line
+ * is 57 — "bachha sandil — 60 Black · 25, 26, 27, 28, 29, 30 waiting" — and it
+ * wraps, which is what the option list cannot afford.
+ *
+ * Consecutive sizes collapse to their two ends, so 22 characters become 5 and
+ * the size costs the label nothing. Sizes with gaps are left exactly as they
+ * were: "36, 38, 40" must not become "36-40", because 37 and 39 were never made
+ * and a shorter label that claims two extra sizes is worse than a longer one.
+ *
+ * Two sizes are left alone too — "36-37" saves nothing over "36, 37" and reads
+ * as a longer run than it is.
+ */
+export function compactSizeRun(value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  const sizes = expandSizeRun(raw);
+  // Nothing numeric to work with — "Mixed" and anything else typed by hand
+  // comes back as it went in rather than being reshaped into a range.
+  if (sizes.length === 0) return raw;
+  if (sizes.length === 1) return sizes[0];
+  if (sizes.length === 2) return sizes.join(", ");
+
+  const numbers = sizes.map(Number);
+  if (!numbers.every(Number.isFinite)) return sizes.join(", ");
+
+  const consecutive = numbers.every((size, index) => index === 0 || size === numbers[index - 1] + 1);
+  return consecutive ? `${numbers[0]}-${numbers[numbers.length - 1]}` : sizes.join(", ");
+}
+
+/** How many pairs were made in each size. Sizes with nothing made are absent. */
+export type SizeCounts = Record<string, number>;
+
+/**
+ * The pairs of an entry spread across the sizes it names.
+ *
+ * Every row in the factory today reads `{"36/41": 60}` — a run and a total,
+ * with nothing to say which size the pairs went to. Sixty over six sizes is ten
+ * of each, and that is what those rows have always meant, so this is the
+ * starting point the boxes are filled with rather than six empty fields.
+ *
+ * When the total does not divide, the remainder goes to the smallest sizes.
+ * What matters is not which size gets the extra but that the parts add back to
+ * the whole: the wage is paid on the total, and a breakdown summing to less is
+ * a pair missing from the ledger.
+ */
+export function countsFromSizeRun(
+  value: string | null | undefined,
+  totalPairs: number,
+): SizeCounts {
+  // Only real sizes. "Mixed" is what the app writes when no size was given,
+  // and spreading sixty pairs into it would put a size in the ledger that no
+  // shoe was ever made in.
+  const sizes = expandSizeRun(value).filter((size) => Number.isFinite(Number(size)));
+  const total = Math.max(0, Math.floor(Number(totalPairs) || 0));
+  if (sizes.length === 0 || total === 0) return {};
+
+  const each = Math.floor(total / sizes.length);
+  let spare = total - each * sizes.length;
+
+  const counts: SizeCounts = {};
+  for (const size of sizes) {
+    counts[size] = each + (spare > 0 ? 1 : 0);
+    if (spare > 0) spare -= 1;
+  }
+  return counts;
+}
+
+/**
+ * The boxes as typed, reduced to what was actually made.
+ *
+ * They arrive from text inputs, so every value is a string and some are empty.
+ * A size left blank is a size this entry did not make — not a size with zero
+ * pairs — so it is dropped rather than stored as `"38": 0`, which would sit in
+ * the ledger for ever claiming a size that was never cut.
+ */
+export function normaliseSizeCounts(counts: Record<string, unknown>): SizeCounts {
+  const clean: SizeCounts = {};
+  for (const [size, raw] of Object.entries(counts ?? {})) {
+    const key = String(size).trim();
+    if (!key) continue;
+    const pairs = Math.floor(Number(raw));
+    if (!Number.isFinite(pairs) || pairs <= 0) continue;
+    clean[key] = pairs;
+  }
+  return clean;
+}
+
+/** The pairs the boxes add up to — what the entry is really for. */
+export function sizeCountsTotal(counts: SizeCounts): number {
+  return Object.values(counts).reduce<number>((sum, pairs) => sum + (Number(pairs) || 0), 0);
+}
+
+/**
+ * The short note naming the sizes that are not like the others.
+ *
+ * Ten of each is the ordinary run and needs no explaining; printing all six
+ * sizes on every entry would put the label straight back over the phone's
+ * width. What a person needs to see is the exception — the owner's own case of
+ * 36–41 with 38 made twice reads simply as "38×2".
+ *
+ * So the most common count is treated as the run's shape, and only the sizes
+ * that differ from it are named. An even run produces nothing at all.
+ */
+export function sizeCountsLabel(counts: SizeCounts): string {
+  const entries = Object.entries(counts).filter(([, pairs]) => Number(pairs) > 0);
+  if (entries.length === 0) return "";
+
+  const seen = new Map<number, number>();
+  for (const [, pairs] of entries) {
+    seen.set(Number(pairs), (seen.get(Number(pairs)) ?? 0) + 1);
+  }
+
+  let usual = 0;
+  let usualSeen = 0;
+  for (const [pairs, times] of seen) {
+    if (times > usualSeen || (times === usualSeen && pairs < usual)) {
+      usual = pairs;
+      usualSeen = times;
+    }
+  }
+
+  const odd = entries
+    .filter(([, pairs]) => Number(pairs) !== usual)
+    .sort((left, right) => Number(left[0]) - Number(right[0]));
+
+  return odd.map(([size, pairs]) => `${size}×${pairs}`).join(", ");
+}
