@@ -264,6 +264,22 @@ table th,
    a pale card. Darken the fills so the lifted ink reads. */
 .dark .bg-\[\#FFF9EA\] { background-color: #2c2617; }
 .dark .bg-\[\#FFF4F2\] { background-color: #33201d; }
+
+/* The coloured badges on the activity feed and the reports page. Each is a
+   pale fill with its own darker ink — an amber "wage", a blue "order", a green
+   "stock" — so the hue is what tells them apart at a glance, and each dark
+   counterpart keeps it rather than flattening all seven to one grey.
+   Taken to the same depth as the fills above (~0.14 lightness) so the ink the
+   rules lift to near-white reads on them. Without these, each badge stayed a
+   bright card at night with pale text inside it — the one combination that
+   cannot be read at all. */
+.dark .bg-\[\#FEF3C7\] { background-color: #2c2617; } /* amber */
+.dark .bg-\[\#F5F0E8\] { background-color: #262320; } /* stone */
+.dark .bg-\[\#F3E8FF\] { background-color: #251d31; } /* purple */
+.dark .bg-\[\#EFF6FF\] { background-color: #16233a; } /* blue */
+.dark .bg-\[\#EEF2FF\] { background-color: #1c1f3a; } /* indigo */
+.dark .bg-\[\#ECFDF5\] { background-color: #142e26; } /* green */
+.dark .bg-\[\#F2ECF6\] { background-color: #241e2c; } /* violet */
 .dark .border-\[\#F4DEAE\] { border-color: #4a3f22; }
 .dark .border-\[\#F1C4BE\] { border-color: #4a2b27; }
 
