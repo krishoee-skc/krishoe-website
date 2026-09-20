@@ -46,6 +46,39 @@ async function exists(path: string) {
   }
 }
 
+/**
+ * Every admin route, not only the busy ones.
+ *
+ * The list below started as the five screens a day's work runs through,
+ * because a rule demanding a loader for all fifty-eight would have been a
+ * chore nobody finished. All fifty-eight have one now, so the rule can be the
+ * whole set — and a route added next month arrives with the same promise
+ * rather than quietly reintroducing a blank wait.
+ */
+describe("every admin screen", () => {
+  it("has a loading screen beside it", async () => {
+    const missing: string[] = [];
+
+    async function walk(dir: string) {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(path);
+          continue;
+        }
+        if (entry.name !== "page.tsx") continue;
+        if (!(await exists(join(dir, "loading.tsx")))) missing.push(dir);
+      }
+    }
+    await walk(ADMIN);
+
+    expect(
+      missing,
+      `these screens still show a blank wait:\n  ${missing.join("\n  ")}`,
+    ).toEqual([]);
+  });
+});
+
 describe("the busiest screens", () => {
   for (const screen of DAILY) {
     it(`${screen} shows its shape while it loads`, async () => {
