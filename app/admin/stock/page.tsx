@@ -19,13 +19,20 @@ import WherePairsAre from "@/app/admin/stock/WherePairsAre";
 export const metadata = { title: "Stock Control | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
-function StatCard({ label, value, detail, tone = "plain" }: {
+function StatCard({ label, value, detail, tone = "plain", size = "normal" }: {
   label: string;
   value: string | number;
   detail: string;
   tone?: "plain" | "good" | "warn";
+  /** "lead" for the one figure this screen is about — ready stock. The rest
+   *  support it, and a row of equal numbers makes the reader find that out by
+   *  reading all of them. */
+  size?: "normal" | "lead";
 }) {
   const valueTone = tone === "warn" ? "text-brand-clay" : tone === "good" ? "text-brand-green" : "text-brand-green-ink";
+  // One step apart, matching the shared StatTile. Two steps stops reading as
+  // the same kind of thing and starts reading as a banner.
+  const valueSize = size === "lead" ? "text-5xl" : "text-3xl";
   // Same gradient accent the shared StatTile carries, so this page — which keeps
   // its own card only because its tones differ — still reads as one family.
   const accent =
@@ -37,7 +44,7 @@ function StatCard({ label, value, detail, tone = "plain" }: {
   return (
     <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-muted">{label}</p>
-      <p className={`mt-2 font-display text-3xl font-black tabular-nums ${valueTone}`}>{value}</p>
+      <p className={`mt-2 font-display ${valueSize} font-black tabular-nums ${valueTone}`}>{value}</p>
       <p className="mt-2 text-xs font-semibold leading-5 text-brand-muted-soft">{detail}</p>
       <span className="mt-3 block h-1.5 rounded-full" style={{ background: accent }} />
     </div>
@@ -334,7 +341,7 @@ export default async function AdminStockPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Ready stock" value={summary.readyPairs} detail="Physical pairs available across factory and sales channels." tone="good" />
+        <StatCard label="Ready stock" value={summary.readyPairs} detail="Physical pairs available across factory and sales channels." tone="good" size="lead" />
         <StatCard label="KRISHOE manufactured" value={summary.manufacturedPairs} detail="Current pairs whose source history is Production In." />
         <StatCard label="Purchased for resale" value={summary.purchasedPairs} detail="Current pairs whose source history is Purchase In." />
         <StatCard label="Raw materials" value={summary.rawMaterialItems} detail={`${summary.rawMaterialReorderItems} material item(s) at or below reorder level.`} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />

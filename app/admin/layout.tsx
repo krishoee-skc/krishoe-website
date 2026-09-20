@@ -2,6 +2,7 @@ import AdminNav from "./AdminNav";
 import AdminCommandBar from "./AdminCommandBar";
 import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
+import AdminTrail from "./AdminTrail";
 import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
 import { ToastProvider } from "@/components/admin/ToastProvider";
@@ -93,6 +94,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <LanguageSwitch />
         </div>
+        {/* Where this screen sits, for the ones deep enough to need saying.
+            Drawn here so every screen gets it without asking, and a new one is
+            covered the day it appears. */}
+        <AdminTrail />
         {children}
         <AdminQuickDock adminRole={adminRole} />
         {/* Offered just after signing in, on the device being held. It
