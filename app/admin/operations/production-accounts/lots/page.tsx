@@ -89,14 +89,14 @@ export default async function WagesLotsPage() {
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-            <input name="colour" className={input} placeholder="Colour, e.g. Black" required />
-            <input name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
-            <input name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
+            <input aria-label="Colour, e.g. Black" name="colour" className={input} placeholder="Colour, e.g. Black" required />
+            <input aria-label="Planned total pairs" name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
+            <input aria-label="Sizes: 36:10, 37:15, 38:20" name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
             <NepaliDateFieldUncontrolled name="dueDate" />
             <select aria-label="Priority" name="priority" className={input} defaultValue="Normal">
               <option>Normal</option><option>High</option><option>Urgent</option>
             </select>
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
+            <input aria-label="Work Order remark" name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Creating Work Order…">Create Work Order</FormSubmitButton>
         </form>
@@ -155,14 +155,14 @@ export default async function WagesLotsPage() {
               <option value="">Receiver not selected</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
-            <input name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
-            <input name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
-            <input
+            <input aria-label="Sent pairs" name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
+            <input aria-label="Received pairs" name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
+            <input aria-label="Received sizes: 36:10, 37:15"
               name="receivedSizeBreakdown"
               className={`${input} sm:col-span-2`}
               placeholder="Received sizes: 36:10, 37:15"
             />
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
+            <input aria-label="Difference/reason note" name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving handover…">Save handover</FormSubmitButton>
         </form>
@@ -232,10 +232,10 @@ export default async function WagesLotsPage() {
             ))}
           </select>
           <NepaliDateFieldUncontrolled name="qcDate" defaultValue={date} required />
-          <input name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
-          <input name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
-          <input name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
-          <input name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
+          <input aria-label="Good packed pairs" name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
+          <input aria-label="Optional good sizes: 36:10, 37:15" name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
+          <input aria-label="QC rejected pairs" name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
+          <input aria-label="QC / packing remark" name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
           <FormSubmitButton className={button} pendingLabel="Posting stock…">
             Approve & post stock
           </FormSubmitButton>
@@ -274,8 +274,8 @@ export default async function WagesLotsPage() {
           <h2 className="text-lg font-black text-brand-green-ink">1. Production item</h2>
           <p className="mt-1 text-sm text-brand-muted">Create the factory item once; wages can then vary by stage.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input name="name" className={input} placeholder="Item name, e.g. Ladies Sandal" required />
-            <input name="category" className={input} placeholder="Category, e.g. Sandal" />
+            <input aria-label="Item name, e.g. Ladies Sandal" name="name" className={input} placeholder="Item name, e.g. Ladies Sandal" required />
+            <input aria-label="Category, e.g. Sandal" name="category" className={input} placeholder="Category, e.g. Sandal" />
             <select aria-label="Production type" name="productionType" className={input} defaultValue="Manufactured">
               <option>Manufactured</option><option>Resale</option><option>Mixed</option>
             </select>
@@ -350,9 +350,9 @@ export default async function WagesLotsPage() {
                 </option>
               ))}
             </select>
-            <input name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} placeholder="Quantity per pair" required />
-            <input name="wastagePercent" type="number" min="0" step="0.01" className={input} placeholder="Wastage % (optional)" defaultValue="0" />
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Recipe note" />
+            <input aria-label="Quantity per pair" name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} placeholder="Quantity per pair" required />
+            <input aria-label="Wastage % (optional)" name="wastagePercent" type="number" min="0" step="0.01" className={input} placeholder="Wastage % (optional)" defaultValue="0" />
+            <input aria-label="Recipe note" name="note" className={`${input} sm:col-span-2`} placeholder="Recipe note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving material…">Save material recipe</FormSubmitButton>
         </form>
@@ -370,10 +370,10 @@ export default async function WagesLotsPage() {
               ))}
             </select>
             <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
-            <input name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} placeholder="Other direct cost/pair" defaultValue="0" />
-            <input name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} placeholder="Wholesale profit %" required />
-            <input name="retailExtraAmount" type="number" min="0" step="0.01" className={input} placeholder="Retail extra Rs." required />
-            <input name="note" className={input} placeholder="Approval note" />
+            <input aria-label="Other direct cost/pair" name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} placeholder="Other direct cost/pair" defaultValue="0" />
+            <input aria-label="Wholesale profit %" name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} placeholder="Wholesale profit %" required />
+            <input aria-label="Retail extra Rs." name="retailExtraAmount" type="number" min="0" step="0.01" className={input} placeholder="Retail extra Rs." required />
+            <input aria-label="Approval note" name="note" className={input} placeholder="Approval note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">Calculate & approve cost</FormSubmitButton>
         </form>

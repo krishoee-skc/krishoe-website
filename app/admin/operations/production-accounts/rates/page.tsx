@@ -52,7 +52,7 @@ export default async function WagesRatesPage() {
               {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.sizeGroup}</option>)}
             </select>
             <select aria-label="Production stage" name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
-            <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
+            <input aria-label="Rs. per pair" name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
             <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving rate…">Save wage rate</FormSubmitButton>
@@ -103,9 +103,9 @@ export default async function WagesRatesPage() {
           <select aria-label="Production stage" name="stage" className={input}>
             {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
           </select>
-          <input name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
+          <input aria-label="Special Rs./pair" name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
           <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
-          <input name="note" className={`${input} sm:col-span-2`} placeholder="Reason / agreement note (optional)" />
+          <input aria-label="Reason / agreement note (optional)" name="note" className={`${input} sm:col-span-2`} placeholder="Reason / agreement note (optional)" />
           <FormSubmitButton className={button} pendingLabel="Saving override…">Save special rate</FormSubmitButton>
         </div>
         {data.workerRates.length > 0 ? (

@@ -547,7 +547,7 @@ export default function PosBillForm({
           <option>Khalti</option>
           <option value="Bank">{text("Bank", "बैंक")}</option>
         </select>
-        <input name="cashier"
+        <input aria-label="Cashier / counter" name="cashier"
           ref={(element) => {
             boxes.current.set("cashier", element);
           }}
@@ -555,7 +555,7 @@ export default function PosBillForm({
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-4">
-        <input
+        <input aria-label="Customer name"
           name="customerName"
           ref={(element) => {
             boxes.current.set("customerName", element);
@@ -566,7 +566,7 @@ export default function PosBillForm({
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
         />
-        <input
+        <input aria-label="Phone"
           name="phone"
           ref={(element) => {
             boxes.current.set("phone", element);
@@ -577,7 +577,7 @@ export default function PosBillForm({
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
         />
-        <input
+        <input aria-label="Customer address"
           name="customerAddress"
           ref={(element) => {
             boxes.current.set("customerAddress", element);
@@ -586,7 +586,7 @@ export default function PosBillForm({
           className={inputClass}
           placeholder={text("Customer address", "ग्राहकको ठेगाना")}
         />
-        <input
+        <input aria-label="Customer PAN (wholesale)"
           name="customerPan"
           ref={(element) => {
             boxes.current.set("customerPan", element);
@@ -613,7 +613,7 @@ export default function PosBillForm({
             </option>
           ))}
         </select>
-        <input name="paymentReference"
+        <input aria-label="Cheque/QR/ref no." name="paymentReference"
           ref={(element) => {
             boxes.current.set("paymentReference", element);
           }}
@@ -910,7 +910,7 @@ export default function PosBillForm({
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <input
+        <input aria-label="Bill discount"
           name="invoiceDiscount"
           ref={(element) => {
             boxes.current.set("invoiceDiscount", element);
@@ -923,7 +923,7 @@ export default function PosBillForm({
           value={invoiceDiscount}
           onChange={(event) => setInvoiceDiscount(event.target.value)}
         />
-        <input
+        <input aria-label="Tax / VAT"
           name="tax"
           ref={(element) => {
             boxes.current.set("tax", element);
@@ -937,7 +937,7 @@ export default function PosBillForm({
           onChange={(event) => setTax(event.target.value)}
         />
         <div className="grid gap-1">
-          <input
+          <input aria-label="Paid amount"
             name="paidAmount"
           ref={(element) => {
             boxes.current.set("paidAmount", element);
@@ -960,7 +960,7 @@ export default function PosBillForm({
             </p>
           ) : null}
         </div>
-        <textarea name="note" className={textareaClass} placeholder={text("Delivery, return, QR, or counter note", "डेलिभरी, फिर्ता वा अरू कुनै कुरा")} />
+        <textarea name="note" aria-label="Delivery, return, QR, or counter note" className={textareaClass} placeholder={text("Delivery, return, QR, or counter note", "डेलिभरी, फिर्ता वा अरू कुनै कुरा")} />
       </div>
 
       <div className="mt-4 space-y-3">

@@ -314,7 +314,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
       {/* capture asks the phone for the rear camera; a desktop ignores it and
           opens the file picker, which is the right fallback either way. */}
-      <input
+      <input aria-label="Photo caption"
         ref={cameraRef}
         type="file"
         accept="image/*"
@@ -322,7 +322,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
         hidden
         onChange={(event) => upload(event.target.files, "main")}
       />
-      <input
+      <input aria-label="Photo caption"
         ref={galleryRef}
         type="file"
         accept="image/*"

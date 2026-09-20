@@ -50,7 +50,7 @@ export default function LedgerTransactionFields({
         <option>Return Adjustment</option>
         <option>Manual Adjustment</option>
       </select>
-      <input
+      <input aria-label="Amount"
         name="amount"
         type="number"
         min="1"
@@ -71,7 +71,7 @@ export default function LedgerTransactionFields({
           )}
         </p>
       ) : null}
-      <textarea
+      <textarea aria-label="Bill number, cheque number, return note, or remark"
         name="note"
         className={textareaClass}
         placeholder="Bill number, cheque number, return note, or remark"

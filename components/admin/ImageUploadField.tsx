@@ -133,7 +133,7 @@ export default function ImageUploadField({
     <div className="grid gap-1.5">
       <span className="text-sm font-medium">{label}</span>
 
-      <input
+      <input aria-label="Choose an image"
         name={name}
         value={value}
         onChange={(event) => setValue(event.target.value)}

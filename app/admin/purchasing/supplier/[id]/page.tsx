@@ -196,8 +196,8 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
               <option>Return Adjustment</option>
               <option>Manual Adjustment</option>
             </select>
-            <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
-            <textarea name="note" className={textareaClass} placeholder="Voucher, cheque, bank reference, return note, or remark" />
+            <input aria-label="Amount" name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
+            <textarea aria-label="Voucher, cheque, bank reference, return note, or remark" name="note" className={textareaClass} placeholder="Voucher, cheque, bank reference, return note, or remark" />
           </div>
           <FormSubmitButton className="h-10 w-fit rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
             Record transaction

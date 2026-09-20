@@ -228,7 +228,7 @@ export default async function WorkerProductionLedgerPage({
                         </Link>{" "}
                         and use Correct there.
                       </p>
-                      <input
+                      <input aria-label="Reason for work reversal"
                         name="reason"
                         minLength={5}
                         className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm"
@@ -278,7 +278,7 @@ export default async function WorkerProductionLedgerPage({
                     <p className="text-xs leading-5 text-red-900">
                       This keeps receipt {row.receiptNumber} in history but removes its effect from the worker balance.
                     </p>
-                    <input
+                    <input aria-label="Reason for reversal"
                       name="reason"
                       minLength={5}
                       className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm"

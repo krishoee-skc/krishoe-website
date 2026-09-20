@@ -79,7 +79,7 @@ export default function OperationsQuickEntry({
               ne="— बिग्रेको / हराएको जुत्ता स्टकबाट हटाउने (बिक्री होइन)"
             />
           </p>
-          <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+          <input aria-label="Design name" name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
               <option>Factory</option>
@@ -99,8 +99,8 @@ export default function OperationsQuickEntry({
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <input name="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
-            <input name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
+            <input aria-label="Pairs" name="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
+            <input aria-label="Size (e.g. 36)" name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
           </div>
           <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
             <T
@@ -108,13 +108,13 @@ export default function OperationsQuickEntry({
               ne="Size: एउटै साइज (जस्तै 36) टाइप गर्नुहोस् — जोडी त्यही साइजमा जान्छ। खाली छोडे मिश्रित (Mixed) पिलोमा बस्छ।"
             />
           </p>
-          <textarea name="note" className={textareaClass} placeholder="Bill, vehicle, return, or adjustment note" />
+          <textarea aria-label="Bill, vehicle, return, or adjustment note" name="note" className={textareaClass} placeholder="Bill, vehicle, return, or adjustment note" />
           <SubmitActionButton label="Record movement" />
         </form>
 
         <form action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
           <h3 className="font-black text-brand-green-ink">Finished stock</h3>
-          <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+          <input aria-label="Design name" name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
             <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
               <option>Factory</option>
@@ -122,26 +122,26 @@ export default function OperationsQuickEntry({
               <option>Retail</option>
               <option>Online</option>
             </select>
-            <input name="sizeRun" className={inputClass} placeholder="Size run" />
+            <input aria-label="Size run" name="sizeRun" className={inputClass} placeholder="Size run" />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <input name="stockPairs" type="number" min="0" className={inputClass} placeholder="Stock" />
-            <input name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
-            <input name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
+            <input aria-label="Stock" name="stockPairs" type="number" min="0" className={inputClass} placeholder="Stock" />
+            <input aria-label="Sold" name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
+            <input aria-label="Return" name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
           </div>
           <SubmitActionButton label="Add stock" />
         </form>
 
         <form action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
           <h3 className="font-black text-brand-green-ink">Production batch</h3>
-          <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+          <input aria-label="Design name" name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
           <div className="grid grid-cols-2 gap-2">
-            <input name="plannedPairs" type="number" min="0" className={inputClass} placeholder="Planned" />
-            <input name="finishedPairs" type="number" min="0" className={inputClass} placeholder="Finished" />
-            <input name="inProgressPairs" type="number" min="0" className={inputClass} placeholder="WIP" />
-            <input name="rejectedPairs" type="number" min="0" className={inputClass} placeholder="Reject" />
+            <input aria-label="Planned" name="plannedPairs" type="number" min="0" className={inputClass} placeholder="Planned" />
+            <input aria-label="Finished" name="finishedPairs" type="number" min="0" className={inputClass} placeholder="Finished" />
+            <input aria-label="WIP" name="inProgressPairs" type="number" min="0" className={inputClass} placeholder="WIP" />
+            <input aria-label="Reject" name="rejectedPairs" type="number" min="0" className={inputClass} placeholder="Reject" />
           </div>
-          <textarea name="rawMaterialUsed" className={textareaClass} placeholder="Raw materials, comma-separated" />
+          <textarea aria-label="Raw materials, comma-separated" name="rawMaterialUsed" className={textareaClass} placeholder="Raw materials, comma-separated" />
           <select aria-label="Status" name="status" className={inputClass} defaultValue="Planning">
             <option>Planning</option>
             <option>Cutting</option>
@@ -172,7 +172,7 @@ export default function OperationsQuickEntry({
         <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <form action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Raw material</h3>
-            <input name="name" required className={inputClass} placeholder="Material name" />
+            <input aria-label="Material name" name="name" required className={inputClass} placeholder="Material name" />
             <select aria-label="Unit" name="unit" className={inputClass} defaultValue="kg">
               <option value="kg">kg</option>
               <option value="meter">meter</option>
@@ -180,9 +180,9 @@ export default function OperationsQuickEntry({
               <option value="piece">piece</option>
               <option value="liter">liter</option>
             </select>
-            <input name="openingStock" type="number" min="0" className={inputClass} placeholder="Opening stock" />
-            <input name="received" type="number" min="0" className={inputClass} placeholder="Received" />
-            <input name="reorderLevel" type="number" min="0" className={inputClass} placeholder="Reorder level" />
+            <input aria-label="Opening stock" name="openingStock" type="number" min="0" className={inputClass} placeholder="Opening stock" />
+            <input aria-label="Received" name="received" type="number" min="0" className={inputClass} placeholder="Received" />
+            <input aria-label="Reorder level" name="reorderLevel" type="number" min="0" className={inputClass} placeholder="Reorder level" />
             <SubmitActionButton label="Add material" />
           </form>
 
@@ -210,10 +210,10 @@ export default function OperationsQuickEntry({
               ))}
             </select>
             <div className="grid grid-cols-2 gap-2">
-              <input name="quantity" type="number" min="0" className={inputClass} placeholder="Used" />
-              <input name="wastage" type="number" min="0" className={inputClass} placeholder="Wastage" />
+              <input aria-label="Used" name="quantity" type="number" min="0" className={inputClass} placeholder="Used" />
+              <input aria-label="Wastage" name="wastage" type="number" min="0" className={inputClass} placeholder="Wastage" />
             </div>
-            <textarea name="note" className={textareaClass} placeholder="Cutting, sole press, QC remark, or batch note" />
+            <textarea aria-label="Cutting, sole press, QC remark, or batch note" name="note" className={textareaClass} placeholder="Cutting, sole press, QC remark, or batch note" />
             <SubmitActionButton label="Record usage" />
           </form>
 
@@ -221,7 +221,7 @@ export default function OperationsQuickEntry({
             <h3 className="font-black text-brand-green-ink">Worker task</h3>
             {/* Pick a registered worker from the list, or type one — the same
                 ease the counter has when choosing a design. */}
-            <input
+            <input aria-label="Worker name — type or pick"
               name="workerName"
               required
               list="worker-name-options"
@@ -241,7 +241,7 @@ export default function OperationsQuickEntry({
                 </option>
               ))}
             </select>
-            <input
+            <input aria-label="Design if no batch — type or pick"
               name="design"
               list="worker-design-options"
               className={inputClass}
@@ -263,25 +263,25 @@ export default function OperationsQuickEntry({
                   <option key={option}>{option}</option>
                 ))}
               </select>
-              <input name="targetPairs" type="number" min="0" className={inputClass} placeholder="Target" />
-              <input name="completedPairs" type="number" min="0" className={inputClass} placeholder="Completed" />
+              <input aria-label="Target" name="targetPairs" type="number" min="0" className={inputClass} placeholder="Target" />
+              <input aria-label="Completed" name="completedPairs" type="number" min="0" className={inputClass} placeholder="Completed" />
             </div>
-            <input name="cameraZone" className={inputClass} placeholder="Camera zone" />
+            <input aria-label="Camera zone" name="cameraZone" className={inputClass} placeholder="Camera zone" />
             <SubmitActionButton label="Add worker task" />
           </form>
 
           <form action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Vehicle dispatch</h3>
-            <input name="vehicleNumber" required className={inputClass} placeholder="Vehicle number" />
-            <input name="driverName" required className={inputClass} placeholder="Driver name" />
-            <input name="marketRoute" className={inputClass} placeholder="Market route" />
+            <input aria-label="Vehicle number" name="vehicleNumber" required className={inputClass} placeholder="Vehicle number" />
+            <input aria-label="Driver name" name="driverName" required className={inputClass} placeholder="Driver name" />
+            <input aria-label="Market route" name="marketRoute" className={inputClass} placeholder="Market route" />
             <div className="grid grid-cols-2 gap-2">
-              <input name="loadedPairs" type="number" min="0" className={inputClass} placeholder="Loaded" />
-              <input name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
-              <input name="cashCollected" type="number" min="0" className={inputClass} placeholder="Cash" />
-              <input name="creditAmount" type="number" min="0" className={inputClass} placeholder="Credit" />
+              <input aria-label="Loaded" name="loadedPairs" type="number" min="0" className={inputClass} placeholder="Loaded" />
+              <input aria-label="Return" name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
+              <input aria-label="Cash" name="cashCollected" type="number" min="0" className={inputClass} placeholder="Cash" />
+              <input aria-label="Credit" name="creditAmount" type="number" min="0" className={inputClass} placeholder="Credit" />
             </div>
-            <input name="chequeCollected" type="number" min="0" className={inputClass} placeholder="Cheque" />
+            <input aria-label="Cheque" name="chequeCollected" type="number" min="0" className={inputClass} placeholder="Cheque" />
             <select aria-label="Status" name="status" className={inputClass} defaultValue="Loading">
               <option>Loading</option>
               <option>In Market</option>
@@ -303,44 +303,44 @@ export default function OperationsQuickEntry({
                 </option>
               ))}
             </select>
-            <input name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+            <input aria-label="Design name" name="design" required list="stock-design-options" className={inputClass} placeholder="Design name" />
             <div className="grid grid-cols-2 gap-2">
               <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Wholesale">
                 <option>Wholesale</option>
                 <option>Retail</option>
                 <option>Online</option>
               </select>
-              <input name="sizeRun" className={inputClass} placeholder="Size run" />
+              <input aria-label="Size run" name="sizeRun" className={inputClass} placeholder="Size run" />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <input name="loadedPairs" type="number" min="0" className={inputClass} placeholder="Loaded" />
-              <input name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
-              <input name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
+              <input aria-label="Loaded" name="loadedPairs" type="number" min="0" className={inputClass} placeholder="Loaded" />
+              <input aria-label="Sold" name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
+              <input aria-label="Return" name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <input name="cashCollected" type="number" min="0" className={inputClass} placeholder="Cash" />
-              <input name="chequeCollected" type="number" min="0" className={inputClass} placeholder="Cheque" />
-              <input name="creditAmount" type="number" min="0" className={inputClass} placeholder="Credit" />
+              <input aria-label="Cash" name="cashCollected" type="number" min="0" className={inputClass} placeholder="Cash" />
+              <input aria-label="Cheque" name="chequeCollected" type="number" min="0" className={inputClass} placeholder="Cheque" />
+              <input aria-label="Credit" name="creditAmount" type="number" min="0" className={inputClass} placeholder="Credit" />
             </div>
-            <textarea name="note" className={textareaClass} placeholder="Bill number, shop, return, or collection note" />
+            <textarea aria-label="Bill number, shop, return, or collection note" name="note" className={textareaClass} placeholder="Bill number, shop, return, or collection note" />
             <SubmitActionButton label="Add dispatch item" />
           </form>
 
           <form action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">Customer ledger</h3>
-            <input name="customerName" required className={inputClass} placeholder="Customer/shop name" />
-            <input name="phone" className={inputClass} placeholder="Phone" />
+            <input aria-label="Customer/shop name" name="customerName" required className={inputClass} placeholder="Customer/shop name" />
+            <input aria-label="Phone" name="phone" className={inputClass} placeholder="Phone" />
             <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Wholesale">
               <option>Wholesale</option>
               <option>Retail</option>
               <option>Online</option>
             </select>
             <div className="grid grid-cols-2 gap-2">
-              <input name="cashPaid" type="number" min="0" className={inputClass} placeholder="Cash" />
-              <input name="chequePaid" type="number" min="0" className={inputClass} placeholder="Cheque" />
-              <input name="creditGiven" type="number" min="0" className={inputClass} placeholder="Credit" />
-              <input name="balanceDue" type="number" min="0" className={inputClass} placeholder="Due" />
-              <input name="creditLimit" type="number" min="0" className={inputClass} placeholder="Credit limit (0=none)" />
+              <input aria-label="Cash" name="cashPaid" type="number" min="0" className={inputClass} placeholder="Cash" />
+              <input aria-label="Cheque" name="chequePaid" type="number" min="0" className={inputClass} placeholder="Cheque" />
+              <input aria-label="Credit" name="creditGiven" type="number" min="0" className={inputClass} placeholder="Credit" />
+              <input aria-label="Due" name="balanceDue" type="number" min="0" className={inputClass} placeholder="Due" />
+              <input aria-label="Credit limit (0=none)" name="creditLimit" type="number" min="0" className={inputClass} placeholder="Credit limit (0=none)" />
             </div>
             <SubmitActionButton label="Add ledger" />
           </form>
@@ -364,8 +364,8 @@ export default function OperationsQuickEntry({
               <option>Return Adjustment</option>
               <option>Manual Adjustment</option>
             </select>
-            <input name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
-            <textarea name="note" className={textareaClass} placeholder="Bill number, cheque number, or remark" />
+            <input aria-label="Amount" name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
+            <textarea aria-label="Bill number, cheque number, or remark" name="note" className={textareaClass} placeholder="Bill number, cheque number, or remark" />
             <SubmitActionButton label="Record transaction" />
           </form>
         </div>

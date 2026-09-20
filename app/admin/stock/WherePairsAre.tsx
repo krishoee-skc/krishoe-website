@@ -461,12 +461,12 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <input
+            <input aria-label="Who is carrying it (optional)"
               name="carriedBy"
               className={box}
               placeholder={text("Who is carrying it (optional)", "कसले लग्यो (चाहिए)")}
             />
-            <input
+            <input aria-label="Vehicle, gate pass, note"
               name="note"
               className={box}
               placeholder={text("Vehicle, gate pass, note", "गाडी, गेट पास, टिपोट")}

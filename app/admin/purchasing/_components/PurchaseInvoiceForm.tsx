@@ -534,7 +534,7 @@ export default function PurchaseInvoiceForm({
                   </option>
                 ))}
               </select>
-              <input
+              <input aria-label="New supplier name"
                 name="supplierName"
                 ref={(element) => {
                   boxes.current.set("supplierName", element);
@@ -544,7 +544,7 @@ export default function PurchaseInvoiceForm({
                 placeholder={text("New supplier name", "नयाँ साहुको नाम")}
                 onChange={() => setSupplierError(false)}
               />
-              <input
+              <input aria-label="Supplier phone"
                 name="phone"
                 ref={(element) => {
                   boxes.current.set("phone", element);

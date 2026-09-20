@@ -55,7 +55,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
           <option>Return Adjustment</option>
           <option>Manual Adjustment</option>
         </select>
-        <input
+        <input aria-label="Amount"
           name="amount"
           type="number"
           min="1"
@@ -71,7 +71,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
         {supplierId && !amountTouched && amount ? (
           <p className="-mt-1 text-xs text-brand-muted">Full due filled — edit for a part payment.</p>
         ) : null}
-        <textarea name="note" className={textareaClass} placeholder="Payment note or adjustment reason" />
+        <textarea aria-label="Payment note or adjustment reason" name="note" className={textareaClass} placeholder="Payment note or adjustment reason" />
         <FormSubmitButton
           className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white"
           pendingLabel="Recording…"

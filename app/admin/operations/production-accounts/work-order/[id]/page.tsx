@@ -110,7 +110,7 @@ export default async function WorkOrderDetailPage({
               <summary className="cursor-pointer text-xs font-black text-red-800">Open cancellation control</summary>
               <form action={cancelWorkOrderAction} className="mt-3 space-y-3">
                 <input type="hidden" name="workOrderId" value={order.id} />
-                <input name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for cancellation" required />
+                <input aria-label="Reason for cancellation" name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for cancellation" required />
                 <label className="flex items-center gap-2 text-xs font-bold text-red-900">
                   <input name="cancelConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
                   I confirm production on this lot must stop.
@@ -169,8 +169,8 @@ export default async function WorkOrderDetailPage({
               <option key={stage}>{stage}</option>
             ))}
           </select>
-          <input name="cameraZone" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Camera zone, e.g. Fiber Silai table" required />
-          <input name="cctvReference" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Camera/DVR reference (optional)" />
+          <input aria-label="Camera zone, e.g. Fiber Silai table" name="cameraZone" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Camera zone, e.g. Fiber Silai table" required />
+          <input aria-label="Camera/DVR reference (optional)" name="cctvReference" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Camera/DVR reference (optional)" />
           <label className="text-xs font-bold text-brand-green-ink">
             Start time
             <input name="windowStart" type="datetime-local" defaultValue={nepalDateTime()} className="mt-1 min-h-11 w-full rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" required />
@@ -179,8 +179,8 @@ export default async function WorkOrderDetailPage({
             End time
             <input name="windowEnd" type="datetime-local" defaultValue={nepalDateTime()} className="mt-1 min-h-11 w-full rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" required />
           </label>
-          <input name="evidenceReference" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Evidence link/photo reference (optional)" />
-          <input name="note" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm sm:col-span-2" placeholder="Incident / verification note" />
+          <input aria-label="Evidence link/photo reference (optional)" name="evidenceReference" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm" placeholder="Evidence link/photo reference (optional)" />
+          <input aria-label="Incident / verification note" name="note" className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm sm:col-span-2" placeholder="Incident / verification note" />
           <FormSubmitButton className="min-h-11 rounded-xl bg-sky-800 px-4 text-xs font-black text-white" pendingLabel="Saving CCTV reference…">
             Save camera reference
           </FormSubmitButton>
@@ -279,7 +279,7 @@ export default async function WorkOrderDetailPage({
                     <input name="wastage" type="number" min="0" step="0.001" defaultValue="0" className="mt-1 min-h-11 w-full rounded-xl border border-emerald-200 bg-brand-paper px-3" />
                   </label>
                   <NepaliDateFieldUncontrolled name="consumptionDate" defaultValue={nepalToday()} required />
-                  <input name="note" className="min-h-11 rounded-xl border border-emerald-200 bg-brand-paper px-3 text-sm" placeholder="Issue/usage note" />
+                  <input aria-label="Issue/usage note" name="note" className="min-h-11 rounded-xl border border-emerald-200 bg-brand-paper px-3 text-sm" placeholder="Issue/usage note" />
                   <FormSubmitButton className="min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white sm:col-span-2" pendingLabel="Recording material…">
                     Owner approve consumption
                   </FormSubmitButton>
@@ -315,7 +315,7 @@ export default async function WorkOrderDetailPage({
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">Reverse this material entry</summary>
                   <form action={reverseMaterialConsumptionAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="consumptionId" value={row.id} />
-                    <input name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for reversal" required />
+                    <input aria-label="Reason for reversal" name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for reversal" required />
                     <label className="flex items-center gap-2 text-xs font-bold text-red-900">
                       <input name="reverseConfirmed" type="checkbox" value="yes" required className="size-4 accent-red-700" />
                       I confirm this material usage entry is incorrect.
@@ -400,7 +400,7 @@ export default async function WorkOrderDetailPage({
                     <p className="text-xs leading-5 text-red-900">
                       The record stays in audit history but is removed from active quantity and size calculations.
                     </p>
-                    <input
+                    <input aria-label="Reason for handover reversal"
                       name="reason"
                       minLength={5}
                       className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm"
@@ -443,7 +443,7 @@ export default async function WorkOrderDetailPage({
                     This removes {row.totalPairs} pairs from finished stock and returns the Work Order to Ready for QC.
                     It is blocked if those pairs have already left available stock.
                   </p>
-                  <input
+                  <input aria-label="Reason for QC/stock reversal"
                     name="reason"
                     minLength={5}
                     className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm"

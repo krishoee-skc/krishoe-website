@@ -215,7 +215,7 @@ export default function StaffAccessManager({
                   {member.email ? null : (
                     <form action={setStaffTemporaryPasswordAction} className="flex gap-2 sm:col-span-2">
                       <input type="hidden" name="id" value={member.id} />
-                      <input
+                      <input aria-label="New temporary password (8+)"
                         name="temporaryPassword"
                         type="text"
                         minLength={8}

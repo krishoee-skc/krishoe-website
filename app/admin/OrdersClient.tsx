@@ -167,7 +167,7 @@ function OrderPaymentForm({
               </option>
             ))}
           </select>
-          <input
+          <input aria-label="Amount"
             name="paymentAmount"
             type="number"
             min="0"
@@ -191,21 +191,21 @@ function OrderPaymentForm({
               </option>
             ))}
           </select>
-          <input
+          <input aria-label="Reference"
             name="paymentReference"
             defaultValue={order.paymentReference ?? ""}
             placeholder="Reference"
             disabled={isPending}
             className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
-          <input
+          <input aria-label="Transaction ID"
             name="paymentTransactionId"
             defaultValue={order.paymentTransactionId ?? ""}
             placeholder="Transaction ID"
             disabled={isPending}
             className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
-          <input
+          <input aria-label="Callback ID"
             name="paymentCallbackId"
             defaultValue={order.paymentCallbackId ?? ""}
             placeholder="Callback ID"
@@ -213,7 +213,7 @@ function OrderPaymentForm({
             className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
-        <input
+        <input aria-label="Payment note"
           name="paymentNote"
           defaultValue=""
           placeholder="Payment note"
@@ -343,7 +343,7 @@ function OrderToPosForm({
             </option>
           ))}
         </select>
-        <input
+        <input aria-label="Paid"
           name="paidAmount"
           type="number"
           min="0"
@@ -352,7 +352,7 @@ function OrderToPosForm({
           placeholder="Paid"
           className="min-w-0 rounded-md border-brand-green-line text-xs shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
-        <input
+        <input aria-label="Cashier"
           name="cashier"
           defaultValue="Online"
           disabled={isPending}
@@ -374,7 +374,7 @@ function OrderToPosForm({
             </option>
           ))}
         </select>
-        <input
+        <input aria-label="Payment ref"
           name="paymentReference"
           defaultValue={order.paymentReference ?? ""}
           disabled={isPending}

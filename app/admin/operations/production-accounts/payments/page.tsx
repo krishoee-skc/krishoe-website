@@ -213,9 +213,9 @@ export default async function WagesPaymentsPage({
             <select aria-label="Payment type" name="paymentType" className={input} defaultValue="Saturday Kharcha">
               {workerPaymentTypes.filter((type) => type !== "Correction").map((type) => <option key={type}>{type}</option>)}
             </select>
-            <input name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required />
+            <input aria-label="Cash amount" name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required />
             <NepaliDateFieldUncontrolled name="paymentDate" defaultValue={date} required />
-            <input name="note" className={`${input} sm:col-span-2`} placeholder="Reason / note" />
+            <input aria-label="Reason / note" name="note" className={`${input} sm:col-span-2`} placeholder="Reason / note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Approving cash…">Owner approve cash</FormSubmitButton>
         </form>

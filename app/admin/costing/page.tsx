@@ -496,7 +496,7 @@ export default async function AdminCostingPage() {
                 />
               </label>
             </div>
-            <textarea
+            <textarea aria-label="Pairs to cost"
               name="note"
               className={`${textareaClass} mt-3 w-full`}
               defaultValue={costing.settings.note}

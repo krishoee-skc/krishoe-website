@@ -86,7 +86,7 @@ export default function WhatsAppSettingsPage() {
             <label className="block text-sm font-medium text-brand-muted-deep mb-2">
               Admin WhatsApp Number
             </label>
-            <input
+            <input aria-label="Admin WhatsApp number"
               type="tel"
               placeholder="+977XXXXXXXXXX"
               value={adminNumber}
@@ -103,7 +103,7 @@ export default function WhatsAppSettingsPage() {
             <label className="block text-sm font-medium text-brand-muted-deep mb-2">
               Test Message
             </label>
-            <textarea
+            <textarea aria-label="Enter a test message or leave empty for default test message"
               placeholder="Enter a test message or leave empty for default test message"
               value={testMessage}
               onChange={(e) => setTestMessage(e.target.value)}

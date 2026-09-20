@@ -151,7 +151,7 @@ export default function AppReviewCard({
 
       {rating > 0 ? (
         <>
-          <textarea
+          <textarea aria-label="Your review"
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             rows={2}

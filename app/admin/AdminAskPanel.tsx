@@ -412,7 +412,7 @@ export default function AdminAskPanel() {
         }}
         className="mt-3 flex items-end gap-2"
       >
-        <textarea
+        <textarea aria-label="Your question"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {

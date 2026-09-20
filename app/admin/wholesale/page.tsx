@@ -141,7 +141,7 @@ export default async function WholesaleEnquiriesPage({
                   <option value="Customer">Became customer</option>
                   <option value="Closed">Closed</option>
                 </select>
-                <input
+                <input aria-label="What was discussed"
                   name="note"
                   defaultValue={enquiry.note}
                   maxLength={500}
