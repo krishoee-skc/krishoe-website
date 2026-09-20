@@ -11,8 +11,10 @@ import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
+import type { AttentionLevel } from "@/app/admin/nav-attention";
 
 export default function AdminNav({
+  attention,
   adminRole,
   adminName,
   adminEmail,
@@ -23,6 +25,8 @@ export default function AdminNav({
   branchCount,
   branchSwitch,
 }: {
+  /** Which links the shop's own checks say want looking at. */
+  attention?: Map<string, AttentionLevel>;
   adminRole: AdminRole;
   adminName?: string;
   adminEmail?: string;
@@ -113,6 +117,7 @@ export default function AdminNav({
                 )}
                 {group.links.map(({ href, label, nepali, icon: Icon }) => {
                   const isActive = pathname === href;
+                  const needs = attention?.get(href);
                   return (
                     <Link
                       key={`${group.id}-${href}`}
@@ -124,7 +129,24 @@ export default function AdminNav({
                           : "text-brand-muted hover:text-brand-green-ink hover:bg-admin-hover dark:text-white/60 dark:hover:text-white dark:hover:bg-admin-hover-dark"
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
-                      <Icon className="h-5 w-5 shrink-0" />
+                      {/* The icon carries the dot when this screen wants
+                          looking at, so the mark survives the collapsed menu
+                          where the label is gone. */}
+                      <span className="relative shrink-0">
+                        <Icon className="h-5 w-5" />
+                        {needs ? (
+                          <span
+                            aria-hidden="true"
+                            className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-admin-sidebar dark:ring-admin-sidebar-dark ${
+                              needs === "critical"
+                                ? "bg-brand-clay"
+                                : needs === "warning"
+                                  ? "bg-brand-gold-deep"
+                                  : "bg-brand-green"
+                            }`}
+                          />
+                        ) : null}
+                      </span>
                       {/* On the Nepali side the Nepali name leads and the
                           English stays small underneath — the owner has learned
                           to look for "Factory Entry" and losing it would be a
@@ -140,6 +162,14 @@ export default function AdminNav({
                           ) : null}
                         </span>
                       )}
+                      {/* The dot is colour only. Said in words too, or the
+                          app's one prompt to act is invisible to anyone not
+                          reading colour. */}
+                      {needs ? (
+                        <span className="sr-only">
+                          {text("Needs attention", "ध्यान दिनुपर्ने")}
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}

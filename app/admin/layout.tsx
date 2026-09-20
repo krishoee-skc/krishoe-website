@@ -3,6 +3,8 @@ import AdminCommandBar from "./AdminCommandBar";
 import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
 import AdminTrail from "./AdminTrail";
+import { attentionByHref } from "./nav-attention";
+import { runShopSelfCheck } from "@/lib/shop-self-check";
 import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
 import { ToastProvider } from "@/components/admin/ToastProvider";
@@ -48,10 +50,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     (row) => row.id === (viewingBranchId || session.branchId),
   );
 
+  // What the shop already knows needs doing, shown on the menu rather than
+  // only on /admin/alerts — a screen you have to think to visit. The same
+  // eight checks, no extra question asked of the database.
+  //
+  // Never fatal: the menu is how every screen is reached, and a failing
+  // check must not take the whole admin down with it.
+  const attention = attentionByHref(await runShopSelfCheck().catch(() => []));
+
   return (
     <ToastProvider>
     <SidebarProvider>
       <AdminNav
+        attention={attention}
         adminRole={adminRole}
         adminName={session?.name}
         adminEmail={session?.email}
