@@ -130,7 +130,7 @@ export default function AiAssistant() {
 
           <div className="border-t border-black/10 bg-brand-mist p-3">
             <div className="flex items-end gap-2">
-              <textarea aria-label="Type your question…"
+              <textarea aria-label="Your question"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => {

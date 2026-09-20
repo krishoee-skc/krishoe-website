@@ -233,7 +233,7 @@ export default async function WagesLotsPage() {
           </select>
           <NepaliDateFieldUncontrolled name="qcDate" defaultValue={date} required />
           <input aria-label="Good packed pairs" name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
-          <input aria-label="Optional good sizes: 36:10, 37:15" name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
+          <input aria-label="Good sizes" name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
           <input aria-label="QC rejected pairs" name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
           <input aria-label="QC / packing remark" name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
           <FormSubmitButton className={button} pendingLabel="Posting stock…">

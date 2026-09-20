@@ -124,7 +124,7 @@ export default function CommandSearch() {
           <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,560px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper shadow-2xl sm:top-24 sm:max-h-[80vh]">
             <form onSubmit={submitSearch} className="flex items-center gap-3 border-b border-black/10 px-4">
               <SearchIcon className="h-5 w-5 shrink-0 text-brand-muted-deep" />
-              <input aria-label="Search premium styles..."
+              <input aria-label="Search shoes"
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

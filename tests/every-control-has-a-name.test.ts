@@ -147,6 +147,47 @@ describe("form controls", () => {
     ).toBe(0);
   });
 
+  it("is never a neighbouring button's name", () => {
+    // A name read from the wrong element is worse than none: the pair-count
+    // box was briefly announced as "Twelve fewer pairs" — the minus button
+    // beside it — so a person was told they were in a control they were not.
+    // Found by reading the diff after the fact; held here so it cannot return.
+    const stolen: string[] = [];
+
+    function walk(dir: string) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(path);
+          continue;
+        }
+        if (!entry.name.endsWith(".tsx")) continue;
+
+        const source = readFileSync(path, "utf8");
+
+        const buttonNames = new Set<string>();
+        for (const m of source.matchAll(
+          /<button[\s\S]{0,400}?aria-label=\{?\s*(?:text\(\s*)?["']([^"']+)["']/g,
+        )) {
+          buttonNames.add(m[1]);
+        }
+
+        for (const m of source.matchAll(/<(input|select|textarea)\s+aria-label="([^"]+)"/g)) {
+          if (buttonNames.has(m[2])) {
+            const line = source.slice(0, m.index).split(/\r?\n/).length;
+            stolen.push(`${path.split("\\").join("/")}:${line} — "${m[2]}"`);
+          }
+        }
+      }
+    }
+    for (const root of ROOTS) walk(root);
+
+    expect(
+      stolen,
+      `these controls wear a button's name:\n  ${stolen.join("\n  ")}`,
+    ).toEqual([]);
+  });
+
   it("finds controls at all, so the check cannot pass by reading nothing", () => {
     // The guard on the guard. If the walk broke, every control would be
     // "named" and this suite would go quietly green on a real regression.

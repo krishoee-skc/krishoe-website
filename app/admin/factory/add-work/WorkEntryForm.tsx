@@ -1021,7 +1021,7 @@ export default function WorkEntryForm({
             >
               −
             </button>
-            <input aria-label="Twelve fewer pairs"
+            <input aria-label={text("Number of pairs", "कति जोडी")}
               ref={(element) => {
                 boxes.current.set("pairs", element);
               }}
@@ -1173,7 +1173,7 @@ export default function WorkEntryForm({
               })}
             </div>
           ) : null}
-          <input aria-label="or type a colour"
+          <input aria-label={text("Colour", "रङ")}
             ref={(element) => {
               boxes.current.set("colour", element);
             }}
@@ -1255,7 +1255,7 @@ export default function WorkEntryForm({
                   ))}
                 </div>
               )}
-              <input aria-label="or type sizes"
+              <input aria-label={text("Size", "साइज")}
                 ref={(element) => {
                   boxes.current.set("size", element);
                 }}
