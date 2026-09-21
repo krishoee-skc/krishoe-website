@@ -46,7 +46,7 @@ export default async function ReviewPage() {
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-16">
+      <section className="mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-16">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Your voice" ne="तपाईंको राय" />

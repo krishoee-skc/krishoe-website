@@ -41,7 +41,7 @@ export default function ShopCatalog({ products, activeCategory }: ShopCatalogPro
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
+      <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             KRISHOE shop

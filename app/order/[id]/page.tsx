@@ -112,7 +112,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
   return (
     <main className="bg-brand-mist">
       <Navbar isLoggedIn={Boolean(user)} />
-      <section className="mx-auto max-w-4xl px-5 py-16 md:px-8">
+      <section className="mx-auto max-w-4xl px-5 py-8 md:py-16 md:px-8">
         <div className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)] md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Order request" ne="अर्डर" />

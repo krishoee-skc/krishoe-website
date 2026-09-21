@@ -39,10 +39,14 @@ describe("which reviews reach the storefront", () => {
 
   it("asks for the first review rather than showing an empty row of quotes", async () => {
     const source = await readFile("components/Testimonials.tsx", "utf8");
-    const empty = source.slice(
-      source.indexOf("if (reviews.length === 0)"),
-      source.indexOf("return (\n    <section className=\"bg-brand-paper py-14 md:py-20\">\n      <div className=\"mx-auto max-w-7xl"),
-    );
+    // Bounded by the branch itself rather than by the markup that follows it.
+    // The end used to be pinned to one exact className, so changing the
+    // section's padding — anywhere, for any reason — made this test fail on
+    // code that was perfectly correct.
+    const start = source.indexOf("if (reviews.length === 0)");
+    const rest = source.slice(start);
+    const close = rest.indexOf("\n  }");
+    const empty = close > 0 ? rest.slice(0, close) : rest;
 
     expect(empty.length, "the empty-state branch is missing").toBeGreaterThan(0);
 

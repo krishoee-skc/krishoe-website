@@ -29,7 +29,7 @@ export default function RecentlyViewed({ excludeId }: { excludeId?: string }) {
   if (shown.length < 2) return null;
 
   return (
-    <section className="bg-brand-paper py-14 md:py-20">
+    <section className="bg-brand-paper py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <h2 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
           {text("Recently viewed", "भर्खर हेरेका")}

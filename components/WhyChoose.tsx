@@ -41,7 +41,7 @@ export default function WhyChoose() {
   ];
 
   return (
-    <section className="bg-brand-mist py-14 md:py-20">
+    <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl text-brand-green">
           <T en="Why Choose KRISHOE?" ne="किन KRISHOE?" />
@@ -54,20 +54,20 @@ export default function WhyChoose() {
           />
         </p>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           {features.map((item) => (
             <div
               key={item.en}
-              className="rounded-lg bg-brand-paper p-8 text-center shadow-lg duration-300 hover:shadow-2xl"
+              className="rounded-lg bg-brand-paper p-4 text-center shadow-lg duration-300 hover:shadow-2xl sm:p-6 md:p-8"
             >
-              <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-brand-green-mist text-brand-green">
+              <div className="mx-auto mb-3 grid h-10 w-10 md:mb-5 md:h-12 md:w-12 place-items-center rounded-full bg-brand-green-mist text-brand-green">
                 <CheckIcon className="h-6 w-6" />
               </div>
 
-              <h3 className="text-2xl font-bold text-brand-green">
+              <h3 className="text-base font-bold text-brand-green sm:text-xl md:text-2xl">
                 <T en={item.en} ne={item.ne} />
               </h3>
-              <p className="mt-4 text-gray-600">
+              <p className="mt-2 text-sm text-gray-600 md:mt-4 md:text-base">
                 <T en={item.descEn} ne={item.descNe} />
               </p>
             </div>

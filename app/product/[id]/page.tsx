@@ -137,7 +137,7 @@ export default async function ProductPage({ params }: Props) {
           so nothing at the end of the page hides behind them. */}
       <div className="pb-32 md:pb-0">
       <main className="bg-brand-paper">
-        <section className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-16">
+        <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <ProductGallery name={product.name} image={product.image} gallery={product.gallery} />
 
@@ -264,7 +264,7 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="bg-brand-mist py-14 md:py-16">
+        <section className="bg-brand-mist py-8 md:py-16">
             <div className="mx-auto grid max-w-6xl gap-8 px-5 md:px-8 lg:grid-cols-[1fr_0.8fr]">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
@@ -307,7 +307,7 @@ export default async function ProductPage({ params }: Props) {
         </section>
 
         {relatedProducts.length > 0 && (
-          <section className="bg-brand-paper py-14 md:py-20">
+          <section className="bg-brand-paper py-8 md:py-20">
             <div className="mx-auto max-w-7xl px-5 md:px-8">
               <h2 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
                 <T en="You might also like" ne="यी पनि मन पर्न सक्छ" />

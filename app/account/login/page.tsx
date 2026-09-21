@@ -34,7 +34,7 @@ export default async function AccountLoginPage({ searchParams }: AccountLoginPag
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 md:px-8 lg:grid-cols-[minmax(0,520px)_1fr]">
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:py-16 md:px-8 lg:grid-cols-[minmax(0,520px)_1fr]">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="KRISHOE account" ne="KRISHOE खाता" />

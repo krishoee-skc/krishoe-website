@@ -174,7 +174,7 @@ export default async function Home() {
 
       {/* Contact — phone, WhatsApp and where the shop is, on the front page
           itself like the mockup, drawn from the one place these facts live. */}
-      <section className="bg-brand-mist px-4 py-12 md:px-8">
+      <section className="bg-brand-mist px-4 py-8 md:py-12 md:px-8">
         <div className="mx-auto max-w-4xl">
           <p className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Reach us" ne="सम्पर्क" />

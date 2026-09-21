@@ -24,7 +24,7 @@ export default function GuidesPage() {
     <main className="bg-brand-paper">
       <Navbar />
 
-      <section className="bg-brand-green-ink py-16 text-white">
+      <section className="bg-brand-green-ink py-8 md:py-16 text-white">
         <div className="mx-auto max-w-5xl px-5 md:px-8">
           <p className="text-sm font-bold uppercase tracking-[0.28em] text-brand-gold-bright">
             <T en="KRISHOE Guides" ne="KRISHOE Guides" />
@@ -44,7 +44,7 @@ export default function GuidesPage() {
         </div>
       </section>
 
-      <section className="py-14">
+      <section className="py-8 md:py-14">
         <div className="mx-auto grid max-w-5xl gap-6 px-5 md:grid-cols-2 md:px-8">
           {guides.map((guide) => (
             <Link

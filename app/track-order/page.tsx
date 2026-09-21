@@ -25,7 +25,7 @@ export default function TrackOrderPage() {
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-7xl px-5 py-12 md:px-8 md:py-16">
+      <section className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-16">
         <div className="mb-8 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             KRISHOE

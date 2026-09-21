@@ -42,7 +42,7 @@ const categories = [
 
 export default function Categories() {
   return (
-    <section className="bg-brand-mist py-14 md:py-20">
+    <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
           <T en="Shop by Collection" ne="किसिम अनुसार" />

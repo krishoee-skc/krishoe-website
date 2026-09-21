@@ -14,7 +14,7 @@ export default function ContactPage() {
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-[0.9fr_1.1fr] md:px-8">
+      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-8 md:py-16 md:grid-cols-[0.9fr_1.1fr] md:px-8">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Contact" ne="सम्पर्क" />

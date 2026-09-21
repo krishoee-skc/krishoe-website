@@ -24,7 +24,7 @@ const promises = [
 
 export default function About() {
   return (
-    <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#F8F5EC_0%,#FFFFFF_48%,#EEF5F1_100%)] py-14 md:py-20 sm:py-28">
+    <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#F8F5EC_0%,#FFFFFF_48%,#EEF5F1_100%)] py-8 md:py-20 sm:py-28">
       <div
         className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-brand-gold-bright/10 blur-3xl"
         aria-hidden

@@ -168,7 +168,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <main className="bg-brand-mist">
       <Navbar isLoggedIn />
-      <section className="mx-auto max-w-5xl px-5 py-16 md:px-8">
+      <section className="mx-auto max-w-5xl px-5 py-8 md:py-16 md:px-8">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">

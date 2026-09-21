@@ -66,10 +66,24 @@ describe("every section heading is the same heading", () => {
 describe("every section breathes the same", () => {
   it("gives a phone less air than a desktop", async () => {
     const sources = await Promise.all(SECTIONS.map((file) => readFile(file, "utf8")));
-    const wrong = SECTIONS.filter((_, index) => !sources[index].includes("py-14 md:py-20"));
 
-    // py-20 is 80px twice over — a quarter of a 360px phone spent on nothing,
-    // between every row of shoes.
+    // The pair is what matters, not the exact numbers. This was written when
+    // py-14 md:py-20 was itself the fix — 112px on a phone instead of 160 —
+    // and pinning the literal string meant the next improvement failed here
+    // rather than passing.
+    //
+    // The owner found the next one from the screenshots: nine sections at
+    // py-14 still spend 1008px on empty space before a customer sees a shoe,
+    // so the phone half came down again. What the rule holds is the shape —
+    // a phone value, and a larger one behind md: — with the phone value no
+    // more than py-10.
+    const wrong = SECTIONS.filter((_, index) => {
+      const section = sources[index].match(/<section[^>]*className="([^"]*)"/)?.[1] ?? "";
+      const phone = Number(section.match(/(?:^|\s)py-(\d+)/)?.[1] ?? 0);
+      const desktop = Number(section.match(/\bmd:py-(\d+)/)?.[1] ?? 0);
+      return !(phone > 0 && phone <= 10 && desktop > phone);
+    });
+
     expect(wrong.join(", "), "a section is back to one fixed padding").toBe("");
   });
 });

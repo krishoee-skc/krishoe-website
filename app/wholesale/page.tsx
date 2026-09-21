@@ -43,7 +43,7 @@ export default async function WholesalePage() {
     <main className="bg-brand-paper">
       <Navbar />
 
-      <section className="bg-brand-green-ink py-16 text-white">
+      <section className="bg-brand-green-ink py-8 md:py-16 text-white">
         <div className="mx-auto max-w-5xl px-5 md:px-8">
           <p className="text-sm font-bold uppercase tracking-[0.28em] text-brand-gold-bright">
             <T en="Wholesale" ne="थोक बिक्री" />
@@ -63,7 +63,7 @@ export default async function WholesalePage() {
         </div>
       </section>
 
-      <section className="py-14">
+      <section className="py-8 md:py-14">
         <div className="mx-auto grid max-w-5xl gap-8 px-5 md:grid-cols-3 md:px-8">
           {[
             {
@@ -101,7 +101,7 @@ export default async function WholesalePage() {
       </section>
 
       {tradeable.length > 0 ? (
-        <section className="bg-brand-mist py-14">
+        <section className="bg-brand-mist py-8 md:py-14">
           <div className="mx-auto max-w-5xl px-5 md:px-8">
             <h2 className="text-2xl font-black text-brand-green-ink">
               <T
@@ -148,7 +148,7 @@ export default async function WholesalePage() {
         </section>
       ) : null}
 
-      <section className="py-14">
+      <section className="py-8 md:py-14">
         <div className="mx-auto max-w-3xl px-5 md:px-8">
           <h2 className="text-2xl font-black text-brand-green-ink">
             <T en="Ask for a rate" ne="दर सोध्नुहोस्" />

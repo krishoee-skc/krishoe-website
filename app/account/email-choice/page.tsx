@@ -57,7 +57,7 @@ export default async function EmailChoicePage({
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-2xl px-5 py-12 md:px-8 md:py-16">
+      <section className="mx-auto max-w-2xl px-5 py-8 md:px-8 md:py-16">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           KRISHOE
         </p>

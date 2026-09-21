@@ -39,7 +39,7 @@ export default async function AboutPage() {
     <main className="bg-brand-paper">
       <Navbar />
 
-      <section className="relative isolate overflow-hidden bg-brand-green-ink py-20 text-white">
+      <section className="relative isolate overflow-hidden bg-brand-green-ink py-10 md:py-20 text-white">
         {/* A photograph, not the marketing banner. hero-banner.png has its own
             headline, buttons and badges baked into the artwork, so using it
             behind this page's heading stacked two pieces of advertising on top
@@ -76,7 +76,7 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="py-20">
+      <section className="py-10 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-3 md:px-8">
           {/* The heading is the shop's own name for the thing, in the reader's
               script; the line under it is the same thing said plainly. The
@@ -118,7 +118,7 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-brand-mist py-20">
+      <section className="bg-brand-mist py-10 md:py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Our Promise" ne="हाम्रो वाचा" />
@@ -186,7 +186,7 @@ export default async function AboutPage() {
 
       <WhyChoose />
 
-      <section className="bg-brand-green-ink py-20 text-white">
+      <section className="bg-brand-green-ink py-10 md:py-20 text-white">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 md:flex-row md:items-center md:px-8">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
