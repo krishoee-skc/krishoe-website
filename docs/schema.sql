@@ -1510,3 +1510,349 @@ CREATE TABLE IF NOT EXISTS stock_transfer_items (
 
 CREATE INDEX IF NOT EXISTS stock_transfer_items_transfer_idx
   ON stock_transfer_items(transfer_id);
+
+-- ---------------------------------------------------------------------------
+-- Tables added by migration after this snapshot was last written by hand
+-- ---------------------------------------------------------------------------
+-- Every one of these is read by the app today — reviews, coupons, passkey
+-- sign-in, push notifications, referrals, the wholesale enquiry form. They
+-- were created by migrations between August and September and never copied
+-- into this file, so a database built from the snapshot alone was missing
+-- them and the screens that read them failed.
+--
+-- Copied verbatim from the migration named above each table.
+
+-- checkout_attempts — from 20260816_checkout_attempts.sql
+CREATE TABLE IF NOT EXISTS checkout_attempts (
+  id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- Lowercased. The same shopper coming back to the page updates their row
+  -- rather than adding another, so a reminder is never sent twice for one
+  -- basket.
+  email text NOT NULL,
+  name text NOT NULL DEFAULT '',
+  phone text NOT NULL DEFAULT '',
+  item_count integer NOT NULL DEFAULT 0,
+  total_paisa integer NOT NULL DEFAULT 0,
+  -- A short human line: "Doctor Chappal × 2, bag open × 1". Enough for the
+  -- email to name what was left behind without storing the whole cart.
+  summary text NOT NULL DEFAULT '',
+  reminded_at timestamptz,
+  -- Set when an order later arrives from this address, so the row stops being
+  -- a candidate and the shop can count what the reminder actually recovered.
+  recovered_order_id text
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS checkout_attempts_email_idx
+  ON checkout_attempts (lower(email));
+CREATE INDEX IF NOT EXISTS checkout_attempts_open_idx
+  ON checkout_attempts (created_at)
+  WHERE reminded_at IS NULL AND recovered_order_id IS NULL;
+
+-- coupons — from 20260816_coupons.sql
+CREATE TABLE IF NOT EXISTS coupons (
+  -- Stored uppercase and trimmed. The customer types "dashain10" on a phone
+  -- keyboard; it has to find the same row as "DASHAIN10" on the poster.
+  code text PRIMARY KEY,
+  kind text NOT NULL CHECK (kind IN ('percent', 'amount')),
+  -- percent: 1–100. amount: paisa, matching products.price_value.
+  value integer NOT NULL CHECK (value > 0),
+  min_order_paisa integer NOT NULL DEFAULT 0 CHECK (min_order_paisa >= 0),
+  -- Ceiling for a percentage discount. A 20% code meeting a wholesale-sized
+  -- basket should not quietly give away thousands.
+  max_discount_paisa integer CHECK (max_discount_paisa IS NULL OR max_discount_paisa > 0),
+  starts_at timestamptz,
+  expires_at timestamptz,
+  -- NULL means unlimited.
+  max_uses integer CHECK (max_uses IS NULL OR max_uses > 0),
+  used_count integer NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+  status text NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Disabled')),
+  note text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS coupons_status_idx ON coupons (status);
+
+-- wholesale_enquiries — from 20260816_wholesale_enquiries.sql
+CREATE TABLE IF NOT EXISTS wholesale_enquiries (
+  id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  shop_name text NOT NULL,
+  contact_name text NOT NULL,
+  phone text NOT NULL,
+  email text NOT NULL DEFAULT '',
+  location text NOT NULL DEFAULT '',
+  -- What they are after, in their own words. A dropdown of designs would be
+  -- wrong here: a shop asks for "ladies chappal, 200 pairs a month", not for
+  -- one SKU.
+  requirement text NOT NULL DEFAULT '',
+  monthly_pairs integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Contacted', 'Customer', 'Closed')),
+  note text NOT NULL DEFAULT '',
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS wholesale_enquiries_status_idx
+  ON wholesale_enquiries (status, created_at DESC);
+
+-- admin_passkeys — from 20260819_passkeys.sql
+CREATE TABLE IF NOT EXISTS admin_passkeys (
+  -- The credential id the authenticator generated, base64url. Unique across the
+  -- world, so it is the key.
+  id text PRIMARY KEY,
+  staff_id text NOT NULL,
+  -- The public half. Safe to store, safe to lose: it can verify a signature,
+  -- never produce one.
+  public_key text NOT NULL,
+  -- Increments on each use. A number that goes backwards means the credential
+  -- was cloned, which is the one thing this can detect that a password cannot.
+  counter bigint NOT NULL DEFAULT 0,
+  -- Which device this is, in the owner's words: "mero phone", "counter ko
+  -- laptop". A list of credential ids is unreadable when deciding what to
+  -- remove after a phone is lost.
+  label text NOT NULL DEFAULT '',
+  -- Whether the key can travel (iCloud/Google password manager) or is stuck to
+  -- one device. It changes the advice after a lost phone, so it is worth
+  -- keeping.
+  device_type text NOT NULL DEFAULT '',
+  backed_up boolean NOT NULL DEFAULT false,
+  transports text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS admin_passkeys_staff_idx ON admin_passkeys (staff_id);
+
+-- admin_passkey_challenges — from 20260819_passkeys.sql
+-- The one-time challenge a sign-in is answered against.
+--
+-- Kept server-side and deleted on use. Without this the same signed response
+-- could be replayed later, which is exactly the attack passkeys otherwise make
+-- impossible.
+CREATE TABLE IF NOT EXISTS admin_passkey_challenges (
+  challenge text PRIMARY KEY,
+  -- Null while signing in, because at that point we do not yet know who is
+  -- asking — that is what the credential will tell us.
+  staff_id text,
+  kind text NOT NULL CHECK (kind IN ('register', 'login')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS admin_passkey_challenges_expiry_idx
+  ON admin_passkey_challenges (expires_at);
+
+-- push_subscriptions — from 20260819_push_subscriptions.sql
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  -- The endpoint is unique per browser per device and already identifies the
+  -- subscription, so it is the key. Re-subscribing the same browser updates the
+  -- row instead of leaving a duplicate that would double every notification.
+  endpoint text PRIMARY KEY,
+  -- RFC 8291 encryption material. Without both, a payload cannot be sealed and
+  -- the push service will refuse it.
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  -- Which staff account subscribed. Nullable so a subscription is not lost if
+  -- the account is later removed — the device simply stops being addressed by
+  -- role and can still be cleaned up by endpoint.
+  staff_id text,
+  -- Free-text, only ever shown to the owner: "Krishna ko phone", "counter ko
+  -- computer". A list of endpoints is unreadable when deciding what to revoke.
+  label text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  -- Bumped on every successful send. A subscription that has not been reached
+  -- in months is a device that is gone, and this is how that becomes visible.
+  last_used_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS push_subscriptions_staff_idx
+  ON push_subscriptions (staff_id);
+
+-- referral_codes — from 20260820_referrals.sql
+CREATE TABLE IF NOT EXISTS referral_codes (
+  -- Stored uppercase, like coupon codes: the friend types it on a phone
+  -- keyboard and it has to find the same row either way.
+  code text PRIMARY KEY,
+  -- One code per customer, forever. A customer who could mint codes could hand
+  -- a fresh one to every acquaintance and collect on all of them.
+  customer_user_id text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- referral_claims — from 20260820_referrals.sql
+-- One row per order that arrived through somebody's code.
+--
+-- Recorded when the order is placed, rewarded only when it is delivered, which
+-- is why claiming and rewarding are two columns rather than one row that
+-- appears late. A claim that never gets rewarded is itself worth seeing: it is
+-- either an order that fell through or somebody testing the system.
+CREATE TABLE IF NOT EXISTS referral_claims (
+  order_id text PRIMARY KEY,
+  code text NOT NULL REFERENCES referral_codes(code),
+  referrer_user_id text NOT NULL,
+  -- Nullable: a friend can order without an account, and refusing the discount
+  -- to guests would remove most of the people the referrer can actually reach.
+  friend_user_id text,
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  -- The coupon issued to the referrer, and when. Null until the goods arrive.
+  reward_code text,
+  rewarded_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS referral_claims_referrer_idx
+  ON referral_claims (referrer_user_id);
+CREATE INDEX IF NOT EXISTS referral_claims_pending_idx
+  ON referral_claims (rewarded_at) WHERE rewarded_at IS NULL;
+
+-- customer_voice — from 20260823_customer_voice.sql
+CREATE TABLE IF NOT EXISTS customer_voice (
+  id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  kind text NOT NULL CHECK (kind IN ('review', 'question', 'complaint')),
+
+  customer_name text NOT NULL DEFAULT '',
+  -- The number is how a Nepali shop actually answers: a call or a WhatsApp
+  -- message, not an email thread. Kept beside the message so replying is one
+  -- tap from the row rather than a search through orders.
+  phone text NOT NULL DEFAULT '',
+  email text NOT NULL DEFAULT '',
+
+  -- Which pair this is about, when it is about one. No foreign key: a review
+  -- outlives the product row it was written against, and losing the review
+  -- because a product was deleted would be the wrong trade.
+  product_id text NOT NULL DEFAULT '',
+  product_name text NOT NULL DEFAULT '',
+  -- 1..5 for a review; 0 when the kind carries no verdict.
+  rating integer NOT NULL DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
+
+  message text NOT NULL DEFAULT '',
+
+  -- The whole point of one inbox: a row that has been read but not answered is
+  -- visibly different from one that is finished. 'new' is what arrives,
+  -- 'answered' is what the owner has replied to, 'closed' is done with.
+  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'answered', 'closed')),
+  replied_at timestamptz,
+  reply_note text NOT NULL DEFAULT '',
+
+  -- Whether a review may appear on the storefront. A review is a customer's
+  -- words on a public page, so it is off until the owner puts it there.
+  published boolean NOT NULL DEFAULT false,
+
+  source text NOT NULL DEFAULT 'site',
+  branch_id text
+);
+
+CREATE INDEX IF NOT EXISTS customer_voice_status_idx
+  ON customer_voice (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS customer_voice_kind_idx
+  ON customer_voice (kind, created_at DESC);
+CREATE INDEX IF NOT EXISTS customer_voice_product_idx
+  ON customer_voice (product_id, published, created_at DESC);
+
+-- customer_email_preferences — from 20260826_customer_email_choice.sql
+CREATE TABLE IF NOT EXISTS customer_email_preferences (
+  -- One row per customer, and the customer is a user. ON DELETE CASCADE
+  -- because a preference about letters is meaningless once there is nobody to
+  -- send them to.
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+
+  -- The letter that says "we have your order". Defaults to true and is
+  -- deliberately hard to turn off in the UI: somebody who has just paid is
+  -- owed a record of it, and a shop that goes silent after taking money looks
+  -- like a shop that took the money.
+  order_updates BOOLEAN NOT NULL DEFAULT true,
+
+  -- The invitation to review a pair, and anything else the shop might send
+  -- that the customer did not ask for by buying. This is the one that turns
+  -- off, and it is the one people actually want to turn off.
+  review_invites BOOLEAN NOT NULL DEFAULT true,
+
+  -- A random string in the unsubscribe link. It stands in for signing in:
+  -- somebody reading an email on a phone will not log in to stop the emails,
+  -- they will press spam instead. Unguessable, and it can only ever turn
+  -- letters OFF — turning them back on needs the account.
+  unsubscribe_token TEXT NOT NULL UNIQUE,
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS customer_email_preferences_token_idx
+  ON customer_email_preferences(unsubscribe_token);
+
+-- business_goals — from 20260904_business_goals.sql
+CREATE TABLE IF NOT EXISTS business_goals (
+  month_key       TEXT PRIMARY KEY,      -- Bikram month, "2083-05"
+  sales_goal      NUMERIC NOT NULL DEFAULT 0,
+  profit_goal     NUMERIC NOT NULL DEFAULT 0,
+  production_goal INTEGER NOT NULL DEFAULT 0,  -- pairs
+  note            TEXT NOT NULL DEFAULT '',
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- branch_product_stock — from 20260802_branch_access_v1.sql
+CREATE TABLE IF NOT EXISTS branch_product_stock (
+  branch_id TEXT NOT NULL REFERENCES company_branches(id) ON DELETE RESTRICT,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (branch_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS branch_product_stock_product_id_idx
+  ON branch_product_stock(product_id);
+
+-- ---------------------------------------------------------------------------
+-- Branch isolation
+-- ---------------------------------------------------------------------------
+-- From 20260802_branch_access_v1.sql. These are the functions the branch
+-- row-level-security policies call. They were missing from this file, so a
+-- database rebuilt from the snapshot had the branch columns but no wall: every
+-- branch could read every other branch's rows.
+--
+-- They read settings the app sets per connection (app.krishoe_branch_id and
+-- the two switches). With no setting, context is off and nothing is filtered,
+-- which is what a single-branch shop wants.
+
+CREATE OR REPLACE FUNCTION krishoe_admin_branch_context_enabled()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT COALESCE(current_setting('app.krishoe_branch_context', true), '') = 'true'
+$$;
+
+CREATE OR REPLACE FUNCTION krishoe_admin_branch_bypass_enabled()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT COALESCE(current_setting('app.krishoe_branch_bypass', true), '') = 'true'
+$$;
+
+CREATE OR REPLACE FUNCTION krishoe_effective_branch_id()
+RETURNS TEXT
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT COALESCE(
+    NULLIF(current_setting('app.krishoe_branch_id', true), ''),
+    NULLIF((SELECT default_branch_id FROM company_settings WHERE id = 'default'), ''),
+    (SELECT id FROM company_branches ORDER BY (status = 'Active') DESC, created_at ASC LIMIT 1)
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION krishoe_can_access_branch(target_branch_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT
+    NOT krishoe_admin_branch_context_enabled()
+    OR krishoe_admin_branch_bypass_enabled()
+    OR target_branch_id = krishoe_effective_branch_id()
+$$;

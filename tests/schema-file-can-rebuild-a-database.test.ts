@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -89,6 +89,64 @@ describe("the schema file", () => {
     // delete tables. These are load-bearing — wages, stock, orders, staff.
     for (const table of ["factory_workers", "factory_daily_work", "factory_worker_ledger", "products", "orders"]) {
       expect(created, `${table} must stay in the schema file`).toContain(table);
+    }
+  });
+
+  it("records every table the migrations created and never dropped", async () => {
+    // The snapshot is kept by hand while the migrations run themselves, so it
+    // drifts silently: twelve tables added between August and September were
+    // never copied in, including customer_voice, which every review reads, and
+    // admin_passkeys, which signs the owner in. A database built from the file
+    // alone came up missing them and those screens failed.
+    //
+    // Derived from the migrations rather than a list written here, so the next
+    // table someone adds is held to the same rule without anybody remembering
+    // to update this test.
+    const directory = "scripts/migrations";
+    const files = (await readdir(directory)).filter((name) => name.endsWith(".sql"));
+
+    const createdByMigration = new Map<string, string>();
+    const dropped = new Set<string>();
+
+    for (const name of files) {
+      const sql = await readFile(`${directory}/${name}`, "utf8");
+      for (const match of sql.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)) {
+        if (!createdByMigration.has(match[1])) createdByMigration.set(match[1], name);
+      }
+      for (const match of sql.matchAll(/DROP TABLE IF EXISTS (\w+)/g)) {
+        dropped.add(match[1]);
+      }
+    }
+
+    const inSnapshot = new Set(
+      (await schemaLines()).flatMap((line) => {
+        const match = /^CREATE TABLE IF NOT EXISTS (\w+)/.exec(line);
+        return match ? [match[1]] : [];
+      }),
+    );
+
+    const absent = [...createdByMigration]
+      .filter(([table]) => !inSnapshot.has(table) && !dropped.has(table))
+      .map(([table, file]) => `${table} (added by ${file})`);
+
+    expect(absent, "a rebuild from this file would come up without these").toEqual([]);
+  });
+
+  it("defines the functions its own policies depend on", async () => {
+    // Branch isolation is enforced by row-level-security policies that call
+    // these. Without them a rebuilt database has the branch columns but no
+    // wall, which fails open — every branch reading every other branch's rows.
+    const source = await readFile("docs/schema.sql", "utf8");
+
+    for (const name of [
+      "krishoe_effective_branch_id",
+      "krishoe_can_access_branch",
+      "krishoe_admin_branch_context_enabled",
+      "krishoe_admin_branch_bypass_enabled",
+    ]) {
+      expect(source, `${name}() must be defined in the schema file`).toContain(
+        `CREATE OR REPLACE FUNCTION ${name}`,
+      );
     }
   });
 });
