@@ -4,6 +4,8 @@ import { JsonLdScript } from "@/components/commerce/StructuredData";
 import ShopCatalog from "@/app/shop/ShopCatalog";
 import { getProducts } from "@/lib/product-store";
 import { categories } from "@/lib/products";
+import type { Product } from "@/lib/products";
+import { reportError } from "@/lib/report-error";
 import {
   breadcrumbJsonLd,
   collectionPageJsonLd,
@@ -43,6 +45,21 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   });
 }
 
+// Every category is prerendered — `generateStaticParams` lists them from the
+// built-in category list — so this read runs at build time and an unreachable
+// database failed the deploy on the first category it reached. The category
+// itself does not come from the database, so an empty list still renders a real
+// category page with its heading, its story and its navigation; only the rows
+// of shoes wait for the next rebuild.
+async function loadCategoryProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load products for a shop category page", error);
+    return [];
+  }
+}
+
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { category: slug } = await params;
   const category = getCategoryBySlug(slug);
@@ -51,7 +68,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const products = getProductsByCategory(await getProducts(), category);
+  const products = getProductsByCategory(await loadCategoryProducts(), category);
   const pageUrl = `/shop/${category.slug}`;
 
   return (

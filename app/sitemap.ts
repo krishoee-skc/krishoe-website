@@ -3,10 +3,26 @@ import { getProducts } from "@/lib/product-store";
 import { categories } from "@/lib/products";
 import { guides } from "@/lib/guides";
 import { absoluteUrl, getProductsByCategory, getSiteUrl } from "@/lib/seo";
+import { reportError } from "@/lib/report-error";
+import type { Product } from "@/lib/products";
+
+// The sitemap is built with the site. An unreachable database threw here and
+// took the whole deploy down with it, so a failure now costs the product URLs
+// and keeps the rest: the core pages, the categories and the guides are all
+// known without asking the database. A sitemap missing its products is a search
+// engine finding them a crawl later; no sitemap at all is a failed build.
+async function loadSitemapProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load products for the sitemap", error);
+    return [];
+  }
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
-  const products = await getProducts();
+  const products = await loadSitemapProducts();
   const now = new Date();
   const coreRoutes: MetadataRoute.Sitemap = [
     {

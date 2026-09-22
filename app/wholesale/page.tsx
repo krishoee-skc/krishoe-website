@@ -5,6 +5,8 @@ import T from "@/components/T";
 import WholesaleForm from "./WholesaleForm";
 import { getProducts } from "@/lib/product-store";
 import { absoluteUrl, siteConfig } from "@/lib/seo";
+import { reportError } from "@/lib/report-error";
+import type { Product } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Wholesale | KRISHOE",
@@ -33,8 +35,21 @@ export const metadata: Metadata = {
  * shown; the rate comes on the phone, which is where a wholesale deal in Nepal
  * gets settled anyway.
  */
+// Built with the site, so an unreachable database threw here and stopped the
+// deploy. The page is mostly the wholesale offer itself — who to call, what the
+// minimum is — and none of that needs the database, so a failure costs the list
+// of tradeable designs and keeps the page a shopkeeper came here to read.
+async function loadWholesaleProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load the wholesale product list", error);
+    return [];
+  }
+}
+
 export default async function WholesalePage() {
-  const products = await getProducts();
+  const products = await loadWholesaleProducts();
   const tradeable = products
     .filter((product) => product.wholesalePriceValue > 0)
     .sort((left, right) => left.name.localeCompare(right.name));

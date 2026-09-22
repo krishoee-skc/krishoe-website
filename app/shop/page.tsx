@@ -3,6 +3,8 @@ import { JsonLdScript } from "@/components/commerce/StructuredData";
 import ShopCatalog from "@/app/shop/ShopCatalog";
 import { getProducts } from "@/lib/product-store";
 import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
+import { reportError } from "@/lib/report-error";
+import type { Product } from "@/lib/products";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Shop",
@@ -23,8 +25,21 @@ export const metadata: Metadata = createPageMetadata({
  * the search box anyway. Nothing about `/shop?query=…` changes for the visitor;
  * the page simply arrives already built.
  */
+// Prerendered with the site, so this read runs at build time and an unreachable
+// database threw here and failed the whole deploy. The shop falls back to an
+// empty catalogue instead: the page, its navigation and its search still build,
+// and the shoes return with the next rebuild once the database answers.
+async function loadShopProducts(): Promise<Product[]> {
+  try {
+    return await getProducts();
+  } catch (error) {
+    reportError("load the shop catalogue", error);
+    return [];
+  }
+}
+
 export default async function ShopPage() {
-  const products = await getProducts();
+  const products = await loadShopProducts();
 
   return (
     <>

@@ -3,6 +3,7 @@ import ProductText from "@/components/commerce/ProductText";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById, getProducts } from "@/lib/product-store";
+import { reportError } from "@/lib/report-error";
 import { getProductByIdFromList, getRelatedProductsFromList, productReviewStats } from "@/lib/products";
 import { JsonLdScript } from "@/components/commerce/StructuredData";
 import Navbar from "@/components/Navbar";
@@ -64,8 +65,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * front of shoppers after the trial data was cleared.
  */
 export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((product) => ({ id: product.id }));
+  // A build must not need the database to be reachable. This read happens while
+  // the site is being built, and an unreachable database threw here and stopped
+  // the whole deploy — so a database outage also froze every fix waiting to go
+  // out, including the fixes for the outage. Nothing else about the page
+  // changes: `dynamicParams` is on, so with an empty list every product page is
+  // simply rendered the first time somebody asks for it, exactly as a shoe
+  // added after the last build already is.
+  try {
+    const products = await getProducts();
+    return products.map((product) => ({ id: product.id }));
+  } catch (error) {
+    reportError("list product pages to prerender", error);
+    return [];
+  }
 }
 
 export default async function ProductPage({ params }: Props) {
