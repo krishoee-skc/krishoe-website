@@ -9,7 +9,25 @@ type NewArrivalsProps = {
 };
 
 export default async function NewArrivals({ products }: NewArrivalsProps = {}) {
-  const newArrivalProducts = (products ?? await getProducts()).filter((product) => product.newArrival).slice(0, 4);
+  const all = products ?? (await getProducts());
+
+  /**
+   * The newest shoes, however the shop labels them.
+   *
+   * This row filtered on the `newArrival` flag and drew its heading either
+   * way, so a shop that has not ticked that box on anything — this shop —
+   * showed "New Arrivals · Discover the latest KRISHOE styles" above a bare
+   * button. The owner's screenshot caught it.
+   *
+   * Tagged products win when there are any. Otherwise the shop's own newest
+   * four stand in, which is what the heading promises anyway.
+   */
+  const tagged = all.filter((product) => product.newArrival);
+  const newArrivalProducts = (tagged.length > 0 ? tagged : all).slice(0, 4);
+
+  // A shop with nothing to show says nothing. A heading and a "browse" button
+  // over an empty shelf sends a customer to an empty page.
+  if (newArrivalProducts.length === 0) return null;
 
   return (
     <section className="bg-brand-paper py-8 md:py-20">
