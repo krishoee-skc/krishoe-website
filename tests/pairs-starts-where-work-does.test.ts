@@ -16,17 +16,27 @@ import { describe, expect, it } from "vitest";
  * not a control for a phone held in a workshop.
  */
 const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
+const RULES = "app/admin/factory/add-work/work-entry-rules.ts";
+
+// The screen is two files: the form that draws the boxes, and the rules it
+// follows. Which of the two holds a given line is a housekeeping decision, so
+// these read the pair as one screen — the facts below must hold somewhere in
+// it, and moving a constant between the two is not a behaviour change.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 
 describe("the pair count", () => {
   it("starts at sixty, which is what this shop enters", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain("const DEFAULT_PAIRS = 60");
     expect(form).not.toContain(`pairs_count: "",`);
   });
 
   it("goes back to sixty after a save, ready for the next entry", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Two places hold it: the form's initial state and the reset after a save.
     const matches = form.match(/pairs_count: String\(DEFAULT_PAIRS\)/g) ?? [];
@@ -34,7 +44,7 @@ describe("the pair count", () => {
   });
 
   it("steps by a dozen, not by one", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain("const PAIRS_STEP = 12");
     expect(form).toContain("stepPairs(-PAIRS_STEP)");
@@ -42,7 +52,7 @@ describe("the pair count", () => {
   });
 
   it("never steps below a dozen", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const stepper = form.slice(form.indexOf("const stepPairs"), form.indexOf("const pairsAtFloor"));
 
     // Zero would only be refused on save, so the button has no reason to reach
@@ -51,7 +61,7 @@ describe("the pair count", () => {
   });
 
   it("steps from sixty when the box has been cleared", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const stepper = form.slice(form.indexOf("const stepPairs"), form.indexOf("const pairsAtFloor"));
 
     // An empty field parses to zero, so + landed on 12 instead of near the
@@ -60,7 +70,7 @@ describe("the pair count", () => {
   });
 
   it("lands on a quantity the shop actually makes", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const stepper = form.slice(form.indexOf("const stepPairs"), form.indexOf("const pairsAtFloor"));
 
     // A hand-typed 5 pressing + gave 17, which fits no size run.
@@ -68,7 +78,7 @@ describe("the pair count", () => {
   });
 
   it("only disables minus at the floor itself, not on an empty box", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // `(parseInt(...) || 0) <= 12` was true for an empty field, so clearing the
     // box turned the button off with nowhere to go.
@@ -77,7 +87,7 @@ describe("the pair count", () => {
   });
 
   it("recalculates the wage as it steps", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const stepper = form.slice(form.indexOf("const stepPairs"), form.indexOf("const pairsAtFloor"));
 
     // The figure under the box is the whole point of the box.
@@ -86,7 +96,7 @@ describe("the pair count", () => {
   });
 
   it("names both buttons for a screen reader", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // "−" and "+" alone say nothing aloud.
     expect(form).toContain(`text("Twelve fewer pairs", "बाह्र जोडी घटाउने")`);
@@ -94,7 +104,7 @@ describe("the pair count", () => {
   });
 
   it("leaves the field typeable, for a short lot", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // The buttons are a shortcut, not a replacement: a lot of 45 still has to
     // be enterable.

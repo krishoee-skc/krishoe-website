@@ -23,13 +23,21 @@ import { describe, expect, it } from "vitest";
  * half-typed entry filed by a mis-hit is a wrong payment.
  */
 const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
+const RULES = "app/admin/factory/add-work/work-entry-rules.ts";
+
+// The screen is two files: the form that draws the boxes, and the rules it
+// follows. The walk order is a rule, so it reads the pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 
 /** The typed boxes, in the order the work is counted out. */
 const WORK_WALK = ["pairs", "colour", "size", "rejected"];
 
 describe("the order Enter walks in", () => {
   it("counts out the work: pairs, colour, size, then rejects", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Searched from the declaration onward — an earlier `] as const;` in the
     // file would slice this to an empty list and pass on nothing.
@@ -43,7 +51,7 @@ describe("the order Enter walks in", () => {
   });
 
   it("reaches every box on that list", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     for (const field of WORK_WALK) {
       expect(form, `${field} handler`).toContain(`handleFieldWalk(event, "${field}")`);
@@ -52,7 +60,7 @@ describe("the order Enter walks in", () => {
   });
 
   it("stays off the dropdowns", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Four inputs carry the handler, plus its own definition. A fifth would
     // mean a select had been taken over, where Enter already has a job.
@@ -63,7 +71,7 @@ describe("the order Enter walks in", () => {
 
 describe("what Enter must never do", () => {
   it("never saves the entry", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const walk = form.slice(
       form.indexOf("function handleFieldWalk"),
       form.indexOf("const [items, setItems]"),
@@ -77,7 +85,7 @@ describe("what Enter must never do", () => {
   });
 
   it("leaves Tab alone", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).not.toContain('key === "Tab"');
     expect(form).not.toMatch(/tabIndex=\{[1-9]/);
@@ -86,7 +94,7 @@ describe("what Enter must never do", () => {
 
 describe("walking back", () => {
   it("goes backwards on Shift+Enter", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain("if (event.shiftKey)");
     expect(form).toContain("WORK_WALK[at - 1]");

@@ -22,6 +22,15 @@ import { waitingCounts } from "@/app/admin/factory/add-work/WorkEntryForm";
  * size — so the label carries the size at the same length it is today.
  */
 const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
+const RULES = "app/admin/factory/add-work/work-entry-rules.ts";
+
+// The screen is two files: the form that draws the boxes, and the rules it
+// follows. What the option shows is decided in the rules, so these read the
+// pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 
 /** What a phone dropdown shows before it wraps, at 360px. */
 const PHONE_LABEL_LIMIT = 38;
@@ -58,7 +67,7 @@ describe("the label fits a phone", () => {
 
 describe("what the option shows", () => {
   it("puts the size on the option, compacted", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
     // Asserted as the call inside the label, not as the import: importing the
@@ -115,7 +124,7 @@ describe("what the option shows", () => {
   });
 
   it("drops the word that the size replaced", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
     // "waiting" and the size cannot both fit. Keeping both is how the label
@@ -131,7 +140,7 @@ describe("what the option shows", () => {
   });
 
   it("still says when nothing is waiting", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // An item with no uppers must still be choosable and must still say so —
     // that is how a brand-new shoe gets its first upper recorded.
