@@ -649,6 +649,29 @@ CREATE TABLE IF NOT EXISTS production_stage_rates (
 CREATE INDEX IF NOT EXISTS production_stage_rates_item_idx
   ON production_stage_rates(item_id, stage, effective_from DESC);
 
+-- Simplified Factory mobile-entry compatibility module. These tables keep
+-- their own records until the Factory UI is fully consolidated with the
+-- production-accounting chain above. Money uses NUMERIC so fractional rupee
+-- rates are never rounded, and historical work/ledger links are restricted
+-- from cascading deletes.
+CREATE TABLE IF NOT EXISTS factory_workers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  worker_type TEXT NOT NULL,
+  category TEXT NOT NULL,
+  monthly_salary NUMERIC(12, 2) CHECK (monthly_salary IS NULL OR monthly_salary >= 0),
+  weekly_advance NUMERIC(12, 2) CHECK (weekly_advance IS NULL OR weekly_advance >= 0),
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_workers_type_check
+    CHECK (worker_type IN ('piece_rate', 'monthly_staff', 'daily_staff')),
+  CONSTRAINT factory_workers_category_check
+    CHECK (category IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
+  CONSTRAINT factory_workers_status_check
+    CHECK (status IN ('active', 'inactive'))
+);
+
 CREATE TABLE IF NOT EXISTS production_worker_stage_rates (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1120,28 +1143,6 @@ CREATE TABLE IF NOT EXISTS uploaded_images (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Simplified Factory mobile-entry compatibility module. These tables keep
--- their own records until the Factory UI is fully consolidated with the
--- production-accounting chain above. Money uses NUMERIC so fractional rupee
--- rates are never rounded, and historical work/ledger links are restricted
--- from cascading deletes.
-CREATE TABLE IF NOT EXISTS factory_workers (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  worker_type TEXT NOT NULL,
-  category TEXT NOT NULL,
-  monthly_salary NUMERIC(12, 2) CHECK (monthly_salary IS NULL OR monthly_salary >= 0),
-  weekly_advance NUMERIC(12, 2) CHECK (weekly_advance IS NULL OR weekly_advance >= 0),
-  status TEXT NOT NULL DEFAULT 'active',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT factory_workers_type_check
-    CHECK (worker_type IN ('piece_rate', 'monthly_staff', 'daily_staff')),
-  CONSTRAINT factory_workers_category_check
-    CHECK (category IN ('Upper', 'Fibermen', 'Fiber Preparation', 'Fiber Silai', 'Bottom Final', 'Packing / QC', 'Staff')),
-  CONSTRAINT factory_workers_status_check
-    CHECK (status IN ('active', 'inactive'))
-);
 
 CREATE TABLE IF NOT EXISTS factory_items (
   id TEXT PRIMARY KEY,
@@ -1206,7 +1207,7 @@ CREATE TABLE IF NOT EXISTS factory_worker_ledger (
   CONSTRAINT factory_worker_ledger_type_check
     CHECK (entry_type IN ('work', 'payment', 'adjustment')),
   CONSTRAINT factory_worker_ledger_status_check
-    CHECK (status IN ('pending', 'settled', 'reversed')),
+    CHECK (status IN ('pending', 'settled', 'reversed'))
   -- No month-start CHECK: this shop keeps months in Bikram Sambat, and a BS
   -- month begins in the middle of a Gregorian one (Bhadra 2083 on 17 August
   -- 2026). A date_trunc check demands the first, and refused every piece-rate
@@ -1223,7 +1224,7 @@ CREATE TABLE IF NOT EXISTS factory_weekly_advance (
   notes TEXT,
   salary_period_month DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   -- No month-start CHECK: this shop keeps months in Bikram Sambat, and a BS
   -- month begins in the middle of a Gregorian one (Bhadra 2083 on 17 August
   -- 2026). A date_trunc check demands the first, and refused every piece-rate
