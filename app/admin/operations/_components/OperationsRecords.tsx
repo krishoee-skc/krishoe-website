@@ -22,111 +22,22 @@ import {
   workerStationOptions,
   workerStatusOptions,
 } from "@/app/admin/operations/_components/operations-ui";
-import type { LedgerTransactionType, StockMovement, StockMovementType } from "@/lib/operations";
 
-function stockMovementTypeClass(type: StockMovementType) {
-  if (type === "Production In" || type === "Purchase In" || type === "Return In") {
-    return "bg-brand-green-tint text-brand-green";
-  }
-
-  if (type === "Dispatch Out" || type === "Sale Out" || type === "Market Sale") {
-    return "bg-brand-cream-soft text-brand-gold-ink";
-  }
-
-  return "bg-brand-mist text-brand-muted-deep";
-}
-
-function stockSignalClass(signal: string) {
-  if (signal === "Healthy") return "bg-brand-green-tint text-brand-green";
-  if (signal === "Return watch") return "bg-brand-cream-soft text-brand-gold-ink";
-  return "bg-brand-clay-tint text-brand-clay";
-}
-
-function stockLedgerSignalClass(signal: string) {
-  if (signal === "Balanced") return "bg-brand-green-tint text-brand-green";
-  if (signal === "Watch") return "bg-brand-cream-soft text-brand-gold-ink";
-  return "bg-brand-clay-tint text-brand-clay";
-}
-
-function collectionPriorityClass(priority: string) {
-  if (priority === "Clear") return "bg-brand-green-tint text-brand-green";
-  if (priority === "Monitor" || priority === "Medium") return "bg-brand-cream-soft text-brand-gold-ink";
-  return "bg-brand-clay-tint text-brand-clay";
-}
-
-function ledgerTransactionTypeClass(type: LedgerTransactionType) {
-  if (type === "Cash Payment" || type === "Cheque Payment") {
-    return "bg-brand-green-tint text-brand-green";
-  }
-
-  if (type === "Credit Sale") {
-    return "bg-brand-cream-soft text-brand-gold-ink";
-  }
-
-  return "bg-brand-mist text-brand-muted-deep";
-}
-
-function agingClass(bucket: string) {
-  if (bucket === "60+ days") {
-    return "text-brand-clay";
-  }
-
-  if (bucket === "31-60 days") {
-    return "text-brand-gold-ink";
-  }
-
-  return "text-brand-green";
-}
+// What these records mean — the colour a status earns, and where a stock
+// movement came from — beside this file, because they are rules rather than
+// markup, and because a test can reach them there.
+import {
+  agingClass,
+  collectionPriorityClass,
+  ledgerTransactionTypeClass,
+  stockLedgerSignalClass,
+  stockMovementSource,
+  stockMovementTypeClass,
+  stockSignalClass,
+} from "@/app/admin/operations/_components/operations-record-rules";
 
 function OptionalDate({ value }: { value: string }) {
   return value ? <DateDisplayAdmin date={value} time /> : <>No movement</>;
-}
-
-function stockMovementSource(
-  movement: StockMovement,
-  linkedItem?: OperationsSnapshot["vehicleDispatchItems"][number],
-) {
-  if (linkedItem) {
-    return {
-      label: linkedItem.vehicleNumber,
-      detail: linkedItem.marketRoute || "Dispatch item",
-    };
-  }
-
-  const note = movement.note.toLowerCase();
-
-  if (note.includes("kr-bill") || note.includes("kr-rt")) {
-    return {
-      label: "POS billing",
-      detail: "Invoice posting",
-    };
-  }
-
-  if (movement.type === "Production In") {
-    return {
-      label: "Production",
-      detail: "Factory output",
-    };
-  }
-
-  if (movement.type === "Purchase In") {
-    return {
-      label: "Purchase",
-      detail: "Trading goods received",
-    };
-  }
-
-  if (movement.type === "Adjustment") {
-    return {
-      label: "Adjustment",
-      detail: "Manual correction",
-    };
-  }
-
-  return {
-    label: "Manual",
-    detail: "Direct entry",
-  };
 }
 
 function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) {
