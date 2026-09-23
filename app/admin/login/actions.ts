@@ -5,8 +5,11 @@ import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { getConfiguredAdminRole } from "@/lib/admin-permissions";
 import {
+  checkAccountLoginRateLimit,
   checkLoginRateLimit,
+  clearAccountLoginRateLimit,
   clearLoginRateLimit,
+  recordFailedAccountLogin,
   recordFailedLogin,
 } from "@/lib/login-rate-limit";
 import { clearAdminSessionCookie, getAdminSession, setAdminSessionCookie } from "@/lib/admin-auth";
@@ -315,11 +318,26 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
   }
 
   if (email) {
+    const accountLimit = await checkAccountLoginRateLimit(email);
+    if (accountLimit.limited) {
+      await recordAdminAuditEvent(
+        "login_rate_limited",
+        `Sign-in to ${email} paused for ${Math.ceil(accountLimit.retryAfterSeconds / 60)} minute(s) after repeated wrong passwords.`,
+        "warning",
+        { actorEmail: email },
+      );
+      return {
+        ok: false,
+        message: `Too many failed attempts. Try again in ${Math.ceil(accountLimit.retryAfterSeconds / 60)} minute(s).`,
+      };
+    }
+
     const staff = await verifyAdminStaffCredentials(email, password);
 
     if (!staff) {
       await recordAdminStaffFailedLogin(email);
       await recordFailedLogin(key);
+      await recordFailedAccountLogin(email);
       await recordAdminAuditEvent(
         "login_failed",
         `Invalid staff login attempt for ${email}.`,
@@ -368,6 +386,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     }
 
     await clearLoginRateLimit(key);
+    await clearAccountLoginRateLimit(email);
     return completeStaffLogin(staff, false, requestContext, remember);
   }
 

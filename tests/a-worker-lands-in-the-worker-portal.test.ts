@@ -110,3 +110,18 @@ describe("changing a temporary password", () => {
     expect(forms).toContain('<a href={state.href} className="mt-3 inline-flex font-black underline">');
   });
 });
+
+describe("guessing a worker's password", () => {
+  it("counts against the account however the mobile number or email is typed", async () => {
+    const { loginAccountKey } = await vi.importActual<typeof import("@/lib/login-rate-limit")>("@/lib/login-rate-limit");
+    expect(loginAccountKey("9801234567")).toBe(loginAccountKey("+977 980-123-4567"));
+    expect(loginAccountKey("Ram@Shop.com ")).toBe(loginAccountKey("ram@shop.com"));
+    expect(loginAccountKey("   ")).toBe("");
+  });
+
+  it("is stopped per account, not only per network address", async () => {
+    const login = await readFile("app/admin/login/actions.ts", "utf8");
+    expect(login).toContain("await checkAccountLoginRateLimit(email)");
+    expect(login).toContain("await recordFailedAccountLogin(email)");
+  });
+});
