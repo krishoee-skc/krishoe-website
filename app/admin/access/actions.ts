@@ -398,7 +398,11 @@ export async function changeRequiredAdminPasswordAction(
     "KRISHOE temporary password changed",
     `${updated.email} replaced the temporary password. ${revokedSessions} old session(s) were signed out.`,
   );
-  return { ok: true, message: "Password changed successfully.", href: "/admin" };
+  // Each role back to its own door. A worker sent to /admin met "Forbidden"
+  // and took it for an account that would not open.
+  const home =
+    updated.role === "Worker" ? "/worker/dashboard" : updated.role === "Factory" ? "/admin/factory" : "/admin";
+  return { ok: true, message: "Password changed successfully.", href: home };
 }
 
 export async function hasValidAdminAccessToken(

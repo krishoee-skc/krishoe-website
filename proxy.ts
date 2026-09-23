@@ -134,6 +134,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/change-password", request.url));
   }
 
+  // A worker's door is the worker portal. Signed in from /admin/login, or sent
+  // to /admin after changing a temporary password, a worker met "Forbidden"
+  // and took it for an account that would not open. Changing the password is
+  // the one admin page a worker needs, and the mustChangePassword rule above
+  // has already sent them there when it is due.
+  if (
+    isProtectedAdmin(pathname) &&
+    adminSession &&
+    getSessionAdminRole(adminSession) === "Worker" &&
+    !pathname.startsWith("/admin/change-password")
+  ) {
+    return NextResponse.redirect(new URL("/worker/dashboard", request.url));
+  }
+
   const pagePermission = getAdminPagePermission(pathname);
   if (
     isProtectedAdmin(pathname) &&
