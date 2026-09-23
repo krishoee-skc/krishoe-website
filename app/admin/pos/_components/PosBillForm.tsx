@@ -10,36 +10,21 @@ import { posLineIssue } from "@/lib/pos-line-check";
 import { autoPaidAmount, posBillCreditDue, posBillTotal } from "@/lib/pos-bill";
 import { useLanguage } from "@/components/LanguageProvider";
 
-type LedgerOption = { id: string; label: string };
+// What a bill is made of, and the order Enter walks it — beside this file,
+// because they are rules about the sale rather than the markup.
+import {
+  BILL_WALK,
+  emptyRow,
+  rateForChannel,
+  rowIsTouched,
+  type BillField,
+  type ItemRow,
+  type LedgerOption,
+  type RepeatBill,
+  type SellableItem,
+} from "@/app/admin/pos/_components/pos-bill-rules";
 
-// A design the shop can sell: how many pairs are on hand, and the price for each
-// channel. The counter picks from these so the rate fills itself and the stock
-// is in view — no typing a name and a price from memory.
-export type SellableItem = {
-  design: string;
-  sku: string;
-  stock: number;
-  retailRate: number;
-  wholesaleRate: number;
-  sizes: string;
-};
-
-// The items of the shop's most recent sale, ready to drop back into the form so
-// a repeat order does not have to be keyed again.
-export type RepeatBillItem = {
-  sku: string;
-  design: string;
-  sizeRun: string;
-  quantity: string;
-  rate: string;
-  discount: string;
-};
-
-export type RepeatBill = {
-  channel: string;
-  invoiceNumber: string;
-  items: RepeatBillItem[];
-};
+export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
 type PosBillFormProps = {
   ledgers: LedgerOption[];
@@ -49,62 +34,11 @@ type PosBillFormProps = {
   canOpenLedger?: boolean;
 };
 
-type ItemRow = {
-  key: number;
-  sku: string;
-  design: string;
-  sizeRun: string;
-  quantity: string;
-  rate: string;
-  discount: string;
-};
-
-function emptyRow(key: number): ItemRow {
-  return { key, sku: "", design: "", sizeRun: "", quantity: "", rate: "", discount: "" };
-}
-
-function rowIsTouched(row: ItemRow) {
-  return Boolean(row.sku || row.design || row.quantity || row.rate);
-}
-
-// Wholesale gets its own price; retail and online sell at the shelf price.
-function rateForChannel(channel: string, item: SellableItem) {
-  return channel === "Wholesale" ? item.wholesaleRate : item.retailRate;
-}
-
 const inputBase = "h-10 rounded-md border px-3 text-sm outline-none focus:border-brand-green";
 const inputClass = `${inputBase} border-brand-green-line bg-brand-paper`;
 const textareaClass =
   "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
 
-/**
- * The bill's own boxes, in the order they are filled at the counter.
- *
- * The goods come first and they are scanned, not typed, so the scan box is not
- * on this walk at all — there Enter has to keep meaning "add this item", which
- * is how a scanner works and how several items go in without a hand leaving
- * the counter. This walk is what comes after: who is buying, then what the
- * bill comes to.
- *
- * Discount and VAT before the amount paid, because the amount paid is settled
- * against a total that already has them in it. The cashier's name leads, since
- * it is the first thing typed on a fresh bill.
- *
- * Every name here is the input's own `name`, so the walk and the form cannot
- * drift apart.
- */
-const BILL_WALK = [
-  "cashier",
-  "customerName",
-  "phone",
-  "customerAddress",
-  "customerPan",
-  "invoiceDiscount",
-  "tax",
-  "paidAmount",
-  "paymentReference",
-] as const;
-type BillField = (typeof BILL_WALK)[number];
 
 function fieldClass(hasError: boolean) {
   return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"}`;

@@ -24,6 +24,15 @@ import { describe, expect, it } from "vitest";
  * half-typed by a mis-hit is the worst thing this screen could do.
  */
 const FORM = "app/admin/pos/_components/PosBillForm.tsx";
+const RULES = "app/admin/pos/_components/pos-bill-rules.ts";
+
+// The screen is two files: the form that draws the bill, and the rules it
+// follows. Which of the two holds a given line is housekeeping, so these
+// read the pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 
 /** The bill's own boxes, in the order they are filled at the counter. */
 const BILL_WALK = [
@@ -40,7 +49,7 @@ const BILL_WALK = [
 
 describe("the order Enter walks in", () => {
   it("follows the counter, with discount and VAT before the amount paid", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Searched from the declaration onward: another `] as const;` earlier in
     // the file would slice this to nothing, which is how the purchase form's
@@ -55,7 +64,7 @@ describe("the order Enter walks in", () => {
   });
 
   it("reaches every box on that list", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     for (const field of BILL_WALK) {
       expect(form, `${field} handler`).toContain(`handleFieldWalk(event, "${field}")`);
@@ -66,7 +75,7 @@ describe("the order Enter walks in", () => {
 
 describe("the scan box, which Enter already belonged to", () => {
   it("is not on the walk", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Nine inputs carry the handler, plus its own definition. A tenth call
     // would mean the scan box — or some other box — was added to the walk.
@@ -75,7 +84,7 @@ describe("the scan box, which Enter already belonged to", () => {
   });
 
   it("still adds the scanned item on Enter", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const scan = form.slice(form.indexOf("Scan or type a code"), form.indexOf("Search item, SKU"));
 
     expect(scan.length, "the scan box moved").toBeGreaterThan(0);
@@ -86,7 +95,7 @@ describe("the scan box, which Enter already belonged to", () => {
 
 describe("what Enter must never do", () => {
   it("never saves the bill", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const walk = form.slice(
       form.indexOf("function handleFieldWalk"),
       form.indexOf("const catalogByDesign"),
@@ -99,7 +108,7 @@ describe("what Enter must never do", () => {
   });
 
   it("leaves the note alone, where Enter means a new line", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const note = form.slice(form.indexOf('<textarea name="note"'), form.indexOf('<textarea name="note"') + 300);
 
     expect(note.length, "the note moved").toBeGreaterThan(0);
@@ -107,7 +116,7 @@ describe("what Enter must never do", () => {
   });
 
   it("leaves Tab alone", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).not.toContain('key === "Tab"');
     expect(form).not.toMatch(/tabIndex=\{[1-9]/);
@@ -116,7 +125,7 @@ describe("what Enter must never do", () => {
 
 describe("walking back", () => {
   it("goes backwards on Shift+Enter", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain("if (event.shiftKey)");
     expect(form).toContain("BILL_WALK[at - 1]");
