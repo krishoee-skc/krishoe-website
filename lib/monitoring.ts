@@ -171,13 +171,81 @@ const WRITE_PAUSE_MS = 60_000;
 let consecutiveWriteFailures = 0;
 let writesPausedUntil = 0;
 
+/**
+ * A failure that says the database itself is unreachable or out of quota.
+ *
+ * Kept narrow — codes Postgres and the socket layer use for "no database here",
+ * and Neon's quota refusal — so an ordinary failure elsewhere (an email that
+ * timed out) is still written down.
+ */
+export function isDatabaseUnavailable(cause: unknown) {
+  const code = String((cause as { code?: unknown } | null)?.code ?? "");
+  const message = cause instanceof Error ? cause.message.toLowerCase() : "";
+  return (
+    code === "53000" || // Neon: "exceeded the quota"
+    code === "53300" || // too many connections
+    code === "57P01" ||
+    code === "57P03" ||
+    code === "ECONNREFUSED" ||
+    code.startsWith("08") ||
+    message.includes("exceeded the quota") ||
+    message.includes("connection terminated") ||
+    message.includes("server closed the connection")
+  );
+}
+
+/**
+ * The same failure, written once in a while rather than every time.
+ *
+ * A fault that fires on every page view — a missing setting, a slow partner —
+ * wrote a row for every visitor, each one a wake-up of a database billed for
+ * them. The first is recorded; repeats within ten minutes go to the console
+ * only, which the host keeps. The dashboard still shows the fault and when it
+ * was last seen to within ten minutes.
+ */
+const REPEAT_WINDOW_MS = 10 * 60_000;
+const REPEAT_MEMORY = 200;
+const lastWrittenAt = new Map<string, number>();
+
+function writtenRecently(key: string, now = Date.now()) {
+  const last = lastWrittenAt.get(key);
+  return last !== undefined && now - last < REPEAT_WINDOW_MS;
+}
+
+/** Called only once a row has landed — a failed write is tried again next time. */
+function rememberWritten(key: string, now = Date.now()) {
+  lastWrittenAt.delete(key);
+  lastWrittenAt.set(key, now);
+  // Oldest first in a Map: forget the oldest once there are too many.
+  if (lastWrittenAt.size > REPEAT_MEMORY) {
+    const oldest = lastWrittenAt.keys().next().value;
+    if (oldest !== undefined) lastWrittenAt.delete(oldest);
+  }
+}
+
 function truncate(value: string, max: number) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
-/** Record a failure so /admin/monitoring can show it. Never throws. */
-export async function logError(error: Omit<ErrorLog, "id" | "timestamp">) {
+/**
+ * Record a failure so /admin/monitoring can show it. Never throws.
+ *
+ * @param cause the thrown value, when there is one. A database that is itself
+ *   the failure is not asked to record it: the write cannot land, and trying
+ *   only keeps an exhausted database busy. Writes pause for a minute instead.
+ */
+export async function logError(error: Omit<ErrorLog, "id" | "timestamp">, cause?: unknown) {
   if (Date.now() < writesPausedUntil) {
+    return;
+  }
+
+  if (cause !== undefined && isDatabaseUnavailable(cause)) {
+    writesPausedUntil = Date.now() + WRITE_PAUSE_MS;
+    return;
+  }
+
+  const repeatKey = `${error.level}:${fingerprintFailure(error.message)}`;
+  if (writtenRecently(repeatKey)) {
     return;
   }
 
@@ -207,6 +275,7 @@ export async function logError(error: Omit<ErrorLog, "id" | "timestamp">) {
     );
 
     consecutiveWriteFailures = 0;
+    rememberWritten(repeatKey);
     return id;
   } catch (err) {
     consecutiveWriteFailures += 1;
@@ -276,6 +345,41 @@ export async function logPerformanceMetric(
     return id;
   } catch (err) {
     console.error("Failed to log performance metric:", err);
+  }
+}
+
+/**
+ * Several of one page's web vitals, written as one row each in ONE statement.
+ *
+ * A page reports up to five vitals, and each used to arrive as its own request
+ * and its own INSERT — five wake-ups of a database that bills for every one.
+ * The browser now sends them together (components/SpeedReporter.tsx) and they
+ * land in a single round trip. Web vitals never raise the slow-page warning
+ * (see logPerformanceMetric), so there is nothing else to do per row.
+ */
+export async function logPerformanceMetrics(
+  metrics: Array<Pick<PerformanceMetric, "path" | "method" | "metric" | "duration" | "statusCode">>,
+) {
+  if (metrics.length === 0) return;
+  try {
+    const environment = metricEnvironment();
+    const values: Array<string | number | null> = [];
+    const tuples = metrics.map((metric, index) => {
+      const id = `perf-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`;
+      values.push(id, metric.path, metric.method, metric.metric ?? null, metric.duration, metric.statusCode, environment);
+      const at = index * 7;
+      return `($${at + 1}, $${at + 2}, $${at + 3}, $${at + 4}, $${at + 5}, $${at + 6}, $${at + 7}, NOW())`;
+    });
+
+    await queryPostgres(
+      STORE,
+      `INSERT INTO monitoring_performance
+       (id, path, method, metric, duration, status_code, environment, created_at)
+       VALUES ${tuples.join(", ")}`,
+      values,
+    );
+  } catch (err) {
+    console.error("Failed to log performance metrics:", err);
   }
 }
 
@@ -702,16 +806,9 @@ export async function getUptimePercentage(days: number = 30): Promise<number> {
   try {
     const normalizedDays = Number.isFinite(days) ? Math.trunc(days) : 30;
     const safeDays = Math.min(Math.max(normalizedDays, 1), 366);
-    const result = await queryPostgres<{ uptime: number }>(
-      STORE,
-      `SELECT
-        (COUNT(CASE WHEN status = 'up' THEN 1 END)::float / COUNT(*) * 100)::numeric(5,2) as uptime
-      FROM monitoring_uptime
-      WHERE checked_at > NOW() - ($1 * INTERVAL '1 day')`,
-      [safeDays]
-    );
-
-    return result[0]?.uptime ? parseFloat(String(result[0].uptime)) : 0;
+    const rows = await queryPostgres<{ percent: number | null }>(STORE, WEIGHTED_UPTIME_SQL, [safeDays]);
+    const percent = Number(rows[0]?.percent);
+    return Number.isFinite(percent) ? Math.round(percent * 100) / 100 : 0;
   } catch (err) {
     console.error("Failed to get uptime percentage:", err);
     return 0;
@@ -795,19 +892,14 @@ export async function getUptimeEvidence(): Promise<UptimeEvidence> {
   const outsideRows = await queryPostgres<{
     checks: number;
     answered: number;
+    percent: number | null;
     last_failure: Date | string | null;
-  }>(
-    STORE,
-    `SELECT count(*)::int AS checks,
-            count(*) FILTER (WHERE status = 'up')::int AS answered,
-            max(checked_at) FILTER (WHERE status = 'down') AS last_failure
-     FROM monitoring_uptime
-     WHERE checked_at > now() - INTERVAL '30 days'`,
-  ).catch(() => []);
+  }>(STORE, WEIGHTED_UPTIME_SQL, [30]).catch(() => []);
 
   const outsideRow = outsideRows[0];
   const checks = Number(outsideRow?.checks ?? 0);
   const answered = Number(outsideRow?.answered ?? 0);
+  const weightedPercent = outsideRow?.percent == null ? null : Number(outsideRow.percent);
   const lastFailure = outsideRow?.last_failure ? new Date(outsideRow.last_failure) : null;
 
   const row = rows[0];
@@ -828,8 +920,39 @@ export async function getUptimeEvidence(): Promise<UptimeEvidence> {
       answered,
       // No checks means no answer, not zero per cent. That distinction is the
       // whole reason this card was rewritten once already.
-      percent: checks > 0 ? Math.round((answered / checks) * 10_000) / 100 : null,
+      percent: checks > 0 ? roundedPercent(weightedPercent) : null,
       lastFailureAt: lastFailure ? lastFailure.toISOString() : null,
     },
   };
+}
+
+/**
+ * Readings over the last $1 days, each weighted by how long it stood.
+ *
+ * The outside checker no longer files every "still up" (see
+ * scripts/uptime-probe.mjs): it files a few a day, every "down", and the first
+ * "up" after one. Counting rows would then make each down weigh as much as
+ * hours of up. So each reading counts for the time until the next one — capped
+ * at eight hours, so one reading cannot stand for a whole night — and the
+ * percentage is time up over time observed. Used by getUptimePercentage and
+ * getUptimeEvidence above; module constants are read when they are called.
+ */
+const WEIGHTED_UPTIME_SQL = `
+  SELECT count(*)::int AS checks,
+         count(*) FILTER (WHERE status = 'up')::int AS answered,
+         (sum(extract(epoch FROM (until - checked_at))) FILTER (WHERE status = 'up')
+           / nullif(sum(extract(epoch FROM (until - checked_at))), 0) * 100)::float AS percent,
+         max(checked_at) FILTER (WHERE status = 'down') AS last_failure
+    FROM (
+      SELECT status, checked_at,
+             LEAST(
+               LEAD(checked_at, 1, now()) OVER (ORDER BY checked_at),
+               checked_at + INTERVAL '8 hours'
+             ) AS until
+        FROM monitoring_uptime
+       WHERE checked_at > now() - ($1 * INTERVAL '1 day')
+    ) AS weighted`;
+
+function roundedPercent(value: number | null) {
+  return value === null || !Number.isFinite(value) ? null : Math.round(value * 100) / 100;
 }

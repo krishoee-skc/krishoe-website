@@ -46,9 +46,11 @@ concurrency:
   group: uptime
   cancel-in-progress: false
 
-# Nothing here reads or writes the repository. The job talks to the shop and to
-# nothing else.
-permissions: {}
+# Nothing here writes the repository. The one read is this workflow's own run
+# history — whether the previous check failed — so the job can tell a recovery
+# from an ordinary "still up" without waking the shop's database to ask.
+permissions:
+  actions: read
 
 jobs:
   probe:
@@ -64,6 +66,18 @@ jobs:
         with:
           node-version: 22
 
+      # A down run ends red (see scripts/uptime-probe.mjs). If the last finished
+      # run was red, this one files its reading even when the shop is up again,
+      # so the recovery is recorded and the "back up" message goes out.
+      - name: Did the last check fail?
+        id: last
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion=$(gh run list --workflow uptime.yml --status completed --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || true)
+          echo "conclusion=${conclusion}" >> "$GITHUB_OUTPUT"
+          echo "Last check: ${conclusion:-unknown}"
+
       # No npm install. The probe uses fetch and nothing else — deliberately,
       # so a check running this often does not spend most of its life
       # installing packages, and so this job pulls in no third-party code.
@@ -74,6 +88,9 @@ jobs:
           # whether the alert would have worked — until the night it matters.
           # This sends one on request and files nothing.
           UPTIME_TEST_ALERT: ${{ inputs.send_test_alert }}
+          # Run by hand = a full check, database included, and filed.
+          PROBE_DEEP: ${{ github.event_name == 'workflow_dispatch' }}
+          LAST_CHECK_FAILED: ${{ steps.last.outputs.conclusion == 'failure' }}
           # Writes one uptime row and can do nothing else. Deliberately NOT the
           # database connection string: anything reaching these secrets should
           # not be able to read a single order, wage or customer.

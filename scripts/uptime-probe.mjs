@@ -42,6 +42,44 @@ const WRITE_URL =
 const TOKEN = env("UPTIME_WRITE_TOKEN");
 
 /**
+ * Asking the shop without waking its database, most of the time.
+ *
+ * Neon puts an idle database to sleep and bills each wake-up for at least five
+ * minutes of compute. This check ran forty-four times a day and every run woke
+ * the database twice — once for /api/health's SELECT 1 and once to file the
+ * reading — which kept it awake for hours a day and ran the old database out of
+ * its quota.
+ *
+ * So an ordinary run only asks whether the site answers, which touches no
+ * database, and files nothing when all is well. The database is woken when it
+ * has something to say:
+ *
+ *   deep run     three times a day, and whenever run by hand — asks the
+ *                database too (?deep=1) and files the reading, up or down
+ *   down         always filed: an outage is the reading that matters
+ *   after down   the previous run failed, so this one is filed as well — that
+ *                is what records the recovery and sends the "back up" message
+ *
+ * The uptime figure is weighted by time (lib/monitoring.ts), so fewer "up" rows
+ * do not make the downs count for more than they lasted.
+ */
+const DEEP_HOURS_UTC = new Set([4, 8, 12]);
+const now = new Date();
+const DEEP =
+  env("PROBE_DEEP").toLowerCase() === "true" ||
+  // The first forty minutes of those hours, so a run GitHub starts a little
+  // late still counts; twice in one window costs one more short wake-up.
+  (DEEP_HOURS_UTC.has(now.getUTCHours()) && now.getUTCMinutes() < 40);
+const AFTER_FAILURE = env("LAST_CHECK_FAILED").toLowerCase() === "true";
+
+function probeUrl() {
+  if (!DEEP) return PROBE_URL;
+  const url = new URL(PROBE_URL);
+  url.searchParams.set("deep", "1");
+  return url.toString();
+}
+
+/**
  * Long enough that a slow cold start is not called an outage, short enough that
  * a hung request does not hold the job open. Vercel's function ceiling is ten
  * seconds, so fifteen means a timeout here is the site's fault, not ours.
@@ -60,7 +98,7 @@ async function probe() {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await fetch(PROBE_URL, {
+    const response = await fetch(probeUrl(), {
       signal: controller.signal,
       headers: { "Cache-Control": "no-cache" },
       // A cached 200 from a CDN edge would say the site is up while the app
@@ -68,8 +106,9 @@ async function probe() {
       cache: "no-store",
     });
 
-    // /api/health answers 503 when the database is unreachable, so a 200 here
-    // means the whole path answered: edge, function, and Neon.
+    // On a deep run /api/health answers 503 when the database is unreachable,
+    // so a 200 means the whole path answered: edge, function, and Neon. On an
+    // ordinary run it means the edge and the function answered.
     return {
       checkedAt,
       status: response.ok ? "up" : "down",
@@ -211,6 +250,13 @@ async function main() {
     }
   }
 
+  // Up, not a deep run, and the last run was fine: nothing new to record, and
+  // filing it would only wake the database to write "still up".
+  if (reading.status === "up" && !DEEP && !AFTER_FAILURE) {
+    console.log("up — not filed; the database is left asleep until a deep run or a change");
+    return 0;
+  }
+
   if (!TOKEN) {
     console.error("No UPTIME_WRITE_TOKEN — the reading was taken but cannot be filed.");
     return 1;
@@ -253,7 +299,9 @@ async function main() {
     }
   }
 
-  return 0;
+  // Filed either way; a down run then ends red. That is what tells the next run
+  // to file its reading too, so the recovery is recorded the moment it happens.
+  return reading.status === "down" ? 1 : 0;
 }
 
 process.exitCode = await main();

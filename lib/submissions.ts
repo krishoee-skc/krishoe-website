@@ -5,7 +5,7 @@ import { runWithDataBackend } from "@/lib/data-backend";
 import { saveCustomerVoice } from "@/lib/customer-voice";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import type { PostgresExecutor } from "@/lib/postgres/client";
-import type { OrderItem } from "@/lib/order-stock";
+import { reservedByProduct, UNCONFIRMED_HOLD_HOURS, type OrderItem } from "@/lib/order-stock";
 
 export type { OrderItem };
 
@@ -445,6 +445,40 @@ export async function getOrders() {
     storeName: "orders",
     localJson: getOrdersFromLocalJson,
     postgres: getOrdersFromPostgres,
+  });
+}
+
+/**
+ * Pairs open orders are holding, per product — the one number the shop needs.
+ *
+ * The storefront and the price check used to read the latest thousand orders,
+ * with every line of every one, only to add up the quantities of the few still
+ * open. The database can add them up itself and send back one short list. It
+ * also stops being wrong past a thousand orders, where an old open order fell
+ * out of the list and its pairs went back on sale.
+ *
+ * Same hold rule as orderHoldsStock and the checkout's own SQL: a Contacted
+ * order holds its pairs, a New one for its first UNCONFIRMED_HOLD_HOURS.
+ */
+export async function getReservedPairsByProduct(): Promise<Map<string, number>> {
+  return runWithDataBackend({
+    storeName: "orders",
+    localJson: async () => reservedByProduct(await getOrdersFromLocalJson()),
+    postgres: async () => {
+      const rows = await queryPostgres<{ product_id: string; reserved: number | string }>(
+        "orders",
+        `SELECT oi.product_id, sum(oi.quantity)::bigint AS reserved
+           FROM order_items oi
+           JOIN orders o ON o.id = oi.order_id
+          WHERE o.status = 'Contacted'
+             OR (o.status = 'New' AND o.created_at > now() - make_interval(hours => $1::int))
+          GROUP BY oi.product_id`,
+        [UNCONFIRMED_HOLD_HOURS],
+      );
+      return new Map(
+        rows.map((row) => [row.product_id, Math.max(0, Math.round(Number(row.reserved) || 0))]),
+      );
+    },
   });
 }
 

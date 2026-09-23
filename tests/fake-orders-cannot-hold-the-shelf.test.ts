@@ -63,3 +63,23 @@ describe("the checkout limits", () => {
     expect(actions).toContain("if (!paymentOptions.includes(payment))");
   });
 });
+
+describe("the storefront's count of held pairs", () => {
+  it("is added up by the database, with the same hold rule as checkout", async () => {
+    const submissions = await readFile("lib/submissions.ts", "utf8");
+    const checkout = await readFile("lib/checkout-order.ts", "utf8");
+    const rule = "o.status = 'New' AND o.created_at > now() - make_interval(hours => $";
+    expect(submissions).toContain("export async function getReservedPairsByProduct()");
+    expect(submissions).toContain(rule);
+    expect(checkout).toContain(rule);
+  });
+
+  it("no longer reads the latest thousand orders to do it", async () => {
+    const layout = await readFile("app/layout.tsx", "utf8");
+    const pricing = await readFile("lib/order-pricing.ts", "utf8");
+    for (const source of [layout, pricing]) {
+      expect(source).toContain("getReservedPairsByProduct()");
+      expect(source).not.toContain("getOrders()");
+    }
+  });
+});

@@ -58,14 +58,18 @@ export function reportError(where: string, error: unknown) {
  */
 function record(where: string, described: string, error: unknown) {
   const write = () =>
-    logError({
-      level: "error",
-      // The first line only. The rest of a stack is not a sentence, and the
-      // whole of it is kept in its own column.
-      message: `${where} failed: ${firstLine(described)}`,
-      stack: error instanceof Error ? error.stack : undefined,
-      context: where,
-    });
+    logError(
+      {
+        level: "error",
+        // The first line only. The rest of a stack is not a sentence, and the
+        // whole of it is kept in its own column.
+        message: `${where} failed: ${firstLine(described)}`,
+        stack: error instanceof Error ? error.stack : undefined,
+        context: where,
+      },
+      // So a database that is down is not asked to write down that it is down.
+      error,
+    );
 
   try {
     after(write);

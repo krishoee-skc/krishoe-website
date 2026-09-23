@@ -5,7 +5,15 @@ const store = vi.hoisted(() => ({ getProducts: vi.fn(), getOrders: vi.fn(() => P
 vi.mock("@/lib/product-store", () => ({ getProducts: store.getProducts }));
 // See tests/order-stock.test.ts: keeps this a unit test rather than one that
 // reads whatever orders are on disk.
-vi.mock("@/lib/submissions", () => ({ getOrders: store.getOrders }));
+vi.mock("@/lib/submissions", async () => {
+  // The real aggregate is SQL; here it is the same hold rule over the stubbed orders.
+  const { reservedByProduct } = await vi.importActual<typeof import("@/lib/order-stock")>("@/lib/order-stock");
+  return {
+    getOrders: store.getOrders,
+    getReservedPairsByProduct: async () =>
+      reservedByProduct((await store.getOrders()) as Parameters<typeof reservedByProduct>[0]),
+  };
+});
 
 import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
 

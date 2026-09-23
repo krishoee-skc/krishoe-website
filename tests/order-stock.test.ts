@@ -11,7 +11,15 @@ vi.mock("@/lib/product-store", () => ({ getProducts: store.getProducts }));
 // Stubbed so these stay unit tests. Without it computeAuthoritativeOrderTotal
 // reads data/orders.json, and the suite would quietly start depending on
 // whatever orders happen to be sitting there.
-vi.mock("@/lib/submissions", () => ({ getOrders: store.getOrders }));
+vi.mock("@/lib/submissions", async () => {
+  // The real aggregate is SQL; here it is the same hold rule over the stubbed orders.
+  const { reservedByProduct } = await vi.importActual<typeof import("@/lib/order-stock")>("@/lib/order-stock");
+  return {
+    getOrders: store.getOrders,
+    getReservedPairsByProduct: async () =>
+      reservedByProduct((await store.getOrders()) as Parameters<typeof reservedByProduct>[0]),
+  };
+});
 
 import {
   computeAuthoritativeOrderTotal,

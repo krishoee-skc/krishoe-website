@@ -9,8 +9,8 @@ import VersionWatcher from "@/components/VersionWatcher";
 import LanguageProvider from "@/components/LanguageProvider";
 import StorefrontEnhancements from "@/components/StorefrontEnhancements";
 import { getProducts } from "@/lib/product-store";
-import { getOrders } from "@/lib/submissions";
-import { reservedByProduct, withAvailableStock } from "@/lib/order-stock";
+import { getReservedPairsByProduct } from "@/lib/submissions";
+import { withAvailableStock } from "@/lib/order-stock";
 import { reportError } from "@/lib/report-error";
 import { pwaMetadata, pwaViewport } from "@/lib/pwa";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
@@ -176,8 +176,10 @@ export const metadata: Metadata = {
 // than crash — the header, nav and cart stay, and the next navigation recovers.
 const loadBuyableProducts = unstable_cache(async (): Promise<Product[]> => {
   try {
-    const [catalog, orders] = await Promise.all([getProducts(), getOrders()]);
-    return withAvailableStock(catalog, reservedByProduct(orders));
+    // The database adds up the held pairs and sends back one short list —
+    // not the latest thousand orders with every line of each.
+    const [catalog, reserved] = await Promise.all([getProducts(), getReservedPairsByProduct()]);
+    return withAvailableStock(catalog, reserved);
   } catch (error) {
     reportError("load catalog for the storefront layout", error);
     return [];

@@ -1,7 +1,7 @@
 import { getProducts } from "@/lib/product-store";
 import { formatPrice } from "@/lib/products";
-import { getOrders } from "@/lib/submissions";
-import { findStockShortfalls, reservedByProduct, type OrderItem } from "@/lib/order-stock";
+import { getReservedPairsByProduct } from "@/lib/submissions";
+import { findStockShortfalls, type OrderItem } from "@/lib/order-stock";
 import type { CheckoutItemInput } from "@/lib/order-pricing-types";
 
 export type { CheckoutItemInput };
@@ -43,7 +43,7 @@ export function parseCheckoutItems(raw: string): CheckoutItemInput[] {
 // tampering impossible: a request can only ever be charged the real catalog
 // price for real products.
 export async function computeAuthoritativeOrderTotal(items: CheckoutItemInput[]) {
-  const [products, orders] = await Promise.all([getProducts(), getOrders()]);
+  const [products, reserved] = await Promise.all([getProducts(), getReservedPairsByProduct()]);
   const productById = new Map(products.map((product) => [product.id, product]));
 
   let totalPaisa = 0;
@@ -83,6 +83,6 @@ export async function computeAuthoritativeOrderTotal(items: CheckoutItemInput[])
     // Checked here rather than in a second pass so availability is judged
     // against the same catalog read the price came from, minus the pairs open
     // orders are already holding.
-    shortfalls: findStockShortfalls(products, items, reservedByProduct(orders)),
+    shortfalls: findStockShortfalls(products, items, reserved),
   };
 }
