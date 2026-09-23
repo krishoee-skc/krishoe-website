@@ -1712,7 +1712,10 @@ CREATE TABLE IF NOT EXISTS customer_voice (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
-  kind text NOT NULL CHECK (kind IN ('review', 'question', 'complaint')),
+  -- 'app' is a note about the shop's own screens rather than a pair of shoes.
+  -- It arrives in the same inbox so there is one place to look; it is never
+  -- published, and the storefront filters on kind = 'review' anyway.
+  kind text NOT NULL CHECK (kind IN ('review', 'question', 'complaint', 'app')),
 
   customer_name text NOT NULL DEFAULT '',
   -- The number is how a Nepali shop actually answers: a call or a WhatsApp

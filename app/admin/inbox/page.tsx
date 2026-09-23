@@ -35,6 +35,10 @@ const KINDS: Array<{ id: VoiceKind; labelEn: string; labelNe: string; emoji: str
   { id: "review", labelEn: "Review", labelNe: "राय", emoji: "⭐" },
   { id: "question", labelEn: "Question", labelNe: "सोधपुछ", emoji: "💬" },
   { id: "complaint", labelEn: "Complaint", labelNe: "गुनासो", emoji: "😟" },
+  // A note about the shop's own screens, not about a pair of shoes. It used to
+  // go to a table with a screen nobody could open; it arrives here now so
+  // there is one inbox to read rather than two.
+  { id: "app", labelEn: "App", labelNe: "App सुधार", emoji: "🐞" },
 ];
 
 function kindOf(kind: VoiceKind) {

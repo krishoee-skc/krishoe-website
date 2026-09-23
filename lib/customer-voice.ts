@@ -23,7 +23,21 @@ const STORE = "customer voice";
 const dataDir = path.join(process.cwd(), "data");
 const customerVoiceFile = path.join(dataDir, "customer-voice.json");
 
-export type VoiceKind = "review" | "question" | "complaint";
+/**
+ * "app" is the fourth kind, and it is about the shop's own screens rather than
+ * a pair of shoes: a button that does not work, a figure that reads wrong, a
+ * thing somebody wishes were there.
+ *
+ * It arrives through the same inbox on purpose. It used to be written to a
+ * separate `user_feedback` table with a screen of its own that no route ever
+ * rendered, so customers could send it and nobody could read it — and on the
+ * new database that table does not exist at all, so sending it now fails. One
+ * inbox means one place to look, and the owner already knows this one.
+ *
+ * It is never published: a customer's note about a broken button is not a
+ * review of a shoe, and the storefront filters on `kind = 'review'` anyway.
+ */
+export type VoiceKind = "review" | "question" | "complaint" | "app";
 export type VoiceStatus = "new" | "answered" | "closed";
 
 export type CustomerVoice = {
@@ -69,7 +83,7 @@ type VoiceRow = {
 const COLUMNS = `id, created_at, kind, customer_name, phone, email, product_id,
   product_name, order_id, rating, message, status, replied_at, reply_note, published, source`;
 
-const voiceKinds: VoiceKind[] = ["review", "question", "complaint"];
+const voiceKinds: VoiceKind[] = ["review", "question", "complaint", "app"];
 const voiceStatuses: VoiceStatus[] = ["new", "answered", "closed"];
 
 function fromRow(row: VoiceRow): CustomerVoice {
@@ -324,7 +338,7 @@ export async function getVoiceCounts(): Promise<VoiceCounts> {
       const counts: VoiceCounts = {
         total: 0,
         waiting: 0,
-        byKind: { review: 0, question: 0, complaint: 0 },
+        byKind: { review: 0, question: 0, complaint: 0, app: 0 },
       };
 
       for (const row of rows) {
@@ -342,7 +356,7 @@ function countCustomerVoice(voices: CustomerVoice[]): VoiceCounts {
   const counts: VoiceCounts = {
     total: 0,
     waiting: 0,
-    byKind: { review: 0, question: 0, complaint: 0 },
+    byKind: { review: 0, question: 0, complaint: 0, app: 0 },
   };
 
   for (const voice of voices) {

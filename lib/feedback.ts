@@ -40,40 +40,54 @@ interface FeedbackRecord {
   updated_at: string;
 }
 
-// Submit feedback
+/**
+ * A note about the app goes into the inbox the owner already reads.
+ *
+ * This used to insert into a `user_feedback` table read by one screen that
+ * no route ever rendered — customers could send a note and nobody could open
+ * it. On the database built from docs/schema.sql that table does not exist at
+ * all, so the form accepted what was typed and then failed on the insert.
+ *
+ * It writes to customer_voice as the `app` kind instead: the same row shape,
+ * the same new/answered/closed statuses and the same reply flow as a review or
+ * a complaint, in the one inbox at /admin/inbox.
+ *
+ * The four feedback types are kept in `source` rather than thrown away — a bug
+ * report and a feature request read differently, and the owner should be able
+ * to tell them apart in the row. The title is folded into the message because
+ * customer_voice carries one body of text; losing the title would lose what
+ * the person led with.
+ */
 export async function submitFeedback(feedback: Omit<Feedback, "id" | "createdAt" | "updatedAt" | "status">) {
+  const { saveCustomerVoice } = await import("@/lib/customer-voice");
+
+  const body = feedback.title.trim()
+    ? `${feedback.title.trim()}
+
+${feedback.message}`
+    : feedback.message;
+
+  const voice = await saveCustomerVoice({
+    kind: "app",
+    customerName: feedback.userName,
+    email: feedback.userEmail ?? "",
+    phone: feedback.userPhone ?? "",
+    // Only a rating carries a verdict; a bug report has none, and 0 is what
+    // the column means by "no rating".
+    rating: feedback.type === "rating" ? (feedback.rating ?? 0) : 0,
+    message: body,
+    source: `app-${feedback.type}`,
+  });
+
+  // Said after the row is safe, and not allowed to undo it: a notification
+  // that fails must not lose a customer's note.
   try {
-    const id = `fb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    await queryPostgres(
-      STORE,
-      `INSERT INTO user_feedback
-       (id, type, user_type, user_name, user_email, user_phone, title, message, rating, screenshot, url, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
-      [
-        id,
-        feedback.type,
-        feedback.userType,
-        feedback.userName,
-        feedback.userEmail || null,
-        feedback.userPhone || null,
-        feedback.title,
-        feedback.message,
-        feedback.rating || null,
-        feedback.screenshot || null,
-        feedback.url || null,
-        "new",
-      ]
-    );
-
-    // Send notification to admin
     await notifyAdminFeedback(feedback.type, feedback.title);
-
-    return id;
   } catch (error) {
-    console.error("Failed to submit feedback:", error);
-    throw error;
+    console.error("Feedback saved but the notification failed:", error);
   }
+
+  return voice.id;
 }
 
 // Get feedback statistics
