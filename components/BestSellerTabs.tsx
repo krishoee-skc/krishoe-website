@@ -14,9 +14,12 @@ import type { Product } from "@/lib/products";
  * shelf, so the row is never empty on a shop that has not tagged everything yet.
  */
 type Lists = {
-  best: Product[];
-  trending: Product[];
-  newArrivals: Product[];
+  /** Every shoe any tab names, once. */
+  pool: Product[];
+  /** The tabs, as ids into the pool — so an overlapping shoe is sent once. */
+  best: string[];
+  trending: string[];
+  newArrivals: string[];
 };
 
 const TABS = [
@@ -27,12 +30,22 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export default function BestSellerTabs({ best, trending, newArrivals }: Lists) {
+export default function BestSellerTabs({ pool, best, trending, newArrivals }: Lists) {
   const [tab, setTab] = useState<TabId>("best");
   const { text } = useLanguage();
 
-  const chosen = tab === "trending" ? trending : tab === "new" ? newArrivals : best;
-  const list = chosen.length > 0 ? chosen : best;
+  // The ids are resolved back to shoes here. Order is the order the server
+  // chose, and an id with nothing behind it is skipped rather than drawn as a
+  // gap — the shelf shows shoes or it shows nothing.
+  const byId = new Map(pool.map((product) => [product.id, product]));
+  const resolve = (ids: string[]) =>
+    ids.flatMap((id) => {
+      const product = byId.get(id);
+      return product ? [product] : [];
+    });
+
+  const chosen = resolve(tab === "trending" ? trending : tab === "new" ? newArrivals : best);
+  const list = chosen.length > 0 ? chosen : resolve(best);
 
   return (
     <>

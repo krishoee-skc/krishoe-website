@@ -38,6 +38,9 @@ export default async function BestSeller({ products }: BestSellerProps = {}) {
   // above an empty shelf.
   if (all.length === 0) return null;
 
+  // One copy of each shoe named by any tab.
+  const pool = [...new Map([...best, ...trending, ...newArrivals].map((p) => [p.id, p])).values()];
+
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
@@ -50,7 +53,20 @@ export default async function BestSeller({ products }: BestSellerProps = {}) {
           </h2>
         </div>
 
-        <BestSellerTabs best={best} trending={trending} newArrivals={newArrivals} />
+        {/* Each shoe crosses the wire once, however many tabs it sits on.
+            The three lists overlap heavily, and on a shop that has tagged
+            nothing they are the same eight shoes three times over, because
+            every tab falls back to this shelf. Sent as three arrays of whole
+            products, the same catalogue rows were serialised into the page
+            three times — most of why the home page weighed 46KB more than the
+            shop, paid for on a phone connection. The pool is deduplicated by
+            id and the tabs are named by id instead. */}
+        <BestSellerTabs
+          pool={pool}
+          best={best.map((product) => product.id)}
+          trending={trending.map((product) => product.id)}
+          newArrivals={newArrivals.map((product) => product.id)}
+        />
       </div>
     </section>
   );

@@ -48,6 +48,16 @@ export default function ProductCard({
           alt={productImageAlt(product)}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          // `eager` marks the cards that are already on screen when the shop
+          // opens. loading="eager" only stops the browser deferring the
+          // request until the card scrolls into view; it does not move the
+          // image up the queue, so the first photo a shopper sees still waited
+          // behind the page's own scripts. `priority` preloads it, which is
+          // the one that shortens the wait before the shop looks like a shop.
+          // Deliberately not set on every card: priority on everything is
+          // priority on nothing, and it would pull the whole catalogue over a
+          // phone connection at once.
+          priority={eager}
           loading={eager ? "eager" : "lazy"}
           className="object-cover transition duration-700 group-hover:scale-105"
         />
