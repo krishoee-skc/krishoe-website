@@ -177,14 +177,26 @@ describe("what the shop can honestly say about being up", () => {
   });
 
   it("shows the age of the answer, not a timestamp to subtract", async () => {
-    const dashboard = await readFile("components/admin/MonitoringDashboard.tsx", "utf8");
+    // The screen is two files: the dashboard that draws it, and the readings
+    // it draws from. Which of the two holds this function is housekeeping —
+    // what matters is that the screen has it and says it in both languages.
+    const [dashboard, readings] = await Promise.all([
+      readFile("components/admin/MonitoringDashboard.tsx", "utf8"),
+      readFile("components/admin/monitoring-readings.ts", "utf8"),
+    ]);
+    const screen = dashboard + "\n" + readings;
 
     // "6 मिनेटअघि" answers the question. A clock time makes the reader do
     // arithmetic across the 5h45m between Kathmandu and the server.
-    expect(dashboard).toContain("function minutesAgo");
-    expect(dashboard).toContain("मिनेटअघि");
-    // In whichever language they are reading. A helper cannot ask, so it hands
-    // back both halves and the caller picks.
-    expect(dashboard).toContain("minutes ago");
+    expect(screen).toContain("function minutesAgo");
+
+    // Asserted on the minutes branch itself, not anywhere on the screen. The
+    // word appears in the hours and days branches too, so a check that only
+    // asked whether the file contains it stayed green while the minutes line
+    // was quietly switched to English — the exact case a Nepali reader meets
+    // first, since under an hour is the common answer.
+    expect(screen, "the minutes reading must be in both languages").toMatch(
+      /minutes < 60\)\s*return \{ en: `\$\{minutes\} minutes ago`, ne: `\$\{minutes\} मिनेटअघि` \}/,
+    );
   });
 });
