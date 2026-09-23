@@ -3,6 +3,8 @@ import Link from "next/link";
 import T from "@/components/T";
 import NavbarControls from "@/components/NavbarControls";
 import PrimaryNav from "@/components/PrimaryNav";
+import { deliveryPromise } from "@/lib/delivery-fee";
+import { getStorefrontDeliveryPricing } from "@/lib/delivery-settings";
 
 type NavbarProps = {
   isLoggedIn?: boolean;
@@ -21,6 +23,9 @@ type NavbarProps = {
  * the price makes a customer suspicious rather than impressed.
  */
 export default async function Navbar({ isLoggedIn = false, isAdmin = false }: NavbarProps) {
+  // From Settings, so the header promises what checkout charges.
+  const delivery = deliveryPromise(await getStorefrontDeliveryPricing());
+
   return (
     <header className="sticky top-0 z-50 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       {/* The utility bar the approved shop leads with: the free-delivery line a
@@ -32,7 +37,7 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3zM14 10h3l3 3v3h-6M6 18a1.5 1.5 0 1 0 3 0M15 18a1.5 1.5 0 1 0 3 0" />
           </svg>
           <span className="truncate">
-            <T en="Free delivery over NPR 2000" ne="NPR 2000 माथि Free delivery" />
+            <T en={delivery.en} ne={delivery.ne} />
           </span>
         </span>
         <span className="flex flex-none items-center gap-2.5">

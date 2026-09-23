@@ -7,6 +7,8 @@ import T from "@/components/T";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { reportError } from "@/lib/report-error";
+import { defaultDeliveryPricing, type DeliveryPricing } from "@/lib/delivery-fee";
+import { getDeliveryPricing } from "@/lib/delivery-settings";
 import type { BankDetails } from "@/components/PaymentInstructions";
 
 const NO_BANK: BankDetails = {
@@ -39,13 +41,29 @@ async function loadBankDetails(): Promise<BankDetails> {
   }
 }
 
+// Fresh, not the storefront's cached copy: this page shows the charge the
+// order is about to carry. If it cannot be read, the page still opens; the
+// server reads it again when the order is placed and charges by that.
+async function loadDeliveryPricing(): Promise<DeliveryPricing> {
+  try {
+    return await getDeliveryPricing();
+  } catch (error) {
+    reportError("load checkout delivery pricing", error);
+    return defaultDeliveryPricing;
+  }
+}
+
 export const metadata: Metadata = {
   title: "Checkout | KRISHOE",
   description: "Complete a KRISHOE order request with delivery and payment preferences.",
 };
 
 export default async function CheckoutPage() {
-  const [user, bank] = await Promise.all([getCurrentCustomer(), loadBankDetails()]);
+  const [user, bank, deliveryPricing] = await Promise.all([
+    getCurrentCustomer(),
+    loadBankDetails(),
+    loadDeliveryPricing(),
+  ]);
   const trustItems = [
     { en: "Stock confirmed before payment", ne: "भुक्तानीअघि स्टक पक्का" },
     { en: "Cash on delivery available", ne: "सामान बुझ्दा नगद सुविधा" },
@@ -75,7 +93,7 @@ export default async function CheckoutPage() {
             ))}
           </div>
         </div>
-        <CheckoutClient user={user} bank={bank} />
+        <CheckoutClient user={user} bank={bank} deliveryPricing={deliveryPricing} />
       </section>
       <Footer />
     </main>

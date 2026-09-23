@@ -1,10 +1,30 @@
+import {
+  describeSizeShortfalls,
+  findInvalidItemOption,
+  findSizeShortfalls,
+  reservedBySize,
+  sizeHoldKey,
+  type SizeShortfall,
+} from "@/lib/checkout-item-check";
 import { evaluateCoupon, getCouponForUpdate, redeemCouponWithExecutor } from "@/lib/coupons";
 import { getDataBackend } from "@/lib/data-backend";
+import {
+  deliveryChargeFor,
+  deliveryChargeLine,
+  type DeliveryCharge,
+  type DeliveryPricing,
+} from "@/lib/delivery-fee";
+import type { FinishedStock } from "@/lib/operations";
 import { computeAuthoritativeOrderTotal } from "@/lib/order-pricing";
 import type { CheckoutItemInput } from "@/lib/order-pricing-types";
-import { describeStockShortfalls, type OrderItem, type StockShortfall } from "@/lib/order-stock";
+import {
+  describeStockShortfalls,
+  UNCONFIRMED_HOLD_HOURS,
+  type OrderItem,
+  type StockShortfall,
+} from "@/lib/order-stock";
 import { transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
-import { formatPrice } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
 import {
   recordReferralClaimWithExecutor,
   referralAsCoupon,
@@ -33,6 +53,12 @@ type CheckoutOrderInput = {
   submittedCode: string;
   customerUserId?: string;
   referral?: NonNullable<ReferralLookup>;
+  /** The storefront catalog, for the sizes and colours each product offers. */
+  catalog: Product[];
+  /** Size-by-size shelf stock, for designs that are entered that way. */
+  finishedStock: FinishedStock[];
+  /** The owner's delivery charge, read fresh for this order. */
+  deliveryPricing: DeliveryPricing;
 };
 
 export type CheckoutOrderPlacement =
@@ -52,7 +78,7 @@ type LockedProductRow = {
   status: "Active" | "Draft";
 };
 
-type ReservedRow = { product_id: string; reserved: number | string };
+type ReservedRow = { product_id: string; size: string | null; reserved: number | string };
 
 function cleanCount(value: number | string) {
   return Math.max(0, Math.round(Number(value) || 0));
@@ -118,6 +144,33 @@ function stockFailure(shortfalls: StockShortfall[]): CheckoutOrderPlacement {
   };
 }
 
+function sizeStockFailure(shortfalls: SizeShortfall[]): CheckoutOrderPlacement {
+  return {
+    ok: false,
+    reason: "stock",
+    message: `${describeSizeShortfalls(shortfalls)}. Please remove it from your cart and choose another size on the product page.`,
+  };
+}
+
+/**
+ * Pairs after any discount, plus delivery. The order text carries the delivery
+ * line too, so the order desk and the customer's confirmation email both say
+ * what the total is made of.
+ */
+function orderMoney(
+  items: OrderItem[],
+  subtotalPaisa: number,
+  discountPaisa: number,
+  input: CheckoutOrderInput,
+) {
+  const goodsPaisa = Math.max(0, subtotalPaisa - discountPaisa);
+  const delivery: DeliveryCharge = deliveryChargeFor(input.deliveryPricing, input.delivery, goodsPaisa);
+  return {
+    totalPaisa: goodsPaisa + delivery.feePaisa,
+    orderText: `${canonicalOrderText(items)}\n${deliveryChargeLine(delivery)}`,
+  };
+}
+
 async function placeCheckoutOrderPostgres(
   db: PostgresExecutor,
   input: CheckoutOrderInput,
@@ -160,18 +213,32 @@ async function placeCheckoutOrderPostgres(
     return invalidItems("One or more cart items are no longer available. Please refresh and try again.");
   }
 
+  const invalidOption = findInvalidItemOption(input.items, input.catalog);
+  if (invalidOption) return invalidItems(invalidOption);
+
+  // The hold rule from lib/order-stock.ts (orderHoldsStock), in SQL: a
+  // Contacted order holds its pairs, a New one only for its first
+  // UNCONFIRMED_HOLD_HOURS. Grouped by size as well, for the size-wise check.
   const reservedRows = await db.query<ReservedRow>(
-    `SELECT oi.product_id, sum(oi.quantity)::bigint AS reserved
+    `SELECT oi.product_id, oi.size, sum(oi.quantity)::bigint AS reserved
        FROM order_items oi
        JOIN orders o ON o.id = oi.order_id
       WHERE oi.product_id = ANY($1::text[])
-        AND o.status IN ('New', 'Contacted')
-      GROUP BY oi.product_id`,
-    [productIds],
+        AND (
+          o.status = 'Contacted'
+          OR (o.status = 'New' AND o.created_at > now() - make_interval(hours => $2::int))
+        )
+      GROUP BY oi.product_id, oi.size`,
+    [productIds, UNCONFIRMED_HOLD_HOURS],
   );
-  const reserved = new Map(
-    reservedRows.map((row) => [row.product_id, cleanCount(row.reserved)]),
-  );
+  const reserved = new Map<string, number>();
+  const reservedSizes = new Map<string, number>();
+  for (const row of reservedRows) {
+    const count = cleanCount(row.reserved);
+    reserved.set(row.product_id, (reserved.get(row.product_id) ?? 0) + count);
+    const sizeKey = sizeHoldKey(row.product_id, row.size ?? "");
+    reservedSizes.set(sizeKey, (reservedSizes.get(sizeKey) ?? 0) + count);
+  }
   const requested = new Map<string, number>();
   for (const item of input.items) {
     requested.set(item.productId, (requested.get(item.productId) ?? 0) + item.quantity);
@@ -185,6 +252,14 @@ async function placeCheckoutOrderPostgres(
       : [];
   });
   if (shortfalls.length > 0) return stockFailure(shortfalls);
+
+  const sizeShortfalls = findSizeShortfalls(
+    input.items,
+    input.catalog,
+    input.finishedStock,
+    reservedSizes,
+  );
+  if (sizeShortfalls.length > 0) return sizeStockFailure(sizeShortfalls);
 
   const priced = priceLockedCheckoutItems(input.items, products);
   if (priced.orderItems.length !== input.items.length || priced.subtotalPaisa <= 0) {
@@ -206,7 +281,12 @@ async function placeCheckoutOrderPostgres(
   }
 
   const discountPaisa = couponCheck?.ok ? couponCheck.discountPaisa : 0;
-  const totalPaisa = Math.max(0, priced.subtotalPaisa - discountPaisa);
+  const { totalPaisa, orderText } = orderMoney(
+    priced.orderItems,
+    priced.subtotalPaisa,
+    discountPaisa,
+    input,
+  );
 
   if (couponCheck?.ok && !referralCoupon) {
     const redeemed = await redeemCouponWithExecutor(db, couponCheck.coupon.code);
@@ -227,7 +307,7 @@ async function placeCheckoutOrderPostgres(
       address: input.address,
       delivery: input.delivery,
       payment: input.payment,
-      order: canonicalOrderText(priced.orderItems),
+      order: orderText,
       items: priced.orderItems,
       total: formatPrice(totalPaisa),
       subtotalPaisa: priced.subtotalPaisa,
@@ -286,7 +366,17 @@ async function placeCheckoutOrderLocal(input: CheckoutOrderInput): Promise<Check
     ) {
       return invalidItems("We couldn't verify the items in your cart. Please refresh and try again.");
     }
+    const invalidOption = findInvalidItemOption(input.items, input.catalog);
+    if (invalidOption) return invalidItems(invalidOption);
     if (pricing.shortfalls.length > 0) return stockFailure(pricing.shortfalls);
+
+    const sizeShortfalls = findSizeShortfalls(
+      input.items,
+      input.catalog,
+      input.finishedStock,
+      reservedBySize(await getOrders()),
+    );
+    if (sizeShortfalls.length > 0) return sizeStockFailure(sizeShortfalls);
 
     const referralCoupon = input.referral
       ? referralAsCoupon(input.referral, input.customerUserId)
@@ -306,7 +396,12 @@ async function placeCheckoutOrderLocal(input: CheckoutOrderInput): Promise<Check
     }
 
     const discountPaisa = couponCheck?.ok ? couponCheck.discountPaisa : 0;
-    const totalPaisa = Math.max(0, pricing.totalPaisa - discountPaisa);
+    const { totalPaisa, orderText } = orderMoney(
+      pricing.orderItems,
+      pricing.totalPaisa,
+      discountPaisa,
+      input,
+    );
     const order = await saveOrder(
       {
         name: input.name,
@@ -315,7 +410,7 @@ async function placeCheckoutOrderLocal(input: CheckoutOrderInput): Promise<Check
         address: input.address,
         delivery: input.delivery,
         payment: input.payment,
-        order: canonicalOrderText(pricing.orderItems),
+        order: orderText,
         items: pricing.orderItems,
         total: formatPrice(totalPaisa),
         subtotalPaisa: pricing.totalPaisa,

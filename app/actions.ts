@@ -2,7 +2,14 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { validateDeliveryArea } from "@/lib/commerce";
+import { paymentOptions, validateDeliveryArea } from "@/lib/commerce";
+import { getDeliveryPricing } from "@/lib/delivery-settings";
+import { getFinishedStock } from "@/lib/operations";
+import {
+  checkAndRecordRateLimit,
+  checkRateLimit,
+  recordRateLimitAttempt,
+} from "@/lib/rate-limit-store";
 import { markCheckoutRecovered } from "@/lib/checkout-attempts";
 import { normalizeCouponCode } from "@/lib/coupons";
 import {
@@ -14,7 +21,7 @@ import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { notifyContactReceived, notifyOrderReceived } from "@/lib/notifications";
 import { parseCheckoutItems } from "@/lib/order-pricing";
 import { placeCheckoutOrder } from "@/lib/checkout-order";
-import { getProductById } from "@/lib/product-store";
+import { getProductById, getProducts } from "@/lib/product-store";
 import { saveCustomerVoice } from "@/lib/customer-voice";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { getOrdersForCustomer, saveContactMessage } from "@/lib/submissions";
@@ -29,13 +36,21 @@ export type FormState = {
   message: string;
   reference?: string;
   total?: string;
+  /** The order's final total — after discount, with delivery — in paisa. */
+  totalPaisa?: number;
 };
 
-const successState = (message: string, reference?: string, total?: string): FormState => ({
+const successState = (
+  message: string,
+  reference?: string,
+  total?: string,
+  totalPaisa?: number,
+): FormState => ({
   ok: true,
   message,
   reference,
   total,
+  totalPaisa,
 });
 const errorState = (message: string): FormState => ({ ok: false, message });
 
@@ -48,13 +63,47 @@ function tooLong(value: string, maxLength: number) {
   return value.length > maxLength;
 }
 
-async function submissionKey() {
+async function clientIp() {
   const headerStore = await headers();
   const forwardedFor = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim();
   const realIp = headerStore.get("x-real-ip")?.trim();
+  return forwardedFor || realIp || "local";
+}
+
+async function submissionKey() {
+  const headerStore = await headers();
   const userAgent = headerStore.get("user-agent")?.slice(0, 120) ?? "unknown";
 
-  return `${forwardedFor || realIp || "local"}:${userAgent}`;
+  return `${await clientIp()}:${userAgent}`;
+}
+
+/**
+ * The limits on placing orders, beyond the per-device one above.
+ *
+ * The device key is the address AND the browser name, and the browser name is
+ * whatever the request says it is — change it and the counter starts again. So
+ * one sender could place fake cash-on-delivery orders without end and hold the
+ * shop's stock with them. Two more limits close that:
+ *
+ *   by address  — generous, because many phones in Nepal share one public
+ *                 address through their mobile operator; it only stops a flood.
+ *   by phone    — counted on orders actually placed, not attempts, so a buyer
+ *                 who is told a size is gone and tries again is not punished.
+ */
+const CHECKOUT_IP_LIMIT = { bucket: "submission:checkout-ip", maxAttempts: 20, windowMs: 60 * 60 * 1000 };
+const CHECKOUT_PHONE_LIMIT = {
+  bucket: "submission:checkout-phone",
+  maxAttempts: 5,
+  windowMs: 24 * 60 * 60 * 1000,
+};
+
+function phoneLimitKey(phone: string) {
+  // The last ten digits: "+977 98…" and "98…" are the same customer.
+  return phone.replace(/\D/g, "").slice(-10);
+}
+
+function waitMessage(retryAfterSeconds: number) {
+  return `Too many requests. Please wait ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s) and try again.`;
 }
 
 async function enforceSubmissionLimit(bucket: string, maxAttempts: number) {
@@ -133,6 +182,11 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     return errorState(deliveryError);
   }
 
+  // Stored on the order and read by the order desk; only the shop's own options.
+  if (!paymentOptions.includes(payment)) {
+    return errorState("Please choose a payment option.");
+  }
+
   if (email && tooLong(email, 120)) {
     return errorState("Please shorten the order details and try again.");
   }
@@ -141,6 +195,21 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
 
   if (rateLimitError) {
     return rateLimitError;
+  }
+
+  const ipLimit = await checkAndRecordRateLimit({ ...CHECKOUT_IP_LIMIT, key: await clientIp() });
+  if (ipLimit.limited) {
+    return errorState(waitMessage(ipLimit.retryAfterSeconds));
+  }
+
+  const phoneKey = phoneLimitKey(customerProfile.profile.phone ?? phone);
+  const phoneLimit = phoneKey
+    ? await checkRateLimit({ ...CHECKOUT_PHONE_LIMIT, key: phoneKey })
+    : null;
+  if (phoneLimit?.limited) {
+    return errorState(
+      "This phone number has placed several orders today. Please call or WhatsApp KRISHOE to add more.",
+    );
   }
 
   // Product ids and quantities are the only cart facts accepted from the
@@ -176,6 +245,13 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
 
   const session = checkoutSession;
   const profile = customerProfile.profile;
+  // Read fresh, not from the storefront's cache: the delivery charge is money,
+  // and the sizes and shelf stock decide what can be sold.
+  const [catalog, finishedStock, deliveryPricing] = await Promise.all([
+    getProducts(),
+    getFinishedStock(),
+    getDeliveryPricing(),
+  ]);
   const placement = await placeCheckoutOrder({
     checkoutSubmissionKey,
     name: profile.name,
@@ -188,6 +264,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     submittedCode,
     customerUserId: session?.userId,
     referral: eligibleReferral,
+    catalog,
+    finishedStock,
+    deliveryPricing,
   });
 
   if (!placement.ok) {
@@ -195,6 +274,12 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   }
 
   const record = placement.order;
+
+  if (phoneKey && !placement.replayed) {
+    await reportingErrors(`count order ${record.id} against its phone limit`, () =>
+      recordRateLimitAttempt({ ...CHECKOUT_PHONE_LIMIT, key: phoneKey }),
+    );
+  }
 
   // Whether or not a reminder was ever sent. An attempt that turned into an
   // order on its own must stop being a candidate — nobody should be chased for
@@ -221,6 +306,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
       `Order request already saved. Reference: ${record.id}.`,
       record.id,
       record.total,
+      record.totalPaisa,
     );
   }
 
@@ -272,6 +358,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     `Order request saved. Reference: ${record.id}. Use WhatsApp to confirm stock and delivery timing.`,
     record.id,
     record.total,
+    record.totalPaisa,
   );
 }
 

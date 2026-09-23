@@ -13,8 +13,11 @@ import {
   createBranchAction,
   saveCompanySettingsAction,
   saveBusinessGoalAction,
+  saveDeliveryPricingAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
+import { deliveryPolicySentence } from "@/lib/delivery-fee";
+import { getDeliveryPricing } from "@/lib/delivery-settings";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
@@ -107,11 +110,12 @@ export default async function AdminSettingsPage({
 }) {
   const { role } = await requireAdminPermission("settings:write");
   const goalMonthKey = currentGoalMonthKey();
-  const [settings, accessHistory, factoryWorkers, businessGoal] = await Promise.all([
+  const [settings, accessHistory, factoryWorkers, businessGoal, deliveryPricing] = await Promise.all([
     getAdminSettings(),
     getAdminStaffAccessHistory(undefined, 40),
     listFactoryWorkerOptions(),
     getBusinessGoal(goalMonthKey),
+    getDeliveryPricing(),
   ]);
   const notice = await searchParams;
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
@@ -454,6 +458,64 @@ export default async function AdminSettingsPage({
           </div>
           <div className="mt-5">
             <SubmitButton label="Save this month's goal" />
+          </div>
+        </form>
+
+        {/* What delivery costs. The header, the home page, the assistant and
+            checkout all read these two numbers, so the shop makes one promise
+            and the order total keeps it. */}
+        <form
+          id="delivery"
+          action={saveDeliveryPricingAction}
+          className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm"
+        >
+          <div className="mb-5">
+            <h2 className="text-lg font-black text-brand-green-ink">🚚 Delivery charge</h2>
+            <p className="mt-1 text-sm text-brand-muted">
+              Customers see this in the header, on the home page and at checkout, and it is added to the
+              order total. Store pickup is always free.
+            </p>
+            <p className="mt-2 rounded-lg bg-brand-mist px-3 py-2 text-sm font-semibold text-brand-green-ink">
+              Now: {deliveryPolicySentence(deliveryPricing)}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Delivery charge (Rs.)
+              <input
+                name="deliveryFee"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                defaultValue={deliveryPricing.feePaisa > 0 ? deliveryPricing.feePaisa / 100 : ""}
+                placeholder="e.g. 150"
+                className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm font-normal outline-none focus:border-brand-green"
+              />
+              <span className="text-xs font-semibold text-brand-muted">
+                Leave blank or 0 to confirm the charge on the call, as before.
+              </span>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              Free delivery on orders of (Rs.)
+              <input
+                name="freeDeliveryOver"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                defaultValue={deliveryPricing.freeOverPaisa > 0 ? deliveryPricing.freeOverPaisa / 100 : ""}
+                placeholder="e.g. 2000"
+                className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm font-normal outline-none focus:border-brand-green"
+              />
+              <span className="text-xs font-semibold text-brand-muted">
+                Orders at or above this amount, after any discount, go free. Blank or 0 = no free delivery
+                (unless the charge is also 0, which makes delivery free for everyone).
+              </span>
+            </label>
+          </div>
+          <div className="mt-5">
+            <SubmitButton label="Save delivery charge" />
           </div>
         </form>
 

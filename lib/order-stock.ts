@@ -26,18 +26,46 @@ export type OrderItem = {
 export type ReservingOrder = {
   status: "New" | "Contacted" | "Closed" | "Cancelled";
   items: OrderItem[];
+  /** When the order was placed. Without it a New order is held as before. */
+  createdAt?: string;
 };
 
-export function orderHoldsStock(status: ReservingOrder["status"]) {
-  return status === "New" || status === "Contacted";
+/**
+ * How long an order nobody has confirmed may keep pairs off the shelf.
+ *
+ * A New order held its pairs for ever. Anyone could place a handful of cash-on-
+ * delivery orders with a made-up number and every real shopper then saw "Sold
+ * out" until somebody at the shop cancelled them by hand. The shop rings every
+ * order to confirm it; one it has not reached in two days is not a sale it can
+ * count on. Once the shop marks it Contacted the hold is back, and it lasts
+ * until the order is Closed or Cancelled. The order itself is never touched —
+ * only whether its pairs are counted as spoken for.
+ *
+ * checkout-order.ts repeats this rule in SQL; the two must say the same thing.
+ */
+export const UNCONFIRMED_HOLD_HOURS = 48;
+
+export function orderHoldsStock(
+  status: ReservingOrder["status"],
+  createdAt?: string,
+  now: Date = new Date(),
+) {
+  if (status === "Contacted") return true;
+  if (status !== "New") return false;
+
+  const placed = createdAt ? Date.parse(createdAt) : Number.NaN;
+  // A date that cannot be read keeps the hold: releasing pairs by mistake is
+  // the worse failure.
+  if (!Number.isFinite(placed)) return true;
+  return now.getTime() - placed < UNCONFIRMED_HOLD_HOURS * 60 * 60 * 1000;
 }
 
 // Pairs spoken for by orders that are still open, per product.
-export function reservedByProduct(orders: ReservingOrder[]) {
+export function reservedByProduct(orders: ReservingOrder[], now: Date = new Date()) {
   const reserved = new Map<string, number>();
 
   for (const order of orders) {
-    if (!orderHoldsStock(order.status)) {
+    if (!orderHoldsStock(order.status, order.createdAt, now)) {
       continue;
     }
 

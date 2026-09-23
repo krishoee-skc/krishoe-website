@@ -10,6 +10,7 @@ import type { Product } from "@/lib/products";
 import type { FinishedStock } from "@/lib/operations";
 import type { OrderSubmission, PaymentProvider } from "@/lib/submissions";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
+import { orderDeliveryFeePaisa } from "@/lib/delivery-fee";
 
 export type ParsedOnlineOrderItem = CreatePosInvoiceInput["items"][number] & {
   productId: string;
@@ -22,6 +23,8 @@ export type OnlineOrderPosDraft = {
   total: number;
   invoiceDiscount: number;
   tax: number;
+  /** Rupees of delivery charge on the order, kept off the bill and named in its note. */
+  deliveryFee: number;
 };
 
 export type OnlineOrderConversionSignal =
@@ -231,15 +234,20 @@ export async function buildOnlineOrderPosDraft(order: OrderSubmission): Promise<
   }
 
   const subtotal = items.reduce((total, item) => total + item.quantity * item.rate, 0);
+  // The order total now carries the delivery charge. The bill is for the pairs:
+  // left in, the difference printed as "VAT" on a tax invoice. So the bill
+  // takes the pairs after discount, and the delivery charge goes in its note.
+  const deliveryFee = structuredItems === null ? 0 : orderDeliveryFeePaisa(order) / 100;
   const total =
     structuredItems === null || order.totalPaisa === undefined
       ? amountFromOrderTotal(order.total) || subtotal
-      : Math.max(0, order.totalPaisa / 100);
+      : Math.max(0, order.totalPaisa / 100 - deliveryFee);
 
   return {
     items,
     subtotal,
     total,
+    deliveryFee,
     invoiceDiscount: Math.max(0, subtotal - total),
     tax: Math.max(0, total - subtotal),
   };
@@ -275,6 +283,9 @@ export async function buildPosInvoiceInputFromOnlineOrder(
     note: [
       onlineOrderPosMarker(order.id),
       `Delivery: ${order.delivery}`,
+      ...(draft.deliveryFee > 0
+        ? [`Delivery charge Rs. ${draft.deliveryFee} collected with the order, not on this bill`]
+        : []),
       `Address: ${order.address}`,
       `Payment request: ${order.payment}`,
     ].join(". "),

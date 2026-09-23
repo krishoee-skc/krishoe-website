@@ -50,14 +50,16 @@ describe("what the discount box says while you type", () => {
 
     // A reply about "DASHAI" arriving after one about "DASHAIN10" must be
     // dropped, or the box contradicts what is in it.
-    expect(checkout).toContain("couponAsked.current === code");
+    expect(checkout).toContain("if (couponAsked.current !== code) return;");
   });
 
   it("shows the money, not just a tick", async () => {
     const checkout = await source();
 
     expect(checkout).toContain("discountLabel");
-    expect(checkout).toContain("payableLabel");
+    // The total beside the code is the whole order — pairs after the discount,
+    // plus delivery — not the discounted pairs alone.
+    expect(checkout).toContain("total ${estimatedTotalLabel}");
     // Beside the button too — that is where the decision is actually made.
     expect(checkout).toContain("With your discount code");
     expect(checkout).toContain("छुटको कोड लागेपछि");

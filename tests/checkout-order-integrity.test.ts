@@ -45,7 +45,8 @@ describe("atomic checkout boundaries", () => {
     const checkout = await readFile("lib/checkout-order.ts", "utf8");
     expect(checkout).toContain("pg_advisory_xact_lock");
     expect(checkout).toContain("FOR UPDATE");
-    expect(checkout).toContain("o.status IN ('New', 'Contacted')");
+    expect(checkout).toContain("o.status = 'Contacted'");
+    expect(checkout).toContain("o.status = 'New' AND o.created_at > now() - make_interval(hours => $2::int)");
     expect(checkout).toContain("transactionPostgres(STORE");
   });
 

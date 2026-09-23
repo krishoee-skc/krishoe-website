@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { askGemini, isAiConfigured } from "@/lib/ai/gemini";
 import { assistantCatalog, buildAssistantPrompt, type ChatTurn } from "@/lib/ai/assistant-prompt";
 import { getProducts } from "@/lib/product-store";
+import { deliveryPolicySentence } from "@/lib/delivery-fee";
+import { getStorefrontDeliveryPricing } from "@/lib/delivery-settings";
 import { businessContact } from "@/lib/seo";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
 
@@ -76,7 +78,10 @@ export async function POST(request: Request) {
   }
 
   const products = await getProducts();
-  const result = await askGemini(buildAssistantPrompt(assistantCatalog(products), history, message));
+  const deliveryPolicy = deliveryPolicySentence(await getStorefrontDeliveryPricing());
+  const result = await askGemini(
+    buildAssistantPrompt(assistantCatalog(products), history, message, deliveryPolicy),
+  );
 
   if (!result.ok) {
     return NextResponse.json({ ok: true, reply: fallbackReply() });

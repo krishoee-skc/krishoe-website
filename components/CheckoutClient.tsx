@@ -17,6 +17,12 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
 import { previewCouponAction, type CouponPreview } from "@/app/coupon-actions";
 import { trackCommerceEvent } from "@/lib/analytics-events";
+import {
+  deliveryChargeFor,
+  STORE_PICKUP,
+  type DeliveryCharge,
+  type DeliveryPricing,
+} from "@/lib/delivery-fee";
 
 const initialState: FormState = {
   ok: false,
@@ -39,6 +45,15 @@ type CheckoutFormProps = {
   subtotalLabel: string;
   itemsJson: string;
   stockShortfalls: StockShortfall[];
+  /** The delivery option currently chosen, and what it costs this order. */
+  delivery: string;
+  deliveryCharge: DeliveryCharge;
+  /** How much more buys free delivery; "" when it does not apply. */
+  freeDeliveryGapLabel: string;
+  /** Pairs after discount, plus delivery — what the order will say. */
+  estimatedTotalLabel: string;
+  onDeliveryChange: (delivery: string) => void;
+  onDiscountChange: (discountPaisa: number) => void;
 };
 
 function CheckoutForm({
@@ -51,6 +66,12 @@ function CheckoutForm({
   subtotalLabel,
   itemsJson,
   stockShortfalls,
+  delivery,
+  deliveryCharge,
+  freeDeliveryGapLabel,
+  estimatedTotalLabel,
+  onDeliveryChange,
+  onDiscountChange,
 }: CheckoutFormProps) {
   const { text, language } = useLanguage();
   const nepali = language === "ne";
@@ -77,6 +98,7 @@ function CheckoutForm({
 
     if (!code) {
       setCoupon({ status: "empty" });
+      onDiscountChange(0);
       return;
     }
 
@@ -91,7 +113,9 @@ function CheckoutForm({
 
     couponTimer.current = window.setTimeout(() => {
       void previewCouponAction(code, itemsJson, contact).then((answer) => {
-        if (couponAsked.current === code) setCoupon(answer);
+        if (couponAsked.current !== code) return;
+        setCoupon(answer);
+        onDiscountChange(answer.status === "ok" ? answer.discountPaisa : 0);
       });
     }, 500);
   }
@@ -255,8 +279,8 @@ function CheckoutForm({
               {coupon.status === "ok" ? (
                 <span className="text-brand-green">
                   {text(
-                    `${coupon.discountLabel} off — you pay ${coupon.payableLabel}`,
-                    `${coupon.discountLabel} छुट — तिर्नुपर्ने ${coupon.payableLabel}`,
+                    `${coupon.discountLabel} off — total ${estimatedTotalLabel}`,
+                    `${coupon.discountLabel} छुट — जम्मा ${estimatedTotalLabel}`,
                   )}
                 </span>
               ) : null}
@@ -279,16 +303,42 @@ function CheckoutForm({
                   className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
                 >
                   {/* value stays English — the server validates against it */}
-                  <input className="accent-brand-green" type="radio" name="delivery" value={option} defaultChecked={index === 0} />
+                  <input
+                    className="accent-brand-green"
+                    type="radio"
+                    name="delivery"
+                    value={option}
+                    defaultChecked={index === 0}
+                    onChange={() => onDeliveryChange(option)}
+                  />
                   {shippingOptionLabel(option, nepali)}
                 </label>
               ))}
             </div>
+            {/* Said from the same numbers the server charges by, so the
+                customer reads here exactly what the order will say. */}
             <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
-              {text(
-                "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
-                "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलमै आएर लिँदा शुल्क लाग्दैन।",
-              )}
+              {delivery === STORE_PICKUP
+                ? text("Store pickup has no delivery fee.", "पसलमै आएर लिँदा डेलिभरी शुल्क लाग्दैन।")
+                : deliveryCharge.kind === "charged"
+                  ? text(
+                      `Delivery charge ${formatPrice(deliveryCharge.feePaisa)} is included in your total.`,
+                      `डेलिभरी शुल्क ${formatPrice(deliveryCharge.feePaisa)} जम्मा रकममा जोडिएको छ।`,
+                    )
+                  : deliveryCharge.kind === "free"
+                    ? text("Delivery is free for this order.", "यो अर्डरमा डेलिभरी Free छ।")
+                    : text(
+                        "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
+                        "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलमै आएर लिँदा शुल्क लाग्दैन।",
+                      )}
+              {freeDeliveryGapLabel ? (
+                <span className="mt-1 block text-brand-green">
+                  {text(
+                    `Add ${freeDeliveryGapLabel} more for free delivery.`,
+                    `अझै ${freeDeliveryGapLabel} को सामान थप्दा डेलिभरी Free।`,
+                  )}
+                </span>
+              ) : null}
             </p>
             {/* Someone choosing to fetch it themselves needs the hours before
                 they set out, not after. Monday especially — a closed shutter
@@ -342,7 +392,7 @@ function CheckoutForm({
           {coupon.status === "ok" ? (
             <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-green-mist px-4 py-3 text-sm font-black text-brand-green">
               <span>{text("With your discount code", "छुटको कोड लागेपछि")}</span>
-              <span className="text-base">{coupon.payableLabel}</span>
+              <span className="text-base">{estimatedTotalLabel}</span>
             </p>
           ) : null}
           <SubmitButton
@@ -473,15 +523,34 @@ type CheckoutClientProps = {
   /** The owner's real bank details, from Settings. Read on the server, because
    *  this is a client component. */
   bank: BankDetails;
+  /** The owner's delivery charge, the same numbers the server charges by. */
+  deliveryPricing: DeliveryPricing;
 };
 
-export default function CheckoutClient({ user = null, bank }: CheckoutClientProps) {
+export default function CheckoutClient({ user = null, bank, deliveryPricing }: CheckoutClientProps) {
   const { text } = useLanguage();
   const { cartItems, subtotal, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
   const checkoutSubmissionKey = useRef("");
+  const [delivery, setDelivery] = useState<string>(shippingOptions[0]);
+  const [discountPaisa, setDiscountPaisa] = useState(0);
+
+  // What the order will cost, worked out the way the server works it out:
+  // pairs, less the discount, plus delivery for this basket and this option.
+  const goodsPaisa = Math.max(0, subtotal - discountPaisa);
+  const deliveryCharge = deliveryChargeFor(deliveryPricing, delivery, goodsPaisa);
+  const estimatedTotalPaisa = goodsPaisa + deliveryCharge.feePaisa;
+  const estimatedTotalLabel = formatPrice(estimatedTotalPaisa);
+  const freeDeliveryGapPaisa =
+    delivery !== STORE_PICKUP && deliveryCharge.kind !== "free" && deliveryPricing.freeOverPaisa > 0
+      ? Math.max(0, deliveryPricing.freeOverPaisa - goodsPaisa)
+      : 0;
+  const totalForMessage =
+    deliveryCharge.kind === "confirm"
+      ? `${estimatedTotalLabel} + delivery charge`
+      : estimatedTotalLabel;
 
   const orderItemsForDb = useMemo(
     () =>
@@ -509,18 +578,18 @@ export default function CheckoutClient({ user = null, bank }: CheckoutClientProp
     [cartItems],
   );
 
+  // The total a customer quotes to the shop must be the one they will pay —
+  // after their discount and with delivery — not the price of the pairs alone.
   const whatsappMessage = useMemo(
     () =>
-      `Hello KRISHOE, I want to confirm my order. My total is ${subtotalLabel}. Order details: ${orderItemsForDb}`,
-    [subtotalLabel, orderItemsForDb],
+      `Hello KRISHOE, I want to confirm my order. My total is ${totalForMessage}. Order details: ${orderItemsForDb}`,
+    [totalForMessage, orderItemsForDb],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsPending(true);
     trackCommerceEvent("begin_checkout");
-    const submittedTotal = subtotalLabel;
-    const submittedWhatsappMessage = whatsappMessage;
 
     try {
       if (!checkoutSubmissionKey.current) {
@@ -532,19 +601,37 @@ export default function CheckoutClient({ user = null, bank }: CheckoutClientProp
       setState(result);
 
       if (result.ok && result.reference) {
+        // The server's total, not the page's: it is what the order says.
+        const total = result.total ?? estimatedTotalLabel;
         trackCommerceEvent("purchase", {
           id: result.reference,
           name: "KRISHOE order",
-          pricePaisa: subtotal,
+          pricePaisa: result.totalPaisa ?? estimatedTotalPaisa,
           quantity: 1,
         });
         setSubmittedOrder({
           reference: result.reference,
-          total: result.total ?? submittedTotal,
-          whatsappMessage: submittedWhatsappMessage,
+          total,
+          whatsappMessage:
+            `Hello KRISHOE, I want to confirm my order ${result.reference}. ` +
+            `My total is ${deliveryCharge.kind === "confirm" ? `${total} + delivery charge` : total}. ` +
+            `Order details: ${orderItemsForDb}`,
         });
         clearCart();
       }
+    } catch {
+      // The request never came back — no signal, a dropped connection, a
+      // server that fell over. Without this the button simply stopped spinning
+      // and the customer was told nothing. Pressing again is safe: the retry
+      // carries the same key, so an order that did get through is returned,
+      // not placed a second time.
+      setState({
+        ok: false,
+        message: text(
+          "We could not reach KRISHOE. Please check your internet and press the button again — it will not place the order twice.",
+          "KRISHOE सम्म पुग्न सकिएन। इन्टरनेट जाँचेर फेरि बटन थिच्नुहोस् — अर्डर दोहोरिँदैन।",
+        ),
+      });
     } finally {
       setIsPending(false);
     }
@@ -603,10 +690,20 @@ export default function CheckoutClient({ user = null, bank }: CheckoutClientProp
           orderItemsForDb={orderItemsForDb}
           subtotalLabel={subtotalLabel}
           itemsJson={itemsJson}
+          delivery={delivery}
+          deliveryCharge={deliveryCharge}
+          freeDeliveryGapLabel={freeDeliveryGapPaisa > 0 ? formatPrice(freeDeliveryGapPaisa) : ""}
+          estimatedTotalLabel={estimatedTotalLabel}
+          onDeliveryChange={setDelivery}
+          onDiscountChange={setDiscountPaisa}
         />
         <PaymentInstructions bank={bank} />
       </div>
-      <OrderSummary />
+      <OrderSummary
+        discountPaisa={discountPaisa}
+        deliveryCharge={deliveryCharge}
+        totalLabel={estimatedTotalLabel}
+      />
     </div>
   );
 }

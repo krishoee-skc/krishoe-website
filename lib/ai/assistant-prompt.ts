@@ -1,6 +1,7 @@
 import type { Product } from "@/lib/products";
 import { categories } from "@/lib/products";
 import { businessContact } from "@/lib/seo";
+import { defaultDeliveryPricing, deliveryPolicySentence } from "@/lib/delivery-fee";
 
 /**
  * Builds the prompt the shopfront assistant sends to the model — kept here,
@@ -28,7 +29,13 @@ export function assistantCatalog(products: Product[]): string {
     .join("\n");
 }
 
-export function buildAssistantPrompt(catalog: string, history: ChatTurn[], message: string): string {
+export function buildAssistantPrompt(
+  catalog: string,
+  history: ChatTurn[],
+  message: string,
+  // The owner's delivery policy, from Settings — the same numbers checkout charges by.
+  deliveryPolicy: string = deliveryPolicySentence(defaultDeliveryPricing),
+): string {
   const conversation = history
     .slice(-ASSISTANT_MAX_HISTORY)
     .map((turn) => `${turn.role === "user" ? "Customer" : "Assistant"}: ${turn.text}`)
@@ -59,7 +66,7 @@ WHAT KRISHOE SELLS (specific products in stock right now):
 ${catalog}
 
 SHOP POLICIES (all public):
-- Delivery: cash on delivery (COD) across Nepal. Free delivery on orders over NPR 2,000.
+- Delivery: cash on delivery (COD) across Nepal. ${deliveryPolicy}
 - Payment options: cash on delivery, eSewa, Khalti, or bank transfer.
 - Exchange: a wrong size or design can be exchanged within one week.
 - Made in KRISHOE's own factory in Narayangadh, Chitwan - factory-direct prices.

@@ -29,7 +29,7 @@ import { reportError } from "@/lib/report-error";
  */
 export type CouponPreview =
   | { status: "empty" }
-  | { status: "ok"; discountLabel: string; payableLabel: string }
+  | { status: "ok"; discountLabel: string; payableLabel: string; discountPaisa: number }
   | { status: "no"; reason: string }
   | { status: "unknown" };
 
@@ -81,6 +81,7 @@ export async function previewCouponAction(
 
     return {
       status: "ok",
+      discountPaisa: check.discountPaisa,
       discountLabel: formatPrice(check.discountPaisa),
       payableLabel: formatPrice(Math.max(0, pricing.totalPaisa - check.discountPaisa)),
     };

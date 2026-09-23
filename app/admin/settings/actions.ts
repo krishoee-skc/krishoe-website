@@ -1,7 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { deliveryPolicySentence } from "@/lib/delivery-fee";
+import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -178,6 +180,34 @@ export async function saveCompanySettingsAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Company settings saved.");
+}
+
+/** Rupees as typed ("150", "2000") to paisa; blank is 0. */
+function rupeesToPaisa(value: string, label: string) {
+  if (!value) return 0;
+  const rupees = Number(value.replace(/,/g, ""));
+  if (!Number.isFinite(rupees) || rupees < 0) {
+    throw new Error(`${label} must be an amount in rupees, 0 or more.`);
+  }
+  return Math.round(rupees * 100);
+}
+
+export async function saveDeliveryPricingAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    const pricing = await saveDeliveryPricing({
+      feePaisa: rupeesToPaisa(textValue(formData, "deliveryFee"), "Delivery charge"),
+      freeOverPaisa: rupeesToPaisa(textValue(formData, "freeDeliveryOver"), "Free delivery amount"),
+    });
+    await recordAdminAuditEvent("settings_delivery_update", `Delivery set: ${deliveryPolicySentence(pricing)}`);
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  // The header, home page and assistant read a cached copy; checkout reads it
+  // fresh. Both must show the new charge from the next page view.
+  updateTag(deliveryPricingTag);
+  revalidatePath("/", "layout");
+  refreshSettingsPage("Delivery charge saved.");
 }
 
 export async function saveBusinessGoalAction(formData: FormData) {
