@@ -850,6 +850,19 @@ export async function addCompanyBranch(input: Partial<CompanyBranch>) {
   });
 }
 
+/**
+ * Whether a new staff record is the same person as an existing one, by email.
+ *
+ * Two blank emails are not the same person. Every phone-only account has none,
+ * so matching on "" made each new phone-only worker the previous one: the
+ * second account was written over the first, and the first worker's number and
+ * password stopped working — "wrong mobile number or password".
+ */
+export function sameStaffEmail(existing: string | null | undefined, incoming: string | null | undefined) {
+  const wanted = normalizeEmail(incoming ?? "");
+  return wanted !== "" && normalizeEmail(existing ?? "") === wanted;
+}
+
 function assertAtLeastOneActiveOwner(staff: AdminStaffAccount[]) {
   if (staff.length === 0) {
     return;
@@ -943,7 +956,7 @@ async function staffRecordFromInput(
 async function saveAdminStaffAccountToLocalJson(input: Parameters<typeof staffRecordFromInput>[0]) {
   const settings = await readSettingsFromLocalJson();
   const existingIndex = settings.staff.findIndex((member) =>
-    input.id ? member.id === input.id : normalizeEmail(member.email) === normalizeEmail(input.email ?? ""),
+    input.id ? member.id === input.id : sameStaffEmail(member.email, input.email),
   );
   const existing = existingIndex >= 0 ? settings.staff[existingIndex] : undefined;
   const defaultBranchId = settings.company.defaultBranchId || settings.branches[0]?.id || "";
@@ -1008,7 +1021,7 @@ async function saveAdminStaffAccountToPostgres(input: Parameters<typeof staffRec
   const settings = await readSettingsFromPostgres();
   const existing = input.id
     ? settings.staff.find((member) => member.id === input.id)
-    : settings.staff.find((member) => normalizeEmail(member.email) === normalizeEmail(input.email ?? ""));
+    : settings.staff.find((member) => sameStaffEmail(member.email, input.email));
   const defaultBranchId = settings.company.defaultBranchId || settings.branches[0]?.id || "";
   const nextStaff = await staffRecordFromInput(input, existing, defaultBranchId);
 

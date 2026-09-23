@@ -330,7 +330,15 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
       return invalidState;
     }
 
-    if (staff.mfaEnabled) {
+    // The second step is a code sent to the staff member's email. A Worker made
+    // with a mobile number has no email, so the code went nowhere and the
+    // worker could never sign in — while the owner was told they could. A
+    // Worker reaches only their own wages and work (the proxy keeps them in
+    // the worker portal), so for a Worker with no email the password is the
+    // sign-in. Every role that can see or change the shop keeps the code.
+    const codeHasNowhereToGo = staff.role === "Worker" && !staff.email?.trim();
+
+    if (staff.mfaEnabled && !codeHasNowhereToGo) {
       const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);
 
       if (!delivery.ok) {

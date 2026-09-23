@@ -295,19 +295,28 @@ export async function inviteStaffAccountAction(formData: FormData) {
     }
 
     if (phoneOnly) {
+      const role = optionValue(textValue(formData, "role"), adminRoles, "Viewer");
+      // Every role but Worker signs in with a code sent to email. Made with a
+      // mobile number alone, such an account could never finish signing in —
+      // so say so now, rather than hand out a password that cannot open it.
+      if (role !== "Worker") {
+        throw new Error(
+          `A ${role} account needs an email for the sign-in security code. Add an email, or choose Worker for a mobile-only account.`,
+        );
+      }
       const worker = await saveAdminStaffAccount({
         name,
         phone,
-        role: optionValue(textValue(formData, "role"), adminRoles, "Viewer"),
+        role,
         branchId: textValue(formData, "branchId"),
         employeeId: textValue(formData, "employeeId"),
         factoryWorkerId: textValue(formData, "factoryWorkerId"),
         status: "Active",
         password: temporaryPassword,
         temporaryPassword: true,
-        // On like every other account — two-step sign-in is required for all.
-        // A phone-first staffer completes it by email code or a registered
-        // passkey; give them an email or set up a passkey when creating them.
+        // On like every other account. A mobile-only Worker has no email for
+        // the code, so sign-in skips it for them (app/admin/login/actions.ts);
+        // it takes effect the day an email is added to the account.
         mfaEnabled: true,
       });
       await recordStaffChange("staff_created_with_temporary_password", null, worker, actor);

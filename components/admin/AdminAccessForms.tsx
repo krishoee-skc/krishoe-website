@@ -30,10 +30,15 @@ function ResultMessage({ state }: { state: AdminAccessActionState }) {
       }`}
     >
       <p>{state.message}</p>
+      {/* A full page load, not a client-side link. These forms change the
+          session cookie (a new password is a new session), and the router
+          still held what the old cookie was answered: a worker who had just
+          changed a temporary password pressed Continue and was sent straight
+          back to "change your temporary password". */}
       {state.ok && state.href ? (
-        <Link href={state.href} className="mt-3 inline-flex font-black underline">
+        <a href={state.href} className="mt-3 inline-flex font-black underline">
           Continue
-        </Link>
+        </a>
       ) : null}
     </div>
   );

@@ -68,3 +68,45 @@ describe("after changing a temporary password", () => {
     expect(actions).toContain('href: home');
   });
 });
+
+describe("a mobile-only worker account", () => {
+  it("is never taken for another account because both have no email", async () => {
+    const { sameStaffEmail } = await vi.importActual<typeof import("@/lib/admin-settings")>("@/lib/admin-settings");
+    // The bug: "" matched "", so each new phone-only worker was written over the last.
+    expect(sameStaffEmail("", "")).toBe(false);
+    expect(sameStaffEmail(null, undefined)).toBe(false);
+    expect(sameStaffEmail("Owner@Shop.com ", "owner@shop.com")).toBe(true);
+    expect(sameStaffEmail("a@shop.com", "b@shop.com")).toBe(false);
+  });
+
+  it("is looked up by email only when an email was given, on both backends", async () => {
+    const settings = await readFile("lib/admin-settings.ts", "utf8");
+    expect(settings.match(/sameStaffEmail\(member\.email, input\.email\)/g)).toHaveLength(2);
+    expect(settings).not.toContain('normalizeEmail(member.email) === normalizeEmail(input.email ?? "")');
+  });
+
+  it("signs in with mobile and password — there is no email for a code to go to", async () => {
+    const login = await readFile("app/admin/login/actions.ts", "utf8");
+    expect(login).toContain('const codeHasNowhereToGo = staff.role === "Worker" && !staff.email?.trim();');
+  });
+
+  it("can only be a Worker; any other role is told it needs an email", async () => {
+    const actions = await readFile("app/admin/settings/actions.ts", "utf8");
+    expect(actions).toContain('if (role !== "Worker") {');
+    expect(actions).toContain("needs an email for the sign-in security code");
+  });
+});
+
+describe("changing a temporary password", () => {
+  it("works for an account that signs in with a mobile number", async () => {
+    const actions = await readFile("app/admin/access/actions.ts", "utf8");
+    // It demanded session.email, which a mobile-only worker does not have.
+    expect(actions).not.toContain("!session.email ||");
+    expect(actions).toContain("const signInWith = account?.email?.trim() || account?.phone?.trim() || \"\";");
+  });
+
+  it("continues with a full page load, so the new session cookie is the one used", async () => {
+    const forms = await readFile("components/admin/AdminAccessForms.tsx", "utf8");
+    expect(forms).toContain('<a href={state.href} className="mt-3 inline-flex font-black underline">');
+  });
+});

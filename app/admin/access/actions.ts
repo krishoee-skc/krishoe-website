@@ -342,11 +342,20 @@ export async function changeRequiredAdminPasswordAction(
   formData: FormData,
 ): Promise<AdminAccessActionState> {
   const session = await requireAdminSession();
-  if (!session.staffId || !session.email || !session.sessionId) {
+  if (!session.staffId || !session.sessionId) {
+    return { ok: false, message: "Sign in with a staff account to change this password." };
+  }
+  // The account signs in with an email or a mobile number. This asked for the
+  // email only, so a worker made with a mobile number — who has none — was
+  // told to sign in with a staff account, could not change the temporary
+  // password, and could not get past this page either.
+  const account = await getAdminStaffAccountById(session.staffId);
+  const signInWith = account?.email?.trim() || account?.phone?.trim() || "";
+  if (!signInWith) {
     return { ok: false, message: "Sign in with a staff account to change this password." };
   }
   const currentPassword = textValue(formData, "currentPassword");
-  const verified = await verifyAdminStaffCredentials(session.email, currentPassword);
+  const verified = await verifyAdminStaffCredentials(signInWith, currentPassword);
   if (!verified || verified.id !== session.staffId) {
     return { ok: false, message: "Current password is incorrect." };
   }
@@ -392,11 +401,11 @@ export async function changeRequiredAdminPasswordAction(
   });
   await recordAdminAuditEvent(
     "staff_required_password_changed",
-    `Staff ${updated.email} changed the temporary password.`,
+    `Staff ${updated.email || updated.phone} changed the temporary password.`,
   );
   await sendOwnerAccessAlert(
     "KRISHOE temporary password changed",
-    `${updated.email} replaced the temporary password. ${revokedSessions} old session(s) were signed out.`,
+    `${updated.email || updated.phone} replaced the temporary password. ${revokedSessions} old session(s) were signed out.`,
   );
   // Each role back to its own door. A worker sent to /admin met "Forbidden"
   // and took it for an account that would not open.

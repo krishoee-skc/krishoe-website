@@ -68,7 +68,9 @@ describe("what a remembered device does not change", () => {
     const code = actions.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
     // The check is on the account, never on how long the last session lasted.
-    expect(code).toContain("if (staff.mfaEnabled) {");
+    // …except a mobile-only Worker, whose code would have nowhere to go.
+    expect(code).toContain("if (staff.mfaEnabled && !codeHasNowhereToGo) {");
+    expect(code).toContain('const codeHasNowhereToGo = staff.role === "Worker" && !staff.email?.trim();');
     expect(code).not.toMatch(/remember[\s\S]{0,40}mfaEnabled/);
   });
 })
