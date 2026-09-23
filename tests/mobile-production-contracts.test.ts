@@ -99,10 +99,16 @@ describe("mobile production contracts", () => {
     expect(addWork).toContain("NepaliDateField");
     expect(addWork).toContain('type="number"');
     expect(addWork).toContain('text("Worker", "कामदार")');
-    // The header carries the bilingual subtitle; it was reworded when the form
-    // was given its factory-crest header, so match the current line.
-    expect(addWork).toContain(
-      'text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")',
+
+    // The title block above the form is gone on purpose, and this used to
+    // assert its subtitle. The screen named itself three times before the
+    // first box — breadcrumb, highlighted tab, and a crest-and-heading block
+    // — and the third cost 76px of a phone screen. What matters on a phone is
+    // that the boxes are reachable, not that the page repeats its own name, so
+    // this now checks the block stays gone.
+    expect(addWork).not.toContain("A worker, a product, the pairs");
+    expect(addWork, "the page name is already on the breadcrumb and the tab").not.toMatch(
+      /<h1[^>]*>\s*\{text\("Add work"/,
     );
 
     // Every control on this form is thumb-height. A wage entry made standing

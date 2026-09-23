@@ -580,24 +580,19 @@ export default function WorkEntryForm({
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-6">
-      {/* A small factory-crest header, the same monogram the shop signs itself
-          with, so the busiest screen in the building reads as KRISHOE's own. */}
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-gradient-to-br from-brand-green to-brand-green-ink font-display text-lg font-black text-brand-gold-bright shadow-sm"
-        >
-          K
-        </span>
-        <div>
-          <h1 className="font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
-            {text("Add work", "काम टिप्ने")}
-          </h1>
-          <p className="text-sm text-brand-muted">
-            {text("A worker, a product, the pairs — and the total.", "कामदार, सामान, जोडी — अनि जम्मा।")}
-          </p>
-        </div>
-      </div>
+      {/* No title block here, deliberately.
+          This screen said "Add work" three times before the first box: once in
+          the breadcrumb above it, once on the tab that is already highlighted,
+          and once more in a crest-and-heading block of its own. The third cost
+          76px — a crest at h-11, a heading, a line of description and the gap
+          under them — which on a phone is a tenth of the screen spent saying
+          what the highlighted tab had already said.
+          The owner asked for it on both phone and desktop, and the four other
+          factory screens — piece ledger, staff salary, items, reports — never
+          had one, so removing it makes this screen match them rather than
+          breaking a pattern. The KRISHOE monogram is unaffected: it sits in
+          the admin bar at the top of every screen, and the crest here was a
+          second copy of it. */}
 
       {/* Two views, one at a time, so the page stays short: entering work, and
           posting what was made to stock. Entering is the default because that
