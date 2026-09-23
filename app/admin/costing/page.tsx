@@ -7,6 +7,13 @@ import type { Metadata } from "next";
 import { updateCostingSettingsAction } from "@/app/admin/costing/actions";
 import {
   getCostingSnapshot,
+  // The same overhead the costing engine works in, not a second copy of the
+  // sum. This page carried its own, and the two had already drifted: the
+  // library rounds to the paisa and guards a non-finite result, the copy did
+  // neither — so the card read 61.10933333333334 where every figure it sat
+  // beside was computed from 61.11, and a half-filled settings form printed
+  // NaN on the screen instead of the library's 0.
+  overheadPerPair,
   type BatchCostingRow,
   type CatalogStockReconciliationRow,
   type DesignCostingRow,
@@ -14,7 +21,7 @@ import {
   type FinishedStockValuationRow,
 } from "@/lib/costing";
 import { money } from "@/lib/format-money";
-import { laborRateFieldName, productionStations, type CostingSettings } from "@/lib/costing-settings";
+import { laborRateFieldName, productionStations } from "@/lib/costing-settings";
 
 export const metadata: Metadata = {
   title: "Costing | KRISHOE Admin",
@@ -32,21 +39,6 @@ function rate(value: number) {
   return value.toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   });
-}
-
-function overheadPerPair(settings: CostingSettings) {
-  const monthlyAllocation =
-    settings.monthlyCapacityPairs > 0
-      ? settings.monthlyFixedOverhead / settings.monthlyCapacityPairs
-      : 0;
-
-  return (
-    settings.factoryOverheadPerPair +
-    settings.electricityPerPair +
-    settings.rentPerPair +
-    settings.miscellaneousPerPair +
-    monthlyAllocation
-  );
 }
 
 // KRISHOE both makes chappals and buys finished slippers to resell. The two are
