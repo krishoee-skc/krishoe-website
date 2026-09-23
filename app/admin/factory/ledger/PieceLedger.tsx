@@ -18,42 +18,12 @@ import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 
-interface WorkerLedger {
-  id: string;
-  date: string;
-  entry_type: string;
-  work_pairs: number;
-  amount_earned: number;
-  payment_given: number;
-  running_balance: number;
-  status: string;
-  notes: string | null;
-  /** Which shoe this wage was for, read through the work row. Null on a
-   *  payment, and on work saved before that link existed. */
-  item_name: string | null;
-  color: string | null;
-  size: string | null;
-  rate_applied: number | string | null;
-  reject_pairs: number | null;
-  /** The factory_daily_work row this line came from, which is what a
-   *  correction rewrites, and the item it was for. Null on a payment. */
-  source_work_id: string | null;
-  item_id: string | null;
-}
-
 // One shape for a person on the books, defined where they are read.
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
 
-interface LedgerData {
-  worker: Worker;
-  ledger: WorkerLedger[];
-  summary: {
-    totalPairs: number;
-    totalEarned: number;
-    totalPaid: number;
-    currentBalance: number;
-  };
-}
+// What a ledger line and a month of them are made of. Beside this file,
+// because they describe the money rather than the markup.
+import type { LedgerData, WorkerLedger } from "@/app/admin/factory/ledger/piece-ledger-shapes";
 
 /**
  * A team member's piece-wage ledger for one month.
