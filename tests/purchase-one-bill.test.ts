@@ -14,11 +14,20 @@ import { readFile } from "node:fs/promises";
  */
 
 const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
+const RULES = "app/admin/purchasing/_components/purchase-invoice-rules.ts";
+
+// The screen is two files: the form that draws the bill, and the rules it
+// follows. Which of the two holds a given line is housekeeping, so these
+// read the pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 const PAGE = "app/admin/purchasing/page.tsx";
 
 describe("one bill, one place", () => {
   it("names a supplier inside the bill", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain('name="supplierLedgerId"');
     expect(form).toContain('name="supplierName"');
@@ -47,7 +56,7 @@ describe("one bill, one place", () => {
 
 describe("the item lines", () => {
   it("numbers each line from its position, never from a field", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // A hand-kept number and the bill it numbers can disagree. This cannot:
     // it is the row's index, so removing line 2 renumbers what follows.
@@ -56,7 +65,7 @@ describe("the item lines", () => {
   });
 
   it("works the amount out rather than accepting one", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Quantity times rate, shown but never typed into, so a line and the bill
     // total cannot tell different stories.
@@ -64,7 +73,7 @@ describe("the item lines", () => {
   });
 
   it("offers the shop's own names rather than a blank box", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // "Doctor Chappal moto" spelled a second way is a second item in the stock
     // ledger, so what exists is offered before anything new is created.
@@ -73,7 +82,7 @@ describe("the item lines", () => {
   });
 
   it("still sends the server every field it reads", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // The one visible item box resolves to these behind it — an existing
     // material by id, or a new one by name and unit; a catalog design, or a new
@@ -97,7 +106,7 @@ describe("the item lines", () => {
 
 describe("Enter walks down the bill", () => {
   it("moves the cursor instead of submitting the form", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Enter in a form submits it. On a bill book it means "next box", and a
     // half-typed bill saved by a reflex keystroke is the cost of the default.
@@ -106,7 +115,7 @@ describe("Enter walks down the bill", () => {
   });
 
   it("walks the row and then drops to the next serial number", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form).toContain('const WALK = ["item", "quantity", "rate"] as const;');
     // From the last box of a row, to the item box of the row below — not
@@ -115,7 +124,7 @@ describe("Enter walks down the bill", () => {
   });
 
   it("can reach a row that did not exist when Enter was pressed", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // The row is added and focused in the same gesture, so the focus target has
     // to survive until after the render that creates it.
@@ -126,7 +135,7 @@ describe("Enter walks down the bill", () => {
 
 describe("how it was paid", () => {
   it("offers all four ways, QR included", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     for (const method of ['id: "Cash"', 'id: "Credit"', 'id: "Cheque"', 'id: "QR"']) {
       expect(form, method).toContain(method);
@@ -134,7 +143,7 @@ describe("how it was paid", () => {
   });
 
   it("refuses to let a credit bill carry a paid amount", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // The server rejects it, so the form should not let it be typed — an error
     // after a save is a worse way to learn a rule than a box that will not take
@@ -144,7 +153,7 @@ describe("how it was paid", () => {
   });
 
   it("shows what is still owed before the bill is saved", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // The number this whole screen exists to make visible. It was a
     // consequence of two boxes already on the screen and was shown nowhere.

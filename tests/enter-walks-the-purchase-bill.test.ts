@@ -28,6 +28,15 @@ import { describe, expect, it } from "vitest";
  * stays the only way a bill is filed.
  */
 const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
+const RULES = "app/admin/purchasing/_components/purchase-invoice-rules.ts";
+
+// The screen is two files: the form that draws the bill, and the rules it
+// follows. Which of the two holds a given line is housekeeping, so these
+// read the pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 
 /** The boxes outside the item table, in the order the paper bill is read. */
 const FIELD_WALK = [
@@ -42,7 +51,7 @@ const FIELD_WALK = [
 
 describe("the order Enter walks in", () => {
   it("follows the paper bill, with discount and VAT before the amount paid", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     // Searched from the declaration onward: WALK is declared above it and its
     // own "] as const;" comes first in the file, which sliced to nothing.
     const start = form.indexOf("const FIELD_WALK = [");
@@ -53,7 +62,7 @@ describe("the order Enter walks in", () => {
   });
 
   it("reaches every box on that list", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // A name in the list with no handler on the input is a box the cursor
     // walks into and cannot leave.
@@ -64,7 +73,7 @@ describe("the order Enter walks in", () => {
   });
 
   it("joins the item table to the boxes on either side of it", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Enter on the bill number drops into the first line...
     expect(form).toContain('if (field === "supplierBillNo" && rows.length > 0)');
@@ -77,7 +86,7 @@ describe("the order Enter walks in", () => {
 
 describe("what Enter must never do", () => {
   it("never submits the bill", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const walk = form.slice(form.indexOf("function handleFieldWalk"), form.indexOf("function handleWalk"));
 
     // W3C failure F36: a form that submits itself when the last field is
@@ -88,7 +97,7 @@ describe("what Enter must never do", () => {
   });
 
   it("leaves Enter alone in the note, where it means a new line", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const note = form.slice(form.indexOf("<textarea"), form.indexOf("<textarea") + 400);
 
     expect(note.length, "the note textarea moved").toBeGreaterThan(0);
@@ -98,7 +107,7 @@ describe("what Enter must never do", () => {
   });
 
   it("leaves Tab alone, for whoever already uses it", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // A form that hijacks Tab is a form a keyboard user cannot escape, and
     // tabindex above 0 breaks the browser's own order.
@@ -109,7 +118,7 @@ describe("what Enter must never do", () => {
 
 describe("walking back out of a mistake", () => {
   it("goes backwards on Shift+Enter", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // Overshooting a box should not mean reaching for the mouse.
     expect(form).toContain("if (event.shiftKey)");
@@ -117,7 +126,7 @@ describe("walking back out of a mistake", () => {
   });
 
   it("retraces the same path through the item table", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
     const rowWalk = form.slice(form.indexOf("function handleWalk"), form.indexOf("function handleSubmit"));
 
     // Back out of the discount lands on the last line's rate; back out of the

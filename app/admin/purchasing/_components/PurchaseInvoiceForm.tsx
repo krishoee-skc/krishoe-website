@@ -25,87 +25,21 @@ type PurchaseInvoiceFormProps = {
   productStock: Array<{ name: string; stock: number }>;
 };
 
-/** One row as the form holds it. Everything is a string because that is what an
- *  input gives back; the numbers are parsed only to show the running total. */
-type ItemRow = {
-  key: number;
-  kind: PurchaseKind;
-  materialId: string;
-  materialName: string;
-  materialUnit: string;
-  design: string;
-  sizeRun: string;
-  /** Where the pairs were put. Trading lines only; raw material has no pairs. */
-  place: StockPlace;
-  quantity: string;
-  rate: string;
-};
+// What a bill is made of, and the order Enter walks it — beside this file,
+// because they are rules about the bill rather than the markup.
+import {
+  FIELD_WALK,
+  WALK,
+  emptyRow,
+  itemNameOf,
+  rawMaterialUnits,
+  rowIsTouched,
+  sameName,
+  type FormField,
+  type ItemRow,
+  type WalkField,
+} from "@/app/admin/purchasing/_components/purchase-invoice-rules";
 
-const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"];
-
-/** The three boxes Enter walks along, in the order a paper bill is read. */
-const WALK = ["item", "quantity", "rate"] as const;
-type WalkField = (typeof WALK)[number];
-
-/**
- * The boxes outside the item table, in the order a paper bill is read.
- *
- * Not the order they sit on screen. Discount and VAT are typed before the
- * amount paid, because that is the order they are printed on the supplier's
- * bill and the order the arithmetic runs — following the screen would send the
- * cursor back up the page halfway through.
- *
- * The item rows sit between the bill number and the discount: Enter on the
- * bill number drops into the first line, and Enter on the last rate of the
- * last line comes back out to the discount.
- *
- * Every name here is the input's own `name`, so the walk and the form cannot
- * drift apart — a renamed field breaks the type, not the cursor.
- */
-const FIELD_WALK = [
-  "supplierName",
-  "phone",
-  "supplierBillNo",
-  "discount",
-  "tax",
-  "paidAmount",
-  "paymentReference",
-] as const;
-type FormField = (typeof FIELD_WALK)[number];
-
-function emptyRow(key: number): ItemRow {
-  return {
-    key,
-    kind: "Raw Material",
-    materialId: "",
-    materialName: "",
-    materialUnit: "piece",
-    design: "",
-    sizeRun: "Mixed",
-    // Goods arrive at the factory unless the owner says otherwise, so the
-    // common case needs no extra tap.
-    place: "Factory",
-    quantity: "",
-    rate: "",
-  };
-}
-
-function rowIsTouched(row: ItemRow) {
-  return Boolean(row.materialId || row.materialName || row.design || row.quantity || row.rate);
-}
-
-/** What the one item box is showing, whichever kind the line is. */
-function itemNameOf(row: ItemRow, rawMaterials: RawMaterial[]) {
-  if (row.kind === "Trading Goods") return row.design;
-  if (row.materialId) {
-    return rawMaterials.find((material) => material.id === row.materialId)?.name ?? "";
-  }
-  return row.materialName;
-}
-
-function sameName(left: string, right: string) {
-  return left.trim().toLowerCase() === right.trim().toLowerCase();
-}
 
 /**
  * The bill, written the way the paper one is read.

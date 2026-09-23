@@ -22,13 +22,22 @@ import { describe, expect, it } from "vitest";
  */
 
 const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
+const RULES = "app/admin/purchasing/_components/purchase-invoice-rules.ts";
+
+// The screen is two files: the form that draws the bill, and the rules it
+// follows. Which of the two holds a given line is housekeeping, so these
+// read the pair as one screen.
+async function screen() {
+  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  return form + "\n" + rules;
+}
 const ACTION = "app/admin/purchasing/actions.ts";
 const SHARED = "lib/purchasing.ts";
 const POSTGRES = "lib/purchasing-postgres.ts";
 
 describe("the place is carried the whole way", () => {
   it("is collected on the form", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     // A real control, not a hidden input: the owner picks it per line.
     expect(form).toContain("StockPlace");
@@ -77,7 +86,7 @@ describe("the place is carried the whole way", () => {
  */
 describe("the client bundle stays clean", () => {
   it("takes the place names from the module with no imports", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await screen();
 
     expect(form, "this is a client component").toContain('"use client"');
     expect(form).toContain('from "@/lib/stock-rules"');
