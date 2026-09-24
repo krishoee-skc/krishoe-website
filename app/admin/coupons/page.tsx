@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import T from "@/components/T";
 import { saveCouponAction } from "./actions";
@@ -59,7 +60,7 @@ export default async function CouponsPage({
         </p>
       ) : null}
 
-      <form action={saveCouponAction} className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <EnterWalkForm action={saveCouponAction} className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <h2 className="text-lg font-black text-brand-green-ink">
           <T en="Make a new code" ne="नयाँ कोड बनाउने" />
         </h2>
@@ -167,7 +168,7 @@ export default async function CouponsPage({
             <T en="Save the code" ne="कोड सुरक्षित गर्ने" />
           </FormSubmitButton>
         </div>
-      </form>
+      </EnterWalkForm>
 
       <section className="mt-8">
         <h2 className="text-lg font-black text-brand-green-ink">

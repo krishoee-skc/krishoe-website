@@ -348,6 +348,11 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
       return invalidState;
     }
 
+    // The password was right, so earlier wrong guesses at this account no
+    // longer count — including for the staff who go on to an emailed code,
+    // who would otherwise carry them into their next mistyped password.
+    await clearAccountLoginRateLimit(email);
+
     // The second step is a code sent to the staff member's email. A Worker made
     // with a mobile number has no email, so the code went nowhere and the
     // worker could never sign in — while the owner was told they could. A
@@ -386,7 +391,6 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     }
 
     await clearLoginRateLimit(key);
-    await clearAccountLoginRateLimit(email);
     return completeStaffLogin(staff, false, requestContext, remember);
   }
 

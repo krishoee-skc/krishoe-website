@@ -121,7 +121,21 @@ export default function StaffAccessManager({
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             Factory worker (for a Worker sign-in)
-            <select name="factoryWorkerId" defaultValue="" className={inputClass}>
+            {/* Linking a factory worker is saying "this is a Worker sign-in",
+                and the Role box below starts on Viewer — the owner left it
+                there, and the worker's account could not open. Picking a
+                worker moves Role to Worker, unless a role was already chosen. */}
+            <select
+              name="factoryWorkerId"
+              defaultValue=""
+              className={inputClass}
+              onChange={(event) => {
+                const role = event.currentTarget.form?.elements.namedItem("role");
+                if (event.currentTarget.value && role instanceof HTMLSelectElement && role.value === "Viewer") {
+                  role.value = "Worker";
+                }
+              }}
+            >
               <option value="">Not a factory worker</option>
               {factoryWorkers.map((worker) => (
                 <option key={worker.id} value={worker.id}>

@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -178,7 +179,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <p className="mt-2 text-sm font-semibold">{summary.nextPaymentAction}</p>
         </div>
 
-        <form action={createSupplierTransactionAction} className="mt-6 grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
+        <EnterWalkForm action={createSupplierTransactionAction} className="mt-6 grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
           <div>
             <h2 className="font-black text-brand-green-ink">Record supplier payment / adjustment</h2>
             <p className="mt-1 text-sm text-brand-muted">
@@ -188,7 +189,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
           <input type="hidden" name="supplierLedgerId" value={ledger.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
           <div className="grid gap-3 md:grid-cols-3">
-            <select aria-label="Type" name="type" className={inputClass} defaultValue="Cash Payment">
+            <select aria-label="Type" name="type" data-summary="text" className={inputClass} defaultValue="Cash Payment">
               <option>Cash Payment</option>
               <option>Cheque Payment</option>
               <option>Bank Payment</option>
@@ -196,13 +197,13 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
               <option>Return Adjustment</option>
               <option>Manual Adjustment</option>
             </select>
-            <input aria-label="Amount" name="amount" type="number" min="1" required className={inputClass} placeholder="Amount" />
+            <input aria-label="Amount" name="amount" data-summary="money" type="number" min="1" required className={inputClass} placeholder="Amount" />
             <textarea aria-label="Voucher, cheque, bank reference, return note, or remark" name="note" className={textareaClass} placeholder="Voucher, cheque, bank reference, return note, or remark" />
           </div>
           <FormSubmitButton className="h-10 w-fit rounded-full bg-brand-green-ink px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
             Record transaction
           </FormSubmitButton>
-        </form>
+        </EnterWalkForm>
 
         <div className="mt-8">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

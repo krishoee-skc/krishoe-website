@@ -153,13 +153,14 @@ export default function EnterWalkForm({
     const target = event.target as HTMLElement;
     if (!form) return;
 
-    if (question !== null) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        back();
-      }
-      return; // Enter on "Yes" or "No" is that button's own click.
+    const inQuestion = Boolean(target.closest("[data-enter-confirm]"));
+    if (question !== null && event.key === "Escape") {
+      event.preventDefault();
+      back();
+      return;
     }
+    // Enter on "Yes" or "No" is that button's own click.
+    if (inQuestion) return;
 
     const walkKey = isWalkKey({
       key: event.key,
@@ -169,8 +170,15 @@ export default function EnterWalkForm({
       isComposing: event.nativeEvent.isComposing,
     });
     if (!walkKey) return;
-    if (target.closest("[data-enter-confirm]")) return;
-    if (!isWalkStop(describe(target))) return;
+    if (!isWalkStop(describe(target))) {
+      // A box the walk passes over — read-only, or marked to skip — would
+      // still file the form on Enter by the browser's own rule. It gets
+      // nothing instead: on this form only the question saves.
+      if (target instanceof HTMLInputElement && !["submit", "button", "reset", "image"].includes(target.type)) {
+        event.preventDefault();
+      }
+      return;
+    }
 
     const stops = labelKeys(form);
     const index = stops.indexOf(target);
@@ -205,6 +213,10 @@ export default function EnterWalkForm({
     const form = formRef.current;
     const target = event.target as HTMLElement;
     if (!form || !isWalkStop(describe(target))) return;
+    // Back in a box — by a tap or a click while the question was up — the
+    // question is withdrawn: what it read back may be about to change, and
+    // Enter in the box must walk again rather than meet a stale "Save?".
+    setQuestion(null);
     const stops = labelKeys(form);
     const index = stops.indexOf(target);
     if (index < 0) return;

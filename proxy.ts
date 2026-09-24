@@ -118,7 +118,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/worker/login", request.url));
   }
 
-  if (pathname.startsWith("/worker/login") && hasValidSession) {
+  // Only a Worker is already through the worker door. The owner, signed in on
+  // the phone they were testing the worker link with, was sent on to a worker
+  // dashboard that is not theirs ("not linked to a factory worker") — or, signed
+  // in without a staff record, round in a redirect loop — and took the link for
+  // broken. Everyone else sees the form (app/worker/login/page.tsx says who
+  // they are signed in as).
+  if (
+    pathname.startsWith("/worker/login") &&
+    hasValidSession &&
+    adminSession &&
+    getSessionAdminRole(adminSession) === "Worker"
+  ) {
     return NextResponse.redirect(new URL("/worker/dashboard", request.url));
   }
 

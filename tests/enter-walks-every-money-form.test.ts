@@ -111,6 +111,16 @@ describe("the form that asks", () => {
     expect(source).toContain("onClick={save}");
   });
 
+  it("withdraws the question when a box is clicked, so a stale Save? cannot be answered", async () => {
+    const source = await readFile("components/admin/EnterWalkForm.tsx", "utf8");
+    expect(source).toMatch(/isWalkStop\(describe\(target\)\)\) return;\s*\/\/[^]*?setQuestion\(null\);/);
+  });
+
+  it("swallows Enter in a box the walk passes over, rather than let the browser save", async () => {
+    const source = await readFile("components/admin/EnterWalkForm.tsx", "utf8");
+    expect(source).toContain('target instanceof HTMLInputElement && !["submit", "button", "reset", "image"].includes(target.type)');
+  });
+
   it("checks the required boxes before asking", async () => {
     const source = await readFile("components/admin/EnterWalkForm.tsx", "utf8");
     expect(source).toContain("if (!form.checkValidity())");
@@ -142,7 +152,39 @@ describe("the forms that walk", () => {
     ["app/admin/operations/production-accounts/rates/page.tsx", 2],
     ["app/admin/operations/production-accounts/lots/page.tsx", 7],
     ["app/admin/costing/page.tsx", 1],
+    // The same money on the pages of one worker, supplier, customer or lot —
+    // missed on the first pass, found on the recheck. The delete form and the
+    // date filters stay plain <form>s.
+    ["app/admin/purchasing/supplier/[id]/page.tsx", 1],
+    ["app/admin/operations/ledger/[id]/page.tsx", 2],
+    ["app/admin/operations/production-accounts/worker/[id]/page.tsx", 3],
+    ["app/admin/operations/production-accounts/work-order/[id]/page.tsx", 7],
+    ["app/admin/operations/_components/OperationsRecords.tsx", 6],
+    // Counting, sending and receiving pairs; a new worker's pay; a discount.
+    ["app/admin/stock/WherePairsAre.tsx", 3],
+    ["app/admin/factory/workers/TeamList.tsx", 1],
+    ["app/admin/coupons/page.tsx", 1],
   ];
+
+  it("leaves every form with a figure in it walking, bar the ones that already walk", async () => {
+    const { readdir } = await import("node:fs/promises");
+    const files = (await readdir("app/admin", { recursive: true }))
+      .map(String)
+      .filter((file) => file.endsWith(".tsx"))
+      .map((file) => `app/admin/${file.replace(/\\/g, "/")}`);
+    const unwalked: string[] = [];
+    for (const file of files) {
+      const source = await readFile(file, "utf8");
+      // A form that posts somewhere (server action or handler) and has a
+      // number box, still drawn as a plain <form>.
+      if (/shiftKey/.test(source)) continue; // walks by its own handler
+      const plainForms = source.match(/<form\s+(action|onSubmit)=\{(?!deleteOperationRecordAction)[\s\S]*?<\/form>/g) ?? [];
+      if (plainForms.some((form) => form.includes('type="number"'))) unwalked.push(file);
+    }
+    // None: a new form with a figure in it, drawn as a plain <form>, is one
+    // where Enter saves by itself again.
+    expect(unwalked).toEqual([]);
+  });
 
   it.each(wrapped)("%s uses the walking form", async (file, count) => {
     const source = await readFile(file, "utf8");

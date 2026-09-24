@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useCallback, useState } from "react";
@@ -174,14 +175,14 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-900">{error}</p> : null}
 
       {showForm ? (
-        <form onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
-          <label className="text-sm font-bold">{text("Name", "नाम")}<input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
+        <EnterWalkForm onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
+          <label className="text-sm font-bold">{text("Name", "नाम")}<input data-summary="text" value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
           <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
           <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
           <label className="text-sm font-bold">{text("Monthly salary", "मासिक तलब")}<input type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => setFormData((current) => ({ ...current, monthly_salary: event.target.value }))} className={`${inputClass} mt-2`} /></label>
           <label className="text-sm font-bold">{text("Usual Saturday kharcha", "शनिबारको खर्च")}<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
           <button disabled={saving === "new"} className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white disabled:opacity-60 sm:col-span-2">{saving === "new" ? "Saving..." : "Save worker"}</button>
-        </form>
+        </EnterWalkForm>
       ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">

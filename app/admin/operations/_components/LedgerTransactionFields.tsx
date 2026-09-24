@@ -51,7 +51,7 @@ export default function LedgerTransactionFields({
         <option>Manual Adjustment</option>
       </select>
       <input aria-label="Amount"
-        name="amount"
+        name="amount" data-summary="money"
         type="number"
         min="1"
         required

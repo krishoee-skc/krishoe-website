@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import {
   finishPasskeyRegistrationAction,
@@ -55,11 +56,18 @@ type Stage = "hidden" | "asking" | "working" | "done" | "failed";
 export default function PasskeyInvite() {
   const { text } = useLanguage();
   const supported = usePasskeySupport();
+  const pathname = usePathname();
   const [stage, setStage] = useState<Stage>("hidden");
   const [problem, setProblem] = useState("");
+  // Not while a temporary password is being replaced. On a phone this card sits
+  // over the foot of the screen — exactly where "Change password and continue"
+  // is — and a new worker, who had not got past that button, took the covered
+  // button for a broken account. The offer comes on the next sign-in instead.
+  const changingPassword = Boolean(pathname?.startsWith("/admin/change-password"));
 
   useEffect(() => {
     if (!supported) return;
+    if (changingPassword) return;
 
     let timer: number | undefined;
     let cancelled = false;
@@ -85,7 +93,7 @@ export default function PasskeyInvite() {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [supported]);
+  }, [supported, changingPassword]);
 
   const remember = useCallback(() => {
     try {
@@ -126,7 +134,7 @@ export default function PasskeyInvite() {
     }
   }
 
-  if (stage === "hidden") return null;
+  if (stage === "hidden" || changingPassword) return null;
 
   return (
     <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6">

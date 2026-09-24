@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -122,7 +123,7 @@ export default async function WorkerProductionLedgerPage({
         </div>
       </div>
 
-      <form action={createWorkerPaymentAction} className="rounded-2xl border border-emerald-200 bg-brand-paper p-4 shadow-sm sm:p-5">
+      <EnterWalkForm action={createWorkerPaymentAction} className="rounded-2xl border border-emerald-200 bg-brand-paper p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Owner cash approval</p>
@@ -138,7 +139,7 @@ export default async function WorkerProductionLedgerPage({
         </div>
 
         <input type="hidden" name="employeeId" value={account.employee.id} />
-        <input type="hidden" name="paymentType" value="Saturday Kharcha" />
+        <input type="hidden" name="paymentType" data-summary="text" value="Saturday Kharcha" />
         <input type="hidden" name="statementStart" value={period.start} />
         <input type="hidden" name="statementEnd" value={period.end} />
 
@@ -146,7 +147,7 @@ export default async function WorkerProductionLedgerPage({
           <label className="text-sm font-bold text-brand-green-ink">
             Cash amount
             <input
-              name="amount"
+              name="amount" data-summary="money"
               type="number"
               min="0.01"
               step="0.01"
@@ -180,7 +181,7 @@ export default async function WorkerProductionLedgerPage({
         >
           Approve & record cash
         </FormSubmitButton>
-      </form>
+      </EnterWalkForm>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
@@ -216,7 +217,7 @@ export default async function WorkerProductionLedgerPage({
                     <summary className="cursor-pointer text-xs font-black text-brand-clay">
                       Reverse this work entry
                     </summary>
-                    <form action={reverseProductionWorkEntryAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                    <EnterWalkForm action={reverseProductionWorkEntryAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                       <input type="hidden" name="entryId" value={row.id} />
                       <p className="text-xs leading-5 text-red-900">
                         This removes the wage and recalculates the linked Work Order stage. Finished-stock lots cannot be reversed here.
@@ -245,7 +246,7 @@ export default async function WorkerProductionLedgerPage({
                       >
                         Reverse this work
                       </FormSubmitButton>
-                    </form>
+                    </EnterWalkForm>
                   </details>
                 )}
               </article>
@@ -273,7 +274,7 @@ export default async function WorkerProductionLedgerPage({
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">
                     Reverse this cash entry
                   </summary>
-                  <form action={reverseWorkerPaymentAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                  <EnterWalkForm action={reverseWorkerPaymentAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="paymentId" value={row.id} />
                     <p className="text-xs leading-5 text-red-900">
                       This keeps receipt {row.receiptNumber} in history but removes its effect from the worker balance.
@@ -295,7 +296,7 @@ export default async function WorkerProductionLedgerPage({
                     >
                       Reverse this payment
                     </FormSubmitButton>
-                  </form>
+                  </EnterWalkForm>
                 </details>
               </article>
             ))}

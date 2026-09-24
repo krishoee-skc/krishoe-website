@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -70,7 +71,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                 <td data-label="Reject" className="py-3 pr-3">{batch.rejectedPairs}</td>
                 <td data-label="Stage" className="py-3 pr-3">{batch.status}</td>
                 <td data-label="Manage" className="min-w-80 py-3 pr-3">
-                  <form action={updateProductionBatchAction} className="grid gap-2">
+                  <EnterWalkForm action={updateProductionBatchAction} className="grid gap-2">
                     <input type="hidden" name="id" value={batch.id} />
                     <input aria-label="Design name" name="design" required className={compactInputClass} defaultValue={batch.design} />
                     <div className="grid grid-cols-4 gap-2">
@@ -95,7 +96,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                       </select>
                       <SaveButton />
                     </div>
-                  </form>
+                  </EnterWalkForm>
                   <div className="mt-2">
                     <DeleteRecordForm kind="productionBatch" id={batch.id} />
                   </div>
@@ -137,7 +138,7 @@ function WorkerProgressCards({ snapshot }: { snapshot: OperationsSnapshot }) {
               <p className="mt-1 text-sm font-semibold text-brand-muted-deep">
                 {task.completedPairs}/{task.targetPairs} pairs - {task.cameraZone}
               </p>
-              <form action={updateWorkerTaskAction} className="mt-3 grid gap-2">
+              <EnterWalkForm action={updateWorkerTaskAction} className="mt-3 grid gap-2">
                 <input type="hidden" name="id" value={task.id} />
                 <div className="grid grid-cols-2 gap-2">
                   <input name="workerName" required className={compactInputClass} defaultValue={task.workerName} aria-label="Worker name" />
@@ -167,7 +168,7 @@ function WorkerProgressCards({ snapshot }: { snapshot: OperationsSnapshot }) {
                 </div>
                 <input name="cameraZone" className={compactInputClass} defaultValue={task.cameraZone} aria-label="Camera zone" />
                 <SaveButton />
-              </form>
+              </EnterWalkForm>
               <div className="mt-2">
                 <DeleteRecordForm kind="workerTask" id={task.id} />
               </div>
@@ -216,7 +217,7 @@ function RawMaterialsPanel({
                   {valuation && !valuation.hasPurchaseRate ? " | purchase rate missing" : ""}
                 </p>
               </div>
-              <form action={updateRawMaterialAction} className="grid gap-2">
+              <EnterWalkForm action={updateRawMaterialAction} className="grid gap-2">
                 <input type="hidden" name="id" value={material.id} />
                 <div className="grid grid-cols-[1fr_auto] gap-2">
                   <input name="name" required className={compactInputClass} defaultValue={material.name} aria-label="Material name" />
@@ -235,7 +236,7 @@ function RawMaterialsPanel({
                   <input name="reorderLevel" type="number" min="0" className={compactInputClass} defaultValue={material.reorderLevel} aria-label="Reorder level" />
                 </div>
                 <SaveButton />
-              </form>
+              </EnterWalkForm>
               <div className="mt-2">
                 <DeleteRecordForm kind="rawMaterial" id={material.id} />
               </div>
@@ -407,7 +408,7 @@ function FinishedStockTable({
                     </p>
                   </td>
                   <td data-label="Manage" className="min-w-96 py-3 pr-3">
-                    <form action={updateFinishedStockAction} className="grid gap-2">
+                    <EnterWalkForm action={updateFinishedStockAction} className="grid gap-2">
                       <input type="hidden" name="id" value={stock.id} />
                       <div className="grid grid-cols-[1fr_auto_auto] gap-2">
                         <input name="design" required className={compactInputClass} defaultValue={stock.design} aria-label="Stock design" />
@@ -425,7 +426,7 @@ function FinishedStockTable({
                         <input name="returnedPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.returnedPairs} aria-label="Returned pairs" />
                       </div>
                       <SaveButton />
-                    </form>
+                    </EnterWalkForm>
                     <div className="mt-2">
                       <DeleteRecordForm kind="finishedStock" id={stock.id} />
                     </div>
@@ -532,7 +533,7 @@ function VehicleDispatchCards({ snapshot }: { snapshot: OperationsSnapshot }) {
             <p className="mt-1 text-sm text-brand-muted-deep">
               Loaded {dispatch.loadedPairs}, returned {dispatch.returnedPairs}, credit {money(dispatch.creditAmount)}
             </p>
-            <form action={updateVehicleDispatchAction} className="mt-3 grid gap-2">
+            <EnterWalkForm action={updateVehicleDispatchAction} className="mt-3 grid gap-2">
               <input type="hidden" name="id" value={dispatch.id} />
               <div className="grid grid-cols-2 gap-2">
                 <input name="vehicleNumber" required className={compactInputClass} defaultValue={dispatch.vehicleNumber} aria-label="Vehicle number" />
@@ -555,7 +556,7 @@ function VehicleDispatchCards({ snapshot }: { snapshot: OperationsSnapshot }) {
               <div className="flex flex-wrap gap-2">
                 <SaveButton />
               </div>
-            </form>
+            </EnterWalkForm>
             <div className="mt-2">
               <DeleteRecordForm kind="vehicleDispatch" id={dispatch.id} />
             </div>
@@ -778,7 +779,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     </p>
                   </td>
                   <td data-label="Manage" className="min-w-80 py-3 pr-3">
-                    <form action={updateCustomerLedgerAction} className="grid gap-2">
+                    <EnterWalkForm action={updateCustomerLedgerAction} className="grid gap-2">
                       <input type="hidden" name="id" value={ledger.id} />
                       <input name="customerName" required className={compactInputClass} defaultValue={ledger.customerName} aria-label="Customer name" />
                       <div className="grid grid-cols-2 gap-2">
@@ -797,7 +798,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                         <input name="creditLimit" type="number" min="0" className={compactInputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" />
                       </div>
                       <SaveButton />
-                    </form>
+                    </EnterWalkForm>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Link
                         href={`/admin/operations/ledger/${ledger.id}`}

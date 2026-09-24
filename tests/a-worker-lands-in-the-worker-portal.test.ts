@@ -48,6 +48,11 @@ describe("a signed-in worker", () => {
     expect(await visit("/admin")).toBe("https://www.krishoe.com/admin/change-password");
   });
 
+  it("is taken past the worker door to the dashboard when already signed in", async () => {
+    session.current = { role: "Worker", staffId: "staff-1", mustChangePassword: false };
+    expect(await visit("/worker/login")).toBe("https://www.krishoe.com/worker/dashboard");
+  });
+
   it("opens the worker portal itself", async () => {
     session.current = { role: "Worker", staffId: "staff-1", mustChangePassword: false };
     expect(await visit("/worker/dashboard")).toBeNull();
@@ -58,6 +63,13 @@ describe("everyone else", () => {
   it("keeps the owner on the admin dashboard", async () => {
     session.current = { role: "Owner", staffId: "owner-1", mustChangePassword: false };
     expect(await visit("/admin")).toBeNull();
+  });
+
+  it("shows the owner the worker sign-in form, not someone else's dashboard", async () => {
+    session.current = { role: "Owner", staffId: "owner-1", mustChangePassword: false };
+    expect(await visit("/worker/login")).toBeNull();
+    session.current = { role: "Owner", mustChangePassword: false }; // no staff record
+    expect(await visit("/worker/login")).toBeNull();
   });
 });
 
@@ -108,6 +120,44 @@ describe("changing a temporary password", () => {
   it("continues with a full page load, so the new session cookie is the one used", async () => {
     const forms = await readFile("components/admin/AdminAccessForms.tsx", "utf8");
     expect(forms).toContain('<a href={state.href} className="mt-3 inline-flex font-black underline">');
+  });
+});
+
+describe("the worker door, opened by someone already signed in", () => {
+  it("sends only a Worker on to the dashboard, so the owner is not bounced in a loop", async () => {
+    const page = await readFile("app/worker/login/page.tsx", "utf8");
+    // The loop: any session → dashboard → not a worker → login → dashboard…
+    expect(page).not.toContain('if (await getAdminSession()) redirect("/worker/dashboard");');
+    expect(page).toContain('getSessionAdminRole(session) === "Worker") redirect("/worker/dashboard")');
+  });
+
+  it("tells the owner who they are signed in as, and how to test a worker", async () => {
+    const page = await readFile("app/worker/login/page.tsx", "utf8");
+    expect(page).toContain("private window");
+  });
+});
+
+describe("the change-password screen on a phone", () => {
+  it("is not covered by the passkey offer, which sat over its button", async () => {
+    const invite = await readFile("components/admin/PasskeyInvite.tsx", "utf8");
+    expect(invite).toContain('pathname?.startsWith("/admin/change-password")');
+    expect(invite).toContain('if (stage === "hidden" || changingPassword) return null;');
+  });
+});
+
+describe("making a worker's sign-in", () => {
+  it("moves Role to Worker when a factory worker is linked, so it is not left on Viewer", async () => {
+    const form = await readFile("components/admin/StaffAccessManager.tsx", "utf8");
+    expect(form).toContain('role.value === "Viewer"');
+    expect(form).toContain('role.value = "Worker";');
+  });
+
+  it("forgives earlier wrong guesses once the password is right, before any emailed code", async () => {
+    const login = await readFile("app/admin/login/actions.ts", "utf8");
+    const cleared = login.indexOf("await clearAccountLoginRateLimit(email);");
+    const codeStep = login.indexOf("const codeHasNowhereToGo");
+    expect(cleared).toBeGreaterThan(0);
+    expect(cleared).toBeLessThan(codeStep);
   });
 });
 

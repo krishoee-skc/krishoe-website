@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ActionMessage from "@/components/admin/ActionMessage";
@@ -250,7 +251,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
             Directly under the warning that sends the owner here, because
             "count them in below" pointed at nothing for as long as this
             box did not exist. */}
-        <form onSubmit={handleCount} className="mt-3 rounded-xl border border-brand-green-line bg-brand-paper p-3">
+        <EnterWalkForm onSubmit={handleCount} className="mt-3 rounded-xl border border-brand-green-line bg-brand-paper p-3">
           <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
           <input type="hidden" name="design" value={countKey.split("::")[0] ?? ""} />
           <input type="hidden" name="location" value={countPlace} />
@@ -318,7 +319,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
           </p>
 
           <ActionMessage state={countState} />
-        </form>
+        </EnterWalkForm>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
@@ -382,7 +383,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
           )}
         </p>
 
-        <form onSubmit={handleSend} className="mt-4 grid gap-3">
+        <EnterWalkForm onSubmit={handleSend} className="mt-4 grid gap-3">
           <input type="hidden" name="lineCount" value={lines.length} />
           <input type="hidden" name="fromLocation" value={from} />
           <input type="hidden" name="toLocation" value={to} />
@@ -508,7 +509,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
             </button>
             <ActionMessage state={state} />
           </div>
-        </form>
+        </EnterWalkForm>
       </section>
 
       {/* ── Challans ────────────────────────────────────────────────── */}
@@ -589,7 +590,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
                 </div>
 
                 {open ? (
-                  <form onSubmit={handleReceive} className="mt-3 grid gap-2 border-t border-brand-green-line pt-3">
+                  <EnterWalkForm onSubmit={handleReceive} className="mt-3 grid gap-2 border-t border-brand-green-line pt-3">
                     <input type="hidden" name="transferId" value={transfer.id} />
                     <input type="hidden" name="receivedBy" value={staffName} />
                     <p className="text-xs text-brand-muted">
@@ -624,7 +625,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
                     >
                       {receiving ? text("Saving…", "राख्दै…") : text("Save the count", "गनेको राख्ने")}
                     </button>
-                  </form>
+                  </EnterWalkForm>
                 ) : null}
               </div>
             );

@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import Link from "next/link";
@@ -127,7 +128,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr] print:hidden">
-          <form action={updateCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+          <EnterWalkForm action={updateCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h2 className="font-black text-brand-green-ink">Customer details</h2>
             <input type="hidden" name="id" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -150,9 +151,9 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             <FormSubmitButton className="h-10 rounded-full bg-brand-green-ink px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Save customer
             </FormSubmitButton>
-          </form>
+          </EnterWalkForm>
 
-          <form action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+          <EnterWalkForm action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h2 className="font-black text-brand-green-ink">New transaction</h2>
             <input type="hidden" name="ledgerId" value={ledger.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -164,7 +165,7 @@ export default async function CustomerLedgerDetailPage({ params }: LedgerDetailP
             <FormSubmitButton className="h-10 rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink">
               Record transaction
             </FormSubmitButton>
-          </form>
+          </EnterWalkForm>
         </div>
 
         <div className="mt-8">

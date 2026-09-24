@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AdminLoginForm from "@/components/AdminLoginForm";
+import T from "@/components/T";
 import { getAdminSession } from "@/lib/admin-auth";
+import { getSessionAdminRole } from "@/lib/admin-role-permissions";
 
 export const metadata: Metadata = {
   title: "Worker Login | KRISHOE",
@@ -9,7 +11,14 @@ export const metadata: Metadata = {
 };
 
 export default async function WorkerLoginPage() {
-  if (await getAdminSession()) redirect("/worker/dashboard");
+  // Only a Worker is sent on to the dashboard. This used to send any signed-in
+  // staff there, and the dashboard sends anyone who is not a worker back here —
+  // so the owner, still signed in on the phone they were testing with, opened
+  // the worker link and got "too many redirects": the door that "would not
+  // open". Everyone else is shown the form, told who they are signed in as.
+  const session = await getAdminSession();
+  if (session && getSessionAdminRole(session) === "Worker") redirect("/worker/dashboard");
+  const signedInAs = session ? getSessionAdminRole(session) : null;
 
   return (
     // The worker door of the same secure-terminal family as /enter and the admin
@@ -49,6 +58,14 @@ export default async function WorkerLoginPage() {
           Worker portal
         </span>
 
+        {signedInAs ? (
+          <p className="w-full rounded-xl border border-[#e3c684]/40 bg-[#e3c684]/10 px-4 py-3 text-sm font-semibold leading-6 text-[#f3e3b5]">
+            <T
+              en={`This browser is signed in as ${signedInAs}. Signing in here with a worker's mobile and password signs ${signedInAs} out. To try a worker's account, use another browser or a private window.`}
+              ne={`तपाईं अहिले यो browser मा ${signedInAs} को रूपमा login हुनुहुन्छ। यहाँ कामदारको mobile र password हालेर login गर्दा ${signedInAs} बाट logout हुन्छ। कामदारको account जाँच्न अर्को browser वा private window प्रयोग गर्नुहोस्।`}
+            />
+          </p>
+        ) : null}
         <AdminLoginForm nextPath="/worker/dashboard" portal="worker" />
 
         <a href="/enter" className="font-tech text-[11px] font-bold uppercase tracking-[0.14em] text-[#a9e3c6] transition hover:text-white">

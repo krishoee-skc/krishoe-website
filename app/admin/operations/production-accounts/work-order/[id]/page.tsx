@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -86,7 +87,7 @@ export default async function WorkOrderDetailPage({
 
       {!["Completed", "Cancelled"].includes(order.status) ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <form action={updateWorkOrderScheduleAction} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+          <EnterWalkForm action={updateWorkOrderScheduleAction} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
             <h2 className="font-black text-brand-green-ink">Schedule control</h2>
             <p className="mt-1 text-xs leading-5 text-brand-muted">Update planning details without changing item, sizes or production history.</p>
             <input type="hidden" name="workOrderId" value={order.id} />
@@ -99,7 +100,7 @@ export default async function WorkOrderDetailPage({
             <FormSubmitButton className="mt-3 min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white" pendingLabel="Updating schedule…">
               Update schedule
             </FormSubmitButton>
-          </form>
+          </EnterWalkForm>
 
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
             <h2 className="font-black text-red-950">Stop this Work Order</h2>
@@ -108,7 +109,7 @@ export default async function WorkOrderDetailPage({
             </p>
             <details className="mt-3">
               <summary className="cursor-pointer text-xs font-black text-red-800">Open cancellation control</summary>
-              <form action={cancelWorkOrderAction} className="mt-3 space-y-3">
+              <EnterWalkForm action={cancelWorkOrderAction} className="mt-3 space-y-3">
                 <input type="hidden" name="workOrderId" value={order.id} />
                 <input aria-label="Reason for cancellation" name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for cancellation" required />
                 <label className="flex items-center gap-2 text-xs font-bold text-red-900">
@@ -118,7 +119,7 @@ export default async function WorkOrderDetailPage({
                 <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Cancelling Work Order…">
                   Cancel Work Order
                 </FormSubmitButton>
-              </form>
+              </EnterWalkForm>
             </details>
           </div>
         </div>
@@ -162,7 +163,7 @@ export default async function WorkOrderDetailPage({
             Open camera apps
           </Link>
         </div>
-        <form action={createCctvReferenceAction} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <EnterWalkForm action={createCctvReferenceAction} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <input type="hidden" name="workOrderId" value={order.id} />
           <select aria-label="Production stage" name="stage" defaultValue={order.currentStage} className="min-h-11 rounded-xl border border-sky-200 bg-brand-paper px-3 text-sm">
             {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
@@ -184,7 +185,7 @@ export default async function WorkOrderDetailPage({
           <FormSubmitButton className="min-h-11 rounded-xl bg-sky-800 px-4 text-xs font-black text-white" pendingLabel="Saving CCTV reference…">
             Save camera reference
           </FormSubmitButton>
-        </form>
+        </EnterWalkForm>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {detail.cctvReferences.map((row) => (
             <article key={row.id} className="rounded-xl border border-sky-100 bg-brand-paper p-3 text-sm">
@@ -262,7 +263,7 @@ export default async function WorkOrderDetailPage({
                 <summary className="cursor-pointer text-xs font-black text-brand-green">
                   Record actual consumption
                 </summary>
-                <form action={createMaterialConsumptionAction} className="mt-3 grid gap-3 rounded-xl bg-emerald-50 p-3 sm:grid-cols-2">
+                <EnterWalkForm action={createMaterialConsumptionAction} className="mt-3 grid gap-3 rounded-xl bg-emerald-50 p-3 sm:grid-cols-2">
                   <input type="hidden" name="workOrderId" value={order.id} />
                   <input type="hidden" name="materialId" value={row.materialId} />
                   <input
@@ -283,7 +284,7 @@ export default async function WorkOrderDetailPage({
                   <FormSubmitButton className="min-h-11 rounded-xl bg-brand-green px-4 text-xs font-black text-white sm:col-span-2" pendingLabel="Recording material…">
                     Owner approve consumption
                   </FormSubmitButton>
-                </form>
+                </EnterWalkForm>
               </details>
             </article>
           ))}
@@ -313,7 +314,7 @@ export default async function WorkOrderDetailPage({
                 </div>
                 <details className="mt-3 border-t border-brand-green-line pt-3">
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">Reverse this material entry</summary>
-                  <form action={reverseMaterialConsumptionAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                  <EnterWalkForm action={reverseMaterialConsumptionAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="consumptionId" value={row.id} />
                     <input aria-label="Reason for reversal" name="reason" minLength={5} className="min-h-11 w-full rounded-xl border border-red-200 bg-brand-paper px-3 text-sm" placeholder="Reason for reversal" required />
                     <label className="flex items-center gap-2 text-xs font-bold text-red-900">
@@ -323,7 +324,7 @@ export default async function WorkOrderDetailPage({
                     <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Reversing material…">
                       Reverse material usage
                     </FormSubmitButton>
-                  </form>
+                  </EnterWalkForm>
                 </details>
               </article>
             ))}
@@ -395,7 +396,7 @@ export default async function WorkOrderDetailPage({
                   <summary className="cursor-pointer text-xs font-black text-brand-clay">
                     Reverse this handover
                   </summary>
-                  <form action={reverseHandoverAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                  <EnterWalkForm action={reverseHandoverAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                     <input type="hidden" name="handoverId" value={row.id} />
                     <p className="text-xs leading-5 text-red-900">
                       The record stays in audit history but is removed from active quantity and size calculations.
@@ -414,7 +415,7 @@ export default async function WorkOrderDetailPage({
                     <FormSubmitButton className="min-h-11 rounded-xl bg-red-700 px-4 text-xs font-black text-white" pendingLabel="Reversing handover…">
                       Reverse handover
                     </FormSubmitButton>
-                  </form>
+                  </EnterWalkForm>
                 </details>
               </article>
             ))}
@@ -437,7 +438,7 @@ export default async function WorkOrderDetailPage({
                 <summary className="cursor-pointer text-xs font-black text-brand-clay">
                   Reverse this QC/stock posting
                 </summary>
-                <form action={reversePackingQcAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
+                <EnterWalkForm action={reversePackingQcAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                   <input type="hidden" name="postingId" value={row.id} />
                   <p className="text-xs leading-5 text-red-900">
                     This removes {row.totalPairs} pairs from finished stock and returns the Work Order to Ready for QC.
@@ -460,7 +461,7 @@ export default async function WorkOrderDetailPage({
                   >
                     Reverse QC & stock
                   </FormSubmitButton>
-                </form>
+                </EnterWalkForm>
               </details>
             </article>
           ))}
