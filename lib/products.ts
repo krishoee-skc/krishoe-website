@@ -138,6 +138,21 @@ export const categories: Category[] = [
   },
 ];
 
+/**
+ * A category's own picture, standing in for a product saved without a photo.
+ *
+ * A product with no photo is given its category's picture (cleanProduct), so a
+ * card is never an empty box. But that picture is a different shoe — a
+ * customer shown it is shown a pair they will not receive — and it is a small
+ * file, soft on a phone. Where a product is drawn, a stand-in is replaced by a
+ * plain "photo coming" tile instead.
+ */
+const standInPhotos = new Set(categories.map((category) => category.image));
+
+export function isStandInPhoto(src: string | undefined | null) {
+  return Boolean(src) && standInPhotos.has(String(src));
+}
+
 type SeedProduct = {
   id: string;
   name: string;

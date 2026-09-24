@@ -19,7 +19,7 @@ import { useLanguage } from "@/components/LanguageProvider";
  * the tables — the owner opens "Payments" on Saturday, not "worker_payments".
  */
 
-const links = [
+export const wagesLinks = [
   { href: "/admin/operations/production-accounts", en: "This week", ne: "हप्ता" },
   { href: "/admin/operations/production-accounts/payments", en: "Payments", ne: "भुक्तानी" },
   { href: "/admin/operations/production-accounts/rates", en: "Wage rates", ne: "दर" },
@@ -32,7 +32,7 @@ export default function WagesNav() {
 
   return (
     <nav aria-label={text("Wages sections", "ज्यालाका भाग")} className="flex flex-wrap gap-2">
-      {links.map((link) => {
+      {wagesLinks.map((link) => {
         // The week page is the parent path, so it would match every child
         // without an exact test.
         const active =

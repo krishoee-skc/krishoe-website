@@ -67,7 +67,9 @@ export default function LanguageInvite() {
     <div
       role="dialog"
       aria-label="भाषा छान्नुहोस् · Choose language"
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 md:bottom-6"
+      // Above the tab bar (and the buy bar on a product page), not across it:
+      // at bottom-3 the two sat on the same strip of a phone.
+      className="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 lg:bottom-6"
     >
       <div className="flex items-start gap-3">
         <span className="text-2xl leading-none" aria-hidden="true">

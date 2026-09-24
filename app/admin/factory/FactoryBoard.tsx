@@ -187,7 +187,7 @@ export default function FactoryBoard({
         </h2>
         <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <div className="rounded bg-emerald-50 p-2 text-center sm:p-2.5">
-            <div className="text-lg font-bold text-emerald-600 sm:text-xl">{stats.goodPairs}</div>
+            <div className="text-lg font-bold text-emerald-700 sm:text-xl">{stats.goodPairs}</div>
             <div className="mt-0.5 text-xs text-emerald-700">{text("Good pairs", "राम्रो जोडी")}</div>
           </div>
           <div className="rounded bg-red-50 p-2 text-center sm:p-2.5">
@@ -195,7 +195,7 @@ export default function FactoryBoard({
             <div className="mt-0.5 text-xs text-red-700">{text("Reject pairs", "बिग्रेको जोडी")}</div>
           </div>
           <div className="rounded bg-amber-50 p-2 text-center sm:p-2.5">
-            <div className="text-lg font-bold text-amber-600 sm:text-xl">{stats.rejectRate}%</div>
+            <div className="text-lg font-bold text-amber-700 sm:text-xl">{stats.rejectRate}%</div>
             <div className="mt-0.5 text-xs text-amber-700">{text("Reject rate", "बिग्रेको दर")}</div>
           </div>
         </div>

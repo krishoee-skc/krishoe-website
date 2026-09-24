@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SafeImage from "@/components/SafeImage";
 import { useLanguage } from "@/components/LanguageProvider";
+import NoPhotoYet from "@/components/NoPhotoYet";
+import { isStandInPhoto } from "@/lib/products";
 
 type ProductGalleryProps = {
   name: string;
@@ -16,8 +18,9 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
   const images = useMemo(() => {
     const seen = new Set<string>();
 
+    // A category's stand-in picture is another shoe; it is not shown as this one.
     return [image, ...gallery].filter((src) => {
-      if (!src || seen.has(src)) {
+      if (!src || seen.has(src) || isStandInPhoto(src)) {
         return false;
       }
 
@@ -31,6 +34,11 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
   // on the sole brings the sole closer rather than the middle of the picture.
   const [magnified, setMagnified] = useState(false);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  // A sideways swipe on the photo moves to the next or previous one, the way
+  // every shop app on the phone works. The tap after a swipe is swallowed so
+  // the finger lifting does not also open the big view.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
 
   // The browser keeps scrolling the page behind an open dialog, which on a
   // phone reads as the photo sliding away under your finger.
@@ -60,6 +68,20 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
     setOrigin({ x: 50, y: 50 });
   }
 
+  function step(direction: 1 | -1) {
+    if (images.length < 2) return;
+    const index = Math.max(0, images.indexOf(selectedImage));
+    showImage(images[(index + direction + images.length) % images.length]);
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+        <NoPhotoYet name={name} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* The photo opens the big view. A shoe is bought on its stitching, its
@@ -67,7 +89,30 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           square thumbnail on a phone. */}
       <button
         type="button"
-        onClick={openZoom}
+        onClick={() => {
+          if (swiped.current) {
+            swiped.current = false;
+            return;
+          }
+          openZoom();
+        }}
+        onTouchStart={(event) => {
+          const touch = event.touches[0];
+          touchStart.current = { x: touch.clientX, y: touch.clientY };
+          swiped.current = false;
+        }}
+        onTouchEnd={(event) => {
+          const start = touchStart.current;
+          touchStart.current = null;
+          if (!start) return;
+          const touch = event.changedTouches[0];
+          const dx = touch.clientX - start.x;
+          const dy = touch.clientY - start.y;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            swiped.current = true;
+            step(dx < 0 ? 1 : -1);
+          }
+        }}
         aria-label={text(`See ${name} larger`, `${name} ठूलो पारेर हेर्ने`)}
         className="group relative aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
       >
@@ -86,6 +131,13 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           </svg>
           {text("Tap to enlarge", "ठूलो पार्न थिच्नुहोस्")}
         </span>
+        {images.length > 1 ? (
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {images.map((src) => (
+              <span key={src} className={`h-2 w-2 rounded-full ${src === selectedImage ? "bg-white" : "bg-white/50"} shadow`} />
+            ))}
+          </span>
+        ) : null}
       </button>
 
       {images.length > 1 ? (

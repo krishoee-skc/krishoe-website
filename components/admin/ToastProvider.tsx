@@ -41,6 +41,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const show = useCallback((message: string, tone: ToastTone = "success") => {
     const id = nextId++;
     setToasts((current) => [...current, { id, message, tone }]);
+    // A short buzz on Android when something is saved, so an entry typed with
+    // the eyes on a paper bill is known to have gone in without looking up.
+    // One pulse for done, two for a problem. iPhones have no vibration for web
+    // pages; there the toast alone says it.
+    if (tone !== "info" && typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(tone === "success" ? 25 : [40, 60, 40]);
+      } catch {
+        // Some browsers refuse without a recent tap. Nothing is lost.
+      }
+    }
     // Fade and remove after a few seconds. Errors linger a touch longer so they
     // are not missed.
     window.setTimeout(

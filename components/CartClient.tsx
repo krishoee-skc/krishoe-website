@@ -22,9 +22,9 @@ export default function CartClient() {
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           {text("Your cart", "तपाईंको कार्ट")}
         </p>
-        <h1 className="mt-3 text-4xl font-black text-brand-green-ink">
+        <h2 className="mt-3 text-4xl font-black text-brand-green-ink">
           {text("Cart is waiting for a good pair.", "कार्टले राम्रो जोडी पर्खिरहेको छ।")}
-        </h1>
+        </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
           {text(
             "Add premium KRISHOE styles to your cart and continue to a guided checkout.",
@@ -111,7 +111,7 @@ export default function CartClient() {
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-bright">
           {text("Order summary", "अर्डर विवरण")}
         </p>
-        <div className="mt-6 space-y-4 border-b border-white/10 pb-6 text-sm text-white/72">
+        <div className="mt-6 space-y-4 border-b border-white/10 pb-6 text-sm text-white/[.72]">
           <div className="flex justify-between">
             <span>{text("Subtotal", "जम्मा")}</span>
             <span className="font-bold text-white">{subtotalLabel}</span>
@@ -122,7 +122,7 @@ export default function CartClient() {
           </div>
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <span className="text-sm text-white/72">{text("Estimated total", "अनुमानित कुल")}</span>
+          <span className="text-sm text-white/[.72]">{text("Estimated total", "अनुमानित कुल")}</span>
           <span className="text-3xl font-black">{subtotalLabel}</span>
         </div>
         {canCheckout ? (
@@ -136,7 +136,7 @@ export default function CartClient() {
           <div className="mt-7">
             <p
               role="status"
-              className="rounded-lg bg-white/12 px-4 py-3 text-sm font-semibold leading-6 text-white"
+              className="rounded-lg bg-white/[.12] px-4 py-3 text-sm font-semibold leading-6 text-white"
             >
               {describeStockShortfalls(stockShortfalls)}.{" "}
               {text(

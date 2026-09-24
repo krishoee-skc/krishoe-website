@@ -10,6 +10,7 @@ import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
+import { TABLET_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 import type { AttentionLevel } from "@/app/admin/nav-attention";
 
@@ -38,12 +39,18 @@ export default function AdminNav({
   branchSwitch?: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed: chosenCollapsed, toggleSidebar } = useSidebar();
+  // On a tablet the sidebar is a rail of icons, always. The phone's top bar
+  // and bottom dock were drawn on a tablet too, wasting its width on a layout
+  // made for a screen half the size; the full sidebar does not fit beside a
+  // form at 768px. The rail does, and every screen stays one tap away.
+  const onTablet = useMediaQuery(TABLET_QUERY);
+  const isCollapsed = chosenCollapsed || onTablet;
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
   const { language, text } = useLanguage();
 
   return (
-    <div className={`hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 lg:block print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${isCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
+    <div className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
       <div className="flex h-full max-h-screen flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
@@ -67,6 +74,7 @@ export default function AdminNav({
           </Link>
           <button
             onClick={toggleSidebar}
+            hidden={onTablet}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="rounded-lg p-2 hover:bg-admin-hover dark:hover:bg-admin-hover-dark transition-colors"
             aria-label="Toggle sidebar"

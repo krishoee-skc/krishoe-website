@@ -41,7 +41,10 @@ export default function TodaySales({
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">
             <T en="Sold today" ne="आज बिक्री भयो" />
           </p>
-          <p className="mt-2 font-display text-[2.75rem] font-black leading-none sm:text-6xl">
+          {/* text-white by name: globals.css gives every <p> the body ink, and
+              that direct rule beats the white inherited from this panel — the
+              day's takings were drawn dark grey on dark green. */}
+          <p className="mt-2 font-display text-[2.75rem] font-black leading-none text-white sm:text-6xl">
             {money(netSales)}
           </p>
 

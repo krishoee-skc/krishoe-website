@@ -219,12 +219,13 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
         </ul>
       </div>
 
-      {/* A floating pill that sits ABOVE the bottom navigation, in the same
-          style, so the two never collide — the product action stays reachable
-          while scrolling without covering Home/Shop/Search/Cart. Only on the
-          phone (md:hidden); the tab bar and this bar both end at the same
-          breakpoint the page reserves space for. */}
-      <div className="fixed inset-x-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/92 px-3 py-2.5 shadow-[0_18px_55px_rgba(16,35,29,0.22)] backdrop-blur-xl md:hidden">
+      {/* The phone's foot bar on a product page. It used to float above the
+          tab bar, and the two stacked (with the install card over both) took a
+          quarter of a small phone — the shoe's name and price were under them.
+          The tab bar steps aside on product pages (BottomTabBar), so this sits
+          where it was: one bar, and the action it exists for. Only on the
+          phone (md:hidden); the page reserves the space. */}
+      <div className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.92] px-3 py-2.5 shadow-[0_18px_55px_rgba(16,35,29,0.22)] backdrop-blur-xl md:hidden">
         {/* On the phone, the impulse zone. Buy Now leads; Add and WhatsApp stay
             within reach for the shopper who wants a cart or a chat first. */}
         <div className="mx-auto grid max-w-md grid-cols-[1.4fr_auto_auto] gap-2">

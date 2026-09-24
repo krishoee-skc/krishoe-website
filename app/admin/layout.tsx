@@ -100,11 +100,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             crowding the foot of the menu. The px matches the page below so the
             search's left edge lines up with the dashboard cards. Read-only: the
             bar opens the same login-guarded search the search page uses. */}
-        <div className="flex items-center gap-3 px-4 pt-4 sm:px-6">
+        <div className="flex items-center gap-2 px-4 pt-4 sm:gap-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <AdminCommandBar />
           </div>
-          <LanguageSwitch />
+          {/* Narrower on a phone: at full width the switch took half the row
+              and the search box read "Searc…". */}
+          <LanguageSwitch compact className="[&>button]:px-2.5 sm:[&>button]:px-3.5" />
         </div>
         {/* Where this screen sits, for the ones deep enough to need saying.
             Drawn here so every screen gets it without asking, and a new one is

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { workspaceForPath } from "@/app/admin/nav-links";
 
 /**
  * The path a screen was reached by, drawn once for the whole admin.
@@ -75,6 +76,9 @@ export default function AdminTrail() {
   const steps = adminTrail(pathname ?? "");
 
   if (steps.length === 0) return null;
+  // On a factory or shop screen the coloured band above (WorkspaceBand)
+  // carries this path; drawn here too, it said the same thing twice.
+  if (workspaceForPath(pathname ?? "") !== "both") return null;
 
   return (
     <nav

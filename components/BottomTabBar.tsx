@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, ShoppingBagIcon, ShoppingCartIcon, UserIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useKeyboardOpen } from "@/lib/use-keyboard-open";
 
 // App-style bottom navigation for phones/tablets. Hidden on desktop (lg+) and
 // on the admin area. Most customers shop from mobile, so the key destinations
@@ -13,25 +14,30 @@ export default function BottomTabBar() {
   const pathname = usePathname();
   const { cartCount } = useCommerce();
   const { text } = useLanguage();
+  const keyboardOpen = useKeyboardOpen();
 
   if (pathname.startsWith("/admin")) {
     return null;
   }
 
   const tabClass = (active: boolean) =>
-    `group relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-black transition duration-300 ${
+    `group relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-xs font-black transition duration-300 ${
       active
         ? "-translate-y-1 bg-brand-green text-white shadow-[0_10px_24px_rgba(11,77,59,0.28)]"
         : "text-brand-muted-deep hover:bg-brand-mist"
     }`;
 
   const iconBubble = (tone: string, active: boolean) =>
-    `grid h-7 w-7 place-items-center rounded-xl transition ${active ? "bg-white/18" : tone}`;
+    `grid h-7 w-7 place-items-center rounded-xl transition ${active ? "bg-white/[.18]" : tone}`;
 
   const isHome = pathname === "/";
   const isShop = pathname === "/shop" || pathname.startsWith("/shop/");
   const isCart = pathname === "/cart";
   const isAccount = pathname.startsWith("/account");
+  // A product page has its own bar at the foot of a phone — Buy now, Add,
+  // WhatsApp — and the two stacked took a quarter of a small screen, with the
+  // install card over both. There the buy bar takes the tab bar's place.
+  const isProduct = pathname.startsWith("/product/");
 
   return (
     <>
@@ -41,7 +47,7 @@ export default function BottomTabBar() {
 
       <nav
         aria-label={text("Primary", "मुख्य मेनु")}
-        className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/88 shadow-[0_18px_55px_rgba(47,28,46,0.22)] backdrop-blur-xl lg:hidden"
+        className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.88] shadow-[0_18px_55px_rgba(47,28,46,0.22)] backdrop-blur-xl transition-transform duration-200 lg:hidden ${isProduct ? "max-md:hidden" : ""} ${keyboardOpen ? "translate-y-[150%]" : ""}`}
       >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>

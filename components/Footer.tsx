@@ -238,7 +238,7 @@ export default function Footer() {
           bright enough to make a dimmer line read as switched off. */}
       <div className="border-t-[3px] border-brand-gold bg-brand-green-ink text-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3.5 text-xs text-white/85">
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/85">
             <span>© 2026 KRISHOE · {businessContact.addressLocality}, {businessContact.addressRegion}</span>
             <Link href="/privacy" className="transition hover:text-brand-gold-bright"><T en="Privacy" ne="गोपनीयता" /></Link>
             <Link href="/terms" className="transition hover:text-brand-gold-bright"><T en="Terms" ne="सर्तहरू" /></Link>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import ProductText from "@/components/commerce/ProductText";
 import { productImageAlt } from "@/lib/search-words";
-import { productReviewStats, type Product } from "@/lib/products";
+import { isStandInPhoto, productReviewStats, type Product } from "@/lib/products";
+import NoPhotoYet from "@/components/NoPhotoYet";
 import { ArrowRightIcon, StarIcon } from "@/components/Icons";
 import ProductCardActions from "@/components/ProductCardActions";
 import SafeImage from "@/components/SafeImage";
@@ -40,27 +41,31 @@ export default function ProductCard({
           is 216°, and it was the only cool note — the eye cannot name that but
           reads it as cheap. */}
       <Link href={href} className="relative block aspect-[4/3] shrink-0 overflow-hidden bg-[radial-gradient(120%_100%_at_30%_10%,#FBF4E6,#E8F2EC)]">
-        <SafeImage
-          src={product.image}
-          // The name alone leaves out what kind of shoe it is and where it
-          // was made — the two things a Google Images search and a screen
-          // reader both need.
-          alt={productImageAlt(product)}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-          // `eager` marks the cards that are already on screen when the shop
-          // opens. loading="eager" only stops the browser deferring the
-          // request until the card scrolls into view; it does not move the
-          // image up the queue, so the first photo a shopper sees still waited
-          // behind the page's own scripts. `priority` preloads it, which is
-          // the one that shortens the wait before the shop looks like a shop.
-          // Deliberately not set on every card: priority on everything is
-          // priority on nothing, and it would pull the whole catalogue over a
-          // phone connection at once.
-          priority={eager}
-          loading={eager ? "eager" : "lazy"}
-          className="object-cover transition duration-700 group-hover:scale-105"
-        />
+        {isStandInPhoto(product.image) ? (
+          <NoPhotoYet name={product.name} />
+        ) : (
+          <SafeImage
+            src={product.image}
+            // The name alone leaves out what kind of shoe it is and where it
+            // was made — the two things a Google Images search and a screen
+            // reader both need.
+            alt={productImageAlt(product)}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            // `eager` marks the cards that are already on screen when the shop
+            // opens. loading="eager" only stops the browser deferring the
+            // request until the card scrolls into view; it does not move the
+            // image up the queue, so the first photo a shopper sees still waited
+            // behind the page's own scripts. `priority` preloads it, which is
+            // the one that shortens the wait before the shop looks like a shop.
+            // Deliberately not set on every card: priority on everything is
+            // priority on nothing, and it would pull the whole catalogue over a
+            // phone connection at once.
+            priority={eager}
+            loading={eager ? "eager" : "lazy"}
+            className="object-cover transition duration-700 group-hover:scale-105"
+          />
+        )}
         {/* Only a real badge — "limited", "new" — earns a corner. It used to
             fall back to the category, which is already printed in gold under
             the photo, so two of the shop's three shoes said "Ladies Sandals"

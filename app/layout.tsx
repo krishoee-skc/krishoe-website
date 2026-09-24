@@ -8,6 +8,7 @@ import { themeBootScript } from "@/components/ThemeToggle";
 import VersionWatcher from "@/components/VersionWatcher";
 import LanguageProvider from "@/components/LanguageProvider";
 import StorefrontEnhancements from "@/components/StorefrontEnhancements";
+import OfflineNotice from "@/components/OfflineNotice";
 import { getProducts } from "@/lib/product-store";
 import { getReservedPairsByProduct } from "@/lib/submissions";
 import { withAvailableStock } from "@/lib/order-stock";
@@ -221,6 +222,9 @@ export default async function RootLayout({
             {children}
             <StorefrontEnhancements />
           </CommerceProvider>
+          {/* Shop, admin and worker portal alike: says when the phone has lost
+              its connection, before a failed save reads as a broken app. */}
+          <OfflineNotice />
           {/* Passed the deployment that served this page, so a tab left open
               across a deploy can offer a reload instead of silently running old
               code. Covers the shop and the admin alike — both hang off this

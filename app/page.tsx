@@ -16,8 +16,6 @@ import { getAdminSettings } from "@/lib/admin-settings";
 import { businessContact } from "@/lib/seo";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
-import { deliveryBadge, deliveryPromise } from "@/lib/delivery-fee";
-import { getStorefrontDeliveryPricing } from "@/lib/delivery-settings";
 
 async function loadHomeProducts(): Promise<Product[]> {
   try {
@@ -47,15 +45,11 @@ const loadPromo = unstable_cache(
 );
 
 export default async function Home() {
-  const [products, settings, deliveryPricing] = await Promise.all([
-    loadHomeProducts(),
-    loadPromo(),
-    getStorefrontDeliveryPricing(),
-  ]);
-  // One promise about delivery, from Settings — the badge said "Free Shipping"
-  // to everyone while the header promised it only above a threshold.
-  const delivery = deliveryPromise(deliveryPricing);
-  const badge = deliveryBadge(deliveryPricing);
+  const [products, settings] = await Promise.all([loadHomeProducts(), loadPromo()]);
+  // The delivery promise is made once, in the header's strip, from Settings.
+  // On a phone the first screen said it three times — the strip, the promo
+  // line and the first trust badge — which read as filler, and pushed the
+  // shoes further down. The promo line is now the owner's own message only.
   const promo = settings.promoEnabled && settings.promoText.trim() ? settings.promoText.trim() : "";
 
   return (
@@ -63,21 +57,17 @@ export default async function Home() {
 
       <Navbar />
 
-      {/* The shop's top-bar line. The owner's own message when they've set one and
-          switched it on; the built-in line otherwise, so the bar is never empty. */}
-      <Link
-        href="/shop"
-        className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-deep px-4 py-2.5 text-center text-xs font-bold leading-5 text-white shadow-md md:mx-8"
-      >
-        {promo ? (
+      {/* The owner's own message, when they have set one and switched it on.
+          Without one there is no bar: the delivery line it used to fall back to
+          is already in the header strip directly above. */}
+      {promo ? (
+        <Link
+          href="/shop"
+          className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-deep px-4 py-2.5 text-center text-sm font-bold leading-5 text-white shadow-md md:mx-8"
+        >
           <span>{promo}</span>
-        ) : (
-          <T
-            en={`${delivery.en} · order on WhatsApp too`}
-            ne={`${delivery.ne} · WhatsApp मा पनि अर्डर`}
-          />
-        )}
-      </Link>
+        </Link>
+      ) : null}
 
       {/* One complete branded banner — crest, Made in Nepal, tagline and the
           product all in the artwork, so nothing is typed over it.
@@ -126,7 +116,7 @@ export default async function Home() {
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13v10H3zM16 10h3l2 3v4h-5M6 19a2 2 0 1 0 4 0M15 19a2 2 0 1 0 4 0" /></svg>
-            <span className="text-xs font-bold text-brand-green-ink"><T en={badge.en} ne={badge.ne} /></span>
+            <span className="text-xs font-bold text-brand-green-ink"><T en="Delivery across Nepal" ne="नेपालभर डेलिभरी" /></span>
           </div>
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 1 3 6.7M3 12v5m0-5h5" /></svg>

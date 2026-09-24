@@ -598,7 +598,7 @@ export default function WorkEntryForm({
           posting what was made to stock. Entering is the default because that
           is what this screen is for; posting is one tap away when the pairs are
           counted in the godown. */}
-      <div className="mt-5 flex gap-1.5 rounded-xl bg-brand-mist p-1">
+      <div className="mt-1 flex gap-1.5 rounded-xl bg-brand-mist p-1 sm:mt-5">
         <button
           type="button"
           onClick={() => setView("entry")}

@@ -31,7 +31,12 @@ module.exports = {
           "green-line": "#E4DFD5",
           gold: "#C8A04D",
           "gold-bright": "#D4AF37",
-          "gold-deep": "#B98A2E",
+          // Measured on a phone, not chosen by eye: #B98A2E drew the small
+          // gold labels ("Point of Sale", "Catalog", "Your cart") at 2.9:1 on
+          // paper, under the 4.5:1 small text needs, and white on it was 3.1:1.
+          // This is the same gold a shade deeper: 4.7:1 on paper, 5.0:1 for
+          // white on it. Dark mode draws these labels from its own token.
+          "gold-deep": "#8C6A1D",
           "gold-dark": "#9A6B08",
           "gold-ink": "#7A5A00",
           "gold-label": "#A47A28",
@@ -52,7 +57,10 @@ module.exports = {
           // shadows were already cast in. White on it is 12.6:1.
           maroon: "#681E23",
           muted: "#6B6459",
-          "muted-soft": "#938C80",
+          // Was #938C80: 3.2:1 on paper, the grey of every "0 invoices" and
+          // "raw material cost" under a figure — readable on a laptop, faint
+          // on a phone in daylight. 4.8:1 now, still lighter than muted.
+          "muted-soft": "#767064",
           "muted-deep": "#7A7263",
           danger: "#B3261E",
           // Deep royal purple — the storefront's accent beside green and gold,

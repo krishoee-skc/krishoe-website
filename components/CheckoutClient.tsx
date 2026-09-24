@@ -647,9 +647,9 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           {text("Empty checkout", "कार्ट खाली छ")}
         </p>
-        <h1 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">
+        <h2 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">
           {text("Checkout needs a cart.", "अर्डर गर्न कार्टमा सामान चाहिन्छ।")}
-        </h1>
+        </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
           {text(
             "Add a KRISHOE pair first, then continue into checkout.",

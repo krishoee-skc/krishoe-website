@@ -14,7 +14,7 @@ export default function WishlistClient() {
     return (
       <div className="rounded-lg border border-black/10 bg-brand-paper p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Wishlist", "मन परेका")}</p>
-        <h1 className="mt-3 text-4xl font-black text-brand-green-ink">{text("Save pairs you love.", "मन परेका जुत्ता बचाउनुहोस्।")}</h1>
+        <h2 className="mt-3 text-4xl font-black text-brand-green-ink">{text("Save pairs you love.", "मन परेका जुत्ता बचाउनुहोस्।")}</h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
           {text("Tap the heart on a product to build a more personal KRISHOE collection.", "जुत्तामा ♡ थिच्नुहोस् — यहीँ जम्मा हुन्छ।")}
         </p>

@@ -78,7 +78,9 @@ export default function AdminMobileNav({
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
           {/* A generic house icon stood where the shop's own mark belongs,
               on the bar that is on screen all day. */}
-          <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9" />
+          {/* On a tablet the sidebar rail carries the mark; here it would be
+              the same crest twice across the top of one screen. */}
+          <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9 md:hidden" />
           KRISHOE Admin
         </Link>
         <div className="flex items-center gap-1.5">

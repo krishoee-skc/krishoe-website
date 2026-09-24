@@ -26,7 +26,10 @@ describe("opening the photo", () => {
 
     // A screen reader has to be told this opens something, and a keyboard has
     // to be able to reach it.
-    expect(source).toContain("onClick={openZoom}");
+    // A tap opens it; a sideways swipe moves to the next photo instead, and
+    // the tap that ends a swipe does not also open it.
+    expect(source).toContain("openZoom();");
+    expect(source).toContain("if (swiped.current) {");
     expect(source).toContain("aria-label={text(`See ${name} larger`");
   });
 

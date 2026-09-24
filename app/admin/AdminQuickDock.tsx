@@ -11,6 +11,7 @@ import {
 } from "@/components/Icons";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useKeyboardOpen } from "@/lib/use-keyboard-open";
 
 /**
  * The jobs a thumb should reach without opening a menu.
@@ -34,6 +35,9 @@ const links = [
 export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
   const { language } = useLanguage();
+  // Out of the way while typing: the dock sat between the keyboard and the
+  // box being filled, on the screens where most typing happens.
+  const keyboardOpen = useKeyboardOpen();
   const roleLinks = adminRole === "Factory"
     ? [{ href: "/admin/factory", labelEn: "Factory", labelNe: "कारखाना", Icon: PackageIcon }]
     : links;
@@ -43,10 +47,10 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
 
   return (
     <>
-      <div className="h-[calc(5.25rem+env(safe-area-inset-bottom))] lg:hidden print:hidden" aria-hidden />
+      <div className="h-[calc(5.25rem+env(safe-area-inset-bottom))] md:hidden print:hidden" aria-hidden />
       <nav
         aria-label="Admin quick actions"
-        className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-brand-paper/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl lg:hidden print:hidden"
+        className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-brand-paper/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl transition-transform duration-200 md:hidden print:hidden ${keyboardOpen ? "translate-y-[150%]" : ""}`}
       >
         <div
           className="mx-auto grid max-w-md gap-1"
@@ -59,7 +63,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black transition ${
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-black transition ${
                   active
                     ? "-translate-y-1 bg-brand-green text-white shadow-[0_10px_24px_rgba(11,77,59,0.25)]"
                     : "text-brand-muted-deep"

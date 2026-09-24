@@ -38,7 +38,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Customer account", "ग्राहक खाता")}</p>
-      <h1 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Sign in", "लगइन गर्नुहोस्")}</h1>
+      <h2 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Sign in", "लगइन गर्नुहोस्")}</h2>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {text("Save checkout details and manage your KRISHOE profile.", "ठेगाना बचाउनुहोस् — अर्को पटक अर्डर छिटो हुन्छ।")}
       </p>

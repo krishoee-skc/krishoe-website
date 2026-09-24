@@ -38,19 +38,26 @@ const SIGN_IN_PATHS = [
 ];
 
 /**
- * Pages that already own the bottom of a phone screen: the admin dock, and the
- * shop's add-to-cart bar. The card clears those; everywhere else it can sit
- * where a thumb expects it.
+ * The pages where a shopper is deciding or paying. A card about installing an
+ * app, over the price, the Buy button or the order total, is the wrong thing at
+ * the wrong moment — on a small phone it covered the shoe's name and price.
  */
-function bottomOffset(pathname: string) {
-  const hasBottomBar =
-    (pathname.startsWith("/admin") && !SIGN_IN_PATHS.includes(pathname))
-    || pathname.startsWith("/product/");
-
-  return hasBottomBar
-    ? "bottom-[calc(6rem+env(safe-area-inset-bottom))] lg:bottom-4"
-    : "bottom-[calc(1rem+env(safe-area-inset-bottom))]";
+function isBuyingPage(pathname: string) {
+  return pathname.startsWith("/product/")
+    || pathname === "/cart"
+    || pathname.startsWith("/checkout")
+    || pathname.startsWith("/order");
 }
+
+/**
+ * Above the tab bar on a phone, where it used to overlap it: the tab bar is
+ * 4.4rem tall from 0.65rem up, and the card sat at 1rem, across its top half.
+ */
+const BOTTOM_OFFSET = "bottom-[calc(6.25rem+env(safe-area-inset-bottom))] lg:bottom-4";
+
+/** Pages seen, across visits. The offer waits for someone who is browsing. */
+const VIEWS_KEY = "krishoe-page-views";
+const VIEWS_BEFORE_ASKING = 3;
 
 /**
  * Putting KRISHOE on the phone's home screen.
@@ -79,6 +86,9 @@ export default function PwaInstallHelp() {
   const [visible, setVisible] = useState(false);
   const [installer, setInstaller] = useState<InstallPrompt | null>(null);
   const [busy, setBusy] = useState(false);
+  const [views, setViews] = useState(0);
+  const [languageSettled, setLanguageSettled] = useState(false);
+  const [howTo, setHowTo] = useState(false);
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches ||
@@ -151,7 +161,37 @@ export default function PwaInstallHelp() {
     };
   }, []);
 
-  if (!visible || !platform || SIGN_IN_PATHS.includes(pathname)) return null;
+  // Counted per page, and read with whether the language question is done:
+  // one card at a time at the foot of the screen, and the language one first.
+  // It asked on the very first page of a first visit, over the first thing a
+  // shopper saw, and alongside the language card and the tab bar.
+  useEffect(() => {
+    let count = 0;
+    let settled = true;
+    try {
+      count = Number(window.localStorage.getItem(VIEWS_KEY) ?? "0") + 1;
+      window.localStorage.setItem(VIEWS_KEY, String(count));
+      settled = Boolean(
+        window.localStorage.getItem("krishoe-language-asked") || window.localStorage.getItem("krishoe-language"),
+      );
+    } catch {
+      // Storage blocked: never counted, never asked. The menu still installs.
+    }
+    const id = window.setTimeout(() => {
+      setViews(count);
+      setLanguageSettled(settled);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [pathname]);
+
+  if (
+    !visible
+    || !platform
+    || SIGN_IN_PATHS.includes(pathname)
+    || isBuyingPage(pathname)
+    || views < VIEWS_BEFORE_ASKING
+    || !languageSettled
+  ) return null;
 
   const close = () => {
     try {
@@ -176,57 +216,64 @@ export default function PwaInstallHelp() {
     }
   };
 
+  // One line, not a card. The card was 135–155px tall — on a small phone a
+  // quarter of the screen — and said everything at once. Now the one-tap
+  // button where the browser offers it; elsewhere "How?" opens the words.
+  const instructions = platform === "ios"
+    ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
+    : platform === "desktop"
+      ? "In Chrome or Edge, click the Install icon in the address bar — or the three-dot menu, then Install."
+      : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen.";
+
   return (
     <aside
-      className={`fixed inset-x-3 ${bottomOffset(pathname)} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink p-4 text-white shadow-2xl lg:inset-x-auto lg:right-4 lg:mx-0 print:hidden`}
+      className={`fixed inset-x-3 ${BOTTOM_OFFSET} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink px-3 py-2 text-white shadow-xl lg:inset-x-auto lg:right-4 lg:mx-0 print:hidden`}
       aria-label={text("Install KRISHOE app", "KRISHOE app राख्ने")}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {/* text-white spelled out, not inherited from the card. globals.css
-              sets `p { color: var(--ink-body) }`, and a rule matching the
-              element directly beats a colour inherited from a parent — so this
-              heading rendered in dark body ink on a dark green card and could
-              not be read. */}
-          <p className="font-black text-white">
-            {platform === "desktop"
-              ? text("Put KRISHOE on this computer", "KRISHOE computer मा राख्नुहोस्")
-              : text("Put KRISHOE on your phone", "KRISHOE फोनमा राख्नुहोस्")}
-          </p>
-          <p className="mt-1 text-sm leading-5 text-white/80">
-            {installer
-              ? text(
-                "One tap — it opens like an app and runs faster.",
-                "एक थिचाइमा — app जस्तै खुल्छ, छिटो चल्छ।",
-              )
-              : platform === "ios"
-                ? "In Safari, tap Share, then Add to Home Screen. Open the new KRISHOE icon for the app view."
-                : platform === "desktop"
-                  ? "In Chrome or Edge, click the Install icon in the address bar — or the three-dot menu, then Install."
-                  : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen."}
-          </p>
-        </div>
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="text-xl leading-none">📲</span>
+        {/* text-white spelled out, not inherited from the card. globals.css
+            sets `p { color: var(--ink-body) }`, and a rule matching the
+            element directly beats a colour inherited from a parent — so this
+            heading rendered in dark body ink on a dark green card and could
+            not be read. */}
+        <p className="min-w-0 flex-1 text-sm font-black leading-5 text-white">
+          {platform === "desktop"
+            ? text("Put KRISHOE on this computer", "KRISHOE computer मा राख्नुहोस्")
+            : text("Put KRISHOE on your phone", "KRISHOE फोनमा राख्नुहोस्")}
+        </p>
+        {/* Only where the browser has actually offered it. A button that opens
+            nothing is worse than the sentence it replaced. */}
+        {installer ? (
+          <button
+            type="button"
+            onClick={() => void install()}
+            disabled={busy}
+            className="min-h-11 shrink-0 rounded-xl bg-brand-gold px-4 text-sm font-black text-brand-green-ink disabled:opacity-60"
+          >
+            {busy ? text("Adding…", "राख्दैछौँ…") : text("📲 Add it now", "📲 अहिले नै राख्नुहोस्")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setHowTo((open) => !open)}
+            aria-expanded={howTo}
+            className="min-h-11 shrink-0 rounded-xl border border-white/30 px-3 text-sm font-bold text-white"
+          >
+            {text("How?", "कसरी?")}
+          </button>
+        )}
         <button
           type="button"
           onClick={close}
           aria-label={text("Dismiss install help", "हटाउने")}
-          className="shrink-0 text-lg leading-none text-white/70"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg leading-none text-white/80 hover:bg-white/10"
         >
-          X
+          ✕
         </button>
       </div>
-
-      {/* Only where the browser has actually offered it. A button that opens
-          nothing is worse than the sentence it replaced. */}
-      {installer ? (
-        <button
-          type="button"
-          onClick={() => void install()}
-          disabled={busy}
-          className="mt-3 min-h-12 w-full rounded-xl bg-brand-gold px-4 text-sm font-black text-brand-green-ink disabled:opacity-60"
-        >
-          {busy ? text("Adding…", "राख्दैछौँ…") : text("📲 Add it now", "📲 अहिले नै राख्नुहोस्")}
-        </button>
+      {howTo && !installer ? (
+        <p className="mt-1 pl-8 pr-2 text-sm leading-5 text-white/85">{instructions}</p>
       ) : null}
     </aside>
   );

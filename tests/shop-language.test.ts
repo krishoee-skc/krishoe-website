@@ -230,7 +230,8 @@ describe("finding the Nepali", () => {
     // Not a modal. A foreign or wholesale visitor ignores it and keeps
     // shopping in English, which is what they wanted anyway.
     expect(invite).toContain("const DELAY_MS = 2500");
-    expect(invite).toContain("fixed inset-x-3 bottom-3");
+    // At the foot of the screen, above the tab bar rather than across it.
+    expect(invite).toContain("fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))]");
   });
 
   it("survives a browser that refuses to store anything", async () => {

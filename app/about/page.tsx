@@ -68,7 +68,7 @@ export default async function AboutPage() {
               ne="Made in Nepal. हाम्रै हातले, हाम्रै कारखानामा।"
             />
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/[.78]">
             KRISHOE is a Nepali footwear factory and shop. We design our own
             shoes, make them in our own workshop, and sell them ourselves —
             so every pair carries the care of the hands that made it.
@@ -195,7 +195,7 @@ export default async function AboutPage() {
             <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl">
               <T en="Nepali steps, in Nepali shoes." ne="नेपाली पाइला, नेपाली जुत्तामा।" />
             </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-white/78">
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-white/[.78]">
               Every KRISHOE pair keeps a Nepali workshop running and a Nepali
               craftsperson working. Walk with that.
             </p>

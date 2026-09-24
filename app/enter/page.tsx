@@ -174,9 +174,11 @@ export default function EnterPage() {
           <span className="krishoe-mono grid h-16 w-16 place-items-center overflow-hidden rounded-[18px] bg-[linear-gradient(150deg,#e3c684,#c9a24b)] font-tech text-3xl font-black leading-none text-[#0b2e22] shadow-[0_10px_30px_-10px_rgba(201,162,75,0.8),inset_0_1px_0_rgba(255,255,255,0.6)] sm:h-20 sm:w-20 sm:text-4xl">
             K
           </span>
-          <span className="font-tech text-3xl font-black tracking-[0.14em] text-white sm:text-5xl">
+          {/* The page's one heading. It had none, and a search engine or a
+              screen reader landing here found no name for the page. */}
+          <h1 className="mb-0 font-tech text-3xl font-black leading-tight tracking-[0.14em] text-white sm:text-5xl">
             KRISHOE<span className="text-[#e3c684]">®</span>
-          </span>
+          </h1>
         </div>
         <p className="mt-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-white/60 sm:text-sm">
           Walk with Authority
@@ -206,7 +208,7 @@ export default function EnterPage() {
                 <span className={`krishoe-doorIcon grid h-16 w-16 place-items-center rounded-[19px] border ${door.chip} ${door.chipText} shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-transform duration-200 group-hover/door:scale-105 sm:h-[72px] sm:w-[72px]`}>
                   <span className="h-9 w-9 sm:h-10 sm:w-10">{door.icon}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-3 py-1.5 text-[11px] font-bold text-white/85">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[.12] bg-black/20 px-3 py-1.5 text-[11px] font-bold text-white/85">
                   <span className={`krishoe-pulse h-1.5 w-1.5 rounded-full ${door.chipText.replace("text-", "bg-")}`} />
                   <T en={door.pulseEn} ne={door.pulseNe} />
                 </span>

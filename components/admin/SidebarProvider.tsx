@@ -31,7 +31,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   return (
     <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
       <div
-        className={`grid min-h-screen w-full print:block ${
+        className={`grid min-h-screen w-full md:grid-cols-[80px_1fr] print:block ${
           isCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[240px_1fr]"
         }`}
       >

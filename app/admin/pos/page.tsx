@@ -217,19 +217,36 @@ export default async function AdminPosPage() {
     : null;
 
   return (
-    <section className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    // On a phone the bill comes first. The screen opened on a title, a
+    // paragraph, five export buttons and four figure cards, and the cashier
+    // scrolled past all of it to cut a bill with a customer waiting. The order
+    // below is for phones only (max-md); a computer keeps the page as it was.
+    <section className="p-4 max-md:flex max-md:flex-col sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:-order-2">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <AlertText en="Point of Sale" ne="बिल काट्ने" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="POS and e-billing control" ne="बिल काट्ने र इ-बिलिङ" /></h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
+          <p className="mt-1 hidden max-w-3xl text-sm leading-6 text-brand-muted sm:block">
             Retail, wholesale, and online billing with stock movement, credit ledger,
             printable barcode, QR code, and scanner-ready invoice lookup.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* Once-a-day reports, folded away on a phone behind one control. */}
+        <details className="group w-full sm:hidden">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full [&::-webkit-details-marker]:hidden border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink">
+            <T en="⋯ More: reports and day close" ne="⋯ थप: रिपोर्ट र दिन बन्द" />
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <ExportButton href="/api/admin/pos/export?type=invoices" className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white">Export POS CSV</ExportButton>
+            <ExportButton href="/api/admin/pos/export?type=posting-review" className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink">Posting review</ExportButton>
+            <ExportButton href="/api/admin/pos/export?type=day-close" className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink">Day close</ExportButton>
+            <ExportButton href="/api/admin/pos/export?type=day-close-detail" className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink">Close detail</ExportButton>
+            <ExportButton href="/api/admin/pos/export?type=profit-close" className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink">Profit close</ExportButton>
+          </div>
+        </details>
+        <div className="hidden flex-wrap gap-2 sm:flex">
           <ExportButton
             href="/api/admin/pos/export?type=invoices"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
@@ -263,13 +280,13 @@ export default async function AdminPosPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <StatCard label={<T en="Today net sales" ne="आजको खुद बिक्री" />} value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
         <StatCard label={<T en="Month net sales" ne="महिनाको खुद बिक्री" />} value={money(pos.summary.monthNetSales)} detail={`${pos.summary.invoiceCount} total bills`} />
         <StatCard label={<T en="Credit from POS" ne="बिलबाट उधारो" />} value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
         <StatCard label={<T en="Needs review" ne="हेर्न बाँकी" />} value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
       </div>
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="mt-8 grid gap-6 max-md:-order-1 max-md:mt-4 xl:grid-cols-[1.15fr_0.85fr]">
         <PosBillForm
           ledgers={operations.customerLedgers.map((ledger) => ({
             id: ledger.id,

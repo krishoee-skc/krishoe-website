@@ -18,6 +18,10 @@ export default function AiAssistant() {
   const [busy, setBusy] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // On a phone the buying pages own the foot of the screen — the buy bar,
+  // the cart total, the checkout button — and this bubble sat over their
+  // right-hand end (the WhatsApp button on a product). It waits elsewhere.
+  const buyingPage = /^\/(product\/|cart$|checkout)/.test(pathname ?? "");
 
   const greeting = text(
     "Namaste! 🙏 Ask me anything — sizes, delivery, prices or which pair suits you.",
@@ -84,7 +88,7 @@ export default function AiAssistant() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={text("Open KRISHOE assistant", "KRISHOE सहायक खोल्नुहोस्")}
-          className="fixed bottom-24 right-5 z-40 flex h-14 w-14 lg:bottom-5 items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition hover:scale-105"
+          className={`fixed bottom-24 right-5 z-40 flex h-14 w-14 lg:bottom-5 ${buyingPage ? "max-lg:hidden" : ""} items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition hover:scale-105`}
         >
           <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
             <path

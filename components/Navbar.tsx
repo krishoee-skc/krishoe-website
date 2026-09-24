@@ -31,7 +31,11 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
       {/* The utility bar the approved shop leads with: the free-delivery line a
           first-time shopper checks, and the two links they reach for — on every
           page, since it rides on top of the header. */}
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 bg-brand-green-ink px-4 py-1.5 text-[11px] font-semibold text-brand-gold-bright md:px-8">
+      {/* 12px, not 11: measured on a phone the line was too small to read.
+          On a phone only the delivery line — Track Order is in the menu and
+          Help in the footer — so it is one line and never truncated to
+          "Free delivery ove…" beside two links. */}
+      <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 bg-brand-green-ink px-4 py-1.5 text-xs font-semibold text-brand-gold-bright sm:justify-between md:px-8">
         <span className="flex min-w-0 items-center gap-1.5">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5 shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3zM14 10h3l3 3v3h-6M6 18a1.5 1.5 0 1 0 3 0M15 18a1.5 1.5 0 1 0 3 0" />
@@ -40,25 +44,27 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
             <T en={delivery.en} ne={delivery.ne} />
           </span>
         </span>
-        <span className="flex flex-none items-center gap-2.5">
-          <Link href="/track-order" className="transition hover:text-white">
+        <span className="hidden flex-none items-center gap-1 sm:flex">
+          <Link href="/track-order" className="inline-flex min-h-8 items-center px-1.5 transition hover:text-white">
             <T en="Track Order" ne="अर्डर ट्र्याक" />
           </Link>
           <span aria-hidden className="opacity-40">·</span>
-          <Link href="/contact" className="transition hover:text-white">
+          <Link href="/contact" className="inline-flex min-h-8 items-center px-1.5 transition hover:text-white">
             <T en="Help" ne="सहयोग" />
           </Link>
         </span>
       </div>
 
       <div className="border-b border-black/[0.08]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-3.5 md:px-8">
+        {/* Tighter on a phone: the header with its strip was 149px of a 667px
+            screen, and the menu button was pushed to the very edge. */}
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:gap-6 sm:px-5 sm:py-3.5 md:px-8">
           {/* The shop's own name does not shrink. With `shrink` on this link it
               was the item that gave way when the search box and the buttons
               wanted room, and on a wide laptop the brand rendered as "K .."
               beside its own crest — the one piece of text on the page that
               must always be readable. The search box yields instead. */}
-          <Link href="/" className="flex shrink-0 items-center gap-3">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 sm:gap-3">
             {/* The shop's own mark, set in a gold hairline ring. A stamped seal
                 rather than a picture pasted on a page — one distinctive detail,
                 and everything around it stays quiet. */}
@@ -73,7 +79,7 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
                 own ground so it reads as one premium badge rather than a black
                 square dropped on white paper. The wordmark stays set beside it
                 in sharp type; the crest carries the crown, shield and laurel. */}
-            <span className="grid h-12 w-[68px] shrink-0 place-items-center overflow-hidden rounded-xl bg-black ring-1 ring-brand-gold/60 sm:h-14 sm:w-[80px]">
+            <span className="grid h-10 w-[56px] shrink-0 place-items-center overflow-hidden rounded-xl bg-black ring-1 ring-brand-gold/60 sm:h-14 sm:w-[80px]">
               <Image
                 src="https://scx7x508oyhat5zs.public.blob.vercel-storage.com/products/krishoe-logo-198YNm1h6FD1f1393IdOtRaEvgN557.jpeg"
                 alt="KRISHOE — Walk with Authority"

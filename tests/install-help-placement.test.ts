@@ -20,14 +20,24 @@ describe("install help", () => {
     expect(source).toContain("SIGN_IN_PATHS.includes(pathname)");
   });
 
-  it("only clears the bottom where something is actually there", async () => {
+  it("sits above the tab bar, and never over a page where someone is buying", async () => {
     const source = await readFile("components/PwaInstallHelp.tsx", "utf8");
 
-    // The admin dock and the product page's add-to-cart bar own the bottom of a
-    // phone screen; nothing else does.
+    // At 1rem it lay across the top half of the tab bar; on a product page it
+    // covered the name, the price and Add. It clears the tab bar everywhere,
+    // and does not appear at all on a product, the cart, checkout or an order.
+    expect(source).toContain("bottom-[calc(6.25rem+env(safe-area-inset-bottom))] lg:bottom-4");
     expect(source).toContain('pathname.startsWith("/product/")');
-    expect(source).toContain("bottom-[calc(6rem+env(safe-area-inset-bottom))]");
-    expect(source).toContain("bottom-[calc(1rem+env(safe-area-inset-bottom))]");
+    expect(source).toContain('pathname === "/cart"');
+    expect(source).toContain('pathname.startsWith("/checkout")');
+    expect(source).toContain("|| isBuyingPage(pathname)");
+  });
+
+  it("waits for someone who is browsing, and for the language question first", async () => {
+    const source = await readFile("components/PwaInstallHelp.tsx", "utf8");
+    expect(source).toContain("const VIEWS_BEFORE_ASKING = 3;");
+    expect(source).toContain("|| views < VIEWS_BEFORE_ASKING");
+    expect(source).toContain("|| !languageSettled");
   });
 
   it("keeps the phone's own words", async () => {
