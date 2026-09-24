@@ -2,6 +2,7 @@ import AdminNav from "./AdminNav";
 import AdminCommandBar from "./AdminCommandBar";
 import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
+import WorkspaceBand from "./WorkspaceBand";
 import AdminTrail from "./AdminTrail";
 import { attentionByHref } from "./nav-attention";
 import { runShopSelfCheck } from "@/lib/shop-self-check";
@@ -108,6 +109,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {/* Where this screen sits, for the ones deep enough to need saying.
             Drawn here so every screen gets it without asking, and a new one is
             covered the day it appears. */}
+        {/* Which side this screen is on — the factory floor or the shop
+            counter — so the page, not only the menu, says so. */}
+        <WorkspaceBand />
         <AdminTrail />
         {children}
         <AdminQuickDock adminRole={adminRole} />

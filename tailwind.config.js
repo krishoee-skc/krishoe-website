@@ -46,6 +46,11 @@ module.exports = {
           "clay-ink": "#651B24",
           "clay-tint": "#FBEAE8",
           "clay-mist": "#FFF1EF",
+          // Named in three places — the factory badge, its report button and
+          // the change-password button a new worker must press — but never
+          // defined, so each drew white text on nothing. The shade their own
+          // shadows were already cast in. White on it is 12.6:1.
+          maroon: "#681E23",
           muted: "#6B6459",
           "muted-soft": "#938C80",
           "muted-deep": "#7A7263",

@@ -211,6 +211,76 @@ export const adminNavLinks = adminNavGroups
   );
 
 /**
+ * Where each side opens when its switch is pressed and nothing better is
+ * remembered: the screen that side is opened for fifty times a day.
+ */
+export const adminWorkspaceHome: Record<"factory" | "shop", string> = {
+  factory: "/admin/factory",
+  shop: "/admin/orders",
+};
+
+function pathMatches(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * Whether a screen is drawn in that side's own menu.
+ *
+ * Stock is drawn on both, so standing on Stock you are already on either side.
+ * The Dashboard, Search and Settings are drawn on neither side's own list —
+ * they sit under "Everywhere".
+ */
+export function pathIsOnSide(pathname: string, side: "factory" | "shop") {
+  return adminNavGroups.some(
+    (group) => group.workspace === side
+      && group.links.some((link) => pathMatches(pathname, link.href)),
+  );
+}
+
+/**
+ * The screen to open when the Factory or Shop switch is pressed, or null to
+ * stay put.
+ *
+ * The switch used to change the menu and nothing else: the owner, on POS,
+ * pressed Factory, saw the factory menu, and was still looking at a bill —
+ * the menu said one side and the page the other. Now the page follows: the
+ * last screen used on that side, or that side's home, whichever this role may
+ * open. Already on that side, nothing moves.
+ */
+export function workspaceDestination(
+  side: "factory" | "shop",
+  pathname: string,
+  remembered: string | null,
+  canOpen: (href: string) => boolean,
+): string | null {
+  if (pathIsOnSide(pathname, side)) return null;
+
+  const candidates = [
+    remembered && remembered.startsWith("/admin/") && pathIsOnSide(remembered, side) ? remembered : null,
+    adminWorkspaceHome[side],
+    ...adminNavGroups
+      .filter((group) => group.workspace === side)
+      .flatMap((group) => group.links.map((link) => link.href)),
+  ];
+
+  return candidates.find((href) => href !== null && canOpen(href)) ?? null;
+}
+
+/**
+ * The menu entry a screen sits under — the longest href it starts with — so a
+ * nested page is named by its section.
+ */
+export function navLinkForPath(pathname: string): AdminNavLink | undefined {
+  let best: AdminNavLink | undefined;
+  for (const link of adminNavLinks) {
+    if (pathMatches(pathname, link.href) && link.href.length > (best?.href.length ?? -1)) {
+      best = link;
+    }
+  }
+  return best;
+}
+
+/**
  * Which workspace a path belongs to.
  *
  * Longest match wins, so /admin/factory beats /admin. Anything shared — or
