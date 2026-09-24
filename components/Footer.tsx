@@ -242,6 +242,11 @@ export default function Footer() {
             <span>© 2026 KRISHOE · {businessContact.addressLocality}, {businessContact.addressRegion}</span>
             <Link href="/privacy" className="transition hover:text-brand-gold-bright"><T en="Privacy" ne="गोपनीयता" /></Link>
             <Link href="/terms" className="transition hover:text-brand-gold-bright"><T en="Terms" ne="सर्तहरू" /></Link>
+            {/* The team's way in from the shop, small and at the very foot so
+                a shopper passes it by. It opens the page of doors (/enter). */}
+            <Link href="/enter" className="inline-flex min-h-8 items-center font-bold text-brand-gold-bright transition hover:text-white">
+              🔐 <T en="Staff & worker login" ne="स्टाफ र कामदार login" />
+            </Link>
           </p>
           <div className="flex items-center gap-2">
             {["COD", "eSewa", "Khalti", "Bank"].map((method) => (

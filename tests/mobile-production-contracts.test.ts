@@ -69,7 +69,7 @@ describe("mobile production contracts", () => {
   });
 
   it("supports installed apps in both portrait and landscape", () => {
-    const manifest = source("app/manifest.ts");
+    const manifest = source("lib/app-manifest.ts");
     expect(manifest).toContain('scope: "/"');
     expect(manifest).not.toContain("orientation:");
   });

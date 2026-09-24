@@ -316,6 +316,26 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 )}
               </p>
             </div>
+
+            {/* The team's door, last and quiet. The owner, the staff and the
+                workers had no way in from the shop — the sign-in pages were
+                reachable only by typing their address — so anyone who had not
+                saved the link was stuck. It opens the page of doors (/enter);
+                showing a door does not open it: the password, the code and the
+                lockouts are unchanged. */}
+            <div className="mt-6 border-t border-black/[0.07] pt-4">
+              <p className="px-1 text-xs font-black uppercase tracking-[0.18em] text-brand-muted">
+                {text("KRISHOE team", "KRISHOE टोली")}
+              </p>
+              <Link
+                href="/enter"
+                onClick={() => setIsOpen(false)}
+                className="mt-2 flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
+              >
+                <span aria-hidden="true">🔐</span>
+                {text("Staff & worker login", "स्टाफ र कामदार login")}
+              </Link>
+            </div>
           </div>
         </div>
       ) : null}

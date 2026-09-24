@@ -226,6 +226,12 @@ export default function PwaInstallHelp() {
       : "In Chrome, open the three-dot menu and choose Install app or Add to Home screen.";
 
   return (
+    <>
+    {/* Room for the bar at the end of the page. It floats over the last
+        80px of whatever is on screen, and at the foot of a page that was the
+        footer's last line — Privacy, Terms and the staff door could not be
+        tapped. On a phone only; the desktop card sits in a corner. */}
+    <div aria-hidden="true" className="max-lg:h-20 print:hidden" />
     <aside
       className={`fixed inset-x-3 ${BOTTOM_OFFSET} z-[60] mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-green-ink px-3 py-2 text-white shadow-xl lg:inset-x-auto lg:right-4 lg:mx-0 print:hidden`}
       aria-label={text("Install KRISHOE app", "KRISHOE app राख्ने")}
@@ -276,5 +282,6 @@ export default function PwaInstallHelp() {
         <p className="mt-1 pl-8 pr-2 text-sm leading-5 text-white/85">{instructions}</p>
       ) : null}
     </aside>
+    </>
   );
 }

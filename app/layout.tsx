@@ -98,6 +98,9 @@ export const viewport: Viewport = pwaViewport;
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   ...pwaMetadata,
+  // Named here rather than by an app/manifest.ts file, so a section can name
+  // its own (the worker portal does). Served by app/manifest.webmanifest.
+  manifest: "/manifest.webmanifest",
   title: siteConfig.defaultTitle,
   description: siteConfig.description,
   applicationName: "KRISHOE",

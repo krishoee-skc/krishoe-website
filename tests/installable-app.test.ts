@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import manifest from "@/app/manifest";
+import manifest from "@/lib/app-manifest";
 import { pwaMetadata, pwaViewport } from "@/lib/pwa";
 
 // What makes the site installable on a phone rather than merely bookmarkable.

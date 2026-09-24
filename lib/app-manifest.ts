@@ -30,6 +30,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { name: "Shop", short_name: "Shop", url: "/shop" },
       { name: "Cart", short_name: "Cart", url: "/cart" },
       { name: "Admin", short_name: "Admin", url: "/admin" },
+      // The worker's own door. Workers put the shop's icon on their phones
+      // and it opened the shop; the login they came for was not on it.
+      { name: "Worker login", short_name: "Worker", url: "/worker/login" },
     ],
   };
 }
