@@ -14,6 +14,7 @@ import PrintButton from "@/components/admin/PrintButton";
 import PrintedOn from "@/components/admin/PrintedOn";
 import { businessContact } from "@/lib/seo";
 import StatTile from "@/components/admin/StatTile";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -757,7 +758,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
             </div>
           </div>
 
-          <form onSubmit={handleRecordPayment} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
+          <EnterWalkForm onSubmit={handleRecordPayment} confirmTitle={ledgerData.worker.name} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 {/* Whose payment. Money handed to the wrong name is the one
@@ -780,7 +781,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment type", "के बापत")}
-                <select value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
+                <select data-summary="text" value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
                   <option>{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
                   <option>{text("Weekly wage payment", "साप्ताहिक ज्याला")}</option>
                   <option>{text("Final wage settlement", "पूरै हिसाब मिलाएको")}</option>
@@ -798,7 +799,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                 ) : null}
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
-                <input type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
+                <input data-summary="money" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Owner note", "मालिकको टिपोट")}
                 <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
@@ -809,7 +810,7 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                 ? text("Saving…", "टिप्दै…")
                 : text("Record cash payment", "नगद दिएको टिप्ने")}
             </button>
-          </form>
+          </EnterWalkForm>
         </div>
       ) : (
         <div className="text-center text-brand-muted">{text("Select a worker to view their ledger", "खाता हेर्न कामदार छान्नुहोस्")}</div>

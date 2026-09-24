@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -43,20 +44,20 @@ export default async function WagesRatesPage() {
       </header>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={saveStageRateAction} className={card}>
+        <EnterWalkForm action={saveStageRateAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">2. Item-stage wage</h2>
           <p className="mt-1 text-sm text-brand-muted">Old entries keep their saved rate even after a future rate change.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
               <option value="" disabled>Select item</option>
               {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.sizeGroup}</option>)}
             </select>
-            <select aria-label="Production stage" name="stage" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
-            <input aria-label="Rs. per pair" name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
+            <select aria-label="Production stage" name="stage" data-summary="text" className={input}>{productionStages.map((stage) => <option key={stage}>{stage}</option>)}</select>
+            <input aria-label="Rs. per pair" name="ratePerPair" data-summary="money" type="number" min="0" step="0.01" className={input} placeholder="Rs. per pair" required />
             <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving rate…">Save wage rate</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
         <div className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">Current item-stage rates</h2>
           <div className="mt-4 space-y-2">
@@ -77,7 +78,7 @@ export default async function WagesRatesPage() {
         </div>
       </div>
 
-      <form action={saveWorkerStageRateAction} className={`${card} border-amber-200`}>
+      <EnterWalkForm action={saveWorkerStageRateAction} className={`${card} border-amber-200`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Special worker wage override</h2>
@@ -90,20 +91,20 @@ export default async function WagesRatesPage() {
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <select aria-label="Worker" name="employeeId" className={input} required defaultValue="">
+          <select aria-label="Worker" name="employeeId" data-summary="text" className={input} required defaultValue="">
             <option value="" disabled>Select worker</option>
             {data.employees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
             ))}
           </select>
-          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
             <option value="" disabled>Select item</option>
             {activeItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <select aria-label="Production stage" name="stage" className={input}>
+          <select aria-label="Production stage" name="stage" data-summary="text" className={input}>
             {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
           </select>
-          <input aria-label="Special Rs./pair" name="ratePerPair" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
+          <input aria-label="Special Rs./pair" name="ratePerPair" data-summary="money" type="number" min="0" step="0.01" className={input} placeholder="Special Rs./pair" required />
           <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
           <input aria-label="Reason / agreement note (optional)" name="note" className={`${input} sm:col-span-2`} placeholder="Reason / agreement note (optional)" />
           <FormSubmitButton className={button} pendingLabel="Saving override…">Save special rate</FormSubmitButton>
@@ -123,7 +124,7 @@ export default async function WagesRatesPage() {
             })}
           </div>
         ) : null}
-      </form>
+      </EnterWalkForm>
     </section>
   );
 }

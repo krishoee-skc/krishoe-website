@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
 import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { createWorkerPaymentAction } from "../actions";
@@ -202,23 +203,23 @@ export default async function WagesPaymentsPage({
         </div>
       </div>
 
-        <form action={createWorkerPaymentAction} className={card}>
+        <EnterWalkForm action={createWorkerPaymentAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">7. Worker cash</h2>
           <p className="mt-1 text-sm text-brand-muted">Cash paid is separate from work earned and automatically reduces the balance.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Worker" name="employeeId" className={input} required defaultValue="">
+            <select aria-label="Worker" name="employeeId" className={input} required defaultValue="" data-summary="text">
               <option value="" disabled>Select worker/staff</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
-            <select aria-label="Payment type" name="paymentType" className={input} defaultValue="Saturday Kharcha">
+            <select aria-label="Payment type" name="paymentType" className={input} defaultValue="Saturday Kharcha" data-summary="text">
               {workerPaymentTypes.filter((type) => type !== "Correction").map((type) => <option key={type}>{type}</option>)}
             </select>
-            <input aria-label="Cash amount" name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required />
+            <input aria-label="Cash amount" name="amount" type="number" min="0.01" step="0.01" className={input} placeholder="Cash amount" required data-summary="money" />
             <NepaliDateFieldUncontrolled name="paymentDate" defaultValue={date} required />
             <input aria-label="Reason / note" name="note" className={`${input} sm:col-span-2`} placeholder="Reason / note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Approving cash…">Owner approve cash</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
     </section>
   );
 }

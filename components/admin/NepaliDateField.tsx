@@ -202,9 +202,13 @@ export default function NepaliDateField({
   return (
     <div ref={wrapRef} className="relative">
       {/* The field the owner taps. Shows the BS date, big; the AD date, small. */}
+      {/* data-enter-walk: on a form where Enter walks box to box, this is a
+          stop — Enter moves past the date (usually today) and Space or a tap
+          opens the calendar. Elsewhere the attribute does nothing. */}
       <button
         type="button"
         id={id}
+        data-enter-walk
         onClick={() => setOpen((v) => !v)}
         className={
           className ??

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions";
 import { money } from "@/lib/format-money";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type SupplierOption = { id: string; name: string; due: number };
@@ -30,10 +31,11 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
   }
 
   return (
-    <form action={createSupplierTransactionAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+    <EnterWalkForm action={createSupplierTransactionAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
       <div className="mt-4 grid gap-3">
         <select aria-label="Supplier"
+          data-summary="text"
           name="supplierLedgerId"
           required
           className={inputClass}
@@ -47,7 +49,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
             </option>
           ))}
         </select>
-        <select aria-label="Type" name="type" className={inputClass} defaultValue="Cash Payment">
+        <select aria-label="Type" name="type" className={inputClass} defaultValue="Cash Payment" data-summary="text">
           <option>Cash Payment</option>
           <option>Cheque Payment</option>
           <option>Bank Payment</option>
@@ -56,6 +58,7 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
           <option>Manual Adjustment</option>
         </select>
         <input aria-label="Amount"
+          data-summary="money"
           name="amount"
           type="number"
           min="1"
@@ -79,6 +82,6 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
           Record payment
         </FormSubmitButton>
       </div>
-    </form>
+    </EnterWalkForm>
   );
 }

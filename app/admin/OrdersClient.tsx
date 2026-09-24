@@ -25,6 +25,7 @@ import {
   paymentStatuses as PAYMENT_STATUSES,
 } from "@/lib/order-constants";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 
 type OrderPosInvoiceLink = {
   id: string;
@@ -140,11 +141,11 @@ function OrderPaymentForm({
 
   return (
     <div className="grid min-w-[560px] gap-3">
-      <form onSubmit={handleSubmit} className="grid gap-2">
+      <EnterWalkForm onSubmit={handleSubmit} className="grid gap-2">
         <input type="hidden" name="id" value={order.id} />
         <div className="grid grid-cols-3 gap-2">
           <select aria-label="Payment status"
-            name="paymentStatus"
+            name="paymentStatus" data-summary="text"
             defaultValue={order.paymentStatus}
             disabled={isPending}
             className="rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
@@ -168,7 +169,7 @@ function OrderPaymentForm({
             ))}
           </select>
           <input aria-label="Amount"
-            name="paymentAmount"
+            name="paymentAmount" data-summary="money"
             type="number"
             min="0"
             defaultValue={latestTransaction?.amount ?? amountFromOrderTotal(order.total)}
@@ -235,7 +236,7 @@ function OrderPaymentForm({
             {isPending ? "Saving" : "Save"}
           </button>
         </div>
-      </form>
+      </EnterWalkForm>
 
       <div className="grid gap-1 text-xs text-brand-muted">
         {transactions.slice(0, 3).map((transaction) => {
@@ -328,7 +329,7 @@ function OrderToPosForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid min-w-[360px] gap-2">
+    <EnterWalkForm onSubmit={handleSubmit} className="grid min-w-[360px] gap-2">
       <input type="hidden" name="id" value={order.id} />
       <div className="grid grid-cols-3 gap-2">
         <select aria-label="Payment method"
@@ -399,7 +400,7 @@ function OrderToPosForm({
           {isPending ? "Creating" : "To POS"}
         </button>
       </div>
-    </form>
+    </EnterWalkForm>
   );
 }
 

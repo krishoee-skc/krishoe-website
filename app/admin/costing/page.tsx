@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import Link from "next/link";
 import StatCard from "@/components/admin/StatTile";
 import T from "@/components/T";
@@ -376,7 +377,7 @@ export default async function AdminCostingPage() {
         <summary className="cursor-pointer list-none px-5 py-4 font-black text-brand-green-ink marker:hidden">
           Advanced legacy batch rates — open only for old Cutting/Stitching/Sole Press records
         </summary>
-      <form action={updateCostingSettingsAction} className="border-t border-brand-green-line p-5">
+      <EnterWalkForm action={updateCostingSettingsAction} className="border-t border-brand-green-line p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">Legacy batch cost model</h2>
@@ -496,7 +497,7 @@ export default async function AdminCostingPage() {
             />
           </div>
         </div>
-      </form>
+      </EnterWalkForm>
       </details>
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">

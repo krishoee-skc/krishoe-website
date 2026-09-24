@@ -930,3 +930,13 @@ table th,
     animation: none;
   }
 }
+
+/* The box the cursor is in, on a form where Enter walks box to box
+   (components/admin/EnterWalkForm.tsx). A thick gold ring, because the owner
+   reads the screen from a step back with a bill in the other hand, and the
+   thin focus lines the forms draw on their own are easy to lose. Unlayered, so
+   it wins over the per-field outline-none/focus:ring utilities. */
+.enter-walk :is(input, select, textarea, button[data-enter-walk]):focus {
+  outline: 3px solid #c8a04d;
+  outline-offset: 2px;
+}

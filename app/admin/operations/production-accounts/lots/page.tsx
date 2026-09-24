@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
 import Link from "next/link";
@@ -79,18 +80,18 @@ export default async function WagesLotsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={createWorkOrderAction} className={card}>
+        <EnterWalkForm action={createWorkOrderAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">5. New Work Order / Lot</h2>
           <p className="mt-1 text-sm text-brand-muted">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
             <input aria-label="Colour, e.g. Black" name="colour" className={input} placeholder="Colour, e.g. Black" required />
-            <input aria-label="Planned total pairs" name="plannedPairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
+            <input aria-label="Planned total pairs" name="plannedPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
             <input aria-label="Sizes: 36:10, 37:15, 38:20" name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
             <NepaliDateFieldUncontrolled name="dueDate" />
             <select aria-label="Priority" name="priority" className={input} defaultValue="Normal">
@@ -99,7 +100,7 @@ export default async function WagesLotsPage() {
             <input aria-label="Work Order remark" name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Creating Work Order…">Create Work Order</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
 
         <div className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">Active Work Orders</h2>
@@ -133,17 +134,17 @@ export default async function WagesLotsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={createHandoverAction} className={card}>
+        <EnterWalkForm action={createHandoverAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
           <p className="mt-1 text-sm text-brand-muted">Record who sent, who received and any quantity difference.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Work order" name="workOrderId" className={`${input} sm:col-span-2`} required defaultValue="">
+            <select aria-label="Work order" name="workOrderId" data-summary="text" className={`${input} sm:col-span-2`} required defaultValue="">
               <option value="" disabled>Select active Work Order</option>
               {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
                 <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
               ))}
             </select>
-            <select aria-label="Handover from stage" name="fromStage" className={input}>
+            <select aria-label="Handover from stage" name="fromStage" data-summary="text" className={input}>
               {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
             </select>
             <NepaliDateFieldUncontrolled name="handoverDate" defaultValue={date} required />
@@ -155,8 +156,8 @@ export default async function WagesLotsPage() {
               <option value="">Receiver not selected</option>
               {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
             </select>
-            <input aria-label="Sent pairs" name="sentPairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
-            <input aria-label="Received pairs" name="receivedPairs" type="number" min="0" className={input} placeholder="Received pairs" required />
+            <input aria-label="Sent pairs" name="sentPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
+            <input aria-label="Received pairs" name="receivedPairs" data-summary="pairs" type="number" min="0" className={input} placeholder="Received pairs" required />
             <input aria-label="Received sizes: 36:10, 37:15"
               name="receivedSizeBreakdown"
               className={`${input} sm:col-span-2`}
@@ -165,7 +166,7 @@ export default async function WagesLotsPage() {
             <input aria-label="Difference/reason note" name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving handover…">Save handover</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
 
         <div className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">Recent handovers</h2>
@@ -199,7 +200,7 @@ export default async function WagesLotsPage() {
         </div>
       </div>
 
-      <form action={approvePackingQcAction} className={`${card} border-emerald-200`}>
+      <EnterWalkForm action={approvePackingQcAction} className={`${card} border-emerald-200`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Final gate</p>
@@ -213,13 +214,13 @@ export default async function WagesLotsPage() {
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <select aria-label="Work order" name="workOrderId" className={input} defaultValue="">
+          <select aria-label="Work order" name="workOrderId" data-summary="text" className={input} defaultValue="">
             <option value="">No Work Order link (legacy/manual)</option>
             {data.workOrders.filter((order) => order.status === "Ready for QC").map((order) => (
               <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
             ))}
           </select>
-          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
             <option value="" disabled>Select mapped manufactured item</option>
             {activeItems
               .filter((item) => item.productionType !== "Resale" && item.catalogProductId)
@@ -232,7 +233,7 @@ export default async function WagesLotsPage() {
             ))}
           </select>
           <NepaliDateFieldUncontrolled name="qcDate" defaultValue={date} required />
-          <input aria-label="Good packed pairs" name="totalPairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
+          <input aria-label="Good packed pairs" name="totalPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
           <input aria-label="Good sizes" name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
           <input aria-label="QC rejected pairs" name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
           <input aria-label="QC / packing remark" name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
@@ -240,7 +241,7 @@ export default async function WagesLotsPage() {
             Approve & post stock
           </FormSubmitButton>
         </div>
-      </form>
+      </EnterWalkForm>
 
       <div className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">Recent Packing/QC stock postings</h2>
@@ -270,7 +271,7 @@ export default async function WagesLotsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={createProductionItemAction} className={card}>
+        <EnterWalkForm action={createProductionItemAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">1. Production item</h2>
           <p className="mt-1 text-sm text-brand-muted">Create the factory item once; wages can then vary by stage.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -292,16 +293,16 @@ export default async function WagesLotsPage() {
             </select>
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving item…">Save item</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
       </div>
 
-      <form action={mapProductionItemAction} className={card}>
+      <EnterWalkForm action={mapProductionItemAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">Stock catalog mapping</h2>
         <p className="mt-1 text-sm text-brand-muted">
           Link a factory item to the exact shop/POS product. This prepares safe QC-approved stock posting; it does not change stock yet.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+          <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
             <option value="" disabled>Select production item</option>
             {activeItems.map((item) => (
               <option key={item.id} value={item.id}>{item.name}</option>
@@ -327,16 +328,16 @@ export default async function WagesLotsPage() {
             );
           })}
         </div>
-      </form>
+      </EnterWalkForm>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <form action={saveItemMaterialAction} className={card}>
+        <EnterWalkForm action={saveItemMaterialAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">3. Material recipe per pair</h2>
           <p className="mt-1 text-sm text-brand-muted">
             Quantity uses the material&apos;s purchase unit. Example: Rexine 0.40 meter or Buckle 2 pieces per pair.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -355,15 +356,15 @@ export default async function WagesLotsPage() {
             <input aria-label="Recipe note" name="note" className={`${input} sm:col-span-2`} placeholder="Recipe note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving material…">Save material recipe</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
 
-        <form action={approveCostCardAction} className={card}>
+        <EnterWalkForm action={approveCostCardAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">4. Owner-approved price card</h2>
           <p className="mt-1 text-sm text-brand-muted">
             Material cost + four stage wages + direct cost. Rent, electricity and salary are excluded.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" className={input} required defaultValue="">
+            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
               <option value="" disabled>Select manufactured item</option>
               {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
@@ -376,7 +377,7 @@ export default async function WagesLotsPage() {
             <input aria-label="Approval note" name="note" className={input} placeholder="Approval note" />
           </div>
           <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">Calculate & approve cost</FormSubmitButton>
-        </form>
+        </EnterWalkForm>
       </div>
 
       <div className={card}>

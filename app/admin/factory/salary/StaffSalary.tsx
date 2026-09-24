@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
 import StatTile from "@/components/admin/StatTile";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 
@@ -305,7 +306,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
             )}
           </div>
 
-          <form onSubmit={handleTransaction} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
+          <EnterWalkForm onSubmit={handleTransaction} confirmTitle={selectedWorker?.name} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
             <div>
               <h2 className="text-lg font-black text-brand-green-ink">
                 {text("Record cash for", "कसको पैसा टिप्ने")}{" "}
@@ -322,7 +323,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Transaction type", "के भयो")}
-                <select value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
+                <select data-summary="text" value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
                   <option value="advance">{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
                   <option value="payment">{text("Salary payment", "तलब भुक्तानी")}</option>
                 </select>
@@ -339,7 +340,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
                 ) : null}
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Cash amount", "कति रुपैयाँ")} />
+                <input data-summary="money" type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Cash amount", "कति रुपैयाँ")} />
               </label>
               <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
                 <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
@@ -352,7 +353,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
                   ? text("Record advance", "पेस्की टिप्ने")
                   : text("Record salary payment", "तलब टिप्ने")}
             </button>
-          </form>
+          </EnterWalkForm>
 
           <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
             <h2 className="text-lg font-bold text-brand-green-ink mb-4">
