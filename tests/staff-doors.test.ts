@@ -16,10 +16,12 @@ describe("the team's door in the shop", () => {
     expect(menu).toContain('text("Staff & worker login", "स्टाफ र कामदार login")');
   });
 
-  it("is at the foot of every page, beside Privacy and Terms", async () => {
+  it("is a small lock at the foot of every page, beside Privacy and Terms, with no words", async () => {
     const footer = await readFile("components/Footer.tsx", "utf8");
-    expect(footer).toContain('<Link href="/enter" className="inline-flex min-h-8 items-center');
-    expect(footer).toContain('<T en="Staff & worker login" ne="स्टाफ र कामदार login" />');
+    expect(footer).toContain('href="/enter"');
+    expect(footer).toContain('aria-label="Staff and worker login"');
+    expect(footer).toContain('<span aria-hidden="true">🔐</span>');
+    expect(footer).not.toContain('<T en="Staff & worker login"');
   });
 
   it("leads to a page that exists", () => {

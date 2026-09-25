@@ -242,10 +242,18 @@ export default function Footer() {
             <span>© 2026 KRISHOE · {businessContact.addressLocality}, {businessContact.addressRegion}</span>
             <Link href="/privacy" className="transition hover:text-brand-gold-bright"><T en="Privacy" ne="गोपनीयता" /></Link>
             <Link href="/terms" className="transition hover:text-brand-gold-bright"><T en="Terms" ne="सर्तहरू" /></Link>
-            {/* The team's way in from the shop, small and at the very foot so
-                a shopper passes it by. It opens the page of doors (/enter). */}
-            <Link href="/enter" className="inline-flex min-h-8 items-center font-bold text-brand-gold-bright transition hover:text-white">
-              🔐 <T en="Staff & worker login" ne="स्टाफ र कामदार login" />
+            {/* The team's way in from the shop: a small lock and no words, so a
+                shopper takes it for a "secure shop" mark and passes by, while
+                the team is told "press the lock at the bottom". The words live
+                in the label, for screen readers. It opens the doors (/enter);
+                the password behind them is the real lock, not this. */}
+            <Link
+              href="/enter"
+              aria-label="Staff and worker login"
+              title="Team"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-sm opacity-70 transition hover:border-white/40 hover:opacity-100"
+            >
+              <span aria-hidden="true">🔐</span>
             </Link>
           </p>
           <div className="flex items-center gap-2">
