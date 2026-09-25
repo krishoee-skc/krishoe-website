@@ -9,12 +9,15 @@ import {
   checkLoginRateLimit,
   clearAccountLoginRateLimit,
   clearLoginRateLimit,
+  hasAccountLoginUnlock,
   recordFailedAccountLogin,
   recordFailedLogin,
 } from "@/lib/login-rate-limit";
+import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
 import { clearAdminSessionCookie, getAdminSession, setAdminSessionCookie } from "@/lib/admin-auth";
 import {
   getAdminStaffAccountById,
+  getAdminStaffAccountByIdentifier,
   markAdminStaffLogin,
   recordAdminStaffFailedLogin,
   verifyAdminStaffCredentials,
@@ -57,6 +60,37 @@ const invalidState: LoginState = {
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Tells the Owner the moment a real account stops accepting sign-ins.
+ *
+ * Checked after the failed attempt is counted: the checks before it let this
+ * attempt through, so a limit reached now was reached by it — which is how the
+ * alert goes out once per block rather than on every blocked try after. Only
+ * for an account that exists; guesses at names nobody has are not news. The
+ * Owner can lift the block from Settings (Unlock).
+ */
+async function alertIfSignInJustBlocked(identifier: string, addressKey: string, unlockedByOwner: boolean) {
+  try {
+    const staff = await getAdminStaffAccountByIdentifier(identifier);
+    if (!staff) return;
+    const accountBlocked = (await checkAccountLoginRateLimit(identifier)).limited;
+    const addressBlocked = !unlockedByOwner && (await checkLoginRateLimit(addressKey)).limited;
+    if (!accountBlocked && !addressBlocked) return;
+    await sendOwnerSecurityAlert(
+      "KRISHOE sign-in blocked",
+      `Sign-in to ${staff.name} (${staff.role}) was blocked for 15 minutes after repeated wrong passwords. Unlock it from Settings if it was them.`,
+      {
+        title: ownerAlertTitles.signInBlocked.ne,
+        body: `${staff.name} (${staff.role}) · Settings → Unlock`,
+        url: "/admin/settings",
+        tag: `signin-blocked-${staff.id}`,
+      },
+    );
+  } catch {
+    // An alert must never be the reason a sign-in page errors.
+  }
 }
 
 async function shortDelay() {
@@ -304,7 +338,10 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     };
   }
 
-  if (rateLimit.limited) {
+  // An account the Owner has just unlocked is let past the address limit for
+  // fifteen minutes (Settings → staff → Unlock); its own limit still applies.
+  const unlockedByOwner = rateLimit.limited && email ? await hasAccountLoginUnlock(email) : false;
+  if (rateLimit.limited && !unlockedByOwner) {
     await recordAdminAuditEvent(
       "login_rate_limited",
       `Admin login blocked for ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
@@ -344,6 +381,7 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
         "warning",
         { actorEmail: email },
       );
+      await alertIfSignInJustBlocked(email, key, unlockedByOwner);
       await shortDelay();
       return invalidState;
     }

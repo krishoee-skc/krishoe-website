@@ -15,6 +15,7 @@ import {
   companyBranchStatuses,
   companyBranchTypes,
   getAdminSettings,
+  resetAdminStaffFailedLogins,
   saveAdminStaffAccount,
   saveCompanySettings,
   setAdminStaffMfa,
@@ -28,6 +29,9 @@ import {
 } from "@/lib/admin-staff-security";
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
+import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
+import { temporaryPasswordProblem } from "@/lib/temporary-password";
+import { clearAccountLoginRateLimit, grantAccountLoginUnlock } from "@/lib/login-rate-limit";
 import { formatStaffPhone, normalizeStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
 
 function textValue(formData: FormData, key: string) {
@@ -126,27 +130,6 @@ async function revokeSecuritySessions(
     await clearAdminSessionCookie();
   }
   return count;
-}
-
-async function sendOwnerSecurityAlert(subject: string, message: string) {
-  const settings = await getAdminSettings();
-  const recipients = [...new Set([
-    settings.company.email.trim().toLowerCase(),
-    ...settings.staff
-      .filter((staff) => staff.role === "Owner" && staff.status === "Active")
-      .map((staff) => staff.email.trim().toLowerCase()),
-  ].filter(Boolean))];
-
-  const results = await Promise.allSettled(
-    recipients.map((email) => sendStaffSecurityEmail({
-      email,
-      subject,
-      payload: { email, kind: "security-alert", message },
-    })),
-  );
-  return results.some(
-    (result) => result.status === "fulfilled" && result.value.ok,
-  );
 }
 
 export async function saveCompanySettingsAction(formData: FormData) {
@@ -280,10 +263,12 @@ export async function inviteStaffAccountAction(formData: FormData) {
     }
 
     const phoneOnly = !email;
-    if (phoneOnly && temporaryPassword.length < 8) {
-      throw new Error(
-        "A mobile-only account needs a temporary password of at least 8 characters to hand over.",
-      );
+    // The same rules as a password someone picks for themselves, and not their
+    // own name. Eight characters used to be enough, so they came out as the
+    // worker's name and a count. The form offers a strong one (🎲).
+    const weakTemporary = phoneOnly ? temporaryPasswordProblem(temporaryPassword, name) : "";
+    if (weakTemporary) {
+      throw new Error(`Temporary password: ${weakTemporary} Use the 🎲 button for a strong one.`);
     }
 
     const existingSettings = await getAdminSettings();
@@ -328,6 +313,7 @@ export async function inviteStaffAccountAction(formData: FormData) {
       await sendOwnerSecurityAlert(
         "KRISHOE mobile staff account created",
         `${actor.session.email ?? "Owner"} created a mobile sign-in for ${worker.name} (${worker.phone}) as ${worker.role}. The temporary password is not included in this alert.`,
+        { title: ownerAlertTitles.staffCreated.ne, body: `${worker.name} · ${worker.role} · ${formatStaffPhone(worker.phone)}`, tag: `staff-created-${worker.id}` },
       );
       successMessage =
         `${worker.name} can now sign in with ${formatStaffPhone(worker.phone)} and the temporary password you set. They must change it at first sign-in.`;
@@ -375,6 +361,7 @@ export async function inviteStaffAccountAction(formData: FormData) {
       await sendOwnerSecurityAlert(
         "KRISHOE staff invitation created",
         `${actor.session.email ?? "Owner"} invited ${staff.email} as ${staff.role} for branch ${staff.branchId}.`,
+        { title: ownerAlertTitles.staffCreated.ne, body: `${staff.name} · ${staff.role} · ${staff.email}`, tag: `staff-created-${staff.id}` },
       );
       successMessage = deliveryFailed
         ? "Staff invitation created, but email was not delivered. Check email settings and use Resend invitation."
@@ -465,6 +452,9 @@ export async function updateStaffAccessAction(formData: FormData) {
     await sendOwnerSecurityAlert(
       "KRISHOE staff access changed",
       `${actor.session.email ?? "Owner"} changed ${updated.email}: role ${staff.role} → ${updated.role}, branch ${staff.branchId} → ${updated.branchId}. ${revokedSessions} old session(s) were signed out.`,
+      staff.role !== updated.role
+        ? { title: ownerAlertTitles.accessChanged.ne, body: `${updated.name}: ${staff.role} → ${updated.role}`, tag: `staff-role-${updated.id}` }
+        : undefined,
     );
   } catch (error) {
     failSettingsPage(error);
@@ -531,8 +521,9 @@ export async function setStaffTemporaryPasswordAction(formData: FormData) {
     if (staff.status === "Disabled") {
       throw new Error("Enable this account before giving it a new password.");
     }
-    if (temporaryPassword.length < 8) {
-      throw new Error("अस्थायी password कम्तीमा ८ अक्षरको हुनुपर्छ।");
+    const weakTemporary = temporaryPasswordProblem(temporaryPassword, staff.name);
+    if (weakTemporary) {
+      throw new Error(`Temporary password: ${weakTemporary} Use the 🎲 button for a strong one.`);
     }
 
     await updateAdminStaffPassword(staff.id, temporaryPassword, {
@@ -549,6 +540,7 @@ export async function setStaffTemporaryPasswordAction(formData: FormData) {
     await sendOwnerSecurityAlert(
       "KRISHOE temporary password issued",
       `${actor.session.email ?? "Owner"} issued a temporary password for ${staff.name} (${staffSignInLabel(staff)}). The password itself is not included in this alert.`,
+      { title: ownerAlertTitles.temporaryPassword.ne, body: `${staff.name} · ${staffSignInLabel(staff)}`, tag: `staff-temp-${staff.id}` },
     );
   } catch (error) {
     failSettingsPage(error);
@@ -625,9 +617,38 @@ export async function updateStaffStatusAction(formData: FormData) {
     await sendOwnerSecurityAlert(
       "KRISHOE staff status changed",
       `${actor.session.email ?? "Owner"} changed ${updated.email} from ${staff.status} to ${updated.status}. ${revokedSessions} old session(s) were signed out.`,
+      { title: ownerAlertTitles.statusChanged.ne, body: `${updated.name}: ${staff.status} → ${updated.status}`, tag: `staff-status-${updated.id}` },
     );
   } catch (error) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Staff status saved. Disabled or locked accounts were signed out automatically.");
+}
+
+/**
+ * The Owner lifting a wrong-password block on one account.
+ *
+ * The account's own count is cleared and, for fifteen minutes, the per-address
+ * limit stops applying to sign-ins to it — the block a worker who mistyped
+ * actually meets (lib/login-rate-limit.ts). Recorded in the security trail
+ * with the Owner named.
+ */
+export async function unlockStaffLoginAction(formData: FormData) {
+  try {
+    const actor = await requireAdminPermission("settings:write");
+    const staff = await getExistingStaff(formData);
+    for (const identifier of [staff.email, staff.phone].filter(Boolean)) {
+      await clearAccountLoginRateLimit(identifier);
+      await grantAccountLoginUnlock(identifier);
+    }
+    await resetAdminStaffFailedLogins(staff.id);
+    await recordAdminAuditEvent(
+      "settings_staff_unlocked",
+      `${actor.session.email ?? "Owner"} unlocked sign-in for ${staff.name} (${staffSignInLabel(staff)}). Wrong-password blocks are lifted for 15 minutes.`,
+      "success",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Unlocked. They can sign in now.");
 }

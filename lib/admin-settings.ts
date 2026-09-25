@@ -1365,6 +1365,30 @@ export async function recordAdminStaffFailedLogin(identifier: string) {
   });
 }
 
+/**
+ * The wrong-password count back to zero, when the Owner unlocks an account —
+ * the staff list reads it to show who is blocked.
+ */
+export async function resetAdminStaffFailedLogins(staffId: string) {
+  await runWithDataBackend({
+    storeName: "admin settings",
+    localJson: async () => {
+      const settings = await readSettingsFromLocalJson();
+      const index = settings.staff.findIndex((member) => member.id === staffId);
+      if (index < 0) return;
+      settings.staff[index] = { ...settings.staff[index], failedLoginCount: 0, lastFailedLoginAt: undefined };
+      await writeSettingsToLocalJson(settings);
+    },
+    postgres: async () => {
+      await queryPostgres<{ id: string }>(
+        "admin settings",
+        "UPDATE admin_staff_accounts SET failed_login_count = 0, last_failed_login_at = NULL WHERE id = $1 RETURNING id",
+        [staffId],
+      );
+    },
+  });
+}
+
 /** `identifier` is whatever was typed to sign in: an email or a mobile number. */
 export async function verifyAdminStaffCredentials(identifier: string, password: string) {
   const staff = await getStaffByIdentifier(identifier);

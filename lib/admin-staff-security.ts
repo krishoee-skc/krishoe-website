@@ -788,3 +788,34 @@ export async function getAdminStaffAccessHistory(staffId?: string, limit = 100) 
     },
   });
 }
+
+/**
+ * When each account was last in use: the newest last-seen of any of its
+ * sessions (refreshed at most every five minutes while it is being used).
+ *
+ * One grouped read rather than the session list, which is capped at the newest
+ * 300 and would miss exactly the quiet accounts this is asked about.
+ */
+export async function latestStaffActivity(): Promise<Map<string, string>> {
+  return runWithDataBackend({
+    storeName: "admin settings",
+    localJson: async () => {
+      const store = await readLocalStore();
+      const latest = new Map<string, string>();
+      for (const session of store.sessions) {
+        const seen = latest.get(session.staffId);
+        if (!seen || session.lastSeenAt > seen) latest.set(session.staffId, session.lastSeenAt);
+      }
+      return latest;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ staff_id: string; last_seen: Date | string }>(
+        "admin settings",
+        `SELECT staff_id, max(last_seen_at) AS last_seen
+           FROM admin_staff_sessions
+          GROUP BY staff_id`,
+      );
+      return new Map(rows.map((row) => [row.staff_id, new Date(row.last_seen).toISOString()]));
+    },
+  });
+}

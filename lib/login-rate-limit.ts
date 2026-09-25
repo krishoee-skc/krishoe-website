@@ -55,3 +55,28 @@ export async function clearAccountLoginRateLimit(identifier: string) {
   if (!key) return;
   await clearRateLimitAttempts(accountBucket, key);
 }
+
+/**
+ * The Owner lifting a sign-in block (Settings → staff → Unlock).
+ *
+ * A worker who mistypes six times is blocked by the address limit, which is
+ * keyed by network address, not by account — and the address is not recorded
+ * anywhere the Owner could name it. So the unlock is a grant on the account:
+ * for fifteen minutes the address limit is not applied to sign-ins to this
+ * account (the account's own limit still is), and the account's wrong-password
+ * count starts again from zero. Only the Owner can grant one.
+ */
+const unlockBucket = "login-unlock";
+
+export async function grantAccountLoginUnlock(identifier: string) {
+  const key = loginAccountKey(identifier);
+  if (!key) return;
+  await recordRateLimitAttempt({ bucket: unlockBucket, key, maxAttempts: 1, windowMs });
+}
+
+export async function hasAccountLoginUnlock(identifier: string) {
+  const key = loginAccountKey(identifier);
+  if (!key) return false;
+  const grant = await checkRateLimit({ bucket: unlockBucket, key, maxAttempts: 1, windowMs });
+  return grant.limited;
+}

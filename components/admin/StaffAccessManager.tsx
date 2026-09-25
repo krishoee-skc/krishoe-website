@@ -7,16 +7,19 @@ import {
   resendStaffInvitationAction,
   sendStaffPasswordResetAction,
   setStaffTemporaryPasswordAction,
+  unlockStaffLoginAction,
   updateStaffAccessAction,
   updateStaffMfaAction,
   updateStaffStatusAction,
 } from "@/app/admin/settings/actions";
 import ConfirmSubmitButton from "@/app/admin/settings/ConfirmSubmitButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import TemporaryPasswordField from "@/components/admin/TemporaryPasswordField";
 import { adminRoles, type AdminRole } from "@/lib/admin-role-permissions";
 import type { SafeAdminStaffAccount } from "@/lib/admin-settings";
 import { formatStaffPhone, staffSignInLabel } from "@/lib/staff-phone";
 import { formatAdminDate } from "@/lib/format-date";
+import type { StaffSafetyView } from "@/lib/staff-idle";
 
 type BranchOption = { id: string; name: string; code: string };
 /** A factory worker a Worker sign-in can be attached to. */
@@ -47,12 +50,15 @@ function statusTone(status: SafeAdminStaffAccount["status"]) {
 
 export default function StaffAccessManager({
   staff,
+  safety = {},
   branches,
   factoryWorkers,
   permissionMap,
   defaultBranchId,
 }: {
   staff: SafeAdminStaffAccount[];
+  /** Last use, days before the 30-day close, and sign-in blocks (lib/staff-idle.ts). */
+  safety?: Record<string, StaffSafetyView>;
   branches: BranchOption[];
   factoryWorkers: FactoryWorkerOption[];
   permissionMap: Record<AdminRole, string[]>;
@@ -110,13 +116,10 @@ export default function StaffAccessManager({
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             Temporary password
-            <input
-              name="temporaryPassword"
-              type="text"
-              minLength={8}
-              autoComplete="off"
-              placeholder="Needed only when there is no email"
-              className={inputClass}
+            <TemporaryPasswordField
+              inputClass={inputClass}
+              buttonClass={neutralButtonClass}
+              placeholder="Needed only when there is no email (12+)"
             />
           </label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
@@ -173,6 +176,7 @@ export default function StaffAccessManager({
           {filteredStaff.map((member) => {
             const branch = branches.find((item) => item.id === member.branchId);
             const permissions = permissionMap[member.role] ?? [];
+            const view = safety[member.id];
             return (
               <article key={member.id} className="rounded-2xl border border-brand-green-line bg-brand-paper-deep/40 p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -184,7 +188,14 @@ export default function StaffAccessManager({
                     ) : null}
                     <p className="mt-1 font-mono text-[11px] text-brand-muted-soft">{member.id}</p>
                   </div>
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(member.status)}`}>{member.status}</span>
+                  <span className="flex flex-wrap justify-end gap-1.5">
+                    {view?.signInBlocked ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                        {text("🔒 Sign-in blocked", "🔒 login रोकिएको")}
+                      </span>
+                    ) : null}
+                    <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(member.status)}`}>{member.status}</span>
+                  </span>
                 </div>
 
                 <div className="mt-4 grid gap-2 rounded-xl border border-brand-green-line bg-brand-paper p-3 text-xs text-brand-muted sm:grid-cols-2">
@@ -193,7 +204,39 @@ export default function StaffAccessManager({
                   <p><span className="font-black text-brand-green-ink">Password changed:</span> {displayDate(member.passwordChangedAt)}</p>
                   <p><span className="font-black text-brand-green-ink">Last device:</span> {member.lastLoginUserAgent ? member.lastLoginUserAgent.slice(0, 45) : "Never"}</p>
                   <p><span className="font-black text-brand-green-ink">Failed logins:</span> {member.failedLoginCount}</p>
+                  {view?.daysIdle != null ? (
+                    <p>
+                      <span className="font-black text-brand-green-ink">{text("Last used:", "अन्तिम प्रयोग:")}</span>{" "}
+                      {view.daysIdle === 0
+                        ? text("today", "आज")
+                        : text(`${view.daysIdle} days ago`, `${view.daysIdle} दिन अघि`)}
+                    </p>
+                  ) : null}
+                  {view?.daysLeft != null ? (
+                    <p className={view.daysLeft <= 3 ? "font-black text-amber-800" : undefined}>
+                      <span className="font-black text-brand-green-ink">{text("Auto-close:", "आफैँ बन्द:")}</span>{" "}
+                      {view.daysLeft <= 0
+                        ? text("tonight, unless they sign in", "आज राति, नचलाए")
+                        : text(`in ${view.daysLeft} days if unused`, `नचलाए ${view.daysLeft} दिनमा`)}
+                    </p>
+                  ) : null}
                 </div>
+
+                {/* Six wrong passwords stop sign-in for fifteen minutes. A worker
+                    who simply forgot can be let back in now instead of waiting. */}
+                {member.failedLoginCount > 0 && member.status !== "Disabled" ? (
+                  <form action={unlockStaffLoginAction} className="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="id" value={member.id} />
+                    <ConfirmSubmitButton
+                      label={text("🔓 Unlock sign-in", "🔓 login खोल्नुहोस्")}
+                      message={`Let ${member.name} sign in again now? The wrong-password count starts again from zero.`}
+                      className={view?.signInBlocked ? buttonClass : neutralButtonClass}
+                    />
+                    <span className="text-xs text-brand-muted">
+                      {text(`${member.failedLoginCount} wrong password(s)`, `${member.failedLoginCount} पटक गलत password`)}
+                    </span>
+                  </form>
+                ) : null}
 
                 <form action={updateStaffAccessAction} className="mt-4 grid gap-3 sm:grid-cols-3">
                   <input type="hidden" name="id" value={member.id} />
@@ -229,14 +272,11 @@ export default function StaffAccessManager({
                   {member.email ? null : (
                     <form action={setStaffTemporaryPasswordAction} className="flex gap-2 sm:col-span-2">
                       <input type="hidden" name="id" value={member.id} />
-                      <input aria-label="New temporary password (8+)"
-                        name="temporaryPassword"
-                        type="text"
-                        minLength={8}
+                      <TemporaryPasswordField
+                        inputClass={inputClass}
+                        buttonClass={neutralButtonClass}
+                        placeholder="New temporary password (12+)"
                         required
-                        autoComplete="off"
-                        placeholder="New temporary password (8+)"
-                        className={inputClass}
                       />
                       <ConfirmSubmitButton
                         label="Set password"

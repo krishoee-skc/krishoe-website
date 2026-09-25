@@ -22,6 +22,7 @@ import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
 import { getAdminStaffAccessHistory } from "@/lib/admin-staff-security";
+import { staffSafetyOverview } from "@/lib/staff-idle";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,7 @@ export default async function AdminSettingsPage({
     getDeliveryPricing(),
   ]);
   const notice = await searchParams;
+  const staffSafety = await staffSafetyOverview(settings.staff);
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
   const activeStaff = settings.staff.filter((staff) => staff.status === "Active");
   const branchOptions = settings.branches.map((branch) => ({
@@ -547,6 +549,7 @@ export default async function AdminSettingsPage({
 
       <StaffAccessManager
         staff={settings.staff}
+        safety={staffSafety}
         branches={settings.branches.map(({ id, name, code }) => ({ id, name, code }))}
         factoryWorkers={factoryWorkers}
         permissionMap={permissionMap}

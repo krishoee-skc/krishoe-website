@@ -8,6 +8,7 @@ import {
 } from "@/lib/notifications";
 import { pruneOldMonitoringRows } from "@/lib/monitoring";
 import { reportError } from "@/lib/report-error";
+import { sweepIdleStaffAccounts } from "@/lib/staff-idle";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,16 @@ export async function GET(request: Request) {
       // orders a week old.
       run: async () => {
         await sendReviewRequests(orderItemsFor);
+        return { deliveryStatus: "sent" as const };
+      },
+    },
+    // Staff and worker accounts unused for thirty days are closed, with the
+    // Owner warned three days before (lib/staff-idle.ts). One grouped read and
+    // a write only for the accounts it closes — nothing on an ordinary night.
+    {
+      name: "idle-staff",
+      run: async () => {
+        await sweepIdleStaffAccounts();
         return { deliveryStatus: "sent" as const };
       },
     },
