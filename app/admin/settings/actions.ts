@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings";
+import { prepareDeliveryDatabase } from "@/lib/delivery-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -190,6 +191,30 @@ function deliveryZonesFrom(formData: FormData) {
     zones.push({ id: "", name, feePaisa: rupeesToPaisa(fee, `The charge for "${name}"`) });
   }
   return zones;
+}
+
+/**
+ * The Owner's "OK" on adding the delivery columns to the live database
+ * (lib/delivery-database.ts). The form carries confirm=yes only from the
+ * button inside the preview, so nothing is added without the preview open.
+ */
+export async function prepareDeliveryDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the delivery columns.");
+    }
+    const { applied } = await prepareDeliveryDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_delivery_ready",
+      applied.length
+        ? `Database prepared for delivery charges: ${applied.join(", ")}.`
+        : "Database was already ready for delivery charges.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for delivery charges. Set the charge by area below.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

@@ -14,10 +14,13 @@ import {
   saveCompanySettingsAction,
   saveBusinessGoalAction,
   saveDeliveryPricingAction,
+  prepareDeliveryDatabaseAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { getDeliveryPricing } from "@/lib/delivery-settings";
+import { deliveryDatabaseStatus } from "@/lib/delivery-database";
+import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
@@ -118,6 +121,11 @@ export default async function AdminSettingsPage({
     getBusinessGoal(goalMonthKey),
     getDeliveryPricing(),
   ]);
+  // Only asked here, on the Owner's settings page: one small catalog read.
+  const deliveryDatabase = await deliveryDatabaseStatus().catch((error) => {
+    reportError("check the delivery columns", error);
+    return null;
+  });
   const notice = await searchParams;
   const staffSafety = await staffSafetyOverview(settings.staff);
   const activeBranches = settings.branches.filter((branch) => branch.status === "Active");
@@ -462,6 +470,45 @@ export default async function AdminSettingsPage({
             <SubmitButton label="Save this month's goal" />
           </div>
         </form>
+
+        {/* The live database needs its delivery columns before the charges
+            below can be saved. Shown only while something is missing; gone
+            for good once it is done. The preview must be opened to reach OK. */}
+        {deliveryDatabase && !deliveryDatabase.ready ? (
+          <section className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🚚 <T en="Prepare the database for delivery charges" ne="Delivery को लागि database तयार गर्ने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="New columns for the delivery charge are added to the database. Nothing that is already there is changed or removed. Take a backup first (Activity → Export backup)."
+                ne="Database मा delivery शुल्कका नयाँ कोठा थपिन्छन्। पहिलेदेखि भएको कुनै पनि data बदलिँदैन वा मेटिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is added:" ne="यति थपिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                {deliveryDatabase.pending.map((item) => (
+                  <li key={item.name}>
+                    <T en={item.label.en} ne={item.label.ne} />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
+              </p>
+              <form action={prepareDeliveryDatabaseAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add them" />
+              </form>
+            </details>
+          </section>
+        ) : null}
 
         {/* What delivery costs. The header, the home page, the assistant and
             checkout all read these two numbers, so the shop makes one promise
