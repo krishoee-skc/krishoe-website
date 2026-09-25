@@ -21,6 +21,11 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { getPosSnapshot, type PosInvoice } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
+import { designKey } from "@/lib/design-name";
+import { availableBySize } from "@/lib/stock-by-size";
+import type { SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
+
+const SHOE_SIZE = /^\d{1,2}$/;
 
 export const metadata: Metadata = {
   title: "POS Billing | KRISHOE Admin",
@@ -142,7 +147,12 @@ export default async function AdminPosPage() {
   const loaded = await loadPos();
   // Only a role that may write to operations can open a customer account from
   // the bill; the others are told who to ask instead of meeting a refusal.
-  const canOpenLedger = canAdmin(getSessionAdminRole(await requireAdminSession()), "operations:write");
+  const session = await requireAdminSession();
+  const role = getSessionAdminRole(session);
+  const canOpenLedger = canAdmin(role, "operations:write");
+  // What a pair cost is shown only to those who may read costing; everyone
+  // else still gets the warning, without the figure.
+  const showCost = canAdmin(role, "costing:read");
 
   if (!loaded.data) {
     return (
@@ -153,13 +163,26 @@ export default async function AdminPosPage() {
   const [pos, operations, products, costing] = loaded.data;
 
   // What the counter can sell: each design with the pairs on hand and its price
-  // per channel, so picking one fills the rate and shows the stock. Built from
+  // per channel, so tapping one fills the rate and shows the stock. Built from
   // the catalog, which the purchase and production posts keep in step with
   // finished stock. Prices are stored in paisa, shown and billed in rupees.
-  const sellableByDesign = new Map<
-    string,
-    { design: string; sku: string; stock: number; retailRate: number; wholesaleRate: number; sizes: string }
-  >();
+  const unitCost = new Map(costing.designCosting.map((row) => [designKey(row.design), row.unitCostPerPair]));
+
+  // Pairs per size, from the stock rows entered size-wise, and the pile whose
+  // sizes nobody counted. A design with no stock row at all keeps the
+  // catalog's own count as that pile, the way the counter always read it.
+  function stockBySize(design: string, catalogStock: number) {
+    const rows = availableBySize(operations.finishedStock, design);
+    const sizeStock: Record<string, number> = {};
+    let untrackedPairs = 0;
+    for (const [label, pairs] of rows) {
+      if (SHOE_SIZE.test(label)) sizeStock[label] = pairs;
+      else untrackedPairs += pairs;
+    }
+    return rows.size > 0 ? { sizeStock, untrackedPairs } : { sizeStock, untrackedPairs: Math.max(0, catalogStock) };
+  }
+
+  const sellableByDesign = new Map<string, SellableItem>();
   for (const product of products) {
     const retailRate = Math.round(product.priceValue / 100);
     sellableByDesign.set(product.name, {
@@ -170,22 +193,33 @@ export default async function AdminPosPage() {
       stock: product.stock,
       retailRate,
       wholesaleRate: product.wholesalePriceValue > 0 ? Math.round(product.wholesalePriceValue / 100) : retailRate,
-      // Its size run, so picking the design fills the Size box and the receipt
-      // shows every size without the cashier typing them.
       sizes: product.sizes.join(", "),
+      sizeList: product.sizes,
+      ...stockBySize(product.name, product.stock),
+      image: product.image,
+      category: product.category,
+      nameNe: product.nameNe ?? "",
+      colors: product.colors,
+      costPerPair: unitCost.get(designKey(product.name)) ?? 0,
     });
   }
   // A design that has finished stock but no catalog product still belongs in the
   // list — the counter can sell it, just without a stored price.
   for (const stock of operations.finishedStock) {
     if (!sellableByDesign.has(stock.design)) {
+      const bySize = stockBySize(stock.design, stock.stockPairs);
+      const total =
+        Object.values(bySize.sizeStock).reduce((sum, pairs) => sum + pairs, 0) + bySize.untrackedPairs;
       sellableByDesign.set(stock.design, {
         design: stock.design,
         sku: "",
-        stock: stock.stockPairs,
+        stock: total,
         retailRate: 0,
         wholesaleRate: 0,
         sizes: stock.sizeRun && stock.sizeRun !== "Mixed" ? stock.sizeRun : "",
+        sizeList: Object.keys(bySize.sizeStock),
+        ...bySize,
+        costPerPair: unitCost.get(designKey(stock.design)) ?? 0,
       });
     }
   }
@@ -208,10 +242,12 @@ export default async function AdminPosPage() {
         items: lastSale.items.map((item) => ({
           sku: item.sku ?? "",
           design: item.design,
-          sizeRun: item.sizeRun ?? "",
-          quantity: String(item.quantity),
-          rate: String(item.rate),
-          discount: String(item.discount ?? 0),
+          // The customer's size; a bill from before the counter asked for it
+          // only has a size when its stock row was one.
+          size: item.size || (SHOE_SIZE.test(item.sizeRun ?? "") ? item.sizeRun : ""),
+          color: item.color ?? "",
+          quantity: item.quantity,
+          rate: item.rate,
         })),
       }
     : null;
@@ -280,24 +316,43 @@ export default async function AdminPosPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
+      <div className="mt-6 min-w-0 max-md:-order-1 max-md:mt-4">
+        <PosBillForm
+          ledgers={operations.customerLedgers.map((ledger) => ({
+            id: ledger.id,
+            label: `${ledger.customerName} (${ledger.channel})`,
+            phone: ledger.phone.replace(/\D/g, ""),
+            customerName: ledger.customerName,
+            balanceDue: ledger.balanceDue,
+          }))}
+          catalog={catalog}
+          lastBill={lastBill}
+          canOpenLedger={canOpenLedger}
+          cashierName={session.name ?? ""}
+          showCost={showCost}
+          today={{
+            bills: pos.todayDayClose.invoiceCount,
+            netSales: pos.todayDayClose.netSales,
+            cash: pos.todayDayClose.cashAmount,
+            digital:
+              pos.todayDayClose.qrAmount +
+              pos.todayDayClose.eSewaAmount +
+              pos.todayDayClose.khaltiAmount +
+              pos.todayDayClose.bankAmount,
+            credit: pos.todayDayClose.creditAmount,
+          }}
+        />
+      </div>
+
+      <div className="mt-8 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <StatCard label={<T en="Today net sales" ne="आजको खुद बिक्री" />} value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
         <StatCard label={<T en="Month net sales" ne="महिनाको खुद बिक्री" />} value={money(pos.summary.monthNetSales)} detail={`${pos.summary.invoiceCount} total bills`} />
         <StatCard label={<T en="Credit from POS" ne="बिलबाट उधारो" />} value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
         <StatCard label={<T en="Needs review" ne="हेर्न बाँकी" />} value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
       </div>
-      <div className="mt-8 grid gap-6 max-md:-order-1 max-md:mt-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <PosBillForm
-          ledgers={operations.customerLedgers.map((ledger) => ({
-            id: ledger.id,
-            label: `${ledger.customerName} (${ledger.channel})`,
-          }))}
-          catalog={catalog}
-          lastBill={lastBill}
-          canOpenLedger={canOpenLedger}
-        />
 
-        <div className="grid gap-6">
+      <div className="mt-8 grid gap-6">
+        <div className="grid gap-6 lg:grid-cols-2">
           <ScannerPanel
             knownInvoices={pos.invoices.map((invoice) => ({
               id: invoice.id,

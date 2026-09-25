@@ -81,6 +81,47 @@ function isRealSize(size: string): boolean {
   return /^\d{1,2}$/.test(size.trim());
 }
 
+/**
+ * The stock row a counter line moves, named by its size label.
+ *
+ * The counter now asks for the customer's size — "41" — on every line. The
+ * stock may not be kept that way: a design entered as one "Mixed" pile has no
+ * "41" row, and a real size sent to the database opens that exact row (see
+ * findOrCreateFinishedStock), which for a sale is an empty row and a refused
+ * bill. So the size the customer took and the row the pairs come from are two
+ * answers:
+ *
+ *   Sale    its own size's row while that covers the pairs, then the uncounted
+ *           pile the pairs must be in, then the size itself — which the stock
+ *           check then reports as short, by name.
+ *   Return  its own size once the design is kept size-wise, so the pair goes
+ *           back where it belongs; otherwise the pile it was sold from.
+ *
+ * A value that is not a real size ("Mixed", "36-41", "") is passed through as
+ * the label it already is, so old bills and hand-typed runs move as before.
+ */
+export function stockRowForSize(
+  rows: FinishedStock[],
+  design: string,
+  size: string,
+  pairs: number,
+  kind: "Sale" | "Return",
+): string {
+  const wanted = (size ?? "").trim();
+  if (!isRealSize(wanted)) return wanted || "Mixed";
+
+  const bySize = availableBySize(rows, design);
+  const pile = [...bySize.entries()].find(([label, count]) => !isRealSize(label) && count > 0)?.[0];
+
+  if (kind === "Return") {
+    if (hasSizeWiseStock(rows, design)) return wanted;
+    return pile ?? [...bySize.keys()].find((label) => !isRealSize(label)) ?? "Mixed";
+  }
+
+  if ((bySize.get(wanted) ?? 0) >= pairs) return wanted;
+  return pile ?? wanted;
+}
+
 /** True once a design has any size-wise stock (a real size, not just "Mixed"/a range). */
 export function hasSizeWiseStock(rows: FinishedStock[], design: string): boolean {
   for (const size of availableBySize(rows, design).keys()) {

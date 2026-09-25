@@ -164,8 +164,12 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
                 <tr key={item.id}>
                   <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
                   <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
-                  <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">{item.design}</td>
-                  <td className="border border-brand-green-line px-2 py-2">{item.sizeRun}</td>
+                  <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">
+                    {item.design}
+                    {item.color ? <span className="font-normal text-brand-muted"> · {item.color}</span> : null}
+                  </td>
+                  {/* The size the customer took; older bills only carry the stock row. */}
+                  <td className="border border-brand-green-line px-2 py-2">{item.size || item.sizeRun}</td>
                   <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{item.quantity}</td>
                   <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(item.rate)}</td>
                   <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(item.lineTotal)}</td>

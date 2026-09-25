@@ -20,6 +20,7 @@ import {
   updatePosInvoicePostingToPostgres,
 } from "@/lib/pos-postgres";
 import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { stockRowForSize } from "@/lib/stock-by-size";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -36,6 +37,14 @@ export type PosInvoiceItem = {
   rate: number;
   discount: number;
   lineTotal: number;
+  /**
+   * The customer's own size and colour, for the receipt. sizeRun above is the
+   * stock row the pairs moved, which for an uncounted pile reads "Mixed" — true
+   * for the books, and no use to a customer asking which size they took.
+   * Absent on bills saved before the counter asked for them.
+   */
+  size?: string;
+  color?: string;
 };
 
 export type PosInvoice = {
@@ -151,6 +160,8 @@ export type CreatePosInvoiceInput = {
     quantity: number;
     rate: number;
     discount: number;
+    size?: string;
+    color?: string;
   }>;
 };
 
@@ -390,6 +401,8 @@ function normalizeItem(item: Partial<PosInvoiceItem>): PosInvoiceItem {
   const quantity = cleanNumber(item.quantity ?? 0);
   const rate = cleanNumber(item.rate ?? 0);
   const discount = cleanNumber(item.discount ?? 0);
+  const size = cleanText(item.size ?? "");
+  const color = cleanText(item.color ?? "");
 
   return {
     id: cleanText(item.id ?? "") || createId("ITEM"),
@@ -400,6 +413,8 @@ function normalizeItem(item: Partial<PosInvoiceItem>): PosInvoiceItem {
     rate,
     discount,
     lineTotal: Math.max(0, quantity * rate - discount),
+    ...(size ? { size } : {}),
+    ...(color ? { color } : {}),
   };
 }
 
@@ -560,15 +575,15 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     return existingInvoice;
   }
 
-  const items = input.items
+  const lines = input.items
     .map((item) => normalizeItem({ ...item, id: createId("ITEM") }))
     .filter((item) => item.design && item.quantity > 0 && item.rate > 0);
 
-  if (items.length === 0) {
+  if (lines.length === 0) {
     throw new Error("At least one valid POS item is required.");
   }
 
-  const subtotal = sum(items, (item) => item.lineTotal);
+  const subtotal = sum(lines, (item) => item.lineTotal);
   const discount = Math.min(cleanNumber(input.invoiceDiscount), subtotal);
   const tax = cleanNumber(input.tax);
   const total = Math.max(0, subtotal - discount + tax);
@@ -576,9 +591,20 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   const creditAmount = input.kind === "Sale" ? Math.max(0, total - paidAmount) : 0;
   validatePaymentInput(input, creditAmount);
 
-  // Loaded once and shared: the stock preflight needs it, and so does deciding
-  // which pool each line's movement draws from.
+  // Loaded once and shared: the size routing, the stock preflight and the
+  // choice of pool for each line's movement all read it.
   const operations = await getOperationsData();
+
+  // A line that names the customer's size moves the row that size is kept on —
+  // its own row, or the uncounted pile it must be in. See stockRowForSize.
+  const items = lines.map((item) =>
+    item.size
+      ? {
+          ...item,
+          sizeRun: stockRowForSize(operations.finishedStock, item.design, item.size, item.quantity, input.kind),
+        }
+      : item,
+  );
 
   if (input.kind === "Sale") {
     preflightSaleStock(operations, items);

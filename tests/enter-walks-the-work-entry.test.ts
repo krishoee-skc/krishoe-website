@@ -102,19 +102,24 @@ describe("walking back", () => {
 });
 
 /**
- * All three forms now walk the same way, and this is what holds them together.
+ * All three forms walk the same way, and this is what holds them together.
  *
- * Three separate implementations, because the three forms are genuinely
- * different — one has an item table, one has a barcode scanner, one is four
- * boxes beside a row of tap-chips. What they must share is the rule that Enter
- * does not file the document, and the courtesy that Shift+Enter goes back.
+ * Two keep their own walk, because they are genuinely different — one has an
+ * item table, one is four boxes beside a row of tap-chips. The POS bill, once
+ * the third, now uses the shared EnterWalkForm, whose rule is tested on its
+ * own. What all three must share is the rule that Enter does not file the
+ * document, and the courtesy that Shift+Enter goes back.
  */
 describe("the three forms agree on the rule", () => {
   const FORMS = [
     "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx",
-    "app/admin/pos/_components/PosBillForm.tsx",
     FORM,
   ];
+
+  it("the POS bill walks by the shared rule", async () => {
+    const source = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
+    expect(source).toContain("<EnterWalkForm");
+  });
 
   it("none of them lets Enter submit", async () => {
     for (const file of FORMS) {

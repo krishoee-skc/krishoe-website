@@ -1,24 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
-import { money } from "@/lib/format-money";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
-import { posLineIssue } from "@/lib/pos-line-check";
-import { autoPaidAmount, posBillCreditDue, posBillTotal } from "@/lib/pos-bill";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useLanguage } from "@/components/LanguageProvider";
-
-// What a bill is made of, and the order Enter walks it — beside this file,
-// because they are rules about the sale rather than the markup.
+import { money } from "@/lib/format-money";
+import { posBillCreditDue } from "@/lib/pos-bill";
+import PosProductPicker from "@/app/admin/pos/_components/PosProductPicker";
+import PosSizeSheet from "@/app/admin/pos/_components/PosSizeSheet";
 import {
-  BILL_WALK,
-  emptyRow,
-  rateForChannel,
-  rowIsTouched,
-  type BillField,
-  type ItemRow,
+  addPair,
+  belowCost,
+  billTotals,
+  canAddPair,
+  cashOutcome,
+  findByCode,
+  hasSizes,
+  isShoeSize,
+  likelyNotes,
+  lineKey,
+  percentOff,
+  repriceForChannel,
+  setPairs,
+  setRate,
+  type CartLine,
   type LedgerOption,
   type RepeatBill,
   type SellableItem,
@@ -26,301 +34,420 @@ import {
 
 export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
+/** Today's counter, for the strip above the bill. */
+export type TodayFigures = {
+  bills: number;
+  netSales: number;
+  cash: number;
+  /** QR, eSewa, Khalti and bank together. */
+  digital: number;
+  credit: number;
+};
+
 type PosBillFormProps = {
   ledgers: LedgerOption[];
   catalog: SellableItem[];
   lastBill?: RepeatBill | null;
   /** Whether this admin may open a customer account without leaving the bill. */
   canOpenLedger?: boolean;
+  /** Who is signed in — the bill's cashier unless changed. */
+  cashierName?: string;
+  today?: TodayFigures | null;
+  /** Whether this admin may see what a pair cost the shop. */
+  showCost?: boolean;
 };
 
-const inputBase = "h-10 rounded-md border px-3 text-sm outline-none focus:border-brand-green";
-const inputClass = `${inputBase} border-brand-green-line bg-brand-paper`;
-const textareaClass =
-  "min-h-24 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green";
+type Kind = "Sale" | "Return";
+type Payment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque";
+type DiscountMode = "none" | "5" | "10" | "amount";
 
+const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];
+// The server refuses these without a transaction number once money is in, so
+// the box is asked for here, before Save, not after.
+const NEEDS_REFERENCE = new Set<Payment>(["Cheque", "QR", "eSewa", "Khalti", "Bank"]);
 
-function fieldClass(hasError: boolean) {
-  return `${inputBase} ${hasError ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"}`;
+type HeldBill = {
+  id: string;
+  heldAt: number;
+  cart: CartLine[];
+  channel: string;
+  kind: Kind;
+  phone: string;
+  customerName: string;
+};
+
+// Held bills live on this device only: a bill set aside while the customer
+// tries another size is this counter's business, and nobody else's.
+const HELD_KEY = "krishoe-pos-held";
+
+function readHeld(): HeldBill[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(HELD_KEY) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((bill): bill is HeldBill => Array.isArray((bill as HeldBill)?.cart))
+      : [];
+  } catch {
+    return [];
+  }
 }
 
+// One copy of the held bills for the page, read from storage the first time
+// it is asked for. The server has no idea what this device held, so it always
+// answers "none" and the real list arrives as the page wakes.
+const NONE_HELD: HeldBill[] = [];
+let heldCache: HeldBill[] | null = null;
+const heldListeners = new Set<() => void>();
+
+function heldSnapshot() {
+  if (heldCache === null) heldCache = readHeld();
+  return heldCache;
+}
+
+function subscribeHeld(listener: () => void) {
+  heldListeners.add(listener);
+  return () => {
+    heldListeners.delete(listener);
+  };
+}
+
+function saveHeld(bills: HeldBill[]) {
+  heldCache = bills;
+  try {
+    window.localStorage.setItem(HELD_KEY, JSON.stringify(bills));
+  } catch {
+    // Storage refused (a private window): the bill is still held on screen.
+  }
+  heldListeners.forEach((listener) => listener());
+}
+
+/** A held bill's name tag and the moment it was set aside. */
+function heldStamp() {
+  const now = Date.now();
+  return { id: `h-${now}-${Math.random().toString(36).slice(2, 6)}`, heldAt: now };
+}
+
+function digits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+/** Two numbers are one phone when their last ten digits agree. */
+function samePhone(left: string | undefined, right: string) {
+  const a = digits(left ?? "").slice(-10);
+  const b = digits(right).slice(-10);
+  return a.length >= 7 && a === b;
+}
+
+// F9 reaches the form by its id: EnterWalkForm keeps its own ref.
+const BILL_FORM_ID = "pos-bill-form";
+
+const inputClass =
+  "h-11 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink outline-none focus:border-brand-green";
+
+function BillTimer({ startedAt }: { startedAt: number | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (startedAt === null) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+  if (startedAt === null) return null;
+  const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
+  return (
+    <span className="font-mono text-xs text-brand-muted" aria-hidden="true">
+      ⏱ {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+    </span>
+  );
+}
+
+/**
+ * The counter bill.
+ *
+ * Shoes are tapped in from the shelf on the left, the size chosen on a sheet,
+ * and the bill on the right settles itself: the rate from the channel, the
+ * paid amount from the payment, the change from the notes handed over. What is
+ * left to type is only what the counter actually knows — a bargained rate, a
+ * phone number, a transaction number.
+ *
+ * On a phone the shelf fills the screen and the bill waits in a bar above the
+ * dock, opening over the shelf when tapped, with Save at the thumb.
+ *
+ * Every rule the save enforces is asked here first, while the bill can still
+ * be finished: the account for anything unpaid, the number for a QR payment,
+ * the cash that does not cover the bill. Save stays the only way a bill is
+ * filed — Enter walks the boxes and asks before it saves, F9 saves.
+ */
 export default function PosBillForm({
   ledgers,
   catalog,
   lastBill,
   canOpenLedger = false,
+  cashierName = "",
+  today = null,
+  showCost = false,
 }: PosBillFormProps) {
   const { text } = useLanguage();
-  const [submissionKey] = useState(
-    () => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-  );
-  const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 4 }, (_, index) => emptyRow(index)));
-  const [nextKey, setNextKey] = useState(4);
+  const router = useRouter();
+  const [submissionKey] = useState(() => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [kind, setKind] = useState<Kind>("Sale");
   const [channel, setChannel] = useState("Retail");
-  const [kind, setKind] = useState("Sale");
-  const [paymentMethod, setPaymentMethod] = useState("Cash");
-  // The customer's details are read back when opening their account from here,
-  // so they are held rather than left to the form alone.
-  const [customerName, setCustomerName] = useState("");
+  const [payment, setPayment] = useState<Payment>("Cash");
+  const [received, setReceived] = useState("");
+  const [restOnCredit, setRestOnCredit] = useState(false);
+  const [discountMode, setDiscountMode] = useState<DiscountMode>("none");
+  const [discountText, setDiscountText] = useState("");
+  const [tax, setTax] = useState("");
   const [phone, setPhone] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [ledgerId, setLedgerId] = useState("");
   const [ledgerOptions, setLedgerOptions] = useState(ledgers);
   const [ledgerNote, setLedgerNote] = useState("");
   const [isOpeningLedger, setIsOpeningLedger] = useState(false);
-  const [invoiceDiscount, setInvoiceDiscount] = useState("");
-  const [tax, setTax] = useState("");
-  // The paid amount fills itself to the bill total; the cashier only touches it
-  // to enter a part payment, and once touched it stops following the total.
-  const [paidManual, setPaidManual] = useState("");
-  const [paidTouched, setPaidTouched] = useState(false);
-  const [scanCode, setScanCode] = useState("");
-  const [scanNote, setScanNote] = useState("");
-  const [isReadingProductPhoto, setIsReadingProductPhoto] = useState(false);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [reference, setReference] = useState("");
+  const [cashier, setCashier] = useState(cashierName);
+
+  const [query, setQuery] = useState("");
+  const [note, setNote] = useState("");
+  const [picking, setPicking] = useState<SellableItem | null>(null);
+  const [editingRate, setEditingRate] = useState<string | null>(null);
+  const [undo, setUndo] = useState<{ label: string; cart: CartLine[] } | null>(null);
+  const held = useSyncExternalStore(subscribeHeld, heldSnapshot, () => NONE_HELD);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [readingPhoto, setReadingPhoto] = useState(false);
+
   const [state, setState] = useState<ActionState | null>(null);
   const [saveLocked, setSaveLocked] = useState(false);
   const [isSaving, startSaving] = useTransition();
-  const submitStartedRef = useRef(false);
-  const router = useRouter();
-
-  // Enter moves the cursor along the bill, so it has to be able to find the
-  // box it is moving to. Keyed by the input's own `name`.
-  const boxes = useRef(new Map<string, HTMLInputElement | null>());
-  // A ref rather than state: the box to move to is decided in a key handler
-  // and acted on after the next render. Kept as state it would render twice
-  // to move a cursor.
-  const pendingFocus = useRef<string | null>(null);
+  const submitStarted = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const key = pendingFocus.current;
-    if (!key) return;
-    const box = boxes.current.get(key);
-    if (!box) return;
-    pendingFocus.current = null;
-    box.focus();
-    box.select();
-  });
+    if (!undo) return;
+    const timer = window.setTimeout(() => setUndo(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [undo]);
 
-  /**
-   * Enter and Shift+Enter along the bill's own boxes.
-   *
-   * Enter never saves. In a browser Enter in a text box submits the form —
-   * W3C records it as failure F36 — and at a counter, with a customer waiting,
-   * a bill filed half-typed by a mis-hit is the worst thing this form could
-   * do. Every path calls preventDefault and the last box simply stops; Save
-   * stays the only way a bill is filed.
-   *
-   * The scan box is deliberately not on this walk. A barcode scanner types a
-   * code and presses Enter, and there Enter has to keep meaning "add this item
-   * to the bill" — the counter scans several items in a row without touching
-   * the keyboard between them.
-   */
-  function handleFieldWalk(event: React.KeyboardEvent<HTMLInputElement>, field: BillField) {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-
-    const at = BILL_WALK.indexOf(field);
-
-    if (event.shiftKey) {
-      if (at > 0) pendingFocus.current = BILL_WALK[at - 1];
-      return;
-    }
-
-    if (at < BILL_WALK.length - 1) {
-      pendingFocus.current = BILL_WALK[at + 1];
-    }
-  }
-
-  // Look a design up by name, case-insensitively, so a picked or typed item
-  // finds its stock and price.
-  const catalogByDesign = useMemo(() => {
+  const byDesign = useMemo(() => {
     const map = new Map<string, SellableItem>();
-    for (const item of catalog) {
-      map.set(item.design.trim().toLowerCase(), item);
-    }
+    for (const item of catalog) map.set(item.design.trim().toLowerCase(), item);
     return map;
   }, [catalog]);
+  const itemFor = (design: string) => byDesign.get(design.trim().toLowerCase());
 
-  function lookup(design: string) {
-    return catalogByDesign.get(design.trim().toLowerCase());
+  // ---- what the bill comes to -------------------------------------------
+  const lines = billTotals(cart, 0, 0);
+  const discountValue =
+    discountMode === "5" || discountMode === "10"
+      ? percentOff(lines.subtotal, Number(discountMode))
+      : discountMode === "amount"
+        ? Number(digits(discountText)) || 0
+        : 0;
+  const totals = billTotals(cart, discountValue, Number(digits(tax)) || 0);
+  const isReturn = kind === "Return";
+  const cash = payment === "Cash" && !isReturn ? cashOutcome(totals.total, received === "" ? null : Number(received)) : null;
+  const cashShort = cash ? cash.short : 0;
+  // What the bill records as paid. A return pays nothing in: it goes to the
+  // customer's account, the way it always has. A credit bill is the due itself.
+  const paid = isReturn || payment === "Credit" ? 0 : cash ? cash.paid : totals.total;
+  const { needsAccount, creditAmount } = posBillCreditDue(kind, totals.total, paid);
+
+  const phoneAccount = phone ? ledgerOptions.find((ledger) => samePhone(ledger.phone, phone)) : undefined;
+  const accountId = ledgerId || phoneAccount?.id || "";
+  const account = ledgerOptions.find((ledger) => ledger.id === accountId);
+  const needsReference = !isReturn && NEEDS_REFERENCE.has(payment) && paid > 0;
+  const unpriced = cart.filter((line) => !(line.rate > 0));
+  const belowCostLines = cart.filter((line) => belowCost(line.rate, itemFor(line.design)?.costPerPair));
+
+  let blocked = "";
+  if (cart.length === 0) {
+    blocked = text("Tap a shoe to start", "जुत्ता थपेर सुरु गर्नुहोस्");
+  } else if (unpriced.length > 0) {
+    blocked = text("A line has no rate — tap its price", "एउटा लाइनमा रेट छैन — मूल्यमा थिच्नुहोस्");
+  } else if (cashShort > 0 && !restOnCredit) {
+    blocked = text(`Cash is ${money(cashShort)} short`, `नगद ${money(cashShort)} कम छ`);
+  } else if (needsReference && !reference.trim()) {
+    blocked = text(`Type the ${payment} number`, `${payment} को नम्बर लेख्नुहोस्`);
+  } else if (needsAccount && !accountId) {
+    blocked = isReturn
+      ? text("Pick whose account the return goes to", "फिर्ता कसको खातामा जाने, छान्नुहोस्")
+      : text("Pick whose account the unpaid part goes to", "बाँकी रकम कसको खातामा, छान्नुहोस्");
   }
 
-  function updateRow(key: number, patch: Partial<ItemRow>) {
-    setRows((current) => {
-      const next = current.map((row) => {
-        if (row.key !== key) {
-          return row;
-        }
-
-        const merged = { ...row, ...patch };
-
-        // Picking or typing a known design fills its price for the current
-        // channel, so the cashier is not keying a rate they already set on the
-        // product. They can still edit it after.
-        if (patch.design !== undefined) {
-          const item = lookup(patch.design);
-          if (item) {
-            merged.rate = String(rateForChannel(channel, item));
-            // Fill the size run from the design so the receipt shows its sizes
-            // without the cashier keying them. Left alone if the design has none.
-            if (item.sizes) {
-              merged.sizeRun = item.sizes;
-            }
-          }
-        }
-
-        return merged;
-      });
-
-      if (next[next.length - 1].key === key && rowIsTouched(next[next.length - 1])) {
-        next.push(emptyRow(nextKey));
-        setNextKey((value) => value + 1);
+  // ---- putting shoes on the bill -----------------------------------------
+  const add = useCallback(
+    (item: SellableItem, size: string, color = "") => {
+      if (kind === "Sale" && !canAddPair(item, size, cart)) {
+        setNote(
+          size
+            ? text(`${item.design} size ${size} is not in stock.`, `${item.design} साइज ${size} stock मा छैन।`)
+            : text(`${item.design} is out of stock.`, `${item.design} stock मा छैन।`),
+        );
+        return;
       }
+      setCart((current) => addPair(current, item, channel, size, color));
+      setStartedAt((value) => value ?? Date.now());
+      setNote(
+        size
+          ? text(`Added ${item.design}, size ${size}.`, `${item.design}, साइज ${size} थपियो।`)
+          : text(`Added ${item.design}.`, `${item.design} थपियो।`),
+      );
+      setState(null);
+    },
+    [cart, channel, kind, text],
+  );
 
-      return next;
-    });
-  }
-
-  // Switching between retail and wholesale re-prices every matched line, so a
-  // wholesale bill does not quietly keep retail rates.
-  function changeChannel(nextChannel: string) {
-    setChannel(nextChannel);
-    setRows((current) =>
-      current.map((row) => {
-        const item = lookup(row.design);
-        return item ? { ...row, rate: String(rateForChannel(nextChannel, item)) } : row;
-      }),
-    );
-  }
-
-  function addCatalogItem(item: SellableItem) {
-    if (item.stock <= 0) {
-      setScanNote(`${item.design} is out of stock.`);
+  function choose(item: SellableItem, sizeFilter: string) {
+    const colors = (item.colors ?? []).filter(Boolean);
+    if (!hasSizes(item)) {
+      add(item, "", colors[0] ?? "");
       return;
     }
-
-    const existing = rows.find(
-      (row) => rowIsTouched(row) && row.design.trim().toLowerCase() === item.design.trim().toLowerCase(),
-    );
-
-    if (existing) {
-      updateRow(existing.key, { quantity: String((Number(existing.quantity) || 0) + 1) });
-    } else {
-      const target = rows.find((row) => !rowIsTouched(row));
-      if (target) {
-        updateRow(target.key, { sku: item.sku, design: item.design, quantity: "1" });
-      }
-    }
-
-    setScanNote(`${item.design} added to the bill.`);
-    setScanCode("");
-    setIsPickerOpen(false);
-  }
-
-  // Scan or type a code and drop the item into the bill. A USB/Bluetooth
-  // scanner "types" the SKU and presses Enter, so this is all it takes to build
-  // a bill by scanning; typing a code by hand works the same way. Scanning the
-  // same item again just adds one more pair.
-  function addByCode(rawCode: string) {
-    const code = rawCode.trim().toLowerCase();
-    if (!code) {
+    // The size is already named in the filter and there is no colour to ask:
+    // one tap is the whole job.
+    if (sizeFilter && colors.length <= 1 && kind === "Sale") {
+      add(item, sizeFilter, colors[0] ?? "");
       return;
     }
+    setPicking(item);
+  }
 
-    const item = catalog.find(
-      (entry) =>
-        (entry.sku && entry.sku.trim().toLowerCase() === code) ||
-        entry.design.trim().toLowerCase() === code,
-    );
-
-    if (!item) {
-      setScanNote(
+  function submitQuery(value: string, shown: SellableItem[]) {
+    const code = findByCode(catalog, value);
+    if (code) {
+      setQuery("");
+      if (code.size || !hasSizes(code.item)) add(code.item, code.size, (code.item.colors ?? [])[0] ?? "");
+      else setPicking(code.item);
+      return;
+    }
+    if (shown.length > 0) {
+      choose(shown[0], isShoeSize(value) ? value.trim() : "");
+      if (!isShoeSize(value)) setQuery("");
+      return;
+    }
+    if (value.trim()) {
+      setNote(
         text(
-          `"${rawCode.trim()}" not found. Check the SKU or the design name and try again.`,
-          `"${rawCode.trim()}" — भेटिएन। SKU वा design हेरेर फेरि गर्नुहोस्।`,
+          `"${value.trim()}" not found. Check the code or the name.`,
+          `"${value.trim()}" भेटिएन। कोड वा नाम हेर्नुहोस्।`,
         ),
       );
-      return;
     }
-
-    const existing = rows.find(
-      (row) => rowIsTouched(row) && row.design.trim().toLowerCase() === item.design.trim().toLowerCase(),
-    );
-
-    if (existing) {
-      updateRow(existing.key, { quantity: String((Number(existing.quantity) || 0) + 1) });
-    } else {
-      const target = rows.find((row) => !rowIsTouched(row));
-      if (target) {
-        updateRow(target.key, { sku: item.sku, design: item.design, quantity: "1" });
-      }
-    }
-
-    setScanNote(text(`${item.design} added.`, `${item.design} थपियो।`));
-    setScanCode("");
   }
 
-  async function addProductFromPhoto(file: File | undefined) {
+  async function readPhoto(file: File | undefined) {
     if (!file) return;
-    setIsReadingProductPhoto(true);
-    setScanNote("Reading product barcode from photo...");
+    setReadingPhoto(true);
+    setNote(text("Reading the barcode in the photo…", "फोटोको बारकोड पढ्दै…"));
     const imageUrl = URL.createObjectURL(file);
-
     try {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const result = await new BrowserMultiFormatReader().decodeFromImageUrl(imageUrl);
-      const code = result.getText().trim();
-      setScanCode(code);
-      addByCode(code);
+      submitQuery(result.getText().trim(), []);
     } catch {
-      setScanNote("No product barcode found. Try a clearer photo or search the item name.");
+      setNote(
+        text(
+          "No barcode found. Try a clearer photo, or search the name.",
+          "बारकोड भेटिएन। अझ प्रस्ट फोटो खिच्नुहोस्, वा नाम खोज्नुहोस्।",
+        ),
+      );
     } finally {
       URL.revokeObjectURL(imageUrl);
-      setIsReadingProductPhoto(false);
+      setReadingPhoto(false);
     }
   }
 
-  // Drop the last sale's lines back into the form — a repeat customer buying
-  // the same run does not need it all keyed again. The rates come straight from
-  // that bill, so the channel is set without re-pricing.
-  function repeatLastBill() {
-    if (!lastBill || lastBill.items.length === 0) {
+  function changePairs(line: CartLine, next: number) {
+    const item = itemFor(line.design);
+    if (next > line.quantity && kind === "Sale" && item && !canAddPair(item, line.size, cart)) {
+      setNote(text("No more pairs of that size.", "त्यो साइज अब बाँकी छैन।"));
       return;
     }
-
-    const filled = lastBill.items.map((item, index) => ({ key: index, ...item }));
-    filled.push(emptyRow(filled.length));
-    setRows(filled);
-    setNextKey(filled.length);
-    setChannel(lastBill.channel);
-    setState(null);
+    if (next <= 0) {
+      setUndo({
+        label: text(`Removed ${line.design}${line.size ? ` (${line.size})` : ""}`, `${line.design}${line.size ? ` (${line.size})` : ""} हटाइयो`),
+        cart,
+      });
+    }
+    setCart((current) => setPairs(current, line.key, next));
   }
 
-  const subtotal = useMemo(
-    () =>
-      rows.reduce((total, row) => {
-        const line = (Number(row.quantity) || 0) * (Number(row.rate) || 0) - (Number(row.discount) || 0);
-        return total + Math.max(0, line);
-      }, 0),
-    [rows],
-  );
+  // The value is read here, in the handler: React runs a state updater later,
+  // when the event has already let go of its input.
+  function commitRate(key: string, typed: string) {
+    const rate = Number(digits(typed));
+    setCart((current) => setRate(current, key, rate));
+  }
 
-  const billTotal = posBillTotal(subtotal, Number(invoiceDiscount) || 0, Number(tax) || 0);
-  // Until the cashier types in it, the paid box shows the amount that fills
-  // itself — the full total for a pay-now method, nothing for Credit.
-  const autoPaid = autoPaidAmount(paymentMethod, billTotal);
-  const paidValue = paidTouched ? paidManual : autoPaid > 0 ? String(autoPaid) : "";
-  const isCredit = paymentMethod === "Credit";
+  function changeChannel(next: string) {
+    setChannel(next);
+    setCart((current) => repriceForChannel(current, catalog, next));
+  }
 
-  // What the shop is still owed once this bill is saved. A Credit bill owes all
-  // of it; a part payment owes the rest. That amount has to sit in somebody's
-  // account, or the shop has handed over pairs with nobody's name against them.
-  const paidNumber = isCredit ? 0 : Number(paidValue) || 0;
-  const { needsAccount: needsLedger, creditAmount } = posBillCreditDue(kind, billTotal, paidNumber);
-  const ledgerMissing = needsLedger && !ledgerId;
+  function resetBill() {
+    setCart([]);
+    setStartedAt(null);
+    setReceived("");
+    setRestOnCredit(false);
+    setDiscountMode("none");
+    setDiscountText("");
+    setTax("");
+    setPhone("");
+    setCustomerName("");
+    setLedgerId("");
+    setReference("");
+    setKind("Sale");
+    setEditingRate(null);
+  }
 
-  // Opens the customer's account from the bill itself and selects it, so a
-  // credit sale is never sent back to /admin/operations and re-keyed.
+  function holdBill() {
+    if (cart.length === 0) return;
+    const next = [
+      ...held,
+      { ...heldStamp(), cart, channel, kind, phone, customerName },
+    ];
+    saveHeld(next);
+    resetBill();
+    setNote(text("Bill held. Serve the next customer.", "बिल होल्डमा राखियो। अर्को ग्राहकको बिल काट्नुहोस्।"));
+  }
+
+  function resumeBill(id: string) {
+    const bill = held.find((entry) => entry.id === id);
+    if (!bill) return;
+    let rest = held.filter((entry) => entry.id !== id);
+    if (cart.length > 0) {
+      rest = [...rest, { ...heldStamp(), cart, channel, kind, phone, customerName }];
+    }
+    saveHeld(rest);
+    resetBill();
+    setCart(bill.cart);
+    setChannel(bill.channel);
+    setKind(bill.kind);
+    setPhone(bill.phone);
+    setCustomerName(bill.customerName);
+    setStartedAt(bill.heldAt);
+  }
+
+  function repeatLast() {
+    if (!lastBill || lastBill.items.length === 0) return;
+    setChannel(lastBill.channel);
+    setKind("Sale");
+    setCart(
+      lastBill.items.map((item) => ({
+        key: lineKey(item.design, item.size, item.color),
+        design: item.design,
+        sku: item.sku,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        rate: item.rate,
+        listRate: item.rate,
+      })),
+    );
+    setStartedAt(Date.now());
+  }
+
   function openLedger() {
     setLedgerNote("");
     setIsOpeningLedger(true);
@@ -328,591 +455,720 @@ export default function PosBillForm({
       const result = await openPosCustomerLedgerAction({ customerName, phone, channel });
       setIsOpeningLedger(false);
       setLedgerNote(result.message);
-
       if (result.ok && result.ledger) {
-        setLedgerOptions((current) => [result.ledger!, ...current]);
-        setLedgerId(result.ledger.id);
+        const opened: LedgerOption = { ...result.ledger, phone: digits(phone), customerName, balanceDue: 0 };
+        setLedgerOptions((current) => [opened, ...current]);
+        setLedgerId(opened.id);
       }
     });
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitStartedRef.current) {
+    if (submitStarted.current) return;
+    if (blocked) {
+      setState({ ok: false, message: blocked });
       return;
     }
 
     const formData = new FormData(event.currentTarget);
-
-    const started = rows.filter(rowIsTouched);
-    const firstBadIndex = started.findIndex((row) => posLineIssue(row));
-
-    if (started.length === 0) {
-      setState({
-        ok: false,
-        message: text(
-          "Add at least one item — a design, with quantity and rate.",
-          "कम्तीमा एउटा जुत्ता हाल्नुहोस् — नाम, कति जोडी र दरसहित।",
-        ),
-      });
-      return;
-    }
-
-    if (firstBadIndex !== -1) {
-      const issue = posLineIssue(started[firstBadIndex]);
-      setState({ ok: false, message: `Item ${firstBadIndex + 1}: ${issue?.message ?? "please complete this line."}` });
-      return;
-    }
-
-    // Caught here rather than after the save, so the bill is still on screen
-    // and the account can be picked or opened in the box right above.
-    if (ledgerMissing) {
-      setState({
-        ok: false,
-        message:
-          kind === "Return"
-            ? text(
-                "Pick the customer's account above — a return has to land in one.",
-                "फिर्ता कसको खातामा जान्छ, माथि Customer account छान्नुहोस्।",
-              )
-            : text(
-                `Rs. ${creditAmount.toLocaleString("en-IN")} is unpaid — pick an account above, or open a new one.`,
-                `उधारो रु. ${creditAmount.toLocaleString("en-IN")} बाँकी छ — कसको खातामा चढाउने, माथि छान्नुहोस् वा नयाँ खोल्नुहोस्।`,
-              ),
-      });
-      return;
-    }
-
-    submitStartedRef.current = true;
+    submitStarted.current = true;
     setSaveLocked(true);
     startSaving(async () => {
       const result = await createPosInvoiceAction(state, formData);
       setState(result);
-
       if (result.ok && result.href) {
         router.push(result.href);
         return;
       }
-
-      submitStartedRef.current = false;
+      submitStarted.current = false;
       setSaveLocked(false);
     });
   }
 
-  const inStockCount = catalog.filter((item) => item.stock > 0).length;
-  const pickerItems = useMemo(() => {
-    const query = scanCode.trim().toLowerCase();
-    return catalog
-      .filter((item) => {
-        if (!query) {
-          return item.stock > 0;
-        }
-        return [item.design, item.sku, item.sizes].some((value) =>
-          value.trim().toLowerCase().includes(query),
-        );
-      })
-      .sort((first, second) => {
-        if ((first.stock > 0) !== (second.stock > 0)) {
-          return first.stock > 0 ? -1 : 1;
-        }
-        return first.design.localeCompare(second.design);
-      })
-      .slice(0, 10);
-  }, [catalog, scanCode]);
+  // F2 goes to the search box from anywhere; F9 saves from anywhere.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "F2") {
+        event.preventDefault();
+        setCartOpen(false);
+        searchRef.current?.focus();
+      }
+      if (event.key === "F9") {
+        event.preventDefault();
+        (document.getElementById(BILL_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const saveLabel = isOpeningLedger
+    ? text("Opening the account…", "खाता खोल्दैछौँ…")
+    : isSaving || saveLocked
+      ? text("Saving…", "राख्दैछौँ…")
+      : blocked && cart.length > 0
+        ? blocked
+        : isReturn
+          ? text(`Save return · ${money(totals.total)}`, `फिर्ता बिल राख्ने · ${money(totals.total)}`)
+          : payment === "Credit"
+            ? text(`Save on credit · ${money(totals.total)}`, `उधारोमा बिल राख्ने · ${money(totals.total)}`)
+            : text(`Save bill · ${money(totals.total)}`, `बिल राख्ने · ${money(totals.total)}`);
+
+  const payLabel: Record<Payment, string> = {
+    Cash: text("Cash", "नगद"),
+    QR: "QR",
+    eSewa: "eSewa",
+    Khalti: "Khalti",
+    Credit: text("Credit", "उधारो"),
+    Bank: text("Bank", "बैंक"),
+    Cheque: text("Cheque", "चेक"),
+  };
+
+  const segment = (active: boolean, tone: "green" | "clay" = "green") =>
+    `h-10 rounded-xl px-4 text-sm font-black transition ${
+      active
+        ? tone === "clay"
+          ? "bg-brand-clay text-white"
+          : "bg-brand-green text-white"
+        : "text-brand-muted hover:text-brand-green-ink"
+    }`;
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <input type="hidden" name="itemCount" value={rows.length} />
-      <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
+    // min-w-0 all the way down: the size row scrolls sideways, and without it
+    // that row would stretch the whole column past a phone screen.
+    <div className="grid min-w-0 gap-3">
+      {today ? (
+        <div className="flex gap-x-5 gap-y-1 overflow-x-auto whitespace-nowrap rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2 text-sm tabular-nums [scrollbar-width:none]">
+          <span className="font-bold text-brand-muted">{text("Today", "आज")}</span>
+          <span>
+            <b className="text-brand-green-ink">{today.bills}</b> {text("bills", "बिल")}
+          </span>
+          <span>
+            {text("Sales", "बिक्री")} <b className="text-brand-green-ink">{money(today.netSales)}</b>
+          </span>
+          <span>
+            {text("Cash", "नगद")} <b className="text-brand-green-ink">{money(today.cash)}</b>
+          </span>
+          <span>
+            {text("QR/wallet", "QR/वालेट")} <b className="text-brand-green-ink">{money(today.digital)}</b>
+          </span>
+          {today.credit > 0 ? (
+            <span>
+              {text("Credit", "उधारो")} <b className="text-brand-green-ink">{money(today.credit)}</b>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-brand-green-ink">{text("New bill", "नयाँ बिल")}</h2>
-          <p className="mt-1 text-sm text-brand-muted">
-            Pick an item and its price fills in. Bill save posts stock automatically.
-          </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Bill type", "बिलको किसिम")}>
+          <button type="button" aria-pressed={kind === "Sale"} onClick={() => setKind("Sale")} className={segment(kind === "Sale")}>
+            {text("Sale", "बिक्री")}
+          </button>
+          <button type="button" aria-pressed={kind === "Return"} onClick={() => setKind("Return")} className={segment(kind === "Return", "clay")}>
+            {text("Return", "फिर्ता")}
+          </button>
+        </div>
+        <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Sales channel", "बिक्रीको बाटो")}>
+          {(["Retail", "Wholesale", "Online"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={channel === option}
+              onClick={() => changeChannel(option)}
+              className={segment(channel === option)}
+            >
+              {option === "Retail" ? text("Retail", "खुद्रा") : option === "Wholesale" ? text("Wholesale", "थोक") : text("Online", "अनलाइन")}
+            </button>
+          ))}
         </div>
         {lastBill && lastBill.items.length > 0 ? (
           <button
             type="button"
-            onClick={repeatLastBill}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+            onClick={repeatLast}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink hover:border-brand-green"
           >
             ↻ {text("Repeat last bill", "अघिल्लो बिल दोहोर्‍याउने")}
-            <span className="font-mono text-xs opacity-70">{lastBill.invoiceNumber}</span>
+            <span className="hidden font-mono text-xs text-brand-muted sm:inline">{lastBill.invoiceNumber}</span>
           </button>
         ) : null}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <select
-          name="kind"
-          className={inputClass}
-          value={kind}
-          onChange={(event) => setKind(event.target.value)}
-          aria-label="Bill type"
-        >
-          <option value="Sale">{text("Sale", "बिक्री")}</option>
-          <option value="Return">{text("Return", "फिर्ता")}</option>
-        </select>
-        <select
-          name="channel"
-          className={inputClass}
-          value={channel}
-          onChange={(event) => changeChannel(event.target.value)}
-          aria-label="Sales channel"
-        >
-          <option value="Retail">{text("Retail", "खुद्रा")}</option>
-          <option value="Wholesale">{text("Wholesale", "थोक")}</option>
-          <option value="Online">{text("Online", "अनलाइन")}</option>
-        </select>
-        <select
-          name="paymentMethod"
-          className={inputClass}
-          value={paymentMethod}
-          onChange={(event) => setPaymentMethod(event.target.value)}
-          aria-label="Payment method"
-        >
-          <option value="Cash">{text("Cash", "नगद")}</option>
-          <option value="Cheque">{text("Cheque", "चेक")}</option>
-          <option value="Credit">{text("Credit", "उधारो")}</option>
-          <option>QR</option>
-          <option>eSewa</option>
-          <option>Khalti</option>
-          <option value="Bank">{text("Bank", "बैंक")}</option>
-        </select>
-        <input aria-label="Cashier / counter" name="cashier"
-          ref={(element) => {
-            boxes.current.set("cashier", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "cashier")} className={inputClass} placeholder={text("Cashier / counter", "कसले बेच्यो")} />
-      </div>
-
-      <div className="mt-3 grid gap-3 md:grid-cols-4">
-        <input aria-label="Customer name"
-          name="customerName"
-          ref={(element) => {
-            boxes.current.set("customerName", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "customerName")}
-          className={inputClass}
-          placeholder={text("Customer name", "ग्राहकको नाम")}
-          value={customerName}
-          onChange={(event) => setCustomerName(event.target.value)}
-        />
-        <input aria-label="Phone"
-          name="phone"
-          ref={(element) => {
-            boxes.current.set("phone", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "phone")}
-          className={inputClass}
-          placeholder={text("Phone", "फोन नम्बर")}
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-        />
-        <input aria-label="Customer address"
-          name="customerAddress"
-          ref={(element) => {
-            boxes.current.set("customerAddress", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "customerAddress")}
-          className={inputClass}
-          placeholder={text("Customer address", "ग्राहकको ठेगाना")}
-        />
-        <input aria-label="Customer PAN (wholesale)"
-          name="customerPan"
-          ref={(element) => {
-            boxes.current.set("customerPan", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "customerPan")}
-          className={inputClass}
-          placeholder={text("Customer PAN (wholesale)", "ग्राहकको PAN (थोक)")}
-        />
-        <select
-          name="ledgerId"
-          className={fieldClass(ledgerMissing)}
-          value={ledgerId}
-          onChange={(event) => setLedgerId(event.target.value)}
-          aria-label="Customer account"
-        >
-          <option value="">
-            {needsLedger
-              ? text("Pick an account", "खाता छान्नुहोस्")
-              : text("No account / walk-in", "खाता छैन / बटुवा ग्राहक")}
-          </option>
-          {ledgerOptions.map((ledger) => (
-            <option key={ledger.id} value={ledger.id}>
-              {ledger.label}
-            </option>
-          ))}
-        </select>
-        <input aria-label="Cheque/QR/ref no." name="paymentReference"
-          ref={(element) => {
-            boxes.current.set("paymentReference", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "paymentReference")} className={inputClass} placeholder={text("Cheque/QR/ref no.", "चेक/QR को नम्बर")} />
-      </div>
-
-      {/* The bill is not yet paid in full, so it owes somebody. Said here, while
-          the bill can still be finished — not thrown away by the Save button. */}
-      {ledgerMissing ? (
-        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
-          <p className="text-sm font-bold text-amber-900">
-            {kind === "Return"
-              ? text("Whose account does the return go to?", "फिर्ता कसको खातामा जान्छ?")
-              : text(
-                  `Rs. ${creditAmount.toLocaleString("en-IN")} on credit — whose account?`,
-                  `उधारो रु. ${creditAmount.toLocaleString("en-IN")} — कसको खातामा चढाउने?`,
-                )}
-          </p>
-          <p className="mt-1 text-xs text-amber-800">
-            {kind === "Return"
-              ? "A return has to land in a customer's account."
-              : text(
-                  "An unpaid amount has to sit against a name, or nobody knows who still owes it.",
-                  "पैसा पूरै नआएको बिल कसैको नाममा चढ्नुपर्छ, नत्र कसले तिर्न बाँकी छ थाहा हुँदैन।",
-                )}
-          </p>
-          {canOpenLedger ? (
-            <button
-              type="button"
-              onClick={openLedger}
-              disabled={isOpeningLedger || !customerName.trim()}
-              className="mt-2 inline-flex h-10 items-center rounded-full bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isOpeningLedger
-                ? text("Opening…", "खोल्दैछौँ…")
-                : customerName.trim()
-                  ? text(
-                      `+ Open an account for ${customerName.trim()}`,
-                      `+ ${customerName.trim()} को नयाँ खाता खोल्ने`,
-                    )
-                  : text("+ New account — type the name first", "+ नयाँ खाता — पहिले नाम लेख्नुहोस्")}
-            </button>
-          ) : (
-            <p className="mt-2 text-xs font-semibold text-amber-900">
-              {text(
-                "Ask the Owner or a Manager to open the account, in /admin/operations.",
-                "नयाँ खाता खोल्न मालिक वा Manager लाई भन्नुहोस् — /admin/operations मा।",
-              )}
-            </p>
-          )}
-          {ledgerNote ? <p className="mt-2 text-xs font-semibold text-amber-900">{ledgerNote}</p> : null}
+      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
+        <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4">
+          <PosProductPicker
+            catalog={catalog}
+            cart={cart}
+            channel={channel}
+            returning={isReturn}
+            query={query}
+            onQueryChange={setQuery}
+            onSubmitQuery={submitQuery}
+            onChoose={choose}
+            onPhoto={(file) => void readPhoto(file)}
+            readingPhoto={readingPhoto}
+            note={note}
+            searchRef={searchRef}
+          />
         </div>
-      ) : null}
 
-      {/* Scan or type a code to add an item. A barcode scanner types the SKU
-          and hits Enter; this catches that and drops the item into the bill so
-          the counter never keys the design, price, or size. */}
-      <div className="mt-5 rounded-lg border border-brand-green/30 bg-brand-green-wash/40 p-3">
-        <label className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
-          {text("Scan or type code", "बारकोड स्क्यान वा कोड लेख्ने")}
-        </label>
-        <div className="relative mt-2">
-          <div className="flex flex-wrap gap-2">
-            <input
-              value={scanCode}
-              onFocus={() => setIsPickerOpen(true)}
-              onChange={(event) => {
-                setScanCode(event.target.value);
-                setIsPickerOpen(true);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setIsPickerOpen(false);
-                }
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  if (pickerItems.length === 1) {
-                    addCatalogItem(pickerItems[0]);
-                  } else {
-                    addByCode(scanCode);
-                  }
-                }
-              }}
-              placeholder={text("Search item, SKU, size or scan barcode", "जुत्ता, कोड वा साइज खोज्ने — वा बारकोड स्क्यान")}
-              aria-label="Search or scan a product"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded={isPickerOpen}
-              aria-controls="pos-product-picker"
-              className={`${inputClass} h-12 min-w-0 flex-1 text-base`}
-            />
-            <button
-              type="button"
-              onClick={() => addByCode(scanCode)}
-              className="h-12 rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-            >
-              Add
-            </button>
-            <label className="inline-flex h-12 cursor-pointer items-center justify-center rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-black text-brand-green">
-              {isReadingProductPhoto ? "Reading..." : "Camera / photo"}
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                disabled={isReadingProductPhoto}
-                className="sr-only"
-                onChange={(event) => {
-                  void addProductFromPhoto(event.target.files?.[0]);
-                  event.currentTarget.value = "";
-                }}
-              />
-            </label>
-          </div>
-          {isPickerOpen ? (
-            <div
-              id="pos-product-picker"
-              role="listbox"
-              aria-label="Available products"
-              className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-80 overflow-y-auto rounded-xl border border-brand-green/20 bg-brand-paper p-2 shadow-[0_18px_50px_rgba(11,77,59,0.2)]"
-            >
-              <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1 text-xs font-bold text-brand-muted">
-                <span>{scanCode.trim() ? "Matching items" : "Items ready to sell"}</span>
+        <aside
+          aria-label={text("The bill", "बिल")}
+          className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper md:sticky md:top-4 md:block ${
+            cartOpen
+              ? "max-md:fixed max-md:inset-0 max-md:z-50 max-md:overflow-y-auto max-md:rounded-none max-md:border-0"
+              : "max-md:hidden"
+          }`}
+        >
+          <EnterWalkForm id={BILL_FORM_ID} onSubmit={handleSubmit} className="grid gap-3 p-4" confirmTitle={customerName || undefined}>
+            <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
+            <input type="hidden" name="kind" value={kind} />
+            <input type="hidden" name="channel" value={channel} />
+            <input type="hidden" name="paymentMethod" value={isReturn ? "Cash" : payment} />
+            <input type="hidden" name="itemCount" value={cart.length} />
+            <input type="hidden" name="invoiceDiscount" value={totals.discount} />
+            <input type="hidden" name="paidAmount" value={paid} />
+            <input type="hidden" name="ledgerId" value={accountId} />
+            <input type="hidden" data-summary="money" value={totals.total} readOnly />
+            {cart.map((line, index) => (
+              <span key={line.key} hidden>
+                <input type="hidden" name={`item${index}Sku`} value={line.sku} />
+                <input type="hidden" name={`item${index}Design`} value={line.design} />
+                <input type="hidden" name={`item${index}Size`} value={line.size} />
+                <input type="hidden" name={`item${index}Color`} value={line.color} />
+                <input type="hidden" name={`item${index}Quantity`} value={line.quantity} />
+                <input type="hidden" name={`item${index}Rate`} value={line.rate} />
+                <input type="hidden" name={`item${index}Discount`} value={0} />
+              </span>
+            ))}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="h-10 rounded-xl border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink md:hidden"
+              >
+                ← {text("Shoes", "जुत्ता")}
+              </button>
+              <h2 className="flex-1 text-lg font-black text-brand-green-ink">
+                {isReturn ? text("Return bill", "फिर्ता बिल") : text("Bill", "बिल")}
+              </h2>
+              <BillTimer startedAt={startedAt} />
+            </div>
+
+            {held.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {held.map((bill, index) => (
+                  <button
+                    key={bill.id}
+                    type="button"
+                    onClick={() => resumeBill(bill.id)}
+                    className="rounded-full border border-dashed border-brand-gold bg-brand-cream-soft px-3 py-1 text-xs font-black text-brand-gold-deep"
+                  >
+                    ⏸ {text(`Held ${index + 1}`, `होल्ड ${index + 1}`)} ·{" "}
+                    {text(
+                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} pairs — open`,
+                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} जोडा — खोल्ने`,
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {cart.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-brand-green-line px-4 py-8 text-center text-sm text-brand-muted">
+                {isReturn
+                  ? text("Tap the shoe that came back, then its size.", "फिर्ता आएको जुत्ता, अनि साइज थिच्नुहोस्।")
+                  : text("Tap a shoe or scan it. Then its size.", "जुत्ता थिच्नुहोस् वा स्क्यान गर्नुहोस्, अनि साइज।")}
+              </p>
+            ) : (
+              <ul className="divide-y divide-brand-green-line border-y border-brand-green-line">
+                {cart.map((line) => {
+                  const item = itemFor(line.design);
+                  const cost = item?.costPerPair;
+                  const cheap = belowCost(line.rate, cost);
+                  const bargained = line.rate !== line.listRate;
+                  return (
+                    <li key={line.key} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 py-2.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-brand-green-ink">{line.design}</p>
+                        <p className="text-xs text-brand-muted">
+                          {line.size ? text(`Size ${line.size}`, `साइज ${line.size}`) : null}
+                          {line.color ? ` · ${line.color}` : null}
+                        </p>
+                      </div>
+                      <p className="text-right text-sm font-black tabular-nums text-brand-green-ink">
+                        {isReturn ? "− " : ""}
+                        {money(line.rate * line.quantity)}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {editingRate === line.key ? (
+                          <input
+                            autoFocus
+                            inputMode="numeric"
+                            defaultValue={line.rate || ""}
+                            aria-label={text(`New rate for ${line.design}`, `${line.design} को नयाँ रेट`)}
+                            className="h-9 w-28 rounded-lg border-2 border-brand-gold bg-brand-paper px-2 text-base tabular-nums outline-none"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                commitRate(line.key, event.currentTarget.value);
+                                setEditingRate(null);
+                              }
+                              if (event.key === "Escape") {
+                                event.preventDefault();
+                                setEditingRate(null);
+                              }
+                            }}
+                            onBlur={(event) => {
+                              commitRate(line.key, event.currentTarget.value);
+                              setEditingRate(null);
+                            }}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditingRate(line.key)}
+                            title={text("Tap to change the rate", "रेट बदल्न थिच्नुहोस्")}
+                            className={`text-xs tabular-nums underline decoration-dotted underline-offset-4 ${
+                              !(line.rate > 0) ? "font-black text-brand-clay" : bargained ? "font-black text-brand-gold-deep" : "text-brand-muted"
+                            }`}
+                          >
+                            {line.rate > 0 ? money(line.rate) : text("Set rate", "रेट लेख्ने")}
+                            {bargained && line.listRate > 0 ? text(` (was ${money(line.listRate)})`, ` (${money(line.listRate)} थियो)`) : ""} ✎
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <div className="inline-flex items-center overflow-hidden rounded-xl border border-brand-green-line">
+                          <button
+                            type="button"
+                            onClick={() => changePairs(line, line.quantity - 1)}
+                            aria-label={text("One pair less", "एक जोडा घटाउने")}
+                            className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+                          >
+                            −
+                          </button>
+                          <span className="min-w-8 text-center text-sm font-black tabular-nums">{line.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => changePairs(line, line.quantity + 1)}
+                            aria-label={text("One pair more", "एक जोडा थप्ने")}
+                            className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      {cheap && !isReturn ? (
+                        <p className="col-span-2 text-xs font-bold text-brand-clay">
+                          {showCost && cost
+                            ? text(`Below cost (${money(cost)} a pair) — the sale is still allowed.`, `लागत (${money(cost)} प्रति जोडा) भन्दा तल — बेच्न भने मिल्छ।`)
+                            : text("This rate may be a loss — the sale is still allowed.", "यो रेटमा घाटा हुन सक्छ — बेच्न भने मिल्छ।")}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {undo ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-brand-green-ink px-3 py-2 text-sm text-white">
+                <span>{undo.label}</span>
                 <button
                   type="button"
-                  onClick={() => setIsPickerOpen(false)}
-                  className="rounded-full px-2 py-1 text-brand-green"
+                  onClick={() => {
+                    setCart(undo.cart);
+                    setUndo(null);
+                  }}
+                  className="rounded-full bg-brand-gold px-3 py-1 text-xs font-black text-brand-green-ink"
                 >
-                  Close
+                  {text("Bring back", "फिर्ता ल्याउने")}
                 </button>
               </div>
-              {pickerItems.length > 0 ? (
-                <div className="grid gap-1">
-                  {pickerItems.map((item) => (
+            ) : null}
+
+            {cart.length > 0 && !isReturn ? (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={text("Discount on the whole bill", "पूरै बिलमा छुट")}>
+                <span className="text-sm text-brand-muted">{text("Discount", "छुट")}</span>
+                {(["none", "5", "10"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={discountMode === mode}
+                    onClick={() => {
+                      setDiscountMode(mode);
+                      setDiscountText("");
+                    }}
+                    className={`h-9 rounded-full border px-3 text-sm font-bold ${
+                      discountMode === mode ? "border-brand-green bg-brand-green-tint text-brand-green" : "border-brand-green-line bg-brand-paper-deep"
+                    }`}
+                  >
+                    {mode === "none" ? text("None", "छैन") : `${mode}%`}
+                  </button>
+                ))}
+                <input
+                  inputMode="numeric"
+                  value={discountText}
+                  onChange={(event) => {
+                    setDiscountText(digits(event.target.value));
+                    setDiscountMode(event.target.value ? "amount" : "none");
+                  }}
+                  placeholder={text("Rs …", "रु …")}
+                  aria-label={text("Discount in rupees", "छुट रकम")}
+                  className="h-9 w-24 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm tabular-nums outline-none focus:border-brand-green"
+                />
+              </div>
+            ) : null}
+
+            {cart.length > 0 ? (
+              <div className="grid gap-1 text-sm tabular-nums">
+                <div className="flex justify-between text-brand-muted">
+                  <span>
+                    {text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}
+                    {channel === "Wholesale" ? text(" · wholesale rate", " · थोक मूल्य") : ""}
+                  </span>
+                  <span>{money(totals.subtotal)}</span>
+                </div>
+                {totals.bargained > 0 ? (
+                  <div className="flex justify-between text-brand-muted">
+                    <span>{text("Off the price by bargaining", "मोलमोलाईमा घटेको")}</span>
+                    <span>{money(totals.bargained)}</span>
+                  </div>
+                ) : null}
+                {totals.discount > 0 ? (
+                  <div className="flex justify-between text-brand-muted">
+                    <span>{text("Discount", "छुट")}</span>
+                    <span>− {money(totals.discount)}</span>
+                  </div>
+                ) : null}
+                {totals.tax > 0 ? (
+                  <div className="flex justify-between text-brand-muted">
+                    <span>{text("Tax", "कर")}</span>
+                    <span>{money(totals.tax)}</span>
+                  </div>
+                ) : null}
+                <div className="mt-1 flex items-baseline justify-between border-t-2 border-brand-green-ink pt-2">
+                  <span className="font-bold text-brand-green-ink">
+                    {isReturn ? text("Back to the account", "खातामा फिर्ता") : text("Total", "जम्मा")}
+                  </span>
+                  <span className={`text-3xl font-black ${isReturn ? "text-brand-clay" : "text-brand-green-ink"}`}>{money(totals.total)}</span>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="grid gap-2">
+              <input
+                name="phone"
+                inputMode="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder={
+                  needsAccount
+                    ? text("Customer's phone (needed)", "ग्राहकको फोन (चाहिन्छ)")
+                    : text("Customer's phone (optional)", "ग्राहकको फोन (नचाहिए खाली)")
+                }
+                aria-label={text("Customer's phone", "ग्राहकको फोन")}
+                className={inputClass}
+              />
+              {phoneAccount ? (
+                <p className="rounded-xl bg-brand-green-tint px-3 py-2 text-sm text-brand-green">
+                  {text("Known customer:", "पुरानो ग्राहक:")} <b>{phoneAccount.customerName || phoneAccount.label}</b>
+                  {phoneAccount.balanceDue && phoneAccount.balanceDue > 0
+                    ? text(` · already owes ${money(phoneAccount.balanceDue)}`, ` · पहिलेको बाँकी ${money(phoneAccount.balanceDue)}`)
+                    : ""}
+                </p>
+              ) : null}
+              <input
+                name="customerName"
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                placeholder={text("Customer's name (optional)", "ग्राहकको नाम (नचाहिए खाली)")}
+                aria-label={text("Customer's name", "ग्राहकको नाम")}
+                data-summary="text"
+                className={inputClass}
+              />
+            </div>
+
+            {!isReturn ? (
+              <div className="grid grid-cols-4 gap-1.5" role="group" aria-label={text("Payment", "भुक्तानी")}>
+                {PAYMENTS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={payment === option}
+                    onClick={() => {
+                      setPayment(option);
+                      setRestOnCredit(false);
+                    }}
+                    className={`h-11 rounded-xl border text-sm font-black ${
+                      payment === option
+                        ? option === "Credit"
+                          ? "border-brand-gold bg-brand-gold text-brand-green-ink"
+                          : "border-brand-green bg-brand-green text-white"
+                        : "border-brand-green-line bg-brand-paper-deep text-brand-green-ink"
+                    }`}
+                  >
+                    {payLabel[option]}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {cash && totals.total > 0 ? (
+              <div className="grid gap-2 rounded-2xl bg-brand-paper-deep p-3">
+                <label className="flex items-center justify-between gap-2 text-sm text-brand-muted">
+                  {text("Cash handed over", "ग्राहकले दिएको नगद")}
+                  <input
+                    inputMode="numeric"
+                    value={received}
+                    onChange={(event) => {
+                      setReceived(digits(event.target.value));
+                      setRestOnCredit(false);
+                    }}
+                    placeholder={text("exact", "ठ्याक्कै")}
+                    className="h-11 w-32 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-right text-lg font-black tabular-nums text-brand-green-ink outline-none focus:border-brand-green"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setReceived("")}
+                    className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold"
+                  >
+                    {text(`Exact ${money(totals.total)}`, `ठ्याक्कै ${money(totals.total)}`)}
+                  </button>
+                  {likelyNotes(totals.total).map((noteValue) => (
                     <button
-                      key={`${item.sku}-${item.design}`}
+                      key={noteValue}
                       type="button"
-                      role="option"
-                      aria-selected="false"
-                      disabled={item.stock <= 0}
-                      onClick={() => addCatalogItem(item)}
-                      className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-brand-green-wash disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => {
+                        setReceived(String(noteValue));
+                        setRestOnCredit(false);
+                      }}
+                      className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold tabular-nums"
                     >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-black text-brand-green-ink">
-                          {item.design}
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-brand-muted">
-                          {item.sku || "No SKU"} · Size {item.sizes || "Mixed"}
-                        </span>
-                      </span>
-                      <span className="text-right">
-                        <span className="block text-sm font-black text-brand-green">
-                          {money(rateForChannel(channel, item))}
-                        </span>
-                        <span className={item.stock > 0 ? "text-xs font-bold text-brand-muted" : "text-xs font-bold text-brand-clay"}>
-                          {item.stock > 0 ? `${item.stock} pairs` : "Out of stock"}
-                        </span>
-                      </span>
+                      {money(noteValue)}
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="rounded-lg bg-brand-paper-deep px-3 py-4 text-center text-sm font-semibold text-brand-muted">
-                  No matching item. Try another name, SKU or size.
+                {cash.change > 0 ? (
+                  <p className="text-lg font-black text-brand-green">{text(`Change to give: ${money(cash.change)}`, `फिर्ता दिने: ${money(cash.change)}`)}</p>
+                ) : cash.short > 0 ? (
+                  <div className="grid gap-2">
+                    <p className="text-base font-black text-brand-clay">
+                      {text(`${money(cash.short)} still to pay`, `अझै ${money(cash.short)} बाँकी`)}
+                    </p>
+                    <button
+                      type="button"
+                      aria-pressed={restOnCredit}
+                      onClick={() => setRestOnCredit((value) => !value)}
+                      className={`h-10 rounded-xl border px-3 text-sm font-black ${
+                        restOnCredit ? "border-brand-gold bg-brand-gold text-brand-green-ink" : "border-brand-gold bg-brand-cream-soft text-brand-gold-deep"
+                      }`}
+                    >
+                      {text(`Put ${money(cash.short)} on credit`, `बाँकी ${money(cash.short)} उधारोमा राख्ने`)}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-brand-green">{text("Exact money ✓", "ठ्याक्कै पैसा ✓")}</p>
+                )}
+              </div>
+            ) : null}
+
+            {needsReference ? (
+              <input
+                name="paymentReference"
+                value={reference}
+                onChange={(event) => setReference(event.target.value)}
+                placeholder={text(`${payment} transaction number`, `${payment} को कारोबार नम्बर`)}
+                aria-label={text(`${payment} transaction number`, `${payment} को कारोबार नम्बर`)}
+                className={inputClass}
+              />
+            ) : null}
+
+            {needsAccount && cart.length > 0 ? (
+              <div className="grid gap-2 rounded-2xl border border-brand-gold bg-brand-cream-soft p-3">
+                <p className="text-sm font-black text-brand-gold-deep">
+                  {isReturn
+                    ? text("Whose account does the return go to?", "फिर्ता कसको खातामा जान्छ?")
+                    : text(`${money(creditAmount)} on credit — whose account?`, `उधारो ${money(creditAmount)} — कसको खातामा?`)}
                 </p>
-              )}
+                {account ? (
+                  <p className="text-sm text-brand-green-ink">
+                    ✓ {account.label}
+                    {!ledgerId && phoneAccount ? text(" (found by phone)", " (फोनबाट भेटियो)") : ""}
+                  </p>
+                ) : null}
+                <select
+                  value={ledgerId}
+                  onChange={(event) => setLedgerId(event.target.value)}
+                  aria-label={text("Customer account", "ग्राहकको खाता")}
+                  className={inputClass}
+                >
+                  <option value="">
+                    {phoneAccount ? text("Use the account found by phone", "फोनबाट भेटिएको खाता") : text("Pick an account", "खाता छान्नुहोस्")}
+                  </option>
+                  {ledgerOptions.map((ledger) => (
+                    <option key={ledger.id} value={ledger.id}>
+                      {ledger.label}
+                    </option>
+                  ))}
+                </select>
+                {!account ? (
+                  canOpenLedger ? (
+                    <button
+                      type="button"
+                      onClick={openLedger}
+                      disabled={isOpeningLedger || !customerName.trim()}
+                      className="h-10 rounded-xl bg-brand-gold-deep px-3 text-sm font-black text-white disabled:opacity-60"
+                    >
+                      {customerName.trim()
+                        ? text(`+ Open an account for ${customerName.trim()}`, `+ ${customerName.trim()} को नयाँ खाता खोल्ने`)
+                        : text("+ New account — type the name above first", "+ नयाँ खाता — पहिले माथि नाम लेख्नुहोस्")}
+                    </button>
+                  ) : (
+                    <p className="text-xs font-semibold text-brand-gold-deep">
+                      {text(
+                        "Ask the Owner or a Manager to open the account, in /admin/operations.",
+                        "नयाँ खाता खोल्न मालिक वा Manager लाई भन्नुहोस् — /admin/operations मा।",
+                      )}
+                    </p>
+                  )
+                ) : null}
+                {ledgerNote ? <p className="text-xs font-semibold text-brand-gold-deep">{ledgerNote}</p> : null}
+              </div>
+            ) : null}
+
+            <details className="rounded-2xl border border-brand-green-line px-3 py-2">
+              <summary className="cursor-pointer text-sm text-brand-muted">
+                {text("More: seller, address, PAN, tax, note", "थप: बेच्ने, ठेगाना, PAN, कर, नोट")}
+              </summary>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <input
+                  name="cashier"
+                  value={cashier}
+                  onChange={(event) => setCashier(event.target.value)}
+                  placeholder={text("Sold by", "कसले बेच्यो")}
+                  aria-label={text("Sold by", "कसले बेच्यो")}
+                  className={inputClass}
+                />
+                <input name="customerAddress" placeholder={text("Address", "ठेगाना")} aria-label={text("Customer address", "ग्राहकको ठेगाना")} className={inputClass} />
+                <input name="customerPan" placeholder={text("PAN (wholesale)", "PAN (थोक)")} aria-label={text("Customer PAN", "ग्राहकको PAN")} className={inputClass} />
+                <input
+                  name="tax"
+                  inputMode="numeric"
+                  value={tax}
+                  onChange={(event) => setTax(digits(event.target.value))}
+                  placeholder={text("Tax in rupees (if any)", "कर रकम (भए मात्र)")}
+                  aria-label={text("Tax", "कर")}
+                  className={inputClass}
+                />
+                <div className="sm:col-span-2" data-enter-skip>
+                  <textarea
+                    name="note"
+                    placeholder={text("Note: delivery, exchange, anything", "नोट: डेलिभरी, साटफेर, अरू कुरा")}
+                    aria-label={text("Note", "नोट")}
+                    className="min-h-20 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base outline-none focus:border-brand-green"
+                  />
+                </div>
+              </div>
+            </details>
+
+            {belowCostLines.length > 0 && !isReturn ? (
+              <p className="text-xs font-bold text-brand-clay">
+                {text(
+                  `${belowCostLines.length} line(s) below cost. Check before saving.`,
+                  `${belowCostLines.length} लाइन लागतभन्दा तल छ। राख्नुअघि हेर्नुहोस्।`,
+                )}
+              </p>
+            ) : null}
+
+            <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
+
+            <div className="sticky bottom-0 -mx-4 grid gap-2 border-t border-brand-green-line bg-brand-paper px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:static md:mx-0 md:border-0 md:p-0">
+              <button
+                type="submit"
+                disabled={isSaving || saveLocked || Boolean(blocked)}
+                className={`min-h-14 w-full rounded-2xl px-4 text-lg font-black text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  isReturn ? "bg-brand-clay" : "bg-brand-green-ink hover:bg-brand-green"
+                }`}
+              >
+                {saveLabel}
+                <span className="ml-2 hidden font-mono text-xs opacity-70 md:inline">F9</span>
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={holdBill}
+                  disabled={cart.length === 0}
+                  className="h-11 rounded-xl border border-brand-green-line text-sm font-bold text-brand-green-ink disabled:opacity-50"
+                >
+                  ⏸ {text("Hold", "होल्ड")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cart.length === 0) return;
+                    setUndo({ label: text("Bill cleared", "बिल खाली गरियो"), cart });
+                    setCart([]);
+                    setStartedAt(null);
+                  }}
+                  disabled={cart.length === 0}
+                  className="h-11 rounded-xl border border-brand-green-line text-sm font-bold text-brand-green-ink disabled:opacity-50"
+                >
+                  ✕ {text("Clear", "खाली गर्ने")}
+                </button>
+              </div>
             </div>
-          ) : null}
+          </EnterWalkForm>
+        </aside>
+      </div>
+
+      {!cartOpen ? (
+        <div className="fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2.5 shadow-[0_12px_40px_rgba(16,35,29,0.18)] md:hidden print:hidden">
+          <div className="tabular-nums">
+            <p className="text-xs text-brand-muted">{text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}</p>
+            <p className="text-xl font-black text-brand-green-ink">{money(totals.total)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="h-12 rounded-xl bg-brand-green px-5 text-base font-black text-white"
+          >
+            {text("Open bill ▲", "बिल हेर्ने ▲")}
+          </button>
         </div>
-        {scanNote ? <p className="mt-2 text-xs font-semibold text-brand-green-ink">{scanNote}</p> : null}
-      </div>
+      ) : null}
 
-      {/* In-stock designs first, each showing pairs on hand, so the counter
-          picks from what is actually sellable. Still typeable for anything off
-          the catalog — a return, a one-off. */}
-      <datalist id="pos-design-options">
-        {catalog.map((item) => (
-          <option key={item.design} value={item.design} label={item.stock > 0 ? `${item.stock} in stock` : "out of stock"} />
-        ))}
-      </datalist>
-
-      <div className="mt-5 overflow-x-auto">
-        <table className="reflow-table min-w-full text-sm">
-          <thead className="border-b text-left text-brand-muted">
-            <tr>
-              <th className="py-2 pr-3">SKU</th>
-              <th className="py-2 pr-3">{text("Design / item", "कुन जुत्ता")}</th>
-              <th className="py-2 pr-3">{text("Size", "साइज")}</th>
-              <th className="py-2 pr-3">{text("Pairs", "जोडी")}</th>
-              <th className="py-2 pr-3">{text("Rate", "दर")}</th>
-              <th className="py-2 pr-3">{text("Discount", "छुट")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {rows.map((row, index) => {
-              const issue = posLineIssue(row);
-              const item = lookup(row.design);
-              const wanted = Number(row.quantity) || 0;
-              const oversell = Boolean(item) && wanted > (item?.stock ?? 0);
-
-              return (
-                <tr key={row.key}>
-                  <td data-label="SKU" className="py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}Sku`}
-                      className={`${inputClass} w-28`}
-                      placeholder={text("SKU", "कोड")}
-                      value={row.sku}
-                      onChange={(event) => updateRow(row.key, { sku: event.target.value })}
-                      aria-label={`Item ${index + 1} SKU`}
-                    />
-                  </td>
-                  <td data-label="Design" className="reflow-primary py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}Design`}
-                      className={`${fieldClass(Boolean(issue?.design))} min-w-56`}
-                      list="pos-design-options"
-                      placeholder={text("Type or pick a design", "जुत्ताको नाम लेख्ने वा छान्ने")}
-                      value={row.design}
-                      onChange={(event) => updateRow(row.key, { design: event.target.value })}
-                      aria-label={`Item ${index + 1} design`}
-                    />
-                    {item ? (
-                      <p className={`mt-1 text-xs font-semibold ${oversell ? "text-brand-clay" : "text-brand-muted"}`}>
-                        {oversell ? `Only ${item.stock} in stock` : `${item.stock} in stock`}
-                      </p>
-                    ) : null}
-                  </td>
-                  <td data-label="Size" className="py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}SizeRun`}
-                      className={`${inputClass} w-24`}
-                      placeholder={text("Mixed", "मिसिएको")}
-                      value={row.sizeRun}
-                      onChange={(event) => updateRow(row.key, { sizeRun: event.target.value })}
-                      aria-label={`Item ${index + 1} size run`}
-                    />
-                  </td>
-                  <td data-label="Pairs" className="py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}Quantity`}
-                      type="number"
-                      min="0"
-                      className={`${fieldClass(Boolean(issue?.quantity) || oversell)} w-24`}
-                      placeholder="0"
-                      value={row.quantity}
-                      onChange={(event) => updateRow(row.key, { quantity: event.target.value })}
-                      aria-label={`Item ${index + 1} pairs`}
-                    />
-                  </td>
-                  <td data-label="Rate" className="py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}Rate`}
-                      type="number"
-                      min="0"
-                      className={`${fieldClass(Boolean(issue?.rate))} w-28`}
-                      placeholder="0"
-                      value={row.rate}
-                      onChange={(event) => updateRow(row.key, { rate: event.target.value })}
-                      aria-label={`Item ${index + 1} rate`}
-                    />
-                  </td>
-                  <td data-label="Discount" className="py-2 pr-3 align-top">
-                    <input
-                      name={`item${index}Discount`}
-                      type="number"
-                      min="0"
-                      className={`${inputClass} w-28`}
-                      placeholder="0"
-                      value={row.discount}
-                      onChange={(event) => updateRow(row.key, { discount: event.target.value })}
-                      aria-label={`Item ${index + 1} discount`}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-brand-muted">
-          {inStockCount > 0
-            ? text(
-                `${inStockCount} design${inStockCount === 1 ? "" : "s"} in stock. Pick one and its price fills in.`,
-                `${inStockCount} जुत्ता स्टकमा छ। छान्नुहोस्, दर आफैँ भरिन्छ।`,
-              )
-            : text("A new row appears as you fill the last one.", "अन्तिम हार भर्दा नयाँ हार आफैँ आउँछ।")}
-        </p>
-        <p className="text-sm font-semibold text-brand-green-ink">
-          {text("Items", "सामान")} {money(subtotal)}
-        </p>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <input aria-label="Bill discount"
-          name="invoiceDiscount"
-          ref={(element) => {
-            boxes.current.set("invoiceDiscount", element);
+      {picking ? (
+        <PosSizeSheet
+          item={picking}
+          cart={cart}
+          channel={channel}
+          returning={isReturn}
+          onClose={() => {
+            setPicking(null);
+            searchRef.current?.focus();
           }}
-          onKeyDown={(event) => handleFieldWalk(event, "invoiceDiscount")}
-          type="number"
-          min="0"
-          className={inputClass}
-          placeholder={text("Bill discount", "बिलमा छुट")}
-          value={invoiceDiscount}
-          onChange={(event) => setInvoiceDiscount(event.target.value)}
+          onPick={(size, color) => {
+            add(picking, size, color);
+            setPicking(null);
+          }}
+          onPickSet={(sizes, color) => {
+            let next = cart;
+            for (const size of sizes) {
+              if (canAddPair(picking, size, next)) next = addPair(next, picking, channel, size, color);
+            }
+            setCart(next);
+            setStartedAt((value) => value ?? Date.now());
+            setNote(text(`Added a set of ${sizes.length} pairs.`, `${sizes.length} जोडाको सेट थपियो।`));
+            setPicking(null);
+          }}
         />
-        <input aria-label="Tax / VAT"
-          name="tax"
-          ref={(element) => {
-            boxes.current.set("tax", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "tax")}
-          type="number"
-          min="0"
-          className={inputClass}
-          placeholder={text("Tax / VAT", "कर / VAT")}
-          value={tax}
-          onChange={(event) => setTax(event.target.value)}
-        />
-        <div className="grid gap-1">
-          <input aria-label="Paid amount"
-            name="paidAmount"
-          ref={(element) => {
-            boxes.current.set("paidAmount", element);
-          }}
-          onKeyDown={(event) => handleFieldWalk(event, "paidAmount")}
-            type="number"
-            min="0"
-            className={inputClass}
-            placeholder={text("Paid amount", "कति तिर्‍यो")}
-            value={isCredit ? "" : paidValue}
-            disabled={isCredit}
-            onChange={(event) => {
-              setPaidTouched(true);
-              setPaidManual(event.target.value);
-            }}
-          />
-          {!isCredit && !paidTouched && billTotal > 0 ? (
-            <p className="text-xs text-brand-muted">
-              {text("Full amount — edit if paid in part.", "पूरै रकम — आधा तिरेको भए यहाँ सच्याउनुहोस्।")}
-            </p>
-          ) : null}
-        </div>
-        <textarea name="note" aria-label="Delivery, return, QR, or counter note" className={textareaClass} placeholder={text("Delivery, return, QR, or counter note", "डेलिभरी, फिर्ता वा अरू कुनै कुरा")} />
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <ActionMessage state={state} linkLabel="Open receipt" />
-        {/* Big, full-width on a phone so the counter can tap it without aiming —
-            this is the action the shop runs dozens of times a day. */}
-        <button
-          type="submit"
-          disabled={isSaving || saveLocked}
-          className="h-14 w-full rounded-full bg-brand-green-ink px-6 text-base font-black text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
-        >
-          {isOpeningLedger
-            ? text("Opening the account…", "खाता खोल्दैछौँ…")
-            : isSaving || saveLocked
-              ? "Saving..."
-              : text("Save bill and open receipt", "बिल राख्ने र रसिद खोल्ने")}
-        </button>
-      </div>
-    </form>
+      ) : null}
+    </div>
   );
 }

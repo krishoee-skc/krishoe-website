@@ -4,130 +4,98 @@ import { describe, expect, it } from "vitest";
 /**
  * Enter walks the POS bill too, but not the scan box.
  *
- * The same request as the purchase form, at a busier counter: the cashier is
- * typing with one hand and handing over a shoe with the other, and Enter sits
- * on the number pad beside the digits.
+ * The cashier types with one hand and hands over a shoe with the other, and
+ * Enter sits on the number pad beside the digits. On the bill Enter moves to
+ * the next box, Shift+Enter to the one before, and on the last box it asks
+ * "Save?" — a second Enter saves, Esc goes back. That is EnterWalkForm, the
+ * same rule every money form in the app follows (lib/enter-walk.ts, tested in
+ * enter-walks-every-money-form.test.ts), so the bill is checked here for using
+ * it and for the three places it must not reach.
  *
- * One box is deliberately left out, and it is the one Enter was already used
- * on. A barcode scanner types a code and presses Enter, and in the scan box
- * Enter has to keep meaning "add this item to the bill" — that is how several
- * pairs go onto a bill without a hand leaving the counter. Putting the scan
- * box on this walk would break scanning to save nine keystrokes.
+ * The scan box. A barcode scanner types a code and presses Enter, and there
+ * Enter has to keep meaning "add this shoe" — that is how several pairs go on
+ * a bill without a hand leaving the counter. It sits outside the bill's form,
+ * on the shelf side, so the walk cannot reach it.
  *
- * The order is the counter's: goods are scanned first, then who is buying,
- * then what the bill comes to. Discount and VAT before the amount paid,
- * because the amount paid is settled against a total that already includes
- * them.
+ * The rate box. Enter there means "this is the bargained rate", and must
+ * neither walk away nor save.
  *
- * And Enter must never save. In a browser Enter in a text box submits the form
- * — W3C failure F36 — and at a counter with a customer waiting, a bill filed
- * half-typed by a mis-hit is the worst thing this screen could do.
+ * The note, where Enter is a new line.
+ *
+ * And Enter must never save on its own. In a browser Enter in a text box
+ * submits the form — W3C failure F36 — and at a counter with a customer
+ * waiting, a bill filed half-typed by a mis-hit is the worst thing this screen
+ * could do.
  */
 const FORM = "app/admin/pos/_components/PosBillForm.tsx";
-const RULES = "app/admin/pos/_components/pos-bill-rules.ts";
+const PICKER = "app/admin/pos/_components/PosProductPicker.tsx";
 
-// The screen is two files: the form that draws the bill, and the rules it
-// follows. Which of the two holds a given line is housekeeping, so these
-// read the pair as one screen.
-async function screen() {
-  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
-  return form + "\n" + rules;
-}
-
-/** The bill's own boxes, in the order they are filled at the counter. */
-const BILL_WALK = [
-  "cashier",
-  "customerName",
-  "phone",
-  "customerAddress",
-  "customerPan",
-  "invoiceDiscount",
-  "tax",
-  "paidAmount",
-  "paymentReference",
-];
-
-describe("the order Enter walks in", () => {
-  it("follows the counter, with discount and VAT before the amount paid", async () => {
-    const form = await screen();
-
-    // Searched from the declaration onward: another `] as const;` earlier in
-    // the file would slice this to nothing, which is how the purchase form's
-    // version of this test first passed on an empty list.
-    const start = form.indexOf("const BILL_WALK = [");
-    expect(start, "BILL_WALK moved").toBeGreaterThan(-1);
-
-    const list = form.slice(start, form.indexOf("] as const;", start));
-    const order = [...list.matchAll(/"([a-zA-Z]+)"/g)].map((match) => match[1]);
-
-    expect(order).toEqual(BILL_WALK);
+describe("the bill walks on Enter and asks before it saves", () => {
+  it("is an EnterWalkForm", async () => {
+    const form = await readFile(FORM, "utf8");
+    expect(form).toContain('import EnterWalkForm from "@/components/admin/EnterWalkForm"');
+    expect(form).toContain("<EnterWalkForm");
+    expect(form).not.toMatch(/<form[\s>]/);
   });
 
-  it("reaches every box on that list", async () => {
-    const form = await screen();
-
-    for (const field of BILL_WALK) {
-      expect(form, `${field} handler`).toContain(`handleFieldWalk(event, "${field}")`);
-      expect(form, `${field} ref`).toContain(`boxes.current.set("${field}", element)`);
-    }
+  it("reads the total back in the question", async () => {
+    const form = await readFile(FORM, "utf8");
+    expect(form).toContain('data-summary="money" value={totals.total}');
   });
 });
 
 describe("the scan box, which Enter already belonged to", () => {
-  it("is not on the walk", async () => {
-    const form = await screen();
-
-    // Nine inputs carry the handler, plus its own definition. A tenth call
-    // would mean the scan box — or some other box — was added to the walk.
-    const calls = form.match(/handleFieldWalk/g) ?? [];
-    expect(calls.length, "something else joined the walk").toBe(BILL_WALK.length + 1);
+  it("is not inside the bill's form", async () => {
+    const [form, picker] = await Promise.all([readFile(FORM, "utf8"), readFile(PICKER, "utf8")]);
+    // The picker is drawn beside the form, not in it.
+    const formStart = form.indexOf("<EnterWalkForm");
+    const formEnd = form.indexOf("</EnterWalkForm>");
+    const pickerAt = form.indexOf("<PosProductPicker");
+    expect(pickerAt, "the picker moved").toBeGreaterThan(-1);
+    expect(pickerAt < formStart || pickerAt > formEnd).toBe(true);
+    expect(picker).not.toContain("EnterWalkForm");
   });
 
-  it("still adds the scanned item on Enter", async () => {
-    const form = await screen();
-    const scan = form.slice(form.indexOf("Scan or type a code"), form.indexOf("Search item, SKU"));
-
+  it("still adds the scanned shoe on Enter", async () => {
+    const picker = await readFile(PICKER, "utf8");
+    const scan = picker.slice(picker.indexOf("ref={searchRef}"), picker.indexOf("enterKeyHint"));
     expect(scan.length, "the scan box moved").toBeGreaterThan(0);
     expect(scan).toContain('if (event.key === "Enter")');
-    expect(scan).toContain("addByCode(scanCode)");
+    expect(scan).toContain("event.preventDefault()");
+    expect(scan).toContain("onSubmitQuery(query, shown)");
   });
 });
 
 describe("what Enter must never do", () => {
-  it("never saves the bill", async () => {
-    const form = await screen();
-    const walk = form.slice(
-      form.indexOf("function handleFieldWalk"),
-      form.indexOf("const catalogByDesign"),
-    );
-
-    expect(walk.length, "the walk handler moved").toBeGreaterThan(0);
-    // W3C F36. The last box on the walk stops; Save is the only way to file.
-    expect(walk).toContain("event.preventDefault()");
-    expect(walk).toContain("if (at < BILL_WALK.length - 1)");
+  it("never walks away from, or saves, a rate being bargained", async () => {
+    const form = await readFile(FORM, "utf8");
+    const rate = form.slice(form.indexOf("editingRate === line.key ?"), form.indexOf("onBlur={(event)"));
+    expect(rate.length, "the rate box moved").toBeGreaterThan(0);
+    expect(rate).toContain('if (event.key === "Enter")');
+    expect(rate).toContain("event.preventDefault()");
   });
 
   it("leaves the note alone, where Enter means a new line", async () => {
-    const form = await screen();
-    const note = form.slice(form.indexOf('<textarea name="note"'), form.indexOf('<textarea name="note"') + 300);
-
-    expect(note.length, "the note moved").toBeGreaterThan(0);
-    expect(note).not.toContain("handleFieldWalk");
+    const form = await readFile(FORM, "utf8");
+    const note = form.slice(form.indexOf("data-enter-skip"), form.indexOf('name="note"'));
+    expect(note.length, "the note moved out of its skip").toBeGreaterThan(0);
+    expect(note).toContain("<textarea");
   });
 
   it("leaves Tab alone", async () => {
-    const form = await screen();
-
+    const form = await readFile(FORM, "utf8");
     expect(form).not.toContain('key === "Tab"');
     expect(form).not.toMatch(/tabIndex=\{[1-9]/);
   });
-});
 
-describe("walking back", () => {
-  it("goes backwards on Shift+Enter", async () => {
-    const form = await screen();
-
-    expect(form).toContain("if (event.shiftKey)");
-    expect(form).toContain("BILL_WALK[at - 1]");
+  it("saves only through the form's own submit, F9 included", async () => {
+    const form = await readFile(FORM, "utf8");
+    // F9 asks the form to submit, which runs the same checks as the button.
+    expect(form).toContain('if (event.key === "F9")');
+    expect(form).toContain("?.requestSubmit()");
+    // One path files a bill: the submit handler, which stops on `blocked`.
+    expect(form.match(/createPosInvoiceAction\(/g)?.length).toBe(1);
+    const submit = form.slice(form.indexOf("function handleSubmit"), form.indexOf("createPosInvoiceAction(state"));
+    expect(submit).toContain("if (blocked)");
   });
 });

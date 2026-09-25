@@ -22,8 +22,14 @@ describe("mobile production contracts", () => {
     expect(dock).not.toContain("/admin/purchasing");
   });
 
-  it("reflows POS and renders staff access as phone-first cards", () => {
-    expect(source("app/admin/pos/_components/PosBillForm.tsx")).toContain("reflow-table");
+  it("draws the POS bill phone-first and renders staff access as phone-first cards", () => {
+    const bill = source("app/admin/pos/_components/PosBillForm.tsx");
+    // Lines, not a table of boxes; on a phone the bill waits in a bar above the
+    // dock and opens over the shelf, with Save kept at the thumb.
+    expect(bill).not.toContain("<table");
+    expect(bill).toContain("bottom-[calc(6rem+env(safe-area-inset-bottom))]");
+    expect(bill).toContain("max-md:fixed max-md:inset-0");
+    expect(bill).toContain("pb-[calc(0.75rem+env(safe-area-inset-bottom))]");
     const staffCards = source("components/admin/StaffAccessManager.tsx");
     expect(staffCards).toContain("xl:grid-cols-2");
     expect(staffCards).toContain("Staff accounts");
@@ -31,12 +37,12 @@ describe("mobile production contracts", () => {
   });
 
   it("offers a fast stock-aware POS product picker", () => {
-    const pos = source("app/admin/pos/_components/PosBillForm.tsx");
-    expect(pos).toContain("Search item, SKU, size or scan barcode");
-    expect(pos).toContain("Items ready to sell");
-    expect(pos).toContain("addCatalogItem(item)");
-    expect(pos).toContain("item.stock > 0");
-    expect(pos).toContain("rateForChannel(channel, item)");
+    const picker = source("app/admin/pos/_components/PosProductPicker.tsx");
+    expect(picker).toContain("Shoe, code or size (41)");
+    expect(picker).toContain("pairsLeft(item, cart)");
+    expect(picker).toContain("rateForChannel(channel, item)");
+    // Sizes open from the bottom on a phone, where the thumb is.
+    expect(source("app/admin/pos/_components/PosSizeSheet.tsx")).toContain("items-end");
   });
 
   it("registers an offline-capable service worker", () => {

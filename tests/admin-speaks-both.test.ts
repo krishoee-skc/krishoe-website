@@ -103,17 +103,19 @@ describe("what must not move while the words do", () => {
   it("keeps the values the POS library matches bills on", async () => {
     const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
 
-    for (const value of [
-      'value="Sale"',
-      'value="Return"',
-      'value="Retail"',
-      'value="Wholesale"',
-      'value="Online"',
-      'value="Cash"',
-      'value="Credit"',
-      'value="Bank"',
-    ]) {
-      expect(form, value).toContain(value);
+    // The bill is tapped, not picked from dropdowns, so these travel in hidden
+    // inputs whose values are typed constants — never the words on a button.
+    expect(form).toContain('type Kind = "Sale" | "Return";');
+    expect(form).toContain('(["Retail", "Wholesale", "Online"] as const)');
+    expect(form).toContain('const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];');
+    expect(form).toContain('name="kind" value={kind}');
+    expect(form).toContain('name="channel" value={channel}');
+    expect(form).toContain('name="paymentMethod" value={isReturn ? "Cash" : payment}');
+
+    // And every one of them is a value the save accepts.
+    const actions = await readFile("app/admin/pos/actions.ts", "utf8");
+    for (const value of ["Sale", "Return", "Retail", "Wholesale", "Online", "Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"]) {
+      expect(actions, value).toContain(`"${value}"`);
     }
   });
 

@@ -164,6 +164,9 @@ describe("the forms that walk", () => {
     ["app/admin/stock/WherePairsAre.tsx", 3],
     ["app/admin/factory/workers/TeamList.tsx", 1],
     ["app/admin/coupons/page.tsx", 1],
+    // The counter bill, rebuilt as tapped lines on 2026-09-25, gave up its own
+    // walk for this one: Enter walks, and asks before it saves.
+    ["app/admin/pos/_components/PosBillForm.tsx", 1],
   ];
 
   it("leaves every form with a figure in it walking, bar the ones that already walk", async () => {
@@ -204,9 +207,8 @@ describe("the forms that walk", () => {
     }
   });
 
-  it("leaves the three forms that already walk to their own handling", async () => {
+  it("leaves the two forms that already walk to their own handling", async () => {
     for (const file of [
-      "app/admin/pos/_components/PosBillForm.tsx",
       "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx",
       "app/admin/factory/add-work/WorkEntryForm.tsx",
     ]) {

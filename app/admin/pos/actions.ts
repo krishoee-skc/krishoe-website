@@ -75,6 +75,10 @@ function invoiceItems(formData: FormData) {
     quantity: numberValue(formData, `item${index}Quantity`),
     rate: numberValue(formData, `item${index}Rate`),
     discount: numberValue(formData, `item${index}Discount`),
+    // The customer's size and colour. The save decides which stock row the
+    // size draws from; see stockRowForSize.
+    size: textValue(formData, `item${index}Size`).slice(0, 8),
+    color: textValue(formData, `item${index}Color`).slice(0, 40),
   }));
 }
 
