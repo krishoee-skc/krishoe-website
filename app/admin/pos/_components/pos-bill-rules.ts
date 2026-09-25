@@ -406,7 +406,11 @@ export type PaymentPlan = {
   short: number;
   /** Every money part toward the bill, a plain one-method payment included. */
   parts: MoneyPart[];
-  /** Whether it takes more than one method, and so needs the payments column. */
+  /**
+   * Whether the chosen button alone does not say how it was paid — cash and a
+   * second method, or the whole bill by the "rest" method — so the parts must
+   * be sent, and the payments column is needed.
+   */
   split: boolean;
 };
 
@@ -467,7 +471,7 @@ export function planPayment(input: {
       ...none,
       paid: total,
       parts: [...cashPart, { method: input.restMethod, amount: rest, ...(reference ? { reference } : {}) }],
-      split: cashPart.length > 0,
+      split: true,
     };
   }
   return { ...none, paid: cashIn, short: rest, parts: cashPart };

@@ -54,8 +54,6 @@ type PosBillFormProps = {
   /** Who is signed in — the bill's cashier unless changed. */
   cashierName?: string;
   today?: TodayFigures | null;
-  /** Whether this admin may see what a pair cost the shop. */
-  showCost?: boolean;
   /**
    * Whether the database takes a bill paid in parts. Until the Owner prepares
    * it in Settings, the counter offers no split payment, no exchange in one
@@ -190,7 +188,6 @@ export default function PosBillForm({
   canOpenLedger = false,
   cashierName = "",
   today = null,
-  showCost = false,
   paymentsReady = false,
 }: PosBillFormProps) {
   const { text } = useLanguage();
@@ -733,7 +730,13 @@ export default function PosBillForm({
             <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
             <input type="hidden" name="kind" value={kind} />
             <input type="hidden" name="channel" value={channel} />
-            <input type="hidden" name="paymentMethod" value={isReturn ? "Cash" : payment} />
+            {/* A bill with nothing paid is a credit bill, whichever button was pressed
+                first — "Cash" with no cash would sit under Cash in the day close. */}
+            <input
+              type="hidden"
+              name="paymentMethod"
+              value={isReturn ? "Cash" : plan && plan.paid === 0 && plan.credit > 0 ? "Credit" : payment}
+            />
             <input type="hidden" name="itemCount" value={cart.length} />
             <input type="hidden" name="invoiceDiscount" value={totals.discount} />
             <input type="hidden" name="paidAmount" value={paid} />
@@ -889,9 +892,10 @@ export default function PosBillForm({
                       </div>
                       {cheap && !isReturn && !line.back ? (
                         <p className="col-span-2 text-xs font-bold text-brand-clay">
-                          {showCost && cost
-                            ? text(`Below cost (${money(cost)} a pair) — the sale is still allowed.`, `लागत (${money(cost)} प्रति जोडा) भन्दा तल — बेच्न भने मिल्छ।`)
-                            : text("This rate may be a loss — the sale is still allowed.", "यो रेटमा घाटा हुन सक्छ — बेच्न भने मिल्छ।")}
+                          {text(
+                            `Below cost (${money(cost ?? 0)} a pair) — the sale is still allowed.`,
+                            `लागत (${money(cost ?? 0)} प्रति जोडा) भन्दा तल — बेच्न भने मिल्छ।`,
+                          )}
                         </p>
                       ) : null}
                     </li>

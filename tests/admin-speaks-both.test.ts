@@ -110,7 +110,8 @@ describe("what must not move while the words do", () => {
     expect(form).toContain('const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];');
     expect(form).toContain('name="kind" value={kind}');
     expect(form).toContain('name="channel" value={channel}');
-    expect(form).toContain('name="paymentMethod" value={isReturn ? "Cash" : payment}');
+    expect(form).toContain('name="paymentMethod"');
+    expect(form).toContain('value={isReturn ? "Cash" : plan && plan.paid === 0 && plan.credit > 0 ? "Credit" : payment}');
 
     // And every one of them is a value the save accepts.
     const actions = await readFile("app/admin/pos/actions.ts", "utf8");

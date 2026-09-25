@@ -90,3 +90,21 @@ describe("the stock check on the routed line", () => {
     expect(() => preflightSaleStock(operations(bySizeOnly), [line(routed, 2)])).toThrow(/size 41/);
   });
 });
+
+describe("found on the recheck", () => {
+  it("checks the wholesale minimum per design, not per size line", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const pos = await readFile("lib/pos.ts", "utf8");
+    const moq = pos.slice(pos.indexOf("Wholesale minimum order quantity"), pos.indexOf("Customer credit-limit enforcement"));
+    // A set of six sizes is six lines of one pair, and six pairs of the design.
+    expect(moq).toContain("groupInvoiceItemsByDesign(items)");
+    expect(moq).toContain("group.pairs < product.minWholesaleQty");
+  });
+
+  it("sends what a pair cost only to those who may read costing", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const page = await readFile("app/admin/pos/page.tsx", "utf8");
+    expect(page).toContain('const showCost = canAdmin(role, "costing:read");');
+    expect(page).toContain("showCost ? costing.designCosting.map(");
+  });
+});

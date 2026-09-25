@@ -287,3 +287,23 @@ describe("an exchange on the bill", () => {
     expect(returnedValue(bill)).toBe(2800);
   });
 });
+
+describe("found on the recheck", () => {
+  const base = { reference: "", restReference: "", due: 0 };
+
+  it("sends the parts when no cash came and the whole bill is the rest's method", () => {
+    // "0" cash, the rest by QR: the bill is paid by QR, and must say so —
+    // not sit under Cash because the Cash button was pressed first.
+    const plan = planPayment({ ...base, total: 2600, method: "Cash", received: 0, restMethod: "QR", restReference: "Q1" });
+    expect(plan).toMatchObject({ paid: 2600, split: true });
+    expect(plan.parts).toEqual([{ method: "QR", amount: 2600, reference: "Q1" }]);
+  });
+
+  it("leaves nothing paid when no cash came and the rest is credit", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash", received: 0, restMethod: "Credit" })).toMatchObject({
+      paid: 0,
+      credit: 2600,
+      parts: [],
+    });
+  });
+});

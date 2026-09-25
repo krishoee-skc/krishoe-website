@@ -671,8 +671,10 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   if (due) {
     if (input.kind !== "Sale") throw new Error("Old credit is cleared on a sale bill, not a return.");
     if (due.method === "Exchange") throw new Error("Old credit is paid in money.");
+    // Only the transaction number can be wrong here; the amount is checked
+    // against what the customer owes once their account is read.
     const problem = paymentPartsProblem([{ ...due, purpose: "due" }], 0);
-    if (problem && !problem.includes("more than the bill")) throw new Error(problem);
+    if (problem) throw new Error(problem);
     if (cleanText(input.ledgerId) && cleanText(input.ledgerId) !== due.ledgerId) {
       throw new Error("The old credit and this bill's credit must be the same customer's account.");
     }
@@ -708,16 +710,19 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     if (input.channel === "Wholesale") {
       const catalog = await getProducts({ includeDrafts: true });
 
-      for (const item of items) {
+      // Per design, not per line: the counter puts each size on its own line,
+      // so a wholesale set of six sizes is six lines of one pair — and six
+      // pairs of the design, which is what the minimum is about.
+      for (const group of groupInvoiceItemsByDesign(items)) {
         const product = catalog.find(
           (candidate) =>
-            (item.sku && candidate.sku.toLowerCase() === item.sku.toLowerCase()) ||
-            sameDesign(candidate.name, item.design),
+            [...group.skus].some((sku) => candidate.sku.toLowerCase() === sku.toLowerCase()) ||
+            sameDesign(candidate.name, group.design),
         );
 
-        if (product && product.minWholesaleQty > 1 && item.quantity < product.minWholesaleQty) {
+        if (product && product.minWholesaleQty > 1 && group.pairs < product.minWholesaleQty) {
           throw new Error(
-            `${item.design} wholesale minimum order is ${product.minWholesaleQty} pairs. Cannot bill ${item.quantity} pairs.`,
+            `${group.design} wholesale minimum order is ${product.minWholesaleQty} pairs. Cannot bill ${group.pairs} pairs.`,
           );
         }
       }
@@ -1017,7 +1022,9 @@ export async function createPosExchange(input: CreatePosExchangeInput) {
     id: saleId || createId("POS"),
     invoiceNumber: saleNumber,
     kind: "Sale",
-    paymentMethod: parts.length > 0 ? (parts[0].method as PosPaymentMethod) : creditAmount > 0 ? "Credit" : "Cash",
+    // Never "Credit" here: part of this bill is always paid, by the returned
+    // pair, and a Credit bill with money paid reads as a posting error.
+    paymentMethod: parts.length > 0 ? (parts[0].method as PosPaymentMethod) : "Cash",
     paymentReference: parts[0]?.reference ?? "",
     ledgerId,
     subtotal: soldSubtotal,

@@ -82,6 +82,10 @@ export async function GET(request: Request) {
           "sku",
           "design",
           "sizeRun",
+          // The customer's size and colour, beside the stock row the pairs
+          // moved from. Empty on bills from before the counter asked.
+          "size",
+          "color",
           "quantity",
           "rate",
           "discount",
@@ -96,6 +100,8 @@ export async function GET(request: Request) {
             item.sku,
             item.design,
             item.sizeRun,
+            item.size ?? "",
+            item.color ?? "",
             item.quantity,
             item.rate,
             item.discount,

@@ -151,8 +151,8 @@ export default async function AdminPosPage() {
   const session = await requireAdminSession();
   const role = getSessionAdminRole(session);
   const canOpenLedger = canAdmin(role, "operations:write");
-  // What a pair cost is shown only to those who may read costing; everyone
-  // else still gets the warning, without the figure.
+  // What a pair cost is sent only to those who may read costing, so only they
+  // get the below-cost warning; for everyone else there is no figure to warn by.
   const showCost = canAdmin(role, "costing:read");
   const isOwner = canAdmin(role, "settings:write");
   // The split payment, the exchange in one bill and the old credit on a bill
@@ -174,7 +174,11 @@ export default async function AdminPosPage() {
   // per channel, so tapping one fills the rate and shows the stock. Built from
   // the catalog, which the purchase and production posts keep in step with
   // finished stock. Prices are stored in paisa, shown and billed in rupees.
-  const unitCost = new Map(costing.designCosting.map((row) => [designKey(row.design), row.unitCostPerPair]));
+  // What a pair cost reaches the browser only for those who may read costing:
+  // anything sent to the page can be read out of it, whatever the screen hides.
+  const unitCost = new Map(
+    showCost ? costing.designCosting.map((row) => [designKey(row.design), row.unitCostPerPair]) : [],
+  );
 
   // Pairs per size, from the stock rows entered size-wise, and the pile whose
   // sizes nobody counted. These rows are what the save checks a sale against,
@@ -346,7 +350,6 @@ export default async function AdminPosPage() {
           lastBill={lastBill}
           canOpenLedger={canOpenLedger}
           cashierName={session.name ?? ""}
-          showCost={showCost}
           paymentsReady={paymentsReady}
           today={{
             bills: pos.todayDayClose.invoiceCount,
