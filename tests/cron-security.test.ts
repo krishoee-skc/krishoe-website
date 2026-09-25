@@ -13,6 +13,15 @@ vi.mock("@/lib/notifications", () => ({
 }));
 vi.mock("@/lib/bikram-sambat", () => ({ isBikramMonthStart: () => false }));
 vi.mock("@/lib/report-error", () => ({ reportError: vi.fn() }));
+// The evening-jobs log and the weekly backup write to the audit trail and the
+// file store; a test of who may call the route must not do either.
+vi.mock("@/lib/nightly-jobs", () => ({ recordNightlyRun: vi.fn(), alertNightlyFailures: vi.fn() }));
+vi.mock("@/lib/scheduled-backup", () => ({
+  runScheduledBackup: vi.fn(async () => ({ outcome: "skipped", summary: "Skipped: test." })),
+}));
+vi.mock("@/lib/staff-idle", () => ({ sweepIdleStaffAccounts: vi.fn(async () => ({ closed: [], warned: [] })) }));
+vi.mock("@/lib/review-requests", () => ({ sendReviewRequests: vi.fn() }));
+vi.mock("@/lib/monitoring", () => ({ pruneOldMonitoringRows: vi.fn() }));
 
 import { GET } from "@/app/api/cron/daily-sales/route";
 

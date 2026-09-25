@@ -4,6 +4,12 @@ import StatCard from "@/components/admin/StatTile";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import ExportButton from "@/components/admin/ExportButton";
 import PushNotificationSetup from "@/components/admin/PushNotificationSetup";
+import EveningJobs from "@/components/admin/EveningJobs";
+import { requireAdminSession } from "@/lib/admin-auth";
+import { canAdmin, getSessionAdminRole } from "@/lib/admin-role-permissions";
+import { latestNightlyRuns } from "@/lib/nightly-jobs";
+import { backupKey, listStoredBackups } from "@/lib/scheduled-backup";
+import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import {
   createAndDeliverOperationalAlertNotificationsAction,
@@ -80,12 +86,36 @@ function targetLabel(event: NotificationEvent) {
   return (event.payload as ContactSubmission).email;
 }
 
+/**
+ * The stored backups, for the Owner. A file-store hiccup must not take the
+ * whole alerts page down with it, so it answers "none" and says why in the log.
+ */
+async function ownerBackups() {
+  const ready = Boolean(backupKey() && process.env.BLOB_READ_WRITE_TOKEN?.trim());
+  if (!ready) return { ready, stored: [] };
+  try {
+    return { ready, stored: await listStoredBackups() };
+  } catch (error) {
+    reportError("list stored backups", error);
+    return { ready, stored: [] };
+  }
+}
+
 export default async function AdminNotificationsPage() {
-  const [events, config, alertCenter] = await Promise.all([
+  const session = await requireAdminSession();
+  const isBackupOwner = canAdmin(getSessionAdminRole(session), "backup:export");
+  const [events, config, alertCenter, nightlyRuns, backups] = await Promise.all([
     getNotificationEvents(120),
     Promise.resolve(getNotificationDeliveryConfig()),
     getOperationalAlertCenter(),
+    latestNightlyRuns().catch((error) => {
+      reportError("read the evening jobs", error);
+      return [];
+    }),
+    isBackupOwner ? ownerBackups() : Promise.resolve(undefined),
   ]);
+  // Read once per request on the server; the panel compares run times to it.
+  const nowMs = new Date().getTime();
   const pending = events.filter((event) => event.deliveryStatus === "pending");
   const failed = events.filter((event) => event.deliveryStatus === "failed");
   const sent = events.filter((event) => event.deliveryStatus === "sent");
@@ -141,6 +171,8 @@ export default async function AdminNotificationsPage() {
         <StatCard label="Failed" value={failed.length} detail="needs review" />
         <StatCard label="Skipped" value={skipped.length} detail="no channel configured" />
       </div>
+
+      <EveningJobs runs={nightlyRuns} nowMs={nowMs} backups={backups} />
 
       <section className="mt-8 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">

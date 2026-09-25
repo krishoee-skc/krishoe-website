@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { paymentOptions, validateDeliveryArea } from "@/lib/commerce";
+import { STORE_PICKUP } from "@/lib/delivery-fee";
 import { getDeliveryPricing } from "@/lib/delivery-settings";
 import { getFinishedStock } from "@/lib/operations";
 import {
@@ -164,6 +165,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   const phone = textValue(formData, "phone");
   const address = textValue(formData, "address");
   const delivery = textValue(formData, "delivery");
+  const deliveryZone = textValue(formData, "deliveryZone");
   const payment = textValue(formData, "payment");
   const checkoutSubmissionKey = textValue(formData, "checkoutSubmissionKey");
 
@@ -252,6 +254,18 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     getFinishedStock(),
     getDeliveryPricing(),
   ]);
+
+  // With delivery charged by area, the area is part of the price. An order
+  // without one — an old page, or a form sent by hand — would be charged
+  // nothing for delivery, so it is asked for instead of guessed.
+  if (
+    deliveryPricing.zones?.length &&
+    delivery !== STORE_PICKUP &&
+    !deliveryPricing.zones.some((zone) => zone.id === deliveryZone)
+  ) {
+    return errorState("Please choose your delivery area.");
+  }
+
   const placement = await placeCheckoutOrder({
     checkoutSubmissionKey,
     name: profile.name,
@@ -259,6 +273,7 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
     phone: profile.phone ?? "",
     address: profile.address ?? "",
     delivery,
+    deliveryZone,
     payment,
     items,
     submittedCode,

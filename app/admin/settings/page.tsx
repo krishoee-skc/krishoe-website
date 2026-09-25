@@ -16,7 +16,7 @@ import {
   saveDeliveryPricingAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
-import { deliveryPolicySentence } from "@/lib/delivery-fee";
+import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { getDeliveryPricing } from "@/lib/delivery-settings";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
@@ -516,6 +516,59 @@ export default async function AdminSettingsPage({
               </span>
             </label>
           </div>
+
+          {/* Charge by area. With any area named, the customer picks theirs at
+              checkout and the single charge above steps aside; the free-delivery
+              amount still applies to every area. Blank rows are ignored. */}
+          <fieldset className="mt-6 grid gap-3 rounded-lg border border-brand-green-line p-4">
+            <legend className="px-1 text-sm font-black text-brand-green-ink">
+              <T en="Charge by area (optional)" ne="ठाउँअनुसार शुल्क (चाहे मात्र)" />
+            </legend>
+            <p className="text-xs font-semibold leading-5 text-brand-muted">
+              <T
+                en="Name up to 8 areas with their own charge. The customer chooses their area at checkout, and the single charge above is then not used. 0 = free to that area. Leave every row blank to keep one charge for all of Nepal."
+                ne="बढीमा ८ ठाउँ र तिनको शुल्क लेख्नुहोस्। ग्राहकले checkout मा आफ्नो ठाउँ रोज्छ, अनि माथिको एउटै शुल्क लाग्दैन। 0 = त्यो ठाउँमा Free। सबै खाली छोडे पूरै नेपालमा एउटै शुल्क रहन्छ।"
+              />
+            </p>
+            <div className="grid gap-2">
+              {Array.from({ length: MAX_DELIVERY_ZONES }, (_, index) => {
+                const zone = deliveryPricing.zones?.[index];
+                // Examples only on an empty list — beside saved areas they read as more rows to fill.
+                const example = deliveryPricing.zones?.length
+                  ? undefined
+                  : [
+                      ["Inside Chitwan", "0"],
+                      ["Nearby districts", "100"],
+                      ["Kathmandu valley", "150"],
+                      ["Rest of Nepal", "200"],
+                    ][index];
+                return (
+                  <div key={index} className="grid grid-cols-[1fr_8.5rem] gap-2">
+                    <input
+                      name={`zoneName${index + 1}`}
+                      aria-label={`Area ${index + 1} name`}
+                      defaultValue={zone?.name ?? ""}
+                      maxLength={40}
+                      placeholder={example ? `e.g. ${example[0]}` : "Area name"}
+                      className="min-h-11 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green"
+                    />
+                    <input
+                      name={`zoneFee${index + 1}`}
+                      aria-label={`Area ${index + 1} charge in rupees`}
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      defaultValue={zone ? zone.feePaisa / 100 : ""}
+                      placeholder={example ? `Rs. ${example[1]}` : "Rs."}
+                      className="min-h-11 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-sm tabular-nums outline-none focus:border-brand-green"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
+
           <div className="mt-5">
             <SubmitButton label="Save delivery charge" />
           </div>

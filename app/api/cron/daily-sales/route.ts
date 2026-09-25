@@ -9,6 +9,31 @@ import {
 import { pruneOldMonitoringRows } from "@/lib/monitoring";
 import { reportError } from "@/lib/report-error";
 import { sweepIdleStaffAccounts } from "@/lib/staff-idle";
+import { alertNightlyFailures, recordNightlyRun, type NightlyOutcome } from "@/lib/nightly-jobs";
+import { runScheduledBackup } from "@/lib/scheduled-backup";
+
+/** What a job reports: a digest's delivery status, and a line for the owner. */
+type JobResult = {
+  deliveryStatus: "pending" | "sent" | "failed" | "skipped";
+  summary?: string;
+  /** For the log, when it differs from what the delivery status says. */
+  outcome?: NightlyOutcome;
+};
+
+function outcomeFor(result: JobResult): NightlyOutcome {
+  if (result.outcome) return result.outcome;
+  if (result.deliveryStatus === "sent") return "ok";
+  if (result.deliveryStatus === "skipped") return "skipped";
+  return "failed";
+}
+
+/** The owner's line for a digest that reports only its delivery status. */
+function digestSummary(result: JobResult) {
+  if (result.summary) return result.summary;
+  if (result.deliveryStatus === "sent") return "Sent.";
+  if (result.deliveryStatus === "skipped") return "Skipped: no delivery channel is set up.";
+  return `Not delivered (${result.deliveryStatus}).`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +85,7 @@ export async function GET(request: Request) {
   const isSunday = now.getUTCDay() === 0;
   const isMonthStart = isBikramMonthStart(now);
 
-  const jobs = [
+  const jobs: { name: string; run: () => Promise<JobResult> }[] = [
     { name: "daily", run: () => notifyDailySalesSummary() },
     { name: "daily-production", run: () => notifyProductionSummary("daily") },
     // Asking buyers what they thought, a week after their order closed. Carried
@@ -85,8 +110,28 @@ export async function GET(request: Request) {
     {
       name: "idle-staff",
       run: async () => {
-        await sweepIdleStaffAccounts();
-        return { deliveryStatus: "sent" as const };
+        const { closed, warned } = await sweepIdleStaffAccounts();
+        return {
+          deliveryStatus: "sent" as const,
+          summary: `Checked. Warned: ${warned.length}, closed: ${closed.length}.`,
+        };
+      },
+    },
+    // The weekly backup (lib/scheduled-backup.ts). Asked every night and made
+    // when the newest copy is a week old, so a missed Saturday is made up the
+    // next night instead of waiting another week. The 9 pm retry finds this
+    // evening's copy and stops.
+    {
+      name: "weekly-backup",
+      run: async () => {
+        const backup = await runScheduledBackup();
+        // Six nights in seven there is nothing to do, and that is not a
+        // failure of the evening's run: only a backup that broke is.
+        return {
+          deliveryStatus: backup.outcome === "failed" ? ("failed" as const) : ("sent" as const),
+          outcome: backup.outcome,
+          summary: backup.summary,
+        };
       },
     },
     ...(isSunday
@@ -109,18 +154,29 @@ export async function GET(request: Request) {
   const settled = await Promise.allSettled(jobs.map((job) => job.run()));
   const sent: Record<string, string> = {};
   const failed: string[] = [];
+  // Only real failures reach the owner's phone. A digest skipped because no
+  // channel is set up is written down, not alarmed about every evening.
+  const alarming: string[] = [];
 
-  settled.forEach((result, index) => {
+  for (const [index, result] of settled.entries()) {
     const name = jobs[index].name;
     if (result.status === "fulfilled") {
       sent[name] = result.value.deliveryStatus;
       if (result.value.deliveryStatus !== "sent") failed.push(name);
-      return;
+      const outcome = outcomeFor(result.value);
+      if (outcome === "failed") alarming.push(name);
+      await recordNightlyRun(name, outcome, digestSummary(result.value));
+      continue;
     }
 
     failed.push(name);
+    alarming.push(name);
     reportError(`send the ${name} sales summary`, result.reason);
-  });
+    const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+    await recordNightlyRun(name, "failed", `Failed: ${reason}`);
+  }
+
+  await alertNightlyFailures(alarming, now);
 
   return Response.json(
     { ok: failed.length === 0, scheduled: jobs.map((job) => job.name), sent, failed },

@@ -48,6 +48,8 @@ type CheckoutOrderInput = {
   phone: string;
   address: string;
   delivery: string;
+  /** The delivery area the customer chose, when the owner charges by area. */
+  deliveryZone?: string;
   payment: string;
   items: CheckoutItemInput[];
   submittedCode: string;
@@ -164,7 +166,12 @@ function orderMoney(
   input: CheckoutOrderInput,
 ) {
   const goodsPaisa = Math.max(0, subtotalPaisa - discountPaisa);
-  const delivery: DeliveryCharge = deliveryChargeFor(input.deliveryPricing, input.delivery, goodsPaisa);
+  const delivery: DeliveryCharge = deliveryChargeFor(
+    input.deliveryPricing,
+    input.delivery,
+    goodsPaisa,
+    input.deliveryZone,
+  );
   return {
     totalPaisa: goodsPaisa + delivery.feePaisa,
     orderText: `${canonicalOrderText(items)}\n${deliveryChargeLine(delivery)}`,

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { recordNightlyRun } from "@/lib/nightly-jobs";
+import { runScheduledBackup } from "@/lib/scheduled-backup";
 import {
   createAndDeliverOperationalAlertNotifications,
   createOperationalAlertNotifications,
@@ -94,4 +96,22 @@ export async function sendSalesReportNowAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/notifications");
   revalidatePath("/admin/activity");
+}
+
+/**
+ * The weekly backup, made now — for the first time after it is set up, or
+ * before a risky change such as a database migration. Owner only, like the
+ * backup download. Its result shows as the backup's line in Evening jobs.
+ */
+export async function backupNowAction() {
+  await requireAdminPermission("backup:export");
+
+  let result: Awaited<ReturnType<typeof runScheduledBackup>>;
+  try {
+    result = await runScheduledBackup({ force: true });
+  } catch (error) {
+    result = { outcome: "failed", summary: `Failed: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  await recordNightlyRun("weekly-backup", result.outcome, `${result.summary} (made by hand)`);
+  revalidatePath("/admin/notifications");
 }

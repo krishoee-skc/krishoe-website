@@ -286,6 +286,44 @@ async function readAuditEventsFromPostgres(limit = maxAuditEvents) {
   return rows.map(eventFromRow);
 }
 
+/**
+ * The newest event of each action that starts with `prefix`, from the last
+ * `days` days — one row per action. For the nightly-jobs panel: each job
+ * writes one event per run, and the panel wants each job's latest run.
+ * Bounded by date so it reads a fortnight through the created_at index, not
+ * the whole trail.
+ */
+export async function getLatestAuditEventsByActionPrefix(prefix: string, days = 14) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return runWithDataBackend({
+    storeName: "admin audit events",
+    localJson: async () => {
+      const latest = new Map<string, AdminAuditEvent>();
+      for (const event of await readAuditEventsFromLocalJson()) {
+        if (!event.action.startsWith(prefix) || new Date(event.createdAt) < since) continue;
+        const seen = latest.get(event.action);
+        if (!seen || seen.createdAt < event.createdAt) latest.set(event.action, event);
+      }
+      return [...latest.values()];
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<AdminAuditEventRow>(
+        "admin audit events",
+        `
+          SELECT DISTINCT ON (action) id, created_at, action, detail, status
+            , actor_id, actor_name, actor_email, actor_role, actor_branch_id
+          FROM admin_audit_events
+          WHERE created_at >= $2 AND action LIKE $1
+          ORDER BY action, created_at DESC
+          LIMIT 50
+        `,
+        [`${prefix.replace(/[\\%_]/g, "\\$&")}%`, since],
+      );
+      return rows.map(eventFromRow);
+    },
+  });
+}
+
 async function writeAuditEvents(events: AdminAuditEvent[]) {
   await writeFileAtomic(auditPath, `${JSON.stringify(events.slice(0, maxAuditEvents), null, 2)}\n`);
 }

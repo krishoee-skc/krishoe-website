@@ -24,6 +24,7 @@ const MAX_FREE_OVER_PAISA = 100_000_000;
 type DeliveryRow = {
   delivery_fee_paisa: number | string | null;
   free_delivery_over_paisa: number | string | null;
+  delivery_zones?: unknown;
 };
 
 /**
@@ -37,7 +38,34 @@ function isMissingColumn(error: unknown) {
   return code === "42703" || code === "42P01";
 }
 
+/**
+ * The areas came a migration later (20260925_delivery_zones.sql) than the
+ * flat fee. A database with the fee but not yet the areas must keep charging
+ * the fee, so the areas are asked for first and, if that column is missing,
+ * the fee alone — never straight to the old default.
+ */
 async function readFromPostgres(): Promise<DeliveryPricing> {
+  const fromRow = (row: DeliveryRow | undefined) =>
+    row
+      ? cleanDeliveryPricing({
+          feePaisa: Number(row.delivery_fee_paisa),
+          freeOverPaisa: Number(row.free_delivery_over_paisa),
+          zones: row.delivery_zones as DeliveryPricing["zones"],
+        })
+      : defaultDeliveryPricing;
+
+  try {
+    const rows = await queryPostgres<DeliveryRow>(
+      STORE,
+      `SELECT delivery_fee_paisa, free_delivery_over_paisa, delivery_zones
+         FROM company_settings
+        WHERE id = 'default'`,
+    );
+    return fromRow(rows[0]);
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error;
+  }
+
   try {
     const rows = await queryPostgres<DeliveryRow>(
       STORE,
@@ -45,12 +73,7 @@ async function readFromPostgres(): Promise<DeliveryPricing> {
          FROM company_settings
         WHERE id = 'default'`,
     );
-    const row = rows[0];
-    if (!row) return defaultDeliveryPricing;
-    return cleanDeliveryPricing({
-      feePaisa: Number(row.delivery_fee_paisa),
-      freeOverPaisa: Number(row.free_delivery_over_paisa),
-    });
+    return fromRow(rows[0]);
   } catch (error) {
     if (isMissingColumn(error)) return defaultDeliveryPricing;
     throw error;
@@ -104,6 +127,10 @@ export function validateDeliveryPricing(input: DeliveryPricing): DeliveryPricing
   if (pricing.freeOverPaisa > MAX_FREE_OVER_PAISA) {
     throw new Error("The free-delivery amount looks too large. Enter it in rupees, e.g. 2000.");
   }
+  const tooDear = pricing.zones?.find((zone) => zone.feePaisa > MAX_FEE_PAISA);
+  if (tooDear) {
+    throw new Error(`The delivery charge for "${tooDear.name}" looks too large. Enter it in rupees, e.g. 150.`);
+  }
   return pricing;
 }
 
@@ -115,15 +142,16 @@ async function saveToPostgres(pricing: DeliveryPricing) {
       `UPDATE company_settings
           SET delivery_fee_paisa = $1,
               free_delivery_over_paisa = $2,
+              delivery_zones = $3::jsonb,
               updated_at = now()
         WHERE id = 'default'
       RETURNING id`,
-      [pricing.feePaisa, pricing.freeOverPaisa],
+      [pricing.feePaisa, pricing.freeOverPaisa, JSON.stringify(pricing.zones ?? [])],
     );
   } catch (error) {
     if (isMissingColumn(error)) {
       throw new Error(
-        "The database is not ready for delivery charges yet. Run the migration 20260923_delivery_charge.sql (npm run db:migrate:factory), then save again.",
+        "The database is not ready for delivery charges yet. Run the migrations 20260923_delivery_charge.sql and 20260925_delivery_zones.sql (npm run db:migrate:factory), then save again.",
       );
     }
     throw error;

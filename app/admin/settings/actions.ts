@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
-import { deliveryPolicySentence } from "@/lib/delivery-fee";
+import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
@@ -175,12 +175,30 @@ function rupeesToPaisa(value: string, label: string) {
   return Math.round(rupees * 100);
 }
 
+/**
+ * The area rows of the delivery form: a name and a charge each. A blank row is
+ * skipped; a charge with no name is a mistake worth saying out loud, because
+ * that charge would otherwise vanish on save.
+ */
+function deliveryZonesFrom(formData: FormData) {
+  const zones: { id: string; name: string; feePaisa: number }[] = [];
+  for (let row = 1; row <= MAX_DELIVERY_ZONES; row += 1) {
+    const name = textValue(formData, `zoneName${row}`);
+    const fee = textValue(formData, `zoneFee${row}`);
+    if (!name && fee) throw new Error(`Area ${row} has a charge but no name. Name the area, or clear its charge.`);
+    if (!name) continue;
+    zones.push({ id: "", name, feePaisa: rupeesToPaisa(fee, `The charge for "${name}"`) });
+  }
+  return zones;
+}
+
 export async function saveDeliveryPricingAction(formData: FormData) {
   try {
     await requireAdminPermission("settings:write");
     const pricing = await saveDeliveryPricing({
       feePaisa: rupeesToPaisa(textValue(formData, "deliveryFee"), "Delivery charge"),
       freeOverPaisa: rupeesToPaisa(textValue(formData, "freeDeliveryOver"), "Free delivery amount"),
+      zones: deliveryZonesFrom(formData),
     });
     await recordAdminAuditEvent("settings_delivery_update", `Delivery set: ${deliveryPolicySentence(pricing)}`);
   } catch (error) {

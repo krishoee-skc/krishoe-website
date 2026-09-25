@@ -32,7 +32,9 @@ export default function OrderSummary({ discountPaisa, deliveryCharge, totalLabel
       ? formatPrice(deliveryCharge.feePaisa)
       : deliveryCharge.kind === "free"
         ? text("Free", "Free")
-        : text("Confirmed on the call", "फोनमा पक्का गरिन्छ");
+        : deliveryCharge.kind === "choose-area"
+          ? text("Choose your area", "ठाउँ रोज्नुहोस्")
+          : text("Confirmed on the call", "फोनमा पक्का गरिन्छ");
 
   return (
     <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)] lg:sticky lg:top-24">

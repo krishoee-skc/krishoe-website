@@ -21,6 +21,7 @@ import {
   deliveryChargeFor,
   STORE_PICKUP,
   type DeliveryCharge,
+  type DeliveryZone,
   type DeliveryPricing,
 } from "@/lib/delivery-fee";
 
@@ -48,6 +49,10 @@ type CheckoutFormProps = {
   /** The delivery option currently chosen, and what it costs this order. */
   delivery: string;
   deliveryCharge: DeliveryCharge;
+  /** The owner's delivery areas; empty when one charge covers all of Nepal. */
+  deliveryZones: DeliveryZone[];
+  deliveryZone: string;
+  onDeliveryZoneChange: (zoneId: string) => void;
   /** How much more buys free delivery; "" when it does not apply. */
   freeDeliveryGapLabel: string;
   /** Pairs after discount, plus delivery — what the order will say. */
@@ -68,6 +73,9 @@ function CheckoutForm({
   stockShortfalls,
   delivery,
   deliveryCharge,
+  deliveryZones,
+  deliveryZone,
+  onDeliveryZoneChange,
   freeDeliveryGapLabel,
   estimatedTotalLabel,
   onDeliveryChange,
@@ -315,12 +323,48 @@ function CheckoutForm({
                 </label>
               ))}
             </div>
+            {/* The area, when the owner charges by area. Required: without
+                it the server cannot price the delivery and asks again. */}
+            {deliveryZones.length && delivery !== STORE_PICKUP ? (
+              <fieldset className="mt-4">
+                <legend className="text-sm font-bold text-brand-green-ink">
+                  {text("Your area", "तपाईंको ठाउँ")}
+                </legend>
+                <div className="mt-2 grid gap-2">
+                  {deliveryZones.map((zone) => (
+                    <label
+                      key={zone.id}
+                      className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                    >
+                      <input
+                        className="accent-brand-green"
+                        type="radio"
+                        name="deliveryZone"
+                        value={zone.id}
+                        required
+                        checked={deliveryZone === zone.id}
+                        onChange={() => onDeliveryZoneChange(zone.id)}
+                      />
+                      <span className="flex-1">{zone.name}</span>
+                      <span className="tabular-nums text-brand-green-ink">
+                        {zone.feePaisa > 0 ? formatPrice(zone.feePaisa) : text("Free", "Free")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
             {/* Said from the same numbers the server charges by, so the
                 customer reads here exactly what the order will say. */}
             <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
               {delivery === STORE_PICKUP
                 ? text("Store pickup has no delivery fee.", "पसलमै आएर लिँदा डेलिभरी शुल्क लाग्दैन।")
-                : deliveryCharge.kind === "charged"
+                : deliveryCharge.kind === "choose-area"
+                  ? text(
+                      "Choose your area above to see the delivery charge.",
+                      "डेलिभरी शुल्क हेर्न माथि आफ्नो ठाउँ रोज्नुहोस्।",
+                    )
+                  : deliveryCharge.kind === "charged"
                   ? text(
                       `Delivery charge ${formatPrice(deliveryCharge.feePaisa)} is included in your total.`,
                       `डेलिभरी शुल्क ${formatPrice(deliveryCharge.feePaisa)} जम्मा रकममा जोडिएको छ।`,
@@ -535,12 +579,13 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
   const checkoutSubmissionKey = useRef("");
   const [delivery, setDelivery] = useState<string>(shippingOptions[0]);
+  const [deliveryZone, setDeliveryZone] = useState("");
   const [discountPaisa, setDiscountPaisa] = useState(0);
 
   // What the order will cost, worked out the way the server works it out:
   // pairs, less the discount, plus delivery for this basket and this option.
   const goodsPaisa = Math.max(0, subtotal - discountPaisa);
-  const deliveryCharge = deliveryChargeFor(deliveryPricing, delivery, goodsPaisa);
+  const deliveryCharge = deliveryChargeFor(deliveryPricing, delivery, goodsPaisa, deliveryZone);
   const estimatedTotalPaisa = goodsPaisa + deliveryCharge.feePaisa;
   const estimatedTotalLabel = formatPrice(estimatedTotalPaisa);
   const freeDeliveryGapPaisa =
@@ -548,7 +593,7 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
       ? Math.max(0, deliveryPricing.freeOverPaisa - goodsPaisa)
       : 0;
   const totalForMessage =
-    deliveryCharge.kind === "confirm"
+    deliveryCharge.kind === "confirm" || deliveryCharge.kind === "choose-area"
       ? `${estimatedTotalLabel} + delivery charge`
       : estimatedTotalLabel;
 
@@ -614,7 +659,7 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
           total,
           whatsappMessage:
             `Hello KRISHOE, I want to confirm my order ${result.reference}. ` +
-            `My total is ${deliveryCharge.kind === "confirm" ? `${total} + delivery charge` : total}. ` +
+            `My total is ${deliveryCharge.kind === "confirm" || deliveryCharge.kind === "choose-area" ? `${total} + delivery charge` : total}. ` +
             `Order details: ${orderItemsForDb}`,
         });
         clearCart();
@@ -692,6 +737,9 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
           itemsJson={itemsJson}
           delivery={delivery}
           deliveryCharge={deliveryCharge}
+          deliveryZones={deliveryPricing.zones ?? []}
+          deliveryZone={deliveryZone}
+          onDeliveryZoneChange={setDeliveryZone}
           freeDeliveryGapLabel={freeDeliveryGapPaisa > 0 ? formatPrice(freeDeliveryGapPaisa) : ""}
           estimatedTotalLabel={estimatedTotalLabel}
           onDeliveryChange={setDelivery}
