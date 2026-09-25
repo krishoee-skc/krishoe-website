@@ -29,6 +29,8 @@ function purchaseForm(overrides: Record<string, string> = {}) {
   formData.set("item0Channel", "Wholesale");
   formData.set("item0SizeRun", "Mixed");
   formData.set("item0Quantity", "50");
+  // Ready-made pairs are bought by size, and the sizes must add up.
+  formData.set("item0Sizes", JSON.stringify({ "36": 10, "37": 10, "38": 10, "39": 10, "40": 10 }));
   formData.set("item0Rate", "350");
   formData.set("paymentMethod", "Cash");
 
@@ -89,6 +91,19 @@ describe("saving a purchase reports what happened", () => {
 
     expect(state.ok).toBe(false);
     expect(state.message).toContain("press Save again");
+  });
+
+  it("refuses a ready-made line with no sizes, or sizes that do not add up", async () => {
+    const none = await createPurchaseInvoiceAction(null, purchaseForm({ item0Sizes: "{}" }));
+    expect(none).toMatchObject({ ok: false, message: "Item 1: enter the pairs by size." });
+    const short = await createPurchaseInvoiceAction(null, purchaseForm({ item0Sizes: JSON.stringify({ "36": 49 }) }));
+    expect(short).toMatchObject({ ok: false, message: "Item 1: the sizes add up to 49, not 50." });
+    expect(createPurchaseInvoice).not.toHaveBeenCalled();
+  });
+
+  it("passes the size split through to the bill", async () => {
+    await createPurchaseInvoiceAction(null, purchaseForm());
+    expect(createPurchaseInvoice.mock.calls[0][0].items[0].sizeBreakdown).toEqual({ "36": 10, "37": 10, "38": 10, "39": 10, "40": 10 });
   });
 
   it("passes the whole bill through — every line, not just the first", async () => {

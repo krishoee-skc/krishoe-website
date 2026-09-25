@@ -619,6 +619,7 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           design: row.line.design,
           channel: row.line.channel as BusinessChannel,
           sizeRun: row.line.sizeRun,
+          sizeBreakdown: row.line.sizeBreakdown,
           type: "Purchase In",
           pairs: row.line.quantity,
           note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,

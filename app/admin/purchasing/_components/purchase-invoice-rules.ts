@@ -29,6 +29,14 @@ export type ItemRow = {
   place: StockPlace;
   quantity: string;
   rate: string;
+  /**
+   * Pairs by size on a ready-made line, as typed ({ "36": "2" }). Required for
+   * those lines — the quantity is their total, never typed on its own — so the
+   * shop knows which sizes came in, not just how many pairs.
+   */
+  sizes: Record<string, string>;
+  /** For a design not in the catalog yet: which run of sizes to offer ("36-41"). */
+  sizeChoice?: string;
 };
 
 export const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"];
@@ -77,11 +85,34 @@ export function emptyRow(key: number): ItemRow {
     place: "Factory",
     quantity: "",
     rate: "",
+    sizes: {},
   };
 }
 
+/** The pairs a ready-made line's size boxes add up to. */
+export function sizesTotalOf(row: Pick<ItemRow, "sizes">) {
+  return Object.values(row.sizes).reduce((sum, value) => sum + Math.max(0, Math.floor(Number(value) || 0)), 0);
+}
+
+/** The size split as the server reads it: only sizes with pairs, as numbers. */
+export function sizesPayload(row: Pick<ItemRow, "sizes">) {
+  const counts: Record<string, number> = {};
+  for (const [size, value] of Object.entries(row.sizes)) {
+    const pairs = Math.floor(Number(value) || 0);
+    if (pairs > 0) counts[size] = pairs;
+  }
+  return counts;
+}
+
 export function rowIsTouched(row: ItemRow) {
-  return Boolean(row.materialId || row.materialName || row.design || row.quantity || row.rate);
+  return Boolean(
+    row.materialId ||
+      row.materialName ||
+      row.design ||
+      row.quantity ||
+      row.rate ||
+      Object.values(row.sizes ?? {}).some((value) => value),
+  );
 }
 
 /** What the one item box is showing, whichever kind the line is. */

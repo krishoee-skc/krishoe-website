@@ -77,8 +77,10 @@ describe("the item lines", () => {
 
     // "Doctor Chappal moto" spelled a second way is a second item in the stock
     // ledger, so what exists is offered before anything new is created.
-    expect(form).toContain('<datalist id="purchase-materials">');
-    expect(form).toContain('<datalist id="purchase-designs">');
+    // One list for both kinds: the name typed decides whether it is material
+    // or a ready-made shoe.
+    expect(form).toContain('<datalist id="purchase-items">');
+    expect(form).toContain('list="purchase-items"');
   });
 
   it("still sends the server every field it reads", async () => {

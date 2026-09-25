@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
+import { normaliseSizeCounts } from "@/lib/shoe-sizes";
 import path from "node:path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import {
@@ -119,6 +120,13 @@ export type CreatePurchaseInvoiceItemInput = {
   quantity: number;
   rate: number;
   note: string;
+  /**
+   * Pairs by size on a ready-made line ({ "36": 2, "37": 3 }). The form
+   * requires it and checks it adds up to the quantity; it goes onto the
+   * finished-stock row's size split and into the line's note. Optional here,
+   * so a caller without sizes still posts the plain pair count.
+   */
+  sizeBreakdown?: Record<string, number>;
 };
 
 export type PurchaseInvoice = {
@@ -598,7 +606,16 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
       quantity: cleanNumber(item.quantity),
       rate: cleanNumber(item.rate),
       note: cleanText(item.note),
+      sizeBreakdown: kind === "Trading Goods" ? normaliseSizeCounts(item.sizeBreakdown ?? {}) : {},
     };
+
+    // The size split is written on the line too, where the bill can be read
+    // back without a new column: "Sizes 36×2, 37×3".
+    const sizes = Object.entries(normalized.sizeBreakdown);
+    if (sizes.length && !/^Sizes /.test(normalized.note)) {
+      const label = `Sizes ${sizes.map(([size, pairs]) => `${size}×${pairs}`).join(", ")}`;
+      normalized.note = normalized.note ? `${label} · ${normalized.note}` : label;
+    }
 
     if (normalized.quantity <= 0 || normalized.rate <= 0) {
       throw new Error(`Item ${line}: quantity and rate are required.`);
@@ -832,7 +849,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
       try {
         // Each line posts where its kind belongs: material to the factory
         // store, pairs to finished stock for the channel they were bought for.
-        for (const line of items) {
+        for (const [index, line] of items.entries()) {
           if (line.kind === "Raw Material") {
             await addRawMaterialReceipt({ materialId: line.materialId, quantity: line.quantity });
           } else {
@@ -840,6 +857,7 @@ export async function createPurchaseInvoice(input: Omit<CreatePurchaseInvoiceInp
               design: line.design,
               channel: line.channel as BusinessChannel,
               sizeRun: line.sizeRun,
+              sizeBreakdown: resolved[index]?.item.sizeBreakdown,
               type: "Purchase In",
               pairs: line.quantity,
               note: `${purchaseNumber} purchased from ${ledger.supplierName}.`,

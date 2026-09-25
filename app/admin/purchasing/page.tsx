@@ -6,6 +6,8 @@ import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/StatTile";
 import type { Metadata } from "next";
 import PurchaseInvoiceForm from "@/app/admin/purchasing/_components/PurchaseInvoiceForm";
+import { purchaseMemory } from "@/lib/purchase-memory";
+import { productSizes } from "@/lib/shoe-sizes";
 import SupplierPaymentForm from "@/app/admin/purchasing/_components/SupplierPaymentForm";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { money } from "@/lib/format-money";
@@ -103,6 +105,16 @@ export default async function AdminPurchasingPage() {
     productStockByName.set(product.name, (productStockByName.get(product.name) ?? 0) + pairs);
   }
   const productStock = [...productStockByName.entries()].map(([name, stock]) => ({ name, stock }));
+  // The sizes each design is made in, so a ready-made purchase line offers
+  // exactly those boxes. Lower-cased, the way the form matches a typed name.
+  const designSizes: Record<string, string[]> = {};
+  for (const product of products) {
+    const sizes = productSizes(product.sizes);
+    if (sizes.length) designSizes[product.name.trim().toLowerCase()] = sizes;
+  }
+  // Last rates, each supplier's last bill and their bill numbers — read back
+  // from the bills already on the page's data, nothing new stored.
+  const memory = purchaseMemory(purchasing.purchaseInvoices);
   const supplierAgingById = new Map(
     purchasing.reports.supplierAgingRows.map((row) => [row.supplierLedgerId, row]),
   );
@@ -180,6 +192,8 @@ export default async function AdminPurchasingPage() {
           rawMaterials={operations.rawMaterials}
           productNames={productNames}
           productStock={productStock}
+          memory={memory}
+          designSizes={designSizes}
         />
       </div>
 

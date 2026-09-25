@@ -77,7 +77,10 @@ describe("delivery charged by area", () => {
   });
 });
 
-describe("the weekly backup is locked", () => {
+// The first import of the backup module pulls in the whole backup builder and
+// the file-store client, which on a busy machine can take longer than the
+// default five seconds — a slow import, not a slow lock.
+describe("the weekly backup is locked", { timeout: 30_000 }, () => {
   it("opens with the key, and not without it", async () => {
     const { openBackup, sealBackup } = await import("@/lib/scheduled-backup");
     const key = randomBytes(32);

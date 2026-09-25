@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPurchaseInvoiceAction } from "@/app/admin/purchasing/actions";
 import { money } from "@/lib/format-money";
+import { formatAdminDate } from "@/lib/format-date";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -11,6 +12,8 @@ import { billTotals, shareBillAcrossLines } from "@/lib/purchase-bill";
 import { purchaseLineIssue } from "@/lib/purchase-line-check";
 import type { PurchaseKind, SupplierLedger, SupplierPaymentMethod } from "@/lib/purchasing";
 import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
+import { rateKey, type PurchaseMemory, type RememberedLine } from "@/lib/purchase-memory";
+import { SIZE_RUNS, sizesInRun } from "@/lib/shoe-sizes";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -23,7 +26,29 @@ type PurchaseInvoiceFormProps = {
   /** Pairs on hand per design name, to show "68 in stock" beside a design
    *  suggestion so the buyer sees the shelf before ordering more. */
   productStock: Array<{ name: string; stock: number }>;
+  /** Last rates, each supplier's last bill and bill numbers — read back from the
+   *  bills already filed (lib/purchase-memory). */
+  memory: PurchaseMemory;
+  /** The sizes each catalog design is made in, by lower-cased name. */
+  designSizes: Record<string, string[]>;
 };
+
+/** What the last save filed, shown until the next bill is started. */
+type Receipt = {
+  supplierName: string;
+  billNo: string;
+  lines: Array<{ name: string; quantity: string; unit: string; rate: string; sizes: string }>;
+  total: number;
+  paid: number;
+  message: string;
+  href: string;
+};
+
+/** VAT in Nepal, charged on the bill after its discount. */
+const VAT_RATE = 0.13;
+/** A rate this far from the last one is worth a second look before saving. */
+const RATE_WARN = 0.1;
+const DEFAULT_RUN = SIZE_RUNS[SIZE_RUNS.length - 1];
 
 // What a bill is made of, and the order Enter walks it — beside this file,
 // because they are rules about the bill rather than the markup.
@@ -35,6 +60,8 @@ import {
   rawMaterialUnits,
   rowIsTouched,
   sameName,
+  sizesPayload,
+  sizesTotalOf,
   type FormField,
   type ItemRow,
   type WalkField,
@@ -59,6 +86,8 @@ export default function PurchaseInvoiceForm({
   rawMaterials,
   productNames,
   productStock,
+  memory,
+  designSizes,
 }: PurchaseInvoiceFormProps) {
   const { text } = useLanguage();
   // A one-line bill is as common as a twenty-five line one, so the form opens
@@ -91,6 +120,112 @@ export default function PurchaseInvoiceForm({
     box.focus();
     box.select();
   });
+
+  const [supplierId, setSupplierId] = useState("");
+  const [billNo, setBillNo] = useState("");
+  // VAT is the owner's choice per bill. It starts on when this supplier's last
+  // bill carried tax, which is how a VAT-registered supplier bills every time.
+  const [vatOn, setVatOn] = useState(false);
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const saveButton = useRef<HTMLButtonElement>(null);
+  const newBillButton = useRef<HTMLButtonElement>(null);
+  // Moving the cursor is decided in a key handler and done after a render, but
+  // Enter on its own changes nothing on screen, so there was no render: the
+  // cursor only moved with the next key typed — into the wrong box. A tick
+  // forces the render the move is waiting for.
+  const [, setFocusTick] = useState(0);
+  function settle() {
+    if (pendingFocus.current) setFocusTick((tick) => tick + 1);
+  }
+
+  // Ctrl+S files the bill — a deliberate two-key press, unlike a stray Enter.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+      if (!formRef.current || receipt) return;
+      event.preventDefault();
+      formRef.current.requestSubmit();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [receipt]);
+
+  useEffect(() => {
+    if (receipt) newBillButton.current?.focus();
+  }, [receipt]);
+
+  const supplier = supplierLedgers.find((ledger) => ledger.id === supplierId);
+  const supplierMemory = supplierId ? memory.suppliers[supplierId] : undefined;
+  const duplicateBill = Boolean(
+    billNo.trim() && supplierMemory?.billNos.includes(billNo.trim().toLowerCase()),
+  );
+
+  function chooseSupplier(id: string) {
+    setSupplierId(id);
+    setSupplierError(false);
+    setVatOn(Boolean(id && memory.suppliers[id]?.last?.vat));
+  }
+
+  /** The sizes a ready-made line offers: the design's own, else a chosen run. */
+  function sizeOptionsFor(row: ItemRow) {
+    const known = designSizes[row.design.trim().toLowerCase()];
+    if (known?.length) return known;
+    const run = SIZE_RUNS.find((candidate) => `${candidate.from}-${candidate.to}` === row.sizeChoice) ?? DEFAULT_RUN;
+    return sizesInRun(run);
+  }
+
+  function sizeBoxKey(rowKey: number, size: string) {
+    return `${rowKey}:size:${size}`;
+  }
+
+  /** Stock on hand for a material, the way the factory store counts it. */
+  function materialStock(material: RawMaterial) {
+    return Math.max(0, material.openingStock + material.received - material.used);
+  }
+
+  /** The last rate this item was bought at, if it has been bought before. */
+  function lastRateOf(row: ItemRow) {
+    if (row.kind === "Raw Material") return row.materialId ? memory.lastRates[rateKey(row.kind, row.materialId)] : undefined;
+    return row.design ? memory.lastRates[rateKey(row.kind, row.design)] : undefined;
+  }
+
+  /** A remembered line, as a row of this form. */
+  function rowFromMemory(line: RememberedLine, key: number): ItemRow {
+    const base = emptyRow(key);
+    if (line.kind === "Trading Goods") {
+      return {
+        ...base,
+        kind: "Trading Goods",
+        design: line.design,
+        sizeRun: line.sizeRun || "Mixed",
+        sizes: Object.fromEntries(Object.entries(line.sizes).map(([size, pairs]) => [size, String(pairs)])),
+        quantity: Object.keys(line.sizes).length ? String(line.quantity) : "",
+        rate: String(line.rate),
+      };
+    }
+    const known = rawMaterials.find((material) => material.id === line.materialId);
+    return {
+      ...base,
+      materialId: known?.id ?? "",
+      materialName: known ? "" : line.itemName,
+      materialUnit: known?.unit ?? line.unit,
+      quantity: String(line.quantity),
+      rate: String(line.rate),
+    };
+  }
+
+  /** The supplier's last bill, again — a regular order in one press. */
+  function repeatLastBill() {
+    const last = supplierMemory?.last;
+    if (!last?.lines.length) return;
+    setRows((current) => {
+      const kept = current.filter(rowIsTouched);
+      const repeated = last.lines.map((line, offset) => rowFromMemory(line, nextKey + offset));
+      return [...kept, ...repeated, emptyRow(nextKey + repeated.length)];
+    });
+    setNextKey((value) => value + last.lines.length + 1);
+  }
 
   function boxKey(rowKey: number, field: WalkField) {
     return `${rowKey}:${field}`;
@@ -137,6 +272,10 @@ export default function PurchaseInvoiceForm({
     // "new line" — a vehicle number and a gate pass belong on separate lines.
     if (at < FIELD_WALK.length - 1) {
       pendingFocus.current = FIELD_WALK[at + 1];
+    } else {
+      // The last box hands over to the Save button — which another deliberate
+      // Enter presses. Enter itself still never files the bill.
+      saveButton.current?.focus();
     }
   }
 
@@ -147,10 +286,16 @@ export default function PurchaseInvoiceForm({
     event.preventDefault();
 
     const at = WALK.indexOf(field);
+    const tradingRow = rows[index].kind === "Trading Goods";
 
     // Shift+Enter retraces the forward walk exactly: back along the row, up to
     // the previous row's rate, and out of the first item box to the bill
     // number it came from.
+    if (event.shiftKey && tradingRow && field === "rate") {
+      const sizes = sizeOptionsFor(rows[index]);
+      pendingFocus.current = sizeBoxKey(rows[index].key, sizes[sizes.length - 1]);
+      return;
+    }
     if (event.shiftKey) {
       if (at > 0) {
         pendingFocus.current = boxKey(rows[index].key, WALK[at - 1]);
@@ -158,6 +303,13 @@ export default function PurchaseInvoiceForm({
       }
       const previousRow = rows[index - 1];
       pendingFocus.current = previousRow ? boxKey(previousRow.key, "rate") : "supplierBillNo";
+      return;
+    }
+
+    // A ready-made line has no quantity to type — its sizes add up to it — so
+    // the item box leads to the first size, and the sizes lead to the rate.
+    if (tradingRow && field === "item") {
+      pendingFocus.current = sizeBoxKey(rows[index].key, sizeOptionsFor(rows[index])[0]);
       return;
     }
 
@@ -188,6 +340,26 @@ export default function PurchaseInvoiceForm({
     setRows((current) => [...current, emptyRow(grownKey)]);
     setNextKey((value) => value + 1);
     pendingFocus.current = boxKey(grownKey, "item");
+  }
+
+  /** Enter along a ready-made line's size boxes, then on to its rate. */
+  function handleSizeWalk(event: React.KeyboardEvent<HTMLInputElement>, index: number, sizeIndex: number) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const row = rows[index];
+    const sizes = sizeOptionsFor(row);
+    if (event.shiftKey) {
+      pendingFocus.current = sizeIndex > 0 ? sizeBoxKey(row.key, sizes[sizeIndex - 1]) : boxKey(row.key, "item");
+      return;
+    }
+    pendingFocus.current =
+      sizeIndex < sizes.length - 1 ? sizeBoxKey(row.key, sizes[sizeIndex + 1]) : boxKey(row.key, "rate");
+  }
+
+  function setSize(row: ItemRow, size: string, value: string) {
+    const sizes = { ...row.sizes, [size]: value };
+    const total = sizesTotalOf({ sizes });
+    updateRow(row.key, { sizes, quantity: total ? String(total) : "" });
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -227,6 +399,18 @@ export default function PurchaseInvoiceForm({
       return;
     }
 
+    const noSizes = started.findIndex((row) => row.kind === "Trading Goods" && sizesTotalOf(row) === 0);
+    if (noSizes !== -1) {
+      setState({
+        ok: false,
+        message: text(
+          `Item ${noSizes + 1}: enter the pairs by size.`,
+          `क्र.सं. ${noSizes + 1}: साइजअनुसार जोडी लेख्नुहोस्।`,
+        ),
+      });
+      return;
+    }
+
     if (firstBadIndex !== -1) {
       const issue = purchaseLineIssue(started[firstBadIndex]);
       setState({
@@ -239,9 +423,28 @@ export default function PurchaseInvoiceForm({
       return;
     }
 
+    const filed: Receipt = {
+      supplierName: supplier?.supplierName || String(formData.get("supplierName") ?? ""),
+      billNo,
+      lines: started.map((row) => ({
+        name: itemNameOf(row, rawMaterials),
+        quantity: row.quantity,
+        unit: row.kind === "Trading Goods" ? text("pairs", "जोडी") : row.materialUnit,
+        rate: row.rate,
+        sizes: Object.entries(sizesPayload(row))
+          .map(([size, pairs]) => `${size}×${pairs}`)
+          .join(", "),
+      })),
+      total: totals.total,
+      paid,
+      message: "",
+      href: "",
+    };
+
     startSaving(async () => {
       const result = await createPurchaseInvoiceAction(state, formData);
       setState(result);
+      if (result.ok) setReceipt({ ...filed, message: result.message, href: result.href ?? "" });
 
       // A saved bill clears the form for the next one, and pulls the new
       // invoice into the lists on the page. Stay put so the confirmation is
@@ -253,6 +456,10 @@ export default function PurchaseInvoiceForm({
         setTax("");
         setPaidAmount("");
         setPaymentMethod("Cash");
+        setSupplierId("");
+        setBillNo("");
+        setVatOn(false);
+        formRef.current?.reset();
         router.refresh();
       }
     });
@@ -284,18 +491,44 @@ export default function PurchaseInvoiceForm({
    * spelled a second way is a second item in the stock ledger.
    */
   function setItemName(row: ItemRow, value: string) {
-    if (row.kind === "Trading Goods") {
-      const known = productNames.find((name) => sameName(name, value));
-      updateRow(row.key, { design: known ?? value });
+    // One box for both kinds: the name says which it is. A material on the
+    // books makes a raw line, a catalog design a ready-made one; a name on
+    // neither keeps the line's kind and asks (the chips under the line).
+    const material = rawMaterials.find((candidate) => sameName(candidate.name, value));
+    const design = material ? undefined : productNames.find((name) => sameName(name, value));
+
+    if (material) {
+      const last = memory.lastRates[rateKey("Raw Material", material.id)];
+      updateRow(row.key, {
+        kind: "Raw Material",
+        materialId: material.id,
+        materialName: "",
+        materialUnit: material.unit,
+        design: "",
+        rate: row.rate || (last ? String(last.rate) : ""),
+      });
       return;
     }
 
-    const known = rawMaterials.find((material) => sameName(material.name, value));
-    updateRow(row.key, {
-      materialId: known?.id ?? "",
-      materialName: known ? "" : value,
-      materialUnit: known?.unit ?? row.materialUnit,
-    });
+    if (design) {
+      const last = memory.lastRates[rateKey("Trading Goods", design)];
+      updateRow(row.key, {
+        kind: "Trading Goods",
+        design,
+        materialId: "",
+        materialName: "",
+        // The run it was last filed under, so the pairs join the same stock row.
+        sizeRun: last?.sizeRun || row.sizeRun || "Mixed",
+        rate: row.rate || (last ? String(last.rate) : ""),
+      });
+      return;
+    }
+
+    if (row.kind === "Trading Goods") {
+      updateRow(row.key, { design: value });
+      return;
+    }
+    updateRow(row.key, { materialId: "", materialName: value });
   }
 
   function setKind(row: ItemRow, kind: PurchaseKind) {
@@ -310,21 +543,25 @@ export default function PurchaseInvoiceForm({
 
   // What the supplier's bill should say. Shown while typing so a wrong rate is
   // caught against the paper bill, not a month later in the ledger.
-  const totals = useMemo(() => {
-    const lines = rows.filter(rowIsTouched).map((row) => ({
-      quantity: Number(row.quantity) || 0,
-      rate: Number(row.rate) || 0,
-    }));
+  const goodsTotal = rows
+    .filter(rowIsTouched)
+    .reduce((sum, row) => sum + (Number(row.quantity) || 0) * (Number(row.rate) || 0), 0);
+  const vatAmount = Math.round(Math.max(0, goodsTotal - (Number(discount) || 0)) * VAT_RATE);
+  // With VAT on, the tax is 13% worked out, not typed; off, the box is free.
+  const effectiveTax = vatOn ? vatAmount : Number(tax) || 0;
 
-    return {
-      lineCount: lines.length,
-      ...billTotals(lines, { discount: Number(discount) || 0, tax: Number(tax) || 0 }),
-      shares: shareBillAcrossLines(lines, {
-        discount: Number(discount) || 0,
-        tax: Number(tax) || 0,
-      }),
-    };
-  }, [rows, discount, tax]);
+  const billLines = rows.filter(rowIsTouched).map((row) => ({
+    quantity: Number(row.quantity) || 0,
+    rate: Number(row.rate) || 0,
+  }));
+  const totals = {
+    lineCount: billLines.length,
+    ...billTotals(billLines, { discount: Number(discount) || 0, tax: effectiveTax }),
+    shares: shareBillAcrossLines(billLines, {
+      discount: Number(discount) || 0,
+      tax: effectiveTax,
+    }),
+  };
 
   const paid = Math.min(Math.max(0, Number(paidAmount) || 0), totals.total);
   const due = Math.max(0, totals.total - paid);
@@ -416,6 +653,7 @@ export default function PurchaseInvoiceForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       className="rounded-lg border border-brand-green-line bg-brand-paper p-4 shadow-sm md:p-5"
     >
@@ -423,15 +661,34 @@ export default function PurchaseInvoiceForm({
           rendered rather than guessing a maximum. */}
       <input type="hidden" name="itemCount" value={rows.length} />
       <input type="hidden" name="paymentMethod" value={paymentMethod} />
-      <datalist id="purchase-materials">
-        {rawMaterials.map((material) => (
-          <option key={material.id} value={material.name} />
-        ))}
-      </datalist>
-      <datalist id="purchase-designs">
-        {productStock.map(({ name, stock }) => (
-          <option key={name} value={name} label={stock > 0 ? `${stock} in stock` : "out of stock"} />
-        ))}
+      {/* One list for both kinds, so the buyer types what is on the paper bill
+          and the name decides the kind. Each suggestion says what it is, how
+          much is on hand, and what it cost last time. */}
+      <datalist id="purchase-items">
+        {rawMaterials.map((material) => {
+          const last = memory.lastRates[rateKey("Raw Material", material.id)];
+          return (
+            <option
+              key={material.id}
+              value={material.name}
+              label={`${text("Material", "कच्चा माल")} · ${materialStock(material)} ${material.unit}${
+                last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""
+              }`}
+            />
+          );
+        })}
+        {productStock.map(({ name, stock }) => {
+          const last = memory.lastRates[rateKey("Trading Goods", name)];
+          return (
+            <option
+              key={name}
+              value={name}
+              label={`${text("Ready-made", "तयार जुत्ता")} · ${stock} ${text("pairs", "जोडी")}${
+                last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""
+              }`}
+            />
+          );
+        })}
       </datalist>
 
       <div className="mb-5">
@@ -457,14 +714,15 @@ export default function PurchaseInvoiceForm({
               <select
                 name="supplierLedgerId"
                 className={fieldClass(supplierError)}
-                defaultValue=""
+                value={supplierId}
                 aria-label={text("Supplier", "साहु")}
-                onChange={() => setSupplierError(false)}
+                onChange={(event) => chooseSupplier(event.target.value)}
               >
                 <option value="">{text("＋ New supplier (type name)", "＋ नयाँ साहु (नाम लेख्ने)")}</option>
-                {supplierLedgers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierName}
+                {supplierLedgers.map((ledger) => (
+                  <option key={ledger.id} value={ledger.id}>
+                    {ledger.supplierName}
+                    {ledger.balanceDue > 0 ? ` — ${text("owed", "बाँकी")} ${money(ledger.balanceDue)}` : ""}
                   </option>
                 ))}
               </select>
@@ -473,7 +731,10 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("supplierName", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "supplierName")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "supplierName");
+                  settle();
+                }}
                 className={fieldClass(supplierError)}
                 placeholder={text("New supplier name", "नयाँ साहुको नाम")}
                 onChange={() => setSupplierError(false)}
@@ -483,11 +744,39 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("phone", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "phone")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "phone");
+                  settle();
+                }}
                 className={plain}
                 placeholder={text("Supplier phone", "साहुको फोन")}
               />
             </div>
+            {supplier ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                {supplier.balanceDue > 0 ? (
+                  <span className="rounded-full bg-brand-clay-tint px-2.5 py-1 font-black text-brand-clay">
+                    {text(`Already owed ${money(supplier.balanceDue)}`, `पहिलेको बाँकी ${money(supplier.balanceDue)}`)}
+                  </span>
+                ) : null}
+                {supplierMemory?.last ? (
+                  <>
+                    <span className="text-brand-muted">
+                      {text("Last bill", "पछिल्लो बिल")}
+                      {supplierMemory.last.billNo ? ` ${supplierMemory.last.billNo}` : ""} ·{" "}
+                      {formatAdminDate(supplierMemory.last.createdAt)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={repeatLastBill}
+                      className="rounded-full border border-brand-green-line bg-brand-paper px-3 py-1 font-black text-brand-green-ink transition hover:border-brand-green"
+                    >
+                      🔁 {text("Repeat last bill", "पछिल्लो बिल दोहोर्‍याउने")}
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
             {supplierError ? (
               <p className="mt-1.5 text-xs font-semibold text-brand-clay">
                 {text(
@@ -515,12 +804,28 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("supplierBillNo", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "supplierBillNo")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "supplierBillNo");
+                  settle();
+                }}
+                value={billNo}
+                onChange={(event) => setBillNo(event.target.value)}
                 maxLength={60}
                 className={`${plain} mt-1`}
                 placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
               />
             </label>
+            {/* A warning, not a refusal: a supplier can restart their numbers
+                each year, and a real bill must never be impossible to enter. */}
+            {duplicateBill ? (
+              <p className="mt-1.5 rounded-md bg-brand-clay-tint px-2.5 py-1.5 text-xs font-black text-brand-clay">
+                ⚠{" "}
+                {text(
+                  `Bill ${billNo.trim()} from this supplier is already entered. Check it is not the same bill.`,
+                  `यो साहुको बिल नं. ${billNo.trim()} पहिल्यै दर्ता छ। उही बिल त होइन, हेर्नुहोस्।`,
+                )}
+              </p>
+            ) : null}
           </section>
 
           {/* ── What came in ─────────────────────────────────────────── */}
@@ -534,10 +839,12 @@ export default function PurchaseInvoiceForm({
               </p>
             </div>
 
-            <div className="mt-2 hidden gap-2 px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_104px_minmax(0,1.5fr)_0.7fr_0.85fr_1fr_40px]">
+            {/* Every track is minmax(0, …): a bare "0.7fr" keeps an input's own
+                width as its minimum, and the item box — the one that matters —
+                was squeezed to a sliver beside three roomy number boxes. */}
+            <div className="mt-2 hidden gap-2 px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
               <span>{text("S.N.", "क्र.सं.")}</span>
-              <span>{text("Kind", "प्रकार")}</span>
-              <span>{text("Item", "सामान")}</span>
+              <span>{text("Item — material or ready-made", "सामान — कच्चा माल वा तयार जुत्ता")}</span>
               <span className="text-right">{text("Qty", "थान")}</span>
               <span className="text-right">{text("Rate", "दर")}</span>
               <span className="text-right">{text("Amount", "रकम")}</span>
@@ -569,6 +876,7 @@ export default function PurchaseInvoiceForm({
                       <>
                         <input type="hidden" name={`item${index}Design`} value={row.design} />
                         <input type="hidden" name={`item${index}SizeRun`} value={row.sizeRun} />
+                        <input type="hidden" name={`item${index}Sizes`} value={JSON.stringify(sizesPayload(row))} />
                         <input type="hidden" name={`item${index}Place`} value={row.place} />
                       </>
                     ) : (
@@ -579,7 +887,7 @@ export default function PurchaseInvoiceForm({
                       </>
                     )}
 
-                    <div className="grid gap-2 md:grid-cols-[42px_104px_minmax(0,1.5fr)_0.7fr_0.85fr_1fr_40px] md:items-center">
+                    <div className="grid gap-2 md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px] md:items-center">
                       {/* Read off the row, never typed: a hand-kept number and
                           the bill it numbers can disagree, and this cannot. */}
                       <div
@@ -592,30 +900,20 @@ export default function PurchaseInvoiceForm({
                         {index + 1}
                       </div>
 
-                      <select
-                        className={`${cell} ${
-                          trading
-                            ? "border-brand-green/30 bg-brand-green-wash"
-                            : "border-[#EBD9AE] bg-[#FFF9EA]"
-                        } text-[13px] font-semibold`}
-                        value={row.kind}
-                        onChange={(event) => setKind(row, event.target.value as PurchaseKind)}
-                        aria-label={text(`Item ${index + 1} kind`, `क्र.सं. ${index + 1} को प्रकार`)}
-                      >
-                        <option value="Raw Material">{text("Material", "कच्चा")}</option>
-                        <option value="Trading Goods">{text("Ready-made", "तयारी")}</option>
-                      </select>
 
                       <input
                         ref={(element) => {
                           boxes.current.set(boxKey(row.key, "item"), element);
                         }}
-                        list={trading ? "purchase-designs" : "purchase-materials"}
+                        list="purchase-items"
                         className={fieldClass(Boolean(issue?.design || issue?.material))}
-                        placeholder={text("Item name", "सामानको नाम")}
+                        placeholder={text("Type the item — leather, sole, sandal…", "सामान टाइप गर्नुहोस् — छाला, सोल, चप्पल…")}
                         value={itemNameOf(row, rawMaterials)}
                         onChange={(event) => setItemName(row, event.target.value)}
-                        onKeyDown={(event) => handleWalk(event, index, "item")}
+                        onKeyDown={(event) => {
+                          handleWalk(event, index, "item");
+                          settle();
+                        }}
                         aria-label={text(`Item ${index + 1} name`, `क्र.सं. ${index + 1} को सामान`)}
                       />
 
@@ -628,11 +926,16 @@ export default function PurchaseInvoiceForm({
                         min="0"
                         step="any"
                         inputMode="decimal"
-                        className={`${fieldClass(Boolean(issue?.quantity))} text-right tabular-nums`}
-                        placeholder={text("Qty", "थान")}
+                        className={`${fieldClass(Boolean(issue?.quantity))} text-right tabular-nums ${trading ? "bg-brand-mist" : ""}`}
+                        placeholder={trading ? text("sizes ↓", "साइज ↓") : text("Qty", "थान")}
                         value={row.quantity}
+                        // A ready-made line's quantity is its sizes added up.
+                        readOnly={trading}
                         onChange={(event) => updateRow(row.key, { quantity: event.target.value })}
-                        onKeyDown={(event) => handleWalk(event, index, "quantity")}
+                        onKeyDown={(event) => {
+                          handleWalk(event, index, "quantity");
+                          settle();
+                        }}
                         aria-label={text(`Item ${index + 1} quantity`, `क्र.सं. ${index + 1} को थान`)}
                       />
 
@@ -649,7 +952,10 @@ export default function PurchaseInvoiceForm({
                         placeholder={text("Rate", "दर")}
                         value={row.rate}
                         onChange={(event) => updateRow(row.key, { rate: event.target.value })}
-                        onKeyDown={(event) => handleWalk(event, index, "rate")}
+                        onKeyDown={(event) => {
+                          handleWalk(event, index, "rate");
+                          settle();
+                        }}
                         aria-label={text(`Item ${index + 1} rate`, `क्र.सं. ${index + 1} को दर`)}
                       />
 
@@ -687,16 +993,61 @@ export default function PurchaseInvoiceForm({
                       <div className="mt-2 flex flex-wrap items-center gap-2 border-l-2 border-brand-green-line pl-3 md:ml-[46px]">
                         {trading ? (
                           <>
-                            <span className="text-[11px] font-bold text-brand-muted-soft">
-                              {text("Size run", "साइज")}
-                            </span>
-                            <input
-                              className={`${plain} h-9 w-36 text-[13px]`}
-                              placeholder="36-41"
-                              value={row.sizeRun}
-                              onChange={(event) => updateRow(row.key, { sizeRun: event.target.value })}
-                              aria-label={text(`Item ${index + 1} size run`, `क्र.सं. ${index + 1} को साइज`)}
-                            />
+                            {/* Pairs by size — required, and the quantity is their
+                                total. Enter walks the sizes and then the rate. */}
+                            <div className="flex w-full flex-wrap items-end gap-1.5">
+                              <span className="w-full text-[11px] font-bold text-brand-muted-soft">
+                                {text("Pairs by size (required)", "साइजअनुसार जोडी (अनिवार्य)")}
+                                {sizesTotalOf(row) > 0 ? (
+                                  <span className="ml-2 font-black text-brand-green-ink">
+                                    {text(`= ${sizesTotalOf(row)} pairs`, `= ${sizesTotalOf(row)} जोडी`)}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {sizeOptionsFor(row).map((size, sizeIndex) => (
+                                <label key={size} className="grid w-12 gap-0.5 text-center text-[11px] font-black text-brand-muted">
+                                  {size}
+                                  <input
+                                    ref={(element) => {
+                                      boxes.current.set(sizeBoxKey(row.key, size), element);
+                                    }}
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    inputMode="numeric"
+                                    className={`${plain} h-10 w-12 px-1 text-center tabular-nums`}
+                                    value={row.sizes[size] ?? ""}
+                                    onChange={(event) => setSize(row, size, event.target.value)}
+                                    onKeyDown={(event) => {
+                                      handleSizeWalk(event, index, sizeIndex);
+                                      settle();
+                                    }}
+                                    aria-label={text(`Item ${index + 1}, size ${size}`, `क्र.सं. ${index + 1}, साइज ${size}`)}
+                                  />
+                                </label>
+                              ))}
+                              {designSizes[row.design.trim().toLowerCase()] ? null : (
+                                <span className="flex gap-1 pb-1">
+                                  {SIZE_RUNS.map((run) => {
+                                    const value = `${run.from}-${run.to}`;
+                                    const on = (row.sizeChoice ?? `${DEFAULT_RUN.from}-${DEFAULT_RUN.to}`) === value;
+                                    return (
+                                      <button
+                                        key={value}
+                                        type="button"
+                                        aria-pressed={on}
+                                        onClick={() => updateRow(row.key, { sizeChoice: value, sizes: {}, quantity: "" })}
+                                        className={`rounded-full border px-2 py-1 text-[11px] font-black ${
+                                          on ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-muted"
+                                        }`}
+                                      >
+                                        {text(run.en, run.ne)} {run.from}–{run.to}
+                                      </button>
+                                    );
+                                  })}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] font-bold text-brand-muted-soft">
                               {text("Put where", "कहाँ राख्ने")}
                             </span>
@@ -755,6 +1106,49 @@ export default function PurchaseInvoiceForm({
                             </span>
                           </>
                         )}
+
+                        {!row.materialId && !productNames.some((name) => sameName(name, row.design || row.materialName)) &&
+                        (row.materialName || row.design) ? (
+                          <span className="flex w-full flex-wrap items-center gap-1.5 text-[11px] font-bold text-brand-muted">
+                            {text("New item — what is it?", "नयाँ सामान — यो के हो?")}
+                            {(["Raw Material", "Trading Goods"] as const).map((kind) => (
+                              <button
+                                key={kind}
+                                type="button"
+                                aria-pressed={row.kind === kind}
+                                onClick={() => setKind(row, kind)}
+                                className={`rounded-full border px-2.5 py-1 font-black ${
+                                  row.kind === kind
+                                    ? "border-brand-green bg-brand-green text-white"
+                                    : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+                                }`}
+                              >
+                                {kind === "Raw Material" ? text("🧵 Material", "🧵 कच्चा माल") : text("👟 Ready-made shoe", "👟 तयार जुत्ता")}
+                              </button>
+                            ))}
+                          </span>
+                        ) : null}
+
+                        {(() => {
+                          const last = lastRateOf(row);
+                          const rate = Number(row.rate) || 0;
+                          if (!last || !rate || Math.abs(rate - last.rate) / last.rate <= RATE_WARN) {
+                            return last && !rate ? null : last ? (
+                              <span className="w-full text-[11px] font-bold text-brand-muted">
+                                {text(`Last rate ${money(last.rate)}`, `पछिल्लो दर ${money(last.rate)}`)}
+                              </span>
+                            ) : null;
+                          }
+                          const change = Math.round(((rate - last.rate) / last.rate) * 100);
+                          return (
+                            <span className="w-full rounded-md bg-brand-clay-tint px-2 py-1 text-[11px] font-black text-brand-clay">
+                              ⚠{" "}
+                              {change > 0
+                                ? text(`${change}% dearer than last time (${money(last.rate)})`, `पछिल्लो दर (${money(last.rate)}) भन्दा ${change}% महँगो`)
+                                : text(`${-change}% cheaper than last time (${money(last.rate)})`, `पछिल्लो दर (${money(last.rate)}) भन्दा ${-change}% सस्तो`)}
+                            </span>
+                          );
+                        })()}
 
                         <input
                           name={`item${index}Note`}
@@ -845,7 +1239,10 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("paidAmount", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "paidAmount")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "paidAmount");
+                  settle();
+                }}
                   type="number"
                   min="0"
                   step="any"
@@ -870,7 +1267,10 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("paymentReference", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "paymentReference")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "paymentReference");
+                  settle();
+                }}
                   className={`${plain} mt-1 w-full`}
                   placeholder={
                     paymentMethod === "QR" ? "eSewa / Khalti / Fonepay" : text("Reference no.", "रेफरेन्स नं.")
@@ -914,7 +1314,10 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("discount", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "discount")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "discount");
+                  settle();
+                }}
                   type="number"
                   min="0"
                   step="any"
@@ -928,27 +1331,50 @@ export default function PurchaseInvoiceForm({
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-brand-muted">{text("Tax / VAT", "कर / VAT")}</dt>
+              <dt className="flex items-center gap-2 text-brand-muted">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={vatOn}
+                    onChange={(event) => setVatOn(event.target.checked)}
+                    className="h-4 w-4 accent-brand-green"
+                  />
+                  {text("VAT 13%", "VAT १३%")}
+                </label>
+              </dt>
               <dd>
                 <input
                   name="tax"
                 ref={(element) => {
                   boxes.current.set("tax", element);
                 }}
-                onKeyDown={(event) => handleFieldWalk(event, "tax")}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "tax");
+                  settle();
+                }}
                   type="number"
                   min="0"
                   step="any"
                   inputMode="decimal"
-                  className={`${plain} h-9 w-24 text-right text-[13px] tabular-nums`}
+                  className={`${plain} h-9 w-24 text-right text-[13px] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
                   placeholder="0"
-                  value={tax}
+                  value={vatOn ? String(vatAmount) : tax}
+                  readOnly={vatOn}
                   onChange={(event) => setTax(event.target.value)}
                   aria-label={text("Bill tax", "बिलको कर")}
                 />
               </dd>
             </div>
           </dl>
+          {vatOn && supplierMemory?.last?.vat ? (
+            <p className="-mt-1 text-[11px] font-bold text-brand-green">
+              {text(
+                "On because this supplier's last bill had VAT. Switch off if this one has none.",
+                "यो साहुको पछिल्लो बिलमा VAT थियो, त्यसैले आफैँ खुला भयो। यसमा छैन भने बन्द गर्नुहोस्।",
+              )}
+            </p>
+          ) : null}
 
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-sm font-black text-brand-green-ink">{text("Bill total", "बिल जम्मा")}</span>
@@ -972,6 +1398,14 @@ export default function PurchaseInvoiceForm({
               {due > 0 ? text("Still owed", "उधारो रहन्छ") : text("Nothing owed", "पूरै तिरियो")}
             </p>
             <p className="mt-1 text-2xl font-black leading-none tabular-nums">{money(due)}</p>
+            {supplier ? (
+              <p className="mt-2 text-xs font-bold">
+                {text(
+                  `${supplier.supplierName}'s account: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
+                  `${supplier.supplierName} को खाता: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
+                )}
+              </p>
+            ) : null}
           </div>
 
           <textarea
@@ -985,11 +1419,13 @@ export default function PurchaseInvoiceForm({
           />
 
           <button
+            ref={saveButton}
             type="submit"
             disabled={isSaving}
-            className="h-12 w-full rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:cursor-not-allowed disabled:opacity-60"
+            className="hidden h-12 w-full rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink focus-visible:ring-4 focus-visible:ring-brand-gold-bright disabled:cursor-not-allowed disabled:opacity-60 md:block"
           >
             {isSaving ? text("Saving…", "राख्दै…") : text("Save purchase", "बिल राख्ने")}
+            <span className="ml-2 text-xs font-semibold opacity-75">Ctrl+S</span>
           </button>
           <p className="text-center text-xs leading-5 text-brand-muted">
             {text(
@@ -1001,8 +1437,81 @@ export default function PurchaseInvoiceForm({
       </div>
 
       <div className="mt-4">
-        <ActionMessage state={state} linkLabel={text("See purchases below", "तलका किनमेल हेर्ने")} />
+        {receipt ? null : <ActionMessage state={state} linkLabel={text("See purchases below", "तलका किनमेल हेर्ने")} />}
       </div>
+
+      {/* On a phone the total and Save sat at the foot of a very long form.
+          This keeps them in reach, above the admin's bottom bar. */}
+      <div className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-brand-green-line bg-brand-paper/95 px-4 py-3 backdrop-blur md:hidden">
+        <div className="grid leading-tight">
+          <span className="text-[11px] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
+          <span className="text-lg font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
+        </div>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="h-12 min-w-40 rounded-full bg-brand-green px-6 text-sm font-black text-white disabled:opacity-60"
+        >
+          {isSaving ? text("Saving…", "राख्दै…") : text("Save purchase", "बिल राख्ने")}
+        </button>
+      </div>
+
+      {/* After saving: the bill as filed, then the next one or a print. */}
+      {receipt ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={text("Bill saved", "बिल सेभ भयो")}>
+          <div className="grid w-full max-w-md gap-3 rounded-2xl bg-brand-paper p-5 shadow-2xl">
+            <h3 className="text-lg font-black text-brand-green-ink">✅ {text("Bill saved", "बिल सेभ भयो")}</h3>
+            <p className="text-xs text-brand-muted">{receipt.message}</p>
+            <div className="grid gap-1 rounded-lg border border-dashed border-brand-green-line p-3 text-sm">
+              <p className="font-black text-brand-green-ink">
+                {receipt.supplierName}
+                {receipt.billNo ? ` · ${text("bill", "बिल नं.")} ${receipt.billNo}` : ""}
+              </p>
+              {receipt.lines.map((line, index) => (
+                <div key={index} className="flex justify-between gap-3 border-b border-dotted border-brand-green-line py-1">
+                  <span>
+                    {index + 1}. {line.name}
+                    <span className="block text-xs text-brand-muted">
+                      {line.quantity} {line.unit} × {money(Number(line.rate) || 0)}
+                      {line.sizes ? ` · ${line.sizes}` : ""}
+                    </span>
+                  </span>
+                  <span className="font-bold tabular-nums">{money((Number(line.quantity) || 0) * (Number(line.rate) || 0))}</span>
+                </div>
+              ))}
+              <p className="flex justify-between pt-1 font-black">
+                <span>{text("Bill total", "बिल जम्मा")}</span>
+                <span className="tabular-nums">{money(receipt.total)}</span>
+              </p>
+              <p className="flex justify-between text-xs text-brand-muted">
+                <span>{text("Paid", "तिरेको")}</span>
+                <span className="tabular-nums">{money(receipt.paid)}</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                ref={newBillButton}
+                type="button"
+                onClick={() => {
+                  setReceipt(null);
+                  setState(null);
+                }}
+                className="h-12 rounded-full bg-brand-green text-sm font-black text-white"
+              >
+                ➕ {text("New bill", "नयाँ बिल")}
+              </button>
+              {receipt.href ? (
+                <a
+                  href={receipt.href}
+                  className="flex h-12 items-center justify-center rounded-full border border-brand-green-line text-sm font-black text-brand-green-ink"
+                >
+                  🖨️ {text("See / print", "हेर्ने / प्रिन्ट")}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }

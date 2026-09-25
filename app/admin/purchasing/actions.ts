@@ -18,6 +18,7 @@ import {
 } from "@/lib/purchasing";
 import type { BusinessChannel } from "@/lib/operations";
 import { stockPlaces } from "@/lib/stock-transfers";
+import { normaliseSizeCounts, sizeCountsTotal } from "@/lib/shoe-sizes";
 
 const paymentMethods: SupplierPaymentMethod[] = ["Cash", "Cheque", "Bank", "Credit", "QR"];
 const purchaseKinds: PurchaseKind[] = ["Raw Material", "Trading Goods"];
@@ -101,8 +102,36 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
       quantity: numberValue(formData, `item${index}Quantity`),
       rate: numberValue(formData, `item${index}Rate`),
       note: textValue(formData, `item${index}Note`),
+      sizeBreakdown: sizeCountsFrom(textValue(formData, `item${index}Sizes`)),
     };
   });
+}
+
+/** The pairs-by-size a ready-made line posts as JSON; {} when absent or unreadable. */
+function sizeCountsFrom(value: string) {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" ? normaliseSizeCounts(parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Ready-made pairs are bought by size, and the owner asked for the sizes to be
+ * required: a line of "12 pairs" with no sizes cannot tell the shop that size
+ * 38 is gone. Checked here as well as on the form, and it must add up.
+ */
+function sizesProblem(items: CreatePurchaseInvoiceItemInput[]) {
+  const started = items.filter((item) => item.design || item.materialId || item.materialName || item.quantity || item.rate);
+  for (const [index, item] of started.entries()) {
+    if (item.kind !== "Trading Goods") continue;
+    const total = sizeCountsTotal(item.sizeBreakdown ?? {});
+    if (total === 0) return `Item ${index + 1}: enter the pairs by size.`;
+    if (total !== item.quantity) return `Item ${index + 1}: the sizes add up to ${total}, not ${item.quantity}.`;
+  }
+  return "";
 }
 
 // Returns the outcome instead of throwing. A purchase that failed used to throw
@@ -116,6 +145,10 @@ export async function createPurchaseInvoiceAction(
 ): Promise<ActionState> {
   await requireAdminPermission("purchasing:write");
 
+  const items = purchaseItems(formData);
+  const sizes = sizesProblem(items);
+  if (sizes) return { ok: false, message: sizes };
+
   let invoice;
   try {
     // createPurchaseInvoice drops the blank rows and checks the rest — supplier,
@@ -125,7 +158,7 @@ export async function createPurchaseInvoiceAction(
       supplierLedgerId: textValue(formData, "supplierLedgerId"),
       supplierName: textValue(formData, "supplierName"),
       phone: textValue(formData, "phone"),
-      items: purchaseItems(formData),
+      items,
       discount: numberValue(formData, "discount"),
       tax: numberValue(formData, "tax"),
       paidAmount: numberValue(formData, "paidAmount"),
@@ -159,7 +192,7 @@ export async function createPurchaseInvoiceAction(
   return {
     ok: true,
     message: `Saved ${invoice.purchaseNumber} — ${invoice.items.length} item(s), Rs. ${invoice.total.toLocaleString("en-IN")}.`,
-    href: "/admin/purchasing",
+    href: `/admin/purchasing/${invoice.id}`,
   };
 }
 
