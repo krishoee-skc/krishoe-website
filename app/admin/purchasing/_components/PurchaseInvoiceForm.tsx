@@ -14,6 +14,7 @@ import type { PurchaseKind, SupplierLedger, SupplierPaymentMethod } from "@/lib/
 import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
 import { rateKey, type PurchaseMemory, type RememberedLine } from "@/lib/purchase-memory";
 import { SIZE_RUNS, sizesInRun } from "@/lib/shoe-sizes";
+import { uploadBillPhoto } from "@/lib/bill-photo-upload";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -42,7 +43,12 @@ type Receipt = {
   paid: number;
   message: string;
   href: string;
+  /** The paper-bill photos: being sent, kept, or what went wrong. */
+  photos: { sending: boolean; kept: number; problem: string };
 };
+
+/** Photos of the paper bill a purchase can carry. Matches lib/purchase-photos. */
+const MAX_PHOTOS = 4;
 
 /** VAT in Nepal, charged on the bill after its discount. */
 const VAT_RATE = 0.13;
@@ -127,6 +133,27 @@ export default function PurchaseInvoiceForm({
   // bill carried tax, which is how a VAT-registered supplier bills every time.
   const [vatOn, setVatOn] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  // Photos of the supplier's paper bill, taken before saving and sent once
+  // the bill exists — a photo needs a bill to belong to.
+  const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
+
+  function addPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    const room = Math.max(0, MAX_PHOTOS - photos.length);
+    const added = [...files]
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, room)
+      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setPhotos((current) => [...current, ...added]);
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((current) => {
+      const gone = current[index];
+      if (gone) URL.revokeObjectURL(gone.preview);
+      return current.filter((_, at) => at !== index);
+    });
+  }
   const formRef = useRef<HTMLFormElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
   const newBillButton = useRef<HTMLButtonElement>(null);
@@ -439,12 +466,37 @@ export default function PurchaseInvoiceForm({
       paid,
       message: "",
       href: "",
+      photos: { sending: false, kept: 0, problem: "" },
     };
+    const photosToSend = photos;
 
     startSaving(async () => {
       const result = await createPurchaseInvoiceAction(state, formData);
       setState(result);
-      if (result.ok) setReceipt({ ...filed, message: result.message, href: result.href ?? "" });
+      if (result.ok) {
+        const href = result.href ?? "";
+        setReceipt({
+          ...filed,
+          message: result.message,
+          href,
+          photos: { sending: photosToSend.length > 0, kept: 0, problem: "" },
+        });
+        // The bill is saved; the photos follow. A photo that fails does not
+        // undo the bill — the receipt says so, and the bill page can add it.
+        const invoiceId = href.split("/").pop() ?? "";
+        if (photosToSend.length && invoiceId) {
+          let kept = 0;
+          let problem = "";
+          for (const photo of photosToSend) {
+            const sent = await uploadBillPhoto(invoiceId, photo.file);
+            if (sent.ok) kept += 1;
+            else problem = sent.message;
+          }
+          photosToSend.forEach((photo) => URL.revokeObjectURL(photo.preview));
+          setReceipt((current) => (current ? { ...current, photos: { sending: false, kept, problem } } : current));
+        }
+        setPhotos([]);
+      }
 
       // A saved bill clears the form for the next one, and pulls the new
       // invoice into the lists on the page. Stay put so the confirmation is
@@ -815,6 +867,40 @@ export default function PurchaseInvoiceForm({
                 placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
               />
             </label>
+            {/* The supplier's paper bill, photographed with the phone (or chosen
+                on the computer). Kept with the bill once it is saved. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {photos.length < MAX_PHOTOS ? (
+                <label className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green">
+                  📷 {text("Photo of their bill", "साहुको बिलको फोटो")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(event) => {
+                      addPhotos(event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              ) : null}
+              {photos.map((photo, index) => (
+                <span key={photo.preview} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.preview} alt={text(`Bill photo ${index + 1}`, `बिलको फोटो ${index + 1}`)} className="h-12 w-12 rounded-md border border-brand-green-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    aria-label={text(`Remove photo ${index + 1}`, `फोटो ${index + 1} हटाउने`)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-clay text-[11px] font-black text-white"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+
             {/* A warning, not a refusal: a supplier can restart their numbers
                 each year, and a real bill must never be impossible to enter. */}
             {duplicateBill ? (
@@ -1488,6 +1574,19 @@ export default function PurchaseInvoiceForm({
                 <span className="tabular-nums">{money(receipt.paid)}</span>
               </p>
             </div>
+            {receipt.photos.sending ? (
+              <p className="text-sm font-bold text-brand-muted" role="status">📷 {text("Sending the photo…", "फोटो पठाउँदै…")}</p>
+            ) : receipt.photos.kept ? (
+              <p className="text-sm font-bold text-brand-green" role="status">
+                📷 {text(`${receipt.photos.kept} photo(s) kept with the bill`, `${receipt.photos.kept} फोटो बिलसँग राखियो`)}
+              </p>
+            ) : null}
+            {receipt.photos.problem ? (
+              <p className="text-sm font-bold text-brand-clay" role="alert">
+                ⚠ {receipt.photos.problem}{" "}
+                {text("The bill is saved — add the photo from the bill page.", "बिल सेभ भइसक्यो — फोटो बिलको पेजबाट थप्नुहोस्।")}
+              </p>
+            ) : null}
             <div className="grid grid-cols-2 gap-2">
               <button
                 ref={newBillButton}

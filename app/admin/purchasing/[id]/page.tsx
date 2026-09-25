@@ -5,6 +5,9 @@ import PrintButton from "@/components/admin/PrintButton";
 import { money } from "@/lib/format-money";
 import { getPurchaseInvoiceById } from "@/lib/purchasing";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import BillPhotos from "@/components/admin/BillPhotos";
+import { MAX_BILL_PHOTOS, billPhotosReady, listBillPhotos } from "@/lib/purchase-photos";
+import { reportError } from "@/lib/report-error";
 
 type PurchaseBillPageProps = {
   params: Promise<{ id: string }>;
@@ -28,6 +31,13 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
   }
 
   const lines = invoice.items.length > 0 ? invoice.items : null;
+  // A store hiccup must not take the bill itself down with it.
+  const photos = billPhotosReady()
+    ? await listBillPhotos(invoice.id).catch((error) => {
+        reportError("list purchase bill photos", error);
+        return [];
+      })
+    : null;
 
   return (
     <section className="p-6 print:p-0">
@@ -153,6 +163,13 @@ export default async function PurchaseBillPage({ params }: PurchaseBillPageProps
           KRISHOE purchase record
         </p>
       </div>
+      {photos ? (
+        <BillPhotos
+          invoiceId={invoice.id}
+          photos={photos.map(({ url, pathname }) => ({ url, pathname }))}
+          max={MAX_BILL_PHOTOS}
+        />
+      ) : null}
     </section>
   );
 }
