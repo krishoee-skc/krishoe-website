@@ -4,12 +4,24 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
 vi.mock("@/lib/admin-settings", () => ({ getAdminSettings: vi.fn(), saveAdminStaffAccount: vi.fn() }));
 vi.mock("@/lib/admin-staff-security", () => ({ latestStaffActivity: vi.fn(), revokeAllAdminStaffSessions: vi.fn() }));
+const store = new Map<string, number>();
+vi.mock("@/lib/rate-limit-store", () => ({
+  checkRateLimit: vi.fn(async ({ bucket, key, windowMs }: { bucket: string; key: string; windowMs: number }) => {
+    const at = store.get(`${bucket}:${key}`);
+    return { limited: at !== undefined && clock.now - at < windowMs };
+  }),
+  recordRateLimitAttempt: vi.fn(async ({ bucket, key }: { bucket: string; key: string }) => { store.set(`${bucket}:${key}`, clock.now); }),
+  clearRateLimitAttempts: vi.fn(async (bucket: string, key: string) => { store.delete(`${bucket}:${key}`); }),
+}));
+const clock = vi.hoisted(() => ({ now: 0 }));
 vi.mock("@/lib/owner-security-alert", () => ({
   ownerAlertTitles: { idleWarning: { ne: "w" }, idleClosed: { ne: "c" } },
   sendOwnerSecurityAlert: vi.fn(),
 }));
 
-const { IDLE_DAYS, idleStep, lastActivityAt, staffSafetyView } = await import("@/lib/staff-idle");
+const { IDLE_DAYS, idleStep, lastActivityAt, staffSafetyView, sweepIdleStaffAccounts } = await import("@/lib/staff-idle");
+const settingsModule = await import("@/lib/admin-settings");
+const securityModule = await import("@/lib/admin-staff-security");
 const { generateTemporaryPassword, temporaryPasswordProblem } = await import("@/lib/temporary-password");
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -28,9 +40,10 @@ describe("accounts nobody uses close after thirty days", () => {
     expect(idleStep(worker, now - 10 * DAY, now).kind).toBe("keep");
   });
 
-  it("warns the Owner once, three days before", () => {
-    expect(idleStep(worker, now - 27 * DAY, now)).toMatchObject({ kind: "warn", daysLeft: 3 });
-    expect(idleStep(worker, now - 28 * DAY, now).kind).toBe("keep");
+  it("is due a warning from three days before", () => {
+    expect(idleStep(worker, now - 26 * DAY, now).kind).toBe("keep");
+    expect(idleStep(worker, now - 27 * DAY, now).kind).toBe("warn");
+    expect(idleStep(worker, now - 29 * DAY, now).kind).toBe("warn");
   });
 
   it("closes it at thirty days, and later if a night was missed", () => {
@@ -53,6 +66,24 @@ describe("accounts nobody uses close after thirty days", () => {
   it("gives a re-opened account a fresh month", () => {
     const account = { createdAt: new Date(now - 200 * DAY).toISOString(), updatedAt: new Date(now - DAY).toISOString() };
     expect(idleStep(worker, lastActivityAt(account), now).kind).toBe("keep");
+  });
+
+  it("always warns first, and closes three days after the warning", async () => {
+    const start = now;
+    const longQuiet = {
+      id: "w1", name: "Hari", role: "Worker", status: "Active",
+      createdAt: new Date(start - 60 * DAY).toISOString(), updatedAt: new Date(start - 60 * DAY).toISOString(),
+    };
+    vi.mocked(settingsModule.getAdminSettings).mockResolvedValue({ staff: [longQuiet] } as never);
+    vi.mocked(securityModule.latestStaffActivity).mockResolvedValue(new Map());
+    vi.mocked(securityModule.revokeAllAdminStaffSessions).mockResolvedValue(0 as never);
+    const night = async (day: number) => { clock.now = start + day * DAY; return sweepIdleStaffAccounts(clock.now); };
+    // Sixty days quiet on the first night: warned, not closed.
+    expect(await night(0)).toEqual({ closed: [], warned: ["w1"] });
+    expect(await night(1)).toEqual({ closed: [], warned: [] });
+    expect(await night(2)).toEqual({ closed: [], warned: [] });
+    expect(await night(3)).toEqual({ closed: ["w1"], warned: [] });
+    expect(settingsModule.saveAdminStaffAccount).toHaveBeenCalledWith(expect.objectContaining({ id: "w1", status: "Disabled" }));
   });
 
   it("runs every night with the daily jobs", async () => {

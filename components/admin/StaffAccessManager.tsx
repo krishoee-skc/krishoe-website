@@ -216,7 +216,7 @@ export default function StaffAccessManager({
                     <p className={view.daysLeft <= 3 ? "font-black text-amber-800" : undefined}>
                       <span className="font-black text-brand-green-ink">{text("Auto-close:", "आफैँ बन्द:")}</span>{" "}
                       {view.daysLeft <= 0
-                        ? text("tonight, unless they sign in", "आज राति, नचलाए")
+                        ? text("soon — 3 days after the warning", "छिट्टै — सूचनाको ३ दिनपछि")
                         : text(`in ${view.daysLeft} days if unused`, `नचलाए ${view.daysLeft} दिनमा`)}
                     </p>
                   ) : null}

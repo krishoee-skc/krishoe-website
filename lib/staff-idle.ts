@@ -2,6 +2,7 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { getAdminSettings, saveAdminStaffAccount, type SafeAdminStaffAccount } from "@/lib/admin-settings";
 import { latestStaffActivity, revokeAllAdminStaffSessions } from "@/lib/admin-staff-security";
 import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
+import { checkRateLimit, clearRateLimitAttempts, recordRateLimitAttempt } from "@/lib/rate-limit-store";
 import { reportError } from "@/lib/report-error";
 
 /**
@@ -55,15 +56,13 @@ export function lastActivityAt(staff: ActivityFields, lastSeenAt?: string) {
 
 export type IdleStep =
   | { kind: "keep"; daysIdle: number }
-  | { kind: "warn"; daysIdle: number; daysLeft: number }
+  | { kind: "warn"; daysIdle: number }
   | { kind: "close"; daysIdle: number };
 
 /**
- * What tonight's run does with one account.
- *
- * The warning is for one night only — the night three days before — so the
- * Owner is told once, not every night. The run is daily; a missed night skips a
- * warning, never a closing.
+ * What an account is due for, from its quiet days alone: a warning from day
+ * 27, closing from day 30. Whether the warning has actually gone out — and
+ * three days ago — is the sweep's business (sweepIdleStaffAccounts).
  */
 export function idleStep(
   staff: Pick<SafeAdminStaffAccount, "role" | "status">,
@@ -75,9 +74,7 @@ export function idleStep(
   if (staff.role === "Owner") return { kind: "keep", daysIdle };
   if (staff.status !== "Active" && staff.status !== "Invited") return { kind: "keep", daysIdle };
   if (daysIdle >= IDLE_DAYS) return { kind: "close", daysIdle };
-  if (daysIdle === IDLE_DAYS - IDLE_WARNING_DAYS) {
-    return { kind: "warn", daysIdle, daysLeft: IDLE_WARNING_DAYS };
-  }
+  if (daysIdle >= IDLE_DAYS - IDLE_WARNING_DAYS) return { kind: "warn", daysIdle };
   return { kind: "keep", daysIdle };
 }
 
@@ -93,6 +90,24 @@ export function daysUntilIdleClose(
   return Math.max(0, IDLE_DAYS - daysIdle);
 }
 
+/**
+ * The warning is remembered, and no account is closed until three days after
+ * its warning — so the Owner is always told first, even about accounts that
+ * were already long unused the night this started, or after a missed night.
+ * Two markers: "warned in the last ten days" (do not warn again) and "warned
+ * in the last three days" (not yet time to close). Kept in the rate-limit
+ * store, which already expires old entries — no new table.
+ */
+const WARNED_BUCKET = "staff-idle-warned";
+const WARNED_WAIT_BUCKET = "staff-idle-warned-wait";
+const WARNED_MS = 10 * DAY_MS;
+// A little under three days, so a run a few minutes early is not a day late.
+const WARNED_WAIT_MS = IDLE_WARNING_DAYS * DAY_MS - 60 * 60 * 1000;
+
+async function marked(bucket: string, key: string, windowMs: number) {
+  return (await checkRateLimit({ bucket, key, maxAttempts: 1, windowMs })).limited;
+}
+
 /** The nightly run (app/api/cron/daily-sales). Returns what it did. */
 export async function sweepIdleStaffAccounts(nowMs = Date.now()) {
   const settings = await getAdminSettings();
@@ -105,10 +120,13 @@ export async function sweepIdleStaffAccounts(nowMs = Date.now()) {
     if (step.kind === "keep") continue;
 
     try {
-      if (step.kind === "warn") {
+      const alreadyWarned = await marked(WARNED_BUCKET, staff.id, WARNED_MS);
+      if (!alreadyWarned) {
+        await recordRateLimitAttempt({ bucket: WARNED_BUCKET, key: staff.id, maxAttempts: 1, windowMs: WARNED_MS });
+        await recordRateLimitAttempt({ bucket: WARNED_WAIT_BUCKET, key: staff.id, maxAttempts: 1, windowMs: WARNED_WAIT_MS });
         await sendOwnerSecurityAlert(
           "KRISHOE: an unused staff account closes in 3 days",
-          `${staff.name} (${staff.role}) has not used KRISHOE for ${step.daysIdle} days. The account closes in ${step.daysLeft} days unless they sign in.`,
+          `${staff.name} (${staff.role}) has not used KRISHOE for ${step.daysIdle} days. The account closes in ${IDLE_WARNING_DAYS} days unless they sign in.`,
           {
             title: ownerAlertTitles.idleWarning.ne,
             body: `${staff.name} (${staff.role}) · ${step.daysIdle} days`,
@@ -118,6 +136,7 @@ export async function sweepIdleStaffAccounts(nowMs = Date.now()) {
         warned.push(staff.id);
         continue;
       }
+      if (step.kind !== "close" || await marked(WARNED_WAIT_BUCKET, staff.id, WARNED_WAIT_MS)) continue;
 
       await saveAdminStaffAccount({
         id: staff.id,
@@ -146,6 +165,7 @@ export async function sweepIdleStaffAccounts(nowMs = Date.now()) {
           tag: `staff-idle-closed-${staff.id}`,
         },
       );
+      await clearRateLimitAttempts(WARNED_BUCKET, staff.id);
       closed.push(staff.id);
     } catch (error) {
       reportError(`close idle staff account ${staff.id}`, error);
