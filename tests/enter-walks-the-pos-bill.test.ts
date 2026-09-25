@@ -40,7 +40,9 @@ describe("the bill walks on Enter and asks before it saves", () => {
 
   it("reads the total back in the question", async () => {
     const form = await readFile(FORM, "utf8");
-    expect(form).toContain('data-summary="money" value={totals.total}');
+    // The money the counter is about to take: the bill, the old credit taken
+    // with it, or what an exchange still costs.
+    expect(form).toContain('data-summary="money" value={isExchange ? settle.toPay : totals.total + dueAmount}');
   });
 });
 

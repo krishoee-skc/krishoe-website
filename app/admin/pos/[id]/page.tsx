@@ -142,7 +142,25 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span>{invoice.customerAddress ? <span className="font-bold">: {invoice.customerAddress}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
           <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span>{invoice.customerPan ? <span className="font-bold">: {invoice.customerPan}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Payment Mode</span><span className="font-bold">: {invoice.paymentMethod}</span></div>
+          {/* A bill paid in parts names every part: the customer's copy has to
+              say where each rupee went, the exchange and the old credit too. */}
+          <div className="flex gap-1">
+            <span className="w-28 shrink-0 text-brand-muted">Payment Mode</span>
+            <span className="font-bold">
+              :{" "}
+              {invoice.payments && invoice.payments.length > 0
+                ? invoice.payments
+                    .map((part) => {
+                      const ref = part.reference ? ` (${part.reference})` : "";
+                      if (part.method === "Exchange") return `Exchange ${money(part.amount)}${part.against ? ` (${part.against})` : ""}`;
+                      if (part.purpose === "due") return `Old credit ${part.method} ${money(part.amount)}${ref}`;
+                      if (part.purpose === "refund") return `Given back ${part.method} ${money(part.amount)}`;
+                      return `${part.method} ${money(part.amount)}${ref}`;
+                    })
+                    .join(" + ")
+                : invoice.paymentMethod}
+            </span>
+          </div>
         </div>
 
         {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount */}

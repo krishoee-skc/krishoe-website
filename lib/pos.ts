@@ -14,6 +14,17 @@ import {
   getOperationsDataForReports,
 } from "@/lib/operations";
 import {
+  moneyByMethod,
+  paidTowardBill,
+  paymentPartsProblem,
+  readPaymentParts,
+  settleExchange,
+  settledByExchange,
+  type PosPaymentPart,
+  type PosPaymentPartMethod,
+} from "@/lib/pos-payments";
+import {
+  createPosExchangePostgres,
   createPosInvoicePostgres,
   getPosInvoicesFromPostgres,
   savePosInvoiceToPostgres,
@@ -76,6 +87,11 @@ export type PosInvoice = {
   qrPayload: string;
   note: string;
   sourceSubmissionKey: string;
+  /**
+   * How it was paid, part by part — see lib/pos-payments.ts. Empty for a bill
+   * paid one way, which reads by paymentMethod and paidAmount as it always did.
+   */
+  payments?: PosPaymentPart[];
 };
 
 export type PosDayClosePaymentRow = {
@@ -163,6 +179,38 @@ export type CreatePosInvoiceInput = {
     size?: string;
     color?: string;
   }>;
+  /**
+   * The bill paid in more than one way — "Rs 1,000 cash and the rest by QR".
+   * Only the parts toward this bill; the first part names the bill's method.
+   */
+  paymentParts?: PosPaymentPart[];
+  /** The customer's older credit, cleared on the same bill. */
+  collectDue?: {
+    ledgerId: string;
+    amount: number;
+    method: PosPaymentPartMethod;
+    reference?: string;
+  };
+};
+
+/**
+ * An exchange: pairs that came back and pairs that left, as one event.
+ *
+ * Saved as two bills, a return and a sale, in one transaction. The returned
+ * pairs pay for the new ones as far as they go; the rest is paid for by the
+ * parts, or handed back. No customer account is needed — that is the owner's
+ * rule for an exchange — unless part of the new bill is left on credit.
+ */
+export type CreatePosExchangeInput = Omit<
+  CreatePosInvoiceInput,
+  "kind" | "items" | "paymentParts" | "collectDue"
+> & {
+  returnedItems: CreatePosInvoiceInput["items"];
+  soldItems: CreatePosInvoiceInput["items"];
+  /** Toward what is still owed for the new pairs. */
+  paymentParts?: PosPaymentPart[];
+  /** How the difference goes back, when the returned pairs were worth more. */
+  refundMethod?: PosPaymentPartMethod;
 };
 
 const dataDirectory = path.join(process.cwd(), "data");
@@ -228,8 +276,12 @@ function invoiceLedgerTransactionType(kind: PosInvoiceKind) {
   return kind === "Sale" ? "Credit Sale" : "Return Adjustment";
 }
 
-function invoiceNeedsLedger(invoice: Pick<PosInvoice, "kind" | "creditAmount">) {
-  return (invoice.kind === "Sale" && invoice.creditAmount > 0) || invoice.kind === "Return";
+function invoiceNeedsLedger(invoice: Pick<PosInvoice, "kind" | "creditAmount" | "payments">) {
+  // A return settled against a new pair in an exchange owes nobody anything.
+  return (
+    (invoice.kind === "Sale" && invoice.creditAmount > 0) ||
+    (invoice.kind === "Return" && !settledByExchange(invoice))
+  );
 }
 
 function groupInvoiceItemsByDesign(items: PosInvoiceItem[]) {
@@ -450,6 +502,7 @@ function normalizeInvoice(invoice: Partial<PosInvoice>): PosInvoice {
     qrPayload: cleanText(invoice.qrPayload ?? ""),
     note: cleanText(invoice.note ?? ""),
     sourceSubmissionKey: cleanSubmissionKey(invoice.sourceSubmissionKey),
+    payments: readPaymentParts(invoice.payments),
   };
 }
 
@@ -587,13 +640,55 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   const discount = Math.min(cleanNumber(input.invoiceDiscount), subtotal);
   const tax = cleanNumber(input.tax);
   const total = Math.max(0, subtotal - discount + tax);
-  const paidAmount = Math.min(cleanNumber(input.paidAmount), total);
+
+  // Paid in parts: the parts are what was paid, and the first one names the
+  // bill's method and number, so every screen that reads one method still
+  // reads something true.
+  const parts = readPaymentParts(input.paymentParts ?? []).filter(
+    (part) => part.purpose === "bill" && part.method !== "Exchange",
+  );
+  if (parts.length > 0) {
+    const problem = paymentPartsProblem(parts, total);
+    if (problem) throw new Error(problem);
+  }
+  const paidAmount = parts.length > 0 ? Math.min(paidTowardBill(parts), total) : Math.min(cleanNumber(input.paidAmount), total);
+  const paymentMethod = parts.length > 0 ? (parts[0].method as PosPaymentMethod) : input.paymentMethod;
+  const paymentReference = parts.length > 0 ? (parts[0].reference ?? "") : cleanText(input.paymentReference);
   const creditAmount = input.kind === "Sale" ? Math.max(0, total - paidAmount) : 0;
-  validatePaymentInput(input, creditAmount);
+  validatePaymentInput({ ...input, paymentMethod, paymentReference, paidAmount }, creditAmount);
+
+  // The customer's older credit, cleared on this bill: money into the drawer,
+  // and a payment on their account, in the same save.
+  const due =
+    input.collectDue && cleanNumber(input.collectDue.amount) > 0
+      ? {
+          ledgerId: cleanText(input.collectDue.ledgerId),
+          amount: cleanNumber(input.collectDue.amount),
+          method: input.collectDue.method,
+          reference: cleanText(input.collectDue.reference ?? ""),
+        }
+      : null;
+  if (due) {
+    if (input.kind !== "Sale") throw new Error("Old credit is cleared on a sale bill, not a return.");
+    if (due.method === "Exchange") throw new Error("Old credit is paid in money.");
+    const problem = paymentPartsProblem([{ ...due, purpose: "due" }], 0);
+    if (problem && !problem.includes("more than the bill")) throw new Error(problem);
+    if (cleanText(input.ledgerId) && cleanText(input.ledgerId) !== due.ledgerId) {
+      throw new Error("The old credit and this bill's credit must be the same customer's account.");
+    }
+  }
 
   // Loaded once and shared: the size routing, the stock preflight and the
   // choice of pool for each line's movement all read it.
   const operations = await getOperationsData();
+
+  if (due) {
+    const ledger = operations.customerLedgers.find((record) => record.id === due.ledgerId);
+    if (!ledger) throw new Error("The customer's account was not found.");
+    if (due.amount > ledger.balanceDue) {
+      throw new Error(`${ledger.customerName} owes ${ledger.balanceDue}, not ${due.amount}.`);
+    }
+  }
 
   // A line that names the customer's size moves the row that size is kept on —
   // its own row, or the uncounted pile it must be in. See stockRowForSize.
@@ -656,9 +751,9 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     customerAddress: cleanText(input.customerAddress ?? ""),
     customerPan: cleanText(input.customerPan ?? ""),
     cashier: cleanText(input.cashier) || "Admin",
-    paymentMethod: input.paymentMethod,
-    paymentReference: cleanText(input.paymentReference),
-    ledgerId: cleanText(input.ledgerId),
+    paymentMethod,
+    paymentReference,
+    ledgerId: cleanText(input.ledgerId) || (due ? due.ledgerId : ""),
     subtotal,
     discount,
     tax,
@@ -674,6 +769,12 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     qrPayload: "",
     note: cleanText(input.note),
     sourceSubmissionKey,
+    payments: [
+      ...parts,
+      ...(due
+        ? [{ method: due.method, amount: due.amount, purpose: "due" as const, ...(due.reference ? { reference: due.reference } : {}) }]
+        : []),
+    ],
   };
 
   invoice.qrPayload = qrPayloadForInvoice(invoice);
@@ -705,6 +806,18 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
           note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} through POS.`,
         }
       : null;
+  const otherLedgerTransactions: Array<Omit<LedgerTransaction, "id" | "createdAt" | "customerName">> = due
+    ? [
+        {
+          ledgerId: due.ledgerId,
+          // The account keeps cash and everything-else apart; a QR or bank
+          // payment sits with cheques, and the note says which it was.
+          type: due.method === "Cash" ? "Cash Payment" : "Cheque Payment",
+          amount: due.amount,
+          note: `${invoice.invoiceNumber} old credit paid at the counter (${due.method}${due.reference ? ` ${due.reference}` : ""}).`,
+        },
+      ]
+    : [];
 
   // Postgres: invoice + stock movements + ledger post in one transaction, so a
   // sale is all-or-nothing and each stock row is locked (FOR UPDATE) against
@@ -716,6 +829,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
         invoice,
         stockMovements,
         ledgerTransaction,
+        otherLedgerTransactions,
       });
     } catch (error) {
       const duplicateSubmission =
@@ -750,6 +864,9 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
     const created = await addLedgerTransaction(ledgerTransaction);
     ledgerTransactionId = created.id;
   }
+  for (const transaction of otherLedgerTransactions) {
+    await addLedgerTransaction(transaction);
+  }
 
   const postedInvoice = await updatePosInvoicePosting(invoice.id, {
     stockMovementIds,
@@ -760,6 +877,196 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
   await syncCatalogStockAfterPosting();
 
   return postedInvoice;
+}
+
+/** The stock as it will stand once the returned pairs are back on the shelf. */
+function withPairsBack(operations: OperationsData, returned: PosInvoiceItem[]): OperationsData {
+  const finishedStock = operations.finishedStock.map((row) => ({ ...row }));
+  for (const item of returned) {
+    const row = resolveStockRow(finishedStock, item.design, item.sizeRun);
+    if (row) row.stockPairs += item.quantity;
+  }
+  return { ...operations, finishedStock };
+}
+
+function movementsFor(
+  invoice: PosInvoice,
+  operations: OperationsData,
+): Array<Omit<StockMovement, "id" | "createdAt">> {
+  return invoice.items.map((item) => {
+    const pool = resolveStockRow(operations.finishedStock, item.design, item.sizeRun);
+    return {
+      design: item.design,
+      channel: pool ? pool.channel : invoice.channel,
+      sizeRun: item.sizeRun,
+      type: invoice.kind === "Sale" ? "Sale Out" : "Return In",
+      pairs: item.quantity,
+      note: `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} ${item.sku || item.design}`,
+    };
+  });
+}
+
+/**
+ * An exchange at the counter: the pairs that came back and the pairs that left,
+ * saved as a return and a sale that settle against each other.
+ *
+ * The returned pairs pay for the new ones as far as they go (an "Exchange"
+ * part on both bills, each naming the other). Whatever the new pairs still cost
+ * is paid by the parts — or left on the customer's account, which then has to
+ * be named. Whatever the returned pairs were worth beyond the new ones is
+ * handed back, and the day close takes it out of the drawer.
+ */
+export async function createPosExchange(input: CreatePosExchangeInput) {
+  const sourceSubmissionKey = cleanSubmissionKey(input.sourceSubmissionKey);
+  const saleId = sourceSubmissionKey ? idFromSubmissionKey("POS", `${sourceSubmissionKey}-sale`) : "";
+  const returnId = sourceSubmissionKey ? idFromSubmissionKey("RETURN", `${sourceSubmissionKey}-return`) : "";
+  if (saleId) {
+    const [existingSale, existingReturn] = await Promise.all([getPosInvoiceById(saleId), getPosInvoiceById(returnId)]);
+    if (existingSale && existingReturn) return { returnInvoice: existingReturn, saleInvoice: existingSale };
+  }
+
+  const clean = (items: CreatePosInvoiceInput["items"]) =>
+    items
+      .map((item) => normalizeItem({ ...item, id: createId("ITEM") }))
+      .filter((item) => item.design && item.quantity > 0 && item.rate > 0);
+  const returnedLines = clean(input.returnedItems);
+  const soldLines = clean(input.soldItems);
+  if (returnedLines.length === 0 || soldLines.length === 0) {
+    throw new Error("An exchange needs a pair that came back and a pair that left.");
+  }
+
+  const returnedValue = sum(returnedLines, (item) => item.lineTotal);
+  const soldSubtotal = sum(soldLines, (item) => item.lineTotal);
+  const discount = Math.min(cleanNumber(input.invoiceDiscount), soldSubtotal);
+  const tax = cleanNumber(input.tax);
+  const soldTotal = Math.max(0, soldSubtotal - discount + tax);
+  const settle = settleExchange(returnedValue, soldTotal);
+
+  const parts = readPaymentParts(input.paymentParts ?? []).filter(
+    (part) => part.purpose === "bill" && part.method !== "Exchange",
+  );
+  const partsProblem = paymentPartsProblem(parts, settle.toPay);
+  if (partsProblem) throw new Error(partsProblem);
+  const refundMethod = input.refundMethod && input.refundMethod !== "Exchange" ? input.refundMethod : "Cash";
+
+  const paidAmount = Math.min(soldTotal, settle.exchanged + paidTowardBill(parts));
+  const creditAmount = Math.max(0, soldTotal - paidAmount);
+  const ledgerId = cleanText(input.ledgerId);
+  if (creditAmount > 0 && !ledgerId) {
+    throw new Error("A credit or part-paid sale must be linked to a customer account.");
+  }
+
+  const operations = await getOperationsData();
+  const route = (items: PosInvoiceItem[], kind: PosInvoiceKind) =>
+    items.map((item) =>
+      item.size
+        ? { ...item, sizeRun: stockRowForSize(operations.finishedStock, item.design, item.size, item.quantity, kind) }
+        : item,
+    );
+  const returnedItems = route(returnedLines, "Return");
+  const soldItems = route(soldLines, "Sale");
+  // The returned pairs are back on the shelf before the new ones leave — the
+  // same pair in a different size must not be refused for want of itself.
+  preflightSaleStock(withPairsBack(operations, returnedItems), soldItems);
+
+  const [returnNumber, saleNumber] = [await nextInvoiceNumber("Return"), await nextInvoiceNumber("Sale")];
+  const createdAt = new Date().toISOString();
+  const shared = {
+    createdAt,
+    channel: input.channel,
+    customerName: cleanText(input.customerName) || "Walk-in Customer",
+    phone: cleanText(input.phone),
+    customerAddress: cleanText(input.customerAddress ?? ""),
+    customerPan: cleanText(input.customerPan ?? ""),
+    cashier: cleanText(input.cashier) || "Admin",
+    postingStatus: "Needs Review" as const,
+    stockMovementIds: [],
+    ledgerTransactionId: "",
+    qrPayload: "",
+    sourceSubmissionKey: "",
+  };
+
+  const returnInvoice: PosInvoice = {
+    ...shared,
+    id: returnId || createId("RETURN"),
+    invoiceNumber: returnNumber,
+    kind: "Return",
+    // Every money method is also a bill method; only "Exchange" is not, and it
+    // was ruled out above.
+    paymentMethod: refundMethod as PosPaymentMethod,
+    paymentReference: "",
+    ledgerId: "",
+    subtotal: returnedValue,
+    discount: 0,
+    tax: 0,
+    total: returnedValue,
+    paidAmount: 0,
+    creditAmount: 0,
+    status: "Returned",
+    items: returnedItems,
+    barcodeValue: returnNumber,
+    note: `Exchange with ${saleNumber}. ${cleanText(input.note)}`.trim(),
+    payments: [
+      { method: "Exchange", amount: settle.exchanged, purpose: "bill", against: saleNumber },
+      ...(settle.toRefund > 0 ? [{ method: refundMethod, amount: settle.toRefund, purpose: "refund" as const }] : []),
+    ],
+  };
+
+  const saleInvoice: PosInvoice = {
+    ...shared,
+    id: saleId || createId("POS"),
+    invoiceNumber: saleNumber,
+    kind: "Sale",
+    paymentMethod: parts.length > 0 ? (parts[0].method as PosPaymentMethod) : creditAmount > 0 ? "Credit" : "Cash",
+    paymentReference: parts[0]?.reference ?? "",
+    ledgerId,
+    subtotal: soldSubtotal,
+    discount,
+    tax,
+    total: soldTotal,
+    paidAmount,
+    creditAmount,
+    status: invoiceStatus("Sale", soldTotal, paidAmount, creditAmount),
+    items: soldItems,
+    barcodeValue: saleNumber,
+    note: `Exchange with ${returnNumber}. ${cleanText(input.note)}`.trim(),
+    payments: [{ method: "Exchange", amount: settle.exchanged, purpose: "bill", against: returnNumber }, ...parts],
+  };
+  returnInvoice.qrPayload = qrPayloadForInvoice(returnInvoice);
+  saleInvoice.qrPayload = qrPayloadForInvoice(saleInvoice);
+
+  const returnMovements = movementsFor(returnInvoice, operations);
+  const saleMovements = movementsFor(saleInvoice, withPairsBack(operations, returnedItems));
+  const creditTransaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null =
+    creditAmount > 0
+      ? { ledgerId, type: "Credit Sale", amount: creditAmount, note: `${saleNumber} sale through POS (exchange).` }
+      : null;
+
+  if (getDataBackend() === "postgres") {
+    const posted = await createPosExchangePostgres(
+      { invoice: returnInvoice, stockMovements: returnMovements },
+      { invoice: saleInvoice, stockMovements: saleMovements, ledgerTransaction: creditTransaction },
+    );
+    await syncCatalogStockAfterPosting();
+    return posted;
+  }
+
+  // local-json fallback: the return first, so its pairs are back before the sale.
+  const postLocally = async (
+    invoice: PosInvoice,
+    movements: Array<Omit<StockMovement, "id" | "createdAt">>,
+    transaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null,
+  ) => {
+    await savePosInvoice(invoice);
+    const stockMovementIds: string[] = [];
+    for (const movement of movements) stockMovementIds.push((await addStockMovement(movement)).id);
+    const ledgerTransactionId = transaction ? (await addLedgerTransaction(transaction)).id : "";
+    return updatePosInvoicePosting(invoice.id, { stockMovementIds, ledgerTransactionId, postingStatus: "Posted" });
+  };
+  const postedReturn = await postLocally(returnInvoice, returnMovements, null);
+  const postedSale = await postLocally(saleInvoice, saleMovements, creditTransaction);
+  await syncCatalogStockAfterPosting();
+  return { returnInvoice: postedReturn, saleInvoice: postedSale };
 }
 
 export async function repairPosInvoicePosting(id: string): Promise<PosPostingRepairResult> {
@@ -1004,7 +1311,11 @@ function buildDayCloseReport(
       saleTotal,
       returnTotal,
       netTotal: saleTotal - returnTotal,
-      paidAmount: sum(paymentInvoices, (invoice) => invoice.paidAmount),
+      // Money by the method it came in by: a part-cash, part-QR bill puts each
+      // part under its own method, an old credit cleared at the counter is in
+      // the drawer, and a refund comes out of it. A bill paid one way reads
+      // exactly as before — its paid amount under its method.
+      paidAmount: sum(rows, (invoice) => moneyByMethod(invoice).get(paymentMethod) ?? 0),
       creditAmount: sum(paymentInvoices, (invoice) => invoice.creditAmount),
     };
   });
@@ -1099,7 +1410,7 @@ export async function getPosSnapshot() {
     return {
       paymentMethod,
       invoiceCount: rows.length,
-      paid: sum(rows, (invoice) => invoice.paidAmount),
+      paid: sum(active, (invoice) => moneyByMethod(invoice).get(paymentMethod) ?? 0),
       total: sum(rows, (invoice) => invoice.total),
     };
   });

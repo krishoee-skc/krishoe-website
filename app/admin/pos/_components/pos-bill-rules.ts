@@ -81,6 +81,8 @@ export type CartLine = {
   rate: number;
   /** The channel's own price, so a bargained rate can show what it was. */
   listRate: number;
+  /** In an exchange: this pair came back, rather than left. */
+  back?: boolean;
 };
 
 // Wholesale gets its own price; retail and online sell at the shelf price.
@@ -97,8 +99,9 @@ function bySize(a: string, b: string) {
   return Number(a) - Number(b) || a.localeCompare(b);
 }
 
-export function lineKey(design: string, size: string, color: string) {
-  return [design.trim().toLowerCase(), size.trim(), color.trim().toLowerCase()].join("|");
+export function lineKey(design: string, size: string, color: string, back = false) {
+  const key = [design.trim().toLowerCase(), size.trim(), color.trim().toLowerCase()].join("|");
+  return back ? `${key}|back` : key;
 }
 
 function sameDesign(line: CartLine, design: string) {
@@ -107,8 +110,9 @@ function sameDesign(line: CartLine, design: string) {
 
 /** Pairs of this design already on the bill — of one size, or of every size. */
 export function pairsOnBill(cart: CartLine[], design: string, size?: string) {
+  // A pair coming back in an exchange takes nothing off the shelf.
   return cart
-    .filter((line) => sameDesign(line, design) && (size === undefined || line.size === size))
+    .filter((line) => !line.back && sameDesign(line, design) && (size === undefined || line.size === size))
     .reduce((total, line) => total + line.quantity, 0);
 }
 
@@ -131,7 +135,7 @@ export type SizeChoice = {
  */
 export function untrackedLeft(item: SellableItem, cart: CartLine[]) {
   const counted = item.sizeStock ?? {};
-  const sizes = new Set(cart.filter((line) => sameDesign(line, item.design)).map((line) => line.size));
+  const sizes = new Set(cart.filter((line) => !line.back && sameDesign(line, item.design)).map((line) => line.size));
   let fromPile = 0;
   for (const size of sizes) {
     fromPile += Math.max(0, pairsOnBill(cart, item.design, size) - (counted[size] ?? 0));
@@ -204,8 +208,9 @@ export function addPair(
   channel: string,
   size: string,
   color = "",
+  back = false,
 ): CartLine[] {
-  const key = lineKey(item.design, size, color);
+  const key = lineKey(item.design, size, color, back);
   const existing = cart.find((line) => line.key === key);
   if (existing) {
     return cart.map((line) => (line.key === key ? { ...line, quantity: line.quantity + 1 } : line));
@@ -213,7 +218,7 @@ export function addPair(
   const rate = rateForChannel(channel, item);
   return [
     ...cart,
-    { key, design: item.design, sku: item.sku, size, color, quantity: 1, rate, listRate: rate },
+    { key, design: item.design, sku: item.sku, size, color, quantity: 1, rate, listRate: rate, ...(back ? { back } : {}) },
   ];
 }
 
@@ -261,12 +266,15 @@ export type BillTotals = {
 
 /** What the bill comes to: the lines, less a whole-bill discount, plus tax. */
 export function billTotals(cart: CartLine[], billDiscount: number, tax: number): BillTotals {
-  const subtotal = cart.reduce((sum, line) => sum + line.quantity * line.rate, 0);
-  const listTotal = cart.reduce((sum, line) => sum + line.quantity * line.listRate, 0);
+  // The pairs that leave. Pairs coming back in an exchange are counted apart,
+  // by returnedValue, and set against this total.
+  const out = cart.filter((line) => !line.back);
+  const subtotal = out.reduce((sum, line) => sum + line.quantity * line.rate, 0);
+  const listTotal = out.reduce((sum, line) => sum + line.quantity * line.listRate, 0);
   const discount = Math.min(Math.max(0, Math.round(billDiscount) || 0), subtotal);
   const vat = Math.max(0, Math.round(tax) || 0);
   return {
-    pairs: cart.reduce((sum, line) => sum + line.quantity, 0),
+    pairs: out.reduce((sum, line) => sum + line.quantity, 0),
     subtotal,
     bargained: Math.max(0, listTotal - subtotal),
     discount,
@@ -377,4 +385,90 @@ export function wholesaleSet(item: SellableItem, cart: CartLine[]) {
   return sizeChoices(item, cart)
     .filter((choice) => choice.sellable)
     .map((choice) => choice.size);
+}
+
+/** What the pairs coming back in an exchange are worth, at the rate on their line. */
+export function returnedValue(cart: CartLine[]) {
+  return cart.filter((line) => line.back).reduce((sum, line) => sum + line.quantity * line.rate, 0);
+}
+
+export type CounterPayment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque";
+export type MoneyPart = { method: Exclude<CounterPayment, "Credit">; amount: number; reference?: string };
+
+export type PaymentPlan = {
+  /** Toward the bill. */
+  paid: number;
+  /** Left on the customer's account. */
+  credit: number;
+  /** Cash handed back. */
+  change: number;
+  /** What nothing has settled yet — the bill cannot be saved while above zero. */
+  short: number;
+  /** Every money part toward the bill, a plain one-method payment included. */
+  parts: MoneyPart[];
+  /** Whether it takes more than one method, and so needs the payments column. */
+  split: boolean;
+};
+
+/**
+ * How the money for a bill is settled, before it is saved.
+ *
+ *   total        what is owed for the pairs leaving (for an exchange, what is
+ *                left after the returned pairs)
+ *   method       the payment button pressed
+ *   received     the cash typed in, or null for "exact"
+ *   restMethod   how a cash shortfall is covered: another method, credit, or
+ *                "" for not yet
+ *   due          old credit collected on top, paid by the same method
+ *
+ * Old credit is only taken in full: cash that does not cover the bill and the
+ * old credit together is a shortfall, never a quiet part-payment of either.
+ */
+export function planPayment(input: {
+  total: number;
+  method: CounterPayment;
+  received: number | null;
+  restMethod: CounterPayment | "";
+  reference: string;
+  restReference: string;
+  due: number;
+}): PaymentPlan {
+  const total = Math.max(0, Math.round(input.total) || 0);
+  const due = Math.max(0, Math.round(input.due) || 0);
+  const none: PaymentPlan = { paid: 0, credit: 0, change: 0, short: 0, parts: [], split: false };
+
+  if (total === 0 && due === 0) return none;
+  if (input.method === "Credit") return { ...none, credit: total };
+
+  if (input.method !== "Cash") {
+    const reference = input.reference.trim();
+    return {
+      ...none,
+      paid: total,
+      parts: total > 0 ? [{ method: input.method, amount: total, ...(reference ? { reference } : {}) }] : [],
+    };
+  }
+
+  const cash = cashOutcome(total + due, input.received);
+  if (cash.short === 0) {
+    return { ...none, paid: total, change: cash.change, parts: total > 0 ? [{ method: "Cash", amount: total }] : [] };
+  }
+  if (due > 0) return { ...none, short: cash.short };
+
+  const cashIn = cash.paid;
+  const rest = total - cashIn;
+  const cashPart: MoneyPart[] = cashIn > 0 ? [{ method: "Cash", amount: cashIn }] : [];
+  if (input.restMethod === "Credit") {
+    return { ...none, paid: cashIn, credit: rest, parts: cashPart };
+  }
+  if (input.restMethod && input.restMethod !== "Cash") {
+    const reference = input.restReference.trim();
+    return {
+      ...none,
+      paid: total,
+      parts: [...cashPart, { method: input.restMethod, amount: rest, ...(reference ? { reference } : {}) }],
+      split: cashPart.length > 0,
+    };
+  }
+  return { ...none, paid: cashIn, short: rest, parts: cashPart };
 }

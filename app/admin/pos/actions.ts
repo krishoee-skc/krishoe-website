@@ -10,12 +10,14 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
+  createPosExchange,
   createPosInvoice,
   repairPosInvoicePosting,
   type PosChannel,
   type PosInvoiceKind,
   type PosPaymentMethod,
 } from "@/lib/pos";
+import { PAYMENT_PART_METHODS, readPaymentParts, type PosPaymentPartMethod } from "@/lib/pos-payments";
 
 // A bill moves finished stock, and the shop reads products.stock — so the
 // catalog is recomputed right after, the same way the operations screens do it.
@@ -82,6 +84,35 @@ function invoiceItems(formData: FormData) {
   }));
 }
 
+// A bill paid in parts sends them as one JSON field; anything malformed in it
+// is dropped rather than trusted.
+function paymentPartsFrom(formData: FormData) {
+  const raw = textValue(formData, "paymentParts");
+  if (!raw) return [];
+  try {
+    return readPaymentParts(JSON.parse(raw)).slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+function partMethod(value: string): PosPaymentPartMethod {
+  return PAYMENT_PART_METHODS.find((method) => method === value && method !== "Exchange") ?? "Cash";
+}
+
+// The customer's older credit, cleared on this bill.
+function dueFrom(formData: FormData) {
+  const amount = numberValue(formData, "dueAmount");
+  const ledgerId = textValue(formData, "dueLedgerId");
+  if (amount <= 0 || !ledgerId) return undefined;
+  return {
+    ledgerId,
+    amount,
+    method: partMethod(textValue(formData, "dueMethod")),
+    reference: textValue(formData, "dueReference"),
+  };
+}
+
 // Returns the outcome instead of throwing. A bill that failed used to take the
 // cashier to the admin error page — the whole counter sale gone with it, and no
 // word of why. Now the reason ("Item 2 needs a rate", "POS return must be linked
@@ -93,13 +124,20 @@ export async function createPosInvoiceAction(
 ): Promise<ActionState> {
   await requireAdminPermission("pos:write");
 
+  if (textValue(formData, "kind") === "Exchange") {
+    return saveExchange(formData);
+  }
+
   const kind = optionValue(textValue(formData, "kind"), invoiceKinds, "Sale");
+  const paymentParts = paymentPartsFrom(formData);
   const paymentMethod = optionValue(textValue(formData, "paymentMethod"), paymentMethods, "Cash");
   const paymentReference = textValue(formData, "paymentReference");
   const ledgerId = textValue(formData, "ledgerId");
   const paidAmount = numberValue(formData, "paidAmount");
 
-  if (paymentMethod === "Credit" && paidAmount > 0) {
+  // A bill paid in parts is checked part by part in the library, which knows
+  // the total; these one-method checks are for a bill paid one way.
+  if (paymentParts.length === 0 && paymentMethod === "Credit" && paidAmount > 0) {
     return {
       ok: false,
       message:
@@ -108,7 +146,7 @@ export async function createPosInvoiceAction(
     };
   }
 
-  if (referencePaymentMethods.includes(paymentMethod) && paidAmount > 0 && !paymentReference) {
+  if (paymentParts.length === 0 && referencePaymentMethods.includes(paymentMethod) && paidAmount > 0 && !paymentReference) {
     return {
       ok: false,
       message: `${paymentMethod} बाट पैसा आएको हो भने reference नम्बर लेख्नुहोस्. ${paymentMethod} needs a reference number.`,
@@ -143,6 +181,8 @@ export async function createPosInvoiceAction(
       note: textValue(formData, "note"),
       sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
       items: invoiceItems(formData),
+      paymentParts,
+      collectDue: dueFrom(formData),
     });
   } catch (error) {
     reportError("save POS bill", error);
@@ -166,6 +206,59 @@ export async function createPosInvoiceAction(
     ok: true,
     message: `Saved ${invoice.invoiceNumber} — Rs. ${invoice.total.toLocaleString("en-IN")}.`,
     href: `/admin/pos/${invoice.id}`,
+  };
+}
+
+/**
+ * An exchange: the lines marked "in" came back, the lines marked "out" left.
+ * Saved as a return and a sale that settle against each other; the receipt
+ * opened is the sale's, which names the return.
+ */
+async function saveExchange(formData: FormData): Promise<ActionState> {
+  const items = invoiceItems(formData);
+  const directions = items.map((_, index) => textValue(formData, `item${index}Direction`));
+  const returnedItems = items.filter((_, index) => directions[index] === "in");
+  const soldItems = items.filter((_, index) => directions[index] !== "in");
+
+  let result;
+  try {
+    result = await createPosExchange({
+      channel: optionValue(textValue(formData, "channel"), channels, "Retail"),
+      customerName: textValue(formData, "customerName"),
+      phone: textValue(formData, "phone"),
+      customerAddress: textValue(formData, "customerAddress"),
+      customerPan: textValue(formData, "customerPan"),
+      cashier: textValue(formData, "cashier"),
+      paymentMethod: "Cash",
+      paymentReference: "",
+      ledgerId: textValue(formData, "ledgerId"),
+      invoiceDiscount: numberValue(formData, "invoiceDiscount"),
+      tax: numberValue(formData, "tax"),
+      paidAmount: 0,
+      note: textValue(formData, "note"),
+      sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
+      returnedItems,
+      soldItems,
+      paymentParts: paymentPartsFrom(formData),
+      refundMethod: partMethod(textValue(formData, "refundMethod")),
+    });
+  } catch (error) {
+    reportError("save POS exchange", error);
+    return { ok: false, message: saveFailureMessage(error, "Could not save this exchange.") };
+  }
+
+  const { returnInvoice, saleInvoice } = result;
+  await recordAdminAuditEvent(
+    "pos_create_invoice",
+    `Exchange: ${returnInvoice.invoiceNumber} return (Rs. ${returnInvoice.total}) against ${saleInvoice.invoiceNumber} sale (Rs. ${saleInvoice.total}).`,
+  );
+  await syncCatalogStockAfterBill("POS exchange");
+  revalidatePath("/", "layout");
+
+  return {
+    ok: true,
+    message: `Saved ${saleInvoice.invoiceNumber} with ${returnInvoice.invoiceNumber}.`,
+    href: `/admin/pos/${saleInvoice.id}`,
   };
 }
 

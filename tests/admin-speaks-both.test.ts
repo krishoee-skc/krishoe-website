@@ -105,7 +105,7 @@ describe("what must not move while the words do", () => {
 
     // The bill is tapped, not picked from dropdowns, so these travel in hidden
     // inputs whose values are typed constants — never the words on a button.
-    expect(form).toContain('type Kind = "Sale" | "Return";');
+    expect(form).toContain('type Kind = "Sale" | "Return" | "Exchange";');
     expect(form).toContain('(["Retail", "Wholesale", "Online"] as const)');
     expect(form).toContain('const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];');
     expect(form).toContain('name="kind" value={kind}');
@@ -114,7 +114,7 @@ describe("what must not move while the words do", () => {
 
     // And every one of them is a value the save accepts.
     const actions = await readFile("app/admin/pos/actions.ts", "utf8");
-    for (const value of ["Sale", "Return", "Retail", "Wholesale", "Online", "Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"]) {
+    for (const value of ["Sale", "Return", "Exchange", "Retail", "Wholesale", "Online", "Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"]) {
       expect(actions, value).toContain(`"${value}"`);
     }
   });

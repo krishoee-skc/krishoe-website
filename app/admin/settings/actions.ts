@@ -5,6 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings";
 import { prepareDeliveryDatabase } from "@/lib/delivery-database";
+import { preparePosDatabase } from "@/lib/pos-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -215,6 +216,25 @@ export async function prepareDeliveryDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for delivery charges. Set the charge by area below.");
+}
+
+export async function preparePosDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the bill column.");
+    }
+    const { applied } = await preparePosDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_pos_ready",
+      applied.length
+        ? `Database prepared for bills paid in parts: ${applied.join(", ")}.`
+        : "Database was already ready for bills paid in parts.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for the new counter bill.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

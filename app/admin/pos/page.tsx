@@ -23,6 +23,7 @@ import { getPosSnapshot, type PosInvoice } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
 import { designKey } from "@/lib/design-name";
 import { availableBySize } from "@/lib/stock-by-size";
+import { posPaymentsReady } from "@/lib/pos-database";
 import type { SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
 const SHOE_SIZE = /^\d{1,2}$/;
@@ -153,6 +154,13 @@ export default async function AdminPosPage() {
   // What a pair cost is shown only to those who may read costing; everyone
   // else still gets the warning, without the figure.
   const showCost = canAdmin(role, "costing:read");
+  const isOwner = canAdmin(role, "settings:write");
+  // The split payment, the exchange in one bill and the old credit on a bill
+  // wait for the Owner's database button. A failed check leaves them off.
+  const paymentsReady = await posPaymentsReady().catch((error) => {
+    reportError("check the bill payments column", error);
+    return false;
+  });
 
   if (!loaded.data) {
     return (
@@ -169,9 +177,10 @@ export default async function AdminPosPage() {
   const unitCost = new Map(costing.designCosting.map((row) => [designKey(row.design), row.unitCostPerPair]));
 
   // Pairs per size, from the stock rows entered size-wise, and the pile whose
-  // sizes nobody counted. A design with no stock row at all keeps the
-  // catalog's own count as that pile, the way the counter always read it.
-  function stockBySize(design: string, catalogStock: number) {
+  // sizes nobody counted. These rows are what the save checks a sale against,
+  // so they are what the counter shows: a catalog count with no stock row
+  // behind it would offer a pair the save then refuses ("not in stock yet").
+  function stockBySize(design: string) {
     const rows = availableBySize(operations.finishedStock, design);
     const sizeStock: Record<string, number> = {};
     let untrackedPairs = 0;
@@ -179,7 +188,8 @@ export default async function AdminPosPage() {
       if (SHOE_SIZE.test(label)) sizeStock[label] = pairs;
       else untrackedPairs += pairs;
     }
-    return rows.size > 0 ? { sizeStock, untrackedPairs } : { sizeStock, untrackedPairs: Math.max(0, catalogStock) };
+    const stock = Object.values(sizeStock).reduce((sum, pairs) => sum + pairs, 0) + untrackedPairs;
+    return { sizeStock, untrackedPairs, stock };
   }
 
   const sellableByDesign = new Map<string, SellableItem>();
@@ -190,12 +200,11 @@ export default async function AdminPosPage() {
       // The SKU a scanner reads — lets a scan or a typed code drop the item
       // straight into the bill.
       sku: product.sku,
-      stock: product.stock,
       retailRate,
       wholesaleRate: product.wholesalePriceValue > 0 ? Math.round(product.wholesalePriceValue / 100) : retailRate,
       sizes: product.sizes.join(", "),
       sizeList: product.sizes,
-      ...stockBySize(product.name, product.stock),
+      ...stockBySize(product.name),
       image: product.image,
       category: product.category,
       nameNe: product.nameNe ?? "",
@@ -207,13 +216,10 @@ export default async function AdminPosPage() {
   // list — the counter can sell it, just without a stored price.
   for (const stock of operations.finishedStock) {
     if (!sellableByDesign.has(stock.design)) {
-      const bySize = stockBySize(stock.design, stock.stockPairs);
-      const total =
-        Object.values(bySize.sizeStock).reduce((sum, pairs) => sum + pairs, 0) + bySize.untrackedPairs;
+      const bySize = stockBySize(stock.design);
       sellableByDesign.set(stock.design, {
         design: stock.design,
         sku: "",
-        stock: total,
         retailRate: 0,
         wholesaleRate: 0,
         sizes: stock.sizeRun && stock.sizeRun !== "Mixed" ? stock.sizeRun : "",
@@ -317,6 +323,17 @@ export default async function AdminPosPage() {
       </div>
 
       <div className="mt-6 min-w-0 max-md:-order-1 max-md:mt-4">
+        {!paymentsReady && isOwner ? (
+          <Link
+            href="/admin/settings"
+            className="mb-3 block rounded-2xl border border-brand-gold bg-brand-cream-soft px-4 py-2 text-sm font-bold text-brand-gold-deep"
+          >
+            <T
+              en="Split payments, exchange in one bill and old credit on a bill are waiting for one database step — open Settings →"
+              ne="आधा नगद आधा QR, एउटै बिलमा साटफेर र बिलमै पुरानो बाँकी — यिनका लागि database तयार गर्न Settings खोल्नुहोस् →"
+            />
+          </Link>
+        ) : null}
         <PosBillForm
           ledgers={operations.customerLedgers.map((ledger) => ({
             id: ledger.id,
@@ -330,6 +347,7 @@ export default async function AdminPosPage() {
           canOpenLedger={canOpenLedger}
           cashierName={session.name ?? ""}
           showCost={showCost}
+          paymentsReady={paymentsReady}
           today={{
             bills: pos.todayDayClose.invoiceCount,
             netSales: pos.todayDayClose.netSales,

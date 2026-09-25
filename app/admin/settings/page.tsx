@@ -15,11 +15,13 @@ import {
   saveBusinessGoalAction,
   saveDeliveryPricingAction,
   prepareDeliveryDatabaseAction,
+  preparePosDatabaseAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { getDeliveryPricing } from "@/lib/delivery-settings";
 import { deliveryDatabaseStatus } from "@/lib/delivery-database";
+import { posDatabaseStatus } from "@/lib/pos-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
@@ -124,6 +126,10 @@ export default async function AdminSettingsPage({
   // Only asked here, on the Owner's settings page: one small catalog read.
   const deliveryDatabase = await deliveryDatabaseStatus().catch((error) => {
     reportError("check the delivery columns", error);
+    return null;
+  });
+  const posDatabase = await posDatabaseStatus().catch((error) => {
+    reportError("check the bill columns", error);
     return null;
   });
   const notice = await searchParams;
@@ -505,6 +511,46 @@ export default async function AdminSettingsPage({
               <form action={prepareDeliveryDatabaseAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, add them" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {/* The live database needs its payments column before the counter can
+            take a bill in parts, an exchange in one bill, or old credit on a
+            bill. Shown only while missing; the preview must be opened to reach
+            OK. Until then the counter works as before, without those three. */}
+        {posDatabase && !posDatabase.ready ? (
+          <section className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🧾 <T en="Prepare the database for the new counter bill" ne="नयाँ बिलको लागि database तयार गर्ने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="Adds one column so a bill can be paid part cash and part QR, an exchange can be one bill, and old credit can be cleared on a bill. Nothing that is already there is changed or removed. Take a backup first (Activity → Export backup)."
+                ne="एउटा नयाँ कोठा थपिन्छ, जसले गर्दा बिल आधा नगद आधा QR मा तिर्न, साटफेर एउटै बिलमा गर्न, र पुरानो बाँकी बिलमै लिन मिल्छ। पहिलेदेखि भएको कुनै पनि data बदलिँदैन वा मेटिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is added:" ne="यति थपिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                {posDatabase.pending.map((item) => (
+                  <li key={item.name}>
+                    <T en={item.label.en} ne={item.label.ne} />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
+              </p>
+              <form action={preparePosDatabaseAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add it" />
               </form>
             </details>
           </section>

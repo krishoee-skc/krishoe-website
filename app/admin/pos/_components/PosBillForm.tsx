@@ -8,7 +8,7 @@ import ActionMessage from "@/components/admin/ActionMessage";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
-import { posBillCreditDue } from "@/lib/pos-bill";
+import { settleExchange } from "@/lib/pos-payments";
 import PosProductPicker from "@/app/admin/pos/_components/PosProductPicker";
 import PosSizeSheet from "@/app/admin/pos/_components/PosSizeSheet";
 import {
@@ -16,14 +16,15 @@ import {
   belowCost,
   billTotals,
   canAddPair,
-  cashOutcome,
   findByCode,
   hasSizes,
   isShoeSize,
   likelyNotes,
   lineKey,
   percentOff,
+  planPayment,
   repriceForChannel,
+  returnedValue,
   setPairs,
   setRate,
   type CartLine,
@@ -55,9 +56,15 @@ type PosBillFormProps = {
   today?: TodayFigures | null;
   /** Whether this admin may see what a pair cost the shop. */
   showCost?: boolean;
+  /**
+   * Whether the database takes a bill paid in parts. Until the Owner prepares
+   * it in Settings, the counter offers no split payment, no exchange in one
+   * bill and no old credit on a bill — everything else works as it is.
+   */
+  paymentsReady?: boolean;
 };
 
-type Kind = "Sale" | "Return";
+type Kind = "Sale" | "Return" | "Exchange";
 type Payment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque";
 type DiscountMode = "none" | "5" | "10" | "amount";
 
@@ -184,6 +191,7 @@ export default function PosBillForm({
   cashierName = "",
   today = null,
   showCost = false,
+  paymentsReady = false,
 }: PosBillFormProps) {
   const { text } = useLanguage();
   const router = useRouter();
@@ -195,7 +203,13 @@ export default function PosBillForm({
   const [channel, setChannel] = useState("Retail");
   const [payment, setPayment] = useState<Payment>("Cash");
   const [received, setReceived] = useState("");
-  const [restOnCredit, setRestOnCredit] = useState(false);
+  // How a cash shortfall is covered: credit, or another method's second part.
+  const [restMethod, setRestMethod] = useState<Payment | "">("");
+  const [restReference, setRestReference] = useState("");
+  // In an exchange: whether the next tapped shoe is one coming back.
+  const [addingBack, setAddingBack] = useState(true);
+  const [collectDue, setCollectDue] = useState(false);
+  const [dueText, setDueText] = useState("");
   const [discountMode, setDiscountMode] = useState<DiscountMode>("none");
   const [discountText, setDiscountText] = useState("");
   const [tax, setTax] = useState("");
@@ -246,29 +260,61 @@ export default function PosBillForm({
         : 0;
   const totals = billTotals(cart, discountValue, Number(digits(tax)) || 0);
   const isReturn = kind === "Return";
-  const cash = payment === "Cash" && !isReturn ? cashOutcome(totals.total, received === "" ? null : Number(received)) : null;
-  const cashShort = cash ? cash.short : 0;
-  // What the bill records as paid. A return pays nothing in: it goes to the
-  // customer's account, the way it always has. A credit bill is the due itself.
-  const paid = isReturn || payment === "Credit" ? 0 : cash ? cash.paid : totals.total;
-  const { needsAccount, creditAmount } = posBillCreditDue(kind, totals.total, paid);
+  const isExchange = kind === "Exchange";
+  // An exchange: the pairs coming back pay for the new ones as far as they go.
+  const backValue = returnedValue(cart);
+  const settle = settleExchange(backValue, totals.total);
+  const amountDue = isExchange ? settle.toPay : totals.total;
 
   const phoneAccount = phone ? ledgerOptions.find((ledger) => samePhone(ledger.phone, phone)) : undefined;
   const accountId = ledgerId || phoneAccount?.id || "";
   const account = ledgerOptions.find((ledger) => ledger.id === accountId);
-  const needsReference = !isReturn && NEEDS_REFERENCE.has(payment) && paid > 0;
+
+  // Old credit cleared on the bill: only on a sale, only by money, only when
+  // the database can record the part.
+  const oldDue = account?.balanceDue ?? 0;
+  const canCollectDue = paymentsReady && kind === "Sale" && payment !== "Credit" && oldDue > 0;
+  const dueAmount = canCollectDue && collectDue ? Math.min(oldDue, Number(digits(dueText)) || oldDue) : 0;
+
+  const plan = isReturn
+    ? null
+    : planPayment({
+        total: amountDue,
+        method: payment,
+        received: received === "" ? null : Number(received),
+        restMethod,
+        reference,
+        restReference,
+        due: dueAmount,
+      });
+  // What the bill records as paid. A return pays nothing in: it goes to the
+  // customer's account, the way it always has. A credit bill is the due itself.
+  const paid = plan ? plan.paid : 0;
+  const creditAmount = plan ? plan.credit : 0;
+  const needsAccount = isReturn ? totals.total > 0 : creditAmount > 0;
+  const needsReference = Boolean(plan) && NEEDS_REFERENCE.has(payment) && amountDue + dueAmount > 0;
+  const needsRestReference = Boolean(plan?.split) && NEEDS_REFERENCE.has(restMethod as Payment);
   const unpriced = cart.filter((line) => !(line.rate > 0));
-  const belowCostLines = cart.filter((line) => belowCost(line.rate, itemFor(line.design)?.costPerPair));
+  const belowCostLines = cart.filter((line) => !line.back && belowCost(line.rate, itemFor(line.design)?.costPerPair));
+  const backLines = cart.filter((line) => line.back);
+  const outLines = cart.filter((line) => !line.back);
 
   let blocked = "";
   if (cart.length === 0) {
     blocked = text("Tap a shoe to start", "जुत्ता थपेर सुरु गर्नुहोस्");
+  } else if (isExchange && (backLines.length === 0 || outLines.length === 0)) {
+    blocked =
+      backLines.length === 0
+        ? text("Add the pair that came back", "फिर्ता आएको जुत्ता थप्नुहोस्")
+        : text("Add the new pair", "नयाँ लगेको जुत्ता थप्नुहोस्");
   } else if (unpriced.length > 0) {
     blocked = text("A line has no rate — tap its price", "एउटा लाइनमा रेट छैन — मूल्यमा थिच्नुहोस्");
-  } else if (cashShort > 0 && !restOnCredit) {
-    blocked = text(`Cash is ${money(cashShort)} short`, `नगद ${money(cashShort)} कम छ`);
+  } else if (plan && plan.short > 0) {
+    blocked = text(`Cash is ${money(plan.short)} short`, `नगद ${money(plan.short)} कम छ`);
   } else if (needsReference && !reference.trim()) {
     blocked = text(`Type the ${payment} number`, `${payment} को नम्बर लेख्नुहोस्`);
+  } else if (needsRestReference && !restReference.trim()) {
+    blocked = text(`Type the ${restMethod} number`, `${restMethod} को नम्बर लेख्नुहोस्`);
   } else if (needsAccount && !accountId) {
     blocked = isReturn
       ? text("Pick whose account the return goes to", "फिर्ता कसको खातामा जाने, छान्नुहोस्")
@@ -278,7 +324,22 @@ export default function PosBillForm({
   // ---- putting shoes on the bill -----------------------------------------
   const add = useCallback(
     (item: SellableItem, size: string, color = "") => {
-      if (kind === "Sale" && !canAddPair(item, size, cart)) {
+      // A pair coming back in an exchange takes nothing off the shelf, so it
+      // is never refused for want of stock.
+      const back = kind === "Exchange" && addingBack;
+      if (back) {
+        setCart((current) => addPair(current, item, channel, size, color, true));
+        setStartedAt((value) => value ?? Date.now());
+        setNote(
+          text(
+            `Came back: ${item.design}${size ? `, size ${size}` : ""}.`,
+            `फिर्ता आयो: ${item.design}${size ? `, साइज ${size}` : ""}।`,
+          ),
+        );
+        setState(null);
+        return;
+      }
+      if (kind !== "Return" && !canAddPair(item, size, cart)) {
         setNote(
           size
             ? text(`${item.design} size ${size} is not in stock.`, `${item.design} साइज ${size} stock मा छैन।`)
@@ -295,7 +356,7 @@ export default function PosBillForm({
       );
       setState(null);
     },
-    [cart, channel, kind, text],
+    [addingBack, cart, channel, kind, text],
   );
 
   function choose(item: SellableItem, sizeFilter: string) {
@@ -306,7 +367,7 @@ export default function PosBillForm({
     }
     // The size is already named in the filter and there is no colour to ask:
     // one tap is the whole job.
-    if (sizeFilter && colors.length <= 1 && kind === "Sale") {
+    if (sizeFilter && colors.length <= 1 && (kind === "Sale" || (kind === "Exchange" && !addingBack))) {
       add(item, sizeFilter, colors[0] ?? "");
       return;
     }
@@ -360,7 +421,7 @@ export default function PosBillForm({
 
   function changePairs(line: CartLine, next: number) {
     const item = itemFor(line.design);
-    if (next > line.quantity && kind === "Sale" && item && !canAddPair(item, line.size, cart)) {
+    if (next > line.quantity && kind !== "Return" && !line.back && item && !canAddPair(item, line.size, cart)) {
       setNote(text("No more pairs of that size.", "त्यो साइज अब बाँकी छैन।"));
       return;
     }
@@ -389,7 +450,11 @@ export default function PosBillForm({
     setCart([]);
     setStartedAt(null);
     setReceived("");
-    setRestOnCredit(false);
+    setRestMethod("");
+    setRestReference("");
+    setCollectDue(false);
+    setDueText("");
+    setAddingBack(true);
     setDiscountMode("none");
     setDiscountText("");
     setTax("");
@@ -511,9 +576,13 @@ export default function PosBillForm({
         ? blocked
         : isReturn
           ? text(`Save return · ${money(totals.total)}`, `फिर्ता बिल राख्ने · ${money(totals.total)}`)
+          : isExchange
+            ? settle.toRefund > 0
+              ? text(`Save exchange · give back ${money(settle.toRefund)}`, `साटफेर राख्ने · ${money(settle.toRefund)} फिर्ता`)
+              : text(`Save exchange · ${money(settle.toPay)}`, `साटफेर राख्ने · ${money(settle.toPay)}`)
           : payment === "Credit"
             ? text(`Save on credit · ${money(totals.total)}`, `उधारोमा बिल राख्ने · ${money(totals.total)}`)
-            : text(`Save bill · ${money(totals.total)}`, `बिल राख्ने · ${money(totals.total)}`);
+            : text(`Save bill · ${money(totals.total + dueAmount)}`, `बिल राख्ने · ${money(totals.total + dueAmount)}`);
 
   const payLabel: Record<Payment, string> = {
     Cash: text("Cash", "नगद"),
@@ -566,6 +635,19 @@ export default function PosBillForm({
           <button type="button" aria-pressed={kind === "Sale"} onClick={() => setKind("Sale")} className={segment(kind === "Sale")}>
             {text("Sale", "बिक्री")}
           </button>
+          {paymentsReady ? (
+            <button
+              type="button"
+              aria-pressed={kind === "Exchange"}
+              onClick={() => {
+                setKind("Exchange");
+                setAddingBack(true);
+              }}
+              className={segment(kind === "Exchange")}
+            >
+              {text("Exchange", "साटफेर")}
+            </button>
+          ) : null}
           <button type="button" aria-pressed={kind === "Return"} onClick={() => setKind("Return")} className={segment(kind === "Return", "clay")}>
             {text("Return", "फिर्ता")}
           </button>
@@ -597,11 +679,37 @@ export default function PosBillForm({
 
       <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
         <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4">
+          {isExchange ? (
+            // Which side the next tapped shoe goes to. The pair that came back
+            // first, as the customer hands it over, then the new one.
+            <div className="mb-3 grid grid-cols-2 gap-2" role="group" aria-label={text("Exchange side", "साटफेरको पक्ष")}>
+              <button
+                type="button"
+                aria-pressed={addingBack}
+                onClick={() => setAddingBack(true)}
+                className={`min-h-12 rounded-2xl border-2 text-sm font-black ${
+                  addingBack ? "border-brand-clay bg-brand-clay-tint text-brand-clay" : "border-brand-green-line text-brand-muted"
+                }`}
+              >
+                ↩ {text("The pair that came back", "फिर्ता आएको जुत्ता")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={!addingBack}
+                onClick={() => setAddingBack(false)}
+                className={`min-h-12 rounded-2xl border-2 text-sm font-black ${
+                  !addingBack ? "border-brand-green bg-brand-green-tint text-brand-green" : "border-brand-green-line text-brand-muted"
+                }`}
+              >
+                ↗ {text("The new pair", "नयाँ लगेको जुत्ता")}
+              </button>
+            </div>
+          ) : null}
           <PosProductPicker
             catalog={catalog}
             cart={cart}
             channel={channel}
-            returning={isReturn}
+            returning={isReturn || (isExchange && addingBack)}
             query={query}
             onQueryChange={setQuery}
             onSubmitQuery={submitQuery}
@@ -630,7 +738,21 @@ export default function PosBillForm({
             <input type="hidden" name="invoiceDiscount" value={totals.discount} />
             <input type="hidden" name="paidAmount" value={paid} />
             <input type="hidden" name="ledgerId" value={accountId} />
-            <input type="hidden" data-summary="money" value={totals.total} readOnly />
+            {/* A bill paid in more than one way sends its parts; an exchange
+                always does, since the returned pairs are one of them. */}
+            {plan && (plan.split || isExchange) ? (
+              <input type="hidden" name="paymentParts" value={JSON.stringify(plan.parts.map((part) => ({ ...part, purpose: "bill" })))} />
+            ) : null}
+            {isExchange ? <input type="hidden" name="refundMethod" value="Cash" /> : null}
+            {dueAmount > 0 ? (
+              <>
+                <input type="hidden" name="dueLedgerId" value={accountId} />
+                <input type="hidden" name="dueAmount" value={dueAmount} />
+                <input type="hidden" name="dueMethod" value={payment} />
+                <input type="hidden" name="dueReference" value={reference} />
+              </>
+            ) : null}
+            <input type="hidden" data-summary="money" value={isExchange ? settle.toPay : totals.total + dueAmount} readOnly />
             {cart.map((line, index) => (
               <span key={line.key} hidden>
                 <input type="hidden" name={`item${index}Sku`} value={line.sku} />
@@ -640,6 +762,7 @@ export default function PosBillForm({
                 <input type="hidden" name={`item${index}Quantity`} value={line.quantity} />
                 <input type="hidden" name={`item${index}Rate`} value={line.rate} />
                 <input type="hidden" name={`item${index}Discount`} value={0} />
+                <input type="hidden" name={`item${index}Direction`} value={line.back ? "in" : "out"} />
               </span>
             ))}
 
@@ -652,7 +775,7 @@ export default function PosBillForm({
                 ← {text("Shoes", "जुत्ता")}
               </button>
               <h2 className="flex-1 text-lg font-black text-brand-green-ink">
-                {isReturn ? text("Return bill", "फिर्ता बिल") : text("Bill", "बिल")}
+                {isReturn ? text("Return bill", "फिर्ता बिल") : isExchange ? text("Exchange", "साटफेर") : text("Bill", "बिल")}
               </h2>
               <BillTimer startedAt={startedAt} />
             </div>
@@ -692,14 +815,17 @@ export default function PosBillForm({
                   return (
                     <li key={line.key} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 py-2.5">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-brand-green-ink">{line.design}</p>
+                        <p className="truncate text-sm font-black text-brand-green-ink">
+                          {line.back ? <span className="text-brand-clay">↩ </span> : null}
+                          {line.design}
+                        </p>
                         <p className="text-xs text-brand-muted">
                           {line.size ? text(`Size ${line.size}`, `साइज ${line.size}`) : null}
                           {line.color ? ` · ${line.color}` : null}
                         </p>
                       </div>
                       <p className="text-right text-sm font-black tabular-nums text-brand-green-ink">
-                        {isReturn ? "− " : ""}
+                        {isReturn || line.back ? "− " : ""}
                         {money(line.rate * line.quantity)}
                       </p>
                       <div className="flex items-center gap-2">
@@ -761,7 +887,7 @@ export default function PosBillForm({
                           </button>
                         </div>
                       </div>
-                      {cheap && !isReturn ? (
+                      {cheap && !isReturn && !line.back ? (
                         <p className="col-span-2 text-xs font-bold text-brand-clay">
                           {showCost && cost
                             ? text(`Below cost (${money(cost)} a pair) — the sale is still allowed.`, `लागत (${money(cost)} प्रति जोडा) भन्दा तल — बेच्न भने मिल्छ।`)
@@ -850,11 +976,43 @@ export default function PosBillForm({
                     <span>{money(totals.tax)}</span>
                   </div>
                 ) : null}
+                {isExchange ? (
+                  <div className="flex justify-between text-brand-clay">
+                    <span>{text("The pair that came back", "फिर्ता आएको जुत्ता")}</span>
+                    <span>− {money(backValue)}</span>
+                  </div>
+                ) : null}
+                {dueAmount > 0 ? (
+                  <div className="flex justify-between text-brand-gold-deep">
+                    <span>{text("Old credit taken", "पहिलेको बाँकी")}</span>
+                    <span>{money(dueAmount)}</span>
+                  </div>
+                ) : null}
                 <div className="mt-1 flex items-baseline justify-between border-t-2 border-brand-green-ink pt-2">
                   <span className="font-bold text-brand-green-ink">
-                    {isReturn ? text("Back to the account", "खातामा फिर्ता") : text("Total", "जम्मा")}
+                    {isReturn
+                      ? text("Back to the account", "खातामा फिर्ता")
+                      : isExchange && settle.toRefund > 0
+                        ? text("Give back", "ग्राहकलाई फिर्ता")
+                        : isExchange || dueAmount > 0
+                          ? text("To take", "लिनुपर्ने")
+                          : text("Total", "जम्मा")}
                   </span>
-                  <span className={`text-3xl font-black ${isReturn ? "text-brand-clay" : "text-brand-green-ink"}`}>{money(totals.total)}</span>
+                  <span
+                    className={`text-3xl font-black ${
+                      isReturn || (isExchange && settle.toRefund > 0) ? "text-brand-clay" : "text-brand-green-ink"
+                    }`}
+                  >
+                    {money(
+                      isReturn
+                        ? totals.total
+                        : isExchange
+                          ? settle.toRefund > 0
+                            ? settle.toRefund
+                            : settle.toPay
+                          : totals.total + dueAmount,
+                    )}
+                  </span>
                 </div>
               </div>
             ) : null}
@@ -892,7 +1050,34 @@ export default function PosBillForm({
               />
             </div>
 
-            {!isReturn ? (
+            {canCollectDue ? (
+              <div className="grid gap-2 rounded-2xl border border-brand-gold bg-brand-cream-soft p-3">
+                <label className="flex items-center gap-2 text-sm font-black text-brand-gold-deep">
+                  <input
+                    type="checkbox"
+                    checked={collectDue}
+                    onChange={(event) => setCollectDue(event.target.checked)}
+                    className="h-5 w-5 accent-brand-green"
+                  />
+                  {text(`Also take the old credit (${money(oldDue)})`, `पहिलेको बाँकी (${money(oldDue)}) पनि लिने`)}
+                </label>
+                {collectDue ? (
+                  <label className="flex items-center justify-between gap-2 text-sm text-brand-muted">
+                    {text("How much of it", "कति लिने")}
+                    <input
+                      inputMode="numeric"
+                      value={dueText}
+                      onChange={(event) => setDueText(digits(event.target.value))}
+                      placeholder={String(oldDue)}
+                      aria-label={text("Old credit to take", "लिने पुरानो बाँकी")}
+                      className="h-10 w-28 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-right text-base font-black tabular-nums outline-none focus:border-brand-green"
+                    />
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!isReturn && (amountDue > 0 || !isExchange) ? (
               <div className="grid grid-cols-4 gap-1.5" role="group" aria-label={text("Payment", "भुक्तानी")}>
                 {PAYMENTS.map((option) => (
                   <button
@@ -901,7 +1086,7 @@ export default function PosBillForm({
                     aria-pressed={payment === option}
                     onClick={() => {
                       setPayment(option);
-                      setRestOnCredit(false);
+                      setRestMethod("");
                     }}
                     className={`h-11 rounded-xl border text-sm font-black ${
                       payment === option
@@ -917,7 +1102,13 @@ export default function PosBillForm({
               </div>
             ) : null}
 
-            {cash && totals.total > 0 ? (
+            {isExchange && settle.toRefund > 0 && outLines.length > 0 ? (
+              <p className="rounded-2xl bg-brand-clay-tint px-3 py-3 text-lg font-black text-brand-clay">
+                {text(`Give back in cash: ${money(settle.toRefund)}`, `ग्राहकलाई नगद फिर्ता: ${money(settle.toRefund)}`)}
+              </p>
+            ) : null}
+
+            {plan && payment === "Cash" && amountDue + dueAmount > 0 ? (
               <div className="grid gap-2 rounded-2xl bg-brand-paper-deep p-3">
                 <label className="flex items-center justify-between gap-2 text-sm text-brand-muted">
                   {text("Cash handed over", "ग्राहकले दिएको नगद")}
@@ -926,7 +1117,7 @@ export default function PosBillForm({
                     value={received}
                     onChange={(event) => {
                       setReceived(digits(event.target.value));
-                      setRestOnCredit(false);
+                      setRestMethod("");
                     }}
                     placeholder={text("exact", "ठ्याक्कै")}
                     className="h-11 w-32 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-right text-lg font-black tabular-nums text-brand-green-ink outline-none focus:border-brand-green"
@@ -935,18 +1126,21 @@ export default function PosBillForm({
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setReceived("")}
+                    onClick={() => {
+                      setReceived("");
+                      setRestMethod("");
+                    }}
                     className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold"
                   >
-                    {text(`Exact ${money(totals.total)}`, `ठ्याक्कै ${money(totals.total)}`)}
+                    {text(`Exact ${money(amountDue + dueAmount)}`, `ठ्याक्कै ${money(amountDue + dueAmount)}`)}
                   </button>
-                  {likelyNotes(totals.total).map((noteValue) => (
+                  {likelyNotes(amountDue + dueAmount).map((noteValue) => (
                     <button
                       key={noteValue}
                       type="button"
                       onClick={() => {
                         setReceived(String(noteValue));
-                        setRestOnCredit(false);
+                        setRestMethod("");
                       }}
                       className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold tabular-nums"
                     >
@@ -954,24 +1148,54 @@ export default function PosBillForm({
                     </button>
                   ))}
                 </div>
-                {cash.change > 0 ? (
-                  <p className="text-lg font-black text-brand-green">{text(`Change to give: ${money(cash.change)}`, `फिर्ता दिने: ${money(cash.change)}`)}</p>
-                ) : cash.short > 0 ? (
-                  <div className="grid gap-2">
-                    <p className="text-base font-black text-brand-clay">
-                      {text(`${money(cash.short)} still to pay`, `अझै ${money(cash.short)} बाँकी`)}
+                {plan.change > 0 ? (
+                  <p className="text-lg font-black text-brand-green">
+                    {text(`Change to give: ${money(plan.change)}`, `फिर्ता दिने: ${money(plan.change)}`)}
+                  </p>
+                ) : received !== "" && Number(received) < amountDue + dueAmount ? (
+                  dueAmount > 0 ? (
+                    <p className="text-sm font-black text-brand-clay">
+                      {text(
+                        `Not enough cash for the bill and the old credit together — ${money(amountDue + dueAmount)} is needed.`,
+                        `बिल र पुरानो बाँकी दुवैका लागि नगद पुगेन — ${money(amountDue + dueAmount)} चाहिन्छ।`,
+                      )}
                     </p>
-                    <button
-                      type="button"
-                      aria-pressed={restOnCredit}
-                      onClick={() => setRestOnCredit((value) => !value)}
-                      className={`h-10 rounded-xl border px-3 text-sm font-black ${
-                        restOnCredit ? "border-brand-gold bg-brand-gold text-brand-green-ink" : "border-brand-gold bg-brand-cream-soft text-brand-gold-deep"
-                      }`}
-                    >
-                      {text(`Put ${money(cash.short)} on credit`, `बाँकी ${money(cash.short)} उधारोमा राख्ने`)}
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      <p className="text-base font-black text-brand-clay">
+                        {text(
+                          `${money(amountDue - Number(received))} still to pay — how?`,
+                          `अझै ${money(amountDue - Number(received))} बाँकी — कसरी?`,
+                        )}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([...(paymentsReady ? (["QR", "eSewa", "Khalti", "Bank"] as const) : []), "Credit"] as Payment[]).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            aria-pressed={restMethod === option}
+                            onClick={() => setRestMethod(restMethod === option ? "" : option)}
+                            className={`h-10 rounded-xl border px-3 text-sm font-black ${
+                              restMethod === option
+                                ? "border-brand-gold bg-brand-gold text-brand-green-ink"
+                                : "border-brand-gold bg-brand-cream-soft text-brand-gold-deep"
+                            }`}
+                          >
+                            {option === "Credit" ? text("Rest on credit", "बाँकी उधारोमा") : text(`Rest by ${option}`, `बाँकी ${option} बाट`)}
+                          </button>
+                        ))}
+                      </div>
+                      {needsRestReference ? (
+                        <input
+                          value={restReference}
+                          onChange={(event) => setRestReference(event.target.value)}
+                          placeholder={text(`${restMethod} transaction number`, `${restMethod} को कारोबार नम्बर`)}
+                          aria-label={text(`${restMethod} transaction number`, `${restMethod} को कारोबार नम्बर`)}
+                          className={inputClass}
+                        />
+                      ) : null}
+                    </div>
+                  )
                 ) : (
                   <p className="text-sm font-bold text-brand-green">{text("Exact money ✓", "ठ्याक्कै पैसा ✓")}</p>
                 )}
@@ -1148,7 +1372,7 @@ export default function PosBillForm({
           item={picking}
           cart={cart}
           channel={channel}
-          returning={isReturn}
+          returning={isReturn || (isExchange && addingBack)}
           onClose={() => {
             setPicking(null);
             searchRef.current?.focus();

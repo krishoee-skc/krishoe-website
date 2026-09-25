@@ -2,6 +2,8 @@ import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib
 import type { PosInvoice, PosInvoicePostingPatch } from "@/lib/pos";
 import type { LedgerTransaction, StockMovement } from "@/lib/operations";
 import { insertLedgerTransaction, insertStockMovement } from "@/lib/operations-postgres";
+import { posPaymentsReady } from "@/lib/pos-database";
+import { readPaymentParts } from "@/lib/pos-payments";
 
 type PosInvoiceRow = {
   id: string;
@@ -31,6 +33,8 @@ type PosInvoiceRow = {
   barcode_value: string;
   qr_payload: string;
   note: string;
+  /** Present once the Owner has prepared the database for bills paid in parts. */
+  payments?: unknown;
 };
 
 function cleanNumber(value: number | string) {
@@ -71,6 +75,7 @@ function posInvoiceFromRow(row: PosInvoiceRow): PosInvoice {
     qrPayload: row.qr_payload,
     note: row.note,
     sourceSubmissionKey: "",
+    payments: readPaymentParts(row.payments),
   };
 }
 
@@ -104,18 +109,32 @@ const selectPosInvoiceColumns = `
   note
 `;
 
+// The payments column is read only once it exists: a database the Owner has
+// not prepared yet keeps answering every bill exactly as before.
+async function invoiceColumns() {
+  return (await posPaymentsReady()) ? `${selectPosInvoiceColumns}, payments` : selectPosInvoiceColumns;
+}
+
 export async function getPosInvoicesFromPostgres() {
+  const columns = await invoiceColumns();
   const rows = await queryPostgres<PosInvoiceRow>(
     "pos invoices",
     // Capped: a counter that writes fifty bills a day fills this table faster
     // than any other, and nobody scrolls a year of them.
-    `SELECT ${selectPosInvoiceColumns} FROM pos_invoices ORDER BY created_at DESC LIMIT 1000`,
+    `SELECT ${columns} FROM pos_invoices ORDER BY created_at DESC LIMIT 1000`,
   );
 
   return rows.map(posInvoiceFromRow);
 }
 
 async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
+  const withPayments = await posPaymentsReady();
+  const parts = invoice.payments ?? [];
+  if (parts.length > 0 && !withPayments) {
+    // Never save a split or an exchange as if it were one plain payment.
+    throw new Error("Prepare the database for the new counter bill, in Settings, first.");
+  }
+  const columns = withPayments ? `${selectPosInvoiceColumns}, payments` : selectPosInvoiceColumns;
   const rows = await db.query<PosInvoiceRow>(
     `
       INSERT INTO pos_invoices (
@@ -145,14 +164,14 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
         qr_payload,
         note,
         customer_address,
-        customer_pan
+        customer_pan${withPayments ? ",\n        payments" : ""}
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19,
-        $20::jsonb, $21, $22, $23, $24, $25, $26, $27
+        $20::jsonb, $21, $22, $23, $24, $25, $26, $27${withPayments ? ", $28::jsonb" : ""}
       )
-      RETURNING ${selectPosInvoiceColumns}
+      RETURNING ${columns}
     `,
     [
       invoice.id,
@@ -182,6 +201,7 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
       invoice.note,
       invoice.customerAddress,
       invoice.customerPan,
+      ...(withPayments ? [JSON.stringify(parts)] : []),
     ],
   );
 
@@ -192,37 +212,60 @@ export async function savePosInvoiceToPostgres(invoice: PosInvoice) {
   return transactionPostgres("pos invoices", (db) => insertPosInvoiceRow(db, invoice));
 }
 
+export type PosPostingParams = {
+  invoice: PosInvoice;
+  stockMovements: Array<Omit<StockMovement, "id" | "createdAt">>;
+  ledgerTransaction?: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null;
+  /**
+   * Account entries beside the bill's own — the old credit a customer cleared
+   * at the counter. Posted in the same transaction, so a bill that fails takes
+   * them with it.
+   */
+  otherLedgerTransactions?: Array<Omit<LedgerTransaction, "id" | "createdAt" | "customerName">>;
+};
+
+async function postPosInvoice(db: PostgresExecutor, params: PosPostingParams) {
+  const stockMovementIds: string[] = [];
+
+  for (const movement of params.stockMovements) {
+    const created = await insertStockMovement(db, movement);
+    stockMovementIds.push(created.id);
+  }
+
+  let ledgerTransactionId = "";
+
+  if (params.ledgerTransaction) {
+    const created = await insertLedgerTransaction(db, params.ledgerTransaction);
+    ledgerTransactionId = created.id;
+  }
+
+  for (const transaction of params.otherLedgerTransactions ?? []) {
+    await insertLedgerTransaction(db, transaction);
+  }
+
+  return insertPosInvoiceRow(db, {
+    ...params.invoice,
+    stockMovementIds,
+    ledgerTransactionId,
+    postingStatus: "Posted",
+  });
+}
+
 // Post a POS sale/return atomically: stock movements, an optional credit
 // ledger transaction, and the invoice row all commit together or not at all.
 // This removes the half-posted-invoice window and, via each movement's
 // SELECT ... FOR UPDATE, the concurrent-oversell race.
-export async function createPosInvoicePostgres(params: {
-  invoice: PosInvoice;
-  stockMovements: Array<Omit<StockMovement, "id" | "createdAt">>;
-  ledgerTransaction?: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null;
-}) {
-  return transactionPostgres("pos invoices", async (db) => {
-    const stockMovementIds: string[] = [];
+export async function createPosInvoicePostgres(params: PosPostingParams) {
+  return transactionPostgres("pos invoices", (db) => postPosInvoice(db, params));
+}
 
-    for (const movement of params.stockMovements) {
-      const created = await insertStockMovement(db, movement);
-      stockMovementIds.push(created.id);
-    }
-
-    let ledgerTransactionId = "";
-
-    if (params.ledgerTransaction) {
-      const created = await insertLedgerTransaction(db, params.ledgerTransaction);
-      ledgerTransactionId = created.id;
-    }
-
-    return insertPosInvoiceRow(db, {
-      ...params.invoice,
-      stockMovementIds,
-      ledgerTransactionId,
-      postingStatus: "Posted",
-    });
-  });
+// An exchange is two bills — the pair that came back and the pair that left —
+// and they are one event: both are posted in one transaction or neither is.
+export async function createPosExchangePostgres(returned: PosPostingParams, sold: PosPostingParams) {
+  return transactionPostgres("pos invoices", async (db) => ({
+    returnInvoice: await postPosInvoice(db, returned),
+    saleInvoice: await postPosInvoice(db, sold),
+  }));
 }
 
 export async function updatePosInvoicePostingToPostgres(
@@ -237,7 +280,7 @@ export async function updatePosInvoicePostingToPostgres(
         ledger_transaction_id = $3,
         posting_status = $4
       WHERE id = $1
-      RETURNING ${selectPosInvoiceColumns}
+      RETURNING ${await invoiceColumns()}
     `,
     [
       id,

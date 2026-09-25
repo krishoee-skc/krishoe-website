@@ -9,6 +9,8 @@ import {
   likelyNotes,
   matchesSearch,
   percentOff,
+  planPayment,
+  returnedValue,
   setPairs,
   sizeChoices,
   wholesaleSet,
@@ -214,5 +216,74 @@ describe("the search box", () => {
   it("never cuts a code that itself ends in two digits", () => {
     const tricky: SellableItem = { ...bag, design: "Polish", sku: "KS-09-41" };
     expect(findByCode([tricky], "KS-09-41")).toEqual({ item: tricky, size: "" });
+  });
+});
+
+describe("how the money is settled before saving", () => {
+  const base = { reference: "", restReference: "", restMethod: "" as const, due: 0, received: null };
+
+  it("takes exact cash as one plain cash part", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash" })).toEqual({
+      paid: 2600,
+      credit: 0,
+      change: 0,
+      short: 0,
+      parts: [{ method: "Cash", amount: 2600 }],
+      split: false,
+    });
+  });
+
+  it("gives change from a bigger note", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash", received: 3000 })).toMatchObject({ paid: 2600, change: 400 });
+  });
+
+  it("will not save short cash until the rest is settled", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash", received: 1000 })).toMatchObject({ paid: 1000, short: 1600 });
+  });
+
+  it("puts the rest on credit", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash", received: 1000, restMethod: "Credit" })).toMatchObject({
+      paid: 1000,
+      credit: 1600,
+      short: 0,
+      split: false,
+    });
+  });
+
+  it("takes the rest by QR as a second part, with its number", () => {
+    const plan = planPayment({ ...base, total: 2600, method: "Cash", received: 1000, restMethod: "QR", restReference: " 88123 " });
+    expect(plan).toMatchObject({ paid: 2600, credit: 0, short: 0, split: true });
+    expect(plan.parts).toEqual([
+      { method: "Cash", amount: 1000 },
+      { method: "QR", amount: 1600, reference: "88123" },
+    ]);
+  });
+
+  it("puts a whole credit bill on the account", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Credit" })).toMatchObject({ paid: 0, credit: 2600, parts: [] });
+  });
+
+  it("asks for enough cash to cover the bill and the old credit together", () => {
+    expect(planPayment({ ...base, total: 2600, method: "Cash", due: 2500, received: 5100 })).toMatchObject({
+      paid: 2600,
+      change: 0,
+      short: 0,
+    });
+    expect(planPayment({ ...base, total: 2600, method: "Cash", due: 2500, received: 3000 })).toMatchObject({ short: 2100 });
+  });
+});
+
+describe("an exchange on the bill", () => {
+  it("keeps pairs coming back off the shelf count and out of the total", () => {
+    let bill = addPair([], counted, "Retail", "40");
+    bill = addPair(bill, counted, "Retail", "41", "", true);
+    expect(bill.map((line) => [line.size, Boolean(line.back)])).toEqual([
+      ["40", false],
+      ["41", true],
+    ]);
+    // The 41 coming back does not use up the one 41 on the shelf.
+    expect(canAddPair(counted, "41", bill)).toBe(true);
+    expect(billTotals(bill, 0, 0)).toMatchObject({ pairs: 1, subtotal: 2800 });
+    expect(returnedValue(bill)).toBe(2800);
   });
 });
