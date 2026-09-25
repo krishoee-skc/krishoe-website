@@ -142,6 +142,23 @@ const nextConfig = {
   // Compress assets for faster delivery
   compress: true,
   productionBrowserSourceMaps: false,
+  // One address for the shop. Vercel's own address for the project served the
+  // whole site as well, so the owner signed in, added it to the Home Screen and
+  // turned alerts on there — and then met a stranger at krishoe.com: another
+  // sign-in, another app, no alerts. Pages there now move to krishoe.com.
+  // Only that one address: preview deployments keep working for testing. And
+  // never /api — the nightly jobs and payment callbacks may be called on it,
+  // and a callback that is answered with a redirect is a callback lost.
+  async redirects() {
+    return [
+      {
+        source: "/:path((?!api(?:/|$)).*)",
+        has: [{ type: "host", value: "krishoe-website\\.vercel\\.app" }],
+        destination: "https://www.krishoe.com/:path",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
