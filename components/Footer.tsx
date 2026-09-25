@@ -251,7 +251,7 @@ export default function Footer() {
               href="/enter"
               aria-label="Staff and worker login"
               title="Team"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-sm opacity-70 transition hover:border-white/40 hover:opacity-100"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-sm opacity-70 transition hover:border-white/40 hover:opacity-100 focus-visible:opacity-100"
             >
               <span aria-hidden="true">🔐</span>
             </Link>
