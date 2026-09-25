@@ -8,6 +8,7 @@ import { submitReview, type FormState } from "@/app/actions";
 import SubmitButton from "@/components/SubmitButton";
 import { useLanguage } from "@/components/LanguageProvider";
 import { toBikramSambatNepali } from "@/lib/bikram-sambat";
+import { formatAdminDate } from "@/lib/format-date";
 
 const initialState: FormState = {
   ok: false,
@@ -288,12 +289,7 @@ export default function ProductReviews({
                       a month no Nepali shopper counts by. */}
                   {language === "ne"
                     ? toBikramSambatNepali(review.createdAt)
-                    : new Date(review.createdAt).toLocaleDateString("en-US", {
-      timeZone: "Asia/Kathmandu",
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                    : formatAdminDate(review.createdAt)}
                 </p>
               </article>
             ))

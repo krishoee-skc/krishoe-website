@@ -2,7 +2,7 @@ import Link from "next/link";
 import StatCard from "@/components/admin/StatTile";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import T from "@/components/T";
-import { nepalDate } from "@/lib/format-date";
+import { formatAdminDate } from "@/lib/format-date";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import {
   adminAuditCategories,
@@ -125,7 +125,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
         <StatCard label="Today" value={todayEvents.length} detail="activity this day" />
         <StatCard label="Warnings" value={warningEvents.length} detail="failed/blocked signals" />
         <StatCard label="Actors" value={actorCount} detail="staff/session identities" />
-        <StatCard label="Latest event" value={latestEvent ? nepalDate(latestEvent.createdAt, { dateStyle: "medium", timeStyle: "short" }) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
+        <StatCard label="Latest event" value={latestEvent ? formatAdminDate(latestEvent.createdAt, { time: true }) : "-"} detail={latestEvent ? `${prettyAction(latestEvent.action)} | ${actorLabel(latestEvent)}` : "no activity"} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">

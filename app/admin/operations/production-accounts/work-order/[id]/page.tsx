@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
+import { formatAdminDate } from "@/lib/format-date";
 import { money } from "@/lib/format-money";
 import { getProductionWorkOrderDetail } from "@/lib/production-accounting";
 import {
@@ -40,12 +41,9 @@ function nepalDateTime(value = new Date()) {
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
+// The admin's one date format: the English date, then B.S.
 function nepalDisplay(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Kathmandu",
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatAdminDate(value, { time: true });
 }
 
 export default async function WorkOrderDetailPage({
