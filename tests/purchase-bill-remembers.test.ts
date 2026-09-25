@@ -79,7 +79,7 @@ describe("the form keeps its promises", () => {
   it("moves the cursor on Enter straight away, and still never saves on Enter", async () => {
     const source = await form();
     expect(source).toContain("if (pendingFocus.current) setFocusTick((tick) => tick + 1);");
-    expect(source).toContain("saveButton.current?.focus();");
+    expect(source).toContain("phoneSaveButton.current)?.focus();");
     expect(source).not.toMatch(/key === "Enter"[^\n]*requestSubmit/);
   });
 
@@ -97,5 +97,34 @@ describe("the form keeps its promises", () => {
   it("the save links to the saved bill, where it can be printed", async () => {
     const actions = await readFile("app/admin/purchasing/actions.ts", "utf8");
     expect(actions).toContain("href: `/admin/purchasing/${invoice.id}`");
+  });
+});
+
+describe("the recheck's five fixes stay fixed", () => {
+  const form = () => readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+
+  it("a remembered rate follows the item; a typed rate is never overwritten", async () => {
+    const source = await form();
+    expect(source).toContain("if (row.rate && !row.rateAuto) return {};");
+    expect(source).toContain("updateRow(row.key, { rate: event.target.value, rateAuto: false })");
+  });
+
+  it("Ctrl+S in another form on the page does not file this bill", async () => {
+    expect(await form()).toContain("if (active && active !== document.body && !formRef.current.contains(active)) return;");
+  });
+
+  it("the next bill's photos are not wiped by the last bill's upload", async () => {
+    const source = await form();
+    expect(source.indexOf("setPhotos([]);", source.indexOf("const href = result.href"))).toBeLessThan(
+      source.indexOf("const sent = await uploadBillPhoto"),
+    );
+  });
+
+  it("on a phone the last box hands over to the Save in the bottom bar", async () => {
+    expect(await form()).toContain("(saveButton.current?.offsetParent ? saveButton.current : phoneSaveButton.current)?.focus();");
+  });
+
+  it("changing a line's kind drops its sizes", async () => {
+    expect(await form()).toContain('quantity: row.kind === "Trading Goods" ? "" : row.quantity,');
   });
 });

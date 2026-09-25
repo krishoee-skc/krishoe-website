@@ -37,6 +37,8 @@ export type ItemRow = {
   sizes: Record<string, string>;
   /** For a design not in the catalog yet: which run of sizes to offer ("36-41"). */
   sizeChoice?: string;
+  /** The rate was filled in from the last bill, not typed — so it follows the item if the item changes. */
+  rateAuto?: boolean;
 };
 
 export const rawMaterialUnits = ["kg", "meter", "pair", "piece", "liter"];

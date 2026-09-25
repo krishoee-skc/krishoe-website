@@ -156,6 +156,8 @@ export default function PurchaseInvoiceForm({
   }
   const formRef = useRef<HTMLFormElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
+  // The phone's Save sits in the bar at the foot; the desk one is hidden there.
+  const phoneSaveButton = useRef<HTMLButtonElement>(null);
   const newBillButton = useRef<HTMLButtonElement>(null);
   // Moving the cursor is decided in a key handler and done after a render, but
   // Enter on its own changes nothing on screen, so there was no render: the
@@ -171,6 +173,10 @@ export default function PurchaseInvoiceForm({
     function onKey(event: KeyboardEvent) {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
       if (!formRef.current || receipt) return;
+      // The supplier-payment form sits on the same page; Ctrl+S there is not
+      // a request to file this bill.
+      const active = document.activeElement;
+      if (active && active !== document.body && !formRef.current.contains(active)) return;
       event.preventDefault();
       formRef.current.requestSubmit();
     }
@@ -302,7 +308,7 @@ export default function PurchaseInvoiceForm({
     } else {
       // The last box hands over to the Save button — which another deliberate
       // Enter presses. Enter itself still never files the bill.
-      saveButton.current?.focus();
+      (saveButton.current?.offsetParent ? saveButton.current : phoneSaveButton.current)?.focus();
     }
   }
 
@@ -483,6 +489,9 @@ export default function PurchaseInvoiceForm({
         });
         // The bill is saved; the photos follow. A photo that fails does not
         // undo the bill — the receipt says so, and the bill page can add it.
+        // Cleared now, not after the upload: a photo added to the next bill
+        // while this one's were still sending must not be wiped.
+        setPhotos([]);
         const invoiceId = href.split("/").pop() ?? "";
         if (photosToSend.length && invoiceId) {
           let kept = 0;
@@ -495,7 +504,6 @@ export default function PurchaseInvoiceForm({
           photosToSend.forEach((photo) => URL.revokeObjectURL(photo.preview));
           setReceipt((current) => (current ? { ...current, photos: { sending: false, kept, problem } } : current));
         }
-        setPhotos([]);
       }
 
       // A saved bill clears the form for the next one, and pulls the new
@@ -542,6 +550,16 @@ export default function PurchaseInvoiceForm({
    * a new design. Which matters more than it sounds: "Doctor Chappal moto"
    * spelled a second way is a second item in the stock ledger.
    */
+  /**
+   * The last rate for a newly chosen item. A rate the buyer typed stays; one
+   * that was only filled in from the last bill follows the item — otherwise
+   * correcting the item left the previous item's rate on the line.
+   */
+  function rememberedRate(row: ItemRow, last: { rate: number } | undefined) {
+    if (row.rate && !row.rateAuto) return {};
+    return last ? { rate: String(last.rate), rateAuto: true } : { rate: "", rateAuto: false };
+  }
+
   function setItemName(row: ItemRow, value: string) {
     // One box for both kinds: the name says which it is. A material on the
     // books makes a raw line, a catalog design a ready-made one; a name on
@@ -557,7 +575,7 @@ export default function PurchaseInvoiceForm({
         materialName: "",
         materialUnit: material.unit,
         design: "",
-        rate: row.rate || (last ? String(last.rate) : ""),
+        ...rememberedRate(row, last),
       });
       return;
     }
@@ -571,7 +589,7 @@ export default function PurchaseInvoiceForm({
         materialName: "",
         // The run it was last filed under, so the pairs join the same stock row.
         sizeRun: last?.sizeRun || row.sizeRun || "Mixed",
-        rate: row.rate || (last ? String(last.rate) : ""),
+        ...rememberedRate(row, last),
       });
       return;
     }
@@ -588,7 +606,17 @@ export default function PurchaseInvoiceForm({
     // it because the line changed kind is the sort of thing that makes a form
     // feel like an argument.
     const carried = itemNameOf(row, rawMaterials);
-    const next = { ...row, kind, materialId: "", materialName: "", design: "" };
+    // Sizes belong to a ready-made line, and on one the quantity is their
+    // total — neither survives a change of kind.
+    const next = {
+      ...row,
+      kind,
+      materialId: "",
+      materialName: "",
+      design: "",
+      sizes: {},
+      quantity: row.kind === "Trading Goods" ? "" : row.quantity,
+    };
     updateRow(row.key, { ...next });
     setItemName({ ...next }, carried);
   }
@@ -1037,7 +1065,7 @@ export default function PurchaseInvoiceForm({
                         className={`${fieldClass(Boolean(issue?.rate))} text-right tabular-nums`}
                         placeholder={text("Rate", "दर")}
                         value={row.rate}
-                        onChange={(event) => updateRow(row.key, { rate: event.target.value })}
+                        onChange={(event) => updateRow(row.key, { rate: event.target.value, rateAuto: false })}
                         onKeyDown={(event) => {
                           handleWalk(event, index, "rate");
                           settle();
@@ -1534,6 +1562,7 @@ export default function PurchaseInvoiceForm({
           <span className="text-lg font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
         </div>
         <button
+          ref={phoneSaveButton}
           type="submit"
           disabled={isSaving}
           className="h-12 min-w-40 rounded-full bg-brand-green px-6 text-sm font-black text-white disabled:opacity-60"
