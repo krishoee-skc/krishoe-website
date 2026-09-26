@@ -12,6 +12,7 @@ import {
   planPayment,
   returnedValue,
   setPairs,
+  setRate,
   sizeChoices,
   wholesaleSet,
   type CartLine,
@@ -305,5 +306,34 @@ describe("found on the recheck", () => {
       credit: 2600,
       parts: [],
     });
+  });
+});
+
+describe("found on the owner's phone", () => {
+  const noPrice: SellableItem = { ...pile, design: "Doctor Chappal", retailRate: 0, wholesaleRate: 0, costPerPair: 575 };
+
+  it("gives every size of an unpriced shoe the rate typed on one of them", () => {
+    let bill = addPair([], noPrice, "Retail", "36");
+    bill = addPair(bill, noPrice, "Retail", "37");
+    bill = addPair(bill, counted, "Retail", "40");
+    const priced = setRate(bill, bill[0].key, 650);
+    expect(priced.map((line) => [line.design, line.size, line.rate])).toEqual([
+      ["Doctor Chappal", "36", 650],
+      ["Doctor Chappal", "37", 650],
+      // Another shoe, already priced, is left alone.
+      ["Runner", "40", 2800],
+    ]);
+  });
+
+  it("does not overwrite a size that already has its own rate", () => {
+    let bill = addPair([], noPrice, "Retail", "36");
+    bill = addPair(bill, noPrice, "Retail", "37");
+    bill = setRate(bill, bill[1].key, 700);
+    expect(setRate(bill, bill[0].key, 650).map((line) => line.rate)).toEqual([650, 700]);
+  });
+
+  it("says nothing about cost while no rate has been typed", () => {
+    expect(belowCost(0, 575)).toBe(false);
+    expect(belowCost(500, 575)).toBe(true);
   });
 });

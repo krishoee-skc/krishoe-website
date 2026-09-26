@@ -722,7 +722,9 @@ export default function PosBillForm({
           aria-label={text("The bill", "बिल")}
           className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper md:sticky md:top-4 md:block ${
             cartOpen
-              ? "max-md:fixed max-md:inset-0 max-md:z-50 max-md:overflow-y-auto max-md:rounded-none max-md:border-0"
+              ? // Full screen on a phone, below the clock and battery: an app
+                // saved to the Home Screen draws under the status bar.
+                "max-md:fixed max-md:inset-0 max-md:z-50 max-md:overflow-y-auto max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top)]"
               : "max-md:hidden"
           }`}
         >

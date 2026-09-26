@@ -237,7 +237,18 @@ export function setPairs(cart: CartLine[], key: string, quantity: number): CartL
 export function setRate(cart: CartLine[], key: string, rate: number): CartLine[] {
   const value = Math.round(rate);
   if (!(value > 0)) return cart;
-  return cart.map((line) => (line.key === key ? { ...line, rate: value } : line));
+  const target = cart.find((line) => line.key === key);
+  if (!target) return cart;
+  // A shoe with no price in the catalog comes in on every size line at
+  // nothing. The rate typed on one of them is that shoe's price, so the other
+  // lines of the same shoe still at nothing take it too — four sizes, one
+  // rate typed, not four. A line already priced is left as it is.
+  return cart.map((line) =>
+    line.key === key ||
+    (!(line.rate > 0) && Boolean(line.back) === Boolean(target.back) && sameDesign(line, target.design))
+      ? { ...line, rate: value }
+      : line,
+  );
 }
 
 /**
@@ -338,7 +349,8 @@ export function likelyNotes(total: number): number[] {
  * never flagged, rather than flagged against a cost of nothing.
  */
 export function belowCost(rate: number, costPerPair: number | undefined) {
-  return Boolean(costPerPair && costPerPair > 0 && rate < costPerPair);
+  // No rate yet is "type the rate", said on its own — not a loss.
+  return Boolean(rate > 0 && costPerPair && costPerPair > 0 && rate < costPerPair);
 }
 
 /**
