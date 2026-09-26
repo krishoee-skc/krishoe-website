@@ -9,9 +9,11 @@ import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 
 export const dynamic = "force-dynamic";
 
+// Work Orders and stage handovers were taken out, and their two exports with
+// them. The tables are still in the database; nothing is written to them now.
 const exportTypes = [
-  "work-orders", "work-entries", "worker-payments",
-  "handovers", "qc-stock", "cost-cards", "worker-statement", "weekly-settlements",
+  "work-entries", "worker-payments",
+  "qc-stock", "cost-cards", "worker-statement", "weekly-settlements",
 ] as const;
 type ExportType = (typeof exportTypes)[number];
 type ExportRow = Record<string, string | number | Date | null>;
@@ -30,25 +32,15 @@ function rowsToCsv(rows: ExportRow[]) {
 }
 
 async function getRows(type: ExportType) {
-  if (type === "work-orders") {
-    return queryPostgres<ExportRow>("production Work Order export",
-      `SELECT work_order_number AS "workOrderNumber", item_name_snapshot AS "itemName",
-       colour, size_breakdown::text AS "sizeBreakdown", planned_pairs AS "plannedPairs",
-       due_date AS "dueDate", priority, current_stage AS "currentStage", status,
-       created_by AS "createdBy", cancelled_at AS "cancelledAt",
-       cancellation_reason AS "cancellationReason", created_at AS "createdAt"
-       FROM production_work_orders ORDER BY created_at DESC`);
-  }
   if (type === "work-entries") {
     return queryPostgres<ExportRow>("production work export",
-      `SELECT entry.work_date AS "workDate", orders.work_order_number AS "workOrderNumber",
+      `SELECT entry.work_date AS "workDate",
        entry.employee_id AS "employeeId", entry.employee_name_snapshot AS "workerName",
        entry.item_name_snapshot AS "itemName", entry.stage,
        entry.total_pairs AS "totalPairs", entry.rejected_pairs AS "rejectedPairs",
        entry.rate_per_pair_snapshot AS "ratePerPair", entry.earned_wage AS "earnedWage",
        entry.status, entry.approved_by AS "approvedBy", entry.created_at AS "createdAt"
        FROM production_work_entries entry
-       LEFT JOIN production_work_orders orders ON orders.id = entry.work_order_id
        ORDER BY entry.work_date DESC, entry.created_at DESC`);
   }
   if (type === "worker-payments") {
@@ -59,24 +51,10 @@ async function getRows(type: ExportType) {
        note, created_at AS "createdAt" FROM worker_payments WHERE reversed_at IS NULL
        ORDER BY payment_date DESC, created_at DESC`);
   }
-  if (type === "handovers") {
-    return queryPostgres<ExportRow>("production handover export",
-      `SELECT handover_date AS "handoverDate",
-       work_order_number_snapshot AS "workOrderNumber", from_stage AS "fromStage",
-       to_stage AS "toStage", from_employee_name_snapshot AS "fromWorker",
-       to_employee_name_snapshot AS "toWorker", sent_pairs AS "sentPairs",
-       received_pairs AS "receivedPairs",
-       received_size_breakdown::text AS "receivedSizeBreakdown",
-       received_pairs - sent_pairs AS difference,
-       approved_by AS "approvedBy", note,
-       CASE WHEN reversed_at IS NULL THEN 'Active' ELSE 'Reversed' END AS status,
-       reversal_reason AS "reversalReason", created_at AS "createdAt"
-       FROM production_stage_handovers ORDER BY handover_date DESC, created_at DESC`);
-  }
   if (type === "qc-stock") {
     return queryPostgres<ExportRow>("production QC stock export",
       `SELECT qc.qc_date AS "qcDate", qc.approval_reference AS "approvalReference",
-       orders.work_order_number AS "workOrderNumber", qc.item_name_snapshot AS "itemName",
+       qc.item_name_snapshot AS "itemName",
        qc.catalog_product_name_snapshot AS "catalogProduct",
        qc.packing_employee_name_snapshot AS "packingQcWorker",
        qc.total_pairs AS "goodPairs", qc.rejected_pairs AS "rejectedPairs",
@@ -85,7 +63,6 @@ async function getRows(type: ExportType) {
        qc.reversal_reason AS "reversalReason",
        qc.reversal_stock_movement_id AS "reversalStockMovementId",
        qc.created_at AS "createdAt" FROM production_qc_postings qc
-       LEFT JOIN production_work_orders orders ON orders.id = qc.work_order_id
        ORDER BY qc.qc_date DESC, qc.created_at DESC`);
   }
   return queryPostgres<ExportRow>("production cost card export",

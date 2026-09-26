@@ -156,7 +156,6 @@ export interface FactoryWorkInput {
   date: string;
   workerId: string;
   itemId: string;
-  workOrderId?: string | null;
   color: string | null;
   size: string | null;
   pairsCount: number;
@@ -228,7 +227,7 @@ function assertSameWork(row: WorkRow, input: FactoryWorkInput) {
     dbDate(row.date) === input.date &&
     row.worker_id === input.workerId &&
     row.item_id === input.itemId &&
-    (row.work_order_id ?? null) === (input.workOrderId ?? null) &&
+    (row.work_order_id ?? null) === null &&
     sameText(row.color, input.color) &&
     sameText(row.size, input.size) &&
     Number(row.pairs_count) === input.pairsCount &&
@@ -419,80 +418,6 @@ export async function createFactoryWork(input: FactoryWorkInput) {
           ? `${shortfall} pair(s) more than the uppers made: ${uppersMade} upper(s) in this colour and size, ${bottomsAlready} already fitted. Check the colour, the size and the count.`
           : "";
     }
-    let linkedWorkOrder: {
-      id: string;
-      plannedPairs: number;
-      completedBefore: number;
-    } | null = null;
-
-    if (input.workOrderId) {
-      const orders = await db.query<{
-        id: string;
-        item_id: string;
-        colour: string;
-        size_breakdown: Record<string, number> | string;
-        planned_pairs: number | string;
-        current_stage: string;
-      }>(
-        `SELECT id, item_id, colour, size_breakdown, planned_pairs, current_stage
-         FROM production_work_orders
-         WHERE id = $1 AND status NOT IN ('Completed', 'Cancelled')
-         FOR UPDATE`,
-        [input.workOrderId],
-      );
-      const order = orders[0];
-      if (!order) throw new FactoryMutationError("Open Work Order not found.", 404);
-      if (order.item_id !== items[0].production_item_id) {
-        throw new FactoryMutationError("The selected Work Order belongs to a different item.", 409);
-      }
-      if (order.current_stage !== stage) {
-        throw new FactoryMutationError(
-          `This Work Order is currently at ${order.current_stage}; select a ${order.current_stage} worker.`,
-          409,
-        );
-      }
-      if (input.color && order.colour && input.color.toLowerCase() !== order.colour.toLowerCase()) {
-        throw new FactoryMutationError(`This Work Order colour is ${order.colour}.`, 409);
-      }
-
-      const sizePlan =
-        typeof order.size_breakdown === "string"
-          ? (JSON.parse(order.size_breakdown) as Record<string, number>)
-          : order.size_breakdown;
-      const sizeLabel = input.size?.trim();
-      if (!sizeLabel || !(Number(sizePlan[sizeLabel]) > 0)) {
-        throw new FactoryMutationError("Select one planned size from this Work Order.", 409);
-      }
-      const completed = await db.query<{
-        completed_pairs: number | string;
-        completed_size_pairs: number | string;
-      }>(
-        `SELECT
-           COALESCE(SUM(total_pairs - rejected_pairs), 0) AS completed_pairs,
-           COALESCE(SUM(COALESCE((size_breakdown ->> $3)::integer, 0)), 0)
-             AS completed_size_pairs
-         FROM production_work_entries
-         WHERE work_order_id = $1 AND stage = $2 AND status = 'Approved'`,
-        [input.workOrderId, stage, sizeLabel],
-      );
-      const completedPairs = Number(completed[0]?.completed_pairs ?? 0);
-      const completedSizePairs = Number(completed[0]?.completed_size_pairs ?? 0);
-      if (completedSizePairs + pairsCount > Number(sizePlan[sizeLabel])) {
-        throw new FactoryMutationError(
-          `${sizeLabel} exceeds its planned ${Number(sizePlan[sizeLabel])} pairs for this stage.`,
-          409,
-        );
-      }
-      if (completedPairs + pairsCount > Number(order.planned_pairs)) {
-        throw new FactoryMutationError("This entry exceeds the Work Order planned pairs.", 409);
-      }
-      linkedWorkOrder = {
-        id: order.id,
-        plannedPairs: Number(order.planned_pairs),
-        completedBefore: completedPairs,
-      };
-    }
-
     const rates = await db.query<{ rate_per_pair: DbNumeric; rate_source: string }>(
       `SELECT rate_per_pair, rate_source
        FROM (
@@ -557,7 +482,8 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         pairsCount,
         input.status,
         rate,
-        input.workOrderId ?? null,
+        // Work Orders were taken out; the column stays, always empty.
+        null,
         Math.max(0, Math.min(pairsCount, Math.round(Number(input.rejectPairs) || 0))),
         stage,
         // NULL rather than {} when the boxes were left empty, so an entry that
@@ -593,30 +519,9 @@ export async function createFactoryWork(input: FactoryWorkInput) {
           items[0].production_item_id, items[0].production_item_name, stage,
           pairsCount, JSON.stringify(breakdown),
           rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
-          input.workOrderId ?? "",
+          "",
         ],
       );
-      if (linkedWorkOrder) {
-        const stageComplete =
-          linkedWorkOrder.completedBefore + pairsCount >= linkedWorkOrder.plannedPairs;
-        await db.query(
-          `UPDATE production_work_orders SET
-             status = CASE WHEN $3 THEN
-               CASE WHEN $2 = 'Bottom Final' THEN 'Ready for QC' ELSE 'In Progress' END
-               ELSE 'In Progress' END,
-             current_stage = CASE WHEN $3 THEN
-               CASE $2
-                 WHEN 'Upper' THEN 'Fiber Preparation'
-                 WHEN 'Fiber Preparation' THEN 'Fiber Silai'
-                 WHEN 'Fiber Silai' THEN 'Bottom Final'
-                 ELSE 'Packing / QC'
-               END
-               ELSE current_stage END,
-             updated_at = now()
-           WHERE id = $1`,
-          [linkedWorkOrder.id, stage, stageComplete],
-        );
-      }
     }
 
     if (worker.worker_type === "piece_rate") {

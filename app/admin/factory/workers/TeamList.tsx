@@ -154,7 +154,7 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
             {text("Workers and HR linkage", "कामदार")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
-            Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required to use Work Orders and the production-accounts ledger, so leaving it empty costs nothing.
+            Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required for the production-accounts ledger, so leaving it empty costs nothing.
           </p>
         </div>
         <button type="button" onClick={() => setShowForm((value) => !value)} className="min-h-11 rounded-full bg-brand-green px-5 text-sm font-black text-white">
@@ -210,7 +210,7 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
               ) : null}
               {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
                   rates and the worker portal all read this list directly, and
-                  the HR link only matters for Work Orders. Amber read as "fix
+                  the HR link only matters for the production-accounts ledger. Amber read as "fix
                   me" and pointed at a module holding no attendance or payroll. */}
             </div>
 

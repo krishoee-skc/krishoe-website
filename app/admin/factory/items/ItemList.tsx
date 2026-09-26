@@ -204,7 +204,7 @@ export default function ItemList({
             {text("Items and rates", "item र दर")} <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
-            Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, Work Orders, costing and finished-stock identity. Link them once so both systems refer to the same product.
+            Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, costing and finished-stock identity. Link them once so both systems refer to the same product.
           </p>
         </div>
         <Link href="/admin/operations/production-accounts/lots" className="min-h-11 rounded-full border border-brand-green px-5 py-3 text-sm font-black text-brand-green">{text("Open Production Item Master", "उत्पादन item मास्टर खोल्ने")}</Link>

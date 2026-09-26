@@ -67,6 +67,10 @@ describe("every admin screen", () => {
           continue;
         }
         if (entry.name !== "page.tsx") continue;
+        // A retired page that only sends the reader elsewhere draws nothing
+        // and waits on nothing, so there is no blank wait to cover.
+        const source = await readFile(path, "utf8");
+        if (/export default function \w+\(\) \{\s*redirect\(/.test(source)) continue;
         if (!(await exists(join(dir, "loading.tsx")))) missing.push(dir);
       }
     }

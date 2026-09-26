@@ -10,25 +10,17 @@ import { queryPostgres } from "@/lib/postgres/client";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
-  addProductionCctvReference,
   addProductionItem,
-  addWorkOrderMaterialConsumption,
   addWorkerPayment,
   approvePackingQcAndPostStock,
   approveProductionCostCard,
-  cancelProductionWorkOrder,
-  createProductionWorkOrder,
-  createProductionHandover,
   mapProductionItemToCatalog,
   reverseProductionWorkEntry,
   reversePackingQcAndStock,
-  reverseProductionHandover,
-  reverseWorkOrderMaterialConsumption,
   reverseWorkerPayment,
   setProductionStageRate,
   setProductionWorkerStageRate,
   setProductionItemMaterial,
-  updateProductionWorkOrderSchedule,
 } from "@/lib/production-accounting";
 import {
   productionStages,
@@ -82,13 +74,6 @@ async function ownerContext() {
   };
 }
 
-async function factoryEntryContext() {
-  const context = await requireAdminPermission("production:entry");
-  return {
-    approvedBy: context.session.name || context.session.email || context.role,
-  };
-}
-
 async function activeEmployee(employeeId: string) {
   const rows = await queryPostgres<{ id: string; name: string; category: string }>(
     "active factory worker",
@@ -103,13 +88,6 @@ async function activeEmployee(employeeId: string) {
 function refresh() {
   revalidatePath("/admin/operations/production-accounts");
   revalidatePath("/admin/factory");
-}
-
-function nepalTimestamp(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    throw new Error("Valid camera date and time are required.");
-  }
-  return `${value}:00+05:45`;
 }
 
 export async function createProductionItemAction(formData: FormData) {
@@ -217,182 +195,6 @@ export async function approveCostCardAction(formData: FormData) {
     "production_cost_card_approve",
     `${card.itemName} cost approved: making Rs. ${card.makingCostPerPair}, wholesale Rs. ${card.wholesalePrice}, retail Rs. ${card.retailPrice}.`,
   );
-  refresh();
-}
-
-export async function createWorkOrderAction(formData: FormData) {
-  const { approvedBy } = await factoryEntryContext();
-  const order = await createProductionWorkOrder({
-    itemId: text(formData, "itemId"),
-    colour: text(formData, "colour"),
-    sizeBreakdown: sizeBreakdown(text(formData, "sizeBreakdown")),
-    plannedPairs: integer(formData, "plannedPairs"),
-    dueDate: text(formData, "dueDate"),
-    priority: option(text(formData, "priority"), ["Normal", "High", "Urgent"] as const, "Normal"),
-    createdBy: approvedBy,
-    note: text(formData, "note"),
-  });
-  await recordAdminAuditEvent(
-    "production_work_order_create",
-    `${order.workOrderNumber}: ${order.itemName}, ${order.plannedPairs} pairs created.`,
-  );
-  refresh();
-}
-
-export async function updateWorkOrderScheduleAction(formData: FormData) {
-  await ownerContext();
-  const result = await updateProductionWorkOrderSchedule({
-    workOrderId: text(formData, "workOrderId"),
-    dueDate: text(formData, "dueDate"),
-    priority: option(text(formData, "priority"), ["Normal", "High", "Urgent"] as const, "Normal"),
-  });
-  await recordAdminAuditEvent(
-    "production_work_order_schedule",
-    `${result.workOrderNumber} due date/priority updated.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
-  refresh();
-}
-
-export async function createCctvReferenceAction(formData: FormData) {
-  const { approvedBy } = await factoryEntryContext();
-  const workOrderId = text(formData, "workOrderId");
-  const stage = option<ProductionStage | "Packing / QC">(
-    text(formData, "stage"),
-    [...productionStages, "Packing / QC"] as const,
-    "Upper",
-  );
-  const result = await addProductionCctvReference({
-    workOrderId,
-    stage,
-    cameraZone: text(formData, "cameraZone"),
-    windowStart: nepalTimestamp(text(formData, "windowStart")),
-    windowEnd: nepalTimestamp(text(formData, "windowEnd")),
-    cctvReference: text(formData, "cctvReference"),
-    evidenceReference: text(formData, "evidenceReference"),
-    recordedBy: approvedBy,
-    note: text(formData, "note"),
-  });
-  await recordAdminAuditEvent(
-    "production_cctv_reference_create",
-    `${result.work_order_number} ${stage} camera reference saved.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${workOrderId}`);
-  refresh();
-}
-
-export async function cancelWorkOrderAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
-  if (text(formData, "cancelConfirmed") !== "yes") {
-    throw new Error("Confirm the Work Order cancellation.");
-  }
-  const reason = text(formData, "reason");
-  if (reason.length < 5) {
-    throw new Error("Write a clear cancellation reason (at least 5 characters).");
-  }
-  const result = await cancelProductionWorkOrder({
-    workOrderId: text(formData, "workOrderId"),
-    reason,
-    cancelledBy: approvedBy,
-  });
-  await recordAdminAuditEvent(
-    "production_work_order_cancel",
-    `${result.workOrderNumber} cancelled: ${reason}.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
-  refresh();
-}
-
-export async function createHandoverAction(formData: FormData) {
-  const { approvedBy } = await factoryEntryContext();
-  const fromEmployeeId = text(formData, "fromEmployeeId");
-  const toEmployeeId = text(formData, "toEmployeeId");
-  const handover = await createProductionHandover({
-    workOrderId: text(formData, "workOrderId"),
-    handoverDate: text(formData, "handoverDate"),
-    fromStage: option<ProductionStage>(text(formData, "fromStage"), productionStages, "Upper"),
-    fromEmployee: fromEmployeeId ? await activeEmployee(fromEmployeeId) : undefined,
-    toEmployee: toEmployeeId ? await activeEmployee(toEmployeeId) : undefined,
-    sentPairs: integer(formData, "sentPairs"),
-    receivedPairs: integer(formData, "receivedPairs"),
-    receivedSizeBreakdown: sizeBreakdown(text(formData, "receivedSizeBreakdown")),
-    approvedBy,
-    note: text(formData, "note"),
-  });
-  await recordAdminAuditEvent(
-    "production_stage_handover",
-    `${handover.workOrderNumber} handed to ${handover.toStage}.`,
-  );
-  refresh();
-}
-
-export async function reverseHandoverAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
-  if (text(formData, "reverseConfirmed") !== "yes") {
-    throw new Error("Confirm the stage handover reversal.");
-  }
-  const reason = text(formData, "reason");
-  if (reason.length < 5) {
-    throw new Error("Write a clear reversal reason (at least 5 characters).");
-  }
-  const result = await reverseProductionHandover({
-    handoverId: text(formData, "handoverId"),
-    reason,
-    reversedBy: approvedBy,
-  });
-  await recordAdminAuditEvent(
-    "production_handover_reverse",
-    `${result.workOrderNumber} ${result.fromStage} to ${result.toStage} handover reversed: ${reason}.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
-  refresh();
-}
-
-// Work is entered once, on the work-entry screen, which writes the factory
-// ledger and this screen's figures in one transaction. The form that used to
-// stand here was the second way to type the same day's work.
-
-export async function createMaterialConsumptionAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
-  const result = await addWorkOrderMaterialConsumption({
-    workOrderId: text(formData, "workOrderId"),
-    materialId: text(formData, "materialId"),
-    consumptionDate: text(formData, "consumptionDate"),
-    quantity: amount(formData, "quantity"),
-    wastage: amount(formData, "wastage"),
-    approvedBy,
-    note: text(formData, "note"),
-    sourceSubmissionKey: text(formData, "sourceSubmissionKey"),
-  });
-  await recordAdminAuditEvent(
-    "production_material_consume",
-    `${result.workOrderNumber}: ${result.total} ${result.unit} ${result.materialName} consumed.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${text(formData, "workOrderId")}`);
-  revalidatePath("/admin/stock");
-  refresh();
-}
-
-export async function reverseMaterialConsumptionAction(formData: FormData) {
-  const { approvedBy } = await ownerContext();
-  if (text(formData, "reverseConfirmed") !== "yes") {
-    throw new Error("Confirm the material consumption reversal.");
-  }
-  const reason = text(formData, "reason");
-  if (reason.length < 5) {
-    throw new Error("Write a clear reversal reason (at least 5 characters).");
-  }
-  const result = await reverseWorkOrderMaterialConsumption({
-    consumptionId: text(formData, "consumptionId"),
-    reason,
-    reversedBy: approvedBy,
-  });
-  await recordAdminAuditEvent(
-    "production_material_reverse",
-    `${result.workOrderNumber}: ${result.total} ${result.unit} ${result.materialName} reversed; ${reason}.`,
-  );
-  revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
-  revalidatePath("/admin/stock");
   refresh();
 }
 
@@ -507,9 +309,6 @@ export async function reverseProductionWorkEntryAction(formData: FormData) {
     }.`,
   );
   revalidatePath(`/admin/operations/production-accounts/worker/${result.employeeId}`);
-  if (result.workOrderId) {
-    revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
-  }
   refresh();
 }
 
@@ -534,9 +333,6 @@ export async function reversePackingQcAction(formData: FormData) {
     "production_qc_stock_reverse",
     `${result.approvalReference}: ${result.pairs} ${result.productName} pairs reversed; ${reason}.`,
   );
-  if (result.workOrderId) {
-    revalidatePath(`/admin/operations/production-accounts/work-order/${result.workOrderId}`);
-  }
   revalidatePath("/admin/stock");
   refresh();
 }
@@ -550,7 +346,6 @@ export async function approvePackingQcAction(formData: FormData) {
 
   const result = await approvePackingQcAndPostStock({
     itemId: text(formData, "itemId"),
-    workOrderId: text(formData, "workOrderId"),
     packingEmployee,
     qcDate: text(formData, "qcDate"),
     totalPairs,

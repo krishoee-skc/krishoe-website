@@ -86,21 +86,6 @@ export default async function WagesWeekPage() {
         Enter today&rsquo;s work →
       </Link>
 
-      {(control.overdueWorkOrders > 0 || control.handoverMismatches > 0) ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {control.overdueWorkOrders > 0 ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-900">
-              {control.overdueWorkOrders} Work Order overdue—review due dates and current stage.
-            </div>
-          ) : null}
-          {control.handoverMismatches > 0 ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-              {control.handoverMismatches} handover records have Short/Excess quantity.
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
       <div className={`rounded-2xl border p-4 shadow-sm sm:p-5 ${
         acceptance.integrityIssues === 0
           ? "border-emerald-200 bg-emerald-50"
@@ -122,12 +107,10 @@ export default async function WagesWeekPage() {
             {acceptance.integrityIssues === 0 ? "SAFE" : "REVIEW"}
           </span>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {[
             ["Worker links", acceptance.orphanWorkEntries],
-            ["Completed without QC", acceptance.completedWithoutQc],
             ["QC-stock links", acceptance.qcWithoutStockMovement],
-            ["Active order links", acceptance.activeOrderItemMismatch],
             ["Duplicate submissions", acceptance.duplicateSubmissionKeys],
             ["Workers whose two ledgers disagree", acceptance.ledgerMismatchWorkers],
           ].map(([label, value]) => (

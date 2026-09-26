@@ -62,7 +62,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "factory",
     links: [
       { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: FactoryIcon },
-      // Wages, kharcha, work orders and cost cards — a daily-needed screen that
+      // Wages, kharcha, stock postings and cost cards — a daily-needed screen that
       // had no menu link and could only be reached by typing its URL. It read
       // "Cost & profit", which is the costing screen further down this file:
       // the owner opened it looking for profit and found wages.

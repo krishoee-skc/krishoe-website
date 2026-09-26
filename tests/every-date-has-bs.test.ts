@@ -15,7 +15,6 @@ describe("every date carries its B.S date", () => {
   });
 
   it.each([
-    ["app/admin/operations/production-accounts/work-order/[id]/page.tsx", "formatAdminDate(value, { time: true })"],
     ["app/admin/activity/page.tsx", "formatAdminDate(latestEvent.createdAt, { time: true })"],
     ["app/order/[id]/page.tsx", "formatAdminDate(value, { time: true })"],
     ["components/ProductReviews.tsx", ": formatAdminDate(review.createdAt)"],

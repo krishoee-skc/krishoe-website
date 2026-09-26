@@ -150,7 +150,8 @@ describe("the forms that walk", () => {
     ["app/admin/OrdersClient.tsx", 2],
     // Rates and cost.
     ["app/admin/operations/production-accounts/rates/page.tsx", 2],
-    ["app/admin/operations/production-accounts/lots/page.tsx", 7],
+    // Seven until the Work Order and handover forms were taken out.
+    ["app/admin/operations/production-accounts/lots/page.tsx", 5],
     ["app/admin/costing/page.tsx", 1],
     // The same money on the pages of one worker, supplier, customer or lot —
     // missed on the first pass, found on the recheck. The delete form and the
@@ -158,7 +159,6 @@ describe("the forms that walk", () => {
     ["app/admin/purchasing/supplier/[id]/page.tsx", 1],
     ["app/admin/operations/ledger/[id]/page.tsx", 2],
     ["app/admin/operations/production-accounts/worker/[id]/page.tsx", 3],
-    ["app/admin/operations/production-accounts/work-order/[id]/page.tsx", 7],
     ["app/admin/operations/_components/OperationsRecords.tsx", 6],
     // Counting, sending and receiving pairs; a new worker's pay; a discount.
     ["app/admin/stock/WherePairsAre.tsx", 3],

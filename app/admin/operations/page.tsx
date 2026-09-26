@@ -10,7 +10,8 @@ import { getCostingSnapshot } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
 import { reportError } from "@/lib/report-error";
-import { getProductionControlSummary } from "@/lib/production-accounting";
+import { getProductionControlSummary, getWeeklyWorkerSettlements } from "@/lib/production-accounting";
+import { saturdayToFridayPeriod } from "@/lib/production-accounting-rules";
 
 export const metadata: Metadata = {
   title: "Operations | KRISHOE Admin",
@@ -25,11 +26,17 @@ export default async function AdminOperationsPage({
 }) {
   // The action wrote both languages into the URL; the reader picks one.
   const saved = readSavedMessage((await searchParams)?.saved ?? "");
-  const [snapshot, costing, productionControl] = await Promise.all([
+  // The same Saturday-to-Friday week the wages page pays by, so the two pages
+  // never show the owner two different numbers for one week.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
+  const [snapshot, costing, productionControl, weeklySettlements] = await Promise.all([
     getOperationsSnapshot(),
     getCostingSnapshot(),
     getProductionControlSummary(),
+    getWeeklyWorkerSettlements(saturdayToFridayPeriod(today)),
   ]);
+  const weekPairs = weeklySettlements.reduce((total, row) => total + row.completedPairs, 0);
+  const weekEarned = weeklySettlements.reduce((total, row) => total + row.earned, 0);
 
   // The worker-task form picks a name from here instead of typing it. Loaded on
   // its own and guarded, so a hiccup leaves the field typeable rather than
@@ -79,10 +86,12 @@ export default async function AdminOperationsPage({
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {
-            id: "lots",
-            label: <T en="Active factory lots" ne="चलिरहेका lot" />,
-            value: productionControl.activeWorkOrders,
-            detail: <T en={`${productionControl.overdueWorkOrders} overdue`} ne={`${productionControl.overdueWorkOrders} ढिलो भएको`} />,
+            // Was "active factory lots", a count of Work Orders; those were
+            // taken out, so this shows the week that is actually being paid.
+            id: "week",
+            label: <T en="Made this week" ne="यो हप्ता बनेको" />,
+            value: <T en={`${weekPairs} pairs`} ne={`${weekPairs} जोडी`} />,
+            detail: <T en={`${money(weekEarned)} wage this week`} ne={`यो हप्ताको ज्याला ${money(weekEarned)}`} />,
           },
           {
             id: "output",
@@ -91,16 +100,16 @@ export default async function AdminOperationsPage({
             detail: <T en={`${productionControl.todayRejectedPairs} rejected`} ne={`${productionControl.todayRejectedPairs} बिग्रेको`} />,
           },
           {
-            id: "qc",
-            label: <T en="Ready for QC" ne="जाँच्न तयार" />,
-            value: productionControl.readyForQc,
-            detail: <T en={`${productionControl.todayStockPairs} pairs stocked today`} ne={`आज ${productionControl.todayStockPairs} जोडी स्टकमा चढ्यो`} />,
+            id: "stock",
+            label: <T en="Into stock today" ne="आज स्टकमा चढेको" />,
+            value: <T en={`${productionControl.todayStockPairs} pairs`} ne={`${productionControl.todayStockPairs} जोडी`} />,
+            detail: <T en="From Packing/QC" ne="Packing/QC बाट" />,
           },
           {
             id: "wages",
             label: <T en="Worker balance due" ne="कामदारलाई तिर्न बाँकी" />,
             value: money(productionControl.workerBalanceDue),
-            detail: <T en={`${productionControl.handoverMismatches} handover mismatch`} ne={`${productionControl.handoverMismatches} हस्तान्तरण मिलेन`} />,
+            detail: <T en="All workers together" ne="सबै कामदारको जम्मा" />,
           },
         ].map(({ id, label, value, detail }) => (
           <div key={id} className="rounded-xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">

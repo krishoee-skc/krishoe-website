@@ -7,7 +7,6 @@ import {
   getFactoryItems,
   getFactoryRateBook,
   getFactoryWorkers,
-  type WorkOrderOption,
 } from "@/lib/factory-board-data";
 import { queryPostgres } from "@/lib/postgres/client";
 import { stageNeedingUpperFirst } from "@/lib/stage-order";
@@ -35,7 +34,6 @@ type Loaded = {
     sizes: string[];
     production_item_id: string | null;
   }[];
-  workOrders: WorkOrderOption[];
   rates: FactoryRate[];
   error: string;
 };
@@ -145,7 +143,6 @@ async function loadEntryScreen(): Promise<Loaded> {
         sizes: item.sizes,
         production_item_id: item.production_item_id,
       })),
-      workOrders: catalogue.workOrders,
       rates,
       error: "",
     };
@@ -154,7 +151,6 @@ async function loadEntryScreen(): Promise<Loaded> {
     return {
       workers: null,
       items: [],
-      workOrders: [],
       rates: [],
       error: saveFailureMessage(error, "Could not load the work entry screen."),
     };
@@ -178,7 +174,6 @@ export default async function FactoryAddWorkPage() {
     <WorkEntryForm
       initialWorkers={loaded.workers}
       initialItems={loaded.items}
-      initialWorkOrders={loaded.workOrders}
       initialRates={loaded.rates}
     />
   );

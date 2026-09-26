@@ -1312,13 +1312,8 @@ export function formatProductionReportDetail(
     `Finished stock posted: ${report.stockPostedPairs} pairs`,
     `Worker wage earned: ${money(report.earnedWage)}`,
     `Worker cash paid: ${money(report.cashPaid)}`,
-    `Completed Work Orders: ${report.completedWorkOrders}`,
     `Top output worker: ${report.topWorker ? `${report.topWorker.name} (${report.topWorker.goodPairs} pairs)` : "No entry"}`,
     "",
-    `Current active Work Orders: ${control.activeWorkOrders}`,
-    `Overdue Work Orders: ${control.overdueWorkOrders}`,
-    `Ready for packing/QC: ${control.readyForQc}`,
-    `Handover mismatches: ${control.handoverMismatches}`,
     `Total worker balance due: ${money(control.workerBalanceDue)}`,
   ].join("\n");
 }

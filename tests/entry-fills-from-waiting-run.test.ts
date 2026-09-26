@@ -106,8 +106,10 @@ describe("the form uses it", () => {
     const form = await readFile(FORM, "utf8");
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
-    // A filled box that cannot be corrected is worse than an empty one. Only
-    // the work-order case locks them, and that was already true.
-    expect(code).toMatch(/readOnly=\{Boolean\(selectedWorkOrder\)\}/);
+    // A filled box that cannot be corrected is worse than an empty one. The
+    // Work Order case used to lock them; Work Orders were taken out, so
+    // nothing does now.
+    expect(code).not.toMatch(/readOnly/);
+    expect(code).not.toMatch(/selectedWorkOrder/);
   });
 });

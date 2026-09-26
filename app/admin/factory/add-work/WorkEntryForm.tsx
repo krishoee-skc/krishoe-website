@@ -34,7 +34,6 @@ import {
   waitingCounts,
   type Item,
   type WorkField,
-  type WorkOrder,
   type Worker,
 } from "@/app/admin/factory/add-work/work-entry-rules";
 
@@ -47,12 +46,10 @@ export { fillFromWaitingRun, waitingCounts };
 export default function WorkEntryForm({
   initialWorkers,
   initialItems,
-  initialWorkOrders,
   initialRates,
 }: {
   initialWorkers: Worker[];
   initialItems: Item[];
-  initialWorkOrders: WorkOrder[];
   initialRates: FactoryRate[];
 }) {
   const router = useRouter();
@@ -103,7 +100,6 @@ export default function WorkEntryForm({
     }
   }
   const [items, setItems] = useState<Item[]>(initialItems);
-  const [workOrders] = useState<WorkOrder[]>(initialWorkOrders);
   // Every rate in force, so picking an item prices the work with no round trip.
   // A rate the owner sets from this screen is added to it on the spot.
   const [rates, setRates] = useState<FactoryRate[]>(initialRates);
@@ -119,7 +115,6 @@ export default function WorkEntryForm({
     // until a worker is chosen, then it defaults to that worker's category and
     // can be changed on the dropdown below.
     stage: "",
-    work_order_id: "",
     color: "",
     size: "",
     // Sixty: every entry this shop has ever made is sixty pairs. Typing over
@@ -208,7 +203,6 @@ export default function WorkEntryForm({
     setFormData((prev) => ({
       ...prev,
       item_id: itemId,
-      work_order_id: "",
       color: filled.color,
       size: filled.size,
     }));
@@ -243,17 +237,6 @@ export default function WorkEntryForm({
         "यसको दर अझै तोकिएको छैन — तल थप्नुहोस्।",
       ),
     );
-  };
-
-  const handleWorkOrderChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const workOrderId = event.target.value;
-    const order = workOrders.find((row) => row.id === workOrderId);
-    setFormData((current) => ({
-      ...current,
-      work_order_id: workOrderId,
-      color: order?.colour || "",
-      size: "",
-    }));
   };
 
   const handlePairsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -559,17 +542,6 @@ export default function WorkEntryForm({
     }
   };
 
-  const selectedItem = items.find((item) => item.id === formData.item_id);
-  const availableWorkOrders = workOrders.filter(
-    (order) => order.item_id === selectedItem?.production_item_id,
-  );
-  const selectedWorkOrder = workOrders.find(
-    (order) => order.id === formData.work_order_id,
-  );
-  const plannedSizes = selectedWorkOrder
-    ? Object.entries(selectedWorkOrder.size_breakdown).filter(([, pairs]) => Number(pairs) > 0)
-    : [];
-
   if (loading) {
     return (
       <div className="p-4 sm:p-6 text-center">
@@ -818,39 +790,6 @@ export default function WorkEntryForm({
         </div>
         </div>
 
-        {/* Work Order / Lot */}
-        {selectedItem?.production_item_id && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
-            <label className="block text-sm font-bold text-emerald-950 mb-2">
-              {text("Work order / lot", "कामको अर्डर / लट")}
-            </label>
-            <select
-              id="work-order"
-              value={formData.work_order_id}
-              onChange={handleWorkOrderChange}
-              className="w-full min-h-12 rounded-lg border border-emerald-300 bg-brand-paper px-3 py-2"
-            >
-              <option value="">
-                {text("No work order — wage history only", "Work Order बिना — ज्यालाको हिसाब मात्र")}
-              </option>
-              {availableWorkOrders.map((order) => (
-                <option key={order.id} value={order.id}>
-                  {order.work_order_number} · {order.current_stage} · {order.planned_pairs} pairs
-                </option>
-              ))}
-            </select>
-            {selectedWorkOrder ? (
-              <p className="mt-2 text-xs leading-5 text-emerald-800">
-                {selectedWorkOrder.item_name_snapshot} · {selectedWorkOrder.colour} · Current stage {selectedWorkOrder.current_stage}
-                {selectedWorkOrder.due_date ? ` · Due ${selectedWorkOrder.due_date}` : ""}
-              </p>
-            ) : (
-              <p className="mt-2 text-xs leading-5 text-emerald-800">
-                Select a lot to preserve its stage, size and progress history. You can continue without one for legacy wage-only work.
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Colour, Size and Pairs on one row from small screens up — three short
             fields that belong together, so the form does not run down the page.
@@ -1014,8 +953,7 @@ export default function WorkEntryForm({
             🎨 {text("Colour", "रङ")}{" "}
             <span className="font-normal text-brand-clay">{text("(required)", "— अनिवार्य")}</span>
           </label>
-          {!selectedWorkOrder ? (
-            <div className="mb-2 flex flex-wrap gap-1.5">
+          <div className="mb-2 flex flex-wrap gap-1.5">
               {COMMON_COLOURS.map((c) => {
                 const active = formData.color.trim() === c.ne || formData.color.trim() === c.en;
                 return (
@@ -1035,7 +973,6 @@ export default function WorkEntryForm({
                 );
               })}
             </div>
-          ) : null}
           <input aria-label={text("Colour", "रङ")}
             ref={(element) => {
               boxes.current.set("colour", element);
@@ -1044,7 +981,6 @@ export default function WorkEntryForm({
             type="text"
             value={formData.color}
             onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-            readOnly={Boolean(selectedWorkOrder)}
             placeholder={text("or type a colour", "वा रङ लेख्नुहोस्")}
             className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
           />
@@ -1055,21 +991,6 @@ export default function WorkEntryForm({
             📏 {text("Size", "साइज")}{" "}
             <span className="font-normal text-brand-clay">{text("(required)", "— अनिवार्य")}</span>
           </label>
-          {selectedWorkOrder ? (
-            <select
-              id="work-size"
-              value={formData.size}
-              onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
-              required
-            >
-              <option value="">{text("Select a planned size…", "तय भएको साइज छान्नुहोस्…")}</option>
-              {plannedSizes.map(([size, pairs]) => (
-                <option key={size} value={size}>{size} · planned {pairs} pairs</option>
-              ))}
-            </select>
-          ) : (
-            <>
               {/* Tap the sizes made — each toggles in and out of the comma list,
                   so a run like "7, 8, 9" is built without typing commas. The
                   text field below still takes anything off these buttons. */}
@@ -1129,8 +1050,6 @@ export default function WorkEntryForm({
                 placeholder={text("or type sizes", "वा साइज लेख्नुहोस्")}
                 className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
               />
-            </>
-          )}
         </div>
         </div>
 

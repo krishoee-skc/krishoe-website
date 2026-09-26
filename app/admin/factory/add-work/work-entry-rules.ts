@@ -39,19 +39,6 @@ export interface Item {
   production_item_id: string | null;
 }
 
-export interface WorkOrder {
-  id: string;
-  work_order_number: string;
-  item_id: string;
-  item_name_snapshot: string;
-  colour: string;
-  size_breakdown: Record<string, number>;
-  planned_pairs: number;
-  current_stage: string;
-  status: string;
-  due_date: string | null;
-}
-
 // The colours a shoe usually comes in, offered as one-tap chips so the same
 // colour is spelled the same way every time. Anything else is still typed.
 export const COMMON_COLOURS = [

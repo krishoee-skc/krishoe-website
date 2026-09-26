@@ -220,7 +220,7 @@ export default async function WorkerProductionLedgerPage({
                     <EnterWalkForm action={reverseProductionWorkEntryAction} className="mt-3 space-y-3 rounded-xl bg-red-50 p-3">
                       <input type="hidden" name="entryId" value={row.id} />
                       <p className="text-xs leading-5 text-red-900">
-                        This removes the wage and recalculates the linked Work Order stage. Finished-stock lots cannot be reversed here.
+                        This removes the wage and recalculates the account. Finished stock cannot be reversed here.
                       </p>
                       <p className="text-xs leading-5 text-brand-muted">
                         To change the colour, size, pairs or rate instead, open{" "}

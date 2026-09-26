@@ -1,27 +1,21 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
-import Link from "next/link";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import {
   approveCostCardAction,
   approvePackingQcAction,
-  createHandoverAction,
   createProductionItemAction,
-  createWorkOrderAction,
   mapProductionItemAction,
   saveItemMaterialAction,
 } from "../actions";
-import {
-  getProductionAccountingSnapshot,
-  getProductionControlSummary,
-} from "@/lib/production-accounting";
-import { productionStages } from "@/lib/production-accounting-rules";
+import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
+import T from "@/components/T";
 import WagesNav from "../_components/wages-nav";
 
-export const metadata: Metadata = { title: "Lots and cost | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Stock and cost | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 const input =
@@ -35,18 +29,15 @@ function today() {
 }
 
 /**
- * Work Orders, handovers, QC into stock, and what a pair costs to make.
+ * Finished pairs into stock (Packing/QC), and what a pair costs to make.
  *
- * None of this has been used yet — every one of these tables is empty — but it
- * is built, and it is where the shop goes next. Together on one page, out of
- * the daily path without being out of reach.
+ * Work Orders, lots and stage handovers used to live here too. None was ever
+ * used, and the owner took them out; the shop records work in Factory Entry and
+ * posts finished pairs from here. The tables stay in the database, untouched.
  */
 export default async function WagesLotsPage() {
   const date = today();
-  const [data, control] = await Promise.all([
-    getProductionAccountingSnapshot(),
-    getProductionControlSummary(),
-  ]);
+  const data = await getProductionAccountingSnapshot();
   const activeItems = data.items.filter((item) => item.status === "Active");
 
   return (
@@ -54,150 +45,15 @@ export default async function WagesLotsPage() {
       <header className="flex flex-col gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory accounts</p>
-          <h1 className="mt-1 text-2xl font-black text-brand-green-ink">Lots &amp; cost</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">Work Orders, stage handovers, QC into finished stock, and the cost of a pair. Not started yet — ready when the shop is.</p>
+          <h1 className="mt-1 text-2xl font-black text-brand-green-ink"><T en="Stock & cost" ne="स्टक र लागत" /></h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted"><T en="Packed pairs into finished stock, and the cost of a pair." ne="प्याक भएका जोडी तयारी स्टकमा, र एक जोडी बनाउन लाग्ने लागत।" /></p>
         </div>
         <WagesNav />
       </header>
 
       <div className="flex flex-wrap gap-2">
-        <ExportButton href="/api/admin/operations/production-export?type=work-orders" className="min-h-10 rounded-full bg-brand-green px-4 text-xs font-black text-white">Work Orders CSV</ExportButton>
-        <ExportButton href="/api/admin/operations/production-export?type=handovers" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">Handovers CSV</ExportButton>
         <ExportButton href="/api/admin/operations/production-export?type=qc-stock" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">QC &amp; stock CSV</ExportButton>
         <ExportButton href="/api/admin/operations/production-export?type=cost-cards" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">Cost cards CSV</ExportButton>
-      </div>
-
-      <div className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">Stage-wise pending Work Orders</h2>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {["Upper", "Fiber Preparation", "Fiber Silai", "Bottom Final", "Packing / QC"].map((stage) => (
-            <div key={stage} className="rounded-xl bg-brand-paper-deep p-3">
-              <p className="text-xs font-bold text-brand-muted">{stage}</p>
-              <p className="mt-1 text-xl font-black text-brand-green-ink">{control.stagePending[stage] ?? 0}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <EnterWalkForm action={createWorkOrderAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">5. New Work Order / Lot</h2>
-          <p className="mt-1 text-sm text-brand-muted">Plan colour, mixed sizes, total pairs and due date before production starts.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
-              <option value="" disabled>Select manufactured item</option>
-              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            <input aria-label="Colour, e.g. Black" name="colour" className={input} placeholder="Colour, e.g. Black" required />
-            <input aria-label="Planned total pairs" name="plannedPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Planned total pairs" required />
-            <input aria-label="Sizes: 36:10, 37:15, 38:20" name="sizeBreakdown" className={input} placeholder="Sizes: 36:10, 37:15, 38:20" required />
-            <NepaliDateFieldUncontrolled name="dueDate" />
-            <select aria-label="Priority" name="priority" className={input} defaultValue="Normal">
-              <option>Normal</option><option>High</option><option>Urgent</option>
-            </select>
-            <input aria-label="Work Order remark" name="note" className={`${input} sm:col-span-2`} placeholder="Work Order remark" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Creating Work Order…">Create Work Order</FormSubmitButton>
-        </EnterWalkForm>
-
-        <div className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">Active Work Orders</h2>
-          <div className="mt-4 space-y-3">
-            {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
-              <Link
-                key={order.id}
-                href={`/admin/operations/production-accounts/work-order/${encodeURIComponent(order.id)}`}
-                className="hover-lift block rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm transition hover:border-brand-green"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-brand-green-ink">{order.workOrderNumber} · {order.itemName}</p>
-                    <p className="mt-1 text-brand-muted">{order.colour} · {order.plannedPairs} pairs · due {order.dueDate || "not set"}</p>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                    order.priority === "Urgent" ? "bg-red-50 text-red-800" :
-                    order.priority === "High" ? "bg-amber-50 text-amber-800" : "bg-brand-paper text-brand-muted-deep"
-                  }`}>{order.priority}</span>
-                </div>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="font-bold text-brand-green">Current: {order.currentStage}</p>
-                  <p className="text-xs font-bold text-brand-muted">{order.status}</p>
-                </div>
-                <p className="mt-3 text-xs font-black text-brand-green">Open lot history & QR →</p>
-              </Link>
-            ))}
-            {data.workOrders.length === 0 ? <p className="text-sm text-brand-muted">No Work Order yet.</p> : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <EnterWalkForm action={createHandoverAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">Stage handover</h2>
-          <p className="mt-1 text-sm text-brand-muted">Record who sent, who received and any quantity difference.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Work order" name="workOrderId" data-summary="text" className={`${input} sm:col-span-2`} required defaultValue="">
-              <option value="" disabled>Select active Work Order</option>
-              {data.workOrders.filter((order) => !["Completed", "Cancelled"].includes(order.status)).map((order) => (
-                <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
-              ))}
-            </select>
-            <select aria-label="Handover from stage" name="fromStage" data-summary="text" className={input}>
-              {productionStages.map((stage) => <option key={stage}>{stage}</option>)}
-            </select>
-            <NepaliDateFieldUncontrolled name="handoverDate" defaultValue={date} required />
-            <select aria-label="Handover from worker" name="fromEmployeeId" className={input} defaultValue="">
-              <option value="">Sender not selected</option>
-              {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-            </select>
-            <select aria-label="Handover to worker" name="toEmployeeId" className={input} defaultValue="">
-              <option value="">Receiver not selected</option>
-              {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-            </select>
-            <input aria-label="Sent pairs" name="sentPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Sent pairs" required />
-            <input aria-label="Received pairs" name="receivedPairs" data-summary="pairs" type="number" min="0" className={input} placeholder="Received pairs" required />
-            <input aria-label="Received sizes: 36:10, 37:15"
-              name="receivedSizeBreakdown"
-              className={`${input} sm:col-span-2`}
-              placeholder="Received sizes: 36:10, 37:15"
-            />
-            <input aria-label="Difference/reason note" name="note" className={`${input} sm:col-span-2`} placeholder="Difference/reason note" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving handover…">Save handover</FormSubmitButton>
-        </EnterWalkForm>
-
-        <div className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">Recent handovers</h2>
-          <div className="mt-4 space-y-3">
-            {data.handovers.map((handover) => (
-              <article key={handover.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-brand-green-ink">{handover.workOrderNumber}</p>
-                    <p className="mt-1 text-brand-muted">{handover.fromStage} → {handover.toStage}</p>
-                    <p className="mt-1 text-xs text-brand-muted">
-                      {handover.fromEmployeeName || "Sender"} → {handover.toEmployeeName || "Receiver"} · {handover.handoverDate}
-                    </p>
-                    {Object.keys(handover.receivedSizeBreakdown).length ? (
-                      <p className="mt-1 text-xs text-brand-muted">
-                        Sizes: {Object.entries(handover.receivedSizeBreakdown).map(([size, pairs]) => `${size}:${pairs}`).join(", ")}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-black">{handover.sentPairs} → {handover.receivedPairs}</p>
-                    <p className={`mt-1 text-xs font-black ${handover.signal === "Matched" ? "text-brand-green" : "text-brand-clay"}`}>
-                      {handover.signal}{handover.difference ? ` ${handover.difference}` : ""}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
-            {data.handovers.length === 0 ? <p className="text-sm text-brand-muted">No stage handover yet.</p> : null}
-          </div>
-        </div>
       </div>
 
       <EnterWalkForm action={approvePackingQcAction} className={`${card} border-emerald-200`}>
@@ -214,12 +70,6 @@ export default async function WagesLotsPage() {
           </span>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <select aria-label="Work order" name="workOrderId" data-summary="text" className={input} defaultValue="">
-            <option value="">No Work Order link (legacy/manual)</option>
-            {data.workOrders.filter((order) => order.status === "Ready for QC").map((order) => (
-              <option key={order.id} value={order.id}>{order.workOrderNumber} · {order.itemName}</option>
-            ))}
-          </select>
           <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
             <option value="" disabled>Select mapped manufactured item</option>
             {activeItems
@@ -252,7 +102,6 @@ export default async function WagesLotsPage() {
                 <div>
                   <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
                   <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
-                  {posting.workOrderId ? <p className="mt-1 text-xs font-bold text-emerald-800">Work Order linked</p> : null}
                   <p className="mt-1 text-xs text-brand-muted">
                     Packing/QC: {posting.packingEmployeeName || "Owner verified"} · Approved by {posting.approvedBy}
                   </p>

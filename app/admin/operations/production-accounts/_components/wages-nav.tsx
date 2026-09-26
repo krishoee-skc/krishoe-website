@@ -10,8 +10,8 @@ import { useLanguage } from "@/components/LanguageProvider";
  * Wages & kharcha was eighteen sections on a single page — six CSV buttons,
  * four summary cards, an audit board, and eleven forms, in the order they were
  * built rather than the order they are used. The three things needed daily sat
- * below five forms that have never been used once (Work Orders, handovers,
- * QC postings, material recipes and cost cards are all empty), so paying
+ * below five forms that had never been used once (Work Orders and handovers —
+ * since taken out — QC postings, material recipes and cost cards), so paying
  * workers on Saturday meant scrolling past every one of them.
  *
  * The factory side already reads well this way: a small nav across the top and
@@ -23,7 +23,7 @@ export const wagesLinks = [
   { href: "/admin/operations/production-accounts", en: "This week", ne: "हप्ता" },
   { href: "/admin/operations/production-accounts/payments", en: "Payments", ne: "भुक्तानी" },
   { href: "/admin/operations/production-accounts/rates", en: "Wage rates", ne: "दर" },
-  { href: "/admin/operations/production-accounts/lots", en: "Lots & cost", ne: "लट र लागत" },
+  { href: "/admin/operations/production-accounts/lots", en: "Stock & cost", ne: "स्टक र लागत" },
 ] as const;
 
 export default function WagesNav() {

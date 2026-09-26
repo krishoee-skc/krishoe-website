@@ -48,9 +48,9 @@ export type FactoryStageTotal = { stage: string; pairs: number };
 /**
  * The four stages a shoe passes through, in order.
  *
- * Taken from the sequence factory-mutations advances a work order along
- * (Upper → Fiber Preparation → Fiber Silai → Bottom Final), so the board and
- * the work order cannot disagree about what comes next.
+ * The same order the production ledger uses (Upper → Fiber Preparation →
+ * Fiber Silai → Bottom Final), so the board and the ledger cannot disagree
+ * about what comes next.
  */
 export const FACTORY_STAGES = [
   "Upper",

@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
   const includeRetired = request.nextUrl.searchParams.get("include") === "retired";
 
   try {
-    // The three queries live in lib/factory-board-data, which the
-    // server-rendered item screen reads through as well — one definition of an
-    // item, its production link and the open work orders.
+    // The queries live in lib/factory-board-data, which the server-rendered
+    // item screen reads through as well — one definition of an item and its
+    // production link.
     return NextResponse.json(await getFactoryItems({ includeRetired }));
   } catch (error) {
     console.error("Error fetching items:", error);
