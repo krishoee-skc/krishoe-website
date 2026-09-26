@@ -41,6 +41,34 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
     monthly_salary: "",
     weekly_advance: "",
   });
+  // Set when choosing "Monthly staff" moved the stage to Staff by itself, so
+  // going back to piece rate can put it back instead of leaving a piece
+  // worker filed under Staff. A stage the owner picks by hand is theirs.
+  const [stageAutoStaff, setStageAutoStaff] = useState(false);
+  const [salaryMissing, setSalaryMissing] = useState(false);
+
+  /**
+   * Monthly staff are staff: the stage follows the type.
+   *
+   * The form resets to piece rate and Upper after every save, so the next
+   * person added as monthly staff kept "Upper" unless someone noticed — and a
+   * salaried member filed under Upper turns up in the Upper list on the work
+   * form. The stage can still be changed after this.
+   */
+  function changeWorkerType(workerType: string) {
+    if (workerType === "monthly_staff") {
+      setStageAutoStaff(formData.category !== "Staff" || stageAutoStaff);
+      setFormData({ ...formData, worker_type: workerType, category: "Staff" });
+      return;
+    }
+    setSalaryMissing(false);
+    if (stageAutoStaff && formData.category === "Staff") {
+      setStageAutoStaff(false);
+      setFormData({ ...formData, worker_type: workerType, category: "Upper" });
+      return;
+    }
+    setFormData({ ...formData, worker_type: workerType });
+  }
 
   const loadWorkers = useCallback(async () => {
     setLoading(true);
@@ -69,9 +97,17 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
 
   async function createWorker(event: React.FormEvent) {
     event.preventDefault();
-    setSaving("new");
     setError("");
     setMessage("");
+    // A monthly member saved without a salary came out at Rs. 0 on the salary
+    // run. Asked for here, before anything is written.
+    if (formData.worker_type === "monthly_staff" && !(Number(formData.monthly_salary) > 0)) {
+      setSalaryMissing(true);
+      document.getElementById("new-member-salary")?.focus();
+      return;
+    }
+    setSaving("new");
+    const addedName = formData.name.trim();
     try {
       const response = await fetch("/api/factory/workers", {
         method: "POST",
@@ -85,8 +121,12 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Worker could not be created.");
       setFormData({ name: "", worker_type: "piece_rate", category: "Upper", monthly_salary: "", weekly_advance: "" });
+      setStageAutoStaff(false);
+      setSalaryMissing(false);
       setShowForm(false);
-      setMessage("Worker created and HR link saved.");
+      // Who was added, by name: "Worker created" read the same for every
+      // save, so the second of two in a row looked like the first again.
+      setMessage(text(`✅ ${addedName} added`, `✅ ${addedName} थपियो`));
       await loadWorkers();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Worker could not be created.");
@@ -177,10 +217,16 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
       {showForm ? (
         <EnterWalkForm onSubmit={createWorker} className="mt-6 grid max-w-3xl gap-4 rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm sm:grid-cols-2">
           <label className="text-sm font-bold">{text("Name", "नाम")}<input data-summary="text" value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} className={`${inputClass} mt-2`} required /></label>
-          <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => setFormData((current) => ({ ...current, worker_type: event.target.value }))} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
-          <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
-          <label className="text-sm font-bold">{text("Monthly salary", "मासिक तलब")}<input type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => setFormData((current) => ({ ...current, monthly_salary: event.target.value }))} className={`${inputClass} mt-2`} /></label>
-          <label className="text-sm font-bold">{text("Usual Saturday kharcha", "शनिबारको खर्च")}<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
+          <label className="text-sm font-bold">{text("Worker type", "कस्तो कामदार")}<select value={formData.worker_type} onChange={(event) => changeWorkerType(event.target.value)} className={`${inputClass} mt-2`}><option value="piece_rate">{text("Piece rate", "ज्यालामा")}</option><option value="daily_staff">{text("Daily staff", "दैनिक")}</option><option value="monthly_staff">{text("Monthly staff", "मासिक तलबमा")}</option></select></label>
+          <label className="text-sm font-bold">{text("Factory stage", "कारखानाको कुन चरण")}<select value={formData.category} onChange={(event) => { setStageAutoStaff(false); setFormData((current) => ({ ...current, category: event.target.value })); }} className={`${inputClass} mt-2`}>{categories.map((category) => <option key={category}>{category}</option>)}</select>
+            {formData.worker_type === "monthly_staff" && formData.category === "Staff" ? (
+              <span className="mt-1 block text-xs font-semibold text-emerald-800">{text("✓ Set to Staff for monthly staff. You can change it.", "✓ मासिक तलबमा भएकाले आफैँ Staff भयो। चाहे बदल्न मिल्छ।")}</span>
+            ) : null}
+          </label>
+          <label className="text-sm font-bold">{text("Monthly salary", "मासिक तलब")}{formData.worker_type === "monthly_staff" ? <span className="ml-1 text-xs font-bold text-red-700">{text("* required", "* जरुरी")}</span> : null}<input id="new-member-salary" type="number" min="0" step="0.01" value={formData.monthly_salary} onChange={(event) => { setSalaryMissing(false); setFormData((current) => ({ ...current, monthly_salary: event.target.value })); }} aria-invalid={salaryMissing} className={`${inputClass} mt-2 ${salaryMissing ? "border-red-600 ring-2 ring-red-600" : ""}`} />
+            {salaryMissing ? <span role="alert" className="mt-1 block text-xs font-bold text-red-700">{text("Enter the monthly salary", "मासिक तलब भर्नुहोस्")}</span> : null}
+          </label>
+          <label className="text-sm font-bold">{text("Usual expense / advance", "सामान्य खर्च / advance")}<input type="number" min="0" step="0.01" value={formData.weekly_advance} onChange={(event) => setFormData((current) => ({ ...current, weekly_advance: event.target.value }))} className={`${inputClass} mt-2`} /></label>
           <button disabled={saving === "new"} className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white disabled:opacity-60 sm:col-span-2">{saving === "new" ? "Saving..." : "Save worker"}</button>
         </EnterWalkForm>
       ) : null}

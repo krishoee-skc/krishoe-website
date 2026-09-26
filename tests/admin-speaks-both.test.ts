@@ -148,13 +148,14 @@ describe("what must not move while the words do", () => {
     }
   });
 
-  it("says शनिबारको खर्च where English had to borrow the word anyway", async () => {
+  it("says सामान्य खर्च / advance where English had to borrow the word anyway", async () => {
     const workers = await readFile("app/admin/factory/workers/TeamList.tsx", "utf8");
 
     // "Usual Saturday kharcha" was an English label built around a Nepali word,
-    // because English has none for it. That is the clearest sign the screen was
-    // written for the wrong reader.
-    expect(workers).toContain("शनिबारको खर्च");
+    // because English has none for it. The owner then named it for both kinds
+    // of member: the usual kharcha, or an advance.
+    expect(workers).toContain("सामान्य खर्च / advance");
+    expect(workers).not.toContain("Saturday kharcha");
   });
 });
 

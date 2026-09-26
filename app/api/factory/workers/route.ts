@@ -71,6 +71,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (worker_type === "monthly_staff" && !monthly_salary) {
+      return NextResponse.json(
+        { error: "Enter the monthly salary for monthly staff." },
+        { status: 400 }
+      );
+    }
 
     // Two workers reading the same in a dropdown cannot be told apart at entry
     // time, and their pay quietly splits across both rows — "aarif" and
