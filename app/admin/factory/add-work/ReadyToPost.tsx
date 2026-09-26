@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { ReadyItem } from "@/app/api/factory/ready/route";
+import { expandSizeRun } from "@/lib/shoe-sizes";
+import { evenSplit, isSingleShoeSize } from "@/lib/size-wise-stock";
 
 /**
  * What has been made, what is on the shelf, and the gap between them.
@@ -53,10 +55,28 @@ function postablePairs(
   return Number.isFinite(typed) && typed > 0 ? typed : item.pendingPairs;
 }
 
+/**
+ * The sizes a row can be counted in, when it is a run of two or more.
+ *
+ * A run posted as one pile ("36-41", 60 pairs) is what the counter bill shows
+ * as "not counted", with no button for a size the catalog does not list. Counted
+ * size by size, each size is its own stock row and the bill shows "41 · 6
+ * pairs". One size ("41") already posts as that size, so it needs no boxes.
+ */
+function runSizes(item: { sizeRun: string }) {
+  const sizes = expandSizeRun(item.sizeRun);
+  return sizes.length >= 2 && sizes.every(isSingleShoeSize) ? sizes : [];
+}
+
 export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
   const { text } = useLanguage();
   const [items, setItems] = useState<ReadyItem[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // Pairs typed per size, per row. A size nobody typed shows the even split
+  // when the pairs divide evenly across the run, and is empty otherwise.
+  const [sizeDrafts, setSizeDrafts] = useState<Record<string, Record<string, string>>>({});
+  // Rows the owner chose to post as one total, uncounted by size.
+  const [totalOnly, setTotalOnly] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -78,9 +98,47 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
     return () => window.clearTimeout(id);
   }, [load, refreshKey]);
 
+  /** Each size's box as it reads now: what was typed, else the even split. */
+  function sizeValues(item: ReadyItem) {
+    const rowKey = groupKeyOf(item);
+    const sizes = runSizes(item);
+    const even = evenSplit(sizes, item.pendingPairs);
+    return sizes.map((size) => {
+      const typed = sizeDrafts[rowKey]?.[size];
+      return { size, value: typed ?? (even ? String(even[size]) : "") };
+    });
+  }
+
+  function bySize(item: ReadyItem) {
+    return runSizes(item).length > 0 && !totalOnly[groupKeyOf(item)];
+  }
+
+  function sizedTotal(item: ReadyItem) {
+    return sizeValues(item).reduce((total, { value }) => {
+      const pairs = Number(value);
+      return total + (Number.isInteger(pairs) && pairs > 0 ? pairs : 0);
+    }, 0);
+  }
+
   async function post(item: ReadyItem) {
     const rowKey = groupKeyOf(item);
-    const pairs = Number(drafts[rowKey] ?? item.pendingPairs);
+    const sized = bySize(item);
+    const sizeBreakdown = sized
+      ? Object.fromEntries(
+          sizeValues(item)
+            .map(({ size, value }) => [size, Number(value)] as const)
+            .filter(([, pairs]) => Number.isInteger(pairs) && pairs > 0),
+        )
+      : null;
+    const pairs = sized ? sizedTotal(item) : Number(drafts[rowKey] ?? item.pendingPairs);
+    if (sized && pairs <= 0) {
+      setError(text("Enter the pairs counted in each size.", "हरेक साइजमा गनेको जोडी हाल्नुहोस्।"));
+      return;
+    }
+    // Written once, read in the key and in both languages of the message.
+    const splitLabel = sizeBreakdown
+      ? Object.entries(sizeBreakdown).map(([size, count]) => `${size}: ${count}`).join(", ")
+      : "";
     setBusy(rowKey);
     setMessage("");
     setError("");
@@ -95,23 +153,32 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
           item_id: item.itemId,
           pairs,
           size_run: item.sizeRun,
+          // Counted size by size: each size lands as its own stock row, which
+          // the counter bill can count and sell.
+          ...(sizeBreakdown ? { size_breakdown: sizeBreakdown } : {}),
           // Same row, same count, same key — so a retried request replays
           // instead of posting the pairs twice. Change the count and it is a
           // different key, because that is the owner correcting themselves and
           // a genuinely different post. The already-posted total is in it too,
           // so tomorrow's sixty against today's sixty is not read as a retry.
-          submission_key: `ready:${rowKey}:${item.postedPairs}:${pairs}`,
+          submission_key: `ready:${rowKey}:${item.postedPairs}:${pairs}${splitLabel ? `:${splitLabel}` : ""}`,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || text("Could not post this.", "चढाउन सकिएन।"));
       setMessage(
-        text(
-          `${item.name} — ${pairs} pairs posted to stock. They show in the shop straight away.`,
-          `${item.name} — ${pairs} जोडी स्टकमा चढ्यो। पसलमा तुरुन्तै देखिन्छ।`,
-        ),
+        splitLabel
+          ? text(
+              `${item.name} — ${pairs} pairs posted to stock, size by size (${splitLabel}).`,
+              `${item.name} — ${pairs} जोडी साइज अनुसार स्टकमा चढ्यो (${splitLabel})।`,
+            )
+          : text(
+              `${item.name} — ${pairs} pairs posted to stock. They show in the shop straight away.`,
+              `${item.name} — ${pairs} जोडी स्टकमा चढ्यो। पसलमा तुरुन्तै देखिन्छ।`,
+            ),
       );
       setDrafts((current) => ({ ...current, [rowKey]: "" }));
+      setSizeDrafts((current) => ({ ...current, [rowKey]: {} }));
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : text("Could not post this.", "चढाउन सकिएन।"));
@@ -246,6 +313,59 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       `${item.pendingPairs} जोडी चढाउन बाँकी`,
                     )}
                   </p>
+                  {bySize(item) ? (
+                    <div className="mt-2 rounded-xl border-2 border-brand-green bg-brand-paper p-3">
+                      <p className="text-xs font-black uppercase tracking-wide text-brand-green-ink">
+                        {text("Pairs in each size", "कुन साइजको कति जोडी")}
+                      </p>
+                      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                        {sizeValues(item).map(({ size, value }) => (
+                          <label key={size} className="block">
+                            <span className="block text-center text-[11px] font-bold text-brand-muted">{size}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              inputMode="numeric"
+                              value={value}
+                              onChange={(event) =>
+                                setSizeDrafts((current) => ({
+                                  ...current,
+                                  [groupKeyOf(item)]: { ...current[groupKeyOf(item)], [size]: event.target.value },
+                                }))
+                              }
+                              aria-label={text(`Pairs of ${item.name} in size ${size}`, `${item.name} साइज ${size} को जोडी`)}
+                              className="min-h-11 w-full rounded-lg border-2 border-brand-green-line px-1 text-center text-lg font-black tabular-nums text-brand-green-ink"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void post(item)}
+                          disabled={busy === groupKeyOf(item) || sizedTotal(item) <= 0}
+                          className="min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
+                        >
+                          {busy === groupKeyOf(item)
+                            ? text("Posting…", "चढाउँदैछौँ…")
+                            : text(`Post ${sizedTotal(item)} pairs`, `${sizedTotal(item)} जोडी चढाउने`)}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTotalOnly((current) => ({ ...current, [groupKeyOf(item)]: true }))}
+                          className="min-h-10 rounded-lg px-2 text-xs font-bold text-brand-muted underline"
+                        >
+                          {text("Not counted by size — post one total", "साइज नगनी जम्मा मात्र चढाउने")}
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-brand-muted">
+                        {text(
+                          "Each size goes into stock on its own, so the counter bill shows how many of each are left.",
+                          "हरेक साइज छुट्टै स्टकमा चढ्छ, अनि बिल काट्दा कुन साइज कति बाँकी छ देखिन्छ।",
+                        )}
+                      </p>
+                    </div>
+                  ) : (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <input
                       type="number"
@@ -285,7 +405,17 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                             `${postablePairs(item, drafts)} जोडी चढाउने`,
                           )}
                     </button>
+                    {runSizes(item).length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setTotalOnly((current) => ({ ...current, [groupKeyOf(item)]: false }))}
+                        className="min-h-10 rounded-lg px-2 text-xs font-bold text-brand-muted underline"
+                      >
+                        {text("Count by size instead", "साइज अनुसार गन्ने")}
+                      </button>
+                    ) : null}
                   </div>
+                  )}
                   <p className="mt-2 text-xs leading-5 text-brand-muted">
                     {text(
                       "Enter what was counted in the godown — the number above is only an estimate.",

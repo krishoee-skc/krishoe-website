@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { addStockMovement } from "@/lib/operations";
-import { queryPostgres } from "@/lib/postgres/client";
+import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import { insertStockMovement } from "@/lib/operations-postgres";
+import { sizeWiseRows } from "@/lib/size-wise-stock";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import { placePairs } from "@/lib/stock-transfers";
@@ -10,6 +12,9 @@ import { colourKey } from "@/lib/colour-name";
 import { sizeRunKey } from "@/lib/shoe-sizes";
 
 const STORE = "krishoe";
+
+/** The note a factory post carries when nobody typed one. */
+const READY_NOTE = "कारखानाबाट तयार";
 
 /**
  * The bridge between "who made what" and "what is on the shelf".
@@ -258,13 +263,30 @@ export async function POST(request: NextRequest) {
       ? body.size_run.trim()
       : "Mixed";
 
+    // Pairs counted size by size, when the screen sends them. Each size goes in
+    // as its own stock row — "41", not "36-41" — because a run is a pile the
+    // counter bill cannot count: it offered lose hill panja's 36–40 as "not
+    // counted" and had no 41 at all. Sent but wrong (sizes that do not add up
+    // to the pairs, or something that is not a size) is refused, never quietly
+    // posted as a pile.
+    const hasSplit = body.size_breakdown && typeof body.size_breakdown === "object"
+      && Object.keys(body.size_breakdown).length > 0;
+    const split = hasSplit ? sizeWiseRows(body.size_breakdown, pairs) : null;
+    if (hasSplit && !split) {
+      return NextResponse.json(
+        { error: `The pairs in each size must add up to ${pairs}.` },
+        { status: 400 },
+      );
+    }
+    if (split) return postSizeWise(items[0].name, split, pairs, note, submissionKey);
+
     const movement = await addStockMovement({
       design: items[0].name,
       channel: "Factory",
       sizeRun,
       type: "Production In",
       pairs,
-      note: note || "कारखानाबाट तयार",
+      note: note || READY_NOTE,
     });
 
     // Stamped on the movement just written rather than threaded through
@@ -337,4 +359,92 @@ export async function POST(request: NextRequest) {
     console.error("Error posting finished pairs:", error);
     return NextResponse.json({ error: "स्टकमा चढाउन सकिएन" }, { status: 500 });
   }
+}
+
+/**
+ * One stock row per size, all or nothing.
+ *
+ * In one transaction, so sixty pairs never land as thirty with the rest lost
+ * to a failed request halfway. The caller's key is stamped on the first row
+ * inside it: a second press of the same count fails the unique index, rolls
+ * the whole post back, and is answered as the replay it is.
+ */
+async function postSizeWise(
+  design: string,
+  split: Array<[string, number]>,
+  pairs: number,
+  note: string,
+  submissionKey: string,
+) {
+  let posted: { id: string; design: string };
+  try {
+    posted = await transactionPostgres("post finished pairs size by size", async (db) => {
+      let first: { id: string; design: string } | null = null;
+      for (const [size, sizePairs] of split) {
+        const movement = await insertStockMovement(db, {
+          design,
+          channel: "Factory",
+          sizeRun: size,
+          type: "Production In",
+          pairs: sizePairs,
+          note: note || READY_NOTE,
+        });
+        if (!first) {
+          first = { id: movement.id, design: movement.design };
+          if (submissionKey) {
+            await db.query(`UPDATE stock_movements SET submission_key = $2 WHERE id = $1`, [
+              movement.id,
+              submissionKey,
+            ]);
+          }
+        }
+      }
+      return first as { id: string; design: string };
+    });
+  } catch (error) {
+    if (submissionKey && (error as { code?: string })?.code === "23505") {
+      const winner = await queryPostgres<{ id: string; pairs: number; design: string }>(
+        STORE,
+        `SELECT id, pairs, design FROM stock_movements WHERE submission_key = $1 LIMIT 1`,
+        [submissionKey],
+      );
+      return NextResponse.json({
+        movementId: winner[0]?.id ?? "",
+        pairs,
+        design: winner[0]?.design ?? design,
+        replayed: true,
+      });
+    }
+    throw error;
+  }
+
+  // Where they are, size by size — the Stock screen matches places to stock on
+  // the size too. Not fatal, for the same reason as the single post above.
+  for (const [size, sizePairs] of split) {
+    await reportingErrors("place factory pairs after posting", () =>
+      placePairs(
+        { query: (sql, params) => queryPostgres(STORE, sql, params) },
+        posted.design,
+        size,
+        "Factory",
+        sizePairs,
+      ),
+    );
+  }
+  await reportingErrors("sync catalog stock after factory ready posting", () =>
+    syncProductCatalogStockWithFinishedStock(),
+  );
+  await recordAdminAuditEvent(
+    "factory_ready_stock_posted",
+    `${pairs} finished pairs of ${posted.design} posted to stock size by size (${split
+      .map(([size, sizePairs]) => `${size}:${sizePairs}`)
+      .join(", ")}).`,
+  );
+
+  return NextResponse.json({
+    movementId: posted.id,
+    pairs,
+    design: posted.design,
+    sizes: Object.fromEntries(split),
+  });
 }

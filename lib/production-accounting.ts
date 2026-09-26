@@ -27,6 +27,7 @@ async function listProductionWorkers(): Promise<ProductionWorker[]> {
 }
 import { getProducts } from "@/lib/product-store";
 import { insertStockMovement } from "@/lib/operations-postgres";
+import { sizeWiseRows } from "@/lib/size-wise-stock";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import {
   assertFinishedStockPosting,
@@ -1362,18 +1363,40 @@ export async function approvePackingQcAndPostStock(input: {
 
     const approvalReference =
       `KR-QC-${input.qcDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-    const movement = await insertStockMovement(db, {
-      design: product.name,
-      channel: "Factory",
-      sizeRun: "Mixed",
-      type: "Production In",
-      pairs: input.totalPairs,
-      // The pairs total is authoritative; this records how they split by size so
-      // the shop can later show size 30 as gone while 35 is in stock. Additive —
-      // it does not change the total or the reversal, which still key off pairs.
-      sizeBreakdown: normalizeSizeBreakdown(input.sizeBreakdown),
-      note: `${approvalReference} · ${item.name} packing/QC approved`,
-    });
+    // Good sizes given ("36:10, 41:6") go in as one stock row per size, which
+    // the counter bill counts and sells size by size. Without them the pairs go
+    // in as one "Mixed" pile, as they always did. Every row's note starts with
+    // the approval reference, which is how a reversal finds them all.
+    const sizeRows = sizeWiseRows(normalizeSizeBreakdown(input.sizeBreakdown), input.totalPairs);
+    const note = `${approvalReference} · ${item.name} packing/QC approved`;
+    let movement: { id: string } | null = null;
+    if (sizeRows) {
+      for (const [size, pairs] of sizeRows) {
+        const written = await insertStockMovement(db, {
+          design: product.name,
+          channel: "Factory",
+          sizeRun: size,
+          type: "Production In",
+          pairs,
+          note,
+        });
+        movement ??= written;
+      }
+    } else {
+      movement = await insertStockMovement(db, {
+        design: product.name,
+        channel: "Factory",
+        sizeRun: "Mixed",
+        type: "Production In",
+        pairs: input.totalPairs,
+        // The pairs total is authoritative; this records how they split by size so
+        // the shop can later show size 30 as gone while 35 is in stock. Additive —
+        // it does not change the total or the reversal, which still key off pairs.
+        sizeBreakdown: normalizeSizeBreakdown(input.sizeBreakdown),
+        note,
+      });
+    }
+    if (!movement) throw new Error("Finished stock could not be posted.");
     const postingId = id("qc");
 
     await db.query(
@@ -1424,6 +1447,9 @@ export async function reversePackingQcAndStock(input: {
     const posting = postingRows[0];
     if (!posting) throw new Error("Active QC posting was not found or is already reversed.");
 
+    // The posting's own row, and — when it went in size by size — the other
+    // sizes' rows, which carry the same approval reference at the head of
+    // their note. An older posting has just the one row, for all its pairs.
     const movementRows = await db.query<{
       id: string;
       design: string;
@@ -1433,46 +1459,62 @@ export async function reversePackingQcAndStock(input: {
       pairs: number | string;
     }>(
       `SELECT id, design, channel, size_run, type, pairs
-       FROM stock_movements WHERE id = $1 FOR UPDATE`,
-      [posting.stock_movement_id],
+       FROM stock_movements
+       WHERE type = 'Production In'
+         AND (id = $1 OR note LIKE $2 || ' · %')
+       ORDER BY created_at, id
+       FOR UPDATE`,
+      [posting.stock_movement_id, posting.approval_reference],
     );
-    const movement = movementRows[0];
-    if (!movement || movement.type !== "Production In") {
+    if (!movementRows.some((row) => row.id === posting.stock_movement_id)) {
       throw new Error("Original Production In movement was not found.");
     }
-
-    const stockRows = await db.query<{ id: string; stock_pairs: number | string }>(
-      `SELECT id, stock_pairs FROM finished_stock
-       WHERE lower(design) = lower($1) AND channel = $2
-       ORDER BY CASE WHEN size_run = $3 THEN 0 WHEN size_run = 'Mixed' THEN 1 ELSE 2 END,
-         created_at DESC
-       LIMIT 1 FOR UPDATE`,
-      [movement.design, movement.channel, movement.size_run || "Mixed"],
-    );
-    const stock = stockRows[0];
     const pairs = Number(posting.total_pairs);
-    if (!stock || Number(stock.stock_pairs) < pairs) {
-      throw new Error(
-        "Finished stock is lower than this QC posting. Return sold/dispatched pairs before reversal.",
-      );
+    const movedPairs = movementRows.reduce((total, row) => total + Number(row.pairs), 0);
+    if (movedPairs !== pairs) {
+      throw new Error("This QC posting's stock rows do not add up to its pairs. Check it before reversing.");
     }
 
-    await db.query(
-      `UPDATE finished_stock SET stock_pairs = stock_pairs - $2, updated_at = now()
-       WHERE id = $1`,
-      [stock.id, pairs],
-    );
+    // Every size is checked before any is taken back, so a reversal never
+    // stops halfway with some sizes returned and others not.
+    const plan: Array<{ movement: (typeof movementRows)[number]; stockId: string }> = [];
+    for (const movement of movementRows) {
+      const stockRows = await db.query<{ id: string; stock_pairs: number | string }>(
+        `SELECT id, stock_pairs FROM finished_stock
+         WHERE lower(design) = lower($1) AND channel = $2
+         ORDER BY CASE WHEN size_run = $3 THEN 0 WHEN size_run = 'Mixed' THEN 1 ELSE 2 END,
+           created_at DESC
+         LIMIT 1 FOR UPDATE`,
+        [movement.design, movement.channel, movement.size_run || "Mixed"],
+      );
+      const stock = stockRows[0];
+      if (!stock || Number(stock.stock_pairs) < Number(movement.pairs)) {
+        throw new Error(
+          "Finished stock is lower than this QC posting. Return sold/dispatched pairs before reversal.",
+        );
+      }
+      plan.push({ movement, stockId: stock.id });
+    }
 
-    const reversalMovementId = id("MOVE");
-    await db.query(
-      `INSERT INTO stock_movements
-         (id, created_at, design, channel, size_run, type, pairs, note)
-       VALUES ($1, now(), $2, $3, $4, 'Adjustment', $5, $6)`,
-      [
-        reversalMovementId, movement.design, movement.channel, movement.size_run || "Mixed",
-        pairs, `${posting.approval_reference} reversal · ${input.reason}`,
-      ],
-    );
+    let reversalMovementId = "";
+    for (const { movement, stockId } of plan) {
+      await db.query(
+        `UPDATE finished_stock SET stock_pairs = stock_pairs - $2, updated_at = now()
+         WHERE id = $1`,
+        [stockId, Number(movement.pairs)],
+      );
+      const adjustmentId = id("MOVE");
+      reversalMovementId ||= adjustmentId;
+      await db.query(
+        `INSERT INTO stock_movements
+           (id, created_at, design, channel, size_run, type, pairs, note)
+         VALUES ($1, now(), $2, $3, $4, 'Adjustment', $5, $6)`,
+        [
+          adjustmentId, movement.design, movement.channel, movement.size_run || "Mixed",
+          Number(movement.pairs), `${posting.approval_reference} reversal · ${input.reason}`,
+        ],
+      );
+    }
     await db.query(
       `UPDATE production_qc_postings SET reversed_at = now(), reversal_reason = $2,
          reversal_stock_movement_id = $3 WHERE id = $1`,
