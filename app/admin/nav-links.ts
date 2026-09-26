@@ -9,7 +9,6 @@ import {
   StarIcon,
   SearchIcon,
   UserIcon,
-  RobotIcon,
   FactoryIcon,
   LayersIcon,
   CartPlusIcon,
@@ -131,10 +130,10 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
       { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
-      // The control room for the eight jobs that run on their own. Their status
-      // used to be scattered across four screens inside Settings; this gathers
-      // it into one place and links back out to each one's detail.
-      { href: "/admin/robots", label: "Robots", nepali: "Robot दरबार · स्वचालन", icon: RobotIcon },
+      // Robot दरबार (/admin/robots) is not in the menu: the owner wanted the
+      // daily menu for daily work. The robots keep running; their page is one
+      // tap away from the Security Center, and each job's real result is in
+      // Notifications → Evening jobs.
       // One door to all eleven ways the shop can look at itself. Six of them
       // were hard to find: four were in no menu at all, and monitoring and the
       // activity log lived only inside Settings — which is the right place for

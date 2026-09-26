@@ -126,13 +126,12 @@ describe("what stayed in the menu", () => {
 
     // The report hub sits here rather than analytics itself: eleven ways to
     // read the shop, one door, and money is read from both sides of the
-    // business. Analytics is the first report inside it. Robot दरबार joins them:
-    // the control room for the eight automated jobs, cross-cutting like the rest
-    // of this group and so reached from either workspace.
+    // business. Analytics is the first report inside it. Robot दरबार is not
+    // here: the owner took it out of the menu; it is reached from the Security
+    // Center instead (tested below).
     expect(everywhere?.links.map((link) => link.href)).toEqual([
       "/admin",
       "/admin/search",
-      "/admin/robots",
       "/admin/reports",
       "/admin/settings",
     ]);
@@ -144,6 +143,15 @@ describe("what stayed in the menu", () => {
  * check that catches the difference, and it caught two: /admin/insights, which
  * was in neither the menu nor Search after the move, and /admin/products/photos.
  */
+describe("the robots page, out of the menu but not out of reach", () => {
+  it("is linked from the Security Center", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const center = await readFile("app/admin/security-overview/page.tsx", "utf8");
+    expect(center).toContain('{ href: "/admin/robots", icon: "🤖"');
+    expect(adminNavLinks.map((link) => link.href)).not.toContain("/admin/robots");
+  });
+});
+
 describe("nothing fell out of the app", () => {
   it("still reaches every screen that had a menu entry before", () => {
     const reachable = new Set([
