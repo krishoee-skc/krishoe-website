@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import RemoveBackgroundButton from "@/components/admin/RemoveBackgroundButton";
 
 type UploadStatus = "checking" | "blob" | "database" | "local" | "none";
 
@@ -212,17 +211,6 @@ export default function ImageUploadField({
         </div>
       ) : null}
 
-      {/* Offered only where photos can actually be stored — on a dev machine
-          with no blob store the result would be a URL the live shop cannot
-          load, and the panel would promise something it cannot deliver. */}
-      {status === "blob" || status === "database" ? (
-        <RemoveBackgroundButton
-          currentUrl={urls.filter(isPreviewable)[0] ?? ""}
-          onKeep={(url) =>
-            setValue((previous) => (multiple ? [...splitUrls(previous), url].join(", ") : url))
-          }
-        />
-      ) : null}
     </div>
   );
 }
