@@ -325,11 +325,38 @@ describe("found on the owner's phone", () => {
     ]);
   });
 
-  it("does not overwrite a size that already has its own rate", () => {
+  it("keeps one rate for the whole shoe, whichever size it is typed on", () => {
     let bill = addPair([], noPrice, "Retail", "36");
     bill = addPair(bill, noPrice, "Retail", "37");
     bill = setRate(bill, bill[1].key, 700);
-    expect(setRate(bill, bill[0].key, 650).map((line) => line.rate)).toEqual([650, 700]);
+    expect(setRate(bill, bill[0].key, 650).map((line) => line.rate)).toEqual([650, 650]);
+  });
+
+  it("gives a size added later the rate the shoe already has on the bill", () => {
+    let bill = addPair([], noPrice, "Retail", "36");
+    bill = setRate(bill, bill[0].key, 650);
+    bill = addPair(bill, noPrice, "Retail", "38");
+    expect(bill.map((line) => [line.size, line.rate])).toEqual([
+      ["36", 650],
+      ["38", 650],
+    ]);
+    // A bargained rate carries the same way, and still shows the catalog price.
+    let runner = setRate(addPair([], counted, "Retail", "40"), "runner|40|", 2600);
+    runner = addPair(runner, counted, "Retail", "41");
+    expect(runner.map((line) => [line.rate, line.listRate])).toEqual([
+      [2600, 2800],
+      [2600, 2800],
+    ]);
+  });
+
+  it("keeps a returned pair's rate apart from the new pair's in an exchange", () => {
+    let bill = addPair([], counted, "Retail", "40", "", true);
+    bill = addPair(bill, counted, "Retail", "41");
+    bill = setRate(bill, bill[1].key, 2500);
+    expect(bill.map((line) => [Boolean(line.back), line.rate])).toEqual([
+      [true, 2800],
+      [false, 2500],
+    ]);
   });
 
   it("says nothing about cost while no rate has been typed", () => {

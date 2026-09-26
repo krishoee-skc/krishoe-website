@@ -215,10 +215,15 @@ export function addPair(
   if (existing) {
     return cart.map((line) => (line.key === key ? { ...line, quantity: line.quantity + 1 } : line));
   }
-  const rate = rateForChannel(channel, item);
+  const listRate = rateForChannel(channel, item);
+  // The rate is the shoe's, not the size's: a new size of a shoe already on
+  // the bill comes in at the rate that shoe already has there — bargained, or
+  // typed for a shoe with no catalog price.
+  const sameShoe = cart.find((line) => Boolean(line.back) === back && sameDesign(line, item.design));
+  const rate = sameShoe ? sameShoe.rate : listRate;
   return [
     ...cart,
-    { key, design: item.design, sku: item.sku, size, color, quantity: 1, rate, listRate: rate, ...(back ? { back } : {}) },
+    { key, design: item.design, sku: item.sku, size, color, quantity: 1, rate, listRate, ...(back ? { back } : {}) },
   ];
 }
 
@@ -239,13 +244,12 @@ export function setRate(cart: CartLine[], key: string, rate: number): CartLine[]
   if (!(value > 0)) return cart;
   const target = cart.find((line) => line.key === key);
   if (!target) return cart;
-  // A shoe with no price in the catalog comes in on every size line at
-  // nothing. The rate typed on one of them is that shoe's price, so the other
-  // lines of the same shoe still at nothing take it too — four sizes, one
-  // rate typed, not four. A line already priced is left as it is.
+  // The rate is the shoe's, not the size's (the owner's rule): a rate typed on
+  // any size — bargained, or the price of a shoe with none in the catalog —
+  // goes on every size of that shoe on the bill. Four sizes, one rate typed.
+  // A pair coming back in an exchange keeps its own rate apart from the new.
   return cart.map((line) =>
-    line.key === key ||
-    (!(line.rate > 0) && Boolean(line.back) === Boolean(target.back) && sameDesign(line, target.design))
+    line.key === key || (Boolean(line.back) === Boolean(target.back) && sameDesign(line, target.design))
       ? { ...line, rate: value }
       : line,
   );
