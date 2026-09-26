@@ -42,39 +42,11 @@ export default function FactoryNav() {
     // Sticky with its title row it was 121px under a 57px top bar and above a
     // 94px dock — 41% of a small phone, before the form began — and its title
     // and maroon "Add work" repeated the band above and the dock below.
+    // On a computer too, since 2026-09-26: the owner found the "K · Factory"
+    // title row and its "Add work" button said again what the green chip and
+    // the "काम टिप्ने" chip in this row already say.
     <header className="z-30 border-b border-brand-gold-bright/20 bg-brand-paper/95 shadow-[0_10px_35px_rgba(16,35,29,0.06)] backdrop-blur-xl lg:sticky lg:top-0 print:hidden">
       <div className="mx-auto w-full max-w-[1600px] px-3 py-2.5 sm:px-5">
-        <div className="mb-2 hidden items-center justify-between gap-3 lg:flex">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-maroon text-sm font-black text-white shadow-[0_8px_18px_rgba(104,30,35,0.22)]">
-              K
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-brand-green-ink sm:text-base">
-                {text("Factory", "कारखाना")}
-              </p>
-              <p className="hidden truncate text-xs text-brand-muted-deep sm:block">
-                {text(
-                  "Production, piece wages and staff salary",
-                  "उत्पादन, ज्याला र तलब",
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            {/* The language toggle lives in the admin top row now (beside the
-                search), so it is not repeated here on the factory header. */}
-          <Link
-            href="/admin/factory/add-work"
-            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-maroon px-3.5 text-xs font-black text-white shadow-[0_8px_20px_rgba(104,30,35,0.18)] transition hover:-translate-y-0.5 hover:bg-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-bright"
-          >
-            <PlusIcon className="h-4 w-4" />
-            {text("Add work", "काम टिप्ने")}
-          </Link>
-          </div>
-        </div>
-
         <nav
           aria-label="Factory sections"
           className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

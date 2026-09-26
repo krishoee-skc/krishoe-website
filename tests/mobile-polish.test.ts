@@ -157,7 +157,9 @@ describe("the admin on a phone", () => {
 
   it("keeps the factory header to its row of sections, and lets it scroll away", async () => {
     const nav = await readFile("app/admin/factory/_components/factory-nav.tsx", "utf8");
-    expect(nav).toContain('<div className="mb-2 hidden items-center justify-between gap-3 lg:flex">');
+    // No title row at any width: the row of sections says it already.
+    expect(nav).not.toContain("hidden items-center justify-between gap-3 lg:flex");
+    expect(nav).not.toContain("Production, piece wages and staff salary");
     expect(nav).toContain("lg:sticky lg:top-0");
     expect(nav).not.toContain("sticky top-[calc(3.5rem");
   });
