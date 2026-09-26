@@ -70,6 +70,78 @@ export function assertStockAvailable(
   }
 }
 
+/**
+ * Where pairs leave from, and where returned pairs go back to.
+ *
+ * The counter and the website sell what is on the shop's shelf; wholesale and
+ * the factory's own movements take pairs from the godown. Only the first place
+ * is a preference — when it runs short, the rest comes from the other.
+ */
+export function placeOrderFor(channel: BusinessChannel): StockPlace[] {
+  return channel === "Retail" || channel === "Online" ? ["Shop", "Factory"] : ["Factory", "Shop"];
+}
+
+/**
+ * Split pairs leaving the shelf across the two places.
+ *
+ * Takes from the channel's own place first, then the other, and never below
+ * zero: pairs that were never placed (bought before places existed, or still
+ * on a challan) simply stay unaccounted for, which the Stock screen already
+ * shows. Only places that give something up are returned.
+ */
+export function drawFromPlaces(
+  channel: BusinessChannel,
+  pairs: number,
+  held: Partial<Record<StockPlace, number>>,
+): { place: StockPlace; pairs: number }[] {
+  let left = Math.max(0, Math.round(pairs));
+  const draws: { place: StockPlace; pairs: number }[] = [];
+
+  for (const place of placeOrderFor(channel)) {
+    const take = Math.min(left, Math.max(0, Math.round(held[place] ?? 0)));
+    if (take > 0) {
+      draws.push({ place, pairs: take });
+      left -= take;
+    }
+  }
+
+  return draws;
+}
+
+/**
+ * What a movement does to the places, as signed pair counts.
+ *
+ * finished_stock answers "how many"; stock_locations answers "where". A sale
+ * used to change only the first, so the Stock screen showed more pairs in the
+ * factory and the shop than were in stock at all — 222 placed against 182
+ * held, the difference being exactly the pairs sold.
+ *
+ * Production In and Purchase In are left out on purpose: their callers already
+ * place the pairs (the factory, or the place chosen on the purchase bill), and
+ * an Adjustment is a count correction with no place of its own.
+ */
+export function placeChangesFor(
+  movement: StockMovementEffect & { channel: BusinessChannel },
+  held: Partial<Record<StockPlace, number>>,
+  direction: "apply" | "reverse" = "apply",
+): { place: StockPlace; pairs: number }[] {
+  const leaves = isStockOutMovement(movement.type);
+  const comesBack = movement.type === "Return In";
+  if (!leaves && !comesBack) return [];
+
+  const home = placeOrderFor(movement.channel)[0];
+  const takesPairs = direction === "apply" ? leaves : comesBack;
+
+  if (takesPairs) {
+    return drawFromPlaces(movement.channel, movement.pairs, held).map((draw) => ({
+      place: draw.place,
+      pairs: -draw.pairs,
+    }));
+  }
+
+  return movement.pairs > 0 ? [{ place: home, pairs: Math.round(movement.pairs) }] : [];
+}
+
 /** Apply a movement in place. */
 export function applyStockMovementToStock(stock: StockCounts, movement: StockMovementEffect) {
   if (movement.pairs <= 0) {

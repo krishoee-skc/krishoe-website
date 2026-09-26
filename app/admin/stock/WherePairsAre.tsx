@@ -69,9 +69,12 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
         factory: sum.factory + row.factory,
         shop: sum.shop + row.shop,
         total: sum.total + row.total,
-        unplaced: sum.unplaced + row.unplaced,
+        // Apart, not netted: ten pairs with no place on one shoe and ten
+        // placed too many on another are two things to fix, not zero.
+        unplaced: sum.unplaced + Math.max(0, row.unplaced),
+        overPlaced: sum.overPlaced + Math.max(0, -row.unplaced),
       }),
-      { factory: 0, shop: 0, total: 0, unplaced: 0 },
+      { factory: 0, shop: 0, total: 0, unplaced: 0, overPlaced: 0 },
     );
   }, [rows]);
 
@@ -207,11 +210,14 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
     place === "Factory" ? text("Factory", "कारखाना") : text("Shop", "पसल");
 
   return (
-    <div className="mt-6 grid gap-4">
+    // minmax(0,1fr): a grid track otherwise grows to its widest child, and the
+    // table below is 520px — wider than a phone, so the whole section spilled
+    // off the right edge.
+    <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4">
       {/* ── Where the pairs are ─────────────────────────────────────── */}
       <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-black text-brand-green-ink">
               {text("Where the pairs are", "जुत्ता कहाँ छ")}
             </h2>
@@ -238,11 +244,24 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
           </div>
         </div>
 
-        {totals.unplaced !== 0 ? (
+        {totals.unplaced > 0 ? (
           <p className="mt-3 rounded-xl border border-[#F4DEAE] bg-[#FFF9EA] px-4 py-3 text-sm leading-6 text-brand-gold-ink">
             {text(
-              `${Math.abs(totals.unplaced)} pair(s) are in stock without a place — either on the road on a challan, or made or bought before this screen existed. Count them in below.`,
-              `${Math.abs(totals.unplaced)} जोडी स्टकमा छन् तर ठाउँ भनिएको छैन — या त चलानमा बाटोमा छन्, या यो पर्दा बन्नुअघिका हुन्। तल गनेर मिलाउनुहोस्।`,
+              `${totals.unplaced} pair(s) are in stock without a place — either on the road on a challan, or made or bought before this screen existed. Count them in below.`,
+              `${totals.unplaced} जोडी स्टकमा छन् तर ठाउँ भनिएको छैन — या त चलानमा बाटोमा छन्, या यो पर्दा बन्नुअघिका हुन्। तल गनेर मिलाउनुहोस्।`,
+            )}
+          </p>
+        ) : null}
+
+        {/* The other way round: a place says more than the stock holds. Sales
+            did not take pairs off a place until 2026-09-27, so pairs sold
+            before then still sit on the factory or shop count. The old warning
+            printed this as "without a place" — the opposite of the truth. */}
+        {totals.overPlaced > 0 ? (
+          <p className="mt-3 rounded-xl border border-brand-clay/30 bg-brand-clay-tint/40 px-4 py-3 text-sm leading-6 text-brand-clay">
+            {text(
+              `${totals.overPlaced} pair(s) are counted at the factory or the shop but are no longer in stock — mostly pairs sold before sales took them off a place. Count those shoes again below.`,
+              `${totals.overPlaced} जोडी कारखाना वा पसलमा गनिएका छन् तर स्टकमा छैनन् — प्रायः पहिले बिक्री भएका, जुन ठाउँबाट घटेका थिएनन्। ती जुत्ता तल फेरि गनेर मिलाउनुहोस्।`,
             )}
           </p>
         ) : null}
@@ -275,7 +294,8 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
                 <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
                   {row.design}
                   {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""}
-                  {row.unplaced !== 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
+                  {row.unplaced > 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
+                  {row.unplaced < 0 ? ` — ${text("too many placed", "बढी गनिएको")}: ${-row.unplaced}` : ""}
                 </option>
               ))}
             </select>
@@ -321,7 +341,44 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
           <ActionMessage state={countState} />
         </EnterWalkForm>
 
-        <div className="mt-4 overflow-x-auto">
+        {/* On a phone, one card per shoe: five columns do not fit 390px. */}
+        <ul className="mt-4 grid gap-2 sm:hidden">
+          {rows.map((row) => (
+            <li
+              key={`card-${row.design}::${row.sizeRun}`}
+              className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5"
+            >
+              <p className="font-semibold text-brand-green-ink">
+                {row.design}
+                {row.sizeRun && row.sizeRun !== "Mixed" ? (
+                  <span className="ml-2 text-xs font-bold text-brand-muted-soft">{row.sizeRun}</span>
+                ) : null}
+              </p>
+              <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+                <span className="font-bold text-brand-gold-ink">🏭 {row.factory}</span>
+                <span className="font-bold text-brand-green">🛒 {row.shop}</span>
+                <span className="font-bold text-brand-green-ink">
+                  {text("In stock", "जम्मा")} {row.total}
+                </span>
+                {row.unplaced > 0 ? (
+                  <span className="font-bold text-brand-clay">
+                    {text("No place", "ठाउँ छैन")} {row.unplaced}
+                  </span>
+                ) : null}
+                {row.unplaced < 0 ? (
+                  <span className="font-bold text-brand-clay">
+                    {text("Too many placed", "बढी गनिएको")} {-row.unplaced}
+                  </span>
+                ) : null}
+              </p>
+            </li>
+          ))}
+          {rows.length === 0 ? (
+            <li className="py-6 text-center text-brand-muted">{text("No ready stock yet.", "अझै तयारी माल छैन।")}</li>
+          ) : null}
+        </ul>
+
+        <div className="mt-4 hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
@@ -329,7 +386,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
                 <th className="pb-2 pr-3 text-right">🏭 {placeLabel("Factory")}</th>
                 <th className="pb-2 pr-3 text-right">🛒 {placeLabel("Shop")}</th>
                 <th className="pb-2 pr-3 text-right">{text("In stock", "जम्मा")}</th>
-                <th className="pb-2 text-right">{text("No place", "ठाउँ छैन")}</th>
+                <th className="pb-2 text-right">{text("Not matching", "नमिलेको")}</th>
               </tr>
             </thead>
             <tbody>
@@ -353,8 +410,14 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
                   <td className="py-2.5 text-right tabular-nums">
                     {row.unplaced === 0 ? (
                       <span className="text-brand-muted-soft">—</span>
+                    ) : row.unplaced > 0 ? (
+                      <span className="font-bold text-brand-clay">
+                        {row.unplaced} {text("no place", "ठाउँ छैन")}
+                      </span>
                     ) : (
-                      <span className="font-bold text-brand-clay">{row.unplaced}</span>
+                      <span className="font-bold text-brand-clay">
+                        {-row.unplaced} {text("too many", "बढी")}
+                      </span>
                     )}
                   </td>
                 </tr>

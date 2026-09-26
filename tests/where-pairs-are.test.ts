@@ -57,8 +57,11 @@ describe("what nobody has placed is shown, not hidden", () => {
 
   it("is put in front of the owner when it is not zero", async () => {
     const screen = await readFile(SCREEN, "utf8");
-    expect(screen).toContain("totals.unplaced !== 0");
+    // Either way round: pairs with no place, and places counting pairs that
+    // are gone. Each has its own sentence.
+    expect(screen).toContain("totals.unplaced > 0");
     expect(screen).toContain("ठाउँ भनिएको छैन");
+    expect(screen).toContain("totals.overPlaced > 0");
   });
 });
 

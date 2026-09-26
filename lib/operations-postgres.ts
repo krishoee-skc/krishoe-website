@@ -6,7 +6,12 @@ import {
   assertLedgerTransactionAllowed,
   reverseLedgerTransactionFromBalances,
 } from "@/lib/ledger-rules";
-import { withStockMovementApplied, withStockMovementReversed } from "@/lib/stock-rules";
+import {
+  placeChangesFor,
+  withStockMovementApplied,
+  withStockMovementReversed,
+  type StockPlace,
+} from "@/lib/stock-rules";
 import type {
   CustomerLedger,
   FinishedStock,
@@ -1018,6 +1023,46 @@ async function mergeSizeBreakdown(
   );
 }
 
+/**
+ * Keep "where the pairs are" in step with "how many there are".
+ *
+ * Runs in the same transaction as the stock change, so a sale that is rolled
+ * back takes its place change with it. Keyed on the stock row's own design and
+ * size run — the pair the Stock screen joins the two tables on.
+ */
+async function movePlacedPairs(
+  db: PostgresExecutor,
+  stock: Pick<FinishedStock, "design" | "sizeRun">,
+  movement: Pick<StockMovement, "type" | "pairs" | "channel">,
+  direction: "apply" | "reverse",
+) {
+  const sizeRun = stock.sizeRun || "Mixed";
+  // FOR UPDATE: two bills for the same shoe at once must not both read the
+  // same shelf and each take from it.
+  const rows = await db.query<{ location: string; pairs: number | string }>(
+    `SELECT location, pairs FROM stock_locations
+     WHERE design = $1 AND size_run = $2
+     FOR UPDATE`,
+    [stock.design, sizeRun],
+  );
+  const held: Partial<Record<StockPlace, number>> = {};
+  for (const row of rows) {
+    if (row.location === "Factory" || row.location === "Shop") {
+      held[row.location] = Math.max(0, Math.round(Number(row.pairs) || 0));
+    }
+  }
+
+  for (const change of placeChangesFor(movement, held, direction)) {
+    await db.query(
+      `INSERT INTO stock_locations (id, design, size_run, location, pairs)
+       VALUES ($1, $2, $3, $4, GREATEST($5::int, 0))
+       ON CONFLICT (design, size_run, location)
+       DO UPDATE SET pairs = GREATEST(stock_locations.pairs + $5::int, 0), updated_at = now()`,
+      [createId("loc"), stock.design, sizeRun, change.place, change.pairs],
+    );
+  }
+}
+
 export async function addStockMovementToPostgres(movement: StockMovementInput) {
   return transactionPostgres("operations", (db) => insertStockMovement(db, movement));
 }
@@ -1052,6 +1097,7 @@ export async function insertStockMovement(
   // movement list does not grow a second way of writing the same design.
   record.design = stock.design;
   await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
+  await movePlacedPairs(db, stock, record, "apply");
 
   // Record the size split, when a stock-in carries one, as metadata beside the
   // authoritative pair count. Additive: the pairs above are already written and
@@ -1477,10 +1523,9 @@ async function deleteStockMovement(db: PostgresExecutor, id: string) {
     );
 
     if (stockRows[0]) {
-      await updateFinishedStockTotals(
-        db,
-        withStockMovementReversed(finishedStockFromRow(stockRows[0]), movement),
-      );
+      const stock = finishedStockFromRow(stockRows[0]);
+      await updateFinishedStockTotals(db, withStockMovementReversed(stock, movement));
+      await movePlacedPairs(db, stock, movement, "reverse");
     }
   }
 
