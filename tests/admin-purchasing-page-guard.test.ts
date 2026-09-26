@@ -103,19 +103,19 @@ describe("the purchasing page failing to load", () => {
     it(`survives ${label} failing`, async () => {
       get().mockRejectedValue(new Error("Connection terminated unexpectedly"));
 
-      await expect(AdminPurchasingPage()).resolves.toBeTruthy();
+      await expect(AdminPurchasingPage({})).resolves.toBeTruthy();
       expect(reportError).toHaveBeenCalledTimes(1);
       expect(reportError.mock.calls[0][0]).toContain("purchasing");
     });
   }
 
   it("renders normally when every load succeeds", async () => {
-    await expect(AdminPurchasingPage()).resolves.toBeTruthy();
+    await expect(AdminPurchasingPage({})).resolves.toBeTruthy();
     expect(reportError).not.toHaveBeenCalled();
   });
 
   it("reads drafts too, so unpublished designs can still be purchased against", async () => {
-    await AdminPurchasingPage();
+    await AdminPurchasingPage({});
 
     expect(getProducts).toHaveBeenCalledWith({ includeDrafts: true });
   });

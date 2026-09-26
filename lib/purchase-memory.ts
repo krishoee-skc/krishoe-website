@@ -33,6 +33,12 @@ export type RememberedLine = {
 export type SupplierMemory = {
   /** Their own bill numbers already entered, newest first, lower-cased. */
   billNos: string[];
+  /**
+   * Their last few bills were all paid in full at the time, so the next one
+   * probably will be too and "paid" can start at the bill total. One bill left
+   * on credit among them turns it off.
+   */
+  paysInFull: boolean;
   last?: {
     billNo: string;
     createdAt: string;
@@ -66,14 +72,21 @@ export function sizesFromNote(note: string): Record<string, number> {
 }
 
 const MAX_BILL_NOS = 100;
+/** How many of a supplier's newest bills decide whether they are paid in full. */
+const PAID_IN_FULL_BILLS = 3;
 
 export function purchaseMemory(invoices: PurchaseInvoice[]): PurchaseMemory {
   const newestFirst = [...invoices].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   const lastRates: Record<string, LastRate> = {};
   const suppliers: Record<string, SupplierMemory> = {};
+  const billsSeen: Record<string, number> = {};
 
   for (const invoice of newestFirst) {
-    const supplier = (suppliers[invoice.supplierLedgerId] ??= { billNos: [] });
+    const supplier = (suppliers[invoice.supplierLedgerId] ??= { billNos: [], paysInFull: true });
+    const seen = (billsSeen[invoice.supplierLedgerId] = (billsSeen[invoice.supplierLedgerId] ?? 0) + 1);
+    if (seen <= PAID_IN_FULL_BILLS && (invoice.creditAmount > 0 || invoice.paymentMethod === "Credit")) {
+      supplier.paysInFull = false;
+    }
     const billNo = invoice.supplierBillNo?.trim() ?? "";
     if (billNo && supplier.billNos.length < MAX_BILL_NOS) supplier.billNos.push(billNo.toLowerCase());
 

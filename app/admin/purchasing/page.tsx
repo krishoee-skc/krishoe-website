@@ -16,6 +16,9 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot, type PurchaseInvoice, type SupplierAgingRisk } from "@/lib/purchasing";
+import { billHasKind, purchaseKindTotals, purchaseLinesOf } from "@/lib/purchase-kinds";
+
+type ListFilter = "all" | "ready" | "raw";
 
 export const metadata: Metadata = {
   title: "Purchasing | KRISHOE Admin",
@@ -78,8 +81,14 @@ async function loadPurchasing() {
   }
 }
 
-export default async function AdminPurchasingPage() {
+export default async function AdminPurchasingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ show?: string }>;
+}) {
   const loaded = await loadPurchasing();
+  const show: ListFilter = ((await searchParams)?.show as ListFilter) || "all";
+  const listFilter: ListFilter = show === "ready" || show === "raw" ? show : "all";
 
   if (!loaded.data) {
     return (
@@ -122,6 +131,23 @@ export default async function AdminPurchasingPage() {
   const supplierPaymentRows = purchasing.reports.supplierPaymentFollowups.filter(
     (row) => row.priority !== "Clear",
   );
+  // This month's buying, split into what it is: ready-made shoes (pairs, to
+  // sellable stock) and raw material (metres, kilos, to the factory store).
+  // Same month the tiles above count — the bill's own date, as filed.
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const monthKinds = purchaseKindTotals(
+    purchasing.purchaseInvoices.filter((invoice) => invoice.createdAt.slice(0, 7) === monthKey),
+  );
+  // The bill list, every line shown, filtered by what the bill carried.
+  const listedInvoices = purchasing.purchaseInvoices
+    .filter((invoice) =>
+      listFilter === "ready"
+        ? billHasKind(invoice, "Trading Goods")
+        : listFilter === "raw"
+          ? billHasKind(invoice, "Raw Material")
+          : true,
+    )
+    .slice(0, 20);
 
   return (
     <section className="p-6">
@@ -169,24 +195,11 @@ export default async function AdminPurchasingPage() {
         </div>
       </div>
 
-      {/* Seven tiles, seven columns — the sixth-column grid left the last one
-          ("Month profit signal") stranded alone on a second row. Matches the
-          seven-tile day-close row on the POS screen. */}
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <StatCard label={<T en="Today purchase" ne="आजको किनाइ" />} value={money(purchasing.summary.todayPurchase)} detail="raw material cost" />
-        <StatCard label={<T en="Month purchase" ne="महिनाको किनाइ" />} value={money(purchasing.summary.monthPurchase)} detail={`${purchasing.summary.purchaseInvoiceCount} invoices`} />
-        <StatCard label={<T en="Supplier due" ne="साहुलाई तिर्न बाँकी" />} value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
-        <StatCard label={<T en="Over 90 due" ne="९० दिनभन्दा पुरानो" />} value={money(purchasing.summary.supplierOver90Due)} detail={`${purchasing.summary.supplierAgingRiskCount} aging risk`} />
-        <StatCard label={<T en="Pay today" ne="आज तिर्नुपर्ने" />} value={money(purchasing.reports.supplierPaymentSummary.immediateDue)} detail={`${purchasing.summary.supplierImmediatePaymentCount} immediate`} />
-        <StatCard label={<T en="Posting review" ne="चढेको हेर्न बाँकी" />} value={purchasing.summary.postingNeedsReview} detail={`${purchasing.summary.postedInvoiceCount} posted invoices`} />
-        <StatCard label={<T en="Month profit signal" ne="महिनाको नाफाको सङ्केत" />} value={money(purchasing.summary.monthProfitEstimate)} detail="POS net sales minus purchases" />
-      </div>
-
       {/* The bill has the whole width now, and the whole job with it. The
           "New supplier" form that used to sit beside it is gone: a supplier is
           named in the bill, which is where the shopkeeper is standing when a
           new name turns up on a delivery. */}
-      <div className="mt-8 print:hidden">
+      <div className="mt-6 print:hidden">
         <PurchaseInvoiceForm
           supplierLedgers={purchasing.supplierLedgers}
           rawMaterials={operations.rawMaterials}
@@ -196,6 +209,29 @@ export default async function AdminPurchasingPage() {
           designSizes={designSizes}
         />
       </div>
+
+      {/* The figures come after the bill: the page opens on the job, with the
+          cursor in the supplier box, not on seven tiles to scroll past. Three
+          are read every day; the other four wait under "More". */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <StatCard label={<T en="Today purchase" ne="आजको किनाइ" />} value={money(purchasing.summary.todayPurchase)} detail={<T en="ready-made and raw material" ne="तयार जुत्ता र कच्चा माल" />} />
+        <StatCard label={<T en="Month purchase" ne="महिनाको किनाइ" />} value={money(purchasing.summary.monthPurchase)} detail={`${purchasing.summary.purchaseInvoiceCount} invoices`} />
+        <StatCard label={<T en="Supplier due" ne="साहुलाई तिर्न बाँकी" />} value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
+      </div>
+      <details className="mt-3 rounded-lg border border-brand-green-line bg-brand-paper px-4 py-2">
+        <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
+          <T en="▾ More figures" ne="▾ थप हिसाब" />
+        </summary>
+        <div className="mt-3 grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard label={<T en="Over 90 due" ne="९० दिनभन्दा पुरानो" />} value={money(purchasing.summary.supplierOver90Due)} detail={`${purchasing.summary.supplierAgingRiskCount} aging risk`} />
+          <StatCard label={<T en="Pay today" ne="आज तिर्नुपर्ने" />} value={money(purchasing.reports.supplierPaymentSummary.immediateDue)} detail={`${purchasing.summary.supplierImmediatePaymentCount} immediate`} />
+          <StatCard label={<T en="Posting review" ne="चढेको हेर्न बाँकी" />} value={purchasing.summary.postingNeedsReview} detail={`${purchasing.summary.postedInvoiceCount} posted invoices`} />
+          {/* Sales less purchases, and nothing more: pairs bought this month
+              are mostly still on the shelf, so this is not the month's profit
+              or loss, and must not read like one. */}
+          <StatCard label={<T en="Month sales − purchases" ne="महिनाको बिक्री − खरिद" />} value={money(purchasing.summary.monthProfitEstimate)} detail={<T en="not profit: stock bought is still on hand" ne="नाफा होइन: किनेको माल स्टकमै छ" />} />
+        </div>
+      </details>
 
       {/* Settling an OLD due, which is a different act on a different day from
           paying for a bill as it arrives. That one is part of the bill above. */}
@@ -211,7 +247,13 @@ export default async function AdminPurchasingPage() {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-4">
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink"><T en="Profit signal" ne="नाफाको सङ्केत" /></h2>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Sales − purchases" ne="बिक्री − खरिद" /></h2>
+          <p className="mt-1 text-xs text-brand-muted">
+            <T
+              en="POS sales less what was bought. Not profit: goods bought are still in stock."
+              ne="POS बिक्रीबाट खरिद घटाएको मात्र। नाफा होइन: किनेको माल अझै स्टकमा छ।"
+            />
+          </p>
           <div className="mt-4 grid gap-3">
             <div className="rounded-md bg-brand-paper-deep p-3">
               <p className="text-xs font-semibold text-brand-muted">Today</p>
@@ -228,19 +270,50 @@ export default async function AdminPurchasingPage() {
           </div>
         </section>
 
+        {/* What this month's buying was, by kind. It used to be one list,
+            "Material purchase", read off each bill's first line — so a delivery
+            of ready-made Doctor Chappal showed as raw material, and a bill's
+            other lines did not show at all. */}
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink"><T en="Material purchase" ne="कच्चा पदार्थ किनाइ" /></h2>
-          <div className="mt-4 divide-y divide-brand-green-line">
-            {purchasing.reports.materialTotals.slice(0, 6).map((row) => (
-              <div key={row.materialName} className="grid grid-cols-3 gap-3 py-3 text-sm">
-                <p className="font-bold text-brand-green-ink">{row.materialName}</p>
-                <p className="text-brand-muted">{row.quantity}</p>
-                <p className="text-right font-bold">{money(row.total)}</p>
-              </div>
-            ))}
-            {purchasing.reports.materialTotals.length === 0 ? (
-              <p className="py-3 text-sm text-brand-muted">No material purchase recorded yet.</p>
-            ) : null}
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="This month's buying" ne="यो महिनाको किनाइ" /></h2>
+          <div className="mt-4 grid gap-4">
+            <div>
+              <p className="text-sm font-black text-brand-green-ink">👟 <T en="Ready-made shoes" ne="तयार जुत्ता" /></p>
+              <p className="mt-1 text-xl font-black tabular-nums text-brand-green-ink">{money(monthKinds.ready.total)}</p>
+              <p className="text-xs text-brand-muted">
+                <T
+                  en={`${monthKinds.ready.pairs} pairs · ${monthKinds.ready.bills} bills`}
+                  ne={`${monthKinds.ready.pairs} जोडी · ${monthKinds.ready.bills} बिल`}
+                />
+              </p>
+              <ul className="mt-2 divide-y divide-brand-green-line text-sm">
+                {monthKinds.ready.top.map((row) => (
+                  <li key={row.name} className="flex justify-between gap-3 py-1.5">
+                    <span className="font-semibold text-brand-green-ink">{row.name}</span>
+                    <span className="tabular-nums text-brand-muted">
+                      <T en={`${row.quantity} pairs`} ne={`${row.quantity} जोडी`} /> · {money(row.total)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-black text-brand-green-ink">🧵 <T en="Raw material" ne="कच्चा माल" /></p>
+              <p className="mt-1 text-xl font-black tabular-nums text-brand-green-ink">{money(monthKinds.raw.total)}</p>
+              <p className="text-xs text-brand-muted">
+                <T en={`${monthKinds.raw.bills} bills`} ne={`${monthKinds.raw.bills} बिल`} />
+              </p>
+              <ul className="mt-2 divide-y divide-brand-green-line text-sm">
+                {monthKinds.raw.top.map((row) => (
+                  <li key={`${row.name}-${row.unit}`} className="flex justify-between gap-3 py-1.5">
+                    <span className="font-semibold text-brand-green-ink">{row.name}</span>
+                    <span className="tabular-nums text-brand-muted">
+                      {row.quantity} {row.unit} · {money(row.total)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -475,7 +548,7 @@ export default async function AdminPurchasingPage() {
         )}
       </section>
 
-      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <section id="purchase-bills" className="mt-8 scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent purchase invoices" ne="भर्खरका किनाइ बिल" /></h2>
@@ -486,7 +559,30 @@ export default async function AdminPurchasingPage() {
           <p className="text-sm font-bold text-brand-green">Year purchase {money(purchasing.summary.yearPurchase)}</p>
         </div>
 
-        {purchasing.reports.recentInvoices.length === 0 ? (
+        <nav className="mb-4 flex flex-wrap gap-2" aria-label="Show">
+          {(
+            [
+              ["all", <T key="all" en="All" ne="सबै" />],
+              ["ready", <T key="ready" en="👟 Ready-made" ne="👟 तयार जुत्ता" />],
+              ["raw", <T key="raw" en="🧵 Raw material" ne="🧵 कच्चा माल" />],
+            ] as const
+          ).map(([value, label]) => (
+            <Link
+              key={value}
+              href={value === "all" ? "/admin/purchasing#purchase-bills" : `/admin/purchasing?show=${value}#purchase-bills`}
+              aria-current={listFilter === value ? "page" : undefined}
+              className={`rounded-full border px-4 py-1.5 text-sm font-bold ${
+                listFilter === value
+                  ? "border-brand-green bg-brand-green text-white"
+                  : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {listedInvoices.length === 0 ? (
           <EmptyState
             icon="📦"
             title={<T en="No purchases yet" ne="अहिलेसम्म कुनै किनाइ छैन" />}
@@ -504,8 +600,7 @@ export default async function AdminPurchasingPage() {
                 <tr>
                   <th className="py-2 pr-3">Purchase</th>
                   <th className="py-2 pr-3">Supplier</th>
-                  <th className="py-2 pr-3">Material</th>
-                  <th className="py-2 pr-3">Qty</th>
+                  <th className="py-2 pr-3"><T en="Items (every line)" ne="सामान (सबै लाइन)" /></th>
                   <th className="py-2 pr-3">Total</th>
                   <th className="py-2 pr-3">Paid / Due</th>
                   <th className="py-2 pr-3">Status</th>
@@ -513,7 +608,7 @@ export default async function AdminPurchasingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {purchasing.reports.recentInvoices.map((invoice) => {
+                {listedInvoices.map((invoice) => {
                   const posting = purchasing.reports.postingReviewRows.find((row) => row.id === invoice.id);
 
                   return (
@@ -554,11 +649,26 @@ export default async function AdminPurchasingPage() {
                           {invoice.supplierName}
                         </Link>
                       </td>
-                      <td data-label="Material" className="py-3 pr-3">
-                        <p className="font-semibold">{invoice.materialName}</p>
-                        <p className="text-xs text-brand-muted">{invoice.unit}</p>
+                      <td data-label="Items" className="py-3 pr-3">
+                        {/* Every line of the bill, each marked by kind — not the
+                            first line standing in for all of them. */}
+                        <ul className="grid gap-0.5">
+                          {purchaseLinesOf(invoice).map((line, index) => (
+                            <li key={index} className="text-sm">
+                              <span aria-hidden="true">{line.kind === "Trading Goods" ? "👟 " : "🧵 "}</span>
+                              <span className="font-semibold">{line.name}</span>
+                              <span className="text-xs text-brand-muted">
+                                {" · "}
+                                {line.kind === "Trading Goods" ? (
+                                  <T en={`${line.quantity} pairs`} ne={`${line.quantity} जोडी`} />
+                                ) : (
+                                  `${line.quantity} ${line.unit}`
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </td>
-                      <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
                       <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
                       <td data-label="Paid / Due" className="py-3 pr-3">
                         <p>Paid {money(invoice.paidAmount)}</p>

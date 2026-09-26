@@ -36,6 +36,8 @@ type PurchaseInvoiceFormProps = {
 
 /** What the last save filed, shown until the next bill is started. */
 type Receipt = {
+  /** Empty when the bill named a new supplier; found by name after the save. */
+  supplierId: string;
   supplierName: string;
   billNo: string;
   lines: Array<{ name: string; quantity: string; unit: string; rate: string; sizes: string }>;
@@ -62,6 +64,9 @@ import {
   FIELD_WALK,
   WALK,
   emptyRow,
+  exactSupplier,
+  searchSuppliers,
+  similarSuppliers,
   itemNameOf,
   rawMaterialUnits,
   rowIsTouched,
@@ -128,6 +133,13 @@ export default function PurchaseInvoiceForm({
   });
 
   const [supplierId, setSupplierId] = useState("");
+  // The one supplier box: what is typed in it, and the list under it.
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const [supplierListOpen, setSupplierListOpen] = useState(false);
+  const [supplierHighlight, setSupplierHighlight] = useState(0);
+  // "Paid" follows the bill total — pressed "Full", or a supplier this shop
+  // always pays in full. Typing an amount lets go of it.
+  const [paidFull, setPaidFull] = useState(false);
   const [billNo, setBillNo] = useState("");
   // VAT is the owner's choice per bill. It starts on when this supplier's last
   // bill carried tax, which is how a VAT-registered supplier bills every time.
@@ -188,6 +200,10 @@ export default function PurchaseInvoiceForm({
     if (receipt) newBillButton.current?.focus();
   }, [receipt]);
 
+  useEffect(() => {
+    if (window.matchMedia?.("(pointer: fine)").matches) boxes.current.get("supplierName")?.focus();
+  }, []);
+
   const supplier = supplierLedgers.find((ledger) => ledger.id === supplierId);
   const supplierMemory = supplierId ? memory.suppliers[supplierId] : undefined;
   const duplicateBill = Boolean(
@@ -198,6 +214,67 @@ export default function PurchaseInvoiceForm({
     setSupplierId(id);
     setSupplierError(false);
     setVatOn(Boolean(id && memory.suppliers[id]?.last?.vat));
+    const ledger = supplierLedgers.find((row) => row.id === id);
+    if (ledger) setSupplierQuery(ledger.supplierName);
+    // A supplier whose last bills were all paid on the spot starts at "paid in
+    // full"; one who is usually owed starts at nothing paid.
+    if (paymentMethod !== "Credit") setPaidFull(Boolean(id && memory.suppliers[id]?.paysInFull));
+  }
+
+  // What the supplier box offers: the suppliers the typed word could mean,
+  // then — when nothing on the books has exactly that name — the new one.
+  const supplierMatches = searchSuppliers(supplierLedgers, supplierQuery);
+  const typedSupplier = supplierQuery.trim();
+  const supplierIsNew = !supplierId && typedSupplier.length > 0;
+  const offerNewSupplier = supplierIsNew && !exactSupplier(supplierLedgers, typedSupplier);
+  const supplierOptionCount = supplierMatches.length + (offerNewSupplier ? 1 : 0);
+  const lookAlikes = supplierIsNew ? similarSuppliers(supplierLedgers, typedSupplier).slice(0, 3) : [];
+
+  /** Take the highlighted line of the supplier list, and move on. */
+  function takeSupplierOption(index: number) {
+    const ledger = supplierMatches[index];
+    setSupplierListOpen(false);
+    if (ledger) {
+      chooseSupplier(ledger.id);
+      pendingFocus.current = "supplierBillNo";
+    } else {
+      // A new supplier: the phone box appears for it.
+      setSupplierId("");
+      pendingFocus.current = "phone";
+    }
+    settle();
+  }
+
+  function onSupplierKey(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setSupplierListOpen(true);
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setSupplierHighlight((at) => (supplierOptionCount ? (at + step + supplierOptionCount) % supplierOptionCount : 0));
+      return;
+    }
+    if (event.key === "Escape") {
+      setSupplierListOpen(false);
+      return;
+    }
+    if (event.key === "Enter" && supplierListOpen && supplierOptionCount > 0 && typedSupplier) {
+      event.preventDefault();
+      takeSupplierOption(Math.min(supplierHighlight, supplierOptionCount - 1));
+      return;
+    }
+    // A name typed exactly as one on the books is that supplier, list or not.
+    if (event.key === "Enter" && !supplierId) {
+      const exact = exactSupplier(supplierLedgers, typedSupplier);
+      if (exact) {
+        event.preventDefault();
+        chooseSupplier(exact.id);
+        pendingFocus.current = "supplierBillNo";
+        settle();
+        return;
+      }
+    }
+    handleFieldWalk(event, "supplierName");
+    settle();
   }
 
   /** The sizes a ready-made line offers: the design's own, else a chosen run. */
@@ -290,7 +367,11 @@ export default function PurchaseInvoiceForm({
         pendingFocus.current = boxKey(rows[rows.length - 1].key, "rate");
         return;
       }
-      if (at > 0) pendingFocus.current = FIELD_WALK[at - 1];
+      // The box before, or the one before that when it is not on screen (the
+      // phone box, shown only for a new supplier).
+      if (at > 0) {
+        pendingFocus.current = boxes.current.get(FIELD_WALK[at - 1]) ? FIELD_WALK[at - 1] : FIELD_WALK[Math.max(0, at - 2)];
+      }
       return;
     }
 
@@ -304,7 +385,11 @@ export default function PurchaseInvoiceForm({
     // there. The note below it is a textarea, where Enter has to keep meaning
     // "new line" — a vehicle number and a gate pass belong on separate lines.
     if (at < FIELD_WALK.length - 1) {
-      pendingFocus.current = FIELD_WALK[at + 1];
+      // A box that is not on screen — the phone, for a supplier already on the
+      // books — is stepped over.
+      let next = at + 1;
+      while (next < FIELD_WALK.length - 1 && !boxes.current.get(FIELD_WALK[next])) next += 1;
+      pendingFocus.current = FIELD_WALK[next];
     } else {
       // The last box hands over to the Save button — which another deliberate
       // Enter presses. Enter itself still never files the bill.
@@ -457,6 +542,7 @@ export default function PurchaseInvoiceForm({
     }
 
     const filed: Receipt = {
+      supplierId,
       supplierName: supplier?.supplierName || String(formData.get("supplierName") ?? ""),
       billNo,
       lines: started.map((row) => ({
@@ -517,6 +603,8 @@ export default function PurchaseInvoiceForm({
         setPaidAmount("");
         setPaymentMethod("Cash");
         setSupplierId("");
+        setSupplierQuery("");
+        setPaidFull(false);
         setBillNo("");
         setVatOn(false);
         formRef.current?.reset();
@@ -643,7 +731,8 @@ export default function PurchaseInvoiceForm({
     }),
   };
 
-  const paid = Math.min(Math.max(0, Number(paidAmount) || 0), totals.total);
+  const paidText = paidFull && paymentMethod !== "Credit" ? String(totals.total || "") : paidAmount;
+  const paid = Math.min(Math.max(0, Number(paidText) || 0), totals.total);
   const due = Math.max(0, totals.total - paid);
   const touchedRows = rows.filter(rowIsTouched);
 
@@ -715,7 +804,9 @@ export default function PurchaseInvoiceForm({
     // carrying a paid amount, so the form should not let one be typed. Cheque
     // and QR are handed over whole; cash is as often part.
     if (id === "Credit") setPaidAmount("");
-    if (id === "Cheque" || id === "QR") setPaidAmount(String(totals.total || ""));
+    if (id === "Credit") setPaidFull(false);
+    // A cheque or a QR payment is handed over whole: paid follows the total.
+    if (id === "Cheque" || id === "QR") setPaidFull(true);
   }
 
   const referenceLabel =
@@ -790,48 +881,124 @@ export default function PurchaseInvoiceForm({
             <h3 className="text-sm font-black text-brand-green-ink">
               {text("Who it came from", "कसबाट")}
             </h3>
-            <div className="mt-2 grid gap-3 md:grid-cols-3">
-              <select
-                name="supplierLedgerId"
-                className={fieldClass(supplierError)}
-                value={supplierId}
-                aria-label={text("Supplier", "साहु")}
-                onChange={(event) => chooseSupplier(event.target.value)}
-              >
-                <option value="">{text("＋ New supplier (type name)", "＋ नयाँ साहु (नाम लेख्ने)")}</option>
-                {supplierLedgers.map((ledger) => (
-                  <option key={ledger.id} value={ledger.id}>
-                    {ledger.supplierName}
-                    {ledger.balanceDue > 0 ? ` — ${text("owed", "बाँकी")} ${money(ledger.balanceDue)}` : ""}
-                  </option>
-                ))}
-              </select>
-              <input aria-label="New supplier name"
-                name="supplierName"
-                ref={(element) => {
-                  boxes.current.set("supplierName", element);
-                }}
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "supplierName");
-                  settle();
-                }}
-                className={fieldClass(supplierError)}
-                placeholder={text("New supplier name", "नयाँ साहुको नाम")}
-                onChange={() => setSupplierError(false)}
-              />
-              <input aria-label="Supplier phone"
-                name="phone"
-                ref={(element) => {
-                  boxes.current.set("phone", element);
-                }}
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "phone");
-                  settle();
-                }}
-                className={plain}
-                placeholder={text("Supplier phone", "साहुको फोन")}
-              />
+            {/* One box for the supplier. It was three — a list, a "new
+                supplier name" box and a phone box — all three on screen even
+                for a supplier billed every week. Typing searches the suppliers
+                on the books (with what is owed to each); a name that is not
+                there becomes a new supplier, and only then is the phone asked. */}
+            <input type="hidden" name="supplierLedgerId" value={supplierId} />
+            <input type="hidden" name="supplierName" value={supplierIsNew ? typedSupplier : ""} />
+            <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div className="relative">
+                <input
+                  aria-label={text("Supplier", "साहु")}
+                  role="combobox"
+                  aria-expanded={supplierListOpen}
+                  aria-controls="purchase-supplier-list"
+                  aria-autocomplete="list"
+                  autoComplete="off"
+                  ref={(element) => {
+                    boxes.current.set("supplierName", element);
+                  }}
+                  value={supplierQuery}
+                  onChange={(event) => {
+                    setSupplierQuery(event.target.value);
+                    setSupplierError(false);
+                    setSupplierListOpen(true);
+                    setSupplierHighlight(0);
+                    if (supplierId) {
+                      setSupplierId("");
+                      setVatOn(false);
+                    }
+                  }}
+                  onFocus={() => setSupplierListOpen(true)}
+                  onBlur={() => setSupplierListOpen(false)}
+                  onKeyDown={onSupplierKey}
+                  className={`${fieldClass(supplierError)} w-full`}
+                  placeholder={text("Supplier — type to search, or a new name", "साहु — नाम टाइप गर्ने, वा नयाँ नाम")}
+                />
+                {supplierListOpen && supplierOptionCount > 0 ? (
+                  <ul
+                    id="purchase-supplier-list"
+                    role="listbox"
+                    className="absolute inset-x-0 top-[calc(100%+4px)] z-30 max-h-72 overflow-y-auto rounded-xl border border-brand-green-line bg-brand-paper p-1 shadow-xl"
+                  >
+                    {supplierMatches.map((ledger, index) => (
+                      <li
+                        key={ledger.id}
+                        role="option"
+                        aria-selected={index === supplierHighlight}
+                        // mousedown, not click: the box's blur would close the
+                        // list before a click could land.
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          takeSupplierOption(index);
+                        }}
+                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${
+                          index === supplierHighlight ? "bg-brand-green-wash" : ""
+                        }`}
+                      >
+                        <span className="font-bold text-brand-green-ink">🏪 {ledger.supplierName}</span>
+                        <span className={`text-xs font-bold ${ledger.balanceDue > 0 ? "text-brand-clay" : "text-brand-muted"}`}>
+                          {text(`owed ${money(ledger.balanceDue)}`, `बाँकी ${money(ledger.balanceDue)}`)}
+                        </span>
+                      </li>
+                    ))}
+                    {offerNewSupplier ? (
+                      <li
+                        role="option"
+                        aria-selected={supplierHighlight === supplierMatches.length}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          takeSupplierOption(supplierMatches.length);
+                        }}
+                        className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-black text-brand-green ${
+                          supplierHighlight === supplierMatches.length ? "bg-brand-green-wash" : ""
+                        }`}
+                      >
+                        ＋ {text(`New supplier: "${typedSupplier}"`, `नयाँ साहु थप्ने: "${typedSupplier}"`)}
+                      </li>
+                    ) : null}
+                  </ul>
+                ) : null}
+              </div>
+              {supplierIsNew ? (
+                <input aria-label="Supplier phone"
+                  name="phone"
+                  ref={(element) => {
+                    boxes.current.set("phone", element);
+                  }}
+                  onKeyDown={(event) => {
+                    handleFieldWalk(event, "phone");
+                    settle();
+                  }}
+                  inputMode="tel"
+                  className={plain}
+                  placeholder={text("New supplier's phone (optional)", "नयाँ साहुको फोन (नभए खाली)")}
+                />
+              ) : null}
             </div>
+            {/* The same supplier typed a second way would split one account in
+                two. Ask, with the answer one tap away. */}
+            {lookAlikes.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-brand-cream-soft px-2.5 py-1.5 text-xs font-bold text-brand-gold-deep">
+                <span>{text("Is it one of these, already on the books?", "यो पुरानै साहु त होइन?")}</span>
+                {lookAlikes.map((ledger) => (
+                  <button
+                    key={ledger.id}
+                    type="button"
+                    onClick={() => {
+                      chooseSupplier(ledger.id);
+                      pendingFocus.current = "supplierBillNo";
+                      settle();
+                    }}
+                    className="rounded-full border border-brand-gold bg-brand-paper px-3 py-1 font-black text-brand-green-ink"
+                  >
+                    {ledger.supplierName}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {supplier ? (
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 {supplier.balanceDue > 0 ? (
@@ -875,7 +1042,8 @@ export default function PurchaseInvoiceForm({
                 Optional on purpose: small suppliers here often hand goods over
                 with no printed bill, and requiring it would mean a real
                 delivery could not be recorded at all. */}
-            <label className="mt-3 block">
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="block min-w-0 flex-1">
               <span className="text-xs font-bold text-brand-muted">
                 {text("Supplier's bill no.", "साहुको बिल नं.")}
               </span>
@@ -891,13 +1059,14 @@ export default function PurchaseInvoiceForm({
                 value={billNo}
                 onChange={(event) => setBillNo(event.target.value)}
                 maxLength={60}
-                className={`${plain} mt-1`}
+                className={`${plain} mt-1 w-full`}
                 placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
               />
             </label>
             {/* The supplier's paper bill, photographed with the phone (or chosen
-                on the computer). Kept with the bill once it is saved. */}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+                on the computer). Kept with the bill once it is saved. Beside the
+                bill number: the two are read off the same piece of paper. */}
+            <div className="flex flex-wrap items-center gap-2">
               {photos.length < MAX_PHOTOS ? (
                 <label className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green">
                   📷 {text("Photo of their bill", "साहुको बिलको फोटो")}
@@ -927,6 +1096,7 @@ export default function PurchaseInvoiceForm({
                   </button>
                 </span>
               ))}
+            </div>
             </div>
 
             {/* A warning, not a refusal: a supplier can restart their numbers
@@ -1341,12 +1511,26 @@ export default function PurchaseInvoiceForm({
 
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div>
-                <label
-                  htmlFor="purchase-paid"
-                  className="text-[11px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
-                >
-                  {text("Paid now", "कति तिर्यो")}
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="purchase-paid"
+                    className="text-[11px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
+                  >
+                    {text("Paid now", "कति तिर्यो")}
+                  </label>
+                  {paymentMethod !== "Credit" ? (
+                    <button
+                      type="button"
+                      aria-pressed={paidFull}
+                      onClick={() => setPaidFull(true)}
+                      className={`rounded-full border px-3 py-0.5 text-xs font-black ${
+                        paidFull ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"
+                      }`}
+                    >
+                      💵 {text("Paid in full", "पूरै तिरेँ")}
+                    </button>
+                  ) : null}
+                </div>
                 <input
                   id="purchase-paid"
                   name="paidAmount"
@@ -1364,8 +1548,11 @@ export default function PurchaseInvoiceForm({
                   disabled={paymentMethod === "Credit"}
                   className={`${plain} mt-1 w-full text-right text-base font-black tabular-nums disabled:bg-brand-mist disabled:text-brand-muted-soft`}
                   placeholder="0"
-                  value={paidAmount}
-                  onChange={(event) => setPaidAmount(event.target.value)}
+                  value={paidText}
+                  onChange={(event) => {
+                    setPaidFull(false);
+                    setPaidAmount(event.target.value);
+                  }}
                 />
               </div>
               <div>
@@ -1616,6 +1803,29 @@ export default function PurchaseInvoiceForm({
                 {text("The bill is saved — add the photo from the bill page.", "बिल सेभ भइसक्यो — फोटो बिलको पेजबाट थप्नुहोस्।")}
               </p>
             ) : null}
+            {/* The next bill is often from the same supplier — a second van, a
+                second bill book page. One press, and their name is in. */}
+            <button
+              type="button"
+              onClick={() => {
+                const again =
+                  supplierLedgers.find((ledger) => ledger.id === receipt.supplierId) ??
+                  exactSupplier(supplierLedgers, receipt.supplierName);
+                setReceipt(null);
+                setState(null);
+                if (again) {
+                  chooseSupplier(again.id);
+                  pendingFocus.current = "supplierBillNo";
+                } else {
+                  setSupplierQuery(receipt.supplierName);
+                  pendingFocus.current = "supplierBillNo";
+                }
+                settle();
+              }}
+              className="h-12 rounded-full border-2 border-brand-green text-sm font-black text-brand-green"
+            >
+              ➕ {text(`Same supplier, next bill — ${receipt.supplierName}`, `उही साहु, नयाँ बिल — ${receipt.supplierName}`)}
+            </button>
             <div className="grid grid-cols-2 gap-2">
               <button
                 ref={newBillButton}

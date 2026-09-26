@@ -129,3 +129,66 @@ export function itemNameOf(row: ItemRow, rawMaterials: RawMaterial[]) {
 export function sameName(left: string, right: string) {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
+
+/** A supplier's name as it is compared: case, spacing and punctuation dropped. */
+export function supplierKey(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+type SupplierLike = { id: string; supplierName: string; phone?: string; balanceDue: number };
+
+/**
+ * The suppliers a typed word could mean, for the one supplier box.
+ *
+ * A name that starts with the word comes first, then one that contains it
+ * anywhere, then a phone number that contains the digits typed. Nothing typed
+ * lists the suppliers still owed money first — the ones most often billed.
+ */
+export function searchSuppliers<T extends SupplierLike>(ledgers: T[], query: string, limit = 8): T[] {
+  const wanted = supplierKey(query);
+  const digits = query.replace(/\D/g, "");
+  if (!wanted) {
+    return [...ledgers].sort((a, b) => b.balanceDue - a.balanceDue || a.supplierName.localeCompare(b.supplierName)).slice(0, limit);
+  }
+  const rank = (ledger: T) => {
+    const key = supplierKey(ledger.supplierName);
+    if (key.startsWith(wanted)) return 0;
+    if (key.includes(wanted)) return 1;
+    if (digits.length >= 4 && (ledger.phone ?? "").replace(/\D/g, "").includes(digits)) return 2;
+    return 3;
+  };
+  return ledgers
+    .map((ledger) => ({ ledger, rank: rank(ledger) }))
+    .filter((entry) => entry.rank < 3)
+    .sort((a, b) => a.rank - b.rank || a.ledger.supplierName.localeCompare(b.ledger.supplierName))
+    .slice(0, limit)
+    .map((entry) => entry.ledger);
+}
+
+/** The supplier already on the books under exactly this name, spelled any way. */
+export function exactSupplier<T extends SupplierLike>(ledgers: T[], name: string): T | undefined {
+  const wanted = supplierKey(name);
+  return wanted ? ledgers.find((ledger) => supplierKey(ledger.supplierName) === wanted) : undefined;
+}
+
+/**
+ * Suppliers a new name looks like, so "shirti" is not filed as a second
+ * "Shirti Collection". One name inside the other, or the same first word of
+ * four letters or more, is enough to ask — asking costs a glance, a duplicate
+ * supplier splits one account's dues in two.
+ */
+export function similarSuppliers<T extends SupplierLike>(ledgers: T[], name: string): T[] {
+  const wanted = supplierKey(name);
+  if (wanted.length < 3) return [];
+  const firstWord = wanted.split(" ")[0];
+  return ledgers.filter((ledger) => {
+    const key = supplierKey(ledger.supplierName);
+    if (!key || key === wanted) return false;
+    if (key.includes(wanted) || wanted.includes(key)) return true;
+    return firstWord.length >= 4 && key.split(" ")[0] === firstWord;
+  });
+}
