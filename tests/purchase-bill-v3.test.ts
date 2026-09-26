@@ -206,3 +206,28 @@ describe("the page, in the order it is used", () => {
     expect(phone.length).toBeGreaterThan(0);
   });
 });
+
+describe("found on the recheck", () => {
+  it("files a name typed like a supplier on the books against that supplier, not a new one", async () => {
+    // "Shirti collection." typed and not picked: the save compares names by
+    // case and spacing only, so the form must send the account itself.
+    expect(exactSupplier(suppliers, "Shirti collection.")?.id).toBe("SUP-1");
+    const form = await readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+    expect(form).toContain('<input type="hidden" name="supplierLedgerId" value={billSupplierId} />');
+    expect(form).toContain("const supplierIsNew = !billSupplierId && typedSupplier.length > 0;");
+  });
+
+  it("never lets choosing a supplier undo \"Paid in full\"", async () => {
+    const form = await readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+    const choose = form.slice(form.indexOf("function chooseSupplier"), form.indexOf("const supplierMatches"));
+    expect(choose).toContain("setPaidFull(true)");
+    expect(choose).not.toContain("setPaidFull(Boolean(");
+    expect(choose).not.toContain("setPaidFull(false)");
+  });
+
+  it("does not throw the supplier list over the page when the cursor lands in the box", async () => {
+    const form = await readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+    expect(form).not.toContain("onFocus={() => setSupplierListOpen(true)}");
+    expect(form).toContain("onClick={() => setSupplierListOpen(true)}");
+  });
+});

@@ -204,8 +204,12 @@ export default function PurchaseInvoiceForm({
     if (window.matchMedia?.("(pointer: fine)").matches) boxes.current.get("supplierName")?.focus();
   }, []);
 
-  const supplier = supplierLedgers.find((ledger) => ledger.id === supplierId);
-  const supplierMemory = supplierId ? memory.suppliers[supplierId] : undefined;
+  // The supplier on this bill: the one picked, or one typed exactly as it is
+  // on the books without being picked.
+  const supplier =
+    supplierLedgers.find((ledger) => ledger.id === supplierId) ??
+    (supplierId ? undefined : exactSupplier(supplierLedgers, supplierQuery.trim()));
+  const supplierMemory = supplier ? memory.suppliers[supplier.id] : undefined;
   const duplicateBill = Boolean(
     billNo.trim() && supplierMemory?.billNos.includes(billNo.trim().toLowerCase()),
   );
@@ -217,16 +221,23 @@ export default function PurchaseInvoiceForm({
     const ledger = supplierLedgers.find((row) => row.id === id);
     if (ledger) setSupplierQuery(ledger.supplierName);
     // A supplier whose last bills were all paid on the spot starts at "paid in
-    // full"; one who is usually owed starts at nothing paid.
-    if (paymentMethod !== "Credit") setPaidFull(Boolean(id && memory.suppliers[id]?.paysInFull));
+    // full". Never the other way: "Paid in full" pressed before the supplier
+    // was chosen must not quietly fall back to nothing paid — that files the
+    // whole bill as owed.
+    if (paymentMethod !== "Credit" && id && memory.suppliers[id]?.paysInFull) setPaidFull(true);
   }
 
   // What the supplier box offers: the suppliers the typed word could mean,
   // then — when nothing on the books has exactly that name — the new one.
   const supplierMatches = searchSuppliers(supplierLedgers, supplierQuery);
   const typedSupplier = supplierQuery.trim();
-  const supplierIsNew = !supplierId && typedSupplier.length > 0;
-  const offerNewSupplier = supplierIsNew && !exactSupplier(supplierLedgers, typedSupplier);
+  // Typed exactly as a supplier on the books, but not picked from the list:
+  // still that supplier. The save matches names by case and spacing only, so
+  // "Shirti collection." would otherwise open a second account.
+  const typedExact = !supplierId ? exactSupplier(supplierLedgers, typedSupplier) : undefined;
+  const billSupplierId = supplierId || typedExact?.id || "";
+  const supplierIsNew = !billSupplierId && typedSupplier.length > 0;
+  const offerNewSupplier = supplierIsNew;
   const supplierOptionCount = supplierMatches.length + (offerNewSupplier ? 1 : 0);
   const lookAlikes = supplierIsNew ? similarSuppliers(supplierLedgers, typedSupplier).slice(0, 3) : [];
 
@@ -542,7 +553,7 @@ export default function PurchaseInvoiceForm({
     }
 
     const filed: Receipt = {
-      supplierId,
+      supplierId: billSupplierId,
       supplierName: supplier?.supplierName || String(formData.get("supplierName") ?? ""),
       billNo,
       lines: started.map((row) => ({
@@ -886,7 +897,7 @@ export default function PurchaseInvoiceForm({
                 for a supplier billed every week. Typing searches the suppliers
                 on the books (with what is owed to each); a name that is not
                 there becomes a new supplier, and only then is the phone asked. */}
-            <input type="hidden" name="supplierLedgerId" value={supplierId} />
+            <input type="hidden" name="supplierLedgerId" value={billSupplierId} />
             <input type="hidden" name="supplierName" value={supplierIsNew ? typedSupplier : ""} />
             <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <div className="relative">
@@ -911,7 +922,7 @@ export default function PurchaseInvoiceForm({
                       setVatOn(false);
                     }
                   }}
-                  onFocus={() => setSupplierListOpen(true)}
+                  onClick={() => setSupplierListOpen(true)}
                   onBlur={() => setSupplierListOpen(false)}
                   onKeyDown={onSupplierKey}
                   className={`${fieldClass(supplierError)} w-full`}
