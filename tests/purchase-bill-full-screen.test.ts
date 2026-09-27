@@ -80,3 +80,13 @@ describe("4. the smaller helps", () => {
     expect(page).toContain("सबैभन्दा पुरानो बाँकी");
   });
 });
+
+describe("found on the owner's first bill, 2026-09-28", () => {
+  it("clears 'choose a supplier' as soon as one is typed or picked", async () => {
+    const form = (await readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8")).replace(/\r\n/g, "\n");
+    expect(form).toContain("current.message === supplierMissing ? null : current");
+    expect(form).toContain("setSupplierQuery(event.target.value);\n                    clearSupplierProblem();");
+    const choose = form.slice(form.indexOf("function chooseSupplier"), form.indexOf("function chooseSupplier") + 200);
+    expect(choose).toContain("clearSupplierProblem();");
+  });
+});

@@ -110,6 +110,10 @@ export default function PurchaseInvoiceForm({
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod>("Cash");
   const [paidAmount, setPaidAmount] = useState("");
   const [state, setState] = useState<ActionState | null>(null);
+  const supplierMissing = text(
+    "Choose a supplier, or type a new supplier name.",
+    "साहु छान्नुहोस्, वा नयाँ साहुको नाम लेख्नुहोस्।",
+  );
   const [supplierError, setSupplierError] = useState(false);
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
@@ -214,9 +218,18 @@ export default function PurchaseInvoiceForm({
     billNo.trim() && supplierMemory?.billNos.includes(billNo.trim().toLowerCase()),
   );
 
+  // The red "choose a supplier" line goes the moment one is typed or picked.
+  // It stayed on screen after the name was in, so the bill looked refused for
+  // a supplier it already had — the owner, 2026-09-28, with "sudip kumar"
+  // typed and the message still saying to type one.
+  function clearSupplierProblem() {
+    setSupplierError(false);
+    setState((current) => (current && !current.ok && current.message === supplierMissing ? null : current));
+  }
+
   function chooseSupplier(id: string) {
     setSupplierId(id);
-    setSupplierError(false);
+    clearSupplierProblem();
     setVatOn(Boolean(id && memory.suppliers[id]?.last?.vat));
     const ledger = supplierLedgers.find((row) => row.id === id);
     if (ledger) setSupplierQuery(ledger.supplierName);
@@ -532,13 +545,7 @@ export default function PurchaseInvoiceForm({
 
     if (!supplierChosen) {
       setSupplierError(true);
-      setState({
-        ok: false,
-        message: text(
-          "Choose a supplier, or type a new supplier name.",
-          "साहु छान्नुहोस्, वा नयाँ साहुको नाम लेख्नुहोस्।",
-        ),
-      });
+      setState({ ok: false, message: supplierMissing });
       return;
     }
 
@@ -941,7 +948,7 @@ export default function PurchaseInvoiceForm({
                   value={supplierQuery}
                   onChange={(event) => {
                     setSupplierQuery(event.target.value);
-                    setSupplierError(false);
+                    clearSupplierProblem();
                     setSupplierListOpen(true);
                     setSupplierHighlight(0);
                     if (supplierId) {
