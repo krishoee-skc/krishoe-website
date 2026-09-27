@@ -305,6 +305,31 @@ export default function PurchaseInvoiceForm({
     return Math.max(0, material.openingStock + material.received - material.used);
   }
 
+  /**
+   * Materials at or below the level the owner set to reorder at, shortest
+   * first. The store already knew; the purchase bill never said. One tap puts
+   * the material on the bill with the rate it was last bought at.
+   */
+  const runningLow = rawMaterials
+    .filter((material) => material.reorderLevel > 0 && materialStock(material) <= material.reorderLevel)
+    .sort((a, b) => materialStock(a) / a.reorderLevel - materialStock(b) / b.reorderLevel)
+    .slice(0, 6);
+
+  function buyRunningLow(material: RawMaterial) {
+    if (rows.some((row) => row.kind === "Raw Material" && row.materialId === material.id)) return;
+    const target = rows.find((row) => !rowIsTouched(row)) ?? rows[rows.length - 1];
+    const last = memory.lastRates[rateKey("Raw Material", material.id)];
+    updateRow(target.key, {
+      kind: "Raw Material",
+      materialId: material.id,
+      materialName: "",
+      materialUnit: material.unit,
+      design: "",
+      // The quantity is what the supplier actually sent — left for the buyer.
+      ...(last ? { rate: String(last.rate), rateAuto: true } : {}),
+    });
+  }
+
   /** The last rate this item was bought at, if it has been bought before. */
   function lastRateOf(row: ItemRow) {
     if (row.kind === "Raw Material") return row.materialId ? memory.lastRates[rateKey(row.kind, row.materialId)] : undefined;
@@ -1136,6 +1161,29 @@ export default function PurchaseInvoiceForm({
               </p>
             </div>
 
+            {runningLow.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-brand-gold/50 bg-brand-cream-soft px-3 py-2">
+                <span className="text-xs font-black text-brand-gold-deep">
+                  {text("Running low — tap to add:", "सकिन लागेको — थिचे बिलमा थपिन्छ:")}
+                </span>
+                {runningLow.map((material) => {
+                  const onBill = rows.some((row) => row.kind === "Raw Material" && row.materialId === material.id);
+                  return (
+                    <button
+                      key={material.id}
+                      type="button"
+                      disabled={onBill}
+                      onClick={() => buyRunningLow(material)}
+                      className="rounded-full border border-brand-gold bg-brand-paper px-2.5 py-1 text-xs font-bold text-brand-green-ink disabled:opacity-50"
+                    >
+                      {onBill ? "✓ " : "+ "}
+                      {material.name} · {text(`${materialStock(material)} ${material.unit} left`, `${materialStock(material)} ${material.unit} बाँकी`)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
             {/* Every track is minmax(0, …): a bare "0.7fr" keeps an input's own
                 width as its minimum, and the item box — the one that matters —
                 was squeezed to a sliver beside three roomy number boxes. */}
@@ -1756,7 +1804,7 @@ export default function PurchaseInvoiceForm({
 
       {/* On a phone the total and Save sat at the foot of a very long form.
           This keeps them in reach, above the admin's bottom bar. */}
-      <div className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-brand-green-line bg-brand-paper/95 px-4 py-3 backdrop-blur md:hidden">
+      <div data-pos-bar className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-brand-green-line bg-brand-paper/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="grid leading-tight">
           <span className="text-[11px] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
           <span className="text-lg font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>

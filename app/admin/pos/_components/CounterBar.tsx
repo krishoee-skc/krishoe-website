@@ -25,7 +25,17 @@ function never() {
  * ⛶ asks the browser for real full screen too (its own tabs and address bar
  * gone), where the browser allows it; Esc brings them back.
  */
-export default function CounterBar() {
+type Words = { en: string; ne: string };
+
+export default function CounterBar({
+  title = { en: "🧾 Cut a bill", ne: "🧾 बिल काट्ने" },
+  reportsHref = "/admin/pos?view=reports",
+  reportsLabel = { en: "Reports", ne: "रिपोर्ट" },
+}: {
+  title?: Words;
+  reportsHref?: string;
+  reportsLabel?: Words;
+} = {}) {
   const { text } = useLanguage();
   // Read from the browser, not copied into state: false on the server, the
   // real answer once the page is in the browser.
@@ -52,14 +62,14 @@ export default function CounterBar() {
       >
         ← Admin
       </Link>
-      <span className="truncate">🧾 {text("Cut a bill", "बिल काट्ने")}</span>
+      <span className="truncate">{text(title.en, title.ne)}</span>
       <span className="flex items-center gap-1">
         <Link
-          href="/admin/pos?view=reports"
+          href={reportsHref}
           className="inline-flex min-h-10 items-center rounded-full px-2 hover:bg-white/10"
-          title={text("Reports and day close", "रिपोर्ट र दिन बन्द")}
+          title={text(reportsLabel.en, reportsLabel.ne)}
         >
-          📊 <span className="ml-1 hidden sm:inline">{text("Reports", "रिपोर्ट")}</span>
+          📊 <span className="ml-1 hidden sm:inline">{text(reportsLabel.en, reportsLabel.ne)}</span>
         </Link>
         {canFull ? (
           <button

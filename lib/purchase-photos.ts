@@ -65,3 +65,24 @@ export async function deleteBillPhoto(invoiceId: string, pathname: string) {
   await del(pathname);
   return true;
 }
+
+/**
+ * The bills that have a photo of the supplier's paper bill, in one look at the
+ * store rather than one per bill — for the 📷 beside a bill in the list.
+ * Nothing (an empty set) where there is no store, or it cannot be read.
+ */
+export async function billIdsWithPhotos(): Promise<Set<string>> {
+  if (!billPhotosReady()) return new Set();
+  try {
+    const { blobs } = await list({ prefix: PREFIX, limit: 1000 });
+    const ids = new Set<string>();
+    for (const blob of blobs) {
+      const name = blob.pathname.slice(PREFIX.length);
+      const at = name.lastIndexOf("-photo");
+      if (at > 0) ids.add(name.slice(0, at));
+    }
+    return ids;
+  } catch {
+    return new Set();
+  }
+}

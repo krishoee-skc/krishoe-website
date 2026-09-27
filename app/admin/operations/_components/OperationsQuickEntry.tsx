@@ -1,3 +1,4 @@
+import Link from "next/link";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import {
   createCustomerLedgerAction,
@@ -182,7 +183,10 @@ export default function OperationsQuickEntry({
               <option value="liter">liter</option>
             </select>
             <input aria-label="Opening stock" name="openingStock" type="number" min="0" className={inputClass} placeholder="Opening stock" />
-            <input aria-label="Received" name="received" type="number" min="0" className={inputClass} placeholder="Received" />
+            {/* No "received" box: material comes in on a purchase bill. */}
+            <Link href="/admin/purchasing" className="rounded-md border border-dashed border-brand-green-line px-3 py-2 text-sm font-bold text-brand-green underline-offset-2 hover:underline">
+              <T en="🛒 Bought some? Enter it on a purchase bill →" ne="🛒 किनेको हो? खरिद बिलमा चढाउनुहोस् →" />
+            </Link>
             <input aria-label="Reorder level" name="reorderLevel" type="number" min="0" className={inputClass} placeholder="Reorder level" />
             <SubmitActionButton label="Add material" />
           </EnterWalkForm>

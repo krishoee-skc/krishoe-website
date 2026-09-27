@@ -1,5 +1,6 @@
 import Link from "next/link";
 import T from "@/components/T";
+import CounterBar from "@/app/admin/pos/_components/CounterBar";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import EmptyState from "@/components/admin/EmptyState";
 import ExportButton from "@/components/admin/ExportButton";
@@ -17,6 +18,7 @@ import { reportError } from "@/lib/report-error";
 import { getProducts } from "@/lib/product-store";
 import { getPurchasingSnapshot, type PurchaseInvoice, type SupplierAgingRisk } from "@/lib/purchasing";
 import { billHasKind, purchaseKindTotals, purchaseLinesOf } from "@/lib/purchase-kinds";
+import { billIdsWithPhotos } from "@/lib/purchase-photos";
 
 type ListFilter = "all" | "ready" | "raw";
 
@@ -37,6 +39,29 @@ function invoiceTone(invoice: PurchaseInvoice) {
   }
 
   return "border-emerald-200 bg-emerald-50 text-emerald-800";
+}
+
+/**
+ * Whether a purchase reached the supplier's account, in words.
+ *
+ * It read "Txn 2/2" — the bill and its payment both on the supplier's
+ * account — which reads like a score, not an answer. Fewer on the account
+ * than the bill needs is the fault worth a red mark.
+ */
+function BooksMark({ linked, expected }: { linked: number; expected: number }) {
+  if (expected <= 0) return <span className="text-brand-muted">—</span>;
+  if (linked < expected) {
+    return (
+      <span className="font-bold text-brand-clay">
+        <T en="⚠ Not on the supplier's account — fix it" ne="⚠ साहुको खातामा चढेन — मिलाउनुहोस्" />
+      </span>
+    );
+  }
+  return (
+    <span className="font-bold text-brand-green">
+      <T en="✓ Books match" ne="✓ हिसाब मिल्यो" />
+    </span>
+  );
 }
 
 function postingTone(signal: string) {
@@ -84,10 +109,15 @@ async function loadPurchasing() {
 export default async function AdminPurchasingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ show?: string }>;
+  searchParams?: Promise<{ show?: string; view?: string }>;
 }) {
+  const params = await searchParams;
+  // Two views of one page, as on the counter bill: the purchase bill, full
+  // screen, with the bills already entered under it; and "Accounts and
+  // suppliers" — the figures, who is owed, old dues, paying an old due.
+  const showAccounts = params?.view === "accounts";
   const loaded = await loadPurchasing();
-  const show: ListFilter = ((await searchParams)?.show as ListFilter) || "all";
+  const show: ListFilter = (params?.show as ListFilter) || "all";
   const listFilter: ListFilter = show === "ready" || show === "raw" ? show : "all";
 
   if (!loaded.data) {
@@ -138,6 +168,9 @@ export default async function AdminPurchasingPage({
   const monthKinds = purchaseKindTotals(
     purchasing.purchaseInvoices.filter((invoice) => invoice.createdAt.slice(0, 7) === monthKey),
   );
+  // Which bills carry a photo of the supplier's paper bill: one look at the
+  // file store for the whole list, for the 📷 beside each such bill.
+  const withPhotos = await billIdsWithPhotos();
   // The bill list, every line shown, filtered by what the bill carried.
   const listedInvoices = purchasing.purchaseInvoices
     .filter((invoice) =>
@@ -159,8 +192,21 @@ export default async function AdminPurchasingPage({
 
   return (
     <section className="p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {showAccounts ? null : (
+        <CounterBar
+          title={{ en: "🛒 Purchase bill", ne: "🛒 खरिद बिल" }}
+          reportsHref="/admin/purchasing?view=accounts"
+          reportsLabel={{ en: "Accounts and suppliers", ne: "हिसाब र साहु" }}
+        />
+      )}
+      <div className={`flex flex-wrap items-start justify-between gap-4 ${showAccounts ? "" : "hidden"}`}>
         <div>
+          <Link
+            href="/admin/purchasing"
+            className="mb-3 inline-flex min-h-11 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+          >
+            <T en="← Back to the purchase bill" ne="← खरिद बिलमा फर्कने" />
+          </Link>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Purchase" ne="किनमेल" />
           </p>
@@ -229,7 +275,8 @@ export default async function AdminPurchasingPage({
           "New supplier" form that used to sit beside it is gone: a supplier is
           named in the bill, which is where the shopkeeper is standing when a
           new name turns up on a delivery. */}
-      <div className="mt-6 print:hidden">
+      {showAccounts ? null : (
+      <div className="mt-2 print:hidden">
         <PurchaseInvoiceForm
           supplierLedgers={purchasing.supplierLedgers}
           rawMaterials={operations.rawMaterials}
@@ -239,7 +286,10 @@ export default async function AdminPurchasingPage({
           designSizes={designSizes}
         />
       </div>
+      )}
 
+      {showAccounts ? (
+      <>
       {/* The figures come after the bill: the page opens on the job, with the
           cursor in the supplier box, not on seven tiles to scroll past. Three
           are read every day; the other four wait under "More". */}
@@ -302,10 +352,10 @@ export default async function AdminPurchasingPage({
                     <p className="font-black text-brand-clay">{money(supplier.balanceDue)}</p>
                   </div>
                   <p className="mt-1 text-xs text-brand-muted">
-                    Paid {money(supplier.paidAmount)} / Purchase {money(supplier.totalPurchase)}
+                    <T en={`Paid ${money(supplier.paidAmount)} / Bought ${money(supplier.totalPurchase)}`} ne={`तिरेको ${money(supplier.paidAmount)} / किनेको ${money(supplier.totalPurchase)}`} />
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#8A5A15]">
-                    Oldest {aging?.oldestOpenDays ?? 0} days / 90+ {money(aging?.over90 ?? 0)}
+                    <T en={`Oldest unpaid ${aging?.oldestOpenDays ?? 0} days · over 90 days ${money(aging?.over90 ?? 0)}`} ne={`सबैभन्दा पुरानो बाँकी ${aging?.oldestOpenDays ?? 0} दिन · ९० दिनभन्दा पुरानो ${money(aging?.over90 ?? 0)}`} />
                   </p>
                 </div>
               );
@@ -325,15 +375,15 @@ export default async function AdminPurchasingPage({
           </p>
           <div className="mt-4 grid gap-3">
             <div className="rounded-md bg-brand-paper-deep p-3">
-              <p className="text-xs font-semibold text-brand-muted">Today</p>
+              <p className="text-xs font-semibold text-brand-muted"><T en="Today" ne="आज" /></p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.todayProfitEstimate)}</p>
             </div>
             <div className="rounded-md bg-brand-paper-deep p-3">
-              <p className="text-xs font-semibold text-brand-muted">Month</p>
+              <p className="text-xs font-semibold text-brand-muted"><T en="Month" ne="महिना" /></p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.monthProfitEstimate)}</p>
             </div>
             <div className="rounded-md bg-brand-paper-deep p-3">
-              <p className="text-xs font-semibold text-brand-muted">Year</p>
+              <p className="text-xs font-semibold text-brand-muted"><T en="Year" ne="वर्ष" /></p>
               <p className="mt-1 text-xl font-black text-brand-green-ink">{money(purchasing.summary.yearProfitEstimate)}</p>
             </div>
           </div>
@@ -400,13 +450,13 @@ export default async function AdminPurchasingPage({
                 </div>
                 <p className="mt-1 font-semibold text-brand-muted-deep">{row.materialName}</p>
                 <p className="mt-1 text-xs text-brand-muted">
-                  Txn {row.linkedTransactionCount}/{row.expectedTransactionCount}
+                  <BooksMark linked={row.linkedTransactionCount} expected={row.expectedTransactionCount} />
                   {row.issues ? ` - ${row.issues}` : ""}
                 </p>
               </div>
             ))}
             {purchasing.reports.postingReviewRows.length === 0 ? (
-              <p className="py-3 text-sm text-brand-muted">No purchase posting to review yet.</p>
+              <p className="py-3 text-sm text-brand-muted"><T en="No purchase to check yet." ne="जाँच्नुपर्ने खरिद अहिले छैन।" /></p>
             ) : null}
           </div>
         </section>
@@ -448,7 +498,7 @@ export default async function AdminPurchasingPage({
             </p>
           </div>
           <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-            <p className="text-xs font-semibold text-brand-muted">Supplier due</p>
+            <p className="text-xs font-semibold text-brand-muted"><T en="Supplier due" ne="साहुलाई बाँकी" /></p>
             <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.totalDue)}
             </p>
@@ -520,7 +570,7 @@ export default async function AdminPurchasingPage({
           <div>
             <h2 className="text-lg font-black text-brand-green-ink"><T en="Old supplier dues" ne="साहुको पुरानो बाँकी" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
-              Due amount grouped by age so old supplier payable is visible before it becomes risky.
+              <T en="What is owed, by how old it is, so an old due is seen before it becomes a problem." ne="साहुलाई तिर्न बाँकी, कति पुरानो भनेर — पुरानो बाँकी समस्या हुनुअघि नै देखियोस्।" />
             </p>
           </div>
           <p className="text-sm font-bold text-brand-clay">
@@ -587,16 +637,18 @@ export default async function AdminPurchasingPage({
           </div>
         )}
       </section>
+      </>
+      ) : null}
 
       <section id="purchase-bills" className="mt-8 scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent purchase invoices" ne="भर्खरका किनाइ बिल" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
-              Raw material stock receipt, supplier due, and payment trail.
+              <T en="Every bill entered, with what came in, what was paid and what is owed." ne="चढाइएका सबै बिल — के आयो, कति तिरियो, कति बाँकी।" />
             </p>
           </div>
-          <p className="text-sm font-bold text-brand-green">Year purchase {money(purchasing.summary.yearPurchase)}</p>
+          <p className="text-sm font-bold text-brand-green"><T en={`Year purchase ${money(purchasing.summary.yearPurchase)}`} ne={`वर्षभरको खरिद ${money(purchasing.summary.yearPurchase)}`} /></p>
         </div>
 
         <nav className="mb-4 flex flex-wrap gap-2" aria-label="Show">
@@ -638,13 +690,13 @@ export default async function AdminPurchasingPage({
             <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-brand-muted">
                 <tr>
-                  <th className="py-2 pr-3">Purchase</th>
-                  <th className="py-2 pr-3">Supplier</th>
+                  <th className="py-2 pr-3"><T en="Purchase" ne="खरिद" /></th>
+                  <th className="py-2 pr-3"><T en="Supplier" ne="साहु" /></th>
                   <th className="py-2 pr-3"><T en="Items (every line)" ne="सामान (सबै लाइन)" /></th>
-                  <th className="py-2 pr-3">Total</th>
-                  <th className="py-2 pr-3">Paid / Due</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Posting</th>
+                  <th className="py-2 pr-3"><T en="Total" ne="जम्मा" /></th>
+                  <th className="py-2 pr-3"><T en="Paid / Due" ne="तिरेको / बाँकी" /></th>
+                  <th className="py-2 pr-3"><T en="Status" ne="अवस्था" /></th>
+                  <th className="py-2 pr-3"><T en="Books" ne="हिसाब" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -662,6 +714,15 @@ export default async function AdminPurchasingPage({
                         >
                           {invoice.purchaseNumber}
                         </Link>
+                        {withPhotos.has(invoice.id) ? (
+                          <Link
+                            href={`/admin/purchasing/${invoice.id}`}
+                            className="ml-2 inline-flex items-center rounded-full border border-brand-green-line px-2 py-0.5 text-xs font-bold text-brand-green"
+                            title="Photo of their bill"
+                          >
+                            📷 <T en="their bill" ne="साहुको बिल" />
+                          </Link>
+                        ) : null}
                         {/* The supplier's own number, beneath ours. It is the
                             one they quote on the phone, so reconciling an
                             account means reading it off this row rather than
@@ -711,8 +772,8 @@ export default async function AdminPurchasingPage({
                       </td>
                       <td data-label="Total" className="py-3 pr-3 font-bold">{money(invoice.total)}</td>
                       <td data-label="Paid / Due" className="py-3 pr-3">
-                        <p>Paid {money(invoice.paidAmount)}</p>
-                        <p className="text-xs text-brand-muted">Due {money(invoice.creditAmount)}</p>
+                        <p><T en={`Paid ${money(invoice.paidAmount)}`} ne={`तिरेको ${money(invoice.paidAmount)}`} /></p>
+                        <p className="text-xs text-brand-muted"><T en={`Due ${money(invoice.creditAmount)}`} ne={`बाँकी ${money(invoice.creditAmount)}`} /></p>
                       </td>
                       <td data-label="Status" className="py-3 pr-3">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${invoiceTone(invoice)}`}>
@@ -724,7 +785,12 @@ export default async function AdminPurchasingPage({
                           {posting?.signal ?? "Needs Review"}
                         </span>
                         <p className="mt-1 text-xs text-brand-muted">
-                          {posting?.issues || `Txn ${posting?.linkedTransactionCount ?? 0}/${posting?.expectedTransactionCount ?? 0}`}
+                          {posting?.issues || (
+                            <BooksMark
+                              linked={posting?.linkedTransactionCount ?? 0}
+                              expected={posting?.expectedTransactionCount ?? 0}
+                            />
+                          )}
                         </p>
                       </td>
                     </tr>

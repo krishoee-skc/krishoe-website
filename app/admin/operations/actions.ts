@@ -19,6 +19,7 @@ import {
   addVehicleDispatchItem,
   addWorkerTask,
   deleteOperationRecord,
+  getOperationsData,
   updateCustomerLedger,
   updateFinishedStock,
   updateProductionBatch,
@@ -163,7 +164,11 @@ export async function createRawMaterialAction(formData: FormData) {
     name,
     unit: optionValue(textValue(formData, "unit"), rawMaterialUnits, "kg"),
     openingStock: numberValue(formData, "openingStock"),
-    received: numberValue(formData, "received"),
+    // Nothing "received" without a bill. What comes in arrives on a purchase
+    // bill (the Purchase screen), which files the supplier, the payment and
+    // the store together; a number typed here grew the store with no
+    // supplier, no rate and no money behind it.
+    received: 0,
     reorderLevel: numberValue(formData, "reorderLevel"),
   });
   await auditOperationsAction("operations_create_raw_material", `Raw material ${name} created.`);
@@ -376,12 +381,19 @@ export async function updateRawMaterialAction(formData: FormData) {
     throw new Error("Raw material id and name are required.");
   }
 
+  // "Received" is kept as the purchase bills left it, never taken from the
+  // form — see createRawMaterialAction.
+  const current = (await getOperationsData()).rawMaterials.find((material) => material.id === id);
+  if (!current) {
+    throw new Error("Raw material was not found.");
+  }
+
   await updateRawMaterial(id, {
     name,
     unit: optionValue(textValue(formData, "unit"), rawMaterialUnits, "kg"),
     openingStock: numberValue(formData, "openingStock"),
     used: numberValue(formData, "used"),
-    received: numberValue(formData, "received"),
+    received: current.received,
     reorderLevel: numberValue(formData, "reorderLevel"),
   });
   await auditOperationsAction("operations_update_raw_material", `Raw material ${id} updated.`);

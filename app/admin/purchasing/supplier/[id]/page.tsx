@@ -1,6 +1,8 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { money } from "@/lib/format-money";
+import T from "@/components/T";
+import { purchaseLinesOf } from "@/lib/purchase-kinds";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -118,6 +120,25 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
   const { ledger, invoices, statementRows, summary, aging } = detail;
   const returnTo = `/admin/purchasing/supplier/${ledger.id}`;
 
+  // This month with this supplier, on one card that prints: what was bought,
+  // item by item, what it came to and what was paid. The owner asked for a
+  // supplier's month in one place.
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const monthInvoices = invoices.filter((invoice) => invoice.createdAt.slice(0, 7) === monthKey);
+  const monthBought = monthInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const monthPaid = monthInvoices.reduce((sum, invoice) => sum + invoice.paidAmount, 0);
+  const monthItems = new Map<string, { name: string; unit: string; quantity: number; total: number }>();
+  for (const invoice of monthInvoices) {
+    for (const line of purchaseLinesOf(invoice)) {
+      const key = `${line.name.trim().toLowerCase()}|${line.unit}`;
+      const row = monthItems.get(key) ?? { name: line.name, unit: line.unit, quantity: 0, total: 0 };
+      row.quantity += line.quantity;
+      row.total += line.total;
+      monthItems.set(key, row);
+    }
+  }
+  const monthRows = [...monthItems.values()].sort((a, b) => b.total - a.total);
+
   return (
     <section className="p-6 print:p-0">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -145,6 +166,36 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
             <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Supplier due</p>
             <p className="mt-2 text-3xl font-black text-brand-green-ink">{money(summary.balanceDue)}</p>
           </div>
+        </div>
+
+        <div className="mt-5 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              <T en="This month" ne="यो महिना" />
+            </h2>
+            <p className="text-sm font-bold text-brand-muted">
+              <T
+                en={`${monthInvoices.length} bills · bought ${money(monthBought)} · paid ${money(monthPaid)}`}
+                ne={`${monthInvoices.length} बिल · किनेको ${money(monthBought)} · तिरेको ${money(monthPaid)}`}
+              />
+            </p>
+          </div>
+          {monthRows.length === 0 ? (
+            <p className="mt-2 text-sm text-brand-muted">
+              <T en="Nothing bought from this supplier this month." ne="यो महिना यो साहुबाट केही किनिएको छैन।" />
+            </p>
+          ) : (
+            <ul className="mt-2 divide-y divide-brand-green-line text-sm">
+              {monthRows.map((row) => (
+                <li key={`${row.name}|${row.unit}`} className="flex justify-between gap-3 py-1.5">
+                  <span className="font-semibold text-brand-green-ink">{row.name}</span>
+                  <span className="tabular-nums text-brand-muted">
+                    {row.quantity} {row.unit} · {money(row.total)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* The summary cards and the priority banner are on-screen dashboards.
@@ -274,12 +325,18 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                   {invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="reflow-primary py-3 pr-3">
-                        <p className="font-mono text-xs font-bold text-brand-green-ink">{invoice.purchaseNumber}</p>
+                        <Link href={`/admin/purchasing/${invoice.id}`} className="font-mono text-xs font-bold text-brand-green underline underline-offset-4">
+                          {invoice.purchaseNumber}
+                        </Link>
                         <p className="mt-1 text-xs text-brand-muted"><DateDisplayAdmin date={invoice.createdAt} time={true} /></p>
                       </td>
                       <td data-label="Material" className="py-3 pr-3">
-                        <p className="font-semibold text-brand-green-ink">{invoice.materialName}</p>
-                        <p className="text-xs text-brand-muted">{invoice.unit}</p>
+                        {/* Every line of the bill — it showed only the first. */}
+                        {purchaseLinesOf(invoice).map((line, index) => (
+                          <p key={`${invoice.id}-${index}`} className="font-semibold text-brand-green-ink">
+                            {line.name} <span className="text-xs font-normal text-brand-muted">· {line.quantity} {line.unit}</span>
+                          </p>
+                        ))}
                       </td>
                       <td data-label="Qty" className="py-3 pr-3">{invoice.quantity}</td>
                       <td data-label="Rate" className="py-3 pr-3">{money(invoice.rate)}</td>

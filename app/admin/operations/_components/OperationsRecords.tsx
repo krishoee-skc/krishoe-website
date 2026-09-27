@@ -1,5 +1,6 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import Link from "next/link";
+import T from "@/components/T";
 import ExportButton from "@/components/admin/ExportButton";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import {
@@ -232,7 +233,10 @@ function RawMaterialsPanel({
                 <div className="grid grid-cols-2 gap-2">
                   <input name="openingStock" type="number" min="0" className={compactInputClass} defaultValue={material.openingStock} aria-label="Opening stock" />
                   <input name="used" type="number" min="0" className={compactInputClass} defaultValue={material.used} aria-label="Used" />
-                  <input name="received" type="number" min="0" className={compactInputClass} defaultValue={material.received} aria-label="Received" />
+                  {/* Read only: it is what the purchase bills brought in. */}
+                  <p className={`${compactInputClass} flex items-center bg-brand-paper-deep text-brand-muted`} title="From purchase bills">
+                    <T en={`In: ${material.received}`} ne={`आएको: ${material.received}`} />
+                  </p>
                   <input name="reorderLevel" type="number" min="0" className={compactInputClass} defaultValue={material.reorderLevel} aria-label="Reorder level" />
                 </div>
                 <SaveButton />

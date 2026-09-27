@@ -33,7 +33,7 @@ describe("the bill has the whole screen", () => {
     const bar = await readFile("app/admin/pos/_components/CounterBar.tsx", "utf8");
     expect(bar).toContain("data-counter-mode");
     expect(bar).toContain('href="/admin"');
-    expect(bar).toContain('href="/admin/pos?view=reports"');
+    expect(bar).toContain('reportsHref = "/admin/pos?view=reports"');
     expect(bar).toContain("requestFullscreen");
   });
 
