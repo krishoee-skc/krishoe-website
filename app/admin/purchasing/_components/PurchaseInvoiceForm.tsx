@@ -877,7 +877,9 @@ export default function PurchaseInvoiceForm({
         <h2 className="text-lg font-black text-brand-green-ink">
           {text("Purchase", "किनमेल")}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
+        {/* Not on a phone: four lines of explanation stood between the title
+            and the supplier box, which then sat behind the Save bar. */}
+        <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-brand-muted sm:block">
           {text(
             "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; ready-made pairs go straight to sellable stock. A bill can carry both.",
             "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको भण्डारमा, तयारी जुत्ता सिधै बिक्रीयोग्य स्टकमा। एउटै बिलमा दुवै मिल्छ।",
