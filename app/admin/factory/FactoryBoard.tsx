@@ -13,11 +13,10 @@ import type {
   FactoryWorkerTotal,
 } from "@/lib/factory-board";
 import type { FactoryOwed } from "@/lib/factory-board-data";
+// The shop-wide rupee: "Rs. 420", with paisa only when there are some. This
+// board alone printed "Rs. 420.00", which broke onto two lines on a phone.
+import { money } from "@/lib/format-money";
 
-const moneyFormatter = new Intl.NumberFormat("en-IN", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 /**
  * The factory board, drawn from numbers the server already worked out.
@@ -69,7 +68,7 @@ export default function FactoryBoard({
         />
         <StatTile
           label={text("Piece wage earned", "ज्याला कमाएको")}
-          value={`Rs. ${moneyFormatter.format(stats.totalAmount)}`}
+          value={money(stats.totalAmount)}
           detail={text("Today", "आज")}
           tone="good"
         />
@@ -113,7 +112,7 @@ export default function FactoryBoard({
         </p>
         <ShareBar
           layout="stack"
-          rows={stages.map((row) => ({ label: row.stage, value: row.pairs }))}
+          rows={stages.map((row) => ({ label: row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage, value: row.pairs }))}
           emptyLabel={text("No work entered yet", "अहिलेसम्म काम चढेको छैन")}
         />
       </div>
@@ -129,7 +128,7 @@ export default function FactoryBoard({
             {text("Owed to workers", "कामदारलाई तिर्न बाँकी")}
           </div>
           <div className="mt-1 text-xl font-black text-brand-green-ink sm:text-2xl">
-            Rs. {moneyFormatter.format(owed.totalOwed)}
+            {money(owed.totalOwed)}
           </div>
         </div>
         <div className="text-right">
@@ -153,7 +152,7 @@ export default function FactoryBoard({
               rows={topWorkers.map((worker) => ({
                 label: worker.name,
                 value: worker.pairs,
-                hint: `Rs. ${moneyFormatter.format(worker.amount)}`,
+                hint: money(worker.amount),
               }))}
               emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
             />

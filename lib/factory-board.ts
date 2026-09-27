@@ -71,7 +71,13 @@ export function stageTotals(works: FactoryWorkRow[]): FactoryStageTotal[] {
   const byStage = new Map<string, number>(FACTORY_STAGES.map((stage) => [stage, 0]));
 
   for (const work of works) {
-    if (!work.stage) continue;
+    // Work entered without a stage still counts. Skipped, it left the board
+    // saying "40 pairs today" in one tile and "no work entered yet" right
+    // under it.
+    if (!work.stage) {
+      if (work.pairs_count > 0) byStage.set("Other work", (byStage.get("Other work") ?? 0) + work.pairs_count);
+      continue;
+    }
     // An unknown stage is counted rather than dropped: losing pairs from the
     // total would make the whole bar lie.
     byStage.set(work.stage, (byStage.get(work.stage) ?? 0) + work.pairs_count);

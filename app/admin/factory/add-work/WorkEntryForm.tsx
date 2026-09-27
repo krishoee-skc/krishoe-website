@@ -697,7 +697,7 @@ export default function WorkEntryForm({
             once a worker is chosen. */}
         {formData.worker_id ? (
           <div>
-            <label className="block text-sm font-medium text-brand-green-ink mb-2">
+            <label htmlFor="work-stage" className="block text-sm font-medium text-brand-green-ink mb-2">
               🧵 {text("Which work", "कुन काम")}
             </label>
             <select
@@ -725,20 +725,22 @@ export default function WorkEntryForm({
         {/* Item/Product */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium text-brand-green-ink">🛞 {text("Product", "कुन जुत्ता")}</label>
+            <label htmlFor="work-item" className="block text-sm font-medium text-brand-green-ink">🛞 {text("Product", "कुन जुत्ता")}</label>
             <div className="flex gap-2">
+              {/* Called by the name its chip carries in the row above ("item र
+                  दर"), not "Item Master", and big enough for a thumb. */}
               <Link
                 href="/admin/factory/items"
-                className="rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-200"
+                className="inline-flex min-h-9 items-center rounded-lg border border-brand-green-line px-2.5 text-xs font-semibold text-brand-green-ink underline-offset-2 hover:border-brand-green hover:underline"
               >
-                Item Master
+                {text("Items and rates", "item र दर")}
               </Link>
               <button
                 type="button"
                 onClick={() => setShowAddProduct(true)}
-                className="text-xs bg-brand-green-wash text-brand-green hover:bg-brand-green-tint px-2 py-1 rounded"
+                className="inline-flex min-h-9 items-center rounded-lg bg-brand-green-wash px-2.5 text-xs font-semibold text-brand-green hover:bg-brand-green-tint"
               >
-                ➕ Add New
+                ➕ {text("Add new", "नयाँ थप्ने")}
               </button>
               {showSetRate && (
                 <button
@@ -1055,7 +1057,7 @@ export default function WorkEntryForm({
 
         {/* QC — how many of those pairs were rejects (bad). Optional; 0 means all good. */}
         <div>
-          <label className="block text-sm font-medium text-brand-green-ink mb-2">
+          <label htmlFor="work-reject" className="block text-sm font-medium text-brand-green-ink mb-2">
             ❌ {text("Rejected pairs (QC)", "खराब जोडी (QC)")}
           </label>
           <input
@@ -1115,14 +1117,19 @@ export default function WorkEntryForm({
           >
             {submitting
               ? text("Saving… (carry on)", "टिप्दै… (अर्को हाल्न सक्नुहुन्छ)")
-              : text("✅ Save work entry", "✅ काम टिप्ने")}
+              : Number(formData.pairs_count) > 0
+                // The count on the button itself: it starts at 60, the usual
+                // lot, and a 12-pair job saved without changing it books five
+                // times the wage.
+                ? text(`✅ Save ${formData.pairs_count} pairs`, `✅ ${formData.pairs_count} जोडी टिप्ने`)
+                : text("✅ Save work entry", "✅ काम टिप्ने")}
           </button>
           <button
             type="button"
             onClick={() => router.push("/admin/factory")}
             className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-3 px-4 rounded-lg transition-colors min-h-12 flex items-center justify-center"
           >
-            Cancel
+            {text("Cancel", "रद्द")}
           </button>
         </div>
       </form>

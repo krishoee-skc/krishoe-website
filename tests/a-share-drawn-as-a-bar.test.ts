@@ -66,8 +66,9 @@ describe("counting pairs by stage", () => {
     expect(sum).toBe(100);
   });
 
-  it("ignores an entry with no stage recorded", () => {
-    expect(stageTotals([work("", 60)]).every((row) => row.pairs === 0)).toBe(true);
+  it("keeps an entry with no stage recorded out of the four stages", () => {
+    // It is counted under "Other work" instead — see below.
+    expect(stageTotals([work("", 60)]).filter((row) => row.stage !== "Other work").every((row) => row.pairs === 0)).toBe(true);
   });
 });
 
@@ -133,5 +134,13 @@ describe("what the factory board shows", () => {
     // by deleting it again.
     expect(select.length, "the day's work query moved").toBeGreaterThan(0);
     expect(select).toContain("w.stage");
+  });
+});
+
+describe("work entered without a stage", () => {
+  it("is counted under 'Other work', so the board never says 40 pairs and no work at once", () => {
+    const totals = stageTotals([work("", 40)]);
+    expect(totals.find((row) => row.stage === "Other work")?.pairs).toBe(40);
+    expect(stageTotals([work("", 0)]).some((row) => row.stage === "Other work")).toBe(false);
   });
 });
