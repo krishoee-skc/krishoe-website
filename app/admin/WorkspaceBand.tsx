@@ -58,8 +58,17 @@ export default function WorkspaceBand() {
     ? adminTrail(pathname).filter((step) => step.href.length > section.href.length)
     : [];
 
+  // On a phone the factory screens already say where you are: their row of
+  // section chips marks the open one in green. The band above it said it
+  // again, in 45px of a screen where the top bar, search and chips already
+  // took 230px before the form began.
+  const chipsSayIt = pathname === "/admin/factory" || pathname.startsWith("/admin/factory/");
+
   return (
-    <nav aria-label={text("Where you are", "तपाईं कहाँ हुनुहुन्छ")} className="px-4 pt-3 sm:px-6 print:hidden">
+    <nav
+      aria-label={text("Where you are", "तपाईं कहाँ हुनुहुन्छ")}
+      className={`px-4 pt-3 sm:px-6 print:hidden ${chipsSayIt ? "max-sm:hidden" : ""}`}
+    >
       <p
         data-workspace={side}
         className={`mb-0 flex min-h-9 flex-wrap items-center gap-x-2 rounded-lg px-3.5 py-1.5 text-sm font-black leading-6 text-white ${

@@ -136,7 +136,7 @@ export default function TodayBoard({
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[
           { href: "/admin/factory/add-work", labelNe: "काम टिप्ने", labelEn: "Add work" },
-          { href: "/admin/pos", labelNe: "बिल काट्ने", labelEn: "Billing" },
+          { href: "/admin/pos", labelNe: "बिल काट्ने", labelEn: "Cut a bill" },
           { href: "/admin/stock", labelNe: "स्टक हेर्ने", labelEn: "Stock" },
         ].map((action) => (
           <Link

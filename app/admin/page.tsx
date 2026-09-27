@@ -196,10 +196,11 @@ export default async function AdminDashboardPage() {
   const goalMonthKey = currentGoalMonthKey();
   const businessGoal = await getBusinessGoal(goalMonthKey).catch(() => null);
 
+  // Cutting a bill and adding work are the big buttons under "Today's work"
+  // just above; drawn here as well, the same two jobs appeared twice on one
+  // screen.
   const quickTiles = [
-    { href: "/admin/pos", labelEn: "Billing", labelNe: "बिल काट्ने", Icon: CreditCardIcon, gradient: GRAD.emerald },
     { href: "/admin/purchasing", labelEn: "Purchase", labelNe: "किनमेल", Icon: PackageIcon, gradient: GRAD.gold },
-    { href: "/admin/factory/add-work", labelEn: "Add work", labelNe: "काम टिप्ने", Icon: PlusIcon, gradient: GRAD.teal },
     { href: "/admin/orders", labelEn: "Orders", labelNe: "अर्डर", Icon: ShoppingCartIcon, gradient: GRAD.clay },
     { href: "/admin/dues", labelEn: "Credit", labelNe: "उधारो", Icon: CreditCardIcon, gradient: GRAD.plum },
     { href: "/admin/search", labelEn: "Search", labelNe: "खोज्ने", Icon: SearchIcon, gradient: GRAD.deep },
@@ -266,7 +267,7 @@ export default async function AdminDashboardPage() {
         <h2 className="mb-3 font-display text-xl font-black text-brand-green-ink">
           <AlertText en="Quick jobs" ne="छिटो काम" />
         </h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {quickTiles.map((tile) => (
             <QuickTile key={tile.href + tile.labelEn} {...tile} />
           ))}

@@ -92,7 +92,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "shop",
     links: [
       { href: "/admin/orders", label: "Orders", nepali: "अर्डर", icon: ShoppingCartIcon },
-      { href: "/admin/pos", label: "POS Billing", nepali: "बिल काट्ने", icon: CreditCardIcon },
+      { href: "/admin/pos", label: "Cut a bill", nepali: "बिल काट्ने", icon: CreditCardIcon },
       // Photos is reached from the Products screen, which is where a photo is
       // actually missing from and where the owner is already standing when
       // they notice.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import PrintButton from "@/components/admin/PrintButton";
 import PrintedOn from "@/components/admin/PrintedOn";
 import { businessContact } from "@/lib/seo";
@@ -20,9 +21,9 @@ export const metadata = { title: "Stock Control | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 function StatCard({ label, value, detail, tone = "plain", size = "normal" }: {
-  label: string;
+  label: ReactNode;
   value: string | number;
-  detail: string;
+  detail: ReactNode;
   tone?: "plain" | "good" | "warn";
   /** "lead" for the one figure this screen is about — ready stock. The rest
    *  support it, and a row of equal numbers makes the reader find that out by
@@ -328,7 +329,10 @@ export default async function AdminStockPage() {
             <T en="Raw materials and ready goods" ne="कच्चा पदार्थ र बनिसकेको माल" />
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted print:hidden">
-            Factory materials, KRISHOE-made pairs and supplier-purchased resale pairs are shown separately. Wholesale, retail and online remain sales channels—not extra stock.
+            <T
+              en="How many pairs are ready to sell, where they are, and what the factory store holds."
+              ne="बेच्न मिल्ने जोडी कति छन्, कहाँ छन्, र कारखानाको स्टोरमा के छ।"
+            />
           </p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
@@ -341,12 +345,14 @@ export default async function AdminStockPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Ready stock" value={summary.readyPairs} detail="Physical pairs available across factory and sales channels." tone="good" size="lead" />
-        <StatCard label="KRISHOE manufactured" value={summary.manufacturedPairs} detail="Current pairs whose source history is Production In." />
-        <StatCard label="Purchased for resale" value={summary.purchasedPairs} detail="Current pairs whose source history is Purchase In." />
-        <StatCard label="Raw materials" value={summary.rawMaterialItems} detail={`${summary.rawMaterialReorderItems} material item(s) at or below reorder level.`} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
+        {/* One number leads — the pairs that can be sold. The next two are
+            only where those pairs came from, and say so. */}
+        <StatCard label={<T en="Pairs ready to sell" ne="बेच्न मिल्ने जोडी" />} value={summary.readyPairs} detail={<T en="Every ready pair, at the factory and the shop together." ne="कारखाना र पसल दुवै मिलाएर, सबै तयार जोडी।" />} tone="good" size="lead" />
+        <StatCard label={<T en="…of them made here" ne="…जसमध्ये आफैँ बनाएको" />} value={summary.manufacturedPairs} detail={<T en="Came in from the factory's own work." ne="कारखानाको आफ्नै कामबाट आएको।" />} />
+        <StatCard label={<T en="…of them bought in" ne="…जसमध्ये किनेर ल्याएको" />} value={summary.purchasedPairs} detail={<T en="Came in on a supplier's bill." ne="साहुको बिलबाट आएको।" />} />
+        <StatCard label={<T en="Raw material items" ne="कच्चा मालका किसिम" />} value={summary.rawMaterialItems} detail={<T en={`${summary.rawMaterialReorderItems} running low.`} ne={`${summary.rawMaterialReorderItems} वटा सकिन लागेको।`} />} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
         {summary.damagedPairs > 0 ? (
-          <StatCard label="Written off" value={summary.damagedPairs} detail="Pairs recorded as damaged or lost (Damage Out) — not a sale." tone="warn" />
+          <StatCard label={<T en="Written off" ne="बिग्रिएर हटाएको" />} value={summary.damagedPairs} detail={<T en="Damaged or lost — not a sale." ne="बिग्रिएको वा हराएको — बिक्री होइन।" />} tone="warn" />
         ) : null}
       </div>
 
@@ -360,9 +366,19 @@ export default async function AdminStockPage() {
 
       <StockOutlookPanel rows={loaded.outlook} />
 
-      <div className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft p-4 text-sm leading-6 text-brand-green-ink">
-        <strong>Do not add catalog stock twice:</strong> the shop catalog currently shows {summary.sellableCatalogPairs} sellable pairs across {summary.catalogDesigns} designs. It is the selling view of ready stock, not a fourth warehouse.
-      </div>
+      {/* The website's number, as a question the owner can open, not a third
+          figure shouting in yellow beside the first two. */}
+      <details className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft px-4 py-3 text-sm leading-6 text-brand-green-ink">
+        <summary className="cursor-pointer font-bold">
+          <T
+            en={`The website shows ${summary.sellableCatalogPairs} pairs — why a different number?`}
+            ne={`वेबसाइटमा ${summary.sellableCatalogPairs} जोडी देखिन्छ — फरक किन?`}
+          />
+        </summary>
+        <p className="mt-2">
+          <strong>Do not add catalog stock twice:</strong> the shop catalog currently shows {summary.sellableCatalogPairs} sellable pairs across {summary.catalogDesigns} designs. It is the selling view of ready stock, not a fourth warehouse.
+        </p>
+      </details>
 
       {loaded.catalogWarnings.length > 0 ? (
         <div className="mt-4 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 sm:p-5">
