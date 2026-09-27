@@ -66,6 +66,7 @@ export default function WorkspaceBand() {
 
   return (
     <nav
+      data-admin-chrome
       aria-label={text("Where you are", "तपाईं कहाँ हुनुहुन्छ")}
       className={`px-4 pt-3 sm:px-6 print:hidden ${chipsSayIt ? "max-sm:hidden" : ""}`}
     >

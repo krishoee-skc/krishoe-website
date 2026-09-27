@@ -38,7 +38,7 @@ describe("mobile production contracts", () => {
 
   it("offers a fast stock-aware POS product picker", () => {
     const picker = source("app/admin/pos/_components/PosProductPicker.tsx");
-    expect(picker).toContain("Shoe, code or size (41)");
+    expect(picker).toContain("Name, code or size…");
     expect(picker).toContain("pairsLeft(item, cart)");
     expect(picker).toContain("rateForChannel(channel, item)");
     // Sizes open from the bottom on a phone, where the thumb is.

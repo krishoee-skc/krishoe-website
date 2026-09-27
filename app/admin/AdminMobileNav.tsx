@@ -73,7 +73,7 @@ export default function AdminMobileNav({
   }, [open]);
 
   return (
-    <div className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
+    <div data-admin-chrome className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
           {/* A generic house icon stood where the shop's own mark belongs,

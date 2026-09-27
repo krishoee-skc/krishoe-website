@@ -100,7 +100,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             crowding the foot of the menu. The px matches the page below so the
             search's left edge lines up with the dashboard cards. Read-only: the
             bar opens the same login-guarded search the search page uses. */}
-        <div className="flex items-center gap-2 px-4 pt-4 sm:gap-3 sm:px-6">
+        <div data-admin-chrome className="flex items-center gap-2 px-4 pt-4 sm:gap-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <AdminCommandBar />
           </div>

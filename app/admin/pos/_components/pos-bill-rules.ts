@@ -364,8 +364,18 @@ export function belowCost(rate: number, costPerPair: number | undefined) {
  * design that can still sell a 41. Anything else is looked for in the name,
  * the Nepali name, the code and the category.
  */
+/**
+ * What was typed in the search box, as the search reads it.
+ *
+ * A leading "#" is dropped: the box's own example writes a code "#571E0E15",
+ * and a code was never stored with one, so "#571E" found nothing.
+ */
+export function cleanQuery(value: string) {
+  return String(value ?? "").trim().replace(/^#+\s*/, "");
+}
+
 export function matchesSearch(item: SellableItem, query: string, cart: CartLine[]) {
-  const wanted = query.trim().toLowerCase();
+  const wanted = cleanQuery(query).toLowerCase();
   if (!wanted) return true;
   if (isShoeSize(wanted)) {
     return sizeChoices(item, cart).some((choice) => choice.size === wanted && choice.sellable);
@@ -383,7 +393,7 @@ export function matchesSearch(item: SellableItem, query: string, cart: CartLine[
  * never cut in half.
  */
 export function findByCode(catalog: SellableItem[], rawCode: string) {
-  const code = rawCode.trim().toLowerCase();
+  const code = cleanQuery(rawCode).toLowerCase();
   if (!code) return null;
   const exact = catalog.find(
     (entry) => (entry.sku && entry.sku.trim().toLowerCase() === code) || entry.design.trim().toLowerCase() === code,

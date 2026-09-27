@@ -81,6 +81,17 @@ export default function PosProductPicker({
 
   const sizeQuery = isShoeSize(query) ? query.trim() : "";
 
+  // The examples under the box, taken from a shoe actually on the shelf.
+  const example = useMemo(() => {
+    const withCode = catalog.find((item) => item.sku) ?? catalog[0];
+    const name = (withCode?.design ?? "bantu").trim().split(/\s+/)[0] || "bantu";
+    return {
+      name: name.toLowerCase(),
+      code: withCode?.sku || "571E0E15",
+      size: sizeButtons[Math.floor(sizeButtons.length / 2)] ?? "40",
+    };
+  }, [catalog, sizeButtons]);
+
   const shown = useMemo(() => {
     const matching = catalog.filter(
       (item) =>
@@ -114,7 +125,7 @@ export default function PosProductPicker({
             }}
             enterKeyHint="search"
             autoComplete="off"
-            placeholder={text("Shoe, code or size (41)", "जुत्ता, कोड वा साइज (41)")}
+            placeholder={text("Name, code or size…", "नाम, कोड वा साइज लेख्नुहोस्…")}
             aria-label={text("Search or scan a shoe", "जुत्ता खोज्ने वा स्क्यान गर्ने")}
             className="h-14 min-w-0 flex-1 rounded-2xl border-2 border-brand-green bg-brand-paper px-4 text-lg text-brand-green-ink outline-none placeholder:text-brand-muted focus:border-brand-gold"
           />
@@ -134,6 +145,20 @@ export default function PosProductPicker({
             />
           </label>
         </div>
+        {/* What each of the three looks like, from this shop's own shelf. The
+            box used to say "(41)" and nothing else, and nobody could tell it
+            was a size, or that a code or a name would do as well. */}
+        <p className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
+            {text("Name", "नाम")} → {example.name}
+          </span>
+          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
+            {text("Code", "कोड")} → #{example.code}
+          </span>
+          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
+            {text("Size", "साइज")} → {example.size}
+          </span>
+        </p>
         <p className="mt-1 hidden text-xs text-brand-muted md:block">
           {text(
             "F2 search · Enter takes the first shoe · 1–9 picks a size · F9 saves the bill",

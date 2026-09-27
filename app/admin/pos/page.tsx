@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
 import PosBillForm from "@/app/admin/pos/_components/PosBillForm";
 import ScannerPanel from "@/app/admin/pos/ScannerPanel";
+import CounterBar from "@/app/admin/pos/_components/CounterBar";
 import { money } from "@/lib/format-money";
 import { getCostingSnapshot, type CostingPeriodRow, type DesignCostingRow } from "@/lib/costing";
 import LoadFailure from "@/components/admin/LoadFailure";
@@ -49,6 +50,42 @@ function statusTone(invoice: PosInvoice) {
   }
 
   return "border-emerald-200 bg-emerald-50 text-emerald-800";
+}
+
+/**
+ * Whether a bill's pairs came off (or went back on) the shelf, in words.
+ *
+ * It read "Stock 10/2": ten size lines moved for two shoes, which is right —
+ * but it looks like "two out of ten", a fault. The count behind it is lines
+ * moved against shoes on the bill; fewer moved than shoes is the real fault.
+ */
+function StockMoved({
+  moved,
+  shoes,
+  kind,
+}: {
+  moved: number;
+  shoes: number;
+  kind: string;
+}) {
+  if (shoes <= 0) return <span className="text-brand-muted">—</span>;
+  if (moved < shoes) {
+    return (
+      <span className="font-bold text-brand-clay">
+        <T en="⚠ Stock not updated — fix it" ne="⚠ स्टक मिलेन — मिलाउनुहोस्" />
+      </span>
+    );
+  }
+  const back = kind === "Return";
+  const sizes = moved > shoes;
+  return (
+    <span className="font-bold text-brand-green">
+      <T
+        en={`✓ Stock ${back ? "back" : "taken off"} · ${shoes} shoe${shoes === 1 ? "" : "s"}${sizes ? `, ${moved} sizes` : ""}`}
+        ne={`✓ स्टक ${back ? "फर्कियो" : "घट्यो"} · ${shoes} जुत्ता${sizes ? `, ${moved} साइज` : ""}`}
+      />
+    </span>
+  );
 }
 
 function postingTone(signal: string) {
@@ -278,7 +315,10 @@ export default async function AdminPosPage({
     // scrolled past all of it to cut a bill with a customer waiting. The order
     // below is for phones only (max-md); a computer keeps the page as it was.
     <section className="p-4 max-md:flex max-md:flex-col sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 max-md:-order-2">
+      {/* The bill view is the counter: full screen, with one strip on top in
+          place of the admin frame, the page title and the reports link. */}
+      {showReports ? null : <CounterBar />}
+      <div className={`flex flex-wrap items-start justify-between gap-4 max-md:-order-2 ${showReports ? "" : "hidden"}`}>
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <AlertText en="Point of Sale" ne="बिल काट्ने" />
@@ -460,7 +500,7 @@ export default async function AdminPosPage({
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-brand-muted">
-                    Stock {row.linkedStockMovementCount}/{row.expectedStockMovementCount}
+                    <StockMoved moved={row.linkedStockMovementCount} shoes={row.expectedStockMovementCount} kind={row.kind ?? ""} />
                     {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
                   </p>
                   {row.issues ? <p className="mt-1 text-xs font-semibold text-brand-clay">{row.issues}</p> : null}
@@ -707,7 +747,13 @@ export default async function AdminPosPage({
                           ) : null}
                         </div>
                         <p className="mt-1 text-xs text-brand-muted">
-                          {posting?.issues || `Stock ${posting?.linkedStockMovementCount ?? 0}/${posting?.expectedStockMovementCount ?? 0}`}
+                          {posting?.issues || (
+                            <StockMoved
+                              moved={posting?.linkedStockMovementCount ?? 0}
+                              shoes={posting?.expectedStockMovementCount ?? 0}
+                              kind={invoice.kind}
+                            />
+                          )}
                         </p>
                       </td>
                       <td data-label="Receipt" className="py-3 pr-3">

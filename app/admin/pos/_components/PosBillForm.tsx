@@ -215,6 +215,10 @@ export default function PosBillForm({
   const [tax, setTax] = useState("");
   const [phone, setPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
+  // Held here rather than left to the box: on a wholesale bill the box sits
+  // under the name, on any other it waits under "More", and switching the
+  // channel must not lose what was typed.
+  const [customerPan, setCustomerPan] = useState("");
   const [ledgerId, setLedgerId] = useState("");
   const [ledgerOptions, setLedgerOptions] = useState(ledgers);
   const [ledgerNote, setLedgerNote] = useState("");
@@ -467,6 +471,18 @@ export default function PosBillForm({
     );
   }
 
+  const panBox = (
+    <input
+      name="customerPan"
+      value={customerPan}
+      onChange={(event) => setCustomerPan(event.target.value)}
+      inputMode="numeric"
+      placeholder={text("Customer's PAN (prints on the bill)", "ग्राहकको PAN (बिलमा छापिन्छ)")}
+      aria-label={text("Customer PAN", "ग्राहकको PAN")}
+      className={inputClass}
+    />
+  );
+
   function changeChannel(next: string) {
     setChannel(next);
     setCart((current) => repriceForChannel(current, catalog, next));
@@ -486,6 +502,7 @@ export default function PosBillForm({
     setTax("");
     setPhone("");
     setCustomerName("");
+    setCustomerPan("");
     setLedgerId("");
     setReference("");
     setKind("Sale");
@@ -1134,6 +1151,10 @@ export default function PosBillForm({
                 data-summary="text"
                 className={inputClass}
               />
+              {/* A wholesale buyer's PAN is asked for on most bills, so on a
+                  wholesale bill it is out in the open, next after the name —
+                  not folded under "More". It prints on the bill either way. */}
+              {channel === "Wholesale" ? panBox : null}
             </div>
 
             {canCollectDue ? (
@@ -1354,7 +1375,9 @@ export default function PosBillForm({
 
             <details className="rounded-2xl border border-brand-green-line px-3 py-2">
               <summary className="cursor-pointer text-sm text-brand-muted">
-                {text("More: seller, address, PAN, tax, note", "थप: बेच्ने, ठेगाना, PAN, कर, नोट")}
+                {channel === "Wholesale"
+                  ? text("More: seller, address, tax, note", "थप: बेच्ने, ठेगाना, कर, नोट")
+                  : text("More: seller, address, PAN, tax, note", "थप: बेच्ने, ठेगाना, PAN, कर, नोट")}
               </summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <input
@@ -1366,7 +1389,7 @@ export default function PosBillForm({
                   className={inputClass}
                 />
                 <input name="customerAddress" placeholder={text("Address", "ठेगाना")} aria-label={text("Customer address", "ग्राहकको ठेगाना")} className={inputClass} />
-                <input name="customerPan" placeholder={text("PAN (wholesale)", "PAN (थोक)")} aria-label={text("Customer PAN", "ग्राहकको PAN")} className={inputClass} />
+                {channel === "Wholesale" ? null : panBox}
                 <input
                   name="tax"
                   inputMode="numeric"
@@ -1438,7 +1461,7 @@ export default function PosBillForm({
       </div>
 
       {!cartOpen ? (
-        <div className="fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2.5 shadow-[0_12px_40px_rgba(16,35,29,0.18)] md:hidden print:hidden">
+        <div data-pos-bar className="fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2.5 shadow-[0_12px_40px_rgba(16,35,29,0.18)] md:hidden print:hidden">
           <div className="tabular-nums">
             <p className="text-xs text-brand-muted">{text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}</p>
             <p className="text-xl font-black text-brand-green-ink">{money(totals.total)}</p>

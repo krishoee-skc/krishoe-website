@@ -940,3 +940,23 @@ table th,
   outline: 3px solid #c8a04d;
   outline-offset: 2px;
 }
+
+/* Counter mode. While the counter bill's own strip ([data-counter-mode]) is
+   on the page, the admin frame steps aside: the sidebar, the top search row,
+   the coloured band and the phone's dock. The owner asked for the bill to
+   have the whole screen, PC and phone alike. Done in CSS so the page paints
+   full-screen from the first frame; leaving the page brings the frame back
+   because the strip goes with it. */
+body:has([data-counter-mode]) [data-admin-chrome] {
+  display: none !important;
+}
+
+body:has([data-counter-mode]) [data-admin-shell] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* With the dock gone, the phone's bill bar sits at the foot of the screen
+   instead of floating where the dock used to be. */
+body:has([data-counter-mode]) [data-pos-bar] {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+}

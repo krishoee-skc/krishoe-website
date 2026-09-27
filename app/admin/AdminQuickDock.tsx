@@ -47,8 +47,9 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
 
   return (
     <>
-      <div className="h-[calc(5.25rem+env(safe-area-inset-bottom))] md:hidden print:hidden" aria-hidden />
+      <div data-admin-chrome className="h-[calc(5.25rem+env(safe-area-inset-bottom))] md:hidden print:hidden" aria-hidden />
       <nav
+        data-admin-chrome
         aria-label="Admin quick actions"
         className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.5rem] border border-white/80 bg-brand-paper/90 p-1.5 shadow-[0_18px_55px_rgba(16,35,29,0.2)] backdrop-blur-xl transition-transform duration-200 md:hidden print:hidden ${keyboardOpen ? "translate-y-[150%]" : ""}`}
       >

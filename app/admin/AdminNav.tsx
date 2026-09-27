@@ -50,7 +50,7 @@ export default function AdminNav({
   const { language, text } = useLanguage();
 
   return (
-    <div className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
+    <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
       <div className="flex h-full max-h-screen flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
