@@ -33,7 +33,7 @@ describe("entering the next row without waiting", () => {
 
     // A person makes three or four rows of the same work. Re-picking the worker
     // and item each time was most of the typing.
-    const submit = source.slice(source.indexOf("const handleSubmit"));
+    const submit = source.slice(source.indexOf("const saveEntry"));
     const reset = submit.slice(
       submit.indexOf("setFormData((current) => ({"),
       submit.indexOf('await fetch("/api/factory/work"'),
@@ -48,10 +48,12 @@ describe("entering the next row without waiting", () => {
     const source = await readFile(FORM, "utf8");
 
     // It used to redirect to the dashboard a second and a half after a save,
-    // so a second entry meant navigating back. The only remaining push is the
-    // Cancel button, which is a button the person chose to press.
-    const pushes = source.match(/router\.push\("\/admin\/factory"\)/g) ?? [];
-    expect(pushes).toHaveLength(1);
+    // so a second entry meant navigating back. The Cancel button that also
+    // left went with the 2026-09-27 layout: the tabs and the menu leave, and a
+    // save puts the cursor back on the worker for the next row.
+    const pushes = source.match(/router\.push\(/g) ?? [];
+    expect(pushes).toHaveLength(0);
+    expect(source).toContain('pendingFocus.current = "worker"');
     expect(source).not.toContain("setTimeout(() => {\n        router.push");
   });
 

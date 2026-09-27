@@ -37,43 +37,61 @@ export interface Item {
    *  a catalogue product, which is when the size runs are offered instead. */
   sizes: string[];
   production_item_id: string | null;
+  /** The colour and size of the last work entered on this shoe, offered first
+   *  (★) so the usual answer is one tap. Empty when nothing was entered yet. */
+  lastColour?: string;
+  lastSize?: string;
 }
 
-// The colours a shoe usually comes in, offered as one-tap chips so the same
-// colour is spelled the same way every time. Anything else is still typed.
+// The colours this factory actually makes, in the owner's own order, offered as
+// one-tap chips so the same colour is spelled the same way every time. Blue and
+// Brown were on the list and are rarely made; cream, cherry and gray are made
+// all the time and were not. Anything else is still typed.
 export const COMMON_COLOURS = [
+  { en: "Cream", ne: "क्रिम", hex: "#efe3c8" },
+  { en: "Cherry", ne: "चेरी", hex: "#7b1e2b" },
+  { en: "Gray", ne: "खरानी", hex: "#8a8f94" },
   { en: "Black", ne: "कालो", hex: "#111111" },
-  { en: "Blue", ne: "निलो", hex: "#2456c7" },
+  { en: "White", ne: "सेतो", hex: "#f4f4f4" },
   { en: "Red", ne: "रातो", hex: "#c0392b" },
-  { en: "Brown", ne: "खैरो", hex: "#8b5e3c" },
-  { en: "White", ne: "सेतो", hex: "#e8e8e8" },
 ] as const;
 
-// The sizes usually run, offered as toggle buttons that build the comma list.
-// Sizes are no longer a fixed list — they come from the chosen item, or from
-// the runs in lib/shoe-sizes when the item has none on file yet.
+/**
+ * The size runs this factory makes, one tap each.
+ *
+ * Kids 25–30, youth 31–35 and adult 36–41 were the only three, and the shop
+ * also makes 21–25 and 36–40. Local to this screen: the three named runs in
+ * lib/shoe-sizes also decide how other screens label a run, and those must not
+ * move under them.
+ */
+export const WORK_SIZE_RUNS = [
+  { from: 21, to: 25 },
+  { from: 25, to: 30 },
+  { from: 31, to: 35 },
+  { from: 36, to: 40 },
+  { from: 36, to: 41 },
+] as const;
 
-/** Where the pair count starts, and what it returns to after a save: every
- *  entry this shop has made is sixty pairs. */
 export const DEFAULT_PAIRS = 60;
 /** A size run is six sizes, so a dozen is two of each and sixty is half a case
  *  — the amounts this shop counts in. */
 export const PAIRS_STEP = 12;
 
 /**
- * The typed boxes Enter walks along, in the order the work is counted out.
+ * Every box Enter walks along, in the order the work is counted out, ending on
+ * Save.
  *
- * Only four, and only the ones that are typed. The worker, the stage, the
- * product and the lot are all chosen from lists — a dropdown answers Enter by
- * opening or closing itself, and taking that over would make choosing a worker
- * harder than it is now. The colour and size have buttons above them too; the
- * boxes here are the "or type it" ones beside those buttons.
+ * It used to be the four typed boxes only, and the owner asked for Enter to do
+ * Tab's job the whole way: the worker, the work and the shoe are the first
+ * three things entered and Enter skipped all of them. A closed dropdown does
+ * nothing with Enter in the browsers this shop uses, so taking Enter over there
+ * costs nothing; an open one keeps Enter to pick its option.
  *
- * Rejected pairs comes last because it is usually left at zero: the walk ends
- * on the box most days do not need, which means most days the walk ends at the
- * size.
+ * Save is the last stop. Enter on Save does not save straight away: it shows
+ * what is about to be written and asks, and a second Enter confirms — so a
+ * mis-hit never files a wrong wage, which is why Enter never saved before.
  */
-export const WORK_WALK = ["pairs", "colour", "size", "rejected"] as const;
+export const WORK_WALK = ["worker", "stage", "item", "pairs", "colour", "size", "rejected", "save"] as const;
 export type WorkField = (typeof WORK_WALK)[number];
 
 /**

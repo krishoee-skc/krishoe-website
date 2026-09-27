@@ -4,23 +4,15 @@ import { describe, expect, it } from "vitest";
 /**
  * Enter walks the work entry, which is the form that pays a worker.
  *
- * The third and last of the forms the owner asked for. This one had no Enter
- * handling at all — none of its six boxes — so counting out a day's work meant
- * reaching for Tab between every number.
+ * It first walked the four typed boxes only — pairs, colour, size, rejects —
+ * and skipped the worker, the work and the shoe, the first three things
+ * entered. The owner asked for Enter to do Tab's job the whole way, so the walk
+ * now runs worker → work → shoe → pairs → colour → size → rejects → Save.
  *
- * Only four boxes are on the walk, and the four are the ones that are typed.
- * The worker, the stage, the product and the lot are chosen from dropdowns,
- * where Enter already means "open this" or "take this" — taking that over
- * would make choosing a worker harder than it is today. The colour and size
- * have tap-chips above them; the boxes here are the "or type it" ones beside
- * those chips.
- *
- * Rejected pairs is last because it is usually left at zero, so on most days
- * the walk effectively ends at the size.
- *
- * And Enter must never save. In a browser Enter in a text box submits the form
- * — W3C failure F36 — and this form puts a number into somebody's wages. A
- * half-typed entry filed by a mis-hit is a wrong payment.
+ * What has not changed is that Enter never files a wage by itself. In a browser
+ * Enter in a text box submits the form — W3C failure F36 — and this form puts a
+ * number into somebody's wages. Enter on Save shows what is about to be written
+ * and asks; only a second, deliberate Enter on "Yes" saves.
  */
 const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 const RULES = "app/admin/factory/add-work/work-entry-rules.ts";
@@ -32,11 +24,11 @@ async function screen() {
   return form + "\n" + rules;
 }
 
-/** The typed boxes, in the order the work is counted out. */
-const WORK_WALK = ["pairs", "colour", "size", "rejected"];
+/** Every stop, in the order the work is counted out, ending on Save. */
+const WORK_WALK = ["worker", "stage", "item", "pairs", "colour", "size", "rejected", "save"];
 
 describe("the order Enter walks in", () => {
-  it("counts out the work: pairs, colour, size, then rejects", async () => {
+  it("counts out the work: who, what, which shoe, pairs, colour, size, rejects, Save", async () => {
     const form = await screen();
 
     // Searched from the declaration onward — an earlier `] as const;` in the
@@ -50,38 +42,37 @@ describe("the order Enter walks in", () => {
     expect(order).toEqual(WORK_WALK);
   });
 
-  it("reaches every box on that list", async () => {
+  it("reaches every stop on that list", async () => {
     const form = await screen();
 
     for (const field of WORK_WALK) {
       expect(form, `${field} handler`).toContain(`handleFieldWalk(event, "${field}")`);
-      expect(form, `${field} ref`).toContain(`boxes.current.set("${field}", element)`);
+      expect(form, `${field} ref`).toContain(`walkRefs.current.set("${field}", element)`);
     }
   });
 
-  it("stays off the dropdowns", async () => {
+  it("steps over a box that cannot take the cursor", async () => {
     const form = await screen();
+    const walk = form.slice(form.indexOf("function handleFieldWalk"), form.indexOf("const repeatLast"));
 
-    // Four inputs carry the handler, plus its own definition. A fifth would
-    // mean a select had been taken over, where Enter already has a job.
-    const calls = form.match(/handleFieldWalk/g) ?? [];
-    expect(calls.length, "something else joined the walk").toBe(WORK_WALK.length + 1);
+    expect(walk).toContain(".disabled");
   });
 });
 
 describe("what Enter must never do", () => {
-  it("never saves the entry", async () => {
+  it("never saves the entry by itself", async () => {
     const form = await screen();
-    const walk = form.slice(
-      form.indexOf("function handleFieldWalk"),
-      form.indexOf("const [items, setItems]"),
-    );
+    const walk = form.slice(form.indexOf("function handleFieldWalk"), form.indexOf("const repeatLast"));
 
     expect(walk.length, "the walk handler moved").toBeGreaterThan(0);
-    // W3C F36. The last box stops; Save is the only way an entry is filed,
-    // and this entry is a worker's wages.
     expect(walk).toContain("event.preventDefault()");
-    expect(walk).toContain("if (at < WORK_WALK.length - 1)");
+    // Enter on Save asks; it does not write.
+    expect(walk).toContain("requestSave(true)");
+    expect(walk).not.toContain("saveEntry(");
+
+    // From the keyboard the question is always asked.
+    const request = form.slice(form.indexOf("const requestSave"), form.indexOf("const cancelConfirm"));
+    expect(request).toMatch(/if \(fromKeyboard \|\| duplicate\)[\s\S]*?setConfirming/);
   });
 
   it("leaves Tab alone", async () => {
@@ -90,25 +81,28 @@ describe("what Enter must never do", () => {
     expect(form).not.toContain('key === "Tab"');
     expect(form).not.toMatch(/tabIndex=\{[1-9]/);
   });
+
+  it("lets Esc take the question back", async () => {
+    const form = await screen();
+
+    expect(form).toContain('event.key === "Escape"');
+    expect(form).toContain("cancelConfirm()");
+  });
 });
 
 describe("walking back", () => {
   it("goes backwards on Shift+Enter", async () => {
     const form = await screen();
 
-    expect(form).toContain("if (event.shiftKey)");
-    expect(form).toContain("WORK_WALK[at - 1]");
+    expect(form).toContain("const step = event.shiftKey ? -1 : 1;");
   });
 });
 
 /**
  * All three forms walk the same way, and this is what holds them together.
  *
- * Two keep their own walk, because they are genuinely different — one has an
- * item table, one is four boxes beside a row of tap-chips. The POS bill, once
- * the third, now uses the shared EnterWalkForm, whose rule is tested on its
- * own. What all three must share is the rule that Enter does not file the
- * document, and the courtesy that Shift+Enter goes back.
+ * What all three must share is the rule that Enter does not file the document
+ * by itself, and the courtesy that Shift+Enter goes back.
  */
 describe("the three forms agree on the rule", () => {
   const FORMS = [
@@ -134,7 +128,7 @@ describe("the three forms agree on the rule", () => {
   it("all of them walk back on Shift+Enter", async () => {
     for (const file of FORMS) {
       const source = await readFile(file, "utf8");
-      expect(source, file).toContain("if (event.shiftKey)");
+      expect(source, file).toMatch(/event\.shiftKey/);
     }
   });
 });

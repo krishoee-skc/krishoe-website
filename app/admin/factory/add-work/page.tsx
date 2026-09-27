@@ -33,6 +33,8 @@ type Loaded = {
     code: string | null;
     sizes: string[];
     production_item_id: string | null;
+    lastColour: string;
+    lastSize: string;
   }[];
   rates: FactoryRate[];
   error: string;
@@ -49,7 +51,7 @@ type Loaded = {
  */
 async function loadEntryScreen(): Promise<Loaded> {
   try {
-    const [workers, catalogue, rates, stageWork] = await Promise.all([
+    const [workers, catalogue, rates, stageWork, lastWork] = await Promise.all([
       getFactoryWorkers({ workerType: "piece_rate" }),
       getFactoryItems(),
       getFactoryRateBook(),
@@ -81,7 +83,19 @@ async function loadEntryScreen(): Promise<Loaded> {
          GROUP BY work.item_id, COALESCE(NULLIF(work.stage, ''), workers.category),
                   work.color, work.size`,
       ).catch(() => []),
+      // The colour and size last entered on each shoe, offered first on the
+      // form (★). Only a hint: a failure here leaves the chips in their usual
+      // order rather than failing the screen.
+      queryPostgres<{ item_id: string; colour: string | null; size: string | null }>(
+        "factory",
+        `SELECT DISTINCT ON (item_id) item_id, color AS colour, size
+         FROM factory_daily_work
+         WHERE status <> 'Reversed' AND btrim(coalesce(color, '')) <> ''
+           AND btrim(coalesce(size, '')) <> ''
+         ORDER BY item_id, created_at DESC`,
+      ).catch(() => []),
     ]);
+    const lastByItem = new Map(lastWork.map((row) => [row.item_id, row]));
 
     // Uppers made, less the bottoms already fitted to them. Sixty uppers with
     // sixty bottoms on them is nothing waiting, not sixty — which is bagopen's
@@ -142,6 +156,8 @@ async function loadEntryScreen(): Promise<Loaded> {
         // rather than a list written into the code.
         sizes: item.sizes,
         production_item_id: item.production_item_id,
+        lastColour: (lastByItem.get(item.id)?.colour ?? "").trim(),
+        lastSize: (lastByItem.get(item.id)?.size ?? "").trim(),
       })),
       rates,
       error: "",

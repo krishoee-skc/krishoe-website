@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
     const date = request.nextUrl.searchParams.get("date");
     const workerId = request.nextUrl.searchParams.get("workerId");
 
-    let query = `SELECT w.id, w.date, w.worker_id, w.item_id, w.color, w.size,
+    let query = `SELECT w.id, w.date, w.worker_id, w.item_id, w.color, w.size, w.stage,
                         w.pairs_count, w.reject_pairs, w.status, w.rate_applied, w.amount_earned,
                         COALESCE(fw.name, 'Unknown Worker') as worker_name,
                         COALESCE(fi.name, 'Unknown Item') as item_name

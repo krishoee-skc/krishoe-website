@@ -120,7 +120,10 @@ describe("mobile production contracts", () => {
     // Every control on this form is thumb-height. A wage entry made standing
     // on a factory floor cannot need a fingertip.
     expect(addWork).not.toContain("h-8 px-2");
-    expect((addWork.match(/min-h-12/g) ?? []).length).toBeGreaterThan(5);
+    // One shared class for every box, so they line up (the owner's ask) and
+    // none of them can drift below thumb height on its own.
+    expect(addWork).toMatch(/const CONTROL =\s*"h-12 /);
+    expect((addWork.match(/\$\{CONTROL\}|\{CONTROL\}/g) ?? []).length).toBeGreaterThan(5);
   });
 
   it("serves the shop's own premium hero banner", () => {

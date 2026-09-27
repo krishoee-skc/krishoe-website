@@ -87,7 +87,8 @@ describe("what the option shows", () => {
 
     // Filtering the list would make it impossible to record the first upper of
     // anything — the factory could never start a new design.
-    const options = code.slice(code.indexOf("Select a product"), code.indexOf("Select a product") + 900);
+    const start = code.indexOf('id="work-item"');
+    const options = start < 0 ? "" : code.slice(start, start + 1500);
     expect(options.length, "the product list moved").toBeGreaterThan(0);
     expect(options, "no item is filtered out").not.toMatch(/items\s*\.filter\(/);
   });
