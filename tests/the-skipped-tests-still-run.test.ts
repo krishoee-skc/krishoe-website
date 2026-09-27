@@ -52,6 +52,7 @@ describe("the tests that need a real database", () => {
     expect(found).toEqual([
       "damage-out-live.test.ts",
       "e2e-lifecycle-live.test.ts",
+      "places-follow-sales-live.test.ts",
       "pos-return-to-stock-live.test.ts",
       "shop-self-check-live.test.ts",
       "size-routing-live.test.ts",
