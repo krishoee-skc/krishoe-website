@@ -168,6 +168,9 @@ describe("the admin on a phone", () => {
     const pos = await readFile("app/admin/pos/page.tsx", "utf8");
     expect(pos).toContain("max-md:-order-1");
     expect(pos).toContain('ne="⋯ थप: रिपोर्ट र दिन बन्द"');
+    // And the reports themselves wait behind one link, not under the bill.
+    expect(pos).toContain('const showReports = (await searchParams)?.view === "reports";');
+    expect(pos).toContain('<T en="📊 Reports and day close" ne="📊 रिपोर्ट र दिन बन्द" />');
   });
 
   it("gives the search box room beside a narrower language switch", async () => {

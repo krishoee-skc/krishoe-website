@@ -58,7 +58,7 @@ describe("the side a screen is on", () => {
   it("names a nested screen by its section", () => {
     expect(navLinkForPath("/admin/pos/INV-1")?.href).toBe("/admin/pos");
     expect(navLinkForPath("/admin/operations/production-accounts")?.href).toBe("/admin/operations/production-accounts");
-    expect(navLinkForPath("/admin/factory/workers")?.nepali).toBe("काम टिप्ने");
+    expect(navLinkForPath("/admin/factory/workers")?.nepali).toBe("कारखाना आज");
   });
 });
 

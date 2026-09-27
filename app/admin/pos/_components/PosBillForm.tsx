@@ -627,7 +627,14 @@ export default function PosBillForm({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Two rows of look-alike pills sat side by side with nothing to say
+          which was which: what kind of bill, and who it is for. Each now
+          carries a small name above it. */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="grid gap-0.5">
+        <span className="px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+          {text("What", "के गर्ने")}
+        </span>
         <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Bill type", "बिलको किसिम")}>
           <button type="button" aria-pressed={kind === "Sale"} onClick={() => setKind("Sale")} className={segment(kind === "Sale")}>
             {text("Sale", "बिक्री")}
@@ -649,6 +656,11 @@ export default function PosBillForm({
             {text("Return", "फिर्ता")}
           </button>
         </div>
+        </div>
+        <div className="grid gap-0.5">
+        <span className="px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+          {text("Who for", "कसलाई")}
+        </span>
         <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Sales channel", "बिक्रीको बाटो")}>
           {(["Retail", "Wholesale", "Online"] as const).map((option) => (
             <button
@@ -661,6 +673,7 @@ export default function PosBillForm({
               {option === "Retail" ? text("Retail", "खुद्रा") : option === "Wholesale" ? text("Wholesale", "थोक") : text("Online", "अनलाइन")}
             </button>
           ))}
+        </div>
         </div>
         {lastBill && lastBill.items.length > 0 ? (
           <button

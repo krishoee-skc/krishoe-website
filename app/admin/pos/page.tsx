@@ -144,7 +144,17 @@ async function loadPos() {
   }
 }
 
-export default async function AdminPosPage() {
+export default async function AdminPosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
+  // Two views of one page. The counter opens on the bill; the day close,
+  // profit and the other once-a-day reports sit behind "Reports and day
+  // close". They used to follow the bill on the same page — eight blocks,
+  // 3,600px on a computer and 7,100px on a phone — scrolled past with a
+  // customer waiting.
+  const showReports = (await searchParams)?.view === "reports";
   const loaded = await loadPos();
   // Only a role that may write to operations can open a customer account from
   // the bill; the others are told who to ask instead of meeting a refusal.
@@ -273,13 +283,28 @@ export default async function AdminPosPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <AlertText en="Point of Sale" ne="बिल काट्ने" />
           </p>
-          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="POS and e-billing control" ne="बिल काट्ने र इ-बिलिङ" /></h1>
-          <p className="mt-1 hidden max-w-3xl text-sm leading-6 text-brand-muted sm:block">
-            Retail, wholesale, and online billing with stock movement, credit ledger,
-            printable barcode, QR code, and scanner-ready invoice lookup.
-          </p>
+          <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
+            {showReports ? (
+              <T en="Bill reports and day close" ne="बिलको रिपोर्ट र दिन बन्द" />
+            ) : (
+              <T en="Cut a bill" ne="बिल काट्ने" />
+            )}
+          </h1>
         </div>
-        {/* Once-a-day reports, folded away on a phone behind one control. */}
+        <Link
+          href={showReports ? "/admin/pos" : "/admin/pos?view=reports"}
+          className="inline-flex min-h-11 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
+        >
+          {showReports ? (
+            <T en="← Back to the bill" ne="← बिलमा फर्कने" />
+          ) : (
+            <T en="📊 Reports and day close" ne="📊 रिपोर्ट र दिन बन्द" />
+          )}
+        </Link>
+        {/* Once-a-day downloads, folded away on a phone behind one control,
+            and shown only with the reports they belong to. */}
+        {showReports ? (
+        <>
         <details className="group w-full sm:hidden">
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full [&::-webkit-details-marker]:hidden border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink">
             <T en="⋯ More: reports and day close" ne="⋯ थप: रिपोर्ट र दिन बन्द" />
@@ -324,8 +349,11 @@ export default async function AdminPosPage() {
             Profit close
           </ExportButton>
         </div>
+        </>
+        ) : null}
       </div>
 
+      {showReports ? null : (
       <div className="mt-6 min-w-0 max-md:-order-1 max-md:mt-4">
         {!paymentsReady && isOwner ? (
           <Link
@@ -364,6 +392,7 @@ export default async function AdminPosPage() {
           }}
         />
       </div>
+      )}
 
       <div className="mt-8 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <StatCard label={<T en="Today net sales" ne="आजको खुद बिक्री" />} value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
@@ -372,6 +401,8 @@ export default async function AdminPosPage() {
         <StatCard label={<T en="Needs review" ne="हेर्न बाँकी" />} value={pos.summary.needsReview} detail={`${pos.summary.postedInvoiceCount} posted bills`} />
       </div>
 
+      {showReports ? (
+      <>
       <div className="mt-8 grid gap-6">
         <div className="grid gap-6 lg:grid-cols-2">
           <ScannerPanel
@@ -414,9 +445,9 @@ export default async function AdminPosPage() {
           </section>
 
           <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Posting health" ne="चढेको ठीक छ कि" /></h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Books check" ne="हिसाब मिल्यो?" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
-              Stock movement, customer ledger, and payment reference check.
+              <T en="Each bill against its stock, the customer's account and the payment." ne="हरेक बिल स्टक, ग्राहकको खाता र भुक्तानीसँग मिल्यो कि।" />
             </p>
             <div className="mt-4 divide-y divide-brand-green-line">
               {pos.postingReviewRows.slice(0, 5).map((row) => (
@@ -602,6 +633,9 @@ export default async function AdminPosPage() {
         </div>
       </section>
 
+
+      </>
+      ) : null}
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

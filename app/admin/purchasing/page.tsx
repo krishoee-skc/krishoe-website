@@ -149,19 +149,49 @@ export default async function AdminPurchasingPage({
     )
     .slice(0, 20);
 
+  const purchaseExports = [
+    { type: "invoices", label: "Export purchases" },
+    { type: "suppliers", label: "Export suppliers" },
+    { type: "supplier-aging", label: "Aging report" },
+    { type: "supplier-payables", label: "Payment queue" },
+    { type: "posting-review", label: "Posting review" },
+  ];
+
   return (
-    <section className="p-6">
+    <section className="p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Purchase" ne="किनमेल" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="Purchasing and supplier ledger" ne="किनमेल र साहुको खाता" /></h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
-            Raw material purchase, supplier due, payment history, and purchase-basis profit signal.
+          <p className="mt-1 hidden max-w-3xl text-sm leading-6 text-brand-muted sm:block">
+            <T
+              en="Buy from a supplier, pay what is owed, and see who is still owed."
+              ne="साहुबाट किन्ने, बाँकी तिर्ने, र कसलाई कति तिर्न बाँकी छ हेर्ने।"
+            />
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* On a phone the five downloads were the whole first screen, and the
+            supplier box sat behind the Save bar. They fold away there, as the
+            POS page's do; the bill comes first. */}
+        <details className="group w-full sm:hidden">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink [&::-webkit-details-marker]:hidden">
+            <T en="⋯ More: downloads" ne="⋯ थप: डाउनलोड" />
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {purchaseExports.map((item) => (
+              <ExportButton
+                key={item.type}
+                href={`/api/admin/purchasing/export?type=${item.type}`}
+                className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
+              >
+                {item.label}
+              </ExportButton>
+            ))}
+          </div>
+        </details>
+        <div className="hidden flex-wrap gap-2 sm:flex">
           <ExportButton
             href="/api/admin/purchasing/export?type=invoices"
             className="rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white"
@@ -219,7 +249,9 @@ export default async function AdminPurchasingPage({
         <StatCard label={<T en="Supplier due" ne="साहुलाई तिर्न बाँकी" />} value={money(purchasing.summary.supplierDue)} detail={`${purchasing.summary.supplierCount} suppliers`} />
       </div>
       <details className="mt-3 rounded-lg border border-brand-green-line bg-brand-paper px-4 py-2">
-        <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
+        {/* The browser draws its own ▸ in front of a summary; with the ▾ in the
+            label that read "▸ • More figures". */}
+        <summary className="cursor-pointer list-none text-sm font-bold text-brand-green-ink [&::-webkit-details-marker]:hidden">
           <T en="▾ More figures" ne="▾ थप हिसाब" />
         </summary>
         <div className="mt-3 grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-4">
@@ -234,18 +266,55 @@ export default async function AdminPurchasingPage({
       </details>
 
       {/* Settling an OLD due, which is a different act on a different day from
-          paying for a bill as it arrives. That one is part of the bill above. */}
-      <div className="mt-6 max-w-xl print:hidden">
-        <SupplierPaymentForm
-          suppliers={purchasing.supplierLedgers.map((supplier) => ({
-            id: supplier.id,
-            name: supplier.supplierName,
-            due: supplier.balanceDue,
-          }))}
-        />
+          paying for a bill as it arrives. That one is part of the bill above.
+          It sits beside the list of who is owed: alone at half the width it
+          had nothing beside it, and that list was three screens further down. */}
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
+        <div className="print:hidden">
+          <SupplierPaymentForm
+            suppliers={purchasing.supplierLedgers.map((supplier) => ({
+              id: supplier.id,
+              name: supplier.supplierName,
+              due: supplier.balanceDue,
+            }))}
+          />
+        </div>
+        <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier ledgers" ne="साहुका खाता" /></h2>
+          <div className="mt-4 divide-y divide-brand-green-line">
+            {purchasing.reports.supplierDueRows.length === 0 ? (
+              <p className="py-3 text-sm text-brand-muted">
+                <T en="No supplier is owed anything." ne="कुनै साहुलाई तिर्न बाँकी छैन।" />
+              </p>
+            ) : null}
+            {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
+              const aging = supplierAgingById.get(supplier.id);
+
+              return (
+                <div key={supplier.id} className="py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href={`/admin/purchasing/supplier/${supplier.id}`}
+                      className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
+                    >
+                      {supplier.supplierName}
+                    </Link>
+                    <p className="font-black text-brand-clay">{money(supplier.balanceDue)}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-brand-muted">
+                    Paid {money(supplier.paidAmount)} / Purchase {money(supplier.totalPurchase)}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#8A5A15]">
+                    Oldest {aging?.oldestOpenDays ?? 0} days / 90+ {money(aging?.over90 ?? 0)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-4">
+      <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink"><T en="Sales − purchases" ne="बिक्री − खरिद" /></h2>
           <p className="mt-1 text-xs text-brand-muted">
@@ -317,38 +386,9 @@ export default async function AdminPurchasingPage({
           </div>
         </section>
 
-        <section id="supplier-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier ledgers" ne="साहुका खाता" /></h2>
-          <div className="mt-4 divide-y divide-brand-green-line">
-            {purchasing.reports.supplierDueRows.slice(0, 6).map((supplier) => {
-              const aging = supplierAgingById.get(supplier.id);
-
-              return (
-                <div key={supplier.id} className="py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <Link
-                      href={`/admin/purchasing/supplier/${supplier.id}`}
-                      className="font-bold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
-                    >
-                      {supplier.supplierName}
-                    </Link>
-                    <p className="font-black text-brand-clay">{money(supplier.balanceDue)}</p>
-                  </div>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    Paid {money(supplier.paidAmount)} / Purchase {money(supplier.totalPurchase)}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-[#8A5A15]">
-                    Oldest {aging?.oldestOpenDays ?? 0} days / 90+ {money(aging?.over90 ?? 0)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink"><T en="Posting health" ne="चढेको ठीक छ कि" /></h2>
-          <p className="mt-1 text-sm text-brand-muted">Supplier ledger, raw material link, and payment posting check.</p>
+          <h2 className="text-lg font-black text-brand-green-ink"><T en="Books check" ne="हिसाब मिल्यो?" /></h2>
+          <p className="mt-1 text-sm text-brand-muted"><T en="Each bill against the supplier's account, the store and the payment." ne="हरेक बिल साहुको खाता, स्टोर र भुक्तानीसँग मिल्यो कि।" /></p>
           <div className="mt-4 divide-y divide-brand-green-line">
             {purchasing.reports.postingReviewRows.slice(0, 6).map((row) => (
               <div key={row.id} className="py-3 text-sm">
@@ -377,7 +417,7 @@ export default async function AdminPurchasingPage({
           <div>
             <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier payment queue" ne="साहुलाई तिर्ने पालो" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
-              Payable priority, due date, and next action for supplier relationship control.
+              <T en="Who to pay first, and by when." ne="कसलाई पहिले र कहिलेसम्म तिर्ने।" />
             </p>
           </div>
           <ExportButton
@@ -390,19 +430,19 @@ export default async function AdminPurchasingPage({
 
         <div className="mb-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-            <p className="text-xs font-semibold text-brand-muted">Immediate</p>
+            <p className="text-xs font-semibold text-brand-muted"><T en="Pay now" ne="अहिले तिर्ने" /></p>
             <p className="mt-1 text-xl font-black text-brand-clay">
               {purchasing.reports.supplierPaymentSummary.immediateCount}
             </p>
           </div>
           <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-            <p className="text-xs font-semibold text-brand-muted">High</p>
+            <p className="text-xs font-semibold text-brand-muted"><T en="Pay soon" ne="चाँडै तिर्ने" /></p>
             <p className="mt-1 text-xl font-black text-brand-gold-ink">
               {purchasing.reports.supplierPaymentSummary.highCount}
             </p>
           </div>
           <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-            <p className="text-xs font-semibold text-brand-muted">Payment run</p>
+            <p className="text-xs font-semibold text-brand-muted"><T en="Due this round" ne="यो पटक तिर्ने" /></p>
             <p className="mt-1 text-xl font-black text-brand-green-ink">
               {money(purchasing.reports.supplierPaymentSummary.paymentRunDue)}
             </p>
@@ -478,7 +518,7 @@ export default async function AdminPurchasingPage({
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Supplier aging report" ne="साहुको पुरानो बाँकी" /></h2>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Old supplier dues" ne="साहुको पुरानो बाँकी" /></h2>
             <p className="mt-1 text-sm text-brand-muted">
               Due amount grouped by age so old supplier payable is visible before it becomes risky.
             </p>

@@ -61,7 +61,11 @@ export const adminNavGroups: AdminNavGroup[] = [
     titleNe: "काम",
     workspace: "factory",
     links: [
-      { href: "/admin/factory", label: "Factory Entry", nepali: "काम टिप्ने", icon: FactoryIcon },
+      // Named for the screen it opens. It read "Factory Entry / काम टिप्ने",
+      // but it opens the day's board, while every other "काम टिप्ने" — the dock,
+      // the dashboard, search, the chip row — opens the work form. One name,
+      // two places; the owner pressed it to enter work and landed elsewhere.
+      { href: "/admin/factory", label: "Factory today", nepali: "कारखाना आज", icon: FactoryIcon },
       // Wages, kharcha, stock postings and cost cards — a daily-needed screen that
       // had no menu link and could only be reached by typing its URL. It read
       // "Cost & profit", which is the costing screen further down this file:

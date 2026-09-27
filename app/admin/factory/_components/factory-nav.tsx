@@ -23,7 +23,7 @@ import {
  * that way.
  */
 export const factoryLinks = [
-  { href: "/admin/factory", label: "कारखाना", english: "Overview", Icon: HomeIcon },
+  { href: "/admin/factory", label: "कारखाना आज", english: "Factory today", Icon: HomeIcon },
   { href: "/admin/factory/add-work", label: "काम टिप्ने", english: "Add work", Icon: PlusIcon },
   { href: "/admin/factory/workers", label: "कामदार", english: "Workers", Icon: UserIcon },
   { href: "/admin/factory/worker-portal-qr", label: "QR पोस्टर", english: "Worker QR", Icon: UserIcon },
