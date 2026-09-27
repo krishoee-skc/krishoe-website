@@ -13,6 +13,7 @@ import { getAdminSettings } from "@/lib/admin-settings";
 import { amountInWords } from "@/lib/amount-in-words";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { whatsappToUrl } from "@/lib/commerce";
+import { groupBillLines, sizeSummary } from "@/lib/bill-lines";
 
 type PosInvoicePageProps = {
   params: Promise<{ id: string }>;
@@ -178,21 +179,32 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
               </tr>
             </thead>
             <tbody>
-              {invoice.items.map((item, index) => (
-                <tr key={item.id}>
-                  <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
-                  <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
-                  <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">
-                    {item.design}
-                    {item.color ? <span className="font-normal text-brand-muted"> · {item.color}</span> : null}
-                  </td>
-                  {/* The size the customer took; older bills only carry the stock row. */}
-                  <td className="border border-brand-green-line px-2 py-2">{item.size || item.sizeRun}</td>
-                  <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{item.quantity}</td>
-                  <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(item.rate)}</td>
-                  <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(item.lineTotal)}</td>
-                </tr>
-              ))}
+              {/* One row per shoe, colour and rate, its sizes in the Size
+                  column — a wholesale bill of two shoes in five sizes printed
+                  ten rows. A line with its own discount keeps its own row, so
+                  every row's amount is still quantity × rate less what shows. */}
+              {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
+                const first = group.lines[0];
+                const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
+                const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
+                return (
+                  <tr key={group.key}>
+                    <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
+                    <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
+                    <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">
+                      {first.design}
+                      {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
+                    </td>
+                    {/* The size the customer took; older bills only carry the stock row. */}
+                    <td className="border border-brand-green-line px-2 py-2">
+                      {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))}
+                    </td>
+                    <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{pairs}</td>
+                    <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(group.rate)}</td>
+                    <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(total)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

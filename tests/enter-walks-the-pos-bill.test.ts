@@ -71,7 +71,7 @@ describe("the scan box, which Enter already belonged to", () => {
 describe("what Enter must never do", () => {
   it("never walks away from, or saves, a rate being bargained", async () => {
     const form = await readFile(FORM, "utf8");
-    const rate = form.slice(form.indexOf("editingRate === line.key ?"), form.indexOf("onBlur={(event)"));
+    const rate = form.slice(form.indexOf("editingRate === first.key ?"), form.indexOf("onBlur={(event)"));
     expect(rate.length, "the rate box moved").toBeGreaterThan(0);
     expect(rate).toContain('if (event.key === "Enter")');
     expect(rate).toContain("event.preventDefault()");

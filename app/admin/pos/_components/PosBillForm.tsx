@@ -32,6 +32,7 @@ import {
   type RepeatBill,
   type SellableItem,
 } from "@/app/admin/pos/_components/pos-bill-rules";
+import { groupBillLines, sortSizes } from "@/lib/bill-lines";
 
 export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
@@ -195,6 +196,8 @@ export default function PosBillForm({
   const [submissionKey] = useState(() => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
 
   const [cart, setCart] = useState<CartLine[]>([]);
+  // Which shoes on the bill have their sizes opened for − / +.
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [kind, setKind] = useState<Kind>("Sale");
   const [channel, setChannel] = useState("Retail");
@@ -436,6 +439,32 @@ export default function PosBillForm({
   function commitRate(key: string, typed: string) {
     const rate = Number(digits(typed));
     setCart((current) => setRate(current, key, rate));
+  }
+
+  /** The − count + for one size, used on its own line or inside a shoe's sizes. */
+  function pairStepper(line: CartLine) {
+    const size = line.size ? ` (${line.size})` : "";
+    return (
+      <div className="inline-flex items-center overflow-hidden rounded-xl border border-brand-green-line">
+        <button
+          type="button"
+          onClick={() => changePairs(line, line.quantity - 1)}
+          aria-label={text(`One pair less${size}`, `एक जोडा घटाउने${size}`)}
+          className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+        >
+          −
+        </button>
+        <span className="min-w-8 text-center text-sm font-black tabular-nums">{line.quantity}</span>
+        <button
+          type="button"
+          onClick={() => changePairs(line, line.quantity + 1)}
+          aria-label={text(`One pair more${size}`, `एक जोडा थप्ने${size}`)}
+          className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+        >
+          +
+        </button>
+      </div>
+    );
   }
 
   function changeChannel(next: string) {
@@ -825,39 +854,59 @@ export default function PosBillForm({
               </p>
             ) : (
               <ul className="divide-y divide-brand-green-line border-y border-brand-green-line">
-                {cart.map((line) => {
-                  const item = itemFor(line.design);
+                {/* One line per shoe, colour and rate, with its sizes inside —
+                    a wholesale bill of two shoes in five sizes was ten lines.
+                    Each size is still its own line underneath (the hidden
+                    inputs above), so stock still comes off size by size. */}
+                {groupBillLines(cart, (line) => (line.back ? "back" : "")).map((group) => {
+                  const first = group.lines[0];
+                  const item = itemFor(first.design);
                   const cost = item?.costPerPair;
-                  const cheap = belowCost(line.rate, cost);
-                  const bargained = line.rate !== line.listRate;
+                  const cheap = belowCost(group.rate, cost);
+                  const bargained = group.rate !== first.listRate;
+                  const back = Boolean(first.back);
+                  const pairs = group.lines.reduce((sum, row) => sum + row.quantity, 0);
+                  const many = group.lines.length > 1;
+                  const open = openGroups.includes(group.key);
+                  const bySize = sortSizes(group.lines.map((row) => ({ size: row.size, pairs: row.quantity, row }))).map(
+                    (entry) => entry.row,
+                  );
+                  const toggle = () =>
+                    setOpenGroups((current) =>
+                      current.includes(group.key) ? current.filter((key) => key !== group.key) : [...current, group.key],
+                    );
                   return (
-                    <li key={line.key} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 py-2.5">
+                    <li key={group.key} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 py-2.5">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black text-brand-green-ink">
-                          {line.back ? <span className="text-brand-clay">↩ </span> : null}
-                          {line.design}
+                          {back ? <span className="text-brand-clay">↩ </span> : null}
+                          {first.design}
                         </p>
                         <p className="text-xs text-brand-muted">
-                          {line.size ? text(`Size ${line.size}`, `साइज ${line.size}`) : null}
-                          {line.color ? ` · ${line.color}` : null}
+                          {many
+                            ? text(`${pairs} pairs`, `${pairs} जोडी`)
+                            : first.size
+                              ? text(`Size ${first.size}`, `साइज ${first.size}`)
+                              : null}
+                          {group.color ? ` · ${group.color}` : null}
                         </p>
                       </div>
                       <p className="text-right text-sm font-black tabular-nums text-brand-green-ink">
-                        {isReturn || line.back ? "− " : ""}
-                        {money(line.rate * line.quantity)}
+                        {isReturn || back ? "− " : ""}
+                        {money(group.rate * pairs)}
                       </p>
                       <div className="flex items-center gap-2">
-                        {editingRate === line.key ? (
+                        {editingRate === first.key ? (
                           <input
                             autoFocus
                             inputMode="numeric"
-                            defaultValue={line.rate || ""}
-                            aria-label={text(`New rate for ${line.design}`, `${line.design} को नयाँ रेट`)}
+                            defaultValue={group.rate || ""}
+                            aria-label={text(`New rate for ${first.design}`, `${first.design} को नयाँ रेट`)}
                             className="h-9 w-28 rounded-lg border-2 border-brand-gold bg-brand-paper px-2 text-base tabular-nums outline-none"
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
                                 event.preventDefault();
-                                commitRate(line.key, event.currentTarget.value);
+                                commitRate(first.key, event.currentTarget.value);
                                 setEditingRate(null);
                               }
                               if (event.key === "Escape") {
@@ -866,46 +915,64 @@ export default function PosBillForm({
                               }
                             }}
                             onBlur={(event) => {
-                              commitRate(line.key, event.currentTarget.value);
+                              commitRate(first.key, event.currentTarget.value);
                               setEditingRate(null);
                             }}
                           />
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setEditingRate(line.key)}
+                            onClick={() => setEditingRate(first.key)}
                             title={text("Tap to change the rate", "रेट बदल्न थिच्नुहोस्")}
                             className={`text-xs tabular-nums underline decoration-dotted underline-offset-4 ${
-                              !(line.rate > 0) ? "font-black text-brand-clay" : bargained ? "font-black text-brand-gold-deep" : "text-brand-muted"
+                              !(group.rate > 0) ? "font-black text-brand-clay" : bargained ? "font-black text-brand-gold-deep" : "text-brand-muted"
                             }`}
                           >
-                            {line.rate > 0 ? money(line.rate) : text("Set rate", "रेट लेख्ने")}
-                            {bargained && line.listRate > 0 ? text(` (was ${money(line.listRate)})`, ` (${money(line.listRate)} थियो)`) : ""} ✎
+                            {many && group.rate > 0 ? `${pairs} × ` : ""}
+                            {group.rate > 0 ? money(group.rate) : text("Set rate", "रेट लेख्ने")}
+                            {bargained && first.listRate > 0 ? text(` (was ${money(first.listRate)})`, ` (${money(first.listRate)} थियो)`) : ""} ✎
                           </button>
                         )}
                       </div>
                       <div className="flex items-center justify-end">
-                        <div className="inline-flex items-center overflow-hidden rounded-xl border border-brand-green-line">
+                        {many ? (
                           <button
                             type="button"
-                            onClick={() => changePairs(line, line.quantity - 1)}
-                            aria-label={text("One pair less", "एक जोडा घटाउने")}
-                            className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+                            onClick={toggle}
+                            aria-expanded={open}
+                            className="h-9 rounded-xl border border-brand-green-line bg-brand-paper-deep px-3 text-xs font-black text-brand-green-ink"
                           >
-                            −
+                            {open ? text("▾ Sizes", "▾ साइज") : text("▸ Sizes", "▸ साइज")}
                           </button>
-                          <span className="min-w-8 text-center text-sm font-black tabular-nums">{line.quantity}</span>
-                          <button
-                            type="button"
-                            onClick={() => changePairs(line, line.quantity + 1)}
-                            aria-label={text("One pair more", "एक जोडा थप्ने")}
-                            className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
-                          >
-                            +
-                          </button>
-                        </div>
+                        ) : (
+                          pairStepper(first)
+                        )}
                       </div>
-                      {cheap && !isReturn && !line.back ? (
+                      {many ? (
+                        <div className="col-span-2 flex flex-wrap gap-1.5">
+                          {bySize.map((row) =>
+                            open ? (
+                              <span
+                                key={row.key}
+                                className="inline-flex items-center gap-1 rounded-xl border border-brand-green-line bg-brand-paper pl-2"
+                              >
+                                <span className="text-xs font-black tabular-nums text-brand-green-ink">{row.size || "—"}</span>
+                                {pairStepper(row)}
+                              </span>
+                            ) : (
+                              <button
+                                key={row.key}
+                                type="button"
+                                onClick={toggle}
+                                className="rounded-lg border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black tabular-nums text-brand-green-ink"
+                              >
+                                {row.size || "—"} <span className="text-brand-green">×{row.quantity}</span>
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      ) : null}
+                      {cheap && !isReturn && !back ? (
                         <p className="col-span-2 text-xs font-bold text-brand-clay">
                           {text(
                             `Below cost (${money(cost ?? 0)} a pair) — the sale is still allowed.`,
