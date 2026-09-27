@@ -4,7 +4,6 @@ import AlertText from "@/components/admin/AlertText";
 import {
   CreditCardIcon,
   PackageIcon,
-  PlusIcon,
   SearchIcon,
   ShoppingCartIcon,
 } from "@/components/Icons";
