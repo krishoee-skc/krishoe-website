@@ -57,3 +57,31 @@ describe("the results", () => {
     expect(box.slice(box.indexOf("function rememberSearch"), box.indexOf("function rememberSearch") + 600)).toContain("catch");
   });
 });
+
+describe("the clean box (2026-09-28)", () => {
+  it("offers only Add work and Cut a bill before anything is typed", async () => {
+    const box = await readFile("app/admin/search/SearchAsYouType.tsx", "utf8");
+    const shortcuts = box.slice(box.indexOf("const SHORTCUTS = ["), box.indexOf("] as const;", box.indexOf("const SHORTCUTS = [")));
+    expect([...shortcuts.matchAll(/href: "([^"]+)"/g)].map((match) => match[1])).toEqual([
+      "/admin/factory/add-work",
+      "/admin/pos",
+    ]);
+    // No page list in the empty box, and no request for one.
+    expect(box).not.toContain("ADMIN_SEARCH_GROUPS");
+    expect(box).toContain("An empty box asks for nothing");
+  });
+
+  it("the Search page lists nothing", async () => {
+    const page = await readFile("app/admin/search/page.tsx", "utf8");
+    expect(page).not.toContain("ADMIN_SEARCH_PAGES");
+    expect(page).not.toContain("<Link");
+  });
+
+  it("a click on any Search link opens the box where the owner is", async () => {
+    const bar = await readFile("app/admin/AdminCommandBar.tsx", "utf8");
+    expect(bar).toContain('url.pathname !== "/admin/search"');
+    expect(bar).toContain('document.addEventListener("click", onClick, true)');
+    // Ctrl/middle click still opens the page.
+    expect(bar).toContain("if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;");
+  });
+});

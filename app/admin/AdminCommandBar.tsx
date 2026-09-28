@@ -99,6 +99,27 @@ export default function AdminCommandBar() {
     return () => window.removeEventListener(OPEN_SEARCH_EVENT, onOpenSearch);
   }, []);
 
+  // The menu's "Search", the dashboard tile and the quick dock all link to
+  // /admin/search. A plain click on any of them opens this box where the
+  // owner already is, rather than taking them to another page first. A
+  // middle-click or Ctrl-click still opens the page, as a link should.
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as HTMLElement | null)?.closest?.("a");
+      if (!link) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname !== "/admin/search") return;
+      event.preventDefault();
+      setInitialQuery(url.searchParams.get("q") ?? "");
+      setMode("find");
+      setOpen(true);
+    }
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;

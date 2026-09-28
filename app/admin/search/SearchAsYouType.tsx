@@ -3,16 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  ADMIN_SEARCH_GROUPS,
-  ADMIN_SEARCH_LABELS,
-  type AdminSearchHit,
-  type AdminSearchKind,
-} from "@/lib/admin-search";
+import { ADMIN_SEARCH_LABELS, type AdminSearchHit, type AdminSearchKind } from "@/lib/admin-search";
 import { useLanguage } from "@/components/LanguageProvider";
 
 const RECENT_KEY = "krishoe:recent-searches";
 const RECENT_LIMIT = 5;
+
+/**
+ * The two things the box offers before anything is typed. The owner chose
+ * these two (2026-09-28): a list of every page read as clutter, and any page
+ * is still found by typing its name.
+ */
+const SHORTCUTS = [
+  { icon: "📝", en: "Add work", ne: "काम टिप्ने", href: "/admin/factory/add-work" },
+  { icon: "🧾", en: "Cut a bill", ne: "बिल काट्ने", href: "/admin/pos" },
+] as const;
 
 /**
  * What can be done with a found thing straight away, beside opening it.
@@ -60,10 +65,9 @@ function rememberSearch(query: string) {
  * tables. Every response is stamped with the query it answered, so a slow
  * reply for "an" cannot land after a fast one for "ankus".
  *
- * Before anything is typed it shows the shop's pages in four parts — factory,
- * shop, money, settings — with the last few searches above them. It was one
- * list of twenty-six pages, each marked "Pages". Typed, the results come in a
- * group per kind (workers, shoes, bills…), each with the next step beside it,
+ * Before anything is typed it offers the last few searches and two shortcuts,
+ * Add work and Cut a bill — nothing else. Typed, the results come in a group
+ * per kind (workers, shoes, bills, pages…), each with the next step beside it,
  * and ↑ ↓ Enter walk and open them without the mouse.
  */
 export default function SearchAsYouType({
@@ -93,9 +97,16 @@ export default function SearchAsYouType({
     const trimmed = query.trim();
     latest.current = trimmed;
 
-    // No pause on the very first load: the pages are what an empty box
-    // offers, and they should already be there when it is opened.
-    const wait = trimmed ? 220 : 0;
+    // An empty box asks for nothing: it shows the shortcuts, not a list.
+    if (!trimmed) {
+      const clear = window.setTimeout(() => {
+        setHits([]);
+        setBusy(false);
+        setFailed(false);
+      }, 0);
+      return () => window.clearTimeout(clear);
+    }
+
     const id = window.setTimeout(async () => {
       setBusy(true);
       try {
@@ -114,7 +125,7 @@ export default function SearchAsYouType({
       } finally {
         if (latest.current === trimmed) setBusy(false);
       }
-    }, wait);
+    }, 220);
 
     return () => window.clearTimeout(id);
   }, [query]);
@@ -195,41 +206,38 @@ export default function SearchAsYouType({
         </div>
       ) : null}
 
-      {failed ? (
+      {!trimmed ? (
+        /* Nothing typed: the two shortcuts, and a line on what to type. */
+        <div className="mt-4">
+          <div className="grid grid-cols-2 gap-2">
+            {SHORTCUTS.map((shortcut) => (
+              <Link
+                key={shortcut.href}
+                href={shortcut.href}
+                className="flex min-h-14 items-center gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-4 text-base font-black text-brand-green-ink transition hover:border-brand-green hover:bg-brand-mist"
+              >
+                <span aria-hidden="true">{shortcut.icon}</span>
+                {text(shortcut.en, shortcut.ne)}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-brand-muted">
+            {text(
+              "Type a worker, a shoe, a customer, a bill number — or any page's name.",
+              "कामदार, जुत्ता, ग्राहक, बिल नम्बर — वा कुनै पनि पेजको नाम टाइप गर्नुहोस्।",
+            )}
+          </p>
+        </div>
+      ) : failed ? (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
           {text("The search failed. Type it again.", "खोज्न सकिएन। फेरि टाइप गर्नुहोस्।")}
         </p>
       ) : hits.length === 0 ? (
         <p className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper px-4 py-3 text-sm text-brand-muted">
-          {busy || !trimmed
+          {busy
             ? text("Looking…", "हेर्दैछौँ…")
             : text(`Nothing found for “${trimmed}”.`, `“${trimmed}” भन्ने केही भेटिएन।`)}
         </p>
-      ) : !trimmed ? (
-        /* Nothing typed: the pages, in the four parts of the shop. */
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {ADMIN_SEARCH_GROUPS.map((group) => {
-            const pages = hits.filter((hit) => hit.kind === "page" && hit.group === group.id);
-            if (pages.length === 0) return null;
-            return (
-              <section key={group.id} className="rounded-xl border border-brand-green-line bg-brand-paper p-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-brand-muted">
-                  {group.icon} {language === "en" ? group.labelEn : group.label}
-                </h3>
-                <ul className="mt-1 divide-y divide-brand-green-line">
-                  {pages.map((page) => (
-                    <li key={`${page.href}-${page.title}`}>
-                      <Link href={page.href} className="block py-1.5 hover:text-brand-green">
-                        <span className="block text-sm font-bold text-brand-green-ink">{pick(page)}</span>
-                        <span className="block truncate text-xs text-brand-muted">{detailOf(page)}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
-        </div>
       ) : (
         /* Typed: a group per kind, each result with its next step. */
         <div className="mt-4 grid gap-3">
