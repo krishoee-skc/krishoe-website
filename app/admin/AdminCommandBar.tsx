@@ -9,6 +9,9 @@ import AdminAskPanel from "./AdminAskPanel";
 
 type Mode = "find" | "ask";
 
+/** Dispatch this (with an optional { q }) to open the search from anywhere. */
+export const OPEN_SEARCH_EVENT = "krishoe:open-search";
+
 /**
  * The one box that reaches everything, from the top of every admin screen.
  *
@@ -26,6 +29,9 @@ export default function AdminCommandBar() {
   const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("find");
+  // What the box opens with, when something asked for a search by name —
+  // the Search page, or a link carrying ?q=.
+  const [initialQuery, setInitialQuery] = useState("");
   const router = useRouter();
   // Remembers a just-pressed "g" so the next key completes a jump (g then d →
   // dashboard). Cleared after a short beat so a stray g does not linger.
@@ -80,6 +86,19 @@ export default function AdminCommandBar() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router]);
 
+  // One search box for the whole admin: this one. The Search page used to be
+  // a second box under it; now it opens this one instead.
+  useEffect(() => {
+    function onOpenSearch(event: Event) {
+      const detail = (event as CustomEvent<{ q?: string }>).detail;
+      setInitialQuery(typeof detail?.q === "string" ? detail.q : "");
+      setMode("find");
+      setOpen(true);
+    }
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpenSearch);
+    return () => window.removeEventListener(OPEN_SEARCH_EVENT, onOpenSearch);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -94,7 +113,10 @@ export default function AdminCommandBar() {
       {/* The bar itself — a quiet pill the owner taps to open the palette. */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setInitialQuery("");
+          setOpen(true);
+        }}
         aria-label={text("Search everything", "सबै खोज्नुहोस्")}
         className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-brand-green-line bg-brand-paper px-3.5 text-left text-brand-muted transition hover:border-brand-green/50 hover:bg-brand-mist"
       >
@@ -114,7 +136,7 @@ export default function AdminCommandBar() {
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-brand-green-ink/55 backdrop-blur-sm"
           />
-          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,600px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper p-4 shadow-2xl sm:top-20 sm:max-h-[80vh]">
+          <div className="absolute left-1/2 top-4 flex max-h-[calc(100dvh-2rem)] w-[min(94vw,760px)] -translate-x-1/2 flex-col overflow-hidden rounded-2xl bg-brand-paper p-4 shadow-2xl sm:top-20 sm:max-h-[80vh]">
             <div className="mb-3 flex items-center gap-2">
               {/* Two ways to use the box: find a thing, or ask about the shop.
                   Find is the default — it is what a search box is for; Ask is
@@ -155,7 +177,7 @@ export default function AdminCommandBar() {
                 const target = event.target as HTMLElement;
                 if (target.closest("a")) setOpen(false);
               }}>
-                <SearchAsYouType />
+                <SearchAsYouType initialQuery={initialQuery} onNavigate={() => setOpen(false)} />
               </div>
             ) : (
               /* Ask keeps the overlay open on a link tap only for its fact

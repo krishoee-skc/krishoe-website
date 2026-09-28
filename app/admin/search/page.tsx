@@ -1,40 +1,64 @@
 import type { Metadata } from "next";
-import SearchAsYouType from "@/app/admin/search/SearchAsYouType";
+import Link from "next/link";
+import OpenSearchOnArrive from "@/app/admin/search/OpenSearchOnArrive";
 import T from "@/components/T";
+import { ADMIN_SEARCH_GROUPS, ADMIN_SEARCH_PAGES } from "@/lib/admin-search";
 
 export const metadata: Metadata = {
   title: "Search | KRISHOE Admin",
 };
 
 /**
- * One box for the whole shop.
+ * Every page of the admin, in four parts — and no search box of its own.
  *
- * What it replaced looked in five places — products, customers, suppliers, POS
- * bills, purchase bills — loaded every one of them in full on each submit, and
- * filtered them in memory. Workers were not among them, so the owner typed
- * "ank" looking for ankus, saw the same hint that had been on screen before,
- * and reported the search as broken. It was: a search that cannot find a name
- * the shop uses every day, and shows nothing until a button nobody mentioned
- * is pressed.
- *
- * The matching moved to the database, where each query returns a handful of
- * already-narrowed rows, and the screen became a client component that answers
- * as you type. Workers, factory items and customer orders are searched for the
- * first time — and so are the screens themselves, because half of what anyone
- * types into a search box is a place rather than a record.
+ * This page had a big search box under the small one at the top of every
+ * screen, and the owner asked for one (2026-09-28): the top one. Arriving here
+ * opens that box; behind it, the page lists every screen by where it belongs,
+ * for anyone who would rather look than type.
  */
-export default function AdminSearchPage() {
+export default async function AdminSearchPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
+  const query = ((await searchParams)?.q ?? "").trim();
+
   return (
     <section className="p-6">
-      <h1 className="font-display text-3xl font-black text-brand-green-ink"><T en="Search" ne="खोज्नुहोस्" /></h1>
+      <OpenSearchOnArrive query={query} />
+      <h1 className="font-display text-3xl font-black text-brand-green-ink">
+        <T en="Every page" ne="सबै पेज" />
+      </h1>
       <p className="mt-1 text-sm leading-6 text-brand-muted">
         <T
-          en="Workers, products, factory items, customers, orders, bills, suppliers — or a page name. Works in both Nepali and English."
-          ne="कामदार, सामान, कारखानाका item, ग्राहक, अर्डर, बिल, साहु — वा पानाको नाम। नेपाली र अङ्ग्रेजी दुवैले चल्छ।"
+          en="To find a worker, a shoe, a customer or a bill, use the search box at the top (or press /)."
+          ne="कामदार, जुत्ता, ग्राहक वा बिल खोज्न माथिको खोज बक्स प्रयोग गर्नुहोस् (वा / थिच्नुहोस्)।"
         />
       </p>
 
-      <SearchAsYouType />
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {ADMIN_SEARCH_GROUPS.map((group) => (
+          <section key={group.id} className="rounded-xl border border-brand-green-line bg-brand-paper p-4">
+            <h2 className="text-xs font-black uppercase tracking-wider text-brand-muted">
+              {group.icon} <T en={group.labelEn} ne={group.label} />
+            </h2>
+            <ul className="mt-2 divide-y divide-brand-green-line">
+              {ADMIN_SEARCH_PAGES.filter((page) => page.group === group.id).map((page) => (
+                <li key={`${page.href}-${page.title}`}>
+                  <Link href={page.href} className="block py-2 hover:text-brand-green">
+                    <span className="block text-sm font-bold text-brand-green-ink">
+                      <T en={page.titleEn ?? page.title} ne={page.title} />
+                    </span>
+                    <span className="block text-xs text-brand-muted">
+                      <T en={page.detailEn ?? page.detail} ne={page.detail} />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </section>
   );
 }

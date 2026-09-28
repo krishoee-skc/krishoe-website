@@ -84,7 +84,9 @@ describe("the screens themselves", () => {
   it("are found by their Nepali name", () => {
     const hits = searchRecords(ADMIN_SEARCH_PAGES, "स्टक");
 
-    expect(hits[0].href).toBe("/admin/operations");
+    // The menu's Stock page, not Operations: search sent "stock" to a
+    // different screen from the menu item of the same name.
+    expect(hits[0].href).toBe("/admin/stock");
   });
 
   it("are found by their English name too", () => {
