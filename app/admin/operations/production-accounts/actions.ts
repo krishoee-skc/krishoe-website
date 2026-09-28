@@ -198,6 +198,33 @@ export async function approveCostCardAction(formData: FormData) {
   refresh();
 }
 
+/**
+ * One shoe's cost from the cost table: the material typed for one pair, the
+ * wages on file, and the profit the owner wants. Dated today.
+ */
+export async function approveSimpleCostAction(formData: FormData) {
+  const { approvedBy } = await ownerContext();
+  const materialCostPerPair = amount(formData, "materialCostPerPair");
+  if (materialCostPerPair <= 0) throw new Error("Enter the material cost of one pair.");
+  const card = await approveProductionCostCard({
+    itemId: text(formData, "itemId"),
+    effectiveFrom: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date()),
+    materialCostPerPair,
+    otherDirectCostPerPair: 0,
+    wholesaleProfitPercent: amount(formData, "wholesaleProfitPercent"),
+    retailExtraAmount: amount(formData, "retailExtraAmount"),
+    approvedBy,
+    note: "Cost table",
+  });
+  await recordAdminAuditEvent(
+    "production_cost_card_approve",
+    `${card.itemName} cost approved from the cost table: material Rs. ${card.materialCostPerPair}, making Rs. ${card.makingCostPerPair}, wholesale Rs. ${card.wholesalePrice}, retail Rs. ${card.retailPrice}.`,
+  );
+  refresh();
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/costing");
+}
+
 export async function createWorkerPaymentAction(formData: FormData) {
   const { approvedBy } = await ownerContext();
   const employee = await activeEmployee(text(formData, "employeeId"));

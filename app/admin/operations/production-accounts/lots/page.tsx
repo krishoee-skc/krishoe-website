@@ -9,6 +9,10 @@ import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
 import T from "@/components/T";
 import WagesNav from "../_components/wages-nav";
 import { TInput, TOption } from "@/components/admin/TField";
+import Link from "next/link";
+import CostTable, { type CostRow } from "./CostTable";
+import { queryPostgres } from "@/lib/postgres/client";
+import { reportError } from "@/lib/report-error";
 
 export const metadata: Metadata = { title: "Cost of a pair | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -40,7 +44,41 @@ export default async function WagesLotsPage() {
   const madeItems = activeItems.filter((item) => item.productionType !== "Resale");
   const materialsByItem = new Map<string, number>();
   for (const row of data.itemMaterials) materialsByItem.set(row.itemId, (materialsByItem.get(row.itemId) ?? 0) + 1);
-  const costedItems = new Set(data.costCards.map((cost) => cost.itemId));
+  // The newest approved cost of each shoe, to prefill and compare against.
+  const latestCost = new Map<string, (typeof data.costCards)[number]>();
+  for (const cost of [...data.costCards].sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))) {
+    if (!latestCost.has(cost.itemId)) latestCost.set(cost.itemId, cost);
+  }
+  // The material cost typed on the factory item (Factory → Items), which the
+  // Operations and costing reports read. The cost table starts from it.
+  const typedMaterial = new Map<string, number>();
+  try {
+    const rows = await queryPostgres<{ production_item_id: string; material: number | string }>(
+      "factory item material per pair",
+      `SELECT production_item_id, max(material_cost_per_pair) AS material
+       FROM factory_items WHERE production_item_id IS NOT NULL AND material_cost_per_pair > 0
+       GROUP BY production_item_id`,
+    );
+    for (const row of rows) typedMaterial.set(row.production_item_id, Number(row.material) || 0);
+  } catch (error) {
+    reportError("read factory item material for the cost table", error);
+  }
+  const costRows: CostRow[] = madeItems.map((item) => {
+    const stages = data.rates
+      .filter((rate) => rate.itemId === item.id)
+      .map((rate) => ({ stage: rate.stage, rate: rate.ratePerPair }));
+    const last = latestCost.get(item.id);
+    return {
+      itemId: item.id,
+      name: item.name,
+      wage: Math.round(stages.reduce((total, stage) => total + stage.rate, 0) * 100) / 100,
+      stages,
+      material: typedMaterial.get(item.id) ?? last?.materialCostPerPair ?? 0,
+      profitPercent: last?.wholesaleProfitPercent ?? 25,
+      retailExtra: last?.retailExtraAmount ?? 100,
+      approvedCost: last ? last.makingCostPerPair : null,
+    };
+  });
 
   return (
     <section className="mx-auto max-w-7xl space-y-5 p-4 pb-28 sm:p-6">
@@ -62,41 +100,36 @@ export default async function WagesLotsPage() {
         <WagesNav />
       </header>
 
-      {/* Where each shoe stands, before the forms: material entered? cost approved? */}
-      {madeItems.length ? (
-        <div className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="Where each shoe stands" ne="कुन जुत्ता कहाँ पुग्यो" />
-          </h2>
-          <ul className="mt-3 grid list-none gap-2 pl-0 sm:grid-cols-2 xl:grid-cols-3">
-            {madeItems.map((item) => {
-              const materials = materialsByItem.get(item.id) ?? 0;
-              const costed = costedItems.has(item.id);
-              return (
-                <li key={item.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm">
-                  <p className="font-black text-brand-green-ink">{item.name}</p>
-                  <p className="mt-1 flex flex-wrap gap-1.5 text-xs font-bold">
-                    <span className={`rounded-full px-2 py-0.5 ${materials ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
-                      {materials ? (
-                        <T en={`✓ ${materials} materials`} ne={`✓ ${materials} वटा माल`} />
-                      ) : (
-                        <T en="No material yet" ne="माल राखिएको छैन" />
-                      )}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 ${costed ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
-                      {costed ? <T en="✓ Cost approved" ne="✓ लागत निकालिएको" /> : <T en="No cost yet" ne="लागत निकालिएको छैन" />}
-                    </span>
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
+      {/* Stock is posted in one place only, and it is not here. */}
+      <p className="rounded-xl bg-brand-green-wash px-4 py-3 text-sm font-bold text-brand-green-ink">
+        📦 <T en="Stock is posted from Add work → " ne="स्टक चढाउने ठाउँ: काम टिप्ने → " />
+        <Link href="/admin/factory/add-work" className="underline underline-offset-2">
+          <T en="Post to stock" ne="माल चढाउने" />
+        </Link>
+        <T en=". This page is for cost only." ne="। यो पेज लागतका लागि मात्र हो।" />
+      </p>
+
+      {/* One line per shoe: material in a pair, the wages on file, the rates
+          worked out as it is typed. It replaced the material-recipe and
+          price-card forms as the everyday way; they are kept below. */}
+      <div className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="1. Cost of a pair, and the selling rate" ne="१. एक जोडीको लागत र बेच्ने दर" />
+        </h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          <T
+            en="Type the material in one pair. Wages come from the wage rates. Rent, electricity and salaries are not included."
+            ne="एक जोडीमा लाग्ने मालको रकम लेख्नुहोस्। ज्याला दर-तालिकाबाट आफैँ आउँछ। घरभाडा, बिजुली र तलब यसमा जोडिँदैनन्।"
+          />
+        </p>
+        <div className="mt-4">
+          <CostTable rows={costRows} />
         </div>
-      ) : null}
+      </div>
 
       <EnterWalkForm action={createProductionItemAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">
-          <T en="1. Add a shoe the factory makes" ne="१. जुत्ता दर्ता" />
+          <T en="2. Add a shoe the factory makes" ne="२. नयाँ जुत्ता दर्ता" />
         </h2>
         <p className="mt-1 text-sm text-brand-muted">
           <T
@@ -121,10 +154,16 @@ export default async function WagesLotsPage() {
         </FormSubmitButton>
       </EnterWalkForm>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      {/* The detailed route, for whoever wants it: a recipe per material,
+          priced from purchases, and the price card worked out from it. */}
+      <details className={card}>
+        <summary className="cursor-pointer text-base font-black text-brand-green-ink">
+          <T en="Detailed (optional): material recipe and price card" ne="विस्तृत (वैकल्पिक): मालको recipe र price card" />
+        </summary>
+      <div className="mt-4 grid gap-5 xl:grid-cols-2">
         <EnterWalkForm action={saveItemMaterialAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="2. Material in one pair" ne="२. एक जोडीमा कति माल" />
+            <T en="Material in one pair" ne="एक जोडीमा कति माल" />
           </h2>
           <p className="mt-1 text-sm text-brand-muted">
             <T
@@ -158,12 +197,12 @@ export default async function WagesLotsPage() {
 
         <EnterWalkForm action={approveCostCardAction} className={card}>
           <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="3. Cost of a pair, and the selling rate" ne="३. एक जोडीको लागत र बेच्ने दर" />
+            <T en="Price card from the recipe" ne="recipe बाट price card" />
           </h2>
           <p className="mt-1 text-sm text-brand-muted">
             <T
-              en="Material + the four stage wages + other direct cost. Rent, electricity and salaries are not included."
-              ne="माल + चार कामको ज्याला + अरू सिधा खर्च। घरभाडा, बिजुली र तलब यसमा जोडिँदैनन्।"
+              en="Material from the recipe + the four stage wages + other direct cost."
+              ne="recipe को माल + चार कामको ज्याला + अरू सिधा खर्च।"
             />
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -184,6 +223,7 @@ export default async function WagesLotsPage() {
           </FormSubmitButton>
         </EnterWalkForm>
       </div>
+      </details>
 
       <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-2">

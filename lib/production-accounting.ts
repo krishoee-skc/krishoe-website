@@ -1028,6 +1028,14 @@ export async function setProductionItemMaterial(input: {
 export async function approveProductionCostCard(input: {
   itemId: string;
   effectiveFrom: string;
+  /**
+   * The material in one pair, typed by the owner, instead of working it out
+   * from a recipe. Most shoes here have no recipe and no priced raw material,
+   * so the recipe route could never approve a cost for them. Given, it also
+   * becomes the factory item's material cost — the figure the Operations and
+   * costing reports already read — so the two never disagree.
+   */
+  materialCostPerPair?: number;
   otherDirectCostPerPair: number;
   wholesaleProfitPercent: number;
   retailExtraAmount: number;
@@ -1076,17 +1084,34 @@ export async function approveProductionCostCard(input: {
       [input.itemId, input.effectiveFrom],
     );
 
-    if (Number(materialRows[0]?.material_count ?? 0) <= 0) {
-      throw new Error("Add at least one material recipe before approving cost.");
-    }
-    if (Number(materialRows[0]?.missing_rate_count ?? 0) > 0) {
-      throw new Error("Every recipe material needs a real Purchasing rate before cost approval.");
-    }
-    if (Number(laborRows[0]?.stage_count ?? 0) < productionStages.length) {
-      throw new Error("Set all four production stage wage rates before approving cost.");
+    const typedMaterial = numeric(input.materialCostPerPair ?? 0);
+    if (typedMaterial > 0) {
+      // The simple route: the owner's own figure for the material, and the
+      // wages this shoe has on file. At least one wage, or the cost would be
+      // material alone and read as a full cost.
+      if (Number(laborRows[0]?.stage_count ?? 0) <= 0) {
+        throw new Error("Set this shoe's wage rates first (Wage rates page).");
+      }
+    } else {
+      if (Number(materialRows[0]?.material_count ?? 0) <= 0) {
+        throw new Error("Add at least one material recipe before approving cost.");
+      }
+      if (Number(materialRows[0]?.missing_rate_count ?? 0) > 0) {
+        throw new Error("Every recipe material needs a real Purchasing rate before cost approval.");
+      }
+      if (Number(laborRows[0]?.stage_count ?? 0) < productionStages.length) {
+        throw new Error("Set all four production stage wage rates before approving cost.");
+      }
     }
 
-    const materialCost = numeric(materialRows[0]?.cost ?? 0);
+    const materialCost = typedMaterial > 0 ? typedMaterial : numeric(materialRows[0]?.cost ?? 0);
+    if (typedMaterial > 0) {
+      await db.query(
+        `UPDATE factory_items SET material_cost_per_pair = $2, updated_at = now()
+         WHERE production_item_id = $1`,
+        [input.itemId, typedMaterial],
+      );
+    }
     const laborCost = numeric(laborRows[0]?.cost ?? 0);
     const directCost = numeric(input.otherDirectCostPerPair);
     const makingCost = numeric(materialCost + laborCost + directCost);
