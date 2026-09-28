@@ -8,6 +8,7 @@ import type {
   OnlineOrderConversionSignal,
 } from "@/lib/order-pos";
 import { money } from "@/lib/format-money";
+import { CANCEL_REASONS, cancelReasonLabel } from "@/lib/order-cancel-reasons";
 import type { CustomerLedger } from "@/lib/operations";
 import type { PaymentTransaction } from "@/lib/payment-transactions";
 import type { OrderSubmission } from "@/lib/submissions";
@@ -417,12 +418,6 @@ function stageOf(order: OrderSubmission, dispatch: OrderDispatch | undefined, ha
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CANCEL_REASONS = [
-  { en: "Did not answer the phone", ne: "फोन उठाएन" },
-  { en: "Size did not fit", ne: "साइज मिलेन" },
-  { en: "Customer cancelled", ne: "ग्राहक आफैँले रद्द गरे" },
-  { en: "Not a real order", ne: "नक्कली अर्डर" },
-] as const;
 const DISPATCH_BY = ["Own person", "Upaya Courier", "Pathao", "Nepal Can Move"] as const;
 
 /** Digits only, with Nepal's code on a ten-digit mobile — what wa.me wants. */
@@ -755,7 +750,7 @@ function OrderDetail({
       {stage === "cancelled" ? (
         <p className="rounded-xl bg-brand-mist px-4 py-3 text-sm font-bold text-brand-muted-deep">
           ✖ {text("Cancelled", "रद्द गरियो")}
-          {dispatch?.cancelReason ? ` — ${dispatch.cancelReason}` : ""}
+          {dispatch?.cancelReason ? ` — ${cancelReasonLabel(dispatch.cancelReason, text)}` : ""}
         </p>
       ) : (
         <ol className="grid list-none grid-cols-5 gap-1 pl-0 text-center text-[11px] font-bold">
@@ -977,19 +972,17 @@ function OrderDetail({
             <div className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
               <p className="text-sm font-black text-red-900">{text("Why is it cancelled?", "किन रद्द?")}</p>
               <div className="flex flex-wrap gap-2">
-                {CANCEL_REASONS.map((option) => {
-                  const value = text(option.en, option.ne);
-                  return (
-                    <button
-                      key={option.en}
-                      type="button"
-                      onClick={() => setReason(value)}
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${reason === value ? "border-red-700 bg-red-700 text-white" : "border-red-200 bg-white text-red-900"}`}
-                    >
-                      {value}
-                    </button>
-                  );
-                })}
+                {/* The English words are what is saved; the button reads in the desk's language. */}
+                {CANCEL_REASONS.map((option) => (
+                  <button
+                    key={option.en}
+                    type="button"
+                    onClick={() => setReason(option.en)}
+                    className={`rounded-full border px-3 py-1 text-xs font-bold ${reason === option.en ? "border-red-700 bg-red-700 text-white" : "border-red-200 bg-white text-red-900"}`}
+                  >
+                    {text(option.en, option.ne)}
+                  </button>
+                ))}
               </div>
               <button
                 type="button"

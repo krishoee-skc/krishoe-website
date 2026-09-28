@@ -37,6 +37,7 @@ import { getAdminSession, viewingBranchCookieName } from "@/lib/admin-auth";
 import { allBranchAdminRole } from "@/lib/admin-branch-context";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { clearOrderDispatch, markOrderDispatched, saveOrderCancelReason } from "@/lib/order-dispatch";
+import { cancelReasonToSave } from "@/lib/order-cancel-reasons";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
 export type ActionState = {
@@ -160,7 +161,7 @@ export async function cancelOrderWithReasonAction(
 ): Promise<ActionState> {
   await requireAdminPermission("orders:write");
   const id = String(formData.get("id") ?? "").trim();
-  const reason = String(formData.get("reason") ?? "").trim();
+  const reason = cancelReasonToSave(String(formData.get("reason") ?? ""));
   if (!id) return { ok: false, message: "Order is missing." };
   if (!reason) return { ok: false, message: "Choose why it is cancelled." };
   if (await getPosInvoiceForOnlineOrder(id)) {
