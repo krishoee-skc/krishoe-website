@@ -365,18 +365,34 @@ export default async function AdminStockPage() {
       />
 
       {/* The website's number, as a question the owner can open, not a third
-          figure shouting in yellow beside the first two. */}
-      <details className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft px-4 py-3 text-sm leading-6 text-brand-green-ink">
-        <summary className="cursor-pointer font-bold">
+          figure shouting in yellow beside the first two. Asked only when the
+          two numbers differ: asking why they differ under two equal
+          figures (owner, 2026-09-29) sent him looking for a difference that
+          was not there. */}
+      {summary.sellableCatalogPairs === summary.readyPairs ? (
+        <p className="mt-4 rounded-2xl border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-bold leading-6 text-brand-green-ink">
+          ✓{" "}
           <T
-            en={`The website shows ${summary.sellableCatalogPairs} pairs — why a different number?`}
-            ne={`वेबसाइटमा ${summary.sellableCatalogPairs} जोडी देखिन्छ — फरक किन?`}
+            en={`The website shows the same ${summary.sellableCatalogPairs} pairs.`}
+            ne={`वेबसाइटमा पनि उही ${summary.sellableCatalogPairs} जोडी देखिन्छ।`}
           />
-        </summary>
-        <p className="mt-2">
-          <strong>Do not add catalog stock twice:</strong> the shop catalog currently shows {summary.sellableCatalogPairs} sellable pairs across {summary.catalogDesigns} designs. It is the selling view of ready stock, not a fourth warehouse.
         </p>
-      </details>
+      ) : (
+        <details className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft px-4 py-3 text-sm leading-6 text-brand-green-ink">
+          <summary className="cursor-pointer font-bold">
+            <T
+              en={`The website shows ${summary.sellableCatalogPairs} pairs, stock has ${summary.readyPairs} — why ${Math.abs(summary.readyPairs - summary.sellableCatalogPairs)} pairs apart?`}
+              ne={`वेबसाइटमा ${summary.sellableCatalogPairs} जोडी, स्टकमा ${summary.readyPairs} — ${Math.abs(summary.readyPairs - summary.sellableCatalogPairs)} जोडी फरक किन?`}
+            />
+          </summary>
+          <p className="mt-2">
+            <T
+              en={`The website is the selling view of the same ready pairs, not another store — do not add the two together. They part when a shoe with ready pairs is not on the website yet, or when the website shows pairs for a shoe the stock does not know — those are listed below. The website has ${summary.catalogDesigns} shoes.`}
+              ne={`वेबसाइटले यिनै तयार जोडी बेच्न देखाउँछ, यो छुट्टै गोदाम होइन, त्यसैले दुई अंक जोड्नु हुँदैन। फरक तब पर्छ जब तयार जोडी भएको जुत्ता वेबसाइटमा राखिएको हुँदैन, वा वेबसाइटले स्टकमा नभेटिने जुत्ताको जोडी देखाउँछ; त्यस्ता जुत्ता तल देखिन्छन्। वेबसाइटमा ${summary.catalogDesigns} जुत्ता छन्।`}
+            />
+          </p>
+        </details>
+      )}
 
       {loaded.catalogWarnings.length > 0 ? (
         <div className="mt-4 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 sm:p-5">
