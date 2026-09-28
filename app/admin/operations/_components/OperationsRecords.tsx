@@ -381,28 +381,52 @@ function FinishedStockTable({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {snapshot.finishedStock.map((stock) => {
-              const health = snapshot.reports.stockHealthRows.find((row) => row.id === stock.id);
-              const valuation = valuationByStockId.get(stock.id);
+            {/* One line per shoe. A shoe posted size by size is several rows
+                (Fom flat 25 to 30, ten each), which read as six shoes in a
+                jumbled order; the sizes now sit in the Size cell and each
+                row still opens to be corrected. */}
+            {snapshot.finishedStockByShoe.map((shoe) => {
+              const members = shoe.ids
+                .map((id) => snapshot.finishedStock.find((stock) => stock.id === id))
+                .filter((stock): stock is (typeof snapshot.finishedStock)[number] => Boolean(stock));
+              const health = snapshot.reports.stockHealthRows.find((row) => row.id === shoe.id);
+              const valuations = members.map((stock) => valuationByStockId.get(stock.id));
+              const stockValue = valuations.reduce((total, row) => total + (row?.stockValue ?? 0), 0);
+              const profit = valuations.reduce((total, row) => total + (row?.potentialGrossProfit ?? 0), 0);
+              const first = valuations.find(Boolean);
 
               return (
-                <tr key={stock.id}>
-                  <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{stock.design}</td>
-                  <td data-label="Channel" className="py-3 pr-3">{stock.channel}</td>
-                  <td data-label="Size" className="py-3 pr-3">{stock.sizeRun}</td>
-                  <td data-label="Stock" className="py-3 pr-3 font-bold text-brand-green">{stock.stockPairs}</td>
+                <tr key={shoe.id}>
+                  <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{shoe.design}</td>
+                  <td data-label="Channel" className="py-3 pr-3">{shoe.channel}</td>
+                  <td data-label="Size" className="py-3 pr-3">
+                    {members.length > 1 ? (
+                      <span className="flex max-w-56 flex-wrap gap-1">
+                        {shoe.sizes.map((size) => (
+                          <span
+                            key={size.size}
+                            className="rounded-md border border-brand-green-line px-1.5 text-xs font-bold tabular-nums"
+                          >
+                            {size.size}: {size.pairs}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      shoe.sizeRun
+                    )}
+                  </td>
+                  <td data-label="Stock" className="py-3 pr-3 font-bold text-brand-green">{shoe.stockPairs}</td>
                   <td data-label="Value" className="py-3 pr-3">
-                    <p className="font-bold text-brand-green-ink">{money(valuation?.stockValue ?? 0)}</p>
+                    <p className="font-bold text-brand-green-ink">{money(stockValue)}</p>
                     <p className="text-xs text-brand-muted">
-                      COGS {money(valuation?.unitCostPerPair ?? 0)} / profit{" "}
-                      {money(valuation?.potentialGrossProfit ?? 0)}
+                      COGS {money(first?.unitCostPerPair ?? 0)} / profit {money(profit)}
                     </p>
                     <p className="mt-1 text-xs font-bold text-brand-gold-ink">
-                      {valuation?.signal ?? "Needs cost"} / {valuation?.priceSource ?? "Missing"}
+                      {first?.signal ?? "Needs cost"} / {first?.priceSource ?? "Missing"}
                     </p>
                   </td>
-                  <td data-label="Sold" className="py-3 pr-3">{stock.soldPairs}</td>
-                  <td data-label="Return" className="py-3 pr-3">{stock.returnedPairs}</td>
+                  <td data-label="Sold" className="py-3 pr-3">{shoe.soldPairs}</td>
+                  <td data-label="Return" className="py-3 pr-3">{shoe.returnedPairs}</td>
                   <td data-label="Health" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockSignalClass(health?.signal ?? "Healthy")}`}>
                       {health?.signal ?? "Healthy"}
@@ -412,28 +436,25 @@ function FinishedStockTable({
                     </p>
                   </td>
                   <td data-label="Manage" className="min-w-96 py-3 pr-3">
-                    <EnterWalkForm action={updateFinishedStockAction} className="grid gap-2">
-                      <input type="hidden" name="id" value={stock.id} />
-                      <div className="grid grid-cols-[1fr_auto_auto] gap-2">
-                        <input name="design" required className={compactInputClass} defaultValue={stock.design} aria-label="Stock design" />
-                        <select name="channel" className={compactInputClass} defaultValue={stock.channel} aria-label="Stock channel">
-                          <option>Factory</option>
-                          <option>Wholesale</option>
-                          <option>Retail</option>
-                          <option>Online</option>
-                        </select>
-                        <input name="sizeRun" className={compactInputClass} defaultValue={stock.sizeRun} aria-label="Size run" />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <input name="stockPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.stockPairs} aria-label="Stock pairs" />
-                        <input name="soldPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.soldPairs} aria-label="Sold pairs" />
-                        <input name="returnedPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.returnedPairs} aria-label="Returned pairs" />
-                      </div>
-                      <SaveButton />
-                    </EnterWalkForm>
-                    <div className="mt-2">
-                      <DeleteRecordForm kind="finishedStock" id={stock.id} />
-                    </div>
+                    {members.length > 1 ? (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-black text-brand-green">
+                          <T en={`Correct size by size (${members.length})`} ne={`साइज अनुसार सच्याउने (${members.length})`} />
+                        </summary>
+                        <div className="mt-2 grid gap-3">
+                          {members.map((stock) => (
+                            <div key={stock.id} className="rounded-lg border border-brand-green-line p-2">
+                              <p className="mb-1 text-xs font-black text-brand-green-ink">
+                                <T en={`Size ${stock.sizeRun}`} ne={`साइज ${stock.sizeRun}`} />
+                              </p>
+                              <FinishedStockEditForm stock={stock} />
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : members[0] ? (
+                      <FinishedStockEditForm stock={members[0]} />
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -442,6 +463,36 @@ function FinishedStockTable({
         </table>
       </div>
     </section>
+  );
+}
+
+/** One stock row's correction form, and its delete. */
+function FinishedStockEditForm({ stock }: { stock: OperationsSnapshot["finishedStock"][number] }) {
+  return (
+    <>
+      <EnterWalkForm action={updateFinishedStockAction} className="grid gap-2">
+        <input type="hidden" name="id" value={stock.id} />
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+          <input name="design" required className={compactInputClass} defaultValue={stock.design} aria-label="Stock design" />
+          <select name="channel" className={compactInputClass} defaultValue={stock.channel} aria-label="Stock channel">
+            <option>Factory</option>
+            <option>Wholesale</option>
+            <option>Retail</option>
+            <option>Online</option>
+          </select>
+          <input name="sizeRun" className={compactInputClass} defaultValue={stock.sizeRun} aria-label="Size run" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <input name="stockPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.stockPairs} aria-label="Stock pairs" />
+          <input name="soldPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.soldPairs} aria-label="Sold pairs" />
+          <input name="returnedPairs" type="number" min="0" className={compactInputClass} defaultValue={stock.returnedPairs} aria-label="Returned pairs" />
+        </div>
+        <SaveButton />
+      </EnterWalkForm>
+      <div className="mt-2">
+        <DeleteRecordForm kind="finishedStock" id={stock.id} />
+      </div>
+    </>
   );
 }
 

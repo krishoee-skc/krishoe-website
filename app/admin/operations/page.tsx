@@ -103,7 +103,7 @@ export default async function AdminOperationsPage({
             id: "stock",
             label: <T en="Into stock today" ne="आज स्टकमा चढेको" />,
             value: <T en={`${productionControl.todayStockPairs} pairs`} ne={`${productionControl.todayStockPairs} जोडी`} />,
-            detail: <T en="From Packing/QC" ne="Packing/QC बाट" />,
+            detail: <T en="From the factory" ne="कारखानाबाट" />,
           },
           {
             id: "wages",

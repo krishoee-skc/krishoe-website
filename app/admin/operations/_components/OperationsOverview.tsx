@@ -85,9 +85,23 @@ export default function OperationsOverview({
   const rawStockWatchRows = costing.rawMaterialStockValuation
     .filter((material) => material.lowStock || !material.hasPurchaseRate)
     .slice(0, 4);
-  const finishedStockWatchRows = costing.finishedStockValuation
-    .filter((stock) => stock.signal !== "Profit ready" && stock.stockPairs > 0)
-    .slice(0, 4);
+  // One line per shoe: a shoe kept in size rows listed itself once per size.
+  const finishedStockWatchRows = [
+    ...costing.finishedStockValuation
+      .filter((stock) => stock.signal !== "Profit ready" && stock.stockPairs > 0)
+      .reduce((byShoe, stock) => {
+        const key = `${stock.design.trim().toLowerCase()}::${stock.channel}`;
+        const seen = byShoe.get(key);
+        byShoe.set(
+          key,
+          seen
+            ? { ...seen, stockPairs: seen.stockPairs + stock.stockPairs, stockValue: seen.stockValue + stock.stockValue }
+            : stock,
+        );
+        return byShoe;
+      }, new Map<string, (typeof costing.finishedStockValuation)[number]>())
+      .values(),
+  ].slice(0, 4);
   const catalogMismatchRows = costing.catalogStockReconciliation
     .filter((stock) => stock.signal !== "Matched")
     .slice(0, 4);

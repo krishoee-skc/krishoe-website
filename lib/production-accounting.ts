@@ -332,9 +332,15 @@ export async function getProductionControlSummary() {
          (SELECT count(DISTINCT employee_id)
           FROM production_work_entries
           WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS active_worker_count,
-         (SELECT coalesce(sum(total_pairs), 0)
-          FROM production_qc_postings
-          WHERE qc_date = CURRENT_DATE AND reversed_at IS NULL) AS today_stock_pairs,
+         -- Every pair the factory put into stock today: "Post to stock" on the
+         -- work screen and Packing/QC both write a Production In movement.
+         -- It counted Packing/QC alone, and read 0 on a day sixty pairs went
+         -- in from the work screen.
+         (SELECT coalesce(sum(pairs), 0)
+          FROM stock_movements
+          WHERE type = 'Production In'
+            AND (created_at AT TIME ZONE 'Asia/Kathmandu')::date
+              = (now() AT TIME ZONE 'Asia/Kathmandu')::date) AS today_stock_pairs,
          (SELECT coalesce(sum(greatest(
            coalesce(earned.amount, 0) - coalesce(paid.amount, 0), 0
          )), 0)

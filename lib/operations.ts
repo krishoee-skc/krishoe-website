@@ -42,6 +42,7 @@ import {
   type StockMovementType,
 } from "@/lib/stock-rules";
 import { canonicalDesignName, designKey } from "@/lib/design-name";
+import { compactSizeRun } from "@/lib/shoe-sizes";
 
 // Re-exported so the rest of the app keeps importing these from here. The rules
 // themselves live in lib/stock-rules.ts, where the Postgres backend can reach
@@ -382,6 +383,49 @@ function stockKey(value: Pick<FinishedStock, "design" | "channel">) {
   // designKey, not a hand-rolled lowercase: the Postgres path compares the same
   // way, and a design that counts as one row there has to count as one row here.
   return `${designKey(value.design)}::${value.channel}`;
+}
+
+/**
+ * One shoe in one channel, however many size rows it is kept in.
+ *
+ * Finished pairs are posted size by size now, so a 60-pair run of Fom flat is
+ * six rows of ten. Every report that compared or judged a single row read
+ * those as six shoes: the ledger check set each row's 10 against all 60 pairs
+ * of movement and flagged "Variance -50" six times, and stock watch called
+ * each ten "Low stock". The reports read the shoe; the rows stay as they are.
+ */
+export type GroupedFinishedStock = FinishedStock & {
+  /** The size rows behind this shoe, in size order. */
+  ids: string[];
+  sizes: { size: string; pairs: number }[];
+};
+
+export function groupFinishedStock(rows: FinishedStock[]): GroupedFinishedStock[] {
+  const groups = new Map<string, FinishedStock[]>();
+  for (const row of rows) {
+    const key = stockKey(row);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.values()].map((members) => {
+    const ordered = [...members].sort(
+      (left, right) => Number(left.sizeRun) - Number(right.sizeRun) || left.sizeRun.localeCompare(right.sizeRun),
+    );
+    const single = ordered.every((row) => /^\d{1,2}$/.test(row.sizeRun.trim()));
+    return {
+      ...ordered[0],
+      ids: ordered.map((row) => row.id),
+      sizeRun:
+        ordered.length === 1
+          ? ordered[0].sizeRun
+          : single
+            ? compactSizeRun(ordered.map((row) => row.sizeRun).join(", "))
+            : ordered.map((row) => row.sizeRun).join(" + "),
+      sizes: ordered.map((row) => ({ size: row.sizeRun, pairs: row.stockPairs })),
+      stockPairs: ordered.reduce((total, row) => total + row.stockPairs, 0),
+      soldPairs: ordered.reduce((total, row) => total + row.soldPairs, 0),
+      returnedPairs: ordered.reduce((total, row) => total + row.returnedPairs, 0),
+    };
+  });
 }
 
 function percentage(part: number, total: number) {
@@ -1560,8 +1604,11 @@ export async function deleteOperationRecord(kind: OperationRecordKind, id: strin
 
 export async function getOperationsSnapshot() {
   const data = await getOperationsDataForReports();
-  const fastMovingStock = [...data.finishedStock].sort((a, b) => b.soldPairs - a.soldPairs);
-  const slowMovingStock = [...data.finishedStock].sort((a, b) => a.soldPairs - b.soldPairs);
+  // Per shoe, not per size row: six rows of one shoe filled the whole
+  // slow-moving list with the same name.
+  const stockByShoe = groupFinishedStock(data.finishedStock);
+  const fastMovingStock = [...stockByShoe].sort((a, b) => b.soldPairs - a.soldPairs);
+  const slowMovingStock = [...stockByShoe].sort((a, b) => a.soldPairs - b.soldPairs);
   const stockMovementTotals = emptyStockMovementTotals();
   const stockMovementGroups = new Map<
     string,
@@ -1784,7 +1831,7 @@ export async function getOperationsSnapshot() {
     "Return watch": 2,
     Healthy: 3,
   };
-  const stockHealthRows = data.finishedStock
+  const stockHealthRows = stockByShoe
     .map((stock) => {
       const flow = stockMovementGroups.get(stockKey(stock));
       const soldPairs = flow?.soldPairs ?? stock.soldPairs;
@@ -1798,6 +1845,7 @@ export async function getOperationsSnapshot() {
 
       return {
         id: stock.id,
+        ids: stock.ids,
         design: stock.design,
         channel: stock.channel,
         sizeRun: stock.sizeRun,
@@ -1824,7 +1872,7 @@ export async function getOperationsSnapshot() {
     Watch: 2,
     Balanced: 3,
   };
-  const stockLedgerRows = data.finishedStock
+  const stockLedgerRows = stockByShoe
     .map((stock) => {
       const movements = data.stockMovements.filter((movement) => stockKey(movement) === stockKey(stock));
       const movementTotals = emptyStockMovementTotals();
@@ -1853,6 +1901,7 @@ export async function getOperationsSnapshot() {
         design: stock.design,
         channel: stock.channel,
         sizeRun: stock.sizeRun,
+        sizes: stock.sizes,
         stockPairs: stock.stockPairs,
         soldPairs: stock.soldPairs,
         returnedPairs: stock.returnedPairs,
@@ -2022,6 +2071,8 @@ export async function getOperationsSnapshot() {
     ledgerTransactions: data.ledgerTransactions,
     fastMovingStock,
     slowMovingStock,
+    // The finished stock one line per shoe, its size rows inside.
+    finishedStockByShoe: stockByShoe,
     reports: {
       productionInsights,
       stockMovementTotals,
