@@ -364,27 +364,37 @@ export default async function AdminStockPage() {
         todayBs={toBikramSambatNumeric(today)}
       />
 
-      {/* The website's number, as a question the owner can open, not a third
-          figure shouting in yellow beside the first two. Asked only when the
-          two numbers differ: asking why they differ under two equal
-          figures (owner, 2026-09-29) sent him looking for a difference that
-          was not there. */}
-      {summary.sellableCatalogPairs === summary.readyPairs ? (
+      {/* What a shopper can buy against what is ready. Only Active shoes are
+          on sale: counting Drafts too, the page once said "the website shows
+          the same 215 pairs" while the shop sold 96 of them (owner,
+          2026-09-29). The question is asked only when the two numbers differ. */}
+      {summary.onSaleCatalogPairs === summary.readyPairs ? (
         <p className="mt-4 rounded-2xl border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-bold leading-6 text-brand-green-ink">
           ✓{" "}
           <T
-            en={`The website shows the same ${summary.sellableCatalogPairs} pairs.`}
-            ne={`वेबसाइटमा पनि उही ${summary.sellableCatalogPairs} जोडी देखिन्छ।`}
+            en={`All ${summary.onSaleCatalogPairs} ready pairs are on sale on the website.`}
+            ne={`तयार भएका सबै ${summary.onSaleCatalogPairs} जोडी वेबसाइटमा बिक्रीमा छन्।`}
           />
         </p>
       ) : (
         <details className="mt-4 rounded-2xl border border-brand-gold/40 bg-brand-cream-soft px-4 py-3 text-sm leading-6 text-brand-green-ink">
           <summary className="cursor-pointer font-bold">
             <T
-              en={`The website shows ${summary.sellableCatalogPairs} pairs, stock has ${summary.readyPairs} — why ${Math.abs(summary.readyPairs - summary.sellableCatalogPairs)} pairs apart?`}
-              ne={`वेबसाइटमा ${summary.sellableCatalogPairs} जोडी, स्टकमा ${summary.readyPairs} — ${Math.abs(summary.readyPairs - summary.sellableCatalogPairs)} जोडी फरक किन?`}
+              en={`On sale on the website: ${summary.onSaleCatalogPairs} pairs, ready in stock: ${summary.readyPairs} — why ${Math.abs(summary.readyPairs - summary.onSaleCatalogPairs)} pairs apart?`}
+              ne={`वेबसाइटमा बिक्रीमा ${summary.onSaleCatalogPairs} जोडी, स्टकमा तयार ${summary.readyPairs} — ${Math.abs(summary.readyPairs - summary.onSaleCatalogPairs)} जोडी फरक किन?`}
             />
           </summary>
+          {summary.draftCatalogPairs > 0 ? (
+            <p className="mt-2 font-bold">
+              <T
+                en={`${summary.draftCatalogPairs} pairs are on shoes still in Draft, which shoppers cannot see: ${summary.draftShoesWithPairs.join(", ")}. Make them Active in Products to put them on sale.`}
+                ne={`${summary.draftCatalogPairs} जोडी Draft मा रहेका जुत्ताका हुन्, जुन ग्राहकले देख्दैनन्: ${summary.draftShoesWithPairs.join(", ")}। बेच्न Products मा गएर Active गर्नुहोस्।`}
+              />{" "}
+              <Link href="/admin/products" className="text-brand-green underline">
+                <T en="Products →" ne="Products →" />
+              </Link>
+            </p>
+          ) : null}
           <p className="mt-2">
             <T
               en={`The website is the selling view of the same ready pairs, not another store — do not add the two together. They part when a shoe with ready pairs is not on the website yet, or when the website shows pairs for a shoe the stock does not know — those are listed below. The website has ${summary.catalogDesigns} shoes.`}

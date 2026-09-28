@@ -126,8 +126,20 @@ export function buildStockOverview(data: OperationsData, products: Product[]) {
       mixedPairs: sumPairs(mixed),
       openingPairs: sumPairs(opening),
       damagedPairs,
+      // Every catalogue row, Draft included — the page is given drafts too.
       sellableCatalogPairs: products.reduce((total, product) => total + product.stock, 0),
       catalogDesigns: products.length,
+      // What a shopper can actually buy: Active shoes only. A Draft is hidden
+      // from the shop, so its pairs are ready but not on sale online.
+      onSaleCatalogPairs: products
+        .filter((product) => product.status === "Active")
+        .reduce((total, product) => total + Math.max(0, product.stock), 0),
+      draftCatalogPairs: products
+        .filter((product) => product.status !== "Active")
+        .reduce((total, product) => total + Math.max(0, product.stock), 0),
+      draftShoesWithPairs: products
+        .filter((product) => product.status !== "Active" && product.stock > 0)
+        .map((product) => product.name),
     },
   };
 }
