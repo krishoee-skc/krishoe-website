@@ -13,6 +13,8 @@
  * bargained down on the line; the size is one of the design's own.
  */
 
+import { sameCode } from "@/lib/shoe-code";
+
 export type LedgerOption = {
   id: string;
   label: string;
@@ -395,14 +397,16 @@ export function matchesSearch(item: SellableItem, query: string, cart: CartLine[
 export function findByCode(catalog: SellableItem[], rawCode: string) {
   const code = cleanQuery(rawCode).toLowerCase();
   if (!code) return null;
+  // sameCode: "205" names KR-205 as well as "KR-205" does, so the code is
+  // typed on the number pad alone.
   const exact = catalog.find(
-    (entry) => (entry.sku && entry.sku.trim().toLowerCase() === code) || entry.design.trim().toLowerCase() === code,
+    (entry) => (entry.sku && sameCode(entry.sku, code)) || entry.design.trim().toLowerCase() === code,
   );
   if (exact) return { item: exact, size: "" };
 
   const sized = code.match(/^(.*?)[-\s/]+(\d{1,2})$/);
   if (!sized) return null;
-  const item = catalog.find((entry) => entry.sku && entry.sku.trim().toLowerCase() === sized[1]);
+  const item = catalog.find((entry) => entry.sku && sameCode(entry.sku, sized[1]));
   return item ? { item, size: sized[2] } : null;
 }
 

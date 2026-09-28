@@ -1,6 +1,7 @@
 import type { PurchaseKind } from "@/lib/purchasing";
 import type { StockPlace } from "@/lib/stock-rules";
 import type { RawMaterial } from "@/lib/operations";
+import { sameCode } from "@/lib/shoe-code";
 
 /**
  * What a purchase bill is made of, apart from how it is drawn.
@@ -216,11 +217,9 @@ export function shoesMatching<T extends ShoeOnBooks>(shoes: T[], typed: string, 
   const bare = wanted.replace(/^#+\s*/, "");
   const words = wanted.replace(/#\s*[^\s#]+/g, " ").trim();
 
+  // "#205" and "205" find KR-205 (lib/shoe-code).
   const byCode = shoes.filter((shoe) =>
-    shoe.codes.some((code) => {
-      const own = code.trim().toLowerCase();
-      return own && (codes.includes(own) || own === bare);
-    }),
+    shoe.codes.some((code) => codes.some((typedCode) => sameCode(code, typedCode)) || sameCode(code, bare)),
   );
   const byName = words.length < 2 ? [] : shoes.filter((shoe) => {
     if (byCode.includes(shoe)) return false;
@@ -236,8 +235,8 @@ export function shoesMatching<T extends ShoeOnBooks>(shoes: T[], typed: string, 
  * code is not quietly filed as a new item.
  */
 export function unknownCodeTyped(shoes: ShoeOnBooks[], typed: string) {
-  const known = new Set(shoes.flatMap((shoe) => shoe.codes.map((code) => code.trim().toLowerCase())));
-  return codesTyped(typed.trim()).find((code) => !known.has(code)) ?? "";
+  const known = shoes.flatMap((shoe) => shoe.codes);
+  return codesTyped(typed.trim()).find((typedCode) => !known.some((code) => sameCode(code, typedCode))) ?? "";
 }
 
 /**

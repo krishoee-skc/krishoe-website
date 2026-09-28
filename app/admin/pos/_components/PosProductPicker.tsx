@@ -4,6 +4,7 @@ import { useMemo, useState, type RefObject } from "react";
 import SafeImage from "@/components/SafeImage";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
+import { codeNumber } from "@/lib/shoe-code";
 import { hasNoPhoto } from "@/lib/product-photo";
 import {
   isShoeSize,
@@ -83,11 +84,13 @@ export default function PosProductPicker({
 
   // The examples under the box, taken from a shoe actually on the shelf.
   const example = useMemo(() => {
-    const withCode = catalog.find((item) => item.sku) ?? catalog[0];
+    // A KR code is shown as the number alone: 205 is all that has to be typed.
+    const withCode = catalog.find((item) => codeNumber(item.sku) !== null) ?? catalog.find((item) => item.sku) ?? catalog[0];
+    const number = codeNumber(withCode?.sku ?? "");
     const name = (withCode?.design ?? "bantu").trim().split(/\s+/)[0] || "bantu";
     return {
       name: name.toLowerCase(),
-      code: withCode?.sku || "571E0E15",
+      code: number !== null ? String(number) : withCode?.sku || "205",
       size: sizeButtons[Math.floor(sizeButtons.length / 2)] ?? "40",
     };
   }, [catalog, sizeButtons]);

@@ -25,6 +25,7 @@ import {
 import { orderStatuses, paymentStatuses, paymentProviders } from "@/lib/order-constants";
 import { getProductById, getProducts, removeProduct, upsertProduct } from "@/lib/product-store";
 import { designKey } from "@/lib/design-name";
+import { codeProblem, codeTakenBy, tidyCode } from "@/lib/shoe-code";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
@@ -451,13 +452,30 @@ export async function upsertProductAction(
   // "jeans shoes" are one product. Two rows reading the same are one design to
   // the stock sync, so 55 counted pairs would have been handed to each of them
   // — 110 pairs in a shop holding 55.
-  const clash = (await getProducts({ includeDrafts: true })).find(
+  const allProducts = await getProducts({ includeDrafts: true });
+  const clash = allProducts.find(
     (other) => other.id !== product.id && designKey(other.name) === designKey(product.name),
   );
   if (clash) {
     return {
       ok: false,
       message: `A product named "${clash.name}" already exists. Use a name that tells them apart — capitals and spacing do not count as different.`,
+    };
+  }
+
+  // One code, one shoe: "#205" at the counter has to ring up one design.
+  product.sku = tidyCode(product.sku);
+  const codeClash = codeTakenBy(allProducts, product.sku, product.id);
+  if (codeClash) {
+    return {
+      ok: false,
+      message: `Code ${product.sku} is already on "${codeClash.name}". Use another code.`,
+    };
+  }
+  if (codeProblem(product.sku) === "looks-like-size") {
+    return {
+      ok: false,
+      message: `Code ${product.sku} reads as a shoe size at the counter. Use three digits, like KR-205.`,
     };
   }
 

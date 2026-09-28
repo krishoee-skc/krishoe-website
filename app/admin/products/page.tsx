@@ -85,6 +85,12 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           >
             <T en="Barcode labels" ne="बारकोडको स्टिकर" />
           </Link>
+          <Link
+            href="/admin/products/codes"
+            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+          >
+            🔢 <T en="Shoe codes" ne="जुत्ताको कोड" />
+          </Link>
           <form action={syncProductCatalogStockAction}>
             <FormSubmitButton
               className="h-10 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
@@ -97,7 +103,12 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       </div>
 
       <div className="mt-6">
-        <ProductForm key={editingProduct?.id ?? "new"} product={editingProduct} categories={categories} />
+        <ProductForm
+          key={editingProduct?.id ?? "new"}
+          product={editingProduct}
+          categories={categories}
+          takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
+        />
       </div>
 
       <ProductsClient products={products} editingId={editingProduct?.id ?? null} />

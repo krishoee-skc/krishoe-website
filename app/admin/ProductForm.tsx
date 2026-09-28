@@ -10,10 +10,13 @@ import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import AiDraftButton from "./AiDraftButton";
+import { codeProblem, codeTakenBy, nextShoeCode } from "@/lib/shoe-code";
 
 type ProductFormProps = {
   product?: Product | null;
   categories: Category[];
+  /** Every shoe's code, so a new one is numbered after them and a clash is seen. */
+  takenCodes?: Array<{ id: string; sku: string; name: string }>;
 };
 
 /** Rupees as typed, shown the way the storefront will show them. */
@@ -21,7 +24,7 @@ function rupeeLabel(rupees: number) {
   return formatPrice(Math.round(rupees * 100));
 }
 
-export default function ProductForm({ product, categories }: ProductFormProps) {
+export default function ProductForm({ product, categories, takenCodes = [] }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -30,6 +33,13 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     product ? String(product.priceValue / 100) : "",
   );
   const [isSaving, startSaving] = useTransition();
+  // A new shoe opens with the next KR code for its category, and follows the
+  // category until the owner types a code of their own.
+  const firstCategory = product?.categorySlug ?? categories[0]?.slug ?? "";
+  const [sku, setSku] = useState(() => product?.sku ?? nextShoeCode(takenCodes.map((taken) => taken.sku), firstCategory));
+  const [skuTyped, setSkuTyped] = useState(Boolean(product));
+  const skuClash = codeTakenBy(takenCodes, sku, product?.id ?? "");
+  const skuProblem = codeProblem(sku);
   // Held so the AI drafter can read what is typed and fill what is not, without
   // this form having to mirror every field into React state first.
   const formRef = useRef<HTMLFormElement>(null);
@@ -106,14 +116,45 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("SKU", "SKU — सामानको कोड")}</span>
-          <input name="sku" defaultValue={product?.sku} required className="form-input" />
+          <input
+            name="sku"
+            value={sku}
+            onChange={(event) => {
+              setSku(event.target.value);
+              setSkuTyped(true);
+            }}
+            required
+            spellCheck={false}
+            autoCapitalize="characters"
+            className="form-input font-mono"
+          />
+          {skuClash ? (
+            <span className="text-xs font-bold text-brand-clay">
+              {text(`⚠ ${skuClash.name} already has this code.`, `⚠ यो कोड ${skuClash.name} मा पहिल्यै छ।`)}
+            </span>
+          ) : skuProblem === "looks-like-size" ? (
+            <span className="text-xs font-bold text-brand-clay">
+              {text("⚠ One or two digits read as a size at the counter — use three.", "⚠ १–२ अङ्क POS मा साइज जस्तो बुझिन्छ — ३ अङ्क राख्नुहोस्।")}
+            </span>
+          ) : (
+            <span className="text-xs text-brand-muted">
+              {text("KR-1xx gents · 2xx ladies · 3xx slippers · 4xx kids · 5xx other", "KR-1xx gents · 2xx ladies · 3xx चप्पल · 4xx केटाकेटी · 5xx अरू")}
+            </span>
+          )}
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("Category", "कुन किसिम")}</span>
-          <select name="categorySlug" defaultValue={product?.categorySlug} className="form-input">
+          <select
+            name="categorySlug"
+            defaultValue={product?.categorySlug}
+            onChange={(event) => {
+              if (!skuTyped) setSku(nextShoeCode(takenCodes.map((taken) => taken.sku), event.target.value));
+            }}
+            className="form-input"
+          >
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
                 {cat.title}

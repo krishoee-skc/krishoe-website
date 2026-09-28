@@ -16,6 +16,7 @@ import {
   type Review,
   type Product,
 } from "@/lib/products";
+import { nextShoeCode } from "@/lib/shoe-code";
 
 const dataDir = path.join(process.cwd(), "data");
 const productsFile = path.join(dataDir, "products.json");
@@ -498,13 +499,14 @@ export const getProducts = cache(async (options: { includeDrafts?: boolean } = {
 // shows up in the shop, the way a new raw material shows in the material list.
 // Created as a Draft with no price or photo: the owner adds those and sets it
 // Active. Made once; a later sync finds it by name and leaves it be.
-export function buildDraftProductForDesign(design: string, stock: number): Product {
+export function buildDraftProductForDesign(design: string, stock: number, takenCodes: string[] = []): Product {
   const category = categories[0];
   const id = crypto.randomUUID();
 
   return cleanProduct({
     id,
-    sku: id.slice(0, 8).toUpperCase(),
+    // The next KR code in the category's group, not a random "9D72059B".
+    sku: nextShoeCode(takenCodes, category.slug),
     name: design.trim(),
     category: category.title,
     categorySlug: category.slug,
@@ -540,13 +542,16 @@ async function ensureProductsForFinishedDesigns(finishedStock: FinishedStock[]) 
   const products = await getProducts({ includeDrafts: true });
   const listedKeys = new Set(products.flatMap(productStockAliasKeys));
   const groups = buildFinishedStockGroups(finishedStock);
+  const takenCodes = products.map((product) => product.sku);
 
   for (const group of groups.values()) {
     if (!group.design || listedKeys.has(group.key)) {
       continue;
     }
 
-    await upsertProduct(buildDraftProductForDesign(group.design, group.stockPairs));
+    const draft = buildDraftProductForDesign(group.design, group.stockPairs, takenCodes);
+    takenCodes.push(draft.sku);
+    await upsertProduct(draft);
   }
 }
 
@@ -779,6 +784,36 @@ async function removeProductPostgres(id: string) {
   if (rows.length === 0) {
     throw new Error("Product not found.");
   }
+}
+
+/**
+ * New codes for several products at once — the codes page. Only the code
+ * changes; one statement, so either every code moves or none does.
+ */
+async function setProductCodesPostgres(changes: Array<{ id: string; sku: string }>) {
+  await queryPostgres(
+    "products",
+    `UPDATE products AS p
+        SET sku = c.sku, updated_at = NOW()
+       FROM unnest($1::text[], $2::text[]) AS c(id, sku)
+      WHERE p.id::text = c.id`,
+    [changes.map((change) => change.id), changes.map((change) => change.sku)],
+  );
+}
+
+async function setProductCodesLocalJson(changes: Array<{ id: string; sku: string }>) {
+  const byId = new Map(changes.map((change) => [change.id, change.sku]));
+  const products = await getProductsFromLocalJson({ includeDrafts: true });
+  await writeProducts(products.map((product) => (byId.has(product.id) ? { ...product, sku: byId.get(product.id)! } : product)));
+}
+
+export async function setProductCodes(changes: Array<{ id: string; sku: string }>) {
+  if (changes.length === 0) return;
+  return runWithDataBackend({
+    storeName: "products",
+    localJson: () => setProductCodesLocalJson(changes),
+    postgres: () => setProductCodesPostgres(changes),
+  });
 }
 
 export async function removeProduct(id: string) {
