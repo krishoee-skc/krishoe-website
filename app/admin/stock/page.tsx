@@ -216,6 +216,30 @@ async function loadStock() {
       extras[row.design] = extra;
     }
 
+    // The shoe's code, and its last ten movements worded, for the list.
+    const codeByName = new Map<string, string>();
+    for (const product of products) {
+      if (product.sku && !codeByName.has(product.name)) codeByName.set(product.name, product.sku);
+    }
+    const latest = [...operations.stockMovements].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    for (const design of new Set([...Object.keys(extras), ...operations.finishedStock.map((row) => row.design)])) {
+      const extra = extras[design] ?? { origin: "Other", sold: 0, lasts: null };
+      extra.code = codeByName.get(design);
+      extra.history = groupMovements(latest.filter((movement) => movement.design === design))
+        .slice(0, 10)
+        .map((entry) => {
+          const words = movementWords[entry.type] ?? { en: entry.type, ne: entry.type, sign: 0 };
+          return {
+            date: entry.date ? toBikramSambatNumeric(entry.date) : "",
+            en: `${words.en} · ${entry.times} time(s)`,
+            ne: `${words.ne} · ${entry.times} पटक`,
+            pairs: entry.pairs,
+            sign: words.sign,
+          };
+        });
+      extras[design] = extra;
+    }
+
     return {
       overview,
       extras,

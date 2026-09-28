@@ -12,6 +12,7 @@ import {
   setPlaceCountAction,
 } from "@/app/admin/stock/actions";
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
+import { sameCode } from "@/lib/shoe-code";
 
 /** What the stock page knows about a shoe beyond where its pairs are. */
 export type ShoeExtra = {
@@ -19,7 +20,30 @@ export type ShoeExtra = {
   sold: number;
   /** How long it lasts, already worded; status picks the colour. */
   lasts: { status: "out" | "urgent" | "soon" | "healthy" | "unknown"; en: string; ne: string } | null;
+  /** The shoe's code (KR-205), when the shop has one for it. */
+  code?: string;
+  /** Its latest movements, newest first, already worded. */
+  history?: Array<{ date: string; en: string; ne: string; pairs: number; sign: number }>;
 };
+
+type ShoeFilter = "all" | "factory" | "shop" | "out" | "gap";
+const SHOE_FILTERS: Array<{ key: ShoeFilter; en: string; ne: string }> = [
+  { key: "all", en: "All", ne: "सबै" },
+  { key: "factory", en: "🏭 At the factory", ne: "🏭 कारखानामा" },
+  { key: "shop", en: "🛒 At the shop", ne: "🛒 पसलमा" },
+  { key: "out", en: "Sold out", ne: "सकिएका" },
+  { key: "gap", en: "Not matching", ne: "नमिलेका" },
+];
+type SortKey = "attention" | "design" | "factory" | "shop" | "total" | "sold";
+const SHOE_COLUMNS: Array<{ key: SortKey | "lasts" | "gap"; en: string; ne: string; sortable: boolean }> = [
+  { key: "design", en: "Shoe", ne: "जुत्ता", sortable: true },
+  { key: "factory", en: "🏭 Factory", ne: "🏭 कारखाना", sortable: true },
+  { key: "shop", en: "🛒 Shop", ne: "🛒 पसल", sortable: true },
+  { key: "total", en: "In stock", ne: "जम्मा", sortable: true },
+  { key: "sold", en: "Sold", ne: "बिक्री", sortable: true },
+  { key: "lasts", en: "How long it lasts", ne: "कति दिन पुग्छ", sortable: false },
+  { key: "gap", en: "Place matches?", ne: "ठाउँ मिलेको?", sortable: false },
+];
 
 type Fix = {
   key: string;
@@ -89,6 +113,12 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
   const [fixState, setFixState] = useState<ActionState | null>(null);
   const [fixing, startFixing] = useTransition();
   const [openShoes, setOpenShoes] = useState<Set<string>>(() => new Set());
+  // Finding a shoe in the list: a search, a filter and a sort. The default
+  // order puts what needs a look first — places that do not match, then
+  // shoes sold out or running low.
+  const [search, setSearch] = useState("");
+  const [shoeFilter, setShoeFilter] = useState<ShoeFilter>("all");
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "attention", dir: 1 });
 
   const to = from === "Factory" ? "Shop" : "Factory";
 
@@ -240,6 +270,60 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
 
   /** One shoe, one line: a shoe posted size by size is several rows underneath. */
   const groups = useMemo(() => groupByShoe(rows), [rows]);
+
+  const gapOf = (group: ShoeGroup) => group.noPlace > 0 || group.tooMany > 0;
+  const passes = (group: ShoeGroup, filter: ShoeFilter) => {
+    const status = extras[group.design]?.lasts?.status;
+    if (filter === "factory") return group.factory > 0;
+    if (filter === "shop") return group.shop > 0;
+    if (filter === "out") return group.total <= 0 || status === "out";
+    if (filter === "gap") return gapOf(group);
+    return true;
+  };
+  const countFor = (filter: ShoeFilter) => groups.filter((group) => passes(group, filter)).length;
+  const attention = (group: ShoeGroup) => {
+    if (gapOf(group)) return 0;
+    const status = extras[group.design]?.lasts?.status;
+    if (group.total <= 0 || status === "out") return 1;
+    if (status === "urgent" || status === "soon") return 2;
+    return 3;
+  };
+  const shown = useMemo(() => {
+    const wanted = search.trim().toLowerCase().replace(/^#+\s*/, "");
+    const found = groups.filter((group) => {
+      if (!passes(group, shoeFilter)) return false;
+      if (!wanted) return true;
+      const code = extras[group.design]?.code ?? "";
+      return group.design.toLowerCase().includes(wanted) || (code !== "" && (sameCode(code, wanted) || code.toLowerCase().includes(wanted)));
+    });
+    const value = (group: ShoeGroup) =>
+      sort.key === "factory" ? group.factory
+        : sort.key === "shop" ? group.shop
+          : sort.key === "total" ? group.total
+            : sort.key === "sold" ? extras[group.design]?.sold ?? 0
+              : sort.key === "attention" ? attention(group)
+                : 0;
+    return [...found].sort((a, b) => {
+      if (sort.key === "design") return sort.dir * a.design.localeCompare(b.design);
+      return sort.dir * (value(a) - value(b)) || a.design.localeCompare(b.design);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, extras, search, shoeFilter, sort]);
+  const shownTotals = shown.reduce(
+    (sum, group) => ({
+      factory: sum.factory + group.factory,
+      shop: sum.shop + group.shop,
+      total: sum.total + group.total,
+      sold: sum.sold + (extras[group.design]?.sold ?? 0),
+      gaps: sum.gaps + (gapOf(group) ? 1 : 0),
+    }),
+    { factory: 0, shop: 0, total: 0, sold: 0, gaps: 0 },
+  );
+  function sortBy(key: SortKey | "lasts" | "gap") {
+    if (key === "lasts" || key === "gap") return;
+    // Numbers open biggest first; names open A to Z.
+    setSort((current) => (current.key === key ? { key, dir: current.dir === 1 ? -1 : 1 } : { key, dir: key === "design" ? 1 : -1 }));
+  }
   const mismatched = rows.filter((row) => row.unplaced !== 0);
 
   function rowLabel(row: StockAtPlace) {
@@ -321,7 +405,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
               "जोडी कहाँ छन् भन्ने गन्ती स्टकसँग मिलेन। बटनले कारखाना वा पसलको गन्ती मात्र बदल्छ — जम्मा स्टक र बिक्री बदलिँदैन।",
             )}
           </p>
-          <ul className="mt-3 grid gap-2 lg:grid-cols-2">
+          <ul className="mt-3 grid list-none gap-2 pl-0 lg:grid-cols-2">
             {mismatched.map((row) => {
               const fixes = fixesFor(row);
               return (
@@ -389,123 +473,205 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
         </section>
       ) : null}
 
-      {/* ── Every shoe, one line each ───────────────────────────────── */}
+      {/* ── Every shoe, one line each ───────────────────────────────
+          Every cell a box, bigger type, a totals line — the owner's sample,
+          2026-09-28 — with search, filters, sorting, the shoe's code, and
+          the shoe's own history a press away. */}
       <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">
           {text("Every shoe", "सबै जुत्ता")}
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           {text(
-            "Where each shoe's pairs are, what has sold and how long it lasts. Selling is unchanged — it still draws from the total.",
-            "हरेक जुत्ता कहाँ कति छ, कति बिक्यो र कति दिन पुग्छ। बिक्री उस्तै छ — जम्माबाटै घट्छ।",
+            "Where each shoe's pairs are, what has sold and how long it lasts. Selling is unchanged — it still draws from the total. Press a shoe to see its history.",
+            "हरेक जुत्ता कहाँ कति छ, कति बिक्यो र कति दिन पुग्छ। बिक्री उस्तै छ — जम्माबाटै घट्छ। जुत्ता थिचे त्यसको हिसाब खुल्छ।",
           )}
         </p>
 
-        {/* On a phone, one card per shoe: seven columns do not fit 390px. */}
-        <ul className="mt-4 grid gap-2 sm:hidden">
-          {groups.map((group) => {
+        <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)] sm:items-center">
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className={`${box} h-12 text-base`}
+            placeholder={text("Find a shoe — name or #code", "जुत्ता खोज्नुहोस् — नाम वा #कोड")}
+            aria-label={text("Find a shoe", "जुत्ता खोज्नुहोस्")}
+          />
+          <div className="flex flex-wrap gap-2" role="group" aria-label={text("Show", "देखाउने")}>
+            {SHOE_FILTERS.map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                aria-pressed={shoeFilter === filter.key}
+                onClick={() => setShoeFilter(filter.key)}
+                className={`min-h-10 rounded-lg border px-3 text-sm font-black ${
+                  shoeFilter === filter.key
+                    ? "border-brand-green bg-brand-green text-white"
+                    : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+                }`}
+              >
+                {text(filter.en, filter.ne)} <span className="tabular-nums opacity-80">{countFor(filter.key)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* On a phone: one box per shoe, four equal cells inside. */}
+        <ul className="mt-4 grid list-none gap-2 pl-0 sm:hidden">
+          {shown.map((group) => {
             const extra = extras[group.design];
+            const open = openShoes.has(group.design);
             return (
-              <li key={`card-${group.design}`} className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5">
-                <p className="font-semibold text-brand-green-ink">
-                  {group.design}
+              <li key={`card-${group.design}`} className={`overflow-hidden rounded-xl border-2 ${gapOf(group) ? "border-brand-clay/60" : "border-brand-green-line"} bg-brand-paper`}>
+                <button
+                  type="button"
+                  onClick={() => toggleShoe(group.design)}
+                  aria-expanded={open}
+                  className="flex w-full items-center justify-between gap-2 bg-brand-green px-3 py-2.5 text-left text-white"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-black">{group.design}</span>
+                    <span className="text-xs font-bold opacity-85">
+                      {extra?.code ? `${extra.code} · ` : ""}
+                      {group.sizes ? `${text("Sizes", "साइज")} ${group.sizes}` : ""}
+                    </span>
+                  </span>
                   <OriginTag origin={extra?.origin} text={text} />
-                </p>
-                {group.sizes ? <p className="text-xs font-bold text-brand-muted-soft">{text("Sizes", "साइज")} {group.sizes}</p> : null}
-                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
-                  <span className="font-bold text-brand-gold-ink">🏭 {group.factory}</span>
-                  <span className="font-bold text-brand-green">🛒 {group.shop}</span>
-                  <span className="font-bold text-brand-green-ink">
-                    {text("In stock", "जम्मा")} {group.total}
-                  </span>
-                  <span className="text-brand-muted">
-                    {text("Sold", "बिक्री")} {extra?.sold ?? 0}
-                  </span>
-                </p>
-                <p className="mt-1 flex flex-wrap gap-2">
+                </button>
+                <div className="grid grid-cols-4 text-center">
+                  {[
+                    { en: "🏭 Factory", ne: "🏭 कारखाना", value: group.factory, tone: "text-brand-gold-ink" },
+                    { en: "🛒 Shop", ne: "🛒 पसल", value: group.shop, tone: "text-brand-green" },
+                    { en: "In stock", ne: "जम्मा", value: group.total, tone: "text-brand-green-ink" },
+                    { en: "Sold", ne: "बिक्री", value: extra?.sold ?? 0, tone: "text-brand-green-ink" },
+                  ].map((cell) => (
+                    <div key={cell.en} className="border-r border-t border-brand-green-line px-1 py-2 last:border-r-0">
+                      <span className="block text-[11px] font-bold text-brand-muted">{text(cell.en, cell.ne)}</span>
+                      <span className={`text-xl font-black tabular-nums ${cell.value ? cell.tone : "text-brand-muted-soft"}`}>{cell.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap justify-between gap-2 border-t border-brand-green-line px-3 py-2">
                   <LastsChip extra={extra} text={text} />
                   <PlaceGap group={group} text={text} />
-                </p>
+                </div>
+                {open ? <ShoeHistory group={group} extra={extra} text={text} /> : null}
               </li>
             );
           })}
-          {groups.length === 0 ? (
-            <li className="py-6 text-center text-brand-muted">{text("No ready stock yet.", "अझै तयारी माल छैन।")}</li>
+          {shown.length === 0 ? (
+            <li className="py-6 text-center text-brand-muted">
+              {groups.length === 0 ? text("No ready stock yet.", "अझै तयारी माल छैन।") : text("No shoe matches.", "मिल्ने जुत्ता भेटिएन।")}
+            </li>
           ) : null}
         </ul>
 
         <div className="mt-4 hidden overflow-x-auto sm:block">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[860px] border-separate border-spacing-0 overflow-hidden rounded-xl border-2 border-brand-green-line text-base">
             <thead>
-              <tr className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-                <th className="pb-2 pr-3 text-left">{text("Shoe", "जुत्ता")}</th>
-                <th className="pb-2 pr-3 text-right">🏭 {placeLabel("Factory")}</th>
-                <th className="pb-2 pr-3 text-right">🛒 {placeLabel("Shop")}</th>
-                <th className="pb-2 pr-3 text-right">{text("In stock", "जम्मा")}</th>
-                <th className="pb-2 pr-3 text-right">{text("Sold", "बिक्री")}</th>
-                <th className="pb-2 pr-3 text-left">{text("How long it lasts", "कति दिन पुग्छ")}</th>
-                <th className="pb-2 text-right">{text("Not matching", "नमिलेको")}</th>
+              <tr className="bg-brand-green text-white">
+                {SHOE_COLUMNS.map((column) => (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    aria-sort={sort.key === column.key ? (sort.dir === 1 ? "ascending" : "descending") : undefined}
+                    className={`border-r border-white/20 px-3 py-3 text-sm font-black last:border-r-0 ${column.key === "design" ? "text-left" : "text-center"}`}
+                  >
+                    {column.sortable ? (
+                      <button type="button" onClick={() => sortBy(column.key)} className="inline-flex items-center gap-1 whitespace-nowrap font-black">
+                        {text(column.en, column.ne)}
+                        <span aria-hidden="true" className="text-xs opacity-80">
+                          {sort.key === column.key ? (sort.dir === 1 ? "▲" : "▼") : "↕"}
+                        </span>
+                      </button>
+                    ) : (
+                      text(column.en, column.ne)
+                    )}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {groups.map((group) => {
+              {shown.map((group, index) => {
                 const extra = extras[group.design];
                 const open = openShoes.has(group.design);
+                const gap = gapOf(group);
+                const cell = `border-r border-t border-brand-green-line px-3 py-3 last:border-r-0 ${
+                  gap ? "bg-brand-clay-tint/50" : index % 2 ? "bg-brand-paper-deep" : "bg-brand-paper"
+                }`;
+                const number = (value: number, tone: string) => (
+                  <td className={`${cell} w-24 text-center text-lg font-black tabular-nums ${value ? tone : "font-semibold text-brand-muted-soft"}`}>{value}</td>
+                );
                 return (
                   <Fragment key={group.design}>
-                    <tr className="border-t border-brand-green-line">
-                      <td className="py-2.5 pr-3 font-semibold text-brand-green-ink">
-                        {group.rows.length > 1 ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleShoe(group.design)}
-                            aria-expanded={open}
-                            className="text-left font-semibold text-brand-green-ink"
-                          >
-                            <span aria-hidden="true" className="mr-1 text-brand-muted-soft">{open ? "▾" : "▸"}</span>
-                            {group.design}
-                          </button>
-                        ) : (
-                          group.design
-                        )}
+                    <tr>
+                      <td className={`${cell} min-w-[230px]`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleShoe(group.design)}
+                          aria-expanded={open}
+                          className="text-left"
+                        >
+                          <span aria-hidden="true" className="mr-1 text-sm text-brand-muted-soft">{open ? "▾" : "▸"}</span>
+                          <span className="text-lg font-black text-brand-green-ink underline-offset-4 hover:underline">{group.design}</span>
+                        </button>
                         <OriginTag origin={extra?.origin} text={text} />
-                        {group.sizes ? (
-                          <span className="block text-xs font-bold text-brand-muted-soft">{text("Sizes", "साइज")} {group.sizes}</span>
-                        ) : null}
+                        <span className="block text-sm font-bold text-brand-muted">
+                          {extra?.code ? <span className="font-mono">{extra.code}</span> : null}
+                          {extra?.code && group.sizes ? " · " : ""}
+                          {group.sizes ? `${text("Sizes", "साइज")} ${group.sizes}` : ""}
+                        </span>
                       </td>
-                      <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-gold-ink">
-                        {group.factory || <span className="text-brand-muted-soft">0</span>}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-green">
-                        {group.shop || <span className="text-brand-muted-soft">0</span>}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right font-black tabular-nums text-brand-green-ink">{group.total}</td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-brand-muted">{extra?.sold ?? 0}</td>
-                      <td className="py-2.5 pr-3"><LastsChip extra={extra} text={text} /></td>
-                      <td className="py-2.5 text-right tabular-nums"><PlaceGap group={group} text={text} /></td>
+                      {number(group.factory, "text-brand-gold-ink")}
+                      {number(group.shop, "text-brand-green")}
+                      <td className={`${cell} w-24 text-center text-xl font-black tabular-nums text-brand-green-ink`}>{group.total}</td>
+                      {number(extra?.sold ?? 0, "text-brand-green-ink")}
+                      <td className={`${cell} w-44 text-center`}><LastsChip extra={extra} text={text} /></td>
+                      <td className={`${cell} w-40 text-center`}><PlaceGap group={group} text={text} /></td>
                     </tr>
-                    {open
-                      ? group.rows.map((row) => (
-                          <tr key={`${row.design}::${row.sizeRun}`} className="text-xs text-brand-muted">
-                            <td className="py-1.5 pl-6 pr-3">{text("Size", "साइज")} {row.sizeRun}</td>
-                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.factory}</td>
-                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.shop}</td>
-                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.total}</td>
-                            <td colSpan={3} />
-                          </tr>
-                        ))
-                      : null}
+                    {open ? (
+                      <tr>
+                        <td colSpan={7} className="border-t border-brand-green-line bg-brand-paper-deep px-4 py-3">
+                          <ShoeHistory group={group} extra={extra} text={text} />
+                        </td>
+                      </tr>
+                    ) : null}
                   </Fragment>
                 );
               })}
-              {groups.length === 0 ? (
+              {shown.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-brand-muted">
-                    {text("No ready stock yet.", "अझै तयारी माल छैन।")}
+                  <td colSpan={7} className="border-t border-brand-green-line py-6 text-center text-brand-muted">
+                    {groups.length === 0 ? text("No ready stock yet.", "अझै तयारी माल छैन।") : text("No shoe matches.", "मिल्ने जुत्ता भेटिएन।")}
                   </td>
                 </tr>
               ) : null}
             </tbody>
+            {shown.length > 0 ? (
+              <tfoot>
+                <tr className="bg-brand-green-wash font-black text-brand-green-ink">
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3">
+                    {text(`Total · ${shown.length} shoes`, `जम्मा · ${shown.length} जुत्ता`)}
+                  </td>
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3 text-center text-lg tabular-nums text-brand-gold-ink">{shownTotals.factory}</td>
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3 text-center text-lg tabular-nums text-brand-green">{shownTotals.shop}</td>
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3 text-center text-xl tabular-nums">{shownTotals.total}</td>
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3 text-center text-lg tabular-nums">{shownTotals.sold}</td>
+                  <td className="border-r border-t-2 border-brand-green-line px-3 py-3" />
+                  <td className="border-t-2 border-brand-green-line px-3 py-3 text-center">
+                    {shownTotals.gaps ? (
+                      <a href="#put-right" className="inline-block min-w-32 rounded-lg border border-brand-clay bg-brand-clay-tint px-2 py-1 text-sm font-black text-brand-clay">
+                        {text(`${shownTotals.gaps} to put right`, `${shownTotals.gaps} मिलाउनुपर्ने`)}
+                      </a>
+                    ) : (
+                      <span className="inline-block min-w-32 rounded-lg border border-brand-green bg-brand-green-wash px-2 py-1 text-sm font-black text-brand-green">
+                        {text("✓ All match", "✓ सबै मिलेको")}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
+            ) : null}
           </table>
         </div>
 
@@ -859,6 +1025,8 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
 }
 
 /** Rows of one shoe (a row per size, or one "Mixed" row) as one line. */
+type ShoeGroup = ReturnType<typeof groupByShoe>[number];
+
 function groupByShoe(rows: StockAtPlace[]) {
   const byShoe = new Map<string, StockAtPlace[]>();
   for (const row of rows) byShoe.set(row.design, [...(byShoe.get(row.design) ?? []), row]);
@@ -874,9 +1042,12 @@ function groupByShoe(rows: StockAtPlace[]) {
   }));
 }
 
-/** "25–30" for a run of single sizes, the run as written for one row, "" for Mixed. */
+/** "25–30" for sizes in a row ("36, 37, 38, 39, 40, 41" too), "" for Mixed. */
 function sizesLabel(runs: string[]) {
-  const named = runs.filter((run) => run && run !== "Mixed");
+  const named = runs
+    .filter((run) => run && run !== "Mixed")
+    .flatMap((run) => run.split(/[,\s]+/))
+    .filter(Boolean);
   if (named.length === 0) return "";
   if (named.length === 1) return named[0];
   const numbers = named.map(Number);
@@ -898,7 +1069,7 @@ function OriginTag({ origin, text }: { origin: ShoeExtra["origin"] | undefined; 
 }
 
 function LastsChip({ extra, text }: { extra: ShoeExtra | undefined; text: Text }) {
-  if (!extra?.lasts) return <span className="text-xs text-brand-muted-soft">—</span>;
+  if (!extra?.lasts) return <span className="inline-block min-w-32 rounded-lg bg-brand-mist px-2 py-1 text-sm font-black text-brand-muted">—</span>;
   const tone: Record<NonNullable<ShoeExtra["lasts"]>["status"], string> = {
     out: "bg-brand-clay text-white",
     urgent: "bg-brand-clay-mist text-brand-clay",
@@ -907,19 +1078,68 @@ function LastsChip({ extra, text }: { extra: ShoeExtra | undefined; text: Text }
     unknown: "bg-brand-mist text-brand-muted",
   };
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black ${tone[extra.lasts.status]}`}>
+    <span className={`inline-block min-w-32 rounded-lg px-2 py-1 text-center text-sm font-black ${tone[extra.lasts.status]}`}>
       {text(extra.lasts.en, extra.lasts.ne)}
     </span>
   );
 }
 
-function PlaceGap({ group, text }: { group: ReturnType<typeof groupByShoe>[number]; text: Text }) {
-  if (group.noPlace === 0 && group.tooMany === 0) return <span className="text-brand-muted-soft">—</span>;
+function PlaceGap({ group, text }: { group: ShoeGroup; text: Text }) {
+  if (group.noPlace === 0 && group.tooMany === 0) {
+    return (
+      <span className="inline-block min-w-32 rounded-lg border border-brand-green/40 bg-brand-green-wash px-2 py-1 text-center text-sm font-black text-brand-green">
+        {text("✓ Matches", "✓ मिलेको")}
+      </span>
+    );
+  }
   return (
-    <a href="#put-right" className="font-bold text-brand-clay underline underline-offset-2">
+    <a href="#put-right" className="inline-block min-w-32 rounded-lg border border-brand-clay/50 bg-brand-clay-tint px-2 py-1 text-center text-sm font-black text-brand-clay">
       {group.noPlace > 0 ? text(`${group.noPlace} no place`, `${group.noPlace} ठाउँ छैन`) : null}
       {group.noPlace > 0 && group.tooMany > 0 ? " · " : null}
       {group.tooMany > 0 ? text(`${group.tooMany} too many`, `${group.tooMany} बढी`) : null}
     </a>
+  );
+}
+
+/** Pressing a shoe: its sizes and where each is, then what happened to it lately. */
+function ShoeHistory({ group, extra, text }: { group: ShoeGroup; extra: ShoeExtra | undefined; text: Text }) {
+  const sized = group.rows.length > 1;
+  return (
+    <div className="grid gap-3 px-3 py-3 sm:px-0 sm:py-0 lg:grid-cols-2">
+      {sized ? (
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.1em] text-brand-muted">{text("Size by size", "साइज अनुसार")}</p>
+          <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
+            {group.rows.map((row) => (
+              <div key={row.sizeRun} className="rounded-lg border border-brand-green-line bg-brand-paper px-2 py-1.5 text-center">
+                <span className="block text-xs font-bold text-brand-muted">{text("Size", "साइज")} {row.sizeRun}</span>
+                <span className="text-lg font-black tabular-nums text-brand-green-ink">{row.total}</span>
+                <span className="block text-[11px] tabular-nums text-brand-muted">🏭 {row.factory} · 🛒 {row.shop}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className={sized ? "" : "lg:col-span-2"}>
+        <p className="text-xs font-black uppercase tracking-[0.1em] text-brand-muted">{text("Lately", "पछिल्लो")}</p>
+        {extra?.history?.length ? (
+          <ul className="mt-2 grid gap-1">
+            {extra.history.map((entry, index) => (
+              <li key={index} className="flex justify-between gap-3 rounded-lg border border-brand-green-line bg-brand-paper px-3 py-1.5 text-sm">
+                <span>
+                  <span className="text-brand-muted tabular-nums">{entry.date}</span> · {text(entry.en, entry.ne)}
+                </span>
+                <b className={`tabular-nums ${entry.sign < 0 ? "text-brand-clay" : "text-brand-green"}`}>
+                  {entry.sign > 0 ? "+" : entry.sign < 0 ? "−" : ""}
+                  {entry.pairs}
+                </b>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-brand-muted">{text("Nothing recorded yet.", "अहिलेसम्म केही टिपिएको छैन।")}</p>
+        )}
+      </div>
+    </div>
   );
 }

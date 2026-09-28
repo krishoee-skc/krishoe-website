@@ -43,7 +43,7 @@ describe("3. one shoe, one line", () => {
     const places = await readFile(PLACES, "utf8");
     expect(page).toContain("extras={loaded.extras}");
     expect(page).not.toContain("<StockOutlookPanel");
-    expect(places).toContain('text("How long it lasts", "कति दिन पुग्छ")');
+    expect(places).toContain('{ key: "lasts", en: "How long it lasts", ne: "कति दिन पुग्छ", sortable: false }');
     expect(places).toContain("<OriginTag origin={extra?.origin} text={text} />");
   });
 
@@ -59,5 +59,31 @@ describe("4. recent movement", () => {
     expect(page).toContain("function groupMovements(movements: StockMovement[])");
     expect(page).toContain("const key = `${date}::${movement.design}::${movement.type}`;");
     expect(page).not.toContain("{movement.channel} · Size {movement.sizeRun}");
+  });
+});
+
+describe("the list in boxes, the owner's second sample (2026-09-28)", () => {
+  it("draws every cell as a box, bigger, with a totals line", async () => {
+    const places = await readFile(PLACES, "utf8");
+    expect(places).toContain("border-separate border-spacing-0 overflow-hidden rounded-xl border-2");
+    expect(places).toContain("<tfoot>");
+    expect(places).toContain('text("✓ Matches", "✓ मिलेको")');
+  });
+
+  it("finds a shoe by name or code, filters, sorts, and opens its history", async () => {
+    const places = await readFile(PLACES, "utf8");
+    expect(places).toContain('placeholder={text("Find a shoe — name or #code", "जुत्ता खोज्नुहोस् — नाम वा #कोड")}');
+    expect(places).toContain("sameCode(code, wanted)");
+    expect(places).toContain("SHOE_FILTERS.map((filter)");
+    expect(places).toContain("function sortBy(key");
+    expect(places).toContain("aria-sort=");
+    expect(places).toContain("function ShoeHistory(");
+    // What needs a look comes first.
+    expect(places).toContain('useState<{ key: SortKey; dir: 1 | -1 }>({ key: "attention", dir: 1 })');
+  });
+
+  it("says 36–41 for a run written out size by size", async () => {
+    const places = await readFile(PLACES, "utf8");
+    expect(places).toContain(".flatMap((run) => run.split(/[,\\s]+/))");
   });
 });

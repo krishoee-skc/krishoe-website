@@ -90,7 +90,7 @@ describe("the posting and the screen", () => {
 
   it("fits a phone: cards there, the table from sm up", async () => {
     const screen = await readFile("app/admin/stock/WherePairsAre.tsx", "utf8");
-    expect(screen).toContain('<ul className="mt-4 grid gap-2 sm:hidden">');
+    expect(screen).toContain('<ul className="mt-4 grid list-none gap-2 pl-0 sm:hidden">');
     expect(screen).toContain('<div className="mt-4 hidden overflow-x-auto sm:block">');
     expect(screen).toContain("grid-cols-[minmax(0,1fr)]");
   });
