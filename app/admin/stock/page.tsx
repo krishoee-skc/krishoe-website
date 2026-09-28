@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import PrintButton from "@/components/admin/PrintButton";
 import PrintedOn from "@/components/admin/PrintedOn";
 import { businessContact } from "@/lib/seo";
@@ -11,11 +11,11 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import { buildStockOverview, catalogStockWarnings, type ReadyStockOverviewRow, type ReadyStockOrigin } from "@/lib/stock-overview";
 import { findDesignDrift, type DesignRecord } from "@/lib/design-drift";
-import { outlookAdvice, stockOutlook, type StockOutlook } from "@/lib/stock-forecast";
+import { outlookAdvice, stockOutlook } from "@/lib/stock-forecast";
 import { getStockByPlace, getStockTransfers } from "@/lib/stock-transfers";
 import { getAdminSession } from "@/lib/admin-auth";
 import { NEPAL_TIME_ZONE, toBikramSambatNumeric } from "@/lib/bikram-sambat";
-import WherePairsAre from "@/app/admin/stock/WherePairsAre";
+import WherePairsAre, { type ShoeExtra } from "@/app/admin/stock/WherePairsAre";
 
 export const metadata = { title: "Stock Control | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -129,108 +129,42 @@ function movementTone(type: StockMovement["type"]) {
   return "bg-brand-mist text-brand-muted-deep";
 }
 
+/** A movement's type in the owner's words, with the sign it moves stock by. */
+const movementWords: Record<StockMovement["type"], { en: string; ne: string; sign: 1 | -1 | 0 }> = {
+  "Production In": { en: "made", ne: "बन्यो", sign: 1 },
+  "Purchase In": { en: "bought in", ne: "किनेर आयो", sign: 1 },
+  "Return In": { en: "returned", ne: "फिर्ता आयो", sign: 1 },
+  "Sale Out": { en: "sold", ne: "बिक्री", sign: -1 },
+  "Market Sale": { en: "sold at a market", ne: "बजारमा बिक्री", sign: -1 },
+  "Dispatch Out": { en: "sent out", ne: "पठाइयो", sign: -1 },
+  "Damage Out": { en: "written off", ne: "बिग्रिएर हटाइयो", sign: -1 },
+  Adjustment: { en: "adjusted", ne: "मिलाइयो", sign: 0 },
+};
+
 /**
- * When each design runs out, for the ones where that can honestly be said.
- *
- * The rows that cannot be forecast are shown too, quietly, saying what they are
- * waiting for. Hiding them would leave the owner wondering whether a design was
- * fine or simply missing, and "no sales yet" is itself worth seeing on a shelf
- * holding sixty pairs.
+ * The recent movements, one line per shoe, per kind, per day — the owner's
+ * sample, 2026-09-28: sixteen "Sale Out 1 pairs" lines were one shoe selling
+ * through a day. The channel is left off: "Wholesale" on a bought-in shoe read
+ * as a wholesale sale.
  */
-function StockOutlookPanel({ rows }: { rows: StockOutlook[] }) {
-  if (rows.length === 0) return null;
-
-  const known = rows.filter((row) => row.status !== "unknown");
-  const waiting = rows.filter((row) => row.status === "unknown");
-
-  const tone: Record<StockOutlook["status"], string> = {
-    out: "bg-brand-clay text-white",
-    urgent: "bg-brand-clay-mist text-brand-clay",
-    soon: "bg-amber-100 text-amber-900",
-    healthy: "bg-emerald-100 text-emerald-900",
-    unknown: "bg-brand-mist text-brand-muted",
-  };
-
-  return (
-    <section className="mt-6 rounded-2xl border border-brand-green/20 bg-brand-paper p-4 shadow-sm sm:p-5">
-      <h2 className="text-lg font-black text-brand-green-ink">
-        <T en="How many days will it last" ne="कति दिन पुग्छ" />
-      </h2>
-      <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
-        <T
-          en="Worked out from the rate of sale."
-          ne="बिक्रीको गतिबाट गनिएको।"
-        />{" "}
-        <strong className="text-brand-green-ink">
-          <T
-            en="It refuses to guess until there are enough sales"
-            ne="पुग्दो बिक्री नभएसम्म अनुमान गर्दैन"
-          />
-        </strong>{" "}
-        <T
-          en="— a wrong number makes the workshop cut leather nobody ordered."
-          ne="— गलत अंकले नचाहिने माल बनाउन लगाउँछ।"
-        />
-      </p>
-
-      {known.length > 0 ? (
-        <div className="mt-4 grid gap-2">
-          {known.map((row) => (
-            <div
-              key={row.design}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-paper-deep px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-black text-brand-green-ink">{row.design}</p>
-                <p className="mt-0.5 text-xs font-semibold text-brand-muted">
-                  <T
-                    en={`${row.onHand} pairs left · ${row.soldInWindow} sold in ${row.historyDays} days${
-                      row.dailyRate ? ` · ${row.dailyRate} a day` : ""
-                    }`}
-                    ne={`${row.onHand} जोडी बाँकी · ${row.historyDays} दिनमा ${row.soldInWindow} बिक्री${
-                      row.dailyRate ? ` · दिनको ${row.dailyRate}` : ""
-                    }`}
-                  />
-                </p>
-              </div>
-              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${tone[row.status]}`}>
-                <T en={outlookAdvice(row).en} ne={outlookAdvice(row).ne} />
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-4 rounded-xl border border-dashed border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-          <T
-            en="No design has a measured rate yet — they start showing up here as sales build."
-            ne="अझै कुनै design को गति नापिएको छैन — बिक्री बढेपछि यहीँ देखिन थाल्छ।"
-          />
-        </p>
-      )}
-
-      {waiting.length > 0 ? (
-        <details className="mt-3 rounded-xl bg-brand-paper-deep px-4 py-3">
-          <summary className="cursor-pointer text-sm font-bold text-brand-green-ink">
-            <T
-              en={`${waiting.length} designs — cannot be said yet`}
-              ne={`${waiting.length} design — अझै भन्न सकिँदैन`}
-            />
-          </summary>
-          <div className="mt-3 grid gap-1.5">
-            {waiting.map((row) => (
-              <p key={row.design} className="text-sm text-brand-muted">
-                <strong className="text-brand-green-ink">{row.design}</strong> ·{" "}
-                <T
-                  en={`${row.onHand} pairs · ${row.waitingFor.en}`}
-                  ne={`${row.onHand} जोडी · ${row.waitingFor.ne}`}
-                />
-              </p>
-            ))}
-          </div>
-        </details>
-      ) : null}
-    </section>
-  );
+function groupMovements(movements: StockMovement[]) {
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE });
+  const groups: Array<{ key: string; date: string; design: string; type: StockMovement["type"]; pairs: number; times: number; sizes: Set<string> }> = [];
+  const byKey = new Map<string, (typeof groups)[number]>();
+  for (const movement of movements) {
+    const date = movement.createdAt ? day.format(new Date(movement.createdAt)) : "";
+    const key = `${date}::${movement.design}::${movement.type}`;
+    let group = byKey.get(key);
+    if (!group) {
+      group = { key, date, design: movement.design, type: movement.type, pairs: 0, times: 0, sizes: new Set() };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.pairs += movement.pairs;
+    group.times += 1;
+    if (movement.sizeRun && movement.sizeRun !== "Mixed") group.sizes.add(movement.sizeRun);
+  }
+  return groups;
 }
 
 async function loadStock() {
@@ -253,8 +187,38 @@ async function loadStock() {
       pairsByDesign.set(row.design, (pairsByDesign.get(row.design) ?? 0) + row.stockPairs);
     }
 
+    const extras: Record<string, ShoeExtra> = {};
+    const originOf: Record<string, ShoeExtra["origin"]> = {
+      Manufactured: "Made",
+      Purchased: "Bought",
+      Mixed: "Both",
+      "Opening / Adjustment": "Other",
+    };
+    for (const row of [...overview.manufactured, ...overview.purchased, ...overview.mixed, ...overview.opening]) {
+      const origin = originOf[row.origin] ?? "Other";
+      const extra = extras[row.design] ?? { origin, sold: 0, lasts: null };
+      if (extra.origin !== origin && origin !== "Other") extra.origin = extra.origin === "Other" ? origin : "Both";
+      extra.sold += row.soldPairs;
+      extras[row.design] = extra;
+    }
+    const outlook = stockOutlook(
+      [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
+      operations.stockMovements,
+    );
+    for (const row of outlook) {
+      const extra = extras[row.design] ?? { origin: "Other", sold: 0, lasts: null };
+      extra.lasts =
+        row.status !== "unknown"
+          ? { status: row.status, ...outlookAdvice(row) }
+          : row.soldInWindow === 0
+            ? { status: "unknown", en: "No sales yet", ne: "बिक्री छैन" }
+            : { status: "unknown", en: "Can't tell yet", ne: "भन्न मिल्दैन" };
+      extras[row.design] = extra;
+    }
+
     return {
       overview,
+      extras,
       byPlace,
       transfers,
       // Products the shop would sell that trace to no ready-stock pool — the
@@ -276,21 +240,17 @@ async function loadStock() {
           pairs: row.stockPairs,
         })),
       ]),
-      outlook: stockOutlook(
-        [...pairsByDesign].map(([design, pairs]) => ({ design, pairs })),
-        operations.stockMovements,
-      ),
       error: "",
     };
   } catch (error) {
     reportError("load unified stock control", error);
     return {
       overview: null,
+      extras: {} as Record<string, ShoeExtra>,
       byPlace: [],
       transfers: [],
       catalogWarnings: [],
       designDrift: [],
-      outlook: [],
       error: saveFailureMessage(error, "Could not load stock control."),
     };
   }
@@ -303,6 +263,10 @@ export default async function AdminStockPage() {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE }).format(new Date());
   if (!loaded.overview) return <LoadFailure what="stock control" message={loaded.error} retryHref="/admin/stock" />;
   const { summary, rawMaterials, manufactured, purchased, mixed, opening, recentMovements } = loaded.overview;
+  const atFactory = loaded.byPlace.reduce((sum, row) => sum + row.factory, 0);
+  const atShop = loaded.byPlace.reduce((sum, row) => sum + row.shop, 0);
+  const toPutRight = loaded.byPlace.filter((row) => row.unplaced !== 0).length;
+  const movementGroups = groupMovements(recentMovements);
 
   return (
     // `report-print` carries the table header onto every sheet and stops rows
@@ -345,12 +309,23 @@ export default async function AdminStockPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {/* One number leads — the pairs that can be sold. The next two are
-            only where those pairs came from, and say so. */}
-        <StatCard label={<T en="Pairs ready to sell" ne="बेच्न मिल्ने जोडी" />} value={summary.readyPairs} detail={<T en="Every ready pair, at the factory and the shop together." ne="कारखाना र पसल दुवै मिलाएर, सबै तयार जोडी।" />} tone="good" size="lead" />
-        <StatCard label={<T en="…of them made here" ne="…जसमध्ये आफैँ बनाएको" />} value={summary.manufacturedPairs} detail={<T en="Came in from the factory's own work." ne="कारखानाको आफ्नै कामबाट आएको।" />} />
-        <StatCard label={<T en="…of them bought in" ne="…जसमध्ये किनेर ल्याएको" />} value={summary.purchasedPairs} detail={<T en="Came in on a supplier's bill." ne="साहुको बिलबाट आएको।" />} />
-        <StatCard label={<T en="Raw material items" ne="कच्चा मालका किसिम" />} value={summary.rawMaterialItems} detail={<T en={`${summary.rawMaterialReorderItems} running low.`} ne={`${summary.rawMaterialReorderItems} वटा सकिन लागेको।`} />} tone={summary.rawMaterialReorderItems > 0 ? "warn" : "good"} />
+        {/* One number leads — the pairs that can be sold — then where they
+            are, then how many shoes need putting right. The owner's sample:
+            factory 144 and shop 60 do not make 215, and the old page left the
+            reader to work out why from two paragraphs. */}
+        <StatCard label={<T en="Pairs ready to sell" ne="बेच्न मिल्ने जोडी" />} value={summary.readyPairs} detail={<T en={`${summary.manufacturedPairs} made here · ${summary.purchasedPairs} bought in`} ne={`${summary.manufacturedPairs} आफैँ बनाएको · ${summary.purchasedPairs} किनेको`} />} tone="good" size="lead" />
+        <StatCard label={<T en="🏭 At the factory" ne="🏭 कारखानामा" />} value={atFactory} detail={<T en="Counted at the factory." ne="कारखानामा गनिएको।" />} />
+        <StatCard label={<T en="🛒 At the shop" ne="🛒 पसलमा" />} value={atShop} detail={<T en="Counted at the shop." ne="पसलमा गनिएको।" />} />
+        {toPutRight > 0 ? (
+          <a href="#put-right" className="block rounded-2xl transition hover:-translate-y-0.5">
+            <StatCard label={<T en="To put right" ne="मिलाउनुपर्ने" />} value={toPutRight} detail={<T en="Where the pairs sit does not match the stock. See below ↓" ne="ठाउँको गन्ती स्टकसँग मिलेन। तल हेर्नुहोस् ↓" />} tone="warn" />
+          </a>
+        ) : (
+          <StatCard label={<T en="To put right" ne="मिलाउनुपर्ने" />} value={0} detail={<T en="Every pair has its place." ne="सबै जोडीको ठाउँ मिलेको छ।" />} tone="good" />
+        )}
+        {summary.rawMaterialReorderItems > 0 ? (
+          <StatCard label={<T en="Material running low" ne="सकिन लागेको कच्चा माल" />} value={summary.rawMaterialReorderItems} detail={<T en={`Of ${summary.rawMaterialItems} materials.`} ne={`${summary.rawMaterialItems} वटा मालमध्ये।`} />} tone="warn" />
+        ) : null}
         {summary.damagedPairs > 0 ? (
           <StatCard label={<T en="Written off" ne="बिग्रिएर हटाएको" />} value={summary.damagedPairs} detail={<T en="Damaged or lost — not a sale." ne="बिग्रिएको वा हराएको — बिक्री होइन।" />} tone="warn" />
         ) : null}
@@ -358,13 +333,12 @@ export default async function AdminStockPage() {
 
       <WherePairsAre
         rows={loaded.byPlace}
+        extras={loaded.extras}
         transfers={loaded.transfers}
         staffName={session?.name || session?.email || "Admin"}
         today={today}
         todayBs={toBikramSambatNumeric(today)}
       />
-
-      <StockOutlookPanel rows={loaded.outlook} />
 
       {/* The website's number, as a question the owner can open, not a third
           figure shouting in yellow beside the first two. */}
@@ -491,28 +465,70 @@ export default async function AdminStockPage() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-black text-brand-green-ink">
-                <T en="Raw material store" ne="कच्चा पदार्थको भण्डार" />
-              </h2>
-              <p className="mt-1 text-sm text-brand-muted">
-                <T
-                  en="On hand = opening + received − used."
-                  ne="बाँकी = सुरुको + भित्रिएको − खर्च भएको।"
-                />
-              </p>
-            </div>
-            <Link href="/admin/operations" className="text-sm font-black text-brand-green underline"><T en="Manage materials" ne="कच्चा पदार्थ मिलाउने" /></Link>
-          </div>
-          {rawMaterials.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-              <T en="No raw materials recorded yet." ne="कच्चा पदार्थ अझै टिपिएको छैन।" />
+      <section className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="Recent stock movement" ne="पछिल्लो चलखेल" />
+        </h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          <T en="One line per shoe, per kind, per day." ne="एक दिनमा एउटा जुत्ताको एउटा लाइन।" />
+        </p>
+        <div className="mt-4 grid max-h-[420px] gap-1.5 overflow-auto pr-1">
+          {movementGroups.length === 0 ? (
+            <p className="rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
+              <T en="No stock movement recorded." ne="कुनै चलखेल टिपिएको छैन।" />
             </p>
           ) : (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            movementGroups.map((group, index) => {
+              const words = movementWords[group.type] ?? { en: group.type, ne: group.type, sign: 0 };
+              const newDay = index === 0 || movementGroups[index - 1].date !== group.date;
+              const sizes = [...group.sizes];
+              return (
+                <Fragment key={group.key}>
+                  {newDay && group.date ? (
+                    <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft first:mt-0">
+                      {toBikramSambatNumeric(group.date)}
+                    </p>
+                  ) : null}
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-brand-green-line bg-brand-paper-deep px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-brand-green-ink">
+                        {group.design} · <T en={words.en} ne={words.ne} />
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        <T en={`${group.times} time(s)`} ne={`${group.times} पटक`} />
+                        {sizes.length ? ` · ${sizes.length > 3 ? `${sizes.length} sizes` : sizes.join(", ")}` : ""}
+                      </p>
+                    </div>
+                    <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-sm font-black tabular-nums ${movementTone(group.type)}`}>
+                      {words.sign > 0 ? "+" : words.sign < 0 ? "−" : ""}
+                      {group.pairs}
+                    </span>
+                  </div>
+                </Fragment>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="Raw material store" ne="कच्चा पदार्थको भण्डार" />
+          </h2>
+          <Link href="/admin/operations" className="text-sm font-black text-brand-green underline"><T en="Manage materials" ne="कच्चा पदार्थ मिलाउने" /></Link>
+        </div>
+        {rawMaterials.length === 0 ? (
+          <p className="mt-2 text-sm text-brand-muted">
+            <T en="No raw material yet — it comes in on a purchase bill." ne="कच्चा माल अहिले छैन — खरिद बिलबाट चढाउनुहोस्।" />{" "}
+            <Link href="/admin/purchasing" className="font-bold text-brand-green underline"><T en="Purchase bill" ne="खरिद बिल" /></Link>
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-brand-muted">
+              <T en="On hand = opening + received − used." ne="बाँकी = सुरुको + भित्रिएको − खर्च भएको।" />
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {rawMaterials.map((material) => (
                 <div key={material.id} className={`rounded-xl border p-4 ${material.needsReorder ? "border-rose-200 bg-rose-50" : "border-brand-green-line bg-brand-paper-deep"}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -526,37 +542,20 @@ export default async function AdminStockPage() {
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </>
+        )}
+      </section>
 
-        <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
-          <h2 className="text-lg font-black text-brand-green-ink">Recent stock movement</h2>
-          <p className="mt-1 text-sm text-brand-muted">The audit trail behind every ready-stock change.</p>
-          <div className="mt-4 grid max-h-[420px] gap-2 overflow-auto pr-1">
-            {recentMovements.length === 0 ? <p className="rounded-xl bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">No stock movement recorded.</p> : recentMovements.map((movement) => (
-              <div key={movement.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-brand-green-ink">{movement.design}</p>
-                    <p className="mt-1 text-xs text-brand-muted">{movement.channel} · Size {movement.sizeRun}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-black ${movementTone(movement.type)}`}>{movement.type}</span>
-                    <p className="mt-1 text-sm font-black text-brand-green-ink">{movement.pairs} pairs</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <div className="mt-6 grid gap-4">
-        <ReadyStockSection title="KRISHOE manufactured stock" origin="Manufactured" rows={manufactured} />
-        <ReadyStockSection title="Purchased ready goods for resale" origin="Purchased" rows={purchased} />
-        {mixed.length > 0 ? <ReadyStockSection title="Mixed-source designs" origin="Mixed" rows={mixed} /> : null}
-        {opening.length > 0 ? <ReadyStockSection title="Opening or adjusted stock" origin="Opening / Adjustment" rows={opening} /> : null}
-      </div>
+      {/* Only when where-the-pairs-are could not load: then these are the one
+          list of ready stock the page can still show. */}
+      {loaded.byPlace.length === 0 ? (
+        <div className="mt-6 grid gap-4">
+          <ReadyStockSection title="KRISHOE manufactured stock" origin="Manufactured" rows={manufactured} />
+          <ReadyStockSection title="Purchased ready goods for resale" origin="Purchased" rows={purchased} />
+          {mixed.length > 0 ? <ReadyStockSection title="Mixed-source designs" origin="Mixed" rows={mixed} /> : null}
+          {opening.length > 0 ? <ReadyStockSection title="Opening or adjusted stock" origin="Opening / Adjustment" rows={opening} /> : null}
+        </div>
+      ) : null}
     </section>
   );
 }

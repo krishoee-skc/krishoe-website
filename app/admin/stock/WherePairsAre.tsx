@@ -1,7 +1,7 @@
 "use client";
 
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -13,8 +13,29 @@ import {
 } from "@/app/admin/stock/actions";
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 
+/** What the stock page knows about a shoe beyond where its pairs are. */
+export type ShoeExtra = {
+  origin: "Made" | "Bought" | "Both" | "Other";
+  sold: number;
+  /** How long it lasts, already worded; status picks the colour. */
+  lasts: { status: "out" | "urgent" | "soon" | "healthy" | "unknown"; en: string; ne: string } | null;
+};
+
+type Fix = {
+  key: string;
+  row: StockAtPlace;
+  location: "Factory" | "Shop";
+  pairs: number;
+  en: string;
+  ne: string;
+};
+
+type Text = (en: string, ne: string) => string;
+
 type Props = {
   rows: StockAtPlace[];
+  /** By shoe name: made or bought, pairs sold, how long it lasts. */
+  extras: Record<string, ShoeExtra>;
   transfers: StockTransfer[];
   /** Who is signed in, so the challan says who sent it without being asked. */
   staffName: string;
@@ -39,7 +60,7 @@ function emptyLine(key: number): Line {
  * pool selling reads; this says how that pool is split between the two places,
  * and when the two disagree it says so rather than picking a favourite.
  */
-export default function WherePairsAre({ rows, transfers, staffName, today, todayBs }: Props) {
+export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs }: Props) {
   const { text } = useLanguage();
   const router = useRouter();
 
@@ -60,6 +81,14 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
   const [countPairs, setCountPairs] = useState("");
   const [countState, setCountState] = useState<ActionState | null>(null);
   const [counting, startCounting] = useTransition();
+  const countBox = useRef<HTMLDivElement>(null);
+  const countPairsInput = useRef<HTMLInputElement>(null);
+
+  // The one-press fixes on a shoe to put right, each asked "Sure?" first.
+  const [confirmFix, setConfirmFix] = useState<string | null>(null);
+  const [fixState, setFixState] = useState<ActionState | null>(null);
+  const [fixing, startFixing] = useTransition();
+  const [openShoes, setOpenShoes] = useState<Set<string>>(() => new Set());
 
   const to = from === "Factory" ? "Shop" : "Factory";
 
@@ -209,68 +238,282 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
   const placeLabel = (place: "Factory" | "Shop") =>
     place === "Factory" ? text("Factory", "कारखाना") : text("Shop", "पसल");
 
+  /** One shoe, one line: a shoe posted size by size is several rows underneath. */
+  const groups = useMemo(() => groupByShoe(rows), [rows]);
+  const mismatched = rows.filter((row) => row.unplaced !== 0);
+
+  function rowLabel(row: StockAtPlace) {
+    const sized = rows.filter((other) => other.design === row.design).length > 1;
+    return sized && row.sizeRun && row.sizeRun !== "Mixed"
+      ? `${row.design} · ${text("size", "साइज")} ${row.sizeRun}`
+      : row.design;
+  }
+
+  /** The count box, filled in for this row, and the cursor put in it. */
+  function countThis(row: StockAtPlace) {
+    setCountKey(`${row.design}::${row.sizeRun}`);
+    setCountPlace(row.shop > 0 && row.factory === 0 ? "Shop" : "Factory");
+    setCountPairs("");
+    countBox.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => countPairsInput.current?.focus(), 350);
+  }
+
+  /** The one-press fixes a mismatch offers, worked out from the row itself. */
+  function fixesFor(row: StockAtPlace): Fix[] {
+    const key = `${row.design}::${row.sizeRun}`;
+    if (row.unplaced > 0) {
+      return [
+        { key: `${key}::F`, row, location: "Factory", pairs: row.factory + row.unplaced, en: `Put ${row.unplaced} at the factory`, ne: `${row.unplaced} कारखानामा राख्ने` },
+        { key: `${key}::S`, row, location: "Shop", pairs: row.shop + row.unplaced, en: `Put ${row.unplaced} at the shop`, ne: `${row.unplaced} पसलमा राख्ने` },
+      ];
+    }
+    const over = -row.unplaced;
+    const fixes: Fix[] = [];
+    if (row.shop >= over) {
+      fixes.push({ key: `${key}::S`, row, location: "Shop", pairs: row.shop - over, en: `Make the shop ${row.shop - over}`, ne: `पसल ${row.shop - over} बनाउने` });
+    }
+    if (row.factory >= over) {
+      fixes.push({ key: `${key}::F`, row, location: "Factory", pairs: row.factory - over, en: `Make the factory ${row.factory - over}`, ne: `कारखाना ${row.factory - over} बनाउने` });
+    }
+    return fixes;
+  }
+
+  function applyFix(fix: Fix) {
+    const formData = new FormData();
+    formData.set("design", fix.row.design);
+    formData.set("sizeRun", fix.row.sizeRun || "Mixed");
+    formData.set("location", fix.location);
+    formData.set("pairs", String(fix.pairs));
+    startFixing(async () => {
+      const result = await setPlaceCountAction(null, formData);
+      setFixState(result);
+      setConfirmFix(null);
+      if (result.ok) router.refresh();
+    });
+  }
+
+  function toggleShoe(design: string) {
+    setOpenShoes((current) => {
+      const next = new Set(current);
+      if (next.has(design)) next.delete(design);
+      else next.add(design);
+      return next;
+    });
+  }
+
   return (
     // minmax(0,1fr): a grid track otherwise grows to its widest child, and the
     // table below is 520px — wider than a phone, so the whole section spilled
     // off the right edge.
     <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4">
-      {/* ── Where the pairs are ─────────────────────────────────────── */}
+      {/* ── Shoes to put right ──────────────────────────────────────────
+          Each one with the fix it most likely needs, one press away. The
+          owner's sample, 2026-09-28: the old two paragraphs said how many
+          pairs were off, and left finding which shoe to the table. */}
+      {totals.unplaced > 0 || totals.overPlaced > 0 ? (
+        <section id="put-right" className="scroll-mt-24 rounded-2xl border border-[#EBD9AE] bg-[#FFF9EA] p-4 sm:p-5">
+          <h2 className="text-lg font-black text-brand-gold-ink">
+            {text(`Put right — ${mismatched.length} to fix`, `मिलाउनुपर्ने — ${mismatched.length} वटा`)}
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-gold-ink">
+            {text(
+              "Where the pairs sit does not match the stock. The buttons change only the factory or shop count — never the stock total or a sale.",
+              "जोडी कहाँ छन् भन्ने गन्ती स्टकसँग मिलेन। बटनले कारखाना वा पसलको गन्ती मात्र बदल्छ — जम्मा स्टक र बिक्री बदलिँदैन।",
+            )}
+          </p>
+          <ul className="mt-3 grid gap-2 lg:grid-cols-2">
+            {mismatched.map((row) => {
+              const fixes = fixesFor(row);
+              return (
+                <li key={`fix-${row.design}::${row.sizeRun}`} className="grid gap-2 rounded-xl border border-[#EBD9AE] bg-brand-paper p-3">
+                  <p className="font-black text-brand-green-ink">
+                    {rowLabel(row)}:{" "}
+                    {row.unplaced > 0
+                      ? text(`${row.unplaced} pair(s) have no place`, `${row.unplaced} जोडीको ठाउँ भनिएको छैन`)
+                      : text(`${-row.unplaced} too many counted`, `${-row.unplaced} जोडी बढी गनिएको`)}
+                  </p>
+                  <p className="text-sm tabular-nums text-brand-muted">
+                    {text(
+                      `In stock ${row.total} · factory ${row.factory} · shop ${row.shop}`,
+                      `स्टकमा ${row.total} · कारखानामा ${row.factory} · पसलमा ${row.shop}`,
+                    )}
+                    {row.unplaced < 0 && row.total === 0
+                      ? ` · ${text("sold before sales took pairs off a place", "बिक्री भए तर ठाउँबाट घटेनन्")}`
+                      : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {fixes.map((fix) =>
+                      confirmFix === fix.key ? (
+                        <span key={fix.key} className="inline-flex flex-wrap items-center gap-2 rounded-full bg-brand-green-wash px-2 py-1">
+                          <span className="px-1 text-xs font-bold text-brand-green-ink">{text("Sure?", "पक्का?")}</span>
+                          <button
+                            type="button"
+                            disabled={fixing}
+                            onClick={() => applyFix(fix)}
+                            className="min-h-9 rounded-full bg-brand-green px-4 text-xs font-black text-white disabled:opacity-60"
+                          >
+                            {fixing ? text("Saving…", "राख्दै…") : text(`Yes — ${fix.en.toLowerCase()}`, `हो — ${fix.ne}`)}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmFix(null)}
+                            className="min-h-9 rounded-full border border-brand-green px-3 text-xs font-bold text-brand-green"
+                          >
+                            {text("No", "होइन")}
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          key={fix.key}
+                          type="button"
+                          onClick={() => setConfirmFix(fix.key)}
+                          className="min-h-9 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+                        >
+                          {text(fix.en, fix.ne)}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => countThis(row)}
+                      className="min-h-9 rounded-full border border-brand-green px-4 text-xs font-black text-brand-green"
+                    >
+                      {text("Count and enter", "गनेर हाल्ने")}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <ActionMessage state={fixState} />
+        </section>
+      ) : null}
+
+      {/* ── Every shoe, one line each ───────────────────────────────── */}
       <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-lg font-black text-brand-green-ink">
-              {text("Where the pairs are", "जुत्ता कहाँ छ")}
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-              {text(
-                "Of the pairs in stock, how many sit at the factory and how many at the shop. Selling is unchanged — it still draws from the total.",
-                "स्टकमा भएका जोडीमध्ये कति कारखानामा र कति पसलमा। बिक्री उस्तै छ — जम्माबाटै घट्छ।",
-              )}
-            </p>
-          </div>
-          <div className="flex gap-2 text-center">
-            <div className="rounded-xl border border-[#EBD9AE] bg-[#FFF9EA] px-4 py-2">
-              <p className="text-[11px] font-black uppercase tracking-wider text-brand-gold-ink">
-                🏭 {placeLabel("Factory")}
-              </p>
-              <p className="text-2xl font-black tabular-nums text-brand-gold-ink">{totals.factory}</p>
-            </div>
-            <div className="rounded-xl border border-brand-green/30 bg-brand-green-wash px-4 py-2">
-              <p className="text-[11px] font-black uppercase tracking-wider text-brand-green">
-                🛒 {placeLabel("Shop")}
-              </p>
-              <p className="text-2xl font-black tabular-nums text-brand-green">{totals.shop}</p>
-            </div>
-          </div>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          {text("Every shoe", "सबै जुत्ता")}
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
+          {text(
+            "Where each shoe's pairs are, what has sold and how long it lasts. Selling is unchanged — it still draws from the total.",
+            "हरेक जुत्ता कहाँ कति छ, कति बिक्यो र कति दिन पुग्छ। बिक्री उस्तै छ — जम्माबाटै घट्छ।",
+          )}
+        </p>
+
+        {/* On a phone, one card per shoe: seven columns do not fit 390px. */}
+        <ul className="mt-4 grid gap-2 sm:hidden">
+          {groups.map((group) => {
+            const extra = extras[group.design];
+            return (
+              <li key={`card-${group.design}`} className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5">
+                <p className="font-semibold text-brand-green-ink">
+                  {group.design}
+                  <OriginTag origin={extra?.origin} text={text} />
+                </p>
+                {group.sizes ? <p className="text-xs font-bold text-brand-muted-soft">{text("Sizes", "साइज")} {group.sizes}</p> : null}
+                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+                  <span className="font-bold text-brand-gold-ink">🏭 {group.factory}</span>
+                  <span className="font-bold text-brand-green">🛒 {group.shop}</span>
+                  <span className="font-bold text-brand-green-ink">
+                    {text("In stock", "जम्मा")} {group.total}
+                  </span>
+                  <span className="text-brand-muted">
+                    {text("Sold", "बिक्री")} {extra?.sold ?? 0}
+                  </span>
+                </p>
+                <p className="mt-1 flex flex-wrap gap-2">
+                  <LastsChip extra={extra} text={text} />
+                  <PlaceGap group={group} text={text} />
+                </p>
+              </li>
+            );
+          })}
+          {groups.length === 0 ? (
+            <li className="py-6 text-center text-brand-muted">{text("No ready stock yet.", "अझै तयारी माल छैन।")}</li>
+          ) : null}
+        </ul>
+
+        <div className="mt-4 hidden overflow-x-auto sm:block">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+                <th className="pb-2 pr-3 text-left">{text("Shoe", "जुत्ता")}</th>
+                <th className="pb-2 pr-3 text-right">🏭 {placeLabel("Factory")}</th>
+                <th className="pb-2 pr-3 text-right">🛒 {placeLabel("Shop")}</th>
+                <th className="pb-2 pr-3 text-right">{text("In stock", "जम्मा")}</th>
+                <th className="pb-2 pr-3 text-right">{text("Sold", "बिक्री")}</th>
+                <th className="pb-2 pr-3 text-left">{text("How long it lasts", "कति दिन पुग्छ")}</th>
+                <th className="pb-2 text-right">{text("Not matching", "नमिलेको")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => {
+                const extra = extras[group.design];
+                const open = openShoes.has(group.design);
+                return (
+                  <Fragment key={group.design}>
+                    <tr className="border-t border-brand-green-line">
+                      <td className="py-2.5 pr-3 font-semibold text-brand-green-ink">
+                        {group.rows.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleShoe(group.design)}
+                            aria-expanded={open}
+                            className="text-left font-semibold text-brand-green-ink"
+                          >
+                            <span aria-hidden="true" className="mr-1 text-brand-muted-soft">{open ? "▾" : "▸"}</span>
+                            {group.design}
+                          </button>
+                        ) : (
+                          group.design
+                        )}
+                        <OriginTag origin={extra?.origin} text={text} />
+                        {group.sizes ? (
+                          <span className="block text-xs font-bold text-brand-muted-soft">{text("Sizes", "साइज")} {group.sizes}</span>
+                        ) : null}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-gold-ink">
+                        {group.factory || <span className="text-brand-muted-soft">0</span>}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-green">
+                        {group.shop || <span className="text-brand-muted-soft">0</span>}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right font-black tabular-nums text-brand-green-ink">{group.total}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-brand-muted">{extra?.sold ?? 0}</td>
+                      <td className="py-2.5 pr-3"><LastsChip extra={extra} text={text} /></td>
+                      <td className="py-2.5 text-right tabular-nums"><PlaceGap group={group} text={text} /></td>
+                    </tr>
+                    {open
+                      ? group.rows.map((row) => (
+                          <tr key={`${row.design}::${row.sizeRun}`} className="text-xs text-brand-muted">
+                            <td className="py-1.5 pl-6 pr-3">{text("Size", "साइज")} {row.sizeRun}</td>
+                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.factory}</td>
+                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.shop}</td>
+                            <td className="py-1.5 pr-3 text-right tabular-nums">{row.total}</td>
+                            <td colSpan={3} />
+                          </tr>
+                        ))
+                      : null}
+                  </Fragment>
+                );
+              })}
+              {groups.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-brand-muted">
+                    {text("No ready stock yet.", "अझै तयारी माल छैन।")}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
 
-        {totals.unplaced > 0 ? (
-          <p className="mt-3 rounded-xl border border-[#F4DEAE] bg-[#FFF9EA] px-4 py-3 text-sm leading-6 text-brand-gold-ink">
-            {text(
-              `${totals.unplaced} pair(s) are in stock without a place — either on the road on a challan, or made or bought before this screen existed. Count them in below.`,
-              `${totals.unplaced} जोडी स्टकमा छन् तर ठाउँ भनिएको छैन — या त चलानमा बाटोमा छन्, या यो पर्दा बन्नुअघिका हुन्। तल गनेर मिलाउनुहोस्।`,
-            )}
-          </p>
-        ) : null}
-
-        {/* The other way round: a place says more than the stock holds. Sales
-            did not take pairs off a place until 2026-09-27, so pairs sold
-            before then still sit on the factory or shop count. The old warning
-            printed this as "without a place" — the opposite of the truth. */}
-        {totals.overPlaced > 0 ? (
-          <p className="mt-3 rounded-xl border border-brand-clay/30 bg-brand-clay-tint/40 px-4 py-3 text-sm leading-6 text-brand-clay">
-            {text(
-              `${totals.overPlaced} pair(s) are counted at the factory or the shop but are no longer in stock — mostly pairs sold before sales took them off a place. Count those shoes again below.`,
-              `${totals.overPlaced} जोडी कारखाना वा पसलमा गनिएका छन् तर स्टकमा छैनन् — प्रायः पहिले बिक्री भएका, जुन ठाउँबाट घटेका थिएनन्। ती जुत्ता तल फेरि गनेर मिलाउनुहोस्।`,
-            )}
-          </p>
-        ) : null}
-
         {/* ── Count pairs in ───────────────────────────────────────────
-            Directly under the warning that sends the owner here, because
-            "count them in below" pointed at nothing for as long as this
-            box did not exist. */}
-        <EnterWalkForm onSubmit={handleCount} className="mt-3 rounded-xl border border-brand-green-line bg-brand-paper p-3">
+            Under the list, and where "Count and enter" on a shoe to put
+            right brings the cursor. */}
+        <div ref={countBox}>
+        <EnterWalkForm onSubmit={handleCount} className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
           <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
           <input type="hidden" name="design" value={countKey.split("::")[0] ?? ""} />
           <input type="hidden" name="location" value={countPlace} />
@@ -311,6 +554,7 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
             </select>
 
             <input
+              ref={countPairsInput}
               name="pairs"
               type="number"
               min="0"
@@ -340,97 +584,6 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
 
           <ActionMessage state={countState} />
         </EnterWalkForm>
-
-        {/* On a phone, one card per shoe: five columns do not fit 390px. */}
-        <ul className="mt-4 grid gap-2 sm:hidden">
-          {rows.map((row) => (
-            <li
-              key={`card-${row.design}::${row.sizeRun}`}
-              className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5"
-            >
-              <p className="font-semibold text-brand-green-ink">
-                {row.design}
-                {row.sizeRun && row.sizeRun !== "Mixed" ? (
-                  <span className="ml-2 text-xs font-bold text-brand-muted-soft">{row.sizeRun}</span>
-                ) : null}
-              </p>
-              <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
-                <span className="font-bold text-brand-gold-ink">🏭 {row.factory}</span>
-                <span className="font-bold text-brand-green">🛒 {row.shop}</span>
-                <span className="font-bold text-brand-green-ink">
-                  {text("In stock", "जम्मा")} {row.total}
-                </span>
-                {row.unplaced > 0 ? (
-                  <span className="font-bold text-brand-clay">
-                    {text("No place", "ठाउँ छैन")} {row.unplaced}
-                  </span>
-                ) : null}
-                {row.unplaced < 0 ? (
-                  <span className="font-bold text-brand-clay">
-                    {text("Too many placed", "बढी गनिएको")} {-row.unplaced}
-                  </span>
-                ) : null}
-              </p>
-            </li>
-          ))}
-          {rows.length === 0 ? (
-            <li className="py-6 text-center text-brand-muted">{text("No ready stock yet.", "अझै तयारी माल छैन।")}</li>
-          ) : null}
-        </ul>
-
-        <div className="mt-4 hidden overflow-x-auto sm:block">
-          <table className="w-full min-w-[520px] text-sm">
-            <thead>
-              <tr className="text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-                <th className="pb-2 pr-3 text-left">{text("Shoe", "जुत्ता")}</th>
-                <th className="pb-2 pr-3 text-right">🏭 {placeLabel("Factory")}</th>
-                <th className="pb-2 pr-3 text-right">🛒 {placeLabel("Shop")}</th>
-                <th className="pb-2 pr-3 text-right">{text("In stock", "जम्मा")}</th>
-                <th className="pb-2 text-right">{text("Not matching", "नमिलेको")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={`${row.design}::${row.sizeRun}`} className="border-t border-brand-green-line">
-                  <td className="py-2.5 pr-3 font-semibold text-brand-green-ink">
-                    {row.design}
-                    {row.sizeRun && row.sizeRun !== "Mixed" ? (
-                      <span className="ml-2 text-xs font-bold text-brand-muted-soft">{row.sizeRun}</span>
-                    ) : null}
-                  </td>
-                  <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-gold-ink">
-                    {row.factory || <span className="text-brand-muted-soft">0</span>}
-                  </td>
-                  <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-green">
-                    {row.shop || <span className="text-brand-muted-soft">0</span>}
-                  </td>
-                  <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-brand-green-ink">
-                    {row.total}
-                  </td>
-                  <td className="py-2.5 text-right tabular-nums">
-                    {row.unplaced === 0 ? (
-                      <span className="text-brand-muted-soft">—</span>
-                    ) : row.unplaced > 0 ? (
-                      <span className="font-bold text-brand-clay">
-                        {row.unplaced} {text("no place", "ठाउँ छैन")}
-                      </span>
-                    ) : (
-                      <span className="font-bold text-brand-clay">
-                        {-row.unplaced} {text("too many", "बढी")}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-brand-muted">
-                    {text("No ready stock yet.", "अझै तयारी माल छैन।")}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
         </div>
       </section>
 
@@ -702,5 +855,71 @@ export default function WherePairsAre({ rows, transfers, staffName, today, today
         </div>
       </section>
     </div>
+  );
+}
+
+/** Rows of one shoe (a row per size, or one "Mixed" row) as one line. */
+function groupByShoe(rows: StockAtPlace[]) {
+  const byShoe = new Map<string, StockAtPlace[]>();
+  for (const row of rows) byShoe.set(row.design, [...(byShoe.get(row.design) ?? []), row]);
+  return [...byShoe.entries()].map(([design, shoeRows]) => ({
+    design,
+    rows: shoeRows,
+    factory: shoeRows.reduce((sum, row) => sum + row.factory, 0),
+    shop: shoeRows.reduce((sum, row) => sum + row.shop, 0),
+    total: shoeRows.reduce((sum, row) => sum + row.total, 0),
+    noPlace: shoeRows.reduce((sum, row) => sum + Math.max(0, row.unplaced), 0),
+    tooMany: shoeRows.reduce((sum, row) => sum + Math.max(0, -row.unplaced), 0),
+    sizes: sizesLabel(shoeRows.map((row) => row.sizeRun)),
+  }));
+}
+
+/** "25–30" for a run of single sizes, the run as written for one row, "" for Mixed. */
+function sizesLabel(runs: string[]) {
+  const named = runs.filter((run) => run && run !== "Mixed");
+  if (named.length === 0) return "";
+  if (named.length === 1) return named[0];
+  const numbers = named.map(Number);
+  if (numbers.every((value) => Number.isFinite(value))) {
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const consecutive = sorted.every((value, index) => index === 0 || value === sorted[index - 1] + 1);
+    if (consecutive) return `${sorted[0]}–${sorted[sorted.length - 1]}`;
+    return sorted.join(", ");
+  }
+  return named.join(", ");
+}
+
+function OriginTag({ origin, text }: { origin: ShoeExtra["origin"] | undefined; text: Text }) {
+  if (!origin || origin === "Other") return null;
+  const label =
+    origin === "Made" ? text("made", "बनेको") : origin === "Bought" ? text("bought", "किनेको") : text("made + bought", "बनेको + किनेको");
+  const tone = origin === "Bought" ? "bg-[#E6EEF9] text-[#1F4E8C]" : "bg-emerald-50 text-emerald-800";
+  return <span className={`ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-[11px] font-black ${tone}`}>{label}</span>;
+}
+
+function LastsChip({ extra, text }: { extra: ShoeExtra | undefined; text: Text }) {
+  if (!extra?.lasts) return <span className="text-xs text-brand-muted-soft">—</span>;
+  const tone: Record<NonNullable<ShoeExtra["lasts"]>["status"], string> = {
+    out: "bg-brand-clay text-white",
+    urgent: "bg-brand-clay-mist text-brand-clay",
+    soon: "bg-amber-100 text-amber-900",
+    healthy: "bg-emerald-100 text-emerald-900",
+    unknown: "bg-brand-mist text-brand-muted",
+  };
+  return (
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black ${tone[extra.lasts.status]}`}>
+      {text(extra.lasts.en, extra.lasts.ne)}
+    </span>
+  );
+}
+
+function PlaceGap({ group, text }: { group: ReturnType<typeof groupByShoe>[number]; text: Text }) {
+  if (group.noPlace === 0 && group.tooMany === 0) return <span className="text-brand-muted-soft">—</span>;
+  return (
+    <a href="#put-right" className="font-bold text-brand-clay underline underline-offset-2">
+      {group.noPlace > 0 ? text(`${group.noPlace} no place`, `${group.noPlace} ठाउँ छैन`) : null}
+      {group.noPlace > 0 && group.tooMany > 0 ? " · " : null}
+      {group.tooMany > 0 ? text(`${group.tooMany} too many`, `${group.tooMany} बढी`) : null}
+    </a>
   );
 }

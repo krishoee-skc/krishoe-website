@@ -263,6 +263,9 @@ table th,
    stayed bright while the ink inside it was lifted to near-white — pale text on
    a pale card. Darken the fills so the lifted ink reads. */
 .dark .bg-\[\#FFF9EA\] { background-color: #2c2617; }
+/* The stock page's "bought" tag: pale blue, and its blue ink, in the dark. */
+.dark .bg-\[\#E6EEF9\] { background-color: #18263a; }
+.dark .text-\[\#1F4E8C\] { color: #8db6ee; }
 .dark .bg-\[\#FFF4F2\] { background-color: #33201d; }
 
 /* The coloured badges on the activity feed and the reports page. Each is a
