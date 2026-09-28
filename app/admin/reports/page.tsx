@@ -4,7 +4,14 @@ import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { ArrowRightIcon } from "@/components/Icons";
 import { money } from "@/lib/format-money";
-import { buildInsight, getReportIndex, type ReportCard } from "@/lib/reports";
+import {
+  REPORT_PERIODS,
+  buildInsight,
+  getReportIndex,
+  readPeriod,
+  type ReportCard,
+  type ReportGroup,
+} from "@/lib/reports";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
@@ -24,10 +31,39 @@ export const dynamic = "force-dynamic";
  * not say "No data" — that tells the reader their app is broken. It says what
  * would fill it and offers the button that starts, so an empty screen becomes
  * the next thing to do rather than a dead end.
+ *
+ * The owner's sample, 2026-09-28: a period at the top (today, 7 days, this
+ * Bikram Sambat month, last month, all), rupees first on the money cards with
+ * the change against the stretch before, and the cards in four groups.
  */
 
+const GROUPS: Array<{ key: ReportGroup; en: string; ne: string }> = [
+  { key: "money", en: "💰 Money", ne: "💰 पैसा" },
+  { key: "factory", en: "🏭 Factory", ne: "🏭 कारखाना" },
+  { key: "shop", en: "🛒 Shop and customers", ne: "🛒 पसल र ग्राहक" },
+  { key: "app", en: "⚙️ The app itself", ne: "⚙️ app आफ्नै" },
+];
+
+const accent: Record<ReportGroup, string> = {
+  money: "border-l-brand-green",
+  factory: "border-l-brand-gold",
+  shop: "border-l-[#1F4E8C]",
+  app: "border-l-brand-muted-soft",
+};
+
+function Change({ change }: { change: number | null }) {
+  if (change === null) return null;
+  const up = change >= 0;
+  return (
+    <span className={`ml-2 font-black ${up ? "text-brand-green" : "text-brand-clay"}`}>
+      {up ? "▲" : "▼"} {Math.abs(change)}%
+    </span>
+  );
+}
+
 function Card({ card }: { card: ReportCard }) {
-  const shown = card.id === "dues" ? money(card.value) : card.value.toLocaleString("en-IN");
+  const shown =
+    card.valueKind === "money" ? money(Math.round(card.value)) : card.value.toLocaleString("en-IN");
 
   if (!card.ready) {
     return (
@@ -52,7 +88,7 @@ function Card({ card }: { card: ReportCard }) {
   return (
     <Link
       href={card.href}
-      className="hover-lift group flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-5 transition hover:border-brand-gold"
+      className={`hover-lift group flex flex-col rounded-2xl border border-l-4 border-brand-green-line ${accent[card.group]} bg-brand-paper p-5 transition hover:border-brand-gold`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-black text-brand-green-ink">
@@ -60,14 +96,26 @@ function Card({ card }: { card: ReportCard }) {
         </p>
         <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-muted-soft transition group-hover:text-brand-gold-deep" />
       </div>
-      <p className="mt-3 font-display text-3xl font-black leading-none text-brand-green-ink">
-        {shown}
-        {card.id === "dues" ? null : (
-          <span className="ml-1.5 text-sm font-bold text-brand-muted">
-            <AlertText en={card.unitEn} ne={card.unitNe} />
-          </span>
-        )}
-      </p>
+      {card.valueKind === "none" ? (
+        <p className="mt-3 text-base font-black text-brand-green">
+          <AlertText en={card.actionEn} ne={card.actionNe} /> →
+        </p>
+      ) : (
+        <p className="mt-3 font-display text-3xl font-black leading-none tabular-nums text-brand-green-ink">
+          {shown}
+          {card.unitEn ? (
+            <span className="ml-1.5 text-sm font-bold text-brand-muted">
+              <AlertText en={card.unitEn} ne={card.unitNe} />
+            </span>
+          ) : null}
+        </p>
+      )}
+      {card.subEn || card.change !== null ? (
+        <p className="mt-1.5 text-sm font-bold text-brand-muted">
+          {card.subEn ? <AlertText en={card.subEn} ne={card.subNe} /> : null}
+          <Change change={card.change} />
+        </p>
+      ) : null}
       <p className="mt-2 text-[13px] leading-5 text-brand-muted">
         <AlertText en={card.detailEn} ne={card.detailNe} />
       </p>
@@ -75,10 +123,15 @@ function Card({ card }: { card: ReportCard }) {
   );
 }
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ period?: string }>;
+}) {
+  const period = readPeriod((await searchParams)?.period);
   let index;
   try {
-    index = await getReportIndex();
+    index = await getReportIndex(period);
   } catch (error) {
     reportError("load the report index", error);
     return (
@@ -90,8 +143,8 @@ export default async function ReportsPage() {
     );
   }
 
-  const { cards, counts } = index;
-  const insight = buildInsight(counts);
+  const { cards, counts, window, soldOutNames } = index;
+  const insight = buildInsight(counts, soldOutNames);
   const ready = cards.filter((card) => card.ready);
   const waiting = cards.filter((card) => !card.ready);
 
@@ -109,6 +162,36 @@ export default async function ReportsPage() {
           ne={`${cards.length} वटा हिसाब, एउटै ठाउँमा। भरिएको कुन, खाली कुन — छर्लङ्ग।`}
         />
       </p>
+
+      {/* The stretch every number below is about. */}
+      <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Period">
+        {REPORT_PERIODS.map((option) => (
+          <Link
+            key={option.key}
+            href={option.key === "month" ? "/admin/reports" : `/admin/reports?period=${option.key}`}
+            aria-current={option.key === period ? "page" : undefined}
+            className={`inline-flex min-h-10 items-center rounded-lg border px-4 text-sm font-black transition ${
+              option.key === period
+                ? "border-brand-green bg-brand-green text-white"
+                : "border-brand-green-line bg-brand-paper text-brand-green-ink hover:border-brand-green"
+            }`}
+          >
+            <AlertText en={option.en} ne={option.ne} />
+          </Link>
+        ))}
+        {window.rangeLabel ? (
+          <span className="text-sm font-bold tabular-nums text-brand-muted">
+            {window.rangeLabel}
+            {window.previous ? (
+              <AlertText en=" · ▲▼ against the stretch before" ne=" · ▲▼ अघिल्लो अवधिसँग" />
+            ) : null}
+          </span>
+        ) : (
+          <span className="text-sm font-bold text-brand-muted">
+            <AlertText en="Since the first day" ne="सुरुदेखि आजसम्म" />
+          </span>
+        )}
+      </div>
 
       {/* What the app worked out by joining two things the owner would
           otherwise have to notice separately. Purple is used here and nowhere
@@ -140,14 +223,22 @@ export default async function ReportsPage() {
         </div>
       ) : null}
 
-      <p className="mt-8 text-xs font-black uppercase tracking-[0.14em] text-brand-muted">
-        <AlertText en="Ready to read" ne="अहिले पढ्न मिल्ने" />
-      </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {ready.map((card) => (
-          <Card key={card.id} card={card} />
-        ))}
-      </div>
+      {GROUPS.map((group) => {
+        const inGroup = ready.filter((card) => card.group === group.key);
+        if (inGroup.length === 0) return null;
+        return (
+          <div key={group.key}>
+            <h2 className="mt-8 text-base font-black text-brand-green-ink">
+              <AlertText en={group.en} ne={group.ne} />
+            </h2>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {inGroup.map((card) => (
+                <Card key={card.id} card={card} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       {waiting.length > 0 ? (
         <>
