@@ -436,7 +436,8 @@ function whatsappText(
   text: (en: string, ne: string) => string,
   stage: Stage,
   name: string,
-  total: string,
+  /** What the customer still hands over; empty when it was paid online. */
+  toPay: string,
   by: string,
 ) {
   if (stage === 0) {
@@ -453,8 +454,8 @@ function whatsappText(
   }
   if (stage === 2) {
     return text(
-      `${name}, your order is on its way${by ? ` (${by})` : ""}. To pay: ${total}.`,
-      `${name} जी, तपाईंको अर्डर पठाइयो${by ? ` (${by})` : ""}। लिनुपर्ने रकम: ${total}।`,
+      `${name}, your order is on its way${by ? ` (${by})` : ""}.${toPay ? ` To pay: ${toPay}.` : " It is already paid."}`,
+      `${name} जी, तपाईंको अर्डर पठाइयो${by ? ` (${by})` : ""}।${toPay ? ` लिनुपर्ने रकम: ${toPay}।` : " पैसा तिरिसक्नुभएको छ।"}`,
     );
   }
   if (stage === 4) {
@@ -712,7 +713,7 @@ function OrderDetail({
     });
 
   const phoneDigits = whatsappNumber(order.phone);
-  const message = whatsappText(text, stage, order.name, money(rupees), dispatch?.dispatchBy ?? "");
+  const message = whatsappText(text, stage, order.name, paidOnline ? "" : money(rupees), dispatch?.dispatchBy ?? "");
 
   return (
     <article className="grid content-start gap-4 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">

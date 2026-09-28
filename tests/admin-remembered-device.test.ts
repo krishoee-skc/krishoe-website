@@ -1,6 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { readFile as readRawFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { REMEMBERED_SESSION_MAX_AGE, getAdminSessionMaxAge, sessionMaxAge } from "@/lib/admin-session";
+
+// A Windows checkout writes CRLF; the shapes below are written with LF.
+async function readFile(path: string, encoding: "utf8") {
+  return (await readRawFile(path, encoding)).replace(/\r\n/g, "\n");
+}
 
 /**
  * Eight hours is right for a machine other people can reach, and wrong for the
