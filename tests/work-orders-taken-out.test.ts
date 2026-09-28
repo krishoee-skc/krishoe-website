@@ -46,7 +46,9 @@ describe("Work Orders are gone from the daily path", () => {
     expect(reverse).not.toMatch(/production_work_orders/);
 
     const lots = withoutComments(await read("app/admin/operations/production-accounts/lots/page.tsx"));
-    expect(lots).toContain("approvePackingQcAction");
+    // The Packing/QC box left the page too (2026-09-28): stock is posted from
+    // Add work only.
+    expect(lots).not.toContain("approvePackingQcAction");
     expect(lots).not.toMatch(/workOrderId|createWorkOrderAction|createHandoverAction/);
   });
 

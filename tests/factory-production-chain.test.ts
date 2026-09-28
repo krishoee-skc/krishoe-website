@@ -83,9 +83,13 @@ describe("why the catalog link matters", () => {
     expect(rules).toContain("Link the production item to a catalog product first");
   });
 
-  it("the Packing/QC form does not even offer one", async () => {
+  it("the Packing/QC form is gone, so no link is asked for", async () => {
+    // 2026-09-28: the owner chose one way to post finished pairs — Add work,
+    // which finds the shop's shoe by name. The cost page no longer posts stock
+    // or asks for a stock link.
     const screen = await readFile(QC_SCREEN, "utf8");
 
-    expect(screen).toContain("item.catalogProductId");
+    expect(screen).not.toContain("approvePackingQcAction");
+    expect(screen).not.toContain("mapProductionItemAction");
   });
 });

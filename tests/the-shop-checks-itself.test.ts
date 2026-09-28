@@ -37,7 +37,6 @@ describe("what the shop checks about itself", () => {
       "test-residue",
       "rating-without-reviews",
       "orphan-reviews",
-      "production-not-linked",
       "staff-in-piece-summary",
       "no-bank-account",
     ]) {
@@ -84,7 +83,6 @@ describe("what the shop checks about itself", () => {
     for (const href of [
       "/admin/products",
       "/admin/inbox",
-      "/admin/operations/production-accounts/lots",
       "/admin/settings",
     ]) {
       expect(source, href).toContain(`href: "${href}"`);

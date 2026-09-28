@@ -62,8 +62,6 @@ describe("the four pages", () => {
       "createProductionItemAction",
       "saveStageRateAction",
       "saveWorkerStageRateAction",
-      "mapProductionItemAction",
-      "approvePackingQcAction",
       "saveItemMaterialAction",
       "approveCostCardAction",
       "createWorkerPaymentAction",
@@ -92,7 +90,7 @@ describe("the four pages", () => {
 
     // QC postings, recipes and cost cards are not daily work. (Work Orders
     // and handovers lived here too, until the owner took them out.)
-    for (const form of ["approvePackingQcAction", "saveItemMaterialAction", "approveCostCardAction"]) {
+    for (const form of ["saveItemMaterialAction", "approveCostCardAction"]) {
       expect(lots).toContain(form);
       expect(week).not.toContain(form);
     }
@@ -106,7 +104,7 @@ describe("the nav across the top", () => {
   it("names the four pages for the work, not the tables", async () => {
     const nav = await read(NAV);
 
-    for (const label of ["This week", "Payments", "Wage rates", "Stock & cost"]) {
+    for (const label of ["This week", "Payments", "Wage rates", "Cost of a pair"]) {
       expect(nav).toContain(label);
     }
     expect(nav).toContain("हप्ता");

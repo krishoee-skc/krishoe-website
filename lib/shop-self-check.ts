@@ -158,29 +158,10 @@ export async function runShopSelfCheck(): Promise<SelfCheck[]> {
       };
     },
 
-    // 5. The factory's shoes not joined to the shop's. Until this is done, a
-    //    finished pair cannot reach the shop by itself — and it is hand-typed
-    //    stock that put the invented pairs in the catalogue.
-    async () => {
-      const n = await count(`
-        SELECT count(*)::int AS n FROM production_items
-        WHERE status = 'Active' AND catalog_product_id IS NULL`);
-      if (n === 0) return null;
-      return {
-        id: "production-not-linked",
-        severity: "warning",
-        title: `${n} factory items are not linked to a shoe in the shop`,
-        titleNe: `${n} कारखानाका सामान पसलको जुत्तासँग जोडिएका छैनन्`,
-        detail:
-          "A finished pair will not reach the shop on its own; the count has to be typed in, which is how wrong counts start.",
-        detailNe:
-          "बनेको जुत्ता आफैं पसलमा पुग्दैन; हातले हाल्नुपर्छ, अनि गलत संख्या त्यहीँबाट सुरु हुन्छ।",
-        href: "/admin/operations/production-accounts/lots",
-        action: "Link them",
-        actionNe: "जोड्ने",
-        count: n,
-      };
-    },
+    // 5. (Gone, 2026-09-28.) "Factory items not linked to a shoe in the shop"
+    //    pointed at a linking box on the cost page. Stock is now posted only
+    //    from Add work, which finds the shop's shoe by name, so the link it
+    //    asked for changes nothing and the warning never cleared.
 
     // 6. A salaried worker in the piece-wage summary reads as owing the shop a
     //    month's pay. Fixed in the code; this watches that it stays fixed.

@@ -23,7 +23,7 @@ export const wagesLinks = [
   { href: "/admin/operations/production-accounts", en: "This week", ne: "हप्ता" },
   { href: "/admin/operations/production-accounts/payments", en: "Payments", ne: "भुक्तानी" },
   { href: "/admin/operations/production-accounts/rates", en: "Wage rates", ne: "दर" },
-  { href: "/admin/operations/production-accounts/lots", en: "Stock & cost", ne: "स्टक र लागत" },
+  { href: "/admin/operations/production-accounts/lots", en: "Cost of a pair", ne: "एक जोडीको लागत" },
 ] as const;
 
 export default function WagesNav() {

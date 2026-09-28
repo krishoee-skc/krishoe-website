@@ -4,18 +4,13 @@ import { money } from "@/lib/format-money";
 import ExportButton from "@/components/admin/ExportButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
-import {
-  approveCostCardAction,
-  approvePackingQcAction,
-  createProductionItemAction,
-  mapProductionItemAction,
-  saveItemMaterialAction,
-} from "../actions";
+import { approveCostCardAction, createProductionItemAction, saveItemMaterialAction } from "../actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
 import T from "@/components/T";
 import WagesNav from "../_components/wages-nav";
+import { TInput, TOption } from "@/components/admin/TField";
 
-export const metadata: Metadata = { title: "Stock and cost | KRISHOE Admin" };
+export const metadata: Metadata = { title: "Cost of a pair | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
 
 const input =
@@ -29,229 +24,235 @@ function today() {
 }
 
 /**
- * Finished pairs into stock (Packing/QC), and what a pair costs to make.
+ * What a pair costs to make: the shoe, the material in one pair, and the cost
+ * card the owner approves.
  *
- * Work Orders, lots and stage handovers used to live here too. None was ever
- * used, and the owner took them out; the shop records work in Factory Entry and
- * posts finished pairs from here. The tables stay in the database, untouched.
+ * Finished pairs used to be posted to stock from here too (Packing/QC), behind
+ * a "stock link" to a shop product that was never made — so the box could not
+ * post anything. The owner chose on 2026-09-28 to post stock in one place only:
+ * Add work → "post it to stock", which matches the shop's shoe by name. Old
+ * Packing/QC postings stay in the database and are listed below, read only.
  */
 export default async function WagesLotsPage() {
   const date = today();
   const data = await getProductionAccountingSnapshot();
   const activeItems = data.items.filter((item) => item.status === "Active");
+  const madeItems = activeItems.filter((item) => item.productionType !== "Resale");
+  const materialsByItem = new Map<string, number>();
+  for (const row of data.itemMaterials) materialsByItem.set(row.itemId, (materialsByItem.get(row.itemId) ?? 0) + 1);
+  const costedItems = new Set(data.costCards.map((cost) => cost.itemId));
 
   return (
     <section className="mx-auto max-w-7xl space-y-5 p-4 pb-28 sm:p-6">
       <header className="flex flex-col gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">Factory accounts</p>
-          <h1 className="mt-1 text-2xl font-black text-brand-green-ink"><T en="Stock & cost" ne="स्टक र लागत" /></h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted"><T en="Packed pairs into finished stock, and the cost of a pair." ne="प्याक भएका जोडी तयारी स्टकमा, र एक जोडी बनाउन लाग्ने लागत।" /></p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
+            <T en="Factory accounts" ne="कारखानाको हिसाब" />
+          </p>
+          <h1 className="mt-1 text-2xl font-black text-brand-green-ink">
+            <T en="🧮 Cost of a pair" ne="🧮 एक जोडीको लागत" />
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
+            <T
+              en="How much material and wage go into one pair, and what to sell it for. Stock is not posted from here."
+              ne="एक जोडी बनाउन कति माल र ज्याला लाग्छ, र कतिमा बेच्ने। यहाँबाट स्टक चढ्दैन।"
+            />
+          </p>
         </div>
         <WagesNav />
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        <ExportButton href="/api/admin/operations/production-export?type=qc-stock" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">QC &amp; stock CSV</ExportButton>
-        <ExportButton href="/api/admin/operations/production-export?type=cost-cards" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">Cost cards CSV</ExportButton>
-      </div>
-
-      <EnterWalkForm action={approvePackingQcAction} className={`${card} border-emerald-200`}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Final gate</p>
-            <h2 className="mt-1 text-lg font-black text-brand-green-ink">Packing/QC → Finished stock</h2>
-            <p className="mt-1 max-w-3xl text-sm text-brand-muted">
-              Only good packed pairs are posted. Saving creates one Production In movement and updates the linked shop/POS stock.
-            </p>
-          </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
-            Owner approval required
-          </span>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
-            <option value="" disabled>Select mapped manufactured item</option>
-            {activeItems
-              .filter((item) => item.productionType !== "Resale" && item.catalogProductId)
-              .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <select aria-label="Packing worker" name="packingEmployeeId" className={input} defaultValue="">
-            <option value="">Packing checker not selected</option>
-            {data.employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>
-            ))}
-          </select>
-          <NepaliDateFieldUncontrolled name="qcDate" defaultValue={date} required />
-          <input aria-label="Good packed pairs" name="totalPairs" data-summary="pairs" type="number" min="1" className={input} placeholder="Good packed pairs" required />
-          <input aria-label="Good sizes" name="sizeBreakdown" className={input} placeholder="Optional good sizes: 36:10, 37:15" />
-          <input aria-label="QC rejected pairs" name="rejectedPairs" type="number" min="0" className={input} placeholder="QC rejected pairs" defaultValue="0" />
-          <input aria-label="QC / packing remark" name="note" className={`${input} sm:col-span-2`} placeholder="QC / packing remark" />
-          <FormSubmitButton className={button} pendingLabel="Posting stock…">
-            Approve & post stock
-          </FormSubmitButton>
-        </div>
-      </EnterWalkForm>
-
-      <div className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">Recent Packing/QC stock postings</h2>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {data.qcPostings.map((posting) => (
-            <article key={posting.id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
-                  <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    Packing/QC: {posting.packingEmployeeName || "Owner verified"} · Approved by {posting.approvedBy}
+      {/* Where each shoe stands, before the forms: material entered? cost approved? */}
+      {madeItems.length ? (
+        <div className={card}>
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="Where each shoe stands" ne="कुन जुत्ता कहाँ पुग्यो" />
+          </h2>
+          <ul className="mt-3 grid list-none gap-2 pl-0 sm:grid-cols-2 xl:grid-cols-3">
+            {madeItems.map((item) => {
+              const materials = materialsByItem.get(item.id) ?? 0;
+              const costed = costedItems.has(item.id);
+              return (
+                <li key={item.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-3 text-sm">
+                  <p className="font-black text-brand-green-ink">{item.name}</p>
+                  <p className="mt-1 flex flex-wrap gap-1.5 text-xs font-bold">
+                    <span className={`rounded-full px-2 py-0.5 ${materials ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+                      {materials ? (
+                        <T en={`✓ ${materials} materials`} ne={`✓ ${materials} वटा माल`} />
+                      ) : (
+                        <T en="No material yet" ne="माल राखिएको छैन" />
+                      )}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 ${costed ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+                      {costed ? <T en="✓ Cost approved" ne="✓ लागत निकालिएको" /> : <T en="No cost yet" ne="लागत निकालिएको छैन" />}
+                    </span>
                   </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-brand-green">+{posting.totalPairs} pairs</p>
-                  {posting.rejectedPairs ? <p className="mt-1 text-xs font-bold text-brand-clay">Reject {posting.rejectedPairs}</p> : null}
-                </div>
-              </div>
-            </article>
-          ))}
-          {data.qcPostings.length === 0 ? (
-            <p className="text-sm text-brand-muted">No Packing/QC stock posting yet.</p>
-          ) : null}
+                </li>
+              );
+            })}
+          </ul>
         </div>
-      </div>
+      ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <EnterWalkForm action={createProductionItemAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">1. Production item</h2>
-          <p className="mt-1 text-sm text-brand-muted">Create the factory item once; wages can then vary by stage.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input aria-label="Item name, e.g. Ladies Sandal" name="name" className={input} placeholder="Item name, e.g. Ladies Sandal" required />
-            <input aria-label="Category, e.g. Sandal" name="category" className={input} placeholder="Category, e.g. Sandal" />
-            <select aria-label="Production type" name="productionType" className={input} defaultValue="Manufactured">
-              <option>Manufactured</option><option>Resale</option><option>Mixed</option>
-            </select>
-            <select aria-label="Size group" name="sizeGroup" className={input} defaultValue="Ladies">
-              <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
-            </select>
-            <select aria-label="Catalog product to link" name="catalogProductId" className={`${input} sm:col-span-2`} defaultValue="">
-              <option value="">No catalog/stock link yet</option>
-              {data.products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} · {product.sku || product.id}
-                </option>
-              ))}
-            </select>
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving item…">Save item</FormSubmitButton>
-        </EnterWalkForm>
-      </div>
-
-      <EnterWalkForm action={mapProductionItemAction} className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">Stock catalog mapping</h2>
+      <EnterWalkForm action={createProductionItemAction} className={card}>
+        <h2 className="text-lg font-black text-brand-green-ink">
+          <T en="1. Add a shoe the factory makes" ne="१. जुत्ता दर्ता" />
+        </h2>
         <p className="mt-1 text-sm text-brand-muted">
-          Link a factory item to the exact shop/POS product. This prepares safe QC-approved stock posting; it does not change stock yet.
+          <T
+            en="Once per shoe. Wages can then differ by stage."
+            ne="एउटा जुत्ता एक पटक मात्र। त्यसपछि काम अनुसार ज्याला फरक राख्न मिल्छ।"
+          />
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
-            <option value="" disabled>Select production item</option>
-            {activeItems.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <TInput aria-label="Shoe name" name="name" className={input} en="Shoe name, e.g. bantu hill" ne="जुत्ताको नाम, जस्तै bantu hill" required />
+          <TInput aria-label="Category" name="category" className={input} en="Category, e.g. Sandal" ne="किसिम, जस्तै Sandal" />
+          <select aria-label="Made or bought" name="productionType" className={input} defaultValue="Manufactured">
+            <TOption value="Manufactured" en="Made here" ne="यहीँ बनेको" />
+            <TOption value="Resale" en="Bought to sell" ne="किनेर बेच्ने" />
+            <TOption value="Mixed" en="Both" ne="दुवै" />
           </select>
-          <select aria-label="Catalog product to link" name="catalogProductId" className={input} defaultValue="">
-            <option value="">Remove catalog link</option>
-            {data.products.map((product) => (
-              <option key={product.id} value={product.id}>{product.name} · {product.sku || product.id}</option>
-            ))}
+          <select aria-label="Size group" name="sizeGroup" className={input} defaultValue="Ladies">
+            <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
           </select>
-          <FormSubmitButton className={button} pendingLabel="Linking…">Save link</FormSubmitButton>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {activeItems.map((item) => {
-            const product = data.products.find((row) => row.id === item.catalogProductId);
-            return (
-              <span key={item.id} className={`rounded-full border px-3 py-1 text-xs font-bold ${
-                product ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"
-              }`}>
-                {item.name}: {product ? product.name : "stock link pending"}
-              </span>
-            );
-          })}
-        </div>
+        <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
+          <T en="Save shoe" ne="जुत्ता सेभ गर्ने" />
+        </FormSubmitButton>
       </EnterWalkForm>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <EnterWalkForm action={saveItemMaterialAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">3. Material recipe per pair</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="2. Material in one pair" ne="२. एक जोडीमा कति माल" />
+          </h2>
           <p className="mt-1 text-sm text-brand-muted">
-            Quantity uses the material&apos;s purchase unit. Example: Rexine 0.40 meter or Buckle 2 pieces per pair.
+            <T
+              en="In the unit it is bought in. Example: Rexine 0.40 meter, or Buckle 2 pieces, per pair."
+              ne="किन्ने एकाइमै लेख्नुहोस्। जस्तै: एक जोडीमा Rexine 0.40 मिटर, वा Buckle 2 वटा।"
+            />
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
-              <option value="" disabled>Select manufactured item</option>
-              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
+            <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
+              <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
+              {madeItems.map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
             <select aria-label="Material" name="materialId" className={input} required defaultValue="">
-              <option value="" disabled>Select raw material</option>
+              <TOption value="" disabled en="Choose the material" ne="माल छान्नुहोस्" />
               {data.materials.map((material) => (
                 <option key={material.id} value={material.id}>
                   {material.name} · {material.unit} · {money(material.averageUnitCost)}/{material.unit}
                 </option>
               ))}
             </select>
-            <input aria-label="Quantity per pair" name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} placeholder="Quantity per pair" required />
-            <input aria-label="Wastage % (optional)" name="wastagePercent" type="number" min="0" step="0.01" className={input} placeholder="Wastage % (optional)" defaultValue="0" />
-            <input aria-label="Recipe note" name="note" className={`${input} sm:col-span-2`} placeholder="Recipe note" />
+            <TInput aria-label="Quantity per pair" name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} en="How much in one pair" ne="एक जोडीमा कति" required />
+            <TInput aria-label="Wastage % (optional)" name="wastagePercent" type="number" min="0" step="0.01" className={input} en="Wastage % (optional)" ne="खेर जाने % (नभए 0)" defaultValue="0" />
+            <TInput aria-label="Note" name="note" className={`${input} sm:col-span-2`} en="Note" ne="टिप्पणी" />
           </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving material…">Save material recipe</FormSubmitButton>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
+            <T en="Save material" ne="माल सेभ गर्ने" />
+          </FormSubmitButton>
         </EnterWalkForm>
 
         <EnterWalkForm action={approveCostCardAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">4. Owner-approved price card</h2>
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="3. Cost of a pair, and the selling rate" ne="३. एक जोडीको लागत र बेच्ने दर" />
+          </h2>
           <p className="mt-1 text-sm text-brand-muted">
-            Material cost + four stage wages + direct cost. Rent, electricity and salary are excluded.
+            <T
+              en="Material + the four stage wages + other direct cost. Rent, electricity and salaries are not included."
+              ne="माल + चार कामको ज्याला + अरू सिधा खर्च। घरभाडा, बिजुली र तलब यसमा जोडिँदैनन्।"
+            />
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Item" name="itemId" data-summary="text" className={input} required defaultValue="">
-              <option value="" disabled>Select manufactured item</option>
-              {activeItems.filter((item) => item.productionType !== "Resale").map((item) => (
+            <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
+              <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
+              {madeItems.map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
             <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
-            <input aria-label="Other direct cost/pair" name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} placeholder="Other direct cost/pair" defaultValue="0" />
-            <input aria-label="Wholesale profit %" name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} placeholder="Wholesale profit %" required />
-            <input aria-label="Retail extra Rs." name="retailExtraAmount" type="number" min="0" step="0.01" className={input} placeholder="Retail extra Rs." required />
-            <input aria-label="Approval note" name="note" className={input} placeholder="Approval note" />
+            <TInput aria-label="Other direct cost/pair" name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} en="Other direct cost a pair" ne="एक जोडीमा अरू सिधा खर्च" defaultValue="0" />
+            <TInput aria-label="Wholesale profit %" name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} en="Wholesale profit %" ne="होलसेलमा कति % नाफा" required />
+            <TInput aria-label="Retail extra Rs." name="retailExtraAmount" type="number" min="0" step="0.01" className={input} en="Retail extra Rs." ne="खुद्रामा कति रुपैयाँ थप" required />
+            <TInput aria-label="Note" name="note" className={input} en="Note" ne="टिप्पणी" />
           </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">Calculate & approve cost</FormSubmitButton>
+          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">
+            <T en="Work out and approve the cost" ne="लागत निकाल्ने र पक्का गर्ने" />
+          </FormSubmitButton>
         </EnterWalkForm>
       </div>
 
       <div className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">Current product cost sheets</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="Approved costs" ne="निकालिएको लागत" />
+          </h2>
+          {data.costCards.length ? (
+            <ExportButton href="/api/admin/operations/production-export?type=cost-cards" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
+              <T en="Costs as CSV" ne="लागत CSV" />
+            </ExportButton>
+          ) : null}
+        </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {data.costCards.map((cost) => (
             <article key={cost.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-black text-brand-green-ink">{cost.itemName}</p>
-                  <p className="mt-1 text-xs text-brand-muted">Effective {cost.effectiveFrom} · Owner {cost.approvedBy}</p>
+                  <p className="mt-1 text-xs text-brand-muted">
+                    <T en={`From ${cost.effectiveFrom} · approved by ${cost.approvedBy}`} ne={`${cost.effectiveFrom} देखि · पक्का गर्ने ${cost.approvedBy}`} />
+                  </p>
                 </div>
                 <p className="text-lg font-black text-brand-green">{money(cost.makingCostPerPair)}</p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <div><span className="text-brand-muted">Material</span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
-                <div><span className="text-brand-muted">Wages</span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
-                <div><span className="text-brand-muted">Wholesale</span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
-                <div><span className="text-brand-muted">Retail</span><p className="font-black">{money(cost.retailPrice)}</p></div>
+                <div><span className="text-brand-muted"><T en="Material" ne="माल" /></span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
+                <div><span className="text-brand-muted"><T en="Wages" ne="ज्याला" /></span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
+                <div><span className="text-brand-muted"><T en="Wholesale" ne="होलसेल" /></span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
+                <div><span className="text-brand-muted"><T en="Retail" ne="खुद्रा" /></span><p className="font-black">{money(cost.retailPrice)}</p></div>
               </div>
             </article>
           ))}
-          {data.costCards.length === 0 ? <p className="text-sm text-brand-muted">No approved product cost sheet yet.</p> : null}
+          {data.costCards.length === 0 ? (
+            <p className="text-sm text-brand-muted">
+              <T en="No cost approved yet." ne="अहिलेसम्म कुनै लागत निकालिएको छैन।" />
+            </p>
+          ) : null}
         </div>
       </div>
+
+      {/* Postings made from the old Packing/QC box, kept as a record. */}
+      {data.qcPostings.length ? (
+        <div className={card}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              <T en="Stock posted from this page before" ne="पहिले यो पेजबाट चढाएको स्टक" />
+            </h2>
+            <ExportButton href="/api/admin/operations/production-export?type=qc-stock" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
+              CSV
+            </ExportButton>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {data.qcPostings.map((posting) => (
+              <article key={posting.id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
+                    <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-brand-green">+{posting.totalPairs}</p>
+                    {posting.rejectedPairs ? <p className="mt-1 text-xs font-bold text-brand-clay">−{posting.rejectedPairs}</p> : null}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

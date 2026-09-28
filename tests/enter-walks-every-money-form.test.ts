@@ -150,8 +150,9 @@ describe("the forms that walk", () => {
     ["app/admin/OrdersClient.tsx", 2],
     // Rates and cost.
     ["app/admin/operations/production-accounts/rates/page.tsx", 2],
-    // Seven until the Work Order and handover forms were taken out.
-    ["app/admin/operations/production-accounts/lots/page.tsx", 5],
+    // Seven until the Work Order and handover forms were taken out; five
+    // until Packing/QC and the stock link went too (2026-09-28).
+    ["app/admin/operations/production-accounts/lots/page.tsx", 3],
     ["app/admin/costing/page.tsx", 1],
     // The same money on the pages of one worker, supplier, customer or lot —
     // missed on the first pass, found on the recheck. The delete form and the
