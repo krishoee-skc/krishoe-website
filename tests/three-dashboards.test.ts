@@ -19,7 +19,9 @@ describe("who each first screen is written for", () => {
 
     // The menu beside this was already filtered by role; the page was not.
     expect(page).toContain('canAdmin(adminAccess.role, "settings:write")');
-    expect(page).toContain("<TodaySales");
+    // Since 2026-09-28 the owner's screen is the dashboard they chose from
+    // two samples (components/admin/OwnerDashboard.tsx); staff keep theirs.
+    expect(page).toContain("<OwnerDashboard");
     expect(page).toContain("<StaffToday");
   });
 

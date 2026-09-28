@@ -107,13 +107,14 @@ describe("operations quick entry", () => {
 describe("dashboard", () => {
   it("opens with what needs doing, above the reporting", async () => {
     const page = await readFile("app/admin/page.tsx", "utf8");
-    const body = page.slice(page.indexOf('<section className="p-6 space-y-6">'));
+    const owner = await readFile("components/admin/OwnerDashboard.tsx", "utf8");
 
-    // What needs doing comes first; the shop-health zone — the only reporting
-    // left on the home — comes after it. The cluttered wall of tiles that used
-    // to sit between them is gone.
-    expect(body.indexOf("<TodayBoard")).toBeGreaterThan(-1);
-    expect(body.indexOf("<TodayBoard")).toBeLessThan(body.indexOf('data-zone="health"'));
+    // Staff: what needs doing is on their screen. The owner (since
+    // 2026-09-28): the "what now" list comes before the figures.
+    expect(page).toContain("<TodayBoard");
+    expect(owner.indexOf('id="what-now"')).toBeGreaterThan(-1);
+    expect(owner.indexOf('id="what-now"')).toBeLessThan(owner.indexOf('data-zone="health"'));
+    expect(owner).toContain('text("Nothing is stuck right now.", "अहिले केही अड्किएको छैन।")');
 
     const board = await readFile("app/admin/TodayBoard.tsx", "utf8");
     expect(board).toContain("आजको काम");

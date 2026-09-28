@@ -18,11 +18,23 @@ import { getPurchasingSnapshot } from "@/lib/purchasing";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { getOrders, type OrderSubmission } from "@/lib/submissions";
 import TodayBoard from "@/app/admin/TodayBoard";
-import TodaySales from "@/components/admin/TodaySales";
 import StaffToday from "@/components/admin/StaffToday";
-import GoalCard from "@/components/admin/GoalCard";
-import ChannelCompare from "@/components/admin/ChannelCompare";
+import OwnerDashboard, { type Todo } from "@/components/admin/OwnerDashboard";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
+import { getStockByPlace } from "@/lib/stock-transfers";
+import {
+  bikramMonthLabel,
+  toBikramSambatNepali,
+  toBikramSambatRoman,
+} from "@/lib/bikram-sambat";
+import {
+  bsMonthSoFar,
+  nepalDayKey,
+  netSalesBetween,
+  salesByDay,
+  stockAtSellingPrice,
+  type SaleLike,
+} from "@/lib/dashboard-figures";
 
 export const dynamic = "force-dynamic";
 
@@ -89,60 +101,18 @@ function QuickTile({
   );
 }
 
-function HealthTile({
-  href,
-  labelEn,
-  labelNe,
-  value,
-  Icon,
-  gradient,
-  positive = false,
-}: {
-  href: string;
-  labelEn: string;
-  labelNe: string;
-  value: string;
-  Icon: IconComponent;
-  gradient: string;
-  positive?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-3xl border border-brand-green-line bg-brand-paper p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-gold hover:shadow-md"
-    >
-      <div className="flex items-center gap-2.5">
-        <span
-          className="grid h-9 w-9 flex-none place-items-center rounded-xl text-white shadow-sm"
-          style={{ background: gradient }}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="text-sm font-semibold text-brand-muted">
-          <AlertText en={labelEn} ne={labelNe} />
-        </span>
-      </div>
-      <p
-        className={`mt-3 font-display text-2xl font-black leading-none tabular-nums ${positive ? "text-emerald-700" : "text-brand-green-ink"}`}
-      >
-        {value}
-      </p>
-      <span className="mt-3 block h-1.5 rounded-full" style={{ background: gradient }} />
-    </Link>
-  );
-}
-
 export default async function AdminDashboardPage() {
   await requireAdminPermission("dashboard:read");
 
   const session = await getAdminSession();
-  const [posResult, purchasingResult, productsResult, ordersResult, productionResult] =
+  const [posResult, purchasingResult, productsResult, ordersResult, productionResult, placesResult] =
     await Promise.allSettled([
       getPosSnapshot(),
       getPurchasingSnapshot(),
       getProducts({ includeDrafts: true }),
       getOrders(),
       getProductionControlSummary(),
+      getStockByPlace(),
     ]);
 
   const pos = settled(posResult, {} as unknown);
@@ -175,10 +145,6 @@ export default async function AdminDashboardPage() {
 
   const newOrders = orders.filter((order) => order?.status === "New");
   const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
-  const catalogStockValue = products.reduce(
-    (total, product) => total + (product?.priceValue || 0) * (product?.stock || 0),
-    0,
-  );
 
   const todayGoodPairs = readPath(productionControl, "todayGoodPairs", 0);
   const workerBalanceDue = readPath(productionControl, "workerBalanceDue", 0);
@@ -191,9 +157,9 @@ export default async function AdminDashboardPage() {
   >("todayDayClose.channelRows", []);
 
   // This month's goal, for the owner's dashboard. A failure to read it must not
-  // take down the whole dashboard — the goal card simply doesn't show.
+  // take down the whole dashboard — the ring simply asks for a goal.
   const goalMonthKey = currentGoalMonthKey();
-  const businessGoal = await getBusinessGoal(goalMonthKey).catch(() => null);
+  const businessGoal = isOwner ? await getBusinessGoal(goalMonthKey).catch(() => null) : null;
 
   // Cutting a bill and adding work are the big buttons under "Today's work"
   // just above; drawn here as well, the same two jobs appeared twice on one
@@ -205,55 +171,187 @@ export default async function AdminDashboardPage() {
     { href: "/admin/search", labelEn: "Search", labelNe: "खोज्ने", Icon: SearchIcon, gradient: GRAD.deep },
   ];
 
-  // Built as a list so each Nepali label sits behind a `labelNe:` the pairing
-  // check recognises, rather than a JSX attribute it would count as unpaired.
-  const healthTiles = [
-    { href: "/admin/costing", labelEn: "This month's profit", labelNe: "महिनाको नाफा", value: money(monthProfit), Icon: CreditCardIcon, gradient: GRAD.emerald, positive: true },
-    { href: "/admin/products", labelEn: "Stock value", labelNe: "स्टक मूल्य", value: money(catalogStockValue), Icon: PackageIcon, gradient: GRAD.gold, positive: false },
-    { href: "/admin/dues", labelEn: "Credit owed to shop", labelNe: "बाँकी उधारो", value: money(creditOwed), Icon: CreditCardIcon, gradient: GRAD.clay, positive: false },
-  ];
 
+  if (isOwner) {
+    // ── The owner's dashboard: the owner's sample, 2026-09-28 ──────────
+    const now = new Date();
+    const invoices = getPos<SaleLike[]>("invoices", []);
+    const days = salesByDay(invoices, 7, now);
+    const todayKey = nepalDayKey(now);
+    const weekStart = days[0]?.key ?? todayKey;
+    const weekNet = netSalesBetween(invoices, weekStart, addOneDay(todayKey));
+    const bsMonth = bsMonthSoFar(now);
+    const monthNet = bsMonth ? netSalesBetween(invoices, bsMonth.startKey, bsMonth.endKey) : monthSales;
+    // Sales less purchases in the same Bikram Sambat month — not profit: what
+    // was bought is still on the shelf.
+    const purchaseInvoices = readPath<Array<{ createdAt: string; total: number }>>(purchasing, "purchaseInvoices", []);
+    const monthPurchases = bsMonth
+      ? purchaseInvoices
+          .filter((invoice) => {
+            const key = nepalDayKey(invoice.createdAt);
+            return key >= bsMonth.startKey && key < bsMonth.endKey;
+          })
+          .reduce((sum, invoice) => sum + (Number(invoice.total) || 0), 0)
+      : 0;
+    const salesLessPurchases = bsMonth ? monthNet - monthPurchases : monthProfit;
+
+    const active = products.filter((product) => product.status === "Active");
+    const soldOut = active.filter((product) => (product.stock || 0) <= 0);
+    const runningLow = active.filter((product) => isLowOrOut(product.stock) && (product.stock || 0) > 0);
+    const places = settled(placesResult, [] as Awaited<ReturnType<typeof getStockByPlace>>);
+    const mismatched = places.filter((row) => row.unplaced !== 0).length;
+    const channel = (name: "Retail" | "Wholesale" | "Online") =>
+      channelRows.find((row) => row.channel === name)?.netTotal ?? 0;
+
+    const monthNe = bikramMonthLabel(now, "np");
+    const monthEn = bikramMonthLabel(now, "en");
+    const names = (list: Product[]) =>
+      list.slice(0, 2).map((product) => product.name).join(", ") + (list.length > 2 ? ` +${list.length - 2}` : "");
+
+    const todos: Todo[] = [];
+    if (soldOut.length) {
+      todos.push({
+        key: "sold-out",
+        tone: "red",
+        en: `${names(soldOut)} sold out`,
+        ne: `${names(soldOut)} सकियो`,
+        subEn: "0 pairs · make or buy",
+        subNe: "0 जोडी · बनाउने वा किन्ने",
+        href: "/admin/stock",
+      });
+    }
+    if (newOrders.length) {
+      todos.push({
+        key: "orders",
+        tone: "blue",
+        en: `${newOrders.length} new ${newOrders.length === 1 ? "order" : "orders"} to send`,
+        ne: `${newOrders.length} नयाँ अर्डर पठाउन बाँकी`,
+        subEn: "Pack and send",
+        subNe: "प्याक गरेर पठाउने",
+        href: "/admin/orders",
+      });
+    }
+    if (runningLow.length) {
+      todos.push({
+        key: "low",
+        tone: "gold",
+        en: `${names(runningLow)} running low`,
+        ne: `${names(runningLow)} थोरै बाँकी`,
+        subEn: "5 pairs or fewer",
+        subNe: "५ जोडी वा कम",
+        href: "/admin/stock",
+      });
+    }
+    if (workerBalanceDue > 0) {
+      todos.push({
+        key: "wages",
+        tone: "gold",
+        en: `Wages ${money(workerBalanceDue)}`,
+        ne: `कामदारको ज्याला रु. ${Math.round(workerBalanceDue).toLocaleString("en-IN")}`,
+        subEn: "Still to pay",
+        subNe: "तिर्न बाँकी",
+        href: "/admin/operations/production-accounts/payments",
+      });
+    }
+    if (mismatched) {
+      todos.push({
+        key: "places",
+        tone: "gold",
+        en: `${mismatched} ${mismatched === 1 ? "shoe's" : "shoes'"} place not matching`,
+        ne: `${mismatched} जुत्ताको ठाउँ मिलेन`,
+        subEn: "Factory / shop count",
+        subNe: "कारखाना / पसलको गन्ती",
+        href: "/admin/stock#put-right",
+      });
+    }
+    if (todayGoodPairs > 0) {
+      todos.push({
+        key: "made",
+        tone: "green",
+        en: `${todayGoodPairs} pairs made today`,
+        ne: `आज ${todayGoodPairs} जोडी बने`,
+        subEn: "Count them and post to stock",
+        subNe: "गनेर स्टकमा चढाउने",
+        href: "/admin/factory/add-work",
+      });
+    }
+    if (!businessGoal || businessGoal.salesGoal <= 0) {
+      todos.push({
+        key: "goal",
+        tone: "gold",
+        en: `No goal set for ${monthEn}`,
+        ne: `${monthNe} को लक्ष्य राखिएको छैन`,
+        subEn: "Set a sales goal",
+        subNe: "बिक्रीको लक्ष्य राख्ने",
+        href: "/admin/settings#goals",
+      });
+    }
+
+    const shoes = [...active]
+      .sort((a, b) => (a.stock || 0) - (b.stock || 0) === 0 ? a.name.localeCompare(b.name) : (b.stock || 0) - (a.stock || 0))
+      .slice(0, 7);
+    // Sold-out shoes are the point of the list; keep them on it.
+    for (const product of soldOut) {
+      if (!shoes.includes(product)) shoes.push(product);
+    }
+
+    return (
+      <section className="p-4 sm:p-6">
+        {/* collected={todayCollected}: net of returns, beside what was actually
+            taken in — a good day of credit sales is not a good day. */}
+        <OwnerDashboard
+          dateEn={toBikramSambatRoman(now)}
+          dateNe={toBikramSambatNepali(now)}
+          monthEn={monthEn}
+          monthNe={monthNe}
+          today={{
+            net: todayNetSales,
+            bills: billCount,
+            pairs: todayPairsSold,
+            retail: channel("Retail"),
+            wholesale: channel("Wholesale"),
+            online: channel("Online"),
+            newOrders: newOrders.length,
+          }}
+          collected={todayCollected}
+          week={weekNet}
+          month={monthNet}
+          salesGoal={businessGoal?.salesGoal ?? 0}
+          daysInMonth={bsMonth?.daysInMonth ?? 30}
+          todos={todos}
+          kpis={{
+            salesLessPurchases,
+            stockValue: stockAtSellingPrice(active),
+            stockPairs: active.reduce((sum, product) => sum + Math.max(0, product.stock || 0), 0),
+            creditOwed,
+            workerDue: workerBalanceDue,
+          }}
+          shoes={shoes.map((product) => ({ name: product.name, stock: product.stock || 0 }))}
+          factory={{
+            todayPairs: todayGoodPairs,
+            atFactory: places.reduce((sum, row) => sum + row.factory, 0),
+            atShop: places.reduce((sum, row) => sum + row.shop, 0),
+            mismatched,
+          }}
+          days={days}
+        />
+      </section>
+    );
+  }
+
+  // Everybody else: their own counter, what needs doing, and the quick jobs.
   return (
     <section className="p-6 space-y-6">
-      {/* The hero the owner opens the app to see — today's money, one number
-          larger than anything else — or, for a salesperson, their own counter.
-          The menu beside this is already filtered by role; this makes the page
-          match, so nobody meets a room of numbers they cannot act on. */}
-      {isOwner ? (
-        <TodaySales
-          netSales={todayNetSales}
-          collected={todayCollected}
-          billCount={billCount}
-          pairsSold={todayPairsSold}
-        />
-      ) : (
-        <StaffToday
-          name={session?.name ?? ""}
-          role={adminAccess.role}
-          billsToday={billCount}
-          soldToday={todayNetSales}
-          creditToday={creditToday}
-          ordersToSend={newOrders.length}
-        />
-      )}
+      <StaffToday
+        name={session?.name ?? ""}
+        role={adminAccess.role}
+        billsToday={billCount}
+        soldToday={todayNetSales}
+        creditToday={creditToday}
+        ordersToSend={newOrders.length}
+      />
 
-      {/* This month's goal and how close the shop is — owner only, and only
-          when the goal read succeeded. Sits under today's money so the day
-          reads against a target. */}
-      {isOwner && businessGoal ? (
-        <GoalCard
-          goal={businessGoal}
-          monthSales={monthSales}
-          monthProfit={monthProfit}
-          monthPairs={todayGoodPairs}
-        />
-      ) : null}
-
-      {/* Which channel is carrying today — owner only. Shown after the goal so
-          the owner reads the target, then where the money is coming from. */}
-      {isOwner && channelRows.length > 0 ? <ChannelCompare rows={channelRows} /> : null}
-
-      {/* What needs doing, before any reporting. */}
+      {/* What needs doing, before anything else. */}
       <TodayBoard
         todayPairs={todayGoodPairs}
         newOrders={newOrders.length}
@@ -261,7 +359,7 @@ export default async function AdminDashboardPage() {
         workerDue={workerBalanceDue}
       />
 
-      {/* छिटो काम — the six jobs done most often, one tap each. */}
+      {/* छिटो काम — the jobs done most often, one tap each. */}
       <section>
         <h2 className="mb-3 font-display text-xl font-black text-brand-green-ink">
           <AlertText en="Quick jobs" ne="छिटो काम" />
@@ -272,21 +370,12 @@ export default async function AdminDashboardPage() {
           ))}
         </div>
       </section>
-
-      {/* पसल कस्तो छ — the shop's health at a glance, for the owner. Everything
-          deeper lives on its own screen, reached from the menu or a tile. */}
-      {isOwner ? (
-        <section data-zone="health">
-          <h2 className="mb-3 font-display text-xl font-black text-brand-green-ink">
-            <AlertText en="How the shop is doing" ne="पसल कस्तो छ" />
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {healthTiles.map((tile) => (
-              <HealthTile key={tile.href + tile.labelEn} {...tile} />
-            ))}
-          </div>
-        </section>
-      ) : null}
     </section>
   );
+}
+
+function addOneDay(key: string) {
+  const date = new Date(`${key}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
 }

@@ -18,14 +18,16 @@ const PAGE = "app/admin/page.tsx";
 
 describe("the owner's first screen", () => {
   it("leads with the money, not with the pairs", async () => {
-    const page = await readFile(PAGE, "utf8");
-    const body = page.slice(page.indexOf('<section className="p-6 space-y-6">'));
+    // The owner's dashboard (chosen 2026-09-28) puts the day's money in the
+    // hero, before the list of what to do and before the figures.
+    const card = await readFile("components/admin/OwnerDashboard.tsx", "utf8");
+    const money = card.indexOf("<Money value={money}");
+    const todo = card.indexOf('id="what-now"');
+    const figures = card.indexOf('data-zone="health"');
 
-    const sales = body.indexOf("<TodaySales");
-    const board = body.indexOf("<TodayBoard");
-
-    expect(sales).toBeGreaterThan(-1);
-    expect(sales).toBeLessThan(board);
+    expect(money).toBeGreaterThan(-1);
+    expect(money).toBeLessThan(todo);
+    expect(todo).toBeLessThan(figures);
   });
 
   it("shows a figure the books can be reconciled against", async () => {
