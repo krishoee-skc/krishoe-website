@@ -95,3 +95,16 @@ describe("the suggestions the owner took", () => {
     expect(today).toContain("/admin/factory/ledger");
   });
 });
+
+describe("the two tabs", () => {
+  it("drops the form's grid when Post to stock is chosen", async () => {
+    const form = await readFile(FORM, "utf8");
+    // `lg:grid` sets display itself and beats the hidden attribute on a
+    // computer, which left the form on screen above Post to stock. The class
+    // has to go with the view, not only the attribute.
+    expect(form).toContain(
+      'className={view === "entry" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6" : "hidden"}',
+    );
+    expect(form).not.toMatch(/hidden=\{view !== "entry"\} className="lg:grid/);
+  });
+});

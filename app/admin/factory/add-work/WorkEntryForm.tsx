@@ -773,7 +773,13 @@ export default function WorkEntryForm({
       {/* The whole width on a computer: the form on the left, the day's
           entries on the right. It sat in a narrow column with half the screen
           empty either side. On a phone the list follows the form. */}
-      <div hidden={view !== "entry"} className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6">
+      {/* The grid class only while this view shows. `lg:grid` sets display
+          itself, which beats the hidden attribute on a computer — so the form
+          and the day's list stayed on screen above "Post to stock". */}
+      <div
+        hidden={view !== "entry"}
+        className={view === "entry" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6" : "hidden"}
+      >
         <form
           onSubmit={handleSubmit}
           className="mt-5 space-y-4 rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-5"
