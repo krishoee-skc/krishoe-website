@@ -963,3 +963,13 @@ body:has([data-counter-mode]) [data-admin-shell] {
 body:has([data-counter-mode]) [data-pos-bar] {
   bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
 }
+
+/* The order desk prints one packing slip, not the whole screen: only while a
+   slip is open, everything else is hidden from the printer. Other pages print
+   as before. */
+@media print {
+  body:has(.print-slip) * { visibility: hidden; }
+  body:has(.print-slip) .print-slip,
+  body:has(.print-slip) .print-slip * { visibility: visible; }
+  body:has(.print-slip) .print-slip { position: absolute; left: 0; top: 0; }
+}

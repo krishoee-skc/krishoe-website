@@ -6,6 +6,7 @@ import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings";
 import { prepareDeliveryDatabase } from "@/lib/delivery-database";
 import { preparePosDatabase } from "@/lib/pos-database";
+import { prepareOrderDispatchDatabase } from "@/lib/order-dispatch-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -247,6 +248,26 @@ export async function preparePosDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for the new counter bill.");
+}
+
+/** The Owner's "OK" on adding the order-dispatch columns (lib/order-dispatch-database.ts). */
+export async function prepareOrderDispatchDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the order columns.");
+    }
+    const { applied } = await prepareOrderDispatchDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_order_dispatch_ready",
+      applied.length
+        ? `Database prepared for sending orders: ${applied.join(", ")}.`
+        : "Database was already ready for sending orders.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for sending orders.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

@@ -36,6 +36,7 @@ import { cookies } from "next/headers";
 import { getAdminSession, viewingBranchCookieName } from "@/lib/admin-auth";
 import { allBranchAdminRole } from "@/lib/admin-branch-context";
 import { getAdminSettings } from "@/lib/admin-settings";
+import { clearOrderDispatch, markOrderDispatched, saveOrderCancelReason } from "@/lib/order-dispatch";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
 export type ActionState = {
@@ -111,6 +112,69 @@ function orderProviderFromPosPayment(paymentMethod: PosPaymentMethod): PaymentPr
 
 async function auditAdminAction(action: string, detail: string) {
   await recordAdminAuditEvent(action, detail);
+}
+
+/**
+ * The order desk's "sent" button: who took it, what the delivery cost, the
+ * courier's number. The status is not changed except that a New order,
+ * being sent, is confirmed (lib/order-dispatch.ts).
+ */
+export async function markOrderDispatchedAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  const by = String(formData.get("dispatchBy") ?? "").trim() || "Own person";
+  const charge = Number(String(formData.get("dispatchCharge") ?? "").replace(/,/g, "")) || 0;
+  const tracking = String(formData.get("dispatchTracking") ?? "").trim();
+  if (!id) return { ok: false, message: "Order is missing." };
+  if (charge < 0) return { ok: false, message: "The delivery charge cannot be below zero." };
+  try {
+    await markOrderDispatched(id, { by, chargePaisa: Math.round(charge * 100), tracking });
+    await auditAdminAction("order_dispatched", `Order ${id} sent with ${by}${charge ? `, delivery Rs. ${charge}` : ""}.`);
+    revalidatePath("/admin/orders");
+    return { ok: true, message: "Marked sent." };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Could not mark it sent." };
+  }
+}
+
+export async function clearOrderDispatchAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Order is missing." };
+  await clearOrderDispatch(id);
+  await auditAdminAction("order_dispatch_cleared", `Order ${id}: "sent" taken back.`);
+  revalidatePath("/admin/orders");
+  return { ok: true, message: "Sent taken back." };
+}
+
+/** Cancel with the reason the owner chose; the reason is kept beside it. */
+export async function cancelOrderWithReasonAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!id) return { ok: false, message: "Order is missing." };
+  if (!reason) return { ok: false, message: "Choose why it is cancelled." };
+  if (await getPosInvoiceForOnlineOrder(id)) {
+    return { ok: false, message: "This order already has a bill. Return the bill instead of cancelling." };
+  }
+  try {
+    await updateOrderStatus(id, "Cancelled");
+    await reportingErrors(`save cancel reason for ${id}`, () => saveOrderCancelReason(id, reason));
+    await auditAdminAction("order_status_update", `Order ${id} marked Cancelled: ${reason}.`);
+    revalidatePath("/admin/orders");
+    return { ok: true, message: "Order cancelled." };
+  } catch {
+    return { ok: false, message: "Failed to cancel the order." };
+  }
 }
 
 export async function updateOrderStatusAction(

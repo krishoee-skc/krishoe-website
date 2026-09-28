@@ -16,12 +16,14 @@ import {
   saveDeliveryPricingAction,
   prepareDeliveryDatabaseAction,
   preparePosDatabaseAction,
+  prepareOrderDispatchDatabaseAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
 import { getDeliveryPricing } from "@/lib/delivery-settings";
 import { deliveryDatabaseStatus } from "@/lib/delivery-database";
 import { posDatabaseStatus } from "@/lib/pos-database";
+import { orderDispatchDatabaseStatus } from "@/lib/order-dispatch-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
@@ -134,6 +136,10 @@ export default async function AdminSettingsPage({
   // Only asked here, on the Owner's settings page: one small catalog read.
   const deliveryDatabase = await deliveryDatabaseStatus().catch((error) => {
     reportError("check the delivery columns", error);
+    return null;
+  });
+  const orderDispatchDatabase = await orderDispatchDatabaseStatus().catch((error) => {
+    reportError("check the order dispatch columns", error);
     return null;
   });
   const posDatabase = await posDatabaseStatus().catch((error) => {
@@ -719,6 +725,41 @@ export default async function AdminSettingsPage({
           </section>
         ) : null}
 
+        {orderDispatchDatabase && !orderDispatchDatabase.ready ? (
+          <section className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🚚 <T en="Prepare the database for sending orders" ne="अर्डर पठाउने कामको लागि database तयार गर्ने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="Adds five columns to orders: when it was sent, who took it, the delivery charge, the courier's number, and why an order was cancelled. No order, status or stock changes. Take a backup first (Activity → Export backup)."
+                ne="अर्डरमा ५ नयाँ कोठा थपिन्छन्: कहिले पठाइयो, कसले लग्यो, डेलिभरी शुल्क, कुरियरको नम्बर, र रद्दको कारण। कुनै अर्डर, अवस्था वा स्टक बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is added:" ne="यति थपिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                {orderDispatchDatabase.pending.map((item) => (
+                  <li key={item.name}>
+                    <T en={item.label.en} ne={item.label.ne} />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
+              </p>
+              <form action={prepareOrderDispatchDatabaseAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add them" />
+              </form>
+            </details>
+          </section>
+        ) : null}
       </div>
 
       <SettingsSections sections={sections} todos={todos} />

@@ -6,6 +6,8 @@ import { getPaymentTransactionsByOrderIds } from "@/lib/payment-transactions";
 import { getPosInvoices } from "@/lib/pos";
 import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
+import { getOrderDispatchByIds, orderDispatchAvailable } from "@/lib/order-dispatch";
+import { reportError } from "@/lib/report-error";
 import Link from "next/link";
 
 export const metadata = {
@@ -16,11 +18,18 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminOrdersPage() {
   const orders = await getOrders();
-  const [operations, paymentTransactions, posInvoices, products] = await Promise.all([
+  const [operations, paymentTransactions, posInvoices, products, dispatchReady, dispatchById] = await Promise.all([
     getOperationsDataForReports(),
     getPaymentTransactionsByOrderIds(orders.map((order) => order.id)),
     getPosInvoices(),
     getProducts({ includeDrafts: true }),
+    orderDispatchAvailable(),
+    // Who took an order and why one was cancelled. A failure here leaves the
+    // desk as it was, without those lines, rather than failing the page.
+    getOrderDispatchByIds(orders.map((order) => order.id)).catch((error) => {
+      reportError("read order dispatch", error);
+      return {};
+    }),
   ]);
   const posInvoicesByOrderId = Object.fromEntries(
     orders.map((order) => {
@@ -71,7 +80,10 @@ export default async function AdminOrdersPage() {
             <T en="Orders" ne="अर्डर" />
           </h1>
           <p className="mt-1 text-sm text-brand-muted">
-            Manage customer order requests, POS conversion, payment, and stock readiness.
+            <T
+              en="Call, send, take the money and make the bill — one step at a time."
+              ne="फोन गर्ने, पठाउने, पैसा लिने र बिल बनाउने — एक-एक चरण।"
+            />
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -96,6 +108,8 @@ export default async function AdminOrdersPage() {
         posInvoicesByOrderId={posInvoicesByOrderId}
         conversionReport={conversionReport}
         parsedItemsByOrderId={parsedItemsByOrderId}
+        dispatchById={dispatchById}
+        dispatchReady={dispatchReady}
       />
     </section>
   );
