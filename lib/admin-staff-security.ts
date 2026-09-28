@@ -219,33 +219,10 @@ async function writeLocalStore(store: SecurityStore) {
   await writeFileAtomic(securityFile, `${JSON.stringify(store, null, 2)}\n`);
 }
 
-export function adminDeviceLabel(userAgent: string) {
-  const agent = userAgent.toLowerCase();
-  const browser = agent.includes("edg/")
-    ? "Edge"
-    : agent.includes("chrome/") && !agent.includes("crios/")
-      ? "Chrome"
-      : agent.includes("crios/")
-        ? "Chrome iOS"
-        : agent.includes("safari/")
-          ? "Safari"
-          : agent.includes("firefox/")
-            ? "Firefox"
-            : "Browser";
-  const device = agent.includes("iphone")
-    ? "iPhone"
-    : agent.includes("ipad")
-      ? "iPad"
-      : agent.includes("android")
-        ? "Android"
-        : agent.includes("windows")
-          ? "Windows PC"
-          : agent.includes("mac os") || agent.includes("macintosh")
-            ? "Mac"
-            : "Device";
-
-  return `${browser} on ${device}`;
-}
+// Kept in its own file so the settings screen (a browser component) can use
+// the same wording; this module reads the disk and cannot go to the browser.
+import { adminDeviceLabel } from "@/lib/device-label";
+export { adminDeviceLabel };
 
 export async function createAdminStaffToken(
   staffId: string,

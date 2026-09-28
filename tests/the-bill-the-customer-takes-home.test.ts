@@ -156,7 +156,8 @@ describe("the note is the shop's to write", () => {
 
     expect(form).toContain('name="billFooterNote"');
     expect(form).toContain("settings.company.billFooterNote");
-    expect(action).toContain('textValue(formData, "billFooterNote")');
+    // Saved through pick(), which keeps the saved note when a form does not send it.
+    expect(action).toContain('billFooterNote: pick("billFooterNote")');
   });
 
   it("ships with the migration that makes the column exist", async () => {

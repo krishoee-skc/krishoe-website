@@ -137,28 +137,40 @@ async function revokeSecuritySessions(
 export async function saveCompanySettingsAction(formData: FormData) {
   try {
     await requireAdminPermission("settings:write");
-    const companyName = textValue(formData, "companyName");
+    // The settings page saves the company in parts — shop, bill, bank,
+    // reviews — each form sending only its own boxes. A field a form did not
+    // send keeps its saved value, so saving the bank can never blank the
+    // shop's phone. (A box sent empty is still saved empty: that is the owner
+    // clearing it.)
+    const current = (await getAdminSettings()).company;
+    const pick = (key: Exclude<keyof typeof current, "id" | "promoEnabled" | "updatedAt">) =>
+      formData.has(key) ? textValue(formData, key) : String(current[key] ?? "");
+    const companyName = pick("companyName");
     if (!companyName) throw new Error("Company name is required.");
 
     await saveCompanySettings({
       companyName,
-      legalName: textValue(formData, "legalName"),
-      phone: textValue(formData, "phone"),
-      email: textValue(formData, "email"),
-      address: textValue(formData, "address"),
-      panVatNumber: textValue(formData, "panVatNumber"),
-      currency: textValue(formData, "currency"),
-      timezone: textValue(formData, "timezone"),
-      defaultBranchId: textValue(formData, "defaultBranchId"),
-      billFooterNote: textValue(formData, "billFooterNote"),
-      promoText: textValue(formData, "promoText"),
-      promoEnabled: textValue(formData, "promoEnabled") === "on",
-      googleReviewUrl: textValue(formData, "googleReviewUrl"),
-      facebookReviewUrl: textValue(formData, "facebookReviewUrl"),
-      bankName: textValue(formData, "bankName"),
-      bankAccountName: textValue(formData, "bankAccountName"),
-      bankAccountNumber: textValue(formData, "bankAccountNumber"),
-      bankBranch: textValue(formData, "bankBranch"),
+      legalName: pick("legalName"),
+      phone: pick("phone"),
+      email: pick("email"),
+      address: pick("address"),
+      panVatNumber: pick("panVatNumber"),
+      currency: pick("currency"),
+      timezone: pick("timezone"),
+      defaultBranchId: pick("defaultBranchId"),
+      billFooterNote: pick("billFooterNote"),
+      promoText: pick("promoText"),
+      // A ticked box sends "on" and an unticked one sends nothing, so the form
+      // that shows the switch says so with promoEnabledShown.
+      promoEnabled: formData.has("promoEnabledShown")
+        ? textValue(formData, "promoEnabled") === "on"
+        : current.promoEnabled,
+      googleReviewUrl: pick("googleReviewUrl"),
+      facebookReviewUrl: pick("facebookReviewUrl"),
+      bankName: pick("bankName"),
+      bankAccountName: pick("bankAccountName"),
+      bankAccountNumber: pick("bankAccountNumber"),
+      bankBranch: pick("bankBranch"),
     });
     await recordAdminAuditEvent("settings_company_update", `Company settings updated for ${companyName}.`);
   } catch (error) {

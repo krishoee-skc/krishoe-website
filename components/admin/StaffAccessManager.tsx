@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { adminDeviceLabel } from "@/lib/device-label";
 import {
   inviteStaffAccountAction,
   resendStaffInvitationAction,
@@ -202,7 +203,7 @@ export default function StaffAccessManager({
                   <p><span className="font-black text-brand-green-ink">Branch:</span> {branch?.name ?? member.branchId}</p>
                   <p><span className="font-black text-brand-green-ink">Last login:</span> {displayDate(member.lastLoginAt)}</p>
                   <p><span className="font-black text-brand-green-ink">Password changed:</span> {displayDate(member.passwordChangedAt)}</p>
-                  <p><span className="font-black text-brand-green-ink">Last device:</span> {member.lastLoginUserAgent ? member.lastLoginUserAgent.slice(0, 45) : "Never"}</p>
+                  <p><span className="font-black text-brand-green-ink">Last device:</span> {member.lastLoginUserAgent ? adminDeviceLabel(member.lastLoginUserAgent) : "Never"}</p>
                   <p><span className="font-black text-brand-green-ink">Failed logins:</span> {member.failedLoginCount}</p>
                   {view?.daysIdle != null ? (
                     <p>
