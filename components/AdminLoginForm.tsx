@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -58,6 +58,13 @@ export default function AdminLoginForm({
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [code, setCode] = useState("");
+  // The owner asked for both on 2026-09-28: dots give no way to see a typo,
+  // and Caps Lock is the commonest reason a right password is refused on a PC.
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  function watchCapsLock(event: KeyboardEvent<HTMLInputElement>) {
+    setCapsLockOn(event.getModifierState("CapsLock"));
+  }
   // Set when something arrived in the code box that was not a code — almost
   // always the saved password, offered by the phone's password manager on the
   // screen right after a password field.
@@ -282,17 +289,55 @@ export default function AdminLoginForm({
         />
       </label>
 
-      <label className="mt-4 grid gap-2 text-sm font-semibold text-brand-green-ink">
-        Password
-        <input
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="h-12 rounded-lg border border-black/15 bg-[#FFFFFF] px-4 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
-          placeholder={text("your password", "तपाईंकै password")}
-        />
-      </label>
+      {/* The eye sits beside the box, outside the label, so the label still
+          names only the box and a tap on the eye never focuses the field. */}
+      <div className="mt-4 grid gap-2 text-sm font-semibold text-brand-green-ink">
+        <label htmlFor="admin-login-password">Password</label>
+        <div className="relative">
+          <input
+            id="admin-login-password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            onKeyDown={watchCapsLock}
+            onKeyUp={watchCapsLock}
+            onBlur={() => setCapsLockOn(false)}
+            aria-describedby={capsLockOn ? "admin-login-capslock" : undefined}
+            className="h-12 w-full rounded-lg border border-black/15 bg-[#FFFFFF] pl-4 pr-14 font-normal text-[#16211C] outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
+            placeholder={text("your password", "तपाईंकै password")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((shown) => !shown)}
+            aria-pressed={showPassword}
+            aria-label={showPassword ? text("Hide password", "Password लुकाउनुहोस्") : text("Show password", "Password देखाउनुहोस्")}
+            title={showPassword ? text("Hide password", "Password लुकाउनुहोस्") : text("Show password", "Password देखाउनुहोस्")}
+            className="absolute inset-y-1 right-1 grid w-11 place-items-center rounded-md text-brand-green-ink hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+          >
+            {showPassword ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3l18 18" />
+                <path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 7 10 7a9.9 9.9 0 0 0 5.4-1.6" />
+                <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        </div>
+        {capsLockOn ? (
+          <p id="admin-login-capslock" role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900">
+            {text("⚠ Caps Lock is on — the password may come out in capitals.", "⚠ Caps Lock अन छ — password ठूलो अक्षरमा जान सक्छ।")}
+          </p>
+        ) : null}
+      </div>
 
       {/* Eight hours is right for a machine other people can reach and wrong
           for the phone in the owner's pocket, where it means password, wait for

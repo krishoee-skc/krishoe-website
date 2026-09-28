@@ -40,7 +40,7 @@ describe("the sign-in field on a phone keyboard", () => {
   it("is not capitalised or autocorrected on the way in", async () => {
     const source = await readFile("components/AdminLoginForm.tsx", "utf8");
     // The window has to reach past the comment explaining why these are here.
-    const field = source.slice(source.indexOf('inputMode="email"'), source.indexOf('type="password"'));
+    const field = source.slice(source.indexOf('inputMode="email"'), source.indexOf('name="password"'));
 
     expect(field).toContain('autoCapitalize="none"');
     expect(field).toContain('autoCorrect="off"');
