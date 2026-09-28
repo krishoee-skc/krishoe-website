@@ -192,3 +192,61 @@ export function similarSuppliers<T extends SupplierLike>(ledgers: T[], name: str
     return firstWord.length >= 4 && key.split(" ")[0] === firstWord;
   });
 }
+
+/** A shoe on the books, as the purchase bill looks it up. */
+export type ShoeOnBooks = { name: string; stock: number; codes: string[]; nameNe: string };
+
+/** The codes written into what was typed: "magic shoe #122" → ["122"]. */
+function codesTyped(typed: string) {
+  return [...typed.matchAll(/#\s*([^\s#]+)/g)].map((match) => match[1].toLowerCase());
+}
+
+/**
+ * Shoes on the books that what was typed points at — by code ("#122", or
+ * "122" alone), by part of the name ("magic"), by the Nepali name, or by a
+ * name with its code after it ("magic shoe #122"). The POS finds a shoe the
+ * same ways; the purchase bill knew only the whole name, spelled exactly, and
+ * the owner's "magic shoe #122" was about to be filed as a new raw material.
+ * Codes first, then names. A name typed in full needs no list.
+ */
+export function shoesMatching<T extends ShoeOnBooks>(shoes: T[], typed: string, limit = 5): T[] {
+  const wanted = typed.trim().toLowerCase();
+  if (!wanted || shoes.some((shoe) => sameName(shoe.name, wanted))) return [];
+  const codes = codesTyped(wanted);
+  const bare = wanted.replace(/^#+\s*/, "");
+  const words = wanted.replace(/#\s*[^\s#]+/g, " ").trim();
+
+  const byCode = shoes.filter((shoe) =>
+    shoe.codes.some((code) => {
+      const own = code.trim().toLowerCase();
+      return own && (codes.includes(own) || own === bare);
+    }),
+  );
+  const byName = words.length < 2 ? [] : shoes.filter((shoe) => {
+    if (byCode.includes(shoe)) return false;
+    const name = shoe.name.trim().toLowerCase();
+    const nameNe = shoe.nameNe.trim().toLowerCase();
+    return name.includes(words) || words.includes(name) || (nameNe !== "" && (nameNe.includes(words) || words.includes(nameNe)));
+  });
+  return [...byCode, ...byName].slice(0, limit);
+}
+
+/**
+ * A code typed with "#" that no shoe carries — said out loud, so a mistyped
+ * code is not quietly filed as a new item.
+ */
+export function unknownCodeTyped(shoes: ShoeOnBooks[], typed: string) {
+  const known = new Set(shoes.flatMap((shoe) => shoe.codes.map((code) => code.trim().toLowerCase())));
+  return codesTyped(typed.trim()).find((code) => !known.has(code)) ?? "";
+}
+
+/**
+ * A new item's name that reads like footwear, so the bill can ask whether it
+ * is a shoe for sale before it is filed as raw material. Only asks: "shoe
+ * sole" is a raw material with "shoe" in its name.
+ */
+export function looksLikeShoe(name: string) {
+  return /(^|[^a-z])(shoes?|chappals?|chapals?|sandals?|slippers?|slipers?|boots?|sneakers?|joota|jutta|juttaa)([^a-z]|$)|जुत्ता|चप्पल|स्यान्डल|स्याण्डल|#/i.test(
+    name,
+  );
+}

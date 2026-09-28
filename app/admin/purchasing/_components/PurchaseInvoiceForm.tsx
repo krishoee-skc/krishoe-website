@@ -25,8 +25,9 @@ type PurchaseInvoiceFormProps = {
    *  against — so a name typed a second way becomes a second product. */
   productNames: string[];
   /** Pairs on hand per design name, to show "68 in stock" beside a design
-   *  suggestion so the buyer sees the shelf before ordering more. */
-  productStock: Array<{ name: string; stock: number }>;
+   *  suggestion so the buyer sees the shelf before ordering more — with its
+   *  codes and Nepali name, so "#122" or "magic" finds it. */
+  productStock: ShoeOnBooks[];
   /** Last rates, each supplier's last bill and bill numbers — read back from the
    *  bills already filed (lib/purchase-memory). */
   memory: PurchaseMemory;
@@ -68,13 +69,17 @@ import {
   searchSuppliers,
   similarSuppliers,
   itemNameOf,
+  looksLikeShoe,
   rawMaterialUnits,
   rowIsTouched,
   sameName,
+  shoesMatching,
   sizesPayload,
+  unknownCodeTyped,
   sizesTotalOf,
   type FormField,
   type ItemRow,
+  type ShoeOnBooks,
   type WalkField,
 } from "@/app/admin/purchasing/_components/purchase-invoice-rules";
 
@@ -115,6 +120,8 @@ export default function PurchaseInvoiceForm({
     "साहु छान्नुहोस्, वा नयाँ साहुको नाम लेख्नुहोस्।",
   );
   const [supplierError, setSupplierError] = useState(false);
+  // Lines where the buyer said "no, it is raw material" to the shoe question.
+  const [notShoes, setNotShoes] = useState<Set<number>>(() => new Set());
   const [isSaving, startSaving] = useTransition();
   const router = useRouter();
 
@@ -885,19 +892,20 @@ export default function PurchaseInvoiceForm({
             <option
               key={material.id}
               value={material.name}
-              label={`${text("Material", "कच्चा माल")} · ${materialStock(material)} ${material.unit}${
+              label={`${text("🧵 Material", "🧵 कच्चा माल")} · ${materialStock(material)} ${material.unit}${
                 last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""
               }`}
             />
           );
         })}
-        {productStock.map(({ name, stock }) => {
+        {productStock.map(({ name, stock, codes }) => {
           const last = memory.lastRates[rateKey("Trading Goods", name)];
+          const code = codes.length ? ` · ${text("code", "कोड")} ${codes.slice(0, 2).join(", ")}` : "";
           return (
             <option
               key={name}
               value={name}
-              label={`${text("Ready-made", "तयार जुत्ता")} · ${stock} ${text("pairs", "जोडी")}${
+              label={`${text("👟 Shoes/slippers", "👟 जुत्ता/चप्पल")}${code} · ${stock} ${text("pairs", "जोडी")}${
                 last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""
               }`}
             />
@@ -913,8 +921,8 @@ export default function PurchaseInvoiceForm({
             and the supplier box, which then sat behind the Save bar. */}
         <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-brand-muted sm:block">
           {text(
-            "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; ready-made pairs go straight to sellable stock. A bill can carry both.",
-            "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको भण्डारमा, तयारी जुत्ता सिधै बिक्रीयोग्य स्टकमा। एउटै बिलमा दुवै मिल्छ।",
+            "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; shoes and slippers go straight to the stock you sell from. A bill can carry both.",
+            "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको स्टोरमा, जुत्ता/चप्पल सिधै बेच्ने स्टकमा। एउटै बिलमा दुवै मिल्छ।",
           )}
         </p>
       </div>
@@ -1196,7 +1204,7 @@ export default function PurchaseInvoiceForm({
                 was squeezed to a sliver beside three roomy number boxes. */}
             <div className="mt-2 hidden gap-2 px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
               <span>{text("S.N.", "क्र.सं.")}</span>
-              <span>{text("Item — material or ready-made", "सामान — कच्चा माल वा तयार जुत्ता")}</span>
+              <span>{text("Item — material or shoes/slippers", "सामान — कच्चा माल वा जुत्ता/चप्पल")}</span>
               <span className="text-right">{text("Qty", "थान")}</span>
               <span className="text-right">{text("Rate", "दर")}</span>
               <span className="text-right">{text("Amount", "रकम")}</span>
@@ -1259,7 +1267,7 @@ export default function PurchaseInvoiceForm({
                         }}
                         list="purchase-items"
                         className={fieldClass(Boolean(issue?.design || issue?.material))}
-                        placeholder={text("Type the item — leather, sole, sandal…", "सामान टाइप गर्नुहोस् — छाला, सोल, चप्पल…")}
+                        placeholder={text("Type the item or #code — leather, sole, sandal…", "सामान वा #कोड टाइप गर्नुहोस् — छाला, सोल, चप्पल…")}
                         value={itemNameOf(row, rawMaterials)}
                         onChange={(event) => setItemName(row, event.target.value)}
                         onKeyDown={(event) => {
@@ -1423,7 +1431,7 @@ export default function PurchaseInvoiceForm({
                               ))}
                             </select>
                             <span className="text-[11px] font-bold text-brand-green">
-                              {text("→ straight to sellable stock", "→ सिधै बिक्रीयोग्य स्टकमा")}
+                              {text("→ to the stock you sell from", "→ बेच्ने स्टकमा")}
                             </span>
                           </>
                         ) : (
@@ -1454,7 +1462,7 @@ export default function PurchaseInvoiceForm({
                               </span>
                             )}
                             <span className="text-[11px] font-bold text-brand-gold-ink">
-                              {text("→ to the factory store", "→ कारखानाको भण्डारमा")}
+                              {text("→ to the factory store (not for sale)", "→ कारखानाको स्टोरमा (बेच्ने होइन)")}
                             </span>
                           </>
                         )}
@@ -1475,11 +1483,79 @@ export default function PurchaseInvoiceForm({
                                     : "border-brand-green-line bg-brand-paper text-brand-green-ink"
                                 }`}
                               >
-                                {kind === "Raw Material" ? text("🧵 Material", "🧵 कच्चा माल") : text("👟 Ready-made shoe", "👟 तयार जुत्ता")}
+                                {kind === "Raw Material" ? text("🧵 Material (leather, sole…)", "🧵 कच्चा माल (छाला, सोल…)") : text("👟 Shoes / slippers", "👟 जुत्ता / चप्पल")}
                               </button>
                             ))}
                           </span>
                         ) : null}
+
+                        {(() => {
+                          // Only while the typed name is not already an item on the books.
+                          if (row.materialId) return null;
+                          const typed = row.design || row.materialName;
+                          if (!typed.trim() || productNames.some((name) => sameName(name, typed))) return null;
+                          const matches = shoesMatching(productStock, typed);
+                          const missingCode = unknownCodeTyped(productStock, typed);
+                          const askShoe =
+                            !matches.length && row.kind === "Raw Material" && !notShoes.has(row.key) && looksLikeShoe(typed);
+                          if (!matches.length && !missingCode && !askShoe) return null;
+                          return (
+                            <span className="grid w-full gap-1.5">
+                              {matches.length ? (
+                                <span className="grid gap-1 rounded-md border border-brand-green-line bg-brand-green-tint/40 p-2" role="group" aria-label={text("Shoes on the books", "स्टकमा भएका जुत्ता")}>
+                                  <span className="text-[11px] font-black text-brand-green-ink">
+                                    {text("👟 Already on the books — pick it so the pairs join its stock:", "👟 स्टकमा पहिल्यै छ — छान्नुहोस्, जोडी त्यसैमा थपिन्छ:")}
+                                  </span>
+                                  {matches.map((shoe) => {
+                                    const last = memory.lastRates[rateKey("Trading Goods", shoe.name)];
+                                    return (
+                                      <button
+                                        key={shoe.name}
+                                        type="button"
+                                        onClick={() => setItemName(row, shoe.name)}
+                                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md border border-brand-green-line bg-brand-paper px-2.5 py-1.5 text-left text-[13px] hover:border-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+                                      >
+                                        <span className="font-black text-brand-green-ink">{shoe.name}</span>
+                                        <span className="text-[11px] font-bold text-brand-muted">
+                                          {shoe.codes.length ? `${text("code", "कोड")} ${shoe.codes.slice(0, 2).join(", ")} · ` : ""}
+                                          {shoe.stock} {text("pairs", "जोडी")}
+                                          {last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </span>
+                              ) : null}
+                              {missingCode && !matches.length ? (
+                                <span className="rounded-md bg-brand-clay-tint px-2 py-1 text-[11px] font-black text-brand-clay">
+                                  {text(
+                                    `⚠ No shoe has code ${missingCode}. Check the code, or pick what it is below.`,
+                                    `⚠ कोड ${missingCode} भएको जुत्ता भेटिएन। कोड जाँच्नुहोस्, वा तल यो के हो छान्नुहोस्।`,
+                                  )}
+                                </span>
+                              ) : null}
+                              {askShoe ? (
+                                <span className="flex flex-wrap items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2.5 py-2 text-[12px] font-bold text-brand-gold-ink" role="status">
+                                  {text("👟 This name reads like footwear. Is it shoes/slippers for sale?", "👟 नाम जुत्ता जस्तो छ। यो बेच्ने जुत्ता/चप्पल हो?")}
+                                  <button
+                                    type="button"
+                                    onClick={() => setKind(row, "Trading Goods")}
+                                    className="rounded-md bg-brand-green px-2.5 py-1 font-black text-white"
+                                  >
+                                    {text("Yes, shoes/slippers", "हो, जुत्ता/चप्पल")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setNotShoes((current) => new Set(current).add(row.key))}
+                                    className="rounded-md border border-brand-green px-2.5 py-1 font-black text-brand-green"
+                                  >
+                                    {text("No, raw material", "होइन, कच्चा माल")}
+                                  </button>
+                                </span>
+                              ) : null}
+                            </span>
+                          );
+                        })()}
 
                         {(() => {
                           const last = lastRateOf(row);

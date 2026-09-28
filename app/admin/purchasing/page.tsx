@@ -143,7 +143,24 @@ export default async function AdminPurchasingPage({
     const pairs = Math.max(0, Math.round(Number(product.stock) || 0));
     productStockByName.set(product.name, (productStockByName.get(product.name) ?? 0) + pairs);
   }
-  const productStock = [...productStockByName.entries()].map(([name, stock]) => ({ name, stock }));
+  // Each design's codes and Nepali name, so the bill finds a shoe by "#122" or
+  // by part of its name the way the POS does.
+  const productCodesByName = new Map<string, Set<string>>();
+  const productNameNeByName = new Map<string, string>();
+  for (const product of products) {
+    const codes = productCodesByName.get(product.name) ?? new Set<string>();
+    if (product.sku?.trim()) codes.add(product.sku.trim());
+    productCodesByName.set(product.name, codes);
+    if (product.nameNe?.trim() && !productNameNeByName.has(product.name)) {
+      productNameNeByName.set(product.name, product.nameNe.trim());
+    }
+  }
+  const productStock = [...productStockByName.entries()].map(([name, stock]) => ({
+    name,
+    stock,
+    codes: [...(productCodesByName.get(name) ?? [])],
+    nameNe: productNameNeByName.get(name) ?? "",
+  }));
   // The sizes each design is made in, so a ready-made purchase line offers
   // exactly those boxes. Lower-cased, the way the form matches a typed name.
   const designSizes: Record<string, string[]> = {};
