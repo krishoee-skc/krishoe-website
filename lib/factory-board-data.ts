@@ -8,6 +8,7 @@
  * The same query the /api/factory/work GET runs, so the server-rendered board
  * and the API can never drift into reporting different days.
  */
+import { KATHMANDU_TODAY_SQL, KATHMANDU_WEEK_START_SQL } from "@/lib/kathmandu-today-sql";
 import { queryPostgres } from "@/lib/postgres/client";
 import { productSizes } from "@/lib/shoe-sizes";
 import type { FactoryRate } from "@/lib/factory-rate-book";
@@ -160,7 +161,7 @@ export async function getFactoryWorkers(
        LEFT JOIN LATERAL (
          SELECT SUM(work.pairs_count)::integer AS today_pairs
          FROM factory_daily_work work
-         WHERE work.worker_id = workers.id AND work.date = CURRENT_DATE
+         WHERE work.worker_id = workers.id AND work.date = ${KATHMANDU_TODAY_SQL}
            AND work.status <> 'reversed'
        ) today_work ON true
        -- This week's pairs and wage, Sunday to today, so the work-entry screen
@@ -170,7 +171,7 @@ export async function getFactoryWorkers(
                 SUM(work.amount_earned)::numeric AS week_earned
          FROM factory_daily_work work
          WHERE work.worker_id = workers.id
-           AND work.date >= date_trunc('week', CURRENT_DATE)
+           AND work.date >= ${KATHMANDU_WEEK_START_SQL}
            AND work.status <> 'reversed'
        ) week_work ON true
        ${where}

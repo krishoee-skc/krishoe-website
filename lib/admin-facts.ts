@@ -47,7 +47,9 @@ export async function readAdminFacts(): Promise<AdminFacts> {
     todayPairs: pos ? pos.summary.todayPairs : null,
     creditOwed: pos ? pos.summary.totalCredit : null,
     workerOwed: production ? production.workerBalanceDue : null,
-    todayGoodPairs: production ? production.todayGoodPairs : null,
+    // Pairs made is pairs into stock; the per-stage work sum counts one pair
+    // once per stage it passed (lib/production-accounting.ts).
+    todayGoodPairs: production ? production.todayStockPairs : null,
     monthProfit: purchasing ? purchasing.summary.monthProfitEstimate : null,
     lowStock: products ? lowStock : null,
     lowStockCount: products ? lowStock.length : null,

@@ -54,7 +54,7 @@ export function adminFactsBlock(facts: AdminFacts): string {
   return [
     `- Today's sales (net of returns): ${money(facts.todaySales)}`,
     `- Pairs sold today: ${plain(facts.todayPairs)}`,
-    `- Good pairs made today: ${plain(facts.todayGoodPairs)}`,
+    `- Pairs made and posted to stock today: ${plain(facts.todayGoodPairs)}`,
     `- Credit / dues owed to the shop: ${money(facts.creditOwed)}`,
     `- Wages still owed to workers: ${money(facts.workerOwed)}`,
     `- Estimated profit this month: ${money(facts.monthProfit)}`,

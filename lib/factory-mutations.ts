@@ -337,6 +337,8 @@ export async function createFactoryWork(input: FactoryWorkInput) {
     const countedPairs = sizeCountsTotal(sizeCounts);
     const hasCounts = countedPairs > 0;
     const pairsCount = hasCounts ? countedPairs : input.pairsCount;
+    // Held between 0 and the pairs worked; written to both ledgers below.
+    const rejectPairs = Math.max(0, Math.min(pairsCount, Math.round(Number(input.rejectPairs) || 0)));
 
     // A bottom cannot be made for an upper that does not exist.
     //
@@ -484,7 +486,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         rate,
         // Work Orders were taken out; the column stays, always empty.
         null,
-        Math.max(0, Math.min(pairsCount, Math.round(Number(input.rejectPairs) || 0))),
+        rejectPairs,
         stage,
         // NULL rather than {} when the boxes were left empty, so an entry that
         // did not record its breakdown reads as "not recorded" instead of "no
@@ -512,7 +514,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
            status, approved_by, approved_at, note, source_submission_key
          ) VALUES (
            $1, $2, $3, $4, nullif($14, ''), $5, $6, $7, $8, $9::jsonb,
-           0, 0, $10, $11, 'Approved', 'Factory quick entry', now(), $12, $13
+           $15, 0, $10, $11, 'Approved', 'Factory quick entry', now(), $12, $13
          )`,
         [
           crypto.randomUUID(), input.date, worker.id, worker.name,
@@ -520,6 +522,9 @@ export async function createFactoryWork(input: FactoryWorkInput) {
           pairsCount, JSON.stringify(breakdown),
           rate, amountEarned, `Synced from Factory work ${workId}`, input.submissionKey,
           "",
+          // The rejects the factory row keeps, so "good pairs" here subtracts
+          // them. It was always 0 on a new entry — only an edit wrote them.
+          rejectPairs,
         ],
       );
     }

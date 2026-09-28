@@ -95,7 +95,9 @@ export default async function AdminOperationsPage({
           },
           {
             id: "output",
-            label: <T en="Today good output" ne="आज बनेको राम्रो माल" />,
+            // Every stage's entries together — one pair through two stages
+            // counts twice here. What was made is the "Into stock today" card.
+            label: <T en="Work today, all stages" ne="आज सबै चरणको काम" />,
             value: <T en={`${productionControl.todayGoodPairs} pairs`} ne={`${productionControl.todayGoodPairs} जोडी`} />,
             detail: <T en={`${productionControl.todayRejectedPairs} rejected`} ne={`${productionControl.todayRejectedPairs} बिग्रेको`} />,
           },

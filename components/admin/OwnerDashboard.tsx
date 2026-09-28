@@ -42,7 +42,8 @@ export type OwnerDashboardProps = {
   todos: Todo[];
   kpis: { salesLessPurchases: number; stockValue: number; stockPairs: number; creditOwed: number; workerDue: number };
   shoes: Array<{ name: string; stock: number }>;
-  factory: { todayPairs: number; atFactory: number; atShop: number; mismatched: number };
+  /** todayPairs: pairs posted to stock today. stages: today's work per stage, never summed. */
+  factory: { todayPairs: number; stages?: Array<{ stage: string; pairs: number }>; atFactory: number; atShop: number; mismatched: number };
   days: Array<{ key: string; en: string; ne: string; net: number; today: boolean }>;
 };
 
@@ -172,7 +173,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
       items.push({ en: "🛒 No bill cut yet today", ne: "🛒 आज अहिलेसम्म बिल काटिएको छैन" });
     }
     if (props.factory.todayPairs > 0) {
-      items.push({ en: `🏭 ${props.factory.todayPairs} pairs made today`, ne: `🏭 आज कारखानामा ${props.factory.todayPairs} जोडी बने` });
+      items.push({ en: `🏭 ${props.factory.todayPairs} pairs into stock today`, ne: `🏭 आज कारखानाबाट ${props.factory.todayPairs} जोडी स्टकमा चढे` });
     }
     for (const todo of props.todos.slice(0, 4)) items.push({ en: `• ${todo.en}`, ne: `• ${todo.ne}` });
     items.push({
@@ -425,8 +426,20 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
           </h2>
           <p>
             <Count value={props.factory.todayPairs} className="font-display text-5xl font-black text-brand-green-ink" />{" "}
-            <span className="text-sm font-bold text-brand-muted">{text("pairs made today", "जोडी आज बने")}</span>
+            <span className="text-sm font-bold text-brand-muted">{text("pairs into stock today", "जोडी आज स्टकमा चढे")}</span>
           </p>
+          {/* Each stage on its own: one pair through Upper and Fibermen is two
+              entries, and adding them up doubled the day. */}
+          {props.factory.stages?.length ? (
+            <p className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-brand-muted">
+              <span>{text("Work today:", "आजको काम:")}</span>
+              {props.factory.stages.map((entry) => (
+                <span key={entry.stage} className="rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 tabular-nums text-brand-green-ink">
+                  {entry.stage} {entry.pairs}
+                </span>
+              ))}
+            </p>
+          ) : null}
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
               { en: "At the factory", ne: "कारखानामा", value: props.factory.atFactory, tone: "text-brand-gold-ink" },

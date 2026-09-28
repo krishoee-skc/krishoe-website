@@ -25,6 +25,7 @@ async function listProductionWorkers(): Promise<ProductionWorker[]> {
     status: row.status === "active" ? "Active" : "Inactive",
   }));
 }
+import { KATHMANDU_TODAY_SQL } from "@/lib/kathmandu-today-sql";
 import { getProducts } from "@/lib/product-store";
 import { insertStockMovement } from "@/lib/operations-postgres";
 import { sizeWiseRows } from "@/lib/size-wise-stock";
@@ -283,6 +284,7 @@ type ProductionControlRow = {
   today_earned_wage: number | string;
   active_worker_count: number | string;
   today_stock_pairs: number | string;
+  today_stage_pairs: Array<{ stage: string; pairs: number | string }> | null;
   worker_balance_due: number | string;
 };
 
@@ -320,18 +322,29 @@ export async function getProductionControlSummary() {
        SELECT
          (SELECT coalesce(sum(total_pairs - rejected_pairs), 0)
           FROM production_work_entries
-          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_good_pairs,
+          WHERE status = 'Approved' AND work_date = ${KATHMANDU_TODAY_SQL}) AS today_good_pairs,
          (SELECT coalesce(sum(rejected_pairs), 0)
           FROM production_work_entries
-          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_rejected_pairs,
+          WHERE status = 'Approved' AND work_date = ${KATHMANDU_TODAY_SQL}) AS today_rejected_pairs,
          (SELECT coalesce(sum(earned_wage), 0)
           FROM production_work_entries
-          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS today_earned_wage,
+          WHERE status = 'Approved' AND work_date = ${KATHMANDU_TODAY_SQL}) AS today_earned_wage,
+         -- Today's work stage by stage. One pair passes Upper, Fibermen and
+         -- the rest, and each stage writes its own entry, so adding them up
+         -- counted sixty pairs as a hundred and twenty. They are shown side by
+         -- side; what was made is what went into stock (today_stock_pairs).
+         (SELECT coalesce(json_agg(json_build_object('stage', stage, 'pairs', pairs) ORDER BY pairs DESC, stage), '[]'::json)
+            FROM (
+              SELECT stage, sum(total_pairs - rejected_pairs)::integer AS pairs
+                FROM production_work_entries
+               WHERE status = 'Approved' AND work_date = ${KATHMANDU_TODAY_SQL}
+               GROUP BY stage
+            ) today_stages) AS today_stage_pairs,
          -- People who actually did work today, not people on the payroll. The
          -- dashboard showed a hardcoded 12 in this place.
          (SELECT count(DISTINCT employee_id)
           FROM production_work_entries
-          WHERE status = 'Approved' AND work_date = CURRENT_DATE) AS active_worker_count,
+          WHERE status = 'Approved' AND work_date = ${KATHMANDU_TODAY_SQL}) AS active_worker_count,
          -- Every pair the factory put into stock today: "Post to stock" on the
          -- work screen and Packing/QC both write a Production In movement.
          -- It counted Packing/QC alone, and read 0 on a day sixty pairs went
@@ -356,6 +369,7 @@ export async function getProductionControlSummary() {
     todayEarnedWage: numeric(row?.today_earned_wage ?? 0),
     activeWorkerCount: count(row?.active_worker_count),
     todayStockPairs: count(row?.today_stock_pairs),
+    todayStagePairs: (row?.today_stage_pairs ?? []).map((entry) => ({ stage: String(entry.stage), pairs: count(entry.pairs) })),
     workerBalanceDue: numeric(row?.worker_balance_due ?? 0),
   };
 }
@@ -388,7 +402,7 @@ export async function getProductionAcceptanceAudit() {
           AND (
             SELECT count(DISTINCT rates.stage) FROM production_stage_rates rates
             WHERE rates.item_id = items.id AND rates.status = 'Active'
-              AND rates.effective_from <= CURRENT_DATE
+              AND rates.effective_from <= ${KATHMANDU_TODAY_SQL}
           ) < 4) AS items_missing_rates,
        (SELECT count(*) FROM production_items items
         WHERE items.status = 'Active' AND items.production_type <> 'Resale'
@@ -592,7 +606,7 @@ export async function getProductionAccountingSnapshot() {
       `SELECT DISTINCT ON (item_id, stage)
          id, item_id, stage, rate_per_pair, effective_from
        FROM production_stage_rates
-       WHERE status = 'Active' AND effective_from <= CURRENT_DATE
+       WHERE status = 'Active' AND effective_from <= ${KATHMANDU_TODAY_SQL}
        ORDER BY item_id, stage, effective_from DESC, created_at DESC`,
     ),
     queryPostgres<WorkerRateRow>(
@@ -601,7 +615,7 @@ export async function getProductionAccountingSnapshot() {
          id, employee_id, employee_name_snapshot, item_id, stage,
          rate_per_pair, effective_from, note
        FROM production_worker_stage_rates
-       WHERE status = 'Active' AND effective_from <= CURRENT_DATE
+       WHERE status = 'Active' AND effective_from <= ${KATHMANDU_TODAY_SQL}
        ORDER BY employee_id, item_id, stage, effective_from DESC, created_at DESC`,
     ),
     queryPostgres<WorkRow>(
@@ -684,7 +698,7 @@ export async function getProductionAccountingSnapshot() {
          making_cost_per_pair, wholesale_profit_percent, wholesale_price,
          retail_extra_amount, retail_price, approved_by
        FROM production_cost_cards
-       WHERE effective_from <= CURRENT_DATE
+       WHERE effective_from <= ${KATHMANDU_TODAY_SQL}
        ORDER BY item_id, effective_from DESC, created_at DESC`,
     ),
     listProductionWorkers(),

@@ -38,6 +38,10 @@ describe("the factory's database reads", () => {
       "params.length",
       // A constant defined in the file.
       "MAX_DAY_ENTRIES",
+      // Fixed SQL for today and this week's Sunday in Kathmandu
+      // (lib/kathmandu-today-sql.ts) — constants, no value reaches them.
+      "KATHMANDU_TODAY_SQL",
+      "KATHMANDU_WEEK_START_SQL",
       // A fixed clause chosen by a boolean — no value reaches the SQL.
       `options.includeRetired ? "" : "WHERE items.status = 'active'"`,
     ]);

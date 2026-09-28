@@ -146,7 +146,15 @@ export default async function AdminDashboardPage() {
   const newOrders = orders.filter((order) => order?.status === "New");
   const lowStockProducts = products.filter((product) => isLowOrOut(product.stock));
 
-  const todayGoodPairs = readPath(productionControl, "todayGoodPairs", 0);
+  // What the factory made today is what went into stock — "Post to stock" and
+  // Packing/QC both land there. The work entries are per stage: one pair
+  // passing Upper and Fibermen is two entries, and adding them up read sixty
+  // pairs as a hundred and twenty (owner, 2026-09-29). So they are shown side
+  // by side and never summed.
+  const todayStockPairs = readPath(productionControl, "todayStockPairs", 0);
+  const todayStagePairs = readPath<Array<{ stage: string; pairs: number }>>(productionControl, "todayStagePairs", [])
+    .filter((entry) => entry.pairs > 0);
+  const todayStageLine = todayStagePairs.map((entry) => `${entry.stage} ${entry.pairs}`).join(" · ");
   const workerBalanceDue = readPath(productionControl, "workerBalanceDue", 0);
   const monthProfit = readPath(purchasing, "summary.monthProfitEstimate", 0);
   const monthSales = getPos("summary.monthNetSales", 0);
@@ -264,14 +272,16 @@ export default async function AdminDashboardPage() {
         href: "/admin/stock#put-right",
       });
     }
-    if (todayGoodPairs > 0) {
+    // A reminder only on a day of work with nothing posted yet. Once pairs are
+    // in stock the factory card says how many, and there is nothing left to do.
+    if (todayStagePairs.length > 0 && todayStockPairs === 0) {
       todos.push({
-        key: "made",
-        tone: "green",
-        en: `${todayGoodPairs} pairs made today`,
-        ne: `आज ${todayGoodPairs} जोडी बने`,
-        subEn: "Count them and post to stock",
-        subNe: "गनेर स्टकमा चढाउने",
+        key: "post",
+        tone: "gold",
+        en: `Work done today (${todayStageLine}), none posted to stock`,
+        ne: `आज काम भयो (${todayStageLine}), स्टकमा चढाउन बाँकी`,
+        subEn: "Count the finished pairs and post them to stock",
+        subNe: "तयार जोडी गनेर स्टकमा चढाउने",
         href: "/admin/factory/add-work",
       });
     }
@@ -328,7 +338,8 @@ export default async function AdminDashboardPage() {
           }}
           shoes={shoes.map((product) => ({ name: product.name, stock: product.stock || 0 }))}
           factory={{
-            todayPairs: todayGoodPairs,
+            todayPairs: todayStockPairs,
+            stages: todayStagePairs,
             atFactory: places.reduce((sum, row) => sum + row.factory, 0),
             atShop: places.reduce((sum, row) => sum + row.shop, 0),
             mismatched,
@@ -353,7 +364,7 @@ export default async function AdminDashboardPage() {
 
       {/* What needs doing, before anything else. */}
       <TodayBoard
-        todayPairs={todayGoodPairs}
+        todayPairs={todayStockPairs}
         newOrders={newOrders.length}
         lowStockNames={lowStockProducts.map((product) => product.name)}
         workerDue={workerBalanceDue}

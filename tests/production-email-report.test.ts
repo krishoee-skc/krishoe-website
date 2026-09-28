@@ -18,6 +18,7 @@ describe("production email report", () => {
         todayEarnedWage: 360,
         activeWorkerCount: 3,
         todayStockPairs: 18,
+        todayStagePairs: [{ stage: "Upper", pairs: 20 }],
         workerBalanceDue: 7600,
       },
     );
