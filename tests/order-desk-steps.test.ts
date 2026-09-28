@@ -74,7 +74,8 @@ describe("the desk", () => {
 
   it("will not make a bill for pairs that are not on the shelf", async () => {
     const desk = await readFile("app/admin/OrdersClient.tsx", "utf8");
-    expect(desk).toContain("(stage === 1 || stage === 2) && !stockShort ?");
+    // Nor for an order on its way back (tests/order-coming-back.test.ts).
+    expect(desk).toContain("(stage === 1 || stage === 2) && !comingBack && !stockShort ?");
   });
 
   it("asks why before cancelling, and refuses to cancel a billed order", async () => {

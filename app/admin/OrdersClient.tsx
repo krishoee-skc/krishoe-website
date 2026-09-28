@@ -8,17 +8,20 @@ import type {
   OnlineOrderConversionSignal,
 } from "@/lib/order-pos";
 import { money } from "@/lib/format-money";
-import { CANCEL_REASONS, cancelReasonLabel } from "@/lib/order-cancel-reasons";
+import { CANCEL_REASONS, cancelReasonLabel, isOrderComingBack } from "@/lib/order-cancel-reasons";
 import type { CustomerLedger } from "@/lib/operations";
 import type { PaymentTransaction } from "@/lib/payment-transactions";
 import type { OrderSubmission } from "@/lib/submissions";
 import { parseOrderTotalRupees } from "@/lib/payment-amount";
 import {
+  cancelOrderReturnAction,
   cancelOrderWithReasonAction,
   clearOrderDispatchAction,
   createPosInvoiceFromOrderAction,
   markCustomerPhoneVerifiedFromOrderAction,
   markOrderDispatchedAction,
+  orderReturnedAction,
+  startOrderReturnAction,
   updateOrderPaymentAction,
   updateOrderStatusAction,
   type ActionState,
@@ -495,7 +498,8 @@ export default function OrdersClient({
     const stage = stageOf(order, dispatch, Boolean(posInvoice));
     const created = new Date(order.createdAt).getTime();
     const late = stage === 0 && Number.isFinite(created) && now - created > DAY_MS;
-    return { order, posInvoice, dispatch, stage, late, rupees: amountFromOrderTotal(order.total) };
+    const comingBack = stage === 2 && isOrderComingBack(order.status, dispatch);
+    return { order, posInvoice, dispatch, stage, late, comingBack, rupees: amountFromOrderTotal(order.total) };
   });
 
   const needle = search.trim().toLowerCase();
@@ -517,9 +521,10 @@ export default function OrdersClient({
 
   const lateCount = rows.filter((row) => row.late).length;
   const toCall = rows.filter((row) => row.stage === 0).length;
-  const onTheWay = rows.filter((row) => row.stage === 2).length;
+  // Coming back is not on its way to the customer, and no money comes from it.
+  const onTheWay = rows.filter((row) => row.stage === 2 && !row.comingBack).length;
   const unpaid = rows
-    .filter((row) => row.stage !== 4 && row.stage !== "cancelled" && row.order.paymentStatus !== "Paid")
+    .filter((row) => row.stage !== 4 && row.stage !== "cancelled" && !row.comingBack && row.order.paymentStatus !== "Paid")
     .reduce((total, row) => total + row.rupees, 0);
 
   const count = (value: typeof filter) =>
@@ -593,7 +598,7 @@ export default function OrdersClient({
       <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
         {/* The list: who, how much, where it stands. */}
         <ul className="grid list-none content-start gap-2 pl-0">
-          {visible.map(({ order, stage, late, rupees }) => {
+          {visible.map(({ order, stage, late, comingBack, rupees }) => {
             const active = selected?.order.id === order.id;
             const step = stage === "cancelled" ? null : STEPS[stage];
             return (
@@ -615,12 +620,13 @@ export default function OrdersClient({
                     <span
                       className={`shrink-0 rounded-full px-2 font-black ${
                         late ? "bg-red-100 text-red-800"
+                          : comingBack ? "bg-red-50 text-red-900"
                           : stage === 4 ? "bg-emerald-50 text-emerald-800"
                             : stage === "cancelled" ? "bg-brand-mist text-brand-muted"
                               : "bg-amber-50 text-amber-900"
                       }`}
                     >
-                      {late ? `⏰ ${text("Late", "ढिलो")}` : step ? `${step.icon} ${text(step.en, step.ne)}` : `✖ ${text("Cancelled", "रद्द")}`}
+                      {late ? `⏰ ${text("Late", "ढिलो")}` : comingBack ? `↩ ${text("Coming back", "फिर्ता आउँदैछ")}` : step ? `${step.icon} ${text(step.en, step.ne)}` : `✖ ${text("Cancelled", "रद्द")}`}
                     </span>
                   </span>
                 </button>
@@ -664,6 +670,7 @@ function OrderDetail({
     dispatch: OrderDispatch | undefined;
     stage: Stage;
     late: boolean;
+    comingBack: boolean;
     rupees: number;
   };
   items: ParsedOrderItem[];
@@ -673,7 +680,7 @@ function OrderDetail({
   dispatchReady: boolean;
 }) {
   const { text } = useLanguage();
-  const { order, posInvoice, dispatch, stage, rupees } = row;
+  const { order, posInvoice, dispatch, stage, comingBack, rupees } = row;
   const [state, setState] = useState<ActionState>({ ok: true, message: "" });
   const [isPending, startTransition] = useTransition();
   const [dispatchBy, setDispatchBy] = useState<string>(DISPATCH_BY[0]);
@@ -708,7 +715,9 @@ function OrderDetail({
     });
 
   const phoneDigits = whatsappNumber(order.phone);
-  const message = whatsappText(text, stage, order.name, paidOnline ? "" : money(rupees), dispatch?.dispatchBy ?? "");
+  const message = comingBack
+    ? text(`${order.name}, we wanted to talk about your order.`, `${order.name} जी, तपाईंको अर्डरबारे कुरा गर्नु थियो।`)
+    : whatsappText(text, stage, order.name, paidOnline ? "" : money(rupees), dispatch?.dispatchBy ?? "");
 
   return (
     <article className="grid content-start gap-4 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
@@ -896,7 +905,19 @@ function OrderDetail({
             </div>
           ) : null}
 
-          {stage === 2 && dispatch ? (
+          {comingBack && dispatch ? (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-900">
+              ↩ {text("Coming back", "फिर्ता आउँदैछ")} — {cancelReasonLabel(dispatch.cancelReason, text)} · {dispatch.dispatchBy}
+              {dispatch.dispatchTracking ? ` · ${dispatch.dispatchTracking}` : ""}
+              <br />
+              {text(
+                "Its pairs stay held while they are with the courier, so the website cannot sell them twice. When they reach the shop, press \"Back in the shop\".",
+                "जुत्ता कुरियरसँग हुँदासम्म जोडी यही अर्डरमा रोकिन्छन्, त्यसैले वेबसाइटले दोहोर्याएर बेच्दैन। पसलमा आइपुगेपछि \"फिर्ता आयो\" थिच्नुहोस्।",
+              )}
+            </p>
+          ) : null}
+
+          {stage === 2 && dispatch && !comingBack ? (
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
               🚚 {text("On the way", "बाटोमा छ")} — {dispatch.dispatchBy}
               {dispatch.dispatchChargePaisa ? ` · ${text("delivery", "डेलिभरी")} ${money(dispatch.dispatchChargePaisa / 100)}` : ""}
@@ -935,7 +956,7 @@ function OrderDetail({
                 🚚 {text("Sent", "पठाइयो")}
               </button>
             ) : null}
-            {(stage === 1 || stage === 2) && !stockShort ? (
+            {(stage === 1 || stage === 2) && !comingBack && !stockShort ? (
               <button
                 type="button"
                 disabled={isPending}
@@ -949,7 +970,27 @@ function OrderDetail({
                   : `💰 ${text(`Money in — ${money(rupees)}, make the bill`, `पैसा आयो — ${money(rupees)} बिल बनाउने`)}`}
               </button>
             ) : null}
-            {stage === 2 ? (
+            {comingBack ? (
+              <>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => run(orderReturnedAction, { id: order.id })}
+                  className="min-h-12 rounded-xl bg-brand-green px-5 text-base font-black text-white disabled:opacity-60"
+                >
+                  📦 {text("Back in the shop", "फिर्ता आयो (पसलमा पुग्यो)")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => run(cancelOrderReturnAction, { id: order.id })}
+                  className="min-h-10 rounded-lg px-3 text-xs font-bold text-brand-muted underline"
+                >
+                  {text("The customer took it after all", "ग्राहकले लिनुभयो, फिर्ता आउँदैन")}
+                </button>
+              </>
+            ) : null}
+            {stage === 2 && !comingBack ? (
               <button
                 type="button"
                 disabled={isPending}
@@ -959,18 +1000,24 @@ function OrderDetail({
                 {text("Not sent after all", "पठाइएको होइन (फिर्ता)")}
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={() => setCancelling((open) => !open)}
-              className="min-h-10 rounded-lg border border-brand-green-line px-3 text-xs font-black text-brand-muted-deep"
-            >
-              ✖ {text("Cancel", "रद्द")}
-            </button>
+            {/* A sent order is not cancelled on the spot: its pairs are with the
+                courier. It is marked coming back, and cancelled when they arrive. */}
+            {!comingBack ? (
+              <button
+                type="button"
+                onClick={() => setCancelling((open) => !open)}
+                className="min-h-10 rounded-lg border border-brand-green-line px-3 text-xs font-black text-brand-muted-deep"
+              >
+                {stage === 2 ? `↩ ${text("Coming back", "फिर्ता आउँदैछ")}` : `✖ ${text("Cancel", "रद्द")}`}
+              </button>
+            ) : null}
           </div>
 
-          {cancelling ? (
+          {cancelling && !comingBack ? (
             <div className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
-              <p className="text-sm font-black text-red-900">{text("Why is it cancelled?", "किन रद्द?")}</p>
+              <p className="text-sm font-black text-red-900">
+                {stage === 2 ? text("Why is it coming back?", "किन फिर्ता आउँदैछ?") : text("Why is it cancelled?", "किन रद्द?")}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {/* The English words are what is saved; the button reads in the desk's language. */}
                 {CANCEL_REASONS.map((option) => (
@@ -987,10 +1034,13 @@ function OrderDetail({
               <button
                 type="button"
                 disabled={!reason || isPending}
-                onClick={() => run(cancelOrderWithReasonAction, { id: order.id, reason })}
+                onClick={() => {
+                  run(stage === 2 ? startOrderReturnAction : cancelOrderWithReasonAction, { id: order.id, reason });
+                  setCancelling(false);
+                }}
                 className="w-fit rounded-lg bg-red-700 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
               >
-                {text("Cancel this order", "यो अर्डर रद्द गर्ने")}
+                {stage === 2 ? text("Mark it coming back", "फिर्ता आउँदैछ भनी राख्ने") : text("Cancel this order", "यो अर्डर रद्द गर्ने")}
               </button>
             </div>
           ) : null}

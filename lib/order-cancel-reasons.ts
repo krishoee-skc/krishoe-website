@@ -1,5 +1,6 @@
 /**
- * Why an online order was cancelled — the four reasons the order desk offers.
+ * Why an online order was cancelled, or is coming back — the reasons the
+ * order desk offers.
  *
  * Saved as the English words whichever language the desk is read in, and
  * shown in the reader's language. Saving whatever was on the button split one
@@ -12,6 +13,7 @@ export const CANCEL_REASONS = [
   { en: "Size did not fit", ne: "साइज मिलेन" },
   { en: "Customer cancelled", ne: "ग्राहक आफैँले रद्द गरे" },
   { en: "Not a real order", ne: "नक्कली अर्डर" },
+  { en: "Refused at the door", ne: "ढोकामा लिएनन्" },
 ] as const;
 
 function findReason(value: string) {
@@ -32,4 +34,16 @@ export function cancelReasonToSave(value: string) {
 export function cancelReasonLabel(saved: string, text: (en: string, ne: string) => string) {
   const reason = findReason(saved);
   return reason ? text(reason.en, reason.ne) : saved.trim();
+}
+
+/**
+ * A sent order on its way back: still Contacted, so its pairs stay held while
+ * they are with the courier, with the reason written beside it. Only "Back in
+ * the shop" cancels it and lets the pairs go (lib/order-dispatch.ts).
+ */
+export function isOrderComingBack(
+  status: string,
+  dispatch: { dispatchedAt: string; cancelReason: string } | undefined,
+) {
+  return status === "Contacted" && Boolean(dispatch?.dispatchedAt) && Boolean(dispatch?.cancelReason);
 }

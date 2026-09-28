@@ -95,9 +95,65 @@ export async function clearOrderDispatch(id: string) {
   await queryPostgres(
     STORE,
     `UPDATE orders SET dispatched_at = NULL, dispatch_by = '', dispatch_charge_paisa = 0, dispatch_tracking = ''
-      WHERE id = $1 AND status IN ('New', 'Contacted')`,
+      WHERE id = $1 AND status IN ('New', 'Contacted') AND cancel_reason = ''`,
     [id],
   );
+}
+
+/**
+ * A sent order the customer did not take is on its way back.
+ *
+ * Cancelling it there and then would free its pairs for the website while
+ * they are still with the courier, and they could be sold a second time
+ * before they reach the shop. So it stays Contacted — still holding its
+ * pairs — and the reason is written beside it; that pair (sent, a reason, not
+ * yet Cancelled) is what "coming back" means. Only orderReturned lets the
+ * pairs go, once they are in the shop again. No new column: a reason on an
+ * order that is not Cancelled had no other meaning. The desk reads it with
+ * isOrderComingBack (lib/order-cancel-reasons.ts).
+ */
+export async function startOrderReturn(id: string, reason: string) {
+  if (!(await orderDispatchAvailable())) {
+    throw new Error("Prepare the database for sending orders first (Settings).");
+  }
+  const rows = await queryPostgres<{ id: string }>(
+    STORE,
+    `UPDATE orders SET cancel_reason = $2
+      WHERE id = $1 AND status = 'Contacted' AND dispatched_at IS NOT NULL
+      RETURNING id`,
+    [id, reason.slice(0, 120)],
+  );
+  if (!rows[0]) throw new Error("Only an order that was sent can come back.");
+}
+
+/** The customer took it after all: back to plain "sent". */
+export async function cancelOrderReturn(id: string) {
+  if (!(await orderDispatchAvailable())) return;
+  await queryPostgres(
+    STORE,
+    `UPDATE orders SET cancel_reason = ''
+      WHERE id = $1 AND status = 'Contacted' AND dispatched_at IS NOT NULL`,
+    [id],
+  );
+}
+
+/**
+ * The pairs are in the shop again: the order is Cancelled, which is what
+ * lets them go back on sale. Checked in the same statement, so an order that
+ * was never marked as coming back cannot be closed this way.
+ */
+export async function orderReturned(id: string) {
+  if (!(await orderDispatchAvailable())) {
+    throw new Error("Prepare the database for sending orders first (Settings).");
+  }
+  const rows = await queryPostgres<{ id: string }>(
+    STORE,
+    `UPDATE orders SET status = 'Cancelled'
+      WHERE id = $1 AND status = 'Contacted' AND dispatched_at IS NOT NULL AND cancel_reason <> ''
+      RETURNING id`,
+    [id],
+  );
+  if (!rows[0]) throw new Error("This order is not marked as coming back.");
 }
 
 /** Record why an order was cancelled, beside the Cancelled status. */

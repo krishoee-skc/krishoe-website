@@ -36,7 +36,15 @@ import { cookies } from "next/headers";
 import { getAdminSession, viewingBranchCookieName } from "@/lib/admin-auth";
 import { allBranchAdminRole } from "@/lib/admin-branch-context";
 import { getAdminSettings } from "@/lib/admin-settings";
-import { clearOrderDispatch, markOrderDispatched, saveOrderCancelReason } from "@/lib/order-dispatch";
+import {
+  cancelOrderReturn,
+  clearOrderDispatch,
+  getOrderDispatchByIds,
+  markOrderDispatched,
+  orderReturned,
+  saveOrderCancelReason,
+  startOrderReturn,
+} from "@/lib/order-dispatch";
 import { cancelReasonToSave } from "@/lib/order-cancel-reasons";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
@@ -167,6 +175,7 @@ export async function cancelOrderWithReasonAction(
   if (await getPosInvoiceForOnlineOrder(id)) {
     return { ok: false, message: "This order already has a bill. Return the bill instead of cancelling." };
   }
+  if (await orderWasSent(id)) return { ok: false, message: SENT_ORDER_CANCEL_MESSAGE };
   try {
     await updateOrderStatus(id, "Cancelled");
     await reportingErrors(`save cancel reason for ${id}`, () => saveOrderCancelReason(id, reason));
@@ -175,6 +184,75 @@ export async function cancelOrderWithReasonAction(
     return { ok: true, message: "Order cancelled." };
   } catch {
     return { ok: false, message: "Failed to cancel the order." };
+  }
+}
+
+/**
+ * A sent order's pairs are with the courier. Cancelling it would put them back
+ * on sale on the website before they are back in the shop, so a sent order is
+ * cancelled only through "coming back" and then "back in the shop".
+ */
+const SENT_ORDER_CANCEL_MESSAGE =
+  "This order was sent. Press \"Coming back\" instead, then \"Back in the shop\" when the pairs arrive.";
+
+async function orderWasSent(id: string) {
+  const dispatch = await getOrderDispatchByIds([id]).catch(() => ({}) as Awaited<ReturnType<typeof getOrderDispatchByIds>>);
+  return Boolean(dispatch[id]?.dispatchedAt);
+}
+
+/** "Coming back": the customer did not take it; the pairs stay held until they arrive. */
+export async function startOrderReturnAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  const reason = cancelReasonToSave(String(formData.get("reason") ?? ""));
+  if (!id) return { ok: false, message: "Order is missing." };
+  if (!reason) return { ok: false, message: "Choose why it is coming back." };
+  try {
+    await startOrderReturn(id, reason);
+    await auditAdminAction("order_return_started", `Order ${id} coming back: ${reason}.`);
+    revalidatePath("/admin/orders");
+    return { ok: true, message: "Marked coming back. Its pairs stay held until they reach the shop." };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Could not mark it coming back." };
+  }
+}
+
+/** The customer took it after all. */
+export async function cancelOrderReturnAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Order is missing." };
+  await cancelOrderReturn(id);
+  await auditAdminAction("order_return_cancelled", `Order ${id}: not coming back after all.`);
+  revalidatePath("/admin/orders");
+  return { ok: true, message: "Back to sent." };
+}
+
+/** "Back in the shop": the order is cancelled and its pairs go back on sale. */
+export async function orderReturnedAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Order is missing." };
+  if (await getPosInvoiceForOnlineOrder(id)) {
+    return { ok: false, message: "This order already has a bill. Return the bill instead." };
+  }
+  try {
+    await orderReturned(id);
+    await auditAdminAction("order_returned", `Order ${id} back in the shop; cancelled, pairs back on sale.`);
+    // Pairs are free again, so the storefront's sold-out badges must refresh.
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Back in the shop. The pairs are on sale again." };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Could not mark it back in the shop." };
   }
 }
 
@@ -188,6 +266,10 @@ export async function updateOrderStatusAction(
 
   if (!validatedFields.success) {
     return { ok: false, message: "Invalid order status." };
+  }
+
+  if (validatedFields.data.status === "Cancelled" && (await orderWasSent(validatedFields.data.id))) {
+    return { ok: false, message: SENT_ORDER_CANCEL_MESSAGE };
   }
 
   if (validatedFields.data.status === "Closed") {
