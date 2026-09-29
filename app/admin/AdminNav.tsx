@@ -13,6 +13,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { TABLET_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { type AdminRole } from "@/lib/admin-role-permissions";
 import type { AttentionLevel } from "@/app/admin/nav-attention";
+import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
 
 export default function AdminNav({
   attention,
@@ -134,7 +135,7 @@ export default function AdminNav({
                       key={`${group.id}-${href}`}
                       href={href}
                       title={isCollapsed ? text(label, `${nepali} · ${label}`) : undefined}
-                      className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-1.5 font-bold transition-all duration-200 ${
+                      className={`flex min-h-10 items-center gap-3 rounded-md px-2 py-0.5 font-bold transition-all duration-200 ${
                         isActive
                           ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-accent"
                           : "text-brand-green-ink hover:bg-admin-hover dark:text-white/85 dark:hover:text-white dark:hover:bg-admin-hover-dark"
@@ -143,8 +144,15 @@ export default function AdminNav({
                       {/* The icon carries the dot when this screen wants
                           looking at, so the mark survives the collapsed menu
                           where the label is gone. */}
-                      <span className="relative shrink-0">
-                        <Icon className="h-[22px] w-[22px]" />
+                      {/* The group's colour on a soft tile, filled for the
+                          page that is open, so a narrow menu of icons alone
+                          still says which part of the business each is. */}
+                      <span
+                        className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] transition-colors ${
+                          adminNavToneClasses[adminNavTone(group.id)][isActive ? "active" : "tile"]
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
                         {needs ? (
                           <span
                             aria-hidden="true"

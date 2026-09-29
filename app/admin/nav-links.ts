@@ -14,6 +14,9 @@ import {
   CartPlusIcon,
   TagIcon,
   CoinsIcon,
+  CalculatorIcon,
+  BarChartIcon,
+  GearIcon,
 } from "@/components/Icons";
 
 /**
@@ -49,6 +52,51 @@ export type AdminNavGroup = {
   links: AdminNavLink[];
 };
 
+/**
+ * One colour per menu group (owner, 2026-09-29): every icon was the same dark
+ * green, so a narrow menu of icons alone gave no hint which part of the
+ * business an icon belonged to. Three to four colours with a meaning each —
+ * work green, cost and buying gold, customers purple, everywhere blue — not a
+ * colour per page, which would mean nothing.
+ *
+ * Full class strings, so Tailwind finds them. tile: the icon's soft tile;
+ * active: the tile filled for the page that is open.
+ */
+export type AdminNavTone = "green" | "gold" | "purple" | "blue";
+
+const toneByGroup: Record<string, AdminNavTone> = {
+  "factory-work": "green",
+  "factory-cost": "gold",
+  "shop-sell": "green",
+  "shop-customers": "purple",
+  "shop-money": "gold",
+  everywhere: "blue",
+};
+
+export const adminNavToneClasses: Record<AdminNavTone, { tile: string; active: string }> = {
+  green: {
+    tile: "bg-brand-green/10 text-brand-green dark:bg-emerald-400/10 dark:text-[#6FD3A8]",
+    active: "bg-brand-green text-white dark:bg-[#6FD3A8] dark:text-brand-green-ink",
+  },
+  gold: {
+    tile: "bg-brand-gold/15 text-brand-gold-deep dark:bg-amber-300/10 dark:text-[#E8C467]",
+    active: "bg-brand-gold-deep text-white dark:bg-[#E8C467] dark:text-brand-green-ink",
+  },
+  purple: {
+    tile: "bg-brand-purple/10 text-brand-purple dark:bg-violet-300/10 dark:text-[#C7A8EE]",
+    active: "bg-brand-purple text-white dark:bg-[#C7A8EE] dark:text-brand-green-ink",
+  },
+  blue: {
+    tile: "bg-[#2458A6]/10 text-[#2458A6] dark:bg-sky-300/10 dark:text-[#9CC2EA]",
+    active: "bg-[#2458A6] text-white dark:bg-[#9CC2EA] dark:text-brand-green-ink",
+  },
+};
+
+/** A group's colour; a group not named above takes blue, the "everywhere" one. */
+export function adminNavTone(groupId: string): AdminNavTone {
+  return toneByGroup[groupId] ?? "blue";
+}
+
 export const adminWorkspaces = [
   { id: "factory", labelEn: "Factory", labelNe: "कारखाना", emoji: "🏭" },
   { id: "shop", labelEn: "Shop", labelNe: "पसल", emoji: "🛒" },
@@ -81,7 +129,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     titleNe: "लागत र किनमेल",
     workspace: "factory",
     links: [
-      { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CoinsIcon },
+      { href: "/admin/costing", label: "Costing", nepali: "लागत", icon: CalculatorIcon },
       { href: "/admin/purchasing", label: "Purchasing", nepali: "किनमेल", icon: CartPlusIcon },
     ],
   },
@@ -143,8 +191,8 @@ export const adminNavGroups: AdminNavGroup[] = [
       // activity log lived only inside Settings — which is the right place for
       // a screen opened once on the first afternoon, and the wrong place for a
       // report meant to be read every week.
-      { href: "/admin/reports", label: "Report", nepali: "हिसाब", icon: StarIcon },
-      { href: "/admin/settings", label: "Settings", nepali: "सेटिङ · सेटअप", icon: ShieldCheckIcon },
+      { href: "/admin/reports", label: "Report", nepali: "हिसाब", icon: BarChartIcon },
+      { href: "/admin/settings", label: "Settings", nepali: "सेटिङ · सेटअप", icon: GearIcon },
     ],
   },
 ];

@@ -12,6 +12,7 @@ import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
 import { type AdminRole } from "@/lib/admin-role-permissions";
+import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
 
 // Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
 // below 1024px there was no way to move between pages or get home — a real
@@ -147,7 +148,13 @@ export default function AdminMobileNav({
                           : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
                       }`}
                     >
-                      <Icon className="h-5 w-5 shrink-0" />
+                      <span
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] ${
+                          adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
                       <span className="grid leading-tight">
                         <span>{language === "ne" ? nepali : label}</span>
                         {language === "ne" ? (
