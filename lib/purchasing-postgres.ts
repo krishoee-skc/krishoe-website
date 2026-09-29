@@ -502,6 +502,29 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
       };
     });
 
+    // A line matched to a "bill to come" item from the counter: its pairs are
+    // already in stock and selling. Checked and locked before anything posts,
+    // and refused when the counts differ — a bill that says 24 against 26
+    // counted must be put right by a person, not quietly accepted.
+    for (const [index, row] of resolved.entries()) {
+      if (row.line.kind !== "Trading Goods" || !row.line.counterItemId) continue;
+      const counted = await db.query<{ pairs: number | string }>(
+        `SELECT pairs FROM counter_items
+          WHERE id = $1 AND how = 'pending_bill' AND bill_linked_at IS NULL
+          FOR UPDATE`,
+        [row.line.counterItemId],
+      );
+      if (!counted[0]) {
+        throw new Error(`Item ${index + 1}: that "bill to come" item is already matched to a bill.`);
+      }
+      const pairs = Number(counted[0].pairs) || 0;
+      if (pairs !== row.line.quantity) {
+        throw new Error(
+          `Item ${index + 1}: the bill says ${row.line.quantity} pairs, the counter counted ${pairs}. Check the count before matching them.`,
+        );
+      }
+    }
+
     const shares = shareBillAcrossLines(lines, input);
     const totals = billTotals(lines, input);
     const itemName = resolved[0].itemName;
@@ -614,7 +637,10 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           `,
           [row.material.id, row.line.quantity],
         );
-      } else {
+      } else if (!row.line.counterItemId) {
+        // A line matched to a counter item skips this: its pairs came in
+        // when it was added at the counter, and adding them here would count
+        // them twice.
         const movement = await insertStockMovement(db, {
           design: row.line.design,
           channel: row.line.channel as BusinessChannel,
@@ -695,6 +721,19 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
         cleanText(input.note),
       ],
     );
+
+    // The counter items this bill answers are matched now, in the same
+    // transaction as the bill: the bill and the "bill came" mark stand or fall
+    // together.
+    for (const row of resolved) {
+      if (row.line.kind !== "Trading Goods" || !row.line.counterItemId) continue;
+      await db.query(
+        `UPDATE counter_items
+            SET bill_linked_at = now(), purchase_invoice_id = $2, supplier_bill_no = $3, supplier_name = $4
+          WHERE id = $1`,
+        [row.line.counterItemId, invoiceId, cleanText(input.supplierBillNo ?? ""), ledger.supplierName],
+      );
+    }
 
     const itemRows: PurchaseInvoiceItemRow[] = [];
 

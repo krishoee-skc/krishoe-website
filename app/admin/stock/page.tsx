@@ -1,3 +1,6 @@
+import CounterGoodsWatch, { weeklyCountShoes } from "@/app/admin/stock/CounterGoodsWatch";
+import { getCounterItemsToWatch } from "@/lib/counter-items";
+import { canAdmin, getSessionAdminRole } from "@/lib/admin-role-permissions";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import PrintButton from "@/components/admin/PrintButton";
@@ -281,7 +284,16 @@ async function loadStock() {
 }
 
 export default async function AdminStockPage() {
-  const [loaded, session] = await Promise.all([loadStock(), getAdminSession()]);
+  const [loaded, session, watch] = await Promise.all([
+    loadStock(),
+    getAdminSession(),
+    // Goods added at the counter: never fatal, the page stands without them.
+    getCounterItemsToWatch().catch((error) => {
+      reportError("load counter items to watch", error);
+      return { toReview: [], billToCome: [] };
+    }),
+  ]);
+  const canReview = session ? canAdmin(getSessionAdminRole(session), "settings:write") : false;
   // The day as this shop counts it, worked out on the server so the challan is
   // dated where the shop is rather than where the browser thinks it is.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE }).format(new Date());
@@ -354,6 +366,14 @@ export default async function AdminStockPage() {
           <StatCard label={<T en="Written off" ne="बिग्रिएर हटाएको" />} value={summary.damagedPairs} detail={<T en="Damaged or lost — not a sale." ne="बिग्रिएको वा हराएको — बिक्री होइन।" />} tone="warn" />
         ) : null}
       </div>
+
+      <CounterGoodsWatch
+        toReview={watch.toReview}
+        billToCome={watch.billToCome}
+        countThisWeek={weeklyCountShoes(loaded.byPlace, today)}
+        canReview={canReview}
+        today={today}
+      />
 
       <WherePairsAre
         rows={loaded.byPlace}

@@ -33,6 +33,12 @@ type PurchaseInvoiceFormProps = {
   memory: PurchaseMemory;
   /** The sizes each catalog design is made in, by lower-cased name. */
   designSizes: Record<string, string[]>;
+  /**
+   * Goods added at the counter whose supplier's bill had not come. One press
+   * puts one on this bill as a line that records the bill without adding its
+   * pairs again (owner, 2026-09-29).
+   */
+  billToCome?: Array<{ id: string; design: string; pairs: number; sizes: Record<string, number>; supplierName: string }>;
 };
 
 /** What the last save filed, shown until the next bill is started. */
@@ -104,6 +110,7 @@ export default function PurchaseInvoiceForm({
   productStock,
   memory,
   designSizes,
+  billToCome = [],
 }: PurchaseInvoiceFormProps) {
   const { text } = useLanguage();
   // A one-line bill is as common as a twenty-five line one, so the form opens
@@ -379,6 +386,26 @@ export default function PurchaseInvoiceForm({
       quantity: String(line.quantity),
       rate: String(line.rate),
     };
+  }
+
+  /** A "bill to come" item from the counter, put on this bill as its line. */
+  function answerBillToCome(item: NonNullable<PurchaseInvoiceFormProps["billToCome"]>[number]) {
+    setRows((current) => {
+      if (current.some((row) => row.counterItemId === item.id)) return current;
+      const kept = current.filter(rowIsTouched);
+      const line: ItemRow = {
+        ...emptyRow(nextKey),
+        kind: "Trading Goods",
+        design: item.design,
+        sizeRun: "Mixed",
+        place: "Shop",
+        sizes: Object.fromEntries(Object.entries(item.sizes).map(([size, pairs]) => [size, String(pairs)])),
+        quantity: String(item.pairs),
+        counterItemId: item.id,
+      };
+      return [...kept, line, emptyRow(nextKey + 1)];
+    });
+    setNextKey((value) => value + 2);
   }
 
   /** The supplier's last bill, again — a regular order in one press. */
@@ -1177,6 +1204,40 @@ export default function PurchaseInvoiceForm({
               </p>
             </div>
 
+            {/* Goods that arrived at the counter before their bill. Matched
+                here, the bill posts its money and the supplier's account, and
+                the pairs — already on the shelf — are not added a second time. */}
+            {billToCome.length > 0 ? (
+              <div className="mt-2 grid gap-1.5 rounded-xl border border-brand-gold/50 bg-brand-cream-soft px-3 py-2">
+                <span className="text-sm font-black text-brand-gold-ink">
+                  📋 {text("Bill to come — is this bill for one of these?", "बिल आउन बाँकी माल — यो बिल यीमध्ये कुनैको हो?")}
+                </span>
+                {[...billToCome]
+                  .sort((left, right) =>
+                    Number(Boolean(supplier) && right.supplierName.toLowerCase() === supplier?.supplierName.toLowerCase()) -
+                    Number(Boolean(supplier) && left.supplierName.toLowerCase() === supplier?.supplierName.toLowerCase()),
+                  )
+                  .map((item) => {
+                    const onBill = rows.some((row) => row.counterItemId === item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={onBill}
+                        onClick={() => answerBillToCome(item)}
+                        className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-brand-gold bg-brand-paper px-3 text-left text-sm font-bold text-brand-green-ink disabled:opacity-50"
+                      >
+                        <span>
+                          {item.design} · {item.pairs} {text("pairs", "जोडी")}
+                          {item.supplierName ? ` · ${item.supplierName}` : ""}
+                        </span>
+                        <span className="text-brand-green">{onBill ? "✓" : text("Add to this bill →", "यो बिलमा जोड्ने →")}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            ) : null}
+
             {runningLow.length > 0 ? (
               <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-brand-gold/50 bg-brand-cream-soft px-3 py-2">
                 <span className="text-sm font-black text-brand-gold-deep">
@@ -1239,6 +1300,12 @@ export default function PurchaseInvoiceForm({
                         <input type="hidden" name={`item${index}SizeRun`} value={row.sizeRun} />
                         <input type="hidden" name={`item${index}Sizes`} value={JSON.stringify(sizesPayload(row))} />
                         <input type="hidden" name={`item${index}Place`} value={row.place} />
+                        <input type="hidden" name={`item${index}CounterItemId`} value={row.counterItemId ?? ""} />
+                        {row.counterItemId ? (
+                          <span className="mb-1 inline-block rounded-full bg-brand-cream-soft px-2.5 py-0.5 text-sm font-black text-brand-gold-ink">
+                            {text("Bill to come — pairs already in stock", "बिल आउन बाँकी — जोडी पहिले नै स्टकमा")}
+                          </span>
+                        ) : null}
                       </>
                     ) : (
                       <>

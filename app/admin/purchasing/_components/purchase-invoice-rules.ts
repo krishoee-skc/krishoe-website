@@ -38,6 +38,8 @@ export type ItemRow = {
   sizes: Record<string, string>;
   /** For a design not in the catalog yet: which run of sizes to offer ("36-41"). */
   sizeChoice?: string;
+  /** A "bill to come" item from the counter this line answers; its pairs are already in stock. */
+  counterItemId?: string;
   /** The rate was filled in from the last bill, not typed — so it follows the item if the item changes. */
   rateAuto?: boolean;
 };

@@ -12,6 +12,7 @@ import {
   type StockPlace,
 } from "@/lib/stock-transfers";
 import type { ActionState } from "@/app/admin/actions";
+import { markCounterItemReviewed } from "@/lib/counter-items";
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -184,4 +185,19 @@ export async function setPlaceCountAction(
     reportError("set a stock place count", error);
     return { ok: false, message: saveFailureMessage(error, "The count was not saved.") };
   }
+}
+
+/** The Owner's ✓ on an item added at the counter: seen, and right. */
+export async function markCounterItemReviewedAction(formData: FormData) {
+  const { session } = await requireAdminPermission("settings:write");
+  const id = textValue(formData, "id");
+  if (!id) return;
+  try {
+    await markCounterItemReviewed(id, session?.name || session?.email || "Owner");
+    await recordAdminAuditEvent("counter_item_reviewed", `Counter item ${id} looked at and marked right.`);
+  } catch (error) {
+    reportError("mark a counter item reviewed", error);
+  }
+  revalidatePath("/admin/stock");
+  revalidatePath("/admin");
 }

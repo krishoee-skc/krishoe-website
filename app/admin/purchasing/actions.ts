@@ -99,6 +99,7 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
           : ("" as const),
       sizeRun: textValue(formData, `item${index}SizeRun`),
       place: optionValue(textValue(formData, `item${index}Place`), stockPlaces, "Factory"),
+      counterItemId: textValue(formData, `item${index}CounterItemId`),
       quantity: numberValue(formData, `item${index}Quantity`),
       rate: numberValue(formData, `item${index}Rate`),
       note: textValue(formData, `item${index}Note`),

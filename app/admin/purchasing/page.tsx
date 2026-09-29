@@ -1,3 +1,4 @@
+import { getCounterItemsToWatch } from "@/lib/counter-items";
 import Link from "next/link";
 import T from "@/components/T";
 import CounterBar from "@/app/admin/pos/_components/CounterBar";
@@ -207,6 +208,12 @@ export default async function AdminPurchasingPage({
     { type: "posting-review", label: "Posting review" },
   ];
 
+  // Goods added at the counter whose bill has not come — offered on the bill.
+  const { billToCome } = await getCounterItemsToWatch().catch((error) => {
+    reportError("load bill-to-come items for the purchase bill", error);
+    return { billToCome: [] as Awaited<ReturnType<typeof getCounterItemsToWatch>>["billToCome"] };
+  });
+
   return (
     <section className="p-4 sm:p-6">
       {showAccounts ? null : (
@@ -301,6 +308,13 @@ export default async function AdminPurchasingPage({
           productStock={productStock}
           memory={memory}
           designSizes={designSizes}
+          billToCome={billToCome.map((item) => ({
+            id: item.id,
+            design: item.design,
+            pairs: item.pairs,
+            sizes: item.sizes,
+            supplierName: item.supplierName,
+          }))}
         />
       </div>
       )}

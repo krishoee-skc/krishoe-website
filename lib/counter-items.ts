@@ -188,3 +188,96 @@ export async function createCounterItem(input: CounterItemInput) {
 export function counterItemLookAlikes(name: string, known: string[]) {
   return similarNames(name, known);
 }
+
+export type CounterItemRow = {
+  id: string;
+  createdAt: string;
+  design: string;
+  how: CounterItemHow;
+  supplierName: string;
+  supplierBillNo: string;
+  pairs: number;
+  /** Pairs by size as counted in; "Mixed" for the uncounted pile. */
+  sizes: Record<string, number>;
+  retailPrice: number;
+  costPerPair: number;
+  createdBy: string;
+};
+
+type CounterItemDbRow = {
+  id: string;
+  created_at: Date | string;
+  design: string;
+  how: CounterItemHow;
+  supplier_name: string;
+  supplier_bill_no: string;
+  pairs: number | string;
+  size_breakdown: Record<string, number | string> | null;
+  retail_price: number | string;
+  cost_per_pair: number | string;
+  created_by: string;
+};
+
+function counterItemFromRow(row: CounterItemDbRow): CounterItemRow {
+  return {
+    id: row.id,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    design: row.design,
+    how: row.how,
+    supplierName: row.supplier_name ?? "",
+    supplierBillNo: row.supplier_bill_no ?? "",
+    pairs: Number(row.pairs) || 0,
+    sizes: Object.fromEntries(
+      Object.entries(row.size_breakdown ?? {})
+        .map(([size, pairs]) => [size, Math.round(Number(pairs) || 0)] as const)
+        .filter(([, pairs]) => pairs > 0),
+    ),
+    retailPrice: Number(row.retail_price) || 0,
+    costPerPair: Number(row.cost_per_pair) || 0,
+    createdBy: row.created_by ?? "",
+  };
+}
+
+const COLUMNS = `id, created_at, design, how, supplier_name, supplier_bill_no, pairs, size_breakdown, retail_price, cost_per_pair, created_by`;
+
+/**
+ * What the Owner still has to look at: goods added at the counter and not yet
+ * seen, and goods whose supplier's bill has not come. Empty lists when the
+ * table is not there yet.
+ */
+export async function getCounterItemsToWatch(): Promise<{ toReview: CounterItemRow[]; billToCome: CounterItemRow[] }> {
+  if (!(await counterItemsReady().catch(() => false))) return { toReview: [], billToCome: [] };
+  const [toReview, billToCome] = await Promise.all([
+    queryPostgres<CounterItemDbRow>(
+      STORE,
+      `SELECT ${COLUMNS} FROM counter_items WHERE reviewed_at IS NULL ORDER BY created_at DESC LIMIT 50`,
+    ),
+    queryPostgres<CounterItemDbRow>(
+      STORE,
+      `SELECT ${COLUMNS} FROM counter_items
+        WHERE how = 'pending_bill' AND bill_linked_at IS NULL
+        ORDER BY created_at ASC LIMIT 50`,
+    ),
+  ]);
+  return { toReview: toReview.map(counterItemFromRow), billToCome: billToCome.map(counterItemFromRow) };
+}
+
+/** The Owner has looked at an item added at the counter; it leaves the list. */
+export async function markCounterItemReviewed(id: string, by: string) {
+  if (!(await counterItemsReady())) return;
+  await queryPostgres(
+    STORE,
+    `UPDATE counter_items SET reviewed_at = now(), reviewed_by = $2 WHERE id = $1 AND reviewed_at IS NULL`,
+    [id, by.slice(0, 80)],
+  );
+}
+
+/** How many counter items wait for the Owner's look — for the dashboard's reminder. */
+export async function countCounterItemsToReview() {
+  if (!(await counterItemsReady().catch(() => false))) return 0;
+  const rows = await queryPostgres<{ n: number | string }>(
+    STORE,
+    "SELECT count(*)::int AS n FROM counter_items WHERE reviewed_at IS NULL",
+  );
+  return Number(rows[0]?.n ?? 0);
+}

@@ -117,6 +117,12 @@ export type CreatePurchaseInvoiceItemInput = {
   // arrive at the factory unless the owner says otherwise, and every caller
   // that predates this field keeps working unchanged.
   place?: StockPlace;
+  /**
+   * A "bill to come" item added at the counter bill (counter_items.id). Its
+   * pairs are already in stock; the line records the bill and the supplier's
+   * account without adding them again.
+   */
+  counterItemId?: string;
   quantity: number;
   rate: number;
   note: string;
@@ -603,6 +609,7 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
       // Narrowed to a real place. An unrecognised value would otherwise create
       // a stock_locations row no screen can show, so it falls back to Factory.
       place: item.place && stockPlaces.includes(item.place) ? item.place : "Factory",
+      counterItemId: kind === "Trading Goods" ? cleanText(item.counterItemId ?? "") : "",
       quantity: cleanNumber(item.quantity),
       rate: cleanNumber(item.rate),
       note: cleanText(item.note),

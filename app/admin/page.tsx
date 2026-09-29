@@ -1,3 +1,4 @@
+import { countCounterItemsToReview } from "@/lib/counter-items";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import AlertText from "@/components/admin/AlertText";
@@ -217,6 +218,20 @@ export default async function AdminDashboardPage() {
       list.slice(0, 2).map((product) => product.name).join(", ") + (list.length > 2 ? ` +${list.length - 2}` : "");
 
     const todos: Todo[] = [];
+    // Goods added at the counter wait for the Owner's look, so a quick way to
+    // add stock is never an unseen one (owner, 2026-09-29).
+    const counterToReview = await countCounterItemsToReview().catch(() => 0);
+    if (counterToReview > 0) {
+      todos.push({
+        key: "counter-goods",
+        tone: "gold",
+        en: `${counterToReview} new ${counterToReview === 1 ? "item" : "items"} added at the counter`,
+        ne: `बिल काट्ने पेजबाट ${counterToReview} नयाँ माल थपिए`,
+        subEn: "Check the name, pairs and price",
+        subNe: "नाम, जोडी र मूल्य हेर्ने",
+        href: "/admin/stock#new-goods",
+      });
+    }
     if (soldOut.length) {
       todos.push({
         key: "sold-out",
