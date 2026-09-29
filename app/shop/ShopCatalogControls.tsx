@@ -7,6 +7,7 @@ import { SearchIcon, XIcon } from "@/components/Icons";
 import { categories, productReviewStats, type Category, type Product } from "@/lib/products";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
+import { businessContact } from "@/lib/seo";
 
 /**
   * Reads the URL after mounting, never during render.
@@ -230,7 +231,45 @@ export default function ShopCatalogControls({
         </div>
       </section>
 
-      {visibleProducts.length > 0 ? (
+      {/* A collection with no shoes at all is one the shop has not stocked yet,
+          not a search that missed: "No products found — try a different
+          filter" sent shoppers hunting for filters that could never help
+          (owner, 2026-09-29). */}
+      {products.length === 0 && activeCategory ? (
+        <div className="rounded-lg border border-dashed border-brand-gold/50 bg-brand-paper p-8 text-center shadow-sm md:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Coming soon", "छिट्टै आउँदैछ")}</p>
+          <h2 className="mt-3 text-2xl font-black text-brand-green-ink">
+            {text(`${activeCategory.title} are on their way.`, `${activeCategory.title} छिट्टै आउँदैछ।`)}
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-brand-muted">
+            {text(
+              "We are making these in our own factory. Look at the shoes ready now, or ask us on WhatsApp and we will tell you when they arrive.",
+              "यी जुत्ता हाम्रै कारखानामा बन्दैछन्। अहिले तयार भएका जुत्ता हेर्नुहोस्, वा WhatsApp मा सोध्नुहोस्, आएपछि हामी खबर गर्छौँ।",
+            )}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/shop"
+              className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+            >
+              {text("See shoes ready now", "अहिले तयार जुत्ता हेर्ने")}
+            </Link>
+            <a
+              href={`https://wa.me/${businessContact.whatsappNumber}?text=${encodeURIComponent(
+                text(
+                  `Hello KRISHOE, please tell me when ${activeCategory.title} arrive.`,
+                  `नमस्ते KRISHOE, ${activeCategory.title} आएपछि मलाई खबर गर्नुहोला।`,
+                ),
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center rounded-full border border-brand-green px-5 text-sm font-bold text-brand-green transition hover:bg-brand-mist"
+            >
+              {text("Ask on WhatsApp", "WhatsApp मा सोध्ने")}
+            </a>
+          </div>
+        </div>
+      ) : visibleProducts.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {visibleProducts.map((product, index) => (
             <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />

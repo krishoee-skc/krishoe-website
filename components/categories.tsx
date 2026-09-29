@@ -40,7 +40,14 @@ const categories = [
   },
 ];
 
-export default function Categories() {
+/**
+ * shoeCounts: shoes on sale in each collection, by slug. A collection with
+ * none still shows — the shop means to sell it — but says "coming soon"
+ * instead of opening on "No products found" (owner, 2026-09-29). Left out
+ * when the catalogue could not be read, so a read failure never marks every
+ * collection empty.
+ */
+export default function Categories({ shoeCounts }: { shoeCounts?: Record<string, number> } = {}) {
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -57,26 +64,34 @@ export default function Categories() {
             each reads as the shoes it leads to. Scrolls on a phone, centres on
             a wider screen. */}
         <div className="flex snap-x gap-6 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center">
-          {categories.map((item) => (
-            <Link
-              key={item.slug}
-              href={`/shop/${item.slug}`}
-              className="group flex w-24 flex-none snap-start flex-col items-center gap-3 text-center"
-            >
-              <span className="relative h-24 w-24 overflow-hidden rounded-full shadow-sm ring-2 ring-brand-silver transition duration-300 group-hover:-translate-y-1 group-hover:ring-brand-purple">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  sizes="96px"
-                  className="object-cover transition duration-500 group-hover:scale-110"
-                />
-              </span>
-              <span className="text-sm font-semibold leading-tight text-brand-green-ink">
-                {item.title}
-              </span>
-            </Link>
-          ))}
+          {categories.map((item) => {
+            const comingSoon = shoeCounts !== undefined && (shoeCounts[item.slug] ?? 0) === 0;
+            return (
+              <Link
+                key={item.slug}
+                href={`/shop/${item.slug}`}
+                className="group flex w-24 flex-none snap-start flex-col items-center gap-3 text-center"
+              >
+                <span className="relative h-24 w-24 overflow-hidden rounded-full shadow-sm ring-2 ring-brand-silver transition duration-300 group-hover:-translate-y-1 group-hover:ring-brand-purple">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    sizes="96px"
+                    className={`object-cover transition duration-500 group-hover:scale-110 ${comingSoon ? "opacity-60 grayscale" : ""}`}
+                  />
+                </span>
+                <span className="text-sm font-semibold leading-tight text-brand-green-ink">
+                  {item.title}
+                </span>
+                {comingSoon ? (
+                  <span className="-mt-2 rounded-full border border-brand-gold/50 bg-brand-cream-soft px-2 py-0.5 text-[11px] font-bold leading-tight text-brand-gold-ink">
+                    <T en="Coming soon" ne="छिट्टै आउँदैछ" />
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

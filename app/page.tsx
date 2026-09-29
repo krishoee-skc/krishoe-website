@@ -13,9 +13,21 @@ import Footer from "@/components/Footer";
 import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/product-store";
 import { getAdminSettings } from "@/lib/admin-settings";
-import { businessContact } from "@/lib/seo";
+import { businessContact, getProductsByCategory } from "@/lib/seo";
+import { categories } from "@/lib/products";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
+
+/**
+ * Shoes on sale in each collection, counted the way the collection page
+ * counts them (getProductsByCategory), so a tile that says "coming soon"
+ * never leads to a page with shoes on it, and the other way round.
+ */
+function categoryShoeCounts(products: Product[]) {
+  return Object.fromEntries(
+    categories.map((category) => [category.slug, getProductsByCategory(products, category).length]),
+  );
+}
 
 async function loadHomeProducts(): Promise<Product[]> {
   try {
@@ -135,7 +147,7 @@ export default async function Home() {
 
       {/* Mockup order: collections → best-seller tabs → featured/new →
           reviews → why → about → footer. */}
-      <Categories />
+      <Categories shoeCounts={products.length > 0 ? categoryShoeCounts(products) : undefined} />
 
       <BestSeller products={products} />
 
