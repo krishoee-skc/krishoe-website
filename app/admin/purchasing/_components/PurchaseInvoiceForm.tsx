@@ -867,7 +867,7 @@ export default function PurchaseInvoiceForm({
         : text("Cheque / bank / reference no.", "चेक / बैंक / रेफरेन्स नं.");
 
   const cell =
-    "h-11 rounded-md border px-3 text-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/15";
+    "h-12 rounded-md border px-3 text-base outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/15";
   const plain = `${cell} border-brand-green-line bg-brand-paper`;
   const wrong = `${cell} border-brand-clay bg-brand-clay-tint/40`;
   const fieldClass = (bad: boolean) => (bad ? wrong : plain);
@@ -919,7 +919,7 @@ export default function PurchaseInvoiceForm({
         </h2>
         {/* Not on a phone: four lines of explanation stood between the title
             and the supplier box, which then sat behind the Save bar. */}
-        <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-brand-muted sm:block">
+        <p className="mt-2 hidden max-w-2xl text-base leading-6 text-brand-muted sm:block">
           {text(
             "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; shoes and slippers go straight to the stock you sell from. A bill can carry both.",
             "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको स्टोरमा, जुत्ता/चप्पल सिधै बेच्ने स्टकमा। एउटै बिलमा दुवै मिल्छ।",
@@ -927,11 +927,11 @@ export default function PurchaseInvoiceForm({
         </p>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         <div className="grid gap-5">
           {/* ── Who it came from ─────────────────────────────────────── */}
           <section>
-            <h3 className="text-sm font-black text-brand-green-ink">
+            <h3 className="text-[17px] font-black text-brand-green-ink">
               {text("Who it came from", "कसबाट")}
             </h3>
             {/* One box for the supplier. It was three — a list, a "new
@@ -941,8 +941,13 @@ export default function PurchaseInvoiceForm({
                 there becomes a new supplier, and only then is the phone asked. */}
             <input type="hidden" name="supplierLedgerId" value={billSupplierId} />
             <input type="hidden" name="supplierName" value={supplierIsNew ? typedSupplier : ""} />
-            <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <div className="relative">
+            {/* Supplier, their bill no. and the photo of it on one line
+                (owner, 2026-09-29): the bill no. box ran almost the full width
+                on a line of its own for a number like "12". The three are read
+                off the same piece of paper. On a phone the supplier takes the
+                first line, the number and the camera the second. */}
+            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_48px] items-end gap-2 md:grid-cols-[minmax(0,1fr)_150px_48px]">
+              <div className="relative col-span-2 md:col-span-1">
                 <input
                   aria-label={text("Supplier", "साहु")}
                   role="combobox"
@@ -987,12 +992,12 @@ export default function PurchaseInvoiceForm({
                           event.preventDefault();
                           takeSupplierOption(index);
                         }}
-                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${
+                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-base ${
                           index === supplierHighlight ? "bg-brand-green-wash" : ""
                         }`}
                       >
                         <span className="font-bold text-brand-green-ink">🏪 {ledger.supplierName}</span>
-                        <span className={`text-xs font-bold ${ledger.balanceDue > 0 ? "text-brand-clay" : "text-brand-muted"}`}>
+                        <span className={`text-sm font-bold ${ledger.balanceDue > 0 ? "text-brand-clay" : "text-brand-muted"}`}>
                           {text(`owed ${money(ledger.balanceDue)}`, `बाँकी ${money(ledger.balanceDue)}`)}
                         </span>
                       </li>
@@ -1005,7 +1010,7 @@ export default function PurchaseInvoiceForm({
                           event.preventDefault();
                           takeSupplierOption(supplierMatches.length);
                         }}
-                        className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-black text-brand-green ${
+                        className={`cursor-pointer rounded-lg px-3 py-2 text-base font-black text-brand-green ${
                           supplierHighlight === supplierMatches.length ? "bg-brand-green-wash" : ""
                         }`}
                       >
@@ -1015,26 +1020,87 @@ export default function PurchaseInvoiceForm({
                   </ul>
                 ) : null}
               </div>
-              {supplierIsNew ? (
-                <input aria-label="Supplier phone"
-                  name="phone"
+              {/* The number printed on the supplier's own bill — theirs, not the
+                  KR-PUR- one this shop generates. Optional on purpose: small
+                  suppliers often hand goods over with no printed bill. */}
+              <label className="block min-w-0">
+                <span className="sr-only">{text("Supplier's bill no.", "साहुको बिल नं.")}</span>
+                <input
+                  name="supplierBillNo"
                   ref={(element) => {
-                    boxes.current.set("phone", element);
+                    boxes.current.set("supplierBillNo", element);
                   }}
                   onKeyDown={(event) => {
-                    handleFieldWalk(event, "phone");
+                    handleFieldWalk(event, "supplierBillNo");
                     settle();
                   }}
-                  inputMode="tel"
-                  className={plain}
-                  placeholder={text("New supplier's phone (optional)", "नयाँ साहुको फोन (नभए खाली)")}
+                  value={billNo}
+                  onChange={(event) => setBillNo(event.target.value)}
+                  maxLength={60}
+                  className={`${plain} w-full`}
+                  placeholder={text("Their bill no.", "बिल नं.")}
+                  title={text("Supplier's bill no. — as printed on their bill, optional", "साहुको बिल नं. — बिलमा जे छ, नभए खाली")}
                 />
-              ) : null}
+              </label>
+              {photos.length < MAX_PHOTOS ? (
+                <label
+                  title={text("Photo of their bill", "साहुको बिलको फोटो")}
+                  className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-md border border-brand-green-line bg-brand-paper text-xl transition hover:border-brand-green"
+                >
+                  <span aria-hidden="true">📷</span>
+                  <span className="sr-only">{text("Photo of their bill", "साहुको बिलको फोटो")}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(event) => {
+                      addPhotos(event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              ) : (
+                <span aria-hidden="true" />
+              )}
             </div>
+            {photos.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {photos.map((photo, index) => (
+                  <span key={photo.preview} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.preview} alt={text(`Bill photo ${index + 1}`, `बिलको फोटो ${index + 1}`)} className="h-12 w-12 rounded-md border border-brand-green-line object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      aria-label={text(`Remove photo ${index + 1}`, `फोटो ${index + 1} हटाउने`)}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-clay text-[13px] font-black text-white"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {supplierIsNew ? (
+              <input aria-label="Supplier phone"
+                name="phone"
+                ref={(element) => {
+                  boxes.current.set("phone", element);
+                }}
+                onKeyDown={(event) => {
+                  handleFieldWalk(event, "phone");
+                  settle();
+                }}
+                inputMode="tel"
+                className={`${plain} mt-2 w-full md:max-w-sm`}
+                placeholder={text("New supplier's phone (optional)", "नयाँ साहुको फोन (नभए खाली)")}
+              />
+            ) : null}
             {/* The same supplier typed a second way would split one account in
                 two. Ask, with the answer one tap away. */}
             {lookAlikes.length > 0 ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-brand-cream-soft px-2.5 py-1.5 text-xs font-bold text-brand-gold-deep">
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-brand-cream-soft px-2.5 py-1.5 text-sm font-bold text-brand-gold-deep">
                 <span>{text("Is it one of these, already on the books?", "यो पुरानै साहु त होइन?")}</span>
                 {lookAlikes.map((ledger) => (
                   <button
@@ -1053,7 +1119,7 @@ export default function PurchaseInvoiceForm({
               </div>
             ) : null}
             {supplier ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 {supplier.balanceDue > 0 ? (
                   <span className="rounded-full bg-brand-clay-tint px-2.5 py-1 font-black text-brand-clay">
                     {text(`Already owed ${money(supplier.balanceDue)}`, `पहिलेको बाँकी ${money(supplier.balanceDue)}`)}
@@ -1078,7 +1144,7 @@ export default function PurchaseInvoiceForm({
               </div>
             ) : null}
             {supplierError ? (
-              <p className="mt-1.5 text-xs font-semibold text-brand-clay">
+              <p className="mt-1.5 text-sm font-semibold text-brand-clay">
                 {text(
                   "Pick a supplier above, or type a new supplier name.",
                   "माथिबाट साहु छान्नुहोस्, वा नयाँ नाम लेख्नुहोस्।",
@@ -1086,76 +1152,11 @@ export default function PurchaseInvoiceForm({
               </p>
             ) : null}
 
-            {/* The number printed on the supplier's own bill — theirs, not the
-                KR-PUR- one this shop generates. It is the number they quote:
-                "the payment for bill 4521". Until now it had to be squeezed
-                into the note along with the vehicle and the gate pass, where
-                it could not be searched or matched against.
-
-                Optional on purpose: small suppliers here often hand goods over
-                with no printed bill, and requiring it would mean a real
-                delivery could not be recorded at all. */}
-            <div className="mt-3 flex flex-wrap items-end gap-2">
-            <label className="block min-w-0 flex-1">
-              <span className="text-xs font-bold text-brand-muted">
-                {text("Supplier's bill no.", "साहुको बिल नं.")}
-              </span>
-              <input
-                name="supplierBillNo"
-                ref={(element) => {
-                  boxes.current.set("supplierBillNo", element);
-                }}
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "supplierBillNo");
-                  settle();
-                }}
-                value={billNo}
-                onChange={(event) => setBillNo(event.target.value)}
-                maxLength={60}
-                className={`${plain} mt-1 w-full`}
-                placeholder={text("As printed on their bill — optional", "साहुको बिलमा जे छ — नभए खाली")}
-              />
-            </label>
-            {/* The supplier's paper bill, photographed with the phone (or chosen
-                on the computer). Kept with the bill once it is saved. Beside the
-                bill number: the two are read off the same piece of paper. */}
-            <div className="flex flex-wrap items-center gap-2">
-              {photos.length < MAX_PHOTOS ? (
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink transition hover:border-brand-green">
-                  📷 {text("Photo of their bill", "साहुको बिलको फोटो")}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={(event) => {
-                      addPhotos(event.target.files);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-              ) : null}
-              {photos.map((photo, index) => (
-                <span key={photo.preview} className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo.preview} alt={text(`Bill photo ${index + 1}`, `बिलको फोटो ${index + 1}`)} className="h-12 w-12 rounded-md border border-brand-green-line object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    aria-label={text(`Remove photo ${index + 1}`, `फोटो ${index + 1} हटाउने`)}
-                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-clay text-[11px] font-black text-white"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-            </div>
 
             {/* A warning, not a refusal: a supplier can restart their numbers
                 each year, and a real bill must never be impossible to enter. */}
             {duplicateBill ? (
-              <p className="mt-1.5 rounded-md bg-brand-clay-tint px-2.5 py-1.5 text-xs font-black text-brand-clay">
+              <p className="mt-1.5 rounded-md bg-brand-clay-tint px-2.5 py-1.5 text-sm font-black text-brand-clay">
                 ⚠{" "}
                 {text(
                   `Bill ${billNo.trim()} from this supplier is already entered. Check it is not the same bill.`,
@@ -1168,17 +1169,17 @@ export default function PurchaseInvoiceForm({
           {/* ── What came in ─────────────────────────────────────────── */}
           <section>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-sm font-black text-brand-green-ink">
+              <h3 className="text-[17px] font-black text-brand-green-ink">
                 {text("What came in", "के किन्यो")}
               </h3>
-              <p className="text-xs text-brand-muted">
+              <p className="text-sm text-brand-muted">
                 {text("Enter moves to the next line", "Enter थिच्दा तलको लाइनमा जान्छ")}
               </p>
             </div>
 
             {runningLow.length > 0 ? (
               <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border border-brand-gold/50 bg-brand-cream-soft px-3 py-2">
-                <span className="text-xs font-black text-brand-gold-deep">
+                <span className="text-sm font-black text-brand-gold-deep">
                   {text("Running low — tap to add:", "सकिन लागेको — थिचे बिलमा थपिन्छ:")}
                 </span>
                 {runningLow.map((material) => {
@@ -1189,7 +1190,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       disabled={onBill}
                       onClick={() => buyRunningLow(material)}
-                      className="rounded-full border border-brand-gold bg-brand-paper px-2.5 py-1 text-xs font-bold text-brand-green-ink disabled:opacity-50"
+                      className="rounded-full border border-brand-gold bg-brand-paper px-2.5 py-1 text-sm font-bold text-brand-green-ink disabled:opacity-50"
                     >
                       {onBill ? "✓ " : "+ "}
                       {material.name} · {text(`${materialStock(material)} ${material.unit} left`, `${materialStock(material)} ${material.unit} बाँकी`)}
@@ -1202,7 +1203,7 @@ export default function PurchaseInvoiceForm({
             {/* Every track is minmax(0, …): a bare "0.7fr" keeps an input's own
                 width as its minimum, and the item box — the one that matters —
                 was squeezed to a sliver beside three roomy number boxes. */}
-            <div className="mt-2 hidden gap-2 px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
+            <div className="mt-2 hidden gap-2 px-1 text-[12px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
               <span>{text("S.N.", "क्र.सं.")}</span>
               <span>{text("Item — material or shoes/slippers", "सामान — कच्चा माल वा जुत्ता/चप्पल")}</span>
               <span className="text-right">{text("Qty", "थान")}</span>
@@ -1251,7 +1252,7 @@ export default function PurchaseInvoiceForm({
                       {/* Read off the row, never typed: a hand-kept number and
                           the bill it numbers can disagree, and this cannot. */}
                       <div
-                        className={`flex h-11 items-center justify-center rounded-md text-sm font-bold tabular-nums ${
+                        className={`flex h-11 items-center justify-center rounded-md text-base font-bold tabular-nums ${
                           touched
                             ? "bg-brand-mist text-brand-muted"
                             : "border border-dashed border-brand-green-line text-brand-muted-soft"
@@ -1321,7 +1322,7 @@ export default function PurchaseInvoiceForm({
 
                       {/* Never typed into — quantity times rate, so the line and
                           the bill total cannot tell different stories. */}
-                      <div className="flex h-11 items-center justify-end rounded-md bg-brand-mist px-3 text-sm font-bold tabular-nums text-brand-green-ink">
+                      <div className="flex h-11 items-center justify-end rounded-md bg-brand-mist px-3 text-base font-bold tabular-nums text-brand-green-ink">
                         {touched ? lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 }) : ""}
                       </div>
 
@@ -1356,7 +1357,7 @@ export default function PurchaseInvoiceForm({
                             {/* Pairs by size — required, and the quantity is their
                                 total. Enter walks the sizes and then the rate. */}
                             <div className="flex w-full flex-wrap items-end gap-1.5">
-                              <span className="w-full text-[11px] font-bold text-brand-muted-soft">
+                              <span className="w-full text-[13px] font-bold text-brand-muted-soft">
                                 {text("Pairs by size (required)", "साइजअनुसार जोडी (अनिवार्य)")}
                                 {sizesTotalOf(row) > 0 ? (
                                   <span className="ml-2 font-black text-brand-green-ink">
@@ -1365,7 +1366,7 @@ export default function PurchaseInvoiceForm({
                                 ) : null}
                               </span>
                               {sizeOptionsFor(row).map((size, sizeIndex) => (
-                                <label key={size} className="grid w-12 gap-0.5 text-center text-[11px] font-black text-brand-muted">
+                                <label key={size} className="grid w-12 gap-0.5 text-center text-[13px] font-black text-brand-muted">
                                   {size}
                                   <input
                                     ref={(element) => {
@@ -1397,7 +1398,7 @@ export default function PurchaseInvoiceForm({
                                         type="button"
                                         aria-pressed={on}
                                         onClick={() => updateRow(row.key, { sizeChoice: value, sizes: {}, quantity: "" })}
-                                        className={`rounded-full border px-2 py-1 text-[11px] font-black ${
+                                        className={`rounded-full border px-2 py-1 text-[13px] font-black ${
                                           on ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-muted"
                                         }`}
                                       >
@@ -1408,11 +1409,11 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] font-bold text-brand-muted-soft">
+                            <span className="text-[13px] font-bold text-brand-muted-soft">
                               {text("Put where", "कहाँ राख्ने")}
                             </span>
                             <select
-                              className={`${plain} h-9 w-32 text-[13px]`}
+                              className={`${plain} h-9 w-32 text-[15px]`}
                               value={row.place}
                               onChange={(event) =>
                                 updateRow(row.key, { place: event.target.value as StockPlace })
@@ -1430,7 +1431,7 @@ export default function PurchaseInvoiceForm({
                                 </option>
                               ))}
                             </select>
-                            <span className="text-[11px] font-bold text-brand-green">
+                            <span className="text-[13px] font-bold text-brand-green">
                               {text("→ to the stock you sell from", "→ बेच्ने स्टकमा")}
                             </span>
                           </>
@@ -1438,11 +1439,11 @@ export default function PurchaseInvoiceForm({
                           <>
                             {newMaterial ? (
                               <>
-                                <span className="text-[11px] font-bold text-brand-muted-soft">
+                                <span className="text-[13px] font-bold text-brand-muted-soft">
                                   {text("Unit", "एकाइ")}
                                 </span>
                                 <select
-                                  className={`${plain} h-9 w-28 text-[13px]`}
+                                  className={`${plain} h-9 w-28 text-[15px]`}
                                   value={row.materialUnit}
                                   onChange={(event) =>
                                     updateRow(row.key, { materialUnit: event.target.value })
@@ -1457,11 +1458,11 @@ export default function PurchaseInvoiceForm({
                                 </select>
                               </>
                             ) : (
-                              <span className="text-[11px] font-bold text-brand-muted-soft">
+                              <span className="text-[13px] font-bold text-brand-muted-soft">
                                 {rawMaterials.find((material) => material.id === row.materialId)?.unit}
                               </span>
                             )}
-                            <span className="text-[11px] font-bold text-brand-gold-ink">
+                            <span className="text-[13px] font-bold text-brand-gold-ink">
                               {text("→ to the factory store (not for sale)", "→ कारखानाको स्टोरमा (बेच्ने होइन)")}
                             </span>
                           </>
@@ -1469,7 +1470,7 @@ export default function PurchaseInvoiceForm({
 
                         {!row.materialId && !productNames.some((name) => sameName(name, row.design || row.materialName)) &&
                         (row.materialName || row.design) ? (
-                          <span className="flex w-full flex-wrap items-center gap-1.5 text-[11px] font-bold text-brand-muted">
+                          <span className="flex w-full flex-wrap items-center gap-1.5 text-[13px] font-bold text-brand-muted">
                             {text("New item — what is it?", "नयाँ सामान — यो के हो?")}
                             {(["Raw Material", "Trading Goods"] as const).map((kind) => (
                               <button
@@ -1503,7 +1504,7 @@ export default function PurchaseInvoiceForm({
                             <span className="grid w-full gap-1.5">
                               {matches.length ? (
                                 <span className="grid gap-1 rounded-md border border-brand-green-line bg-brand-green-tint/40 p-2" role="group" aria-label={text("Shoes on the books", "स्टकमा भएका जुत्ता")}>
-                                  <span className="text-[11px] font-black text-brand-green-ink">
+                                  <span className="text-[13px] font-black text-brand-green-ink">
                                     {text("👟 Already on the books — pick it so the pairs join its stock:", "👟 स्टकमा पहिल्यै छ — छान्नुहोस्, जोडी त्यसैमा थपिन्छ:")}
                                   </span>
                                   {matches.map((shoe) => {
@@ -1513,10 +1514,10 @@ export default function PurchaseInvoiceForm({
                                         key={shoe.name}
                                         type="button"
                                         onClick={() => setItemName(row, shoe.name)}
-                                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md border border-brand-green-line bg-brand-paper px-2.5 py-1.5 text-left text-[13px] hover:border-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+                                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md border border-brand-green-line bg-brand-paper px-2.5 py-1.5 text-left text-[15px] hover:border-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
                                       >
                                         <span className="font-black text-brand-green-ink">{shoe.name}</span>
-                                        <span className="text-[11px] font-bold text-brand-muted">
+                                        <span className="text-[13px] font-bold text-brand-muted">
                                           {shoe.codes.length ? `${text("code", "कोड")} ${shoe.codes.slice(0, 2).join(", ")} · ` : ""}
                                           {shoe.stock} {text("pairs", "जोडी")}
                                           {last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""}
@@ -1527,7 +1528,7 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               ) : null}
                               {missingCode && !matches.length ? (
-                                <span className="rounded-md bg-brand-clay-tint px-2 py-1 text-[11px] font-black text-brand-clay">
+                                <span className="rounded-md bg-brand-clay-tint px-2 py-1 text-[13px] font-black text-brand-clay">
                                   {text(
                                     `⚠ No shoe has code ${missingCode}. Check the code, or pick what it is below.`,
                                     `⚠ कोड ${missingCode} भएको जुत्ता भेटिएन। कोड जाँच्नुहोस्, वा तल यो के हो छान्नुहोस्।`,
@@ -1535,7 +1536,7 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               ) : null}
                               {askShoe ? (
-                                <span className="flex flex-wrap items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2.5 py-2 text-[12px] font-bold text-brand-gold-ink" role="status">
+                                <span className="flex flex-wrap items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2.5 py-2 text-[14px] font-bold text-brand-gold-ink" role="status">
                                   {text("👟 This name reads like footwear. Is it shoes/slippers for sale?", "👟 नाम जुत्ता जस्तो छ। यो बेच्ने जुत्ता/चप्पल हो?")}
                                   <button
                                     type="button"
@@ -1562,14 +1563,14 @@ export default function PurchaseInvoiceForm({
                           const rate = Number(row.rate) || 0;
                           if (!last || !rate || Math.abs(rate - last.rate) / last.rate <= RATE_WARN) {
                             return last && !rate ? null : last ? (
-                              <span className="w-full text-[11px] font-bold text-brand-muted">
+                              <span className="w-full text-[13px] font-bold text-brand-muted">
                                 {text(`Last rate ${money(last.rate)}`, `पछिल्लो दर ${money(last.rate)}`)}
                               </span>
                             ) : null;
                           }
                           const change = Math.round(((rate - last.rate) / last.rate) * 100);
                           return (
-                            <span className="w-full rounded-md bg-brand-clay-tint px-2 py-1 text-[11px] font-black text-brand-clay">
+                            <span className="w-full rounded-md bg-brand-clay-tint px-2 py-1 text-[13px] font-black text-brand-clay">
                               ⚠{" "}
                               {change > 0
                                 ? text(`${change}% dearer than last time (${money(last.rate)})`, `पछिल्लो दर (${money(last.rate)}) भन्दा ${change}% महँगो`)
@@ -1580,7 +1581,7 @@ export default function PurchaseInvoiceForm({
 
                         <input
                           name={`item${index}Note`}
-                          className={`${plain} h-9 min-w-40 flex-1 text-[13px]`}
+                          className={`${plain} h-9 min-w-40 flex-1 text-[15px]`}
                           placeholder={text("Line note (optional)", "लाइनको टिपोट (चाहिए)")}
                           aria-label={text(`Item ${index + 1} note`, `क्र.सं. ${index + 1} को टिपोट`)}
                         />
@@ -1588,12 +1589,12 @@ export default function PurchaseInvoiceForm({
                     ) : null}
 
                     {issue ? (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-clay md:ml-[46px]">
+                      <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-brand-clay md:ml-[46px]">
                         <span aria-hidden="true">⚠</span>
                         {issue.message}
                       </p>
                     ) : share && share.lineSubtotal !== share.lineTotal ? (
-                      <p className="mt-1.5 text-xs text-brand-muted md:ml-[46px]">
+                      <p className="mt-1.5 text-sm text-brand-muted md:ml-[46px]">
                         {text(
                           `After bill discount and tax ${money(share.lineTotal)}`,
                           `बिलको छुट र करपछि ${money(share.lineTotal)}`,
@@ -1605,7 +1606,7 @@ export default function PurchaseInvoiceForm({
               })}
             </div>
 
-            <p className="mt-2 text-xs text-brand-muted">
+            <p className="mt-2 text-sm text-brand-muted">
               {text(
                 "A new line appears as you fill the last one. Blank lines are ignored.",
                 "अन्तिम लाइन भरिनेबित्तिकै अर्को आफैं देखिन्छ। खाली लाइन गनिँदैन।",
@@ -1615,7 +1616,7 @@ export default function PurchaseInvoiceForm({
 
           {/* ── How it was paid ──────────────────────────────────────── */}
           <section className="rounded-md border border-brand-green/30 p-3 md:p-4">
-            <h3 className="text-sm font-black text-brand-green-ink">
+            <h3 className="text-[17px] font-black text-brand-green-ink">
               {text("How it was paid", "कसरी तिर्यो")}
             </h3>
 
@@ -1647,7 +1648,7 @@ export default function PurchaseInvoiceForm({
                     >
                       {method.icon}
                     </svg>
-                    <span className="text-[13px] font-black">{text(method.en, method.ne)}</span>
+                    <span className="text-[15px] font-black">{text(method.en, method.ne)}</span>
                   </button>
                 );
               })}
@@ -1658,7 +1659,7 @@ export default function PurchaseInvoiceForm({
                 <div className="flex items-center justify-between gap-2">
                   <label
                     htmlFor="purchase-paid"
-                    className="text-[11px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
+                    className="text-[13px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
                   >
                     {text("Paid now", "कति तिर्यो")}
                   </label>
@@ -1667,7 +1668,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       aria-pressed={paidFull}
                       onClick={() => setPaidFull(true)}
-                      className={`rounded-full border px-3 py-0.5 text-xs font-black ${
+                      className={`rounded-full border px-3 py-0.5 text-sm font-black ${
                         paidFull ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"
                       }`}
                     >
@@ -1690,7 +1691,7 @@ export default function PurchaseInvoiceForm({
                   step="any"
                   inputMode="decimal"
                   disabled={paymentMethod === "Credit"}
-                  className={`${plain} mt-1 w-full text-right text-base font-black tabular-nums disabled:bg-brand-mist disabled:text-brand-muted-soft`}
+                  className={`${plain} mt-1 w-full text-right text-lg font-black tabular-nums disabled:bg-brand-mist disabled:text-brand-muted-soft`}
                   placeholder="0"
                   value={paidText}
                   onChange={(event) => {
@@ -1702,7 +1703,7 @@ export default function PurchaseInvoiceForm({
               <div>
                 <label
                   htmlFor="purchase-reference"
-                  className="text-[11px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
+                  className="text-[13px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
                 >
                   {referenceLabel}
                 </label>
@@ -1725,7 +1726,7 @@ export default function PurchaseInvoiceForm({
             </div>
 
             {paymentMethod === "Credit" ? (
-              <p className="mt-2 text-xs text-brand-muted">
+              <p className="mt-2 text-sm text-brand-muted">
                 {text(
                   "Nothing handed over — the whole bill stays on the supplier's account.",
                   "अहिले केही नतिरेको — पूरै बिल साहुको खातामा उधारो रहन्छ।",
@@ -1737,11 +1738,11 @@ export default function PurchaseInvoiceForm({
 
         {/* ── What it comes to ───────────────────────────────────────── */}
         <aside className="grid content-start gap-3 rounded-md border border-brand-green-line bg-brand-mist/40 p-4 xl:sticky xl:top-4">
-          <h3 className="text-sm font-black text-brand-green-ink">
+          <h3 className="text-[17px] font-black text-brand-green-ink">
             {text("What it comes to", "बिलको हिसाब")}
           </h3>
 
-          <dl className="grid gap-2 border-b border-brand-green-line pb-3 text-sm">
+          <dl className="grid gap-2 border-b border-brand-green-line pb-3 text-base">
             <div className="flex justify-between gap-3">
               <dt className="text-brand-muted">
                 {text(
@@ -1767,7 +1768,7 @@ export default function PurchaseInvoiceForm({
                   min="0"
                   step="any"
                   inputMode="decimal"
-                  className={`${plain} h-9 w-24 text-right text-[13px] tabular-nums`}
+                  className={`${plain} h-9 w-24 text-right text-[15px] tabular-nums`}
                   placeholder="0"
                   value={discount}
                   onChange={(event) => setDiscount(event.target.value)}
@@ -1802,7 +1803,7 @@ export default function PurchaseInvoiceForm({
                   min="0"
                   step="any"
                   inputMode="decimal"
-                  className={`${plain} h-9 w-24 text-right text-[13px] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
+                  className={`${plain} h-9 w-24 text-right text-[15px] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
                   placeholder="0"
                   value={vatOn ? String(vatAmount) : tax}
                   readOnly={vatOn}
@@ -1813,7 +1814,7 @@ export default function PurchaseInvoiceForm({
             </div>
           </dl>
           {vatOn && supplierMemory?.last?.vat ? (
-            <p className="-mt-1 text-[11px] font-bold text-brand-green">
+            <p className="-mt-1 text-[13px] font-bold text-brand-green">
               {text(
                 "On because this supplier's last bill had VAT. Switch off if this one has none.",
                 "यो साहुको पछिल्लो बिलमा VAT थियो, त्यसैले आफैँ खुला भयो। यसमा छैन भने बन्द गर्नुहोस्।",
@@ -1822,12 +1823,12 @@ export default function PurchaseInvoiceForm({
           ) : null}
 
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm font-black text-brand-green-ink">{text("Bill total", "बिल जम्मा")}</span>
+            <span className="text-base font-black text-brand-green-ink">{text("Bill total", "बिल जम्मा")}</span>
             <span className="text-xl font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
           </div>
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm text-brand-muted">{text("Paid", "तिरेको")}</span>
-            <span className="text-sm font-bold tabular-nums text-brand-green">{money(paid)}</span>
+            <span className="text-base text-brand-muted">{text("Paid", "तिरेको")}</span>
+            <span className="text-base font-bold tabular-nums text-brand-green">{money(paid)}</span>
           </div>
 
           {/* The number this whole screen exists to make visible before the
@@ -1839,12 +1840,12 @@ export default function PurchaseInvoiceForm({
                 : "border-brand-green/30 bg-brand-green-wash text-brand-green"
             }`}
           >
-            <p className="text-xs font-black">
+            <p className="text-sm font-black">
               {due > 0 ? text("Still owed", "उधारो रहन्छ") : text("Nothing owed", "पूरै तिरियो")}
             </p>
             <p className="mt-1 text-2xl font-black leading-none tabular-nums">{money(due)}</p>
             {supplier ? (
-              <p className="mt-2 text-xs font-bold">
+              <p className="mt-2 text-sm font-bold">
                 {text(
                   `${supplier.supplierName}'s account: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
                   `${supplier.supplierName} को खाता: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
@@ -1855,7 +1856,7 @@ export default function PurchaseInvoiceForm({
 
           <textarea
             name="note"
-            className="min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-sm outline-none focus:border-brand-green"
+            className="min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-base outline-none focus:border-brand-green"
             placeholder={text(
               "Bill note, vehicle, gate pass, invoice no.",
               "बिलको टिपोट, गाडी, गेट पास, बिल नं.",
@@ -1867,12 +1868,12 @@ export default function PurchaseInvoiceForm({
             ref={saveButton}
             type="submit"
             disabled={isSaving}
-            className="hidden h-12 w-full rounded-full bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink focus-visible:ring-4 focus-visible:ring-brand-gold-bright disabled:cursor-not-allowed disabled:opacity-60 md:block"
+            className="hidden h-12 w-full rounded-full bg-brand-green px-6 text-base font-black text-white transition hover:bg-brand-green-ink focus-visible:ring-4 focus-visible:ring-brand-gold-bright disabled:cursor-not-allowed disabled:opacity-60 md:block"
           >
             {isSaving ? text("Saving…", "राख्दै…") : text("Save purchase", "बिल राख्ने")}
-            <span className="ml-2 text-xs font-semibold opacity-75">Ctrl+S</span>
+            <span className="ml-2 text-sm font-semibold opacity-75">Ctrl+S</span>
           </button>
-          <p className="text-center text-xs leading-5 text-brand-muted">
+          <p className="text-center text-sm leading-5 text-brand-muted">
             {text(
               "One press files the bill, the stock, the supplier's account and the payment.",
               "एकपटक थिच्दा — बिल, स्टक, साहुको खाता र तिरेको पैसा सबै एकैचोटि।",
@@ -1889,14 +1890,14 @@ export default function PurchaseInvoiceForm({
           This keeps them in reach, above the admin's bottom bar. */}
       <div data-pos-bar className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-brand-green-line bg-brand-paper/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="grid leading-tight">
-          <span className="text-[11px] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
+          <span className="text-[13px] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
           <span className="text-lg font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
         </div>
         <button
           ref={phoneSaveButton}
           type="submit"
           disabled={isSaving}
-          className="h-12 min-w-40 rounded-full bg-brand-green px-6 text-sm font-black text-white disabled:opacity-60"
+          className="h-12 min-w-40 rounded-full bg-brand-green px-6 text-base font-black text-white disabled:opacity-60"
         >
           {isSaving ? text("Saving…", "राख्दै…") : text("Save purchase", "बिल राख्ने")}
         </button>
@@ -1907,8 +1908,8 @@ export default function PurchaseInvoiceForm({
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={text("Bill saved", "बिल सेभ भयो")}>
           <div className="grid w-full max-w-md gap-3 rounded-2xl bg-brand-paper p-5 shadow-2xl">
             <h3 className="text-lg font-black text-brand-green-ink">✅ {text("Bill saved", "बिल सेभ भयो")}</h3>
-            <p className="text-xs text-brand-muted">{receipt.message}</p>
-            <div className="grid gap-1 rounded-lg border border-dashed border-brand-green-line p-3 text-sm">
+            <p className="text-sm text-brand-muted">{receipt.message}</p>
+            <div className="grid gap-1 rounded-lg border border-dashed border-brand-green-line p-3 text-base">
               <p className="font-black text-brand-green-ink">
                 {receipt.supplierName}
                 {receipt.billNo ? ` · ${text("bill", "बिल नं.")} ${receipt.billNo}` : ""}
@@ -1917,7 +1918,7 @@ export default function PurchaseInvoiceForm({
                 <div key={index} className="flex justify-between gap-3 border-b border-dotted border-brand-green-line py-1">
                   <span>
                     {index + 1}. {line.name}
-                    <span className="block text-xs text-brand-muted">
+                    <span className="block text-sm text-brand-muted">
                       {line.quantity} {line.unit} × {money(Number(line.rate) || 0)}
                       {line.sizes ? ` · ${line.sizes}` : ""}
                     </span>
@@ -1929,20 +1930,20 @@ export default function PurchaseInvoiceForm({
                 <span>{text("Bill total", "बिल जम्मा")}</span>
                 <span className="tabular-nums">{money(receipt.total)}</span>
               </p>
-              <p className="flex justify-between text-xs text-brand-muted">
+              <p className="flex justify-between text-sm text-brand-muted">
                 <span>{text("Paid", "तिरेको")}</span>
                 <span className="tabular-nums">{money(receipt.paid)}</span>
               </p>
             </div>
             {receipt.photos.sending ? (
-              <p className="text-sm font-bold text-brand-muted" role="status">📷 {text("Sending the photo…", "फोटो पठाउँदै…")}</p>
+              <p className="text-base font-bold text-brand-muted" role="status">📷 {text("Sending the photo…", "फोटो पठाउँदै…")}</p>
             ) : receipt.photos.kept ? (
-              <p className="text-sm font-bold text-brand-green" role="status">
+              <p className="text-base font-bold text-brand-green" role="status">
                 📷 {text(`${receipt.photos.kept} photo(s) kept with the bill`, `${receipt.photos.kept} फोटो बिलसँग राखियो`)}
               </p>
             ) : null}
             {receipt.photos.problem ? (
-              <p className="text-sm font-bold text-brand-clay" role="alert">
+              <p className="text-base font-bold text-brand-clay" role="alert">
                 ⚠ {receipt.photos.problem}{" "}
                 {text("The bill is saved — add the photo from the bill page.", "बिल सेभ भइसक्यो — फोटो बिलको पेजबाट थप्नुहोस्।")}
               </p>
@@ -1966,7 +1967,7 @@ export default function PurchaseInvoiceForm({
                 }
                 settle();
               }}
-              className="h-12 rounded-full border-2 border-brand-green text-sm font-black text-brand-green"
+              className="h-12 rounded-full border-2 border-brand-green text-base font-black text-brand-green"
             >
               ➕ {text(`Same supplier, next bill — ${receipt.supplierName}`, `उही साहु, नयाँ बिल — ${receipt.supplierName}`)}
             </button>
@@ -1978,14 +1979,14 @@ export default function PurchaseInvoiceForm({
                   setReceipt(null);
                   setState(null);
                 }}
-                className="h-12 rounded-full bg-brand-green text-sm font-black text-white"
+                className="h-12 rounded-full bg-brand-green text-base font-black text-white"
               >
                 ➕ {text("New bill", "नयाँ बिल")}
               </button>
               {receipt.href ? (
                 <a
                   href={receipt.href}
-                  className="flex h-12 items-center justify-center rounded-full border border-brand-green-line text-sm font-black text-brand-green-ink"
+                  className="flex h-12 items-center justify-center rounded-full border border-brand-green-line text-base font-black text-brand-green-ink"
                 >
                   🖨️ {text("See / print", "हेर्ने / प्रिन्ट")}
                 </a>
