@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { businessContact, getSiteUrl } from "@/lib/seo";
+import T from "@/components/T";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -301,7 +302,21 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           </p>
         ) : null}
 
-        <p className={`text-center text-[11px] text-brand-muted ${company.billFooterNote ? "mt-1" : "mt-3 border-t border-brand-green-line pt-2"}`}>
+        {/* Asking the counter customer for a review, on the paper they keep.
+            Counter customers leave no email, so this is the only ask that
+            reaches them (owner, 2026-09-29). */}
+        <div className="mt-3 flex items-center justify-center gap-3 border-t border-dashed border-brand-green-line pt-2">
+          <img src="/api/admin/review-qr" alt="QR code for the KRISHOE review page" className="h-16 w-16 shrink-0 object-contain" />
+          <p className="text-left text-[12px] font-bold leading-snug text-brand-green-ink">
+            <T
+              en="How were your shoes? Scan the QR and write two lines 🙏"
+              ne="जुत्ता कस्तो लाग्यो? QR स्क्यान गरी दुई शब्द लेखिदिनुहोस् 🙏"
+            />
+            <span className="block font-normal text-brand-muted">{shopDomain}/review</span>
+          </p>
+        </div>
+
+        <p className="mt-1 text-center text-[11px] text-brand-muted">
           {company.phone ? <>☎ {company.phone} · </> : null}
           {businessContact.whatsappDisplay ? <>WhatsApp {businessContact.whatsappDisplay} · </> : null}
           <span className="font-bold">{shopDomain}</span>

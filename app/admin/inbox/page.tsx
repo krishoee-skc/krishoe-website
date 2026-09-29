@@ -11,6 +11,8 @@ import {
   type VoiceKind,
 } from "@/lib/customer-voice";
 import { deleteVoiceAction, setPublishedAction, setStatusAction } from "./actions";
+import ReviewAskWays from "./ReviewAskWays";
+import { getSiteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = { title: "Customer Voice | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -267,6 +269,9 @@ export default async function InboxPage({
         </p>
       </div>
 
+      {/* Six "0" tabs say nothing on an empty inbox; they appear with the
+          first thing a customer says. */}
+      {counts.total > 0 ? (
       <div className="mt-5 flex flex-wrap gap-2">
         {tab(
           "/admin/inbox",
@@ -292,18 +297,14 @@ export default async function InboxPage({
           ),
         )}
       </div>
+      ) : null}
 
       <div className="mt-5 overflow-hidden rounded-lg border border-brand-green-line bg-brand-paper">
-        {voices.length === 0 ? (
+        {counts.total === 0 ? (
+          <ReviewAskWays reviewUrl={`${getSiteUrl().replace(/\/$/, "")}/review`} />
+        ) : voices.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-brand-muted">
-            {counts.total === 0 ? (
-              <T
-                en="No customer has said anything yet — it will show up here when they do."
-                ne="अझै कुनै ग्राहकले केही भनेका छैनन् — आएपछि यहीँ देखिन्छ।"
-              />
-            ) : (
-              <T en="Nothing in this filter." ne="यो छनोटमा केही छैन।" />
-            )}
+            <T en="Nothing in this filter." ne="यो छनोटमा केही छैन।" />
           </p>
         ) : (
           voices.map((voice) => <Row key={voice.id} voice={voice} />)

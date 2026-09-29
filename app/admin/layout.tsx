@@ -4,6 +4,7 @@ import PasskeyInvite from "@/components/admin/PasskeyInvite";
 import AdminMobileNav from "./AdminMobileNav";
 import WorkspaceBand from "./WorkspaceBand";
 import AdminTrail from "./AdminTrail";
+import AttentionReasons from "./AttentionReasons";
 import { attentionByHref } from "./nav-attention";
 import { runShopSelfCheck } from "@/lib/shop-self-check";
 import AdminQuickDock from "./AdminQuickDock";
@@ -57,7 +58,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   //
   // Never fatal: the menu is how every screen is reached, and a failing
   // check must not take the whole admin down with it.
-  const attention = attentionByHref(await runShopSelfCheck().catch(() => []));
+  const checks = await runShopSelfCheck().catch(() => []);
+  const attention = attentionByHref(checks);
+  // The same checks, in words, at the top of the page the dot sends you to.
+  const reasons = checks.map(({ id, severity, title, titleNe, detail, detailNe, href, action, actionNe }) => ({
+    id, severity, title, titleNe, detail, detailNe, href, action, actionNe,
+  }));
 
   return (
     <ToastProvider>
@@ -115,6 +121,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             counter — so the page, not only the menu, says so. */}
         <WorkspaceBand />
         <AdminTrail />
+        <AttentionReasons checks={reasons} />
         {children}
         <AdminQuickDock adminRole={adminRole} />
         {/* Offered just after signing in, on the device being held. It

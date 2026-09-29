@@ -115,7 +115,11 @@ describe("the inbox screen", () => {
   it("says nothing rather than an empty table", async () => {
     const page = await readFile(PAGE, "utf8");
 
-    expect(page).toContain("अझै कुनै ग्राहकले केही भनेका छैनन्");
+    // Empty, it shows the ways to the first review (owner, 2026-09-29),
+    // not six zero tabs over a one-line note.
+    expect(page).toContain("<ReviewAskWays reviewUrl=");
+    const ways = await readFile("app/admin/inbox/ReviewAskWays.tsx", "utf8");
+    expect(ways).toContain("अहिलेसम्म राय छैन");
   });
 
   it("does not load every message ever received", async () => {

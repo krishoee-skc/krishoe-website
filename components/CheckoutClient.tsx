@@ -59,6 +59,8 @@ type CheckoutFormProps = {
   estimatedTotalLabel: string;
   onDeliveryChange: (delivery: string) => void;
   onDiscountChange: (discountPaisa: number) => void;
+  /** Whether Settings holds a bank account; QR / bank transfer is offered only then. */
+  hasBankAccount: boolean;
 };
 
 function CheckoutForm({
@@ -80,6 +82,7 @@ function CheckoutForm({
   estimatedTotalLabel,
   onDeliveryChange,
   onDiscountChange,
+  hasBankAccount,
 }: CheckoutFormProps) {
   const { text, language } = useLanguage();
   const nepali = language === "ne";
@@ -400,7 +403,13 @@ function CheckoutForm({
               {text("Payment option", "भुक्तानी विकल्प")}
             </p>
             <div className="mt-3 grid gap-2">
-              {paymentOptions.map((option, index) => (
+              {/* QR / bank transfer only once there is an account to pay into.
+                  With none set, a shopper who chose it saw no account and no
+                  QR, and the self-check marked Settings for it (owner,
+                  2026-09-29). It returns by itself when the account is added. */}
+              {paymentOptions
+                .filter((option) => option !== "QR / bank transfer confirmation" || hasBankAccount)
+                .map((option, index) => (
                 <label
                   key={option}
                   className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
@@ -744,6 +753,7 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
           estimatedTotalLabel={estimatedTotalLabel}
           onDeliveryChange={setDelivery}
           onDiscountChange={setDiscountPaisa}
+          hasBankAccount={bank.bankAccountNumber.trim() !== ""}
         />
         <PaymentInstructions bank={bank} />
       </div>

@@ -127,9 +127,11 @@ export async function runShopSelfCheck(): Promise<SelfCheck[]> {
           "A shopper reads that as other customers' opinion. Nobody has given it yet.",
         detailNe:
           "ग्राहकले त्यो अरूको राय ठान्छन्। तर अहिलेसम्म कसैले दिएकै छैन।",
-        href: "/admin/inbox",
-        action: "See the reviews",
-        actionNe: "राय हेर्ने",
+        // Products, not the inbox: the stars are cleared there. It pointed at
+        // Customer Voice, which was empty and could not say why it was marked.
+        href: "/admin/products",
+        action: "Clear the stars",
+        actionNe: "तारा हटाउने",
         count: n,
       };
     },

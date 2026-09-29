@@ -260,7 +260,7 @@ export default function ProductForm({ product, categories, takenCodes = [] }: Pr
         </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("Rating", "तारा")}</span>
-          <input name="rating" defaultValue={product?.rating ?? "4.8"} className="form-input" />
+          <input name="rating" defaultValue={product?.rating ?? "0"} className="form-input" />
         </label>
       </div>
 

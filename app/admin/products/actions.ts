@@ -6,6 +6,8 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getProducts, setProductCodes, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { codeProblem, codeTakenBy, tidyCode } from "@/lib/shoe-code";
+import { runWithDataBackend } from "@/lib/data-backend";
+import { queryPostgres } from "@/lib/postgres/client";
 
 export async function syncProductCatalogStockAction() {
   await requireAdminPermission("products:write");
@@ -74,4 +76,40 @@ export async function saveProductCodesAction(
   revalidatePath("/", "layout");
 
   return { ok: true, changed: changes.length };
+}
+
+/**
+ * Clear every star rating no published review stands behind.
+ *
+ * Every shoe had been saved with the form's default of 4.8, so all six showed
+ * a rating no customer gave, and the self-check marked the menu for it
+ * (owner, 2026-09-29). This is the button on that warning: the rating goes to
+ * 0 on every shoe — Draft ones too — that has no published review, and stays
+ * on any shoe that has one. Pressed by the Owner, recorded in the audit log.
+ */
+export async function clearUnbackedRatingsAction(): Promise<void> {
+  await requireAdminPermission("products:write");
+  const cleared = await runWithDataBackend({
+    storeName: "products",
+    // The local files carry no reviews to compare against; nothing to clear.
+    localJson: async () => 0,
+    postgres: async () => {
+      const rows = await queryPostgres<{ id: string }>(
+        "products",
+        `UPDATE products p SET rating = '0'
+          WHERE COALESCE(p.rating, '0') NOT IN ('0', '')
+            AND NOT EXISTS (
+              SELECT 1 FROM customer_voice v
+               WHERE v.product_id = p.id AND v.kind = 'review' AND v.published = true
+            )
+          RETURNING p.id`,
+      );
+      return rows.length;
+    },
+  });
+  await recordAdminAuditEvent(
+    "product_ratings_cleared",
+    `Star rating cleared on ${cleared} shoe(s) with no published review.`,
+  );
+  revalidatePath("/", "layout");
 }
