@@ -5,6 +5,7 @@ import { money } from "@/lib/format-money";
 import type { CounterItemRow } from "@/lib/counter-items";
 import type { StockAtPlace } from "@/lib/stock-transfers";
 import { markCounterItemReviewedAction } from "@/app/admin/stock/actions";
+import ReviewButton from "@/app/admin/stock/ReviewButton";
 
 const HOW = {
   old: { en: "Already on the shelf", ne: "पहिले नै थियो" },
@@ -94,9 +95,7 @@ export default function CounterGoodsWatch({
                 {canReview ? (
                   <form action={markCounterItemReviewedAction}>
                     <input type="hidden" name="id" value={item.id} />
-                    <button type="submit" className="min-h-11 rounded-full bg-brand-green px-4 text-sm font-black text-white">
-                      ✓ <T en="Looks right" ne="ठीक छ" />
-                    </button>
+                    <ReviewButton />
                   </form>
                 ) : null}
               </li>

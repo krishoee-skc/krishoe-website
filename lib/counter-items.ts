@@ -128,9 +128,14 @@ export async function createCounterItem(input: CounterItemInput) {
       : input.how === "pending_bill"
         ? `Arrived, supplier's bill to come${supplier ? ` — ${supplier}` : ""}. Added from the counter bill.`
         : "Made in our factory — added from the counter bill.";
+  // The uncounted pile goes in FIRST. A "Mixed" movement looks for a Mixed row
+  // and, finding none, falls back to any row of the design — so posted after
+  // the sizes, kitto 770's 100 uncounted pairs landed on its size-40 row, which
+  // read 120 instead of 20 (owner, 2026-09-29). Posted first, the pile makes
+  // its own Mixed row; each real size then matches only its exact row.
   const rows: Array<[string, number]> = [
-    ...Object.entries(sizes),
     ...(pilePairs > 0 ? ([["Mixed", pilePairs]] as Array<[string, number]>) : []),
+    ...Object.entries(sizes),
   ];
 
   const id = `CTR-${randomUUID()}`;

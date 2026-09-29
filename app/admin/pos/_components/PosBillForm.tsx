@@ -1161,7 +1161,11 @@ export default function PosBillForm({
                 name="customerName"
                 value={customerName}
                 onChange={(event) => setCustomerName(event.target.value)}
-                placeholder={text("Customer's name (optional)", "ग्राहकको नाम (नचाहिए खाली)")}
+                placeholder={
+                  needsAccount && !account
+                    ? text("Customer's name (needed for credit)", "ग्राहकको नाम (उधारोका लागि चाहिन्छ)")
+                    : text("Customer's name (optional)", "ग्राहकको नाम (नचाहिए खाली)")
+                }
                 aria-label={text("Customer's name", "ग्राहकको नाम")}
                 data-summary="text"
                 className={inputClass}
@@ -1365,6 +1369,29 @@ export default function PosBillForm({
                 </select>
                 {!account ? (
                   canOpenLedger ? (
+                    <>
+                    {/* The name and phone the account needs, right where it is
+                        opened. They sat far above, the name marked "optional",
+                        and with no account on the books the button stayed grey
+                        and the credit sale could not be saved (owner,
+                        2026-09-29). The same boxes as above, kept in step. */}
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        value={customerName}
+                        onChange={(event) => setCustomerName(event.target.value)}
+                        placeholder={text("Customer's name", "ग्राहकको नाम")}
+                        aria-label={text("Customer's name for the account", "खाताका लागि ग्राहकको नाम")}
+                        className={inputClass}
+                      />
+                      <input
+                        inputMode="tel"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        placeholder={text("Customer's phone", "ग्राहकको फोन")}
+                        aria-label={text("Customer's phone for the account", "खाताका लागि ग्राहकको फोन")}
+                        className={inputClass}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={openLedger}
@@ -1373,8 +1400,9 @@ export default function PosBillForm({
                     >
                       {customerName.trim()
                         ? text(`+ Open an account for ${customerName.trim()}`, `+ ${customerName.trim()} को नयाँ खाता खोल्ने`)
-                        : text("+ New account — type the name above first", "+ नयाँ खाता — पहिले माथि नाम लेख्नुहोस्")}
+                        : text("+ New account — type the name first", "+ नयाँ खाता — पहिले नाम लेख्नुहोस्")}
                     </button>
+                    </>
                   ) : (
                     <p className="text-xs font-semibold text-brand-gold-deep">
                       {text(
