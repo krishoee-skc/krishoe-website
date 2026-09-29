@@ -1,3 +1,4 @@
+import { counterItemsReady } from "@/lib/counter-items-database";
 import Link from "next/link";
 import T from "@/components/T";
 import EmptyState from "@/components/admin/EmptyState";
@@ -208,6 +209,11 @@ export default async function AdminPosPage({
     reportError("check the bill payments column", error);
     return false;
   });
+  // Goods added from the counter need the Owner's database button first.
+  const counterReady = await counterItemsReady().catch((error) => {
+    reportError("check the counter items table", error);
+    return false;
+  });
 
   if (!loaded.data) {
     return (
@@ -223,9 +229,9 @@ export default async function AdminPosPage({
   // finished stock. Prices are stored in paisa, shown and billed in rupees.
   // What a pair cost reaches the browser only for those who may read costing:
   // anything sent to the page can be read out of it, whatever the screen hides.
-  const unitCost = new Map(
-    showCost ? costing.designCosting.map((row) => [designKey(row.design), row.unitCostPerPair]) : [],
-  );
+  // One cost per design, including shoes not sold yet — a pair added at the
+  // counter carries the cost typed then.
+  const unitCost = new Map(showCost ? Object.entries(costing.unitCostByDesign) : []);
 
   // Pairs per size, from the stock rows entered size-wise, and the pile whose
   // sizes nobody counted. These rows are what the save checks a sale against,
@@ -415,6 +421,8 @@ export default async function AdminPosPage({
             balanceDue: ledger.balanceDue,
           }))}
           catalog={catalog}
+          counterReady={counterReady}
+          isOwner={isOwner}
           lastBill={lastBill}
           canOpenLedger={canOpenLedger}
           cashierName={session.name ?? ""}

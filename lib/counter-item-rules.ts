@@ -1,0 +1,118 @@
+import { designKey } from "@/lib/design-name";
+import { looksLikeSameDesign } from "@/lib/design-drift";
+
+/**
+ * The rules for a new item added from the counter bill, kept pure so the
+ * counter's form and the server read them the same way (owner, 2026-09-29).
+ *
+ * Four guards travel with the feature, because a quick way to add goods is
+ * also a quick way to spoil the books:
+ *  1. one shoe, one name — a close name is offered before a new one is made;
+ *  2. a selling price below cost is questioned;
+ *  3. an unknown cost stays "cost to come", never a profit;
+ *  4. the pairs land at the shop (done where the stock is written).
+ */
+
+export const counterItemHows = ["old", "pending_bill", "factory"] as const;
+export type CounterItemHow = (typeof counterItemHows)[number];
+
+/** How the pairs are entered, by how they came. */
+export const movementTypeForHow = {
+  old: "Adjustment",
+  pending_bill: "Purchase In",
+  factory: "Production In",
+} as const satisfies Record<CounterItemHow, string>;
+
+/** At most this many pairs of one item from the counter; more is a typing slip. */
+export const MAX_COUNTER_PAIRS = 2000;
+
+/** Distance between two short strings, for a one- or two-letter slip. */
+function editDistance(left: string, right: string) {
+  if (Math.abs(left.length - right.length) > 2) return 3;
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i += 1) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= right.length; j += 1) {
+      const kept = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (left[i - 1] === right[j - 1] ? 0 : 1));
+      previous = kept;
+    }
+  }
+  return row[right.length];
+}
+
+/**
+ * Names already on the books that read like the one typed — the same one
+ * written another way ("bag open" / "T bag open"), or a slip of a letter or
+ * two. An exact match is returned first.
+ */
+export function similarNames(typed: string, known: Iterable<string>, limit = 3) {
+  const key = designKey(typed);
+  if (key.length < 2) return [];
+  const exact: string[] = [];
+  const close: string[] = [];
+  const seen = new Set<string>();
+  for (const name of known) {
+    const nameKey = designKey(name);
+    if (!nameKey || seen.has(nameKey)) continue;
+    seen.add(nameKey);
+    if (nameKey === key) exact.push(name);
+    else if (
+      looksLikeSameDesign(typed, name) ||
+      (key.length >= 5 && nameKey.length >= 5 && editDistance(key, nameKey) <= 2)
+    ) {
+      close.push(name);
+    }
+  }
+  return [...exact, ...close].slice(0, limit);
+}
+
+/** Pairs per size, tidied: sizes trimmed, blanks and zeros dropped. */
+export function tidySizes(rows: Array<{ size: string; pairs: number | string }>) {
+  const sizes: Record<string, number> = {};
+  for (const row of rows) {
+    const size = String(row.size ?? "").trim();
+    const pairs = Math.round(Number(row.pairs) || 0);
+    if (!size || pairs <= 0) continue;
+    sizes[size] = (sizes[size] ?? 0) + pairs;
+  }
+  return sizes;
+}
+
+export function totalPairs(sizes: Record<string, number>, pilePairs: number) {
+  return Object.values(sizes).reduce((sum, pairs) => sum + pairs, 0) + Math.max(0, Math.round(pilePairs || 0));
+}
+
+/** A selling price below what one pair cost. No cost known is not a loss. */
+export function sellsAtLoss(retailPrice: number, costPerPair: number) {
+  return retailPrice > 0 && costPerPair > 0 && retailPrice < costPerPair;
+}
+
+export type CounterItemDraft = {
+  name: string;
+  how: CounterItemHow;
+  sizes: Record<string, number>;
+  pilePairs: number;
+  retailPrice: number;
+  costPerPair: number;
+  lossConfirmed: boolean;
+};
+
+/** What the form still needs, in words; empty when it may be saved. */
+export function counterItemProblem(draft: CounterItemDraft) {
+  const pairs = totalPairs(draft.sizes, draft.pilePairs);
+  if (!draft.name.trim()) return { en: "Type the item's name.", ne: "मालको नाम लेख्नुहोस्।" };
+  if (!counterItemHows.includes(draft.how)) return { en: "Choose how it came.", ne: "कसरी आयो, छान्नुहोस्।" };
+  if (pairs <= 0) return { en: "How many pairs are on the shelf?", ne: "र्‍याकमा कति जोडी छन्?" };
+  if (pairs > MAX_COUNTER_PAIRS) return { en: `More than ${MAX_COUNTER_PAIRS} pairs — check the count.`, ne: `${MAX_COUNTER_PAIRS} भन्दा बढी जोडी — गन्ती फेरि हेर्नुहोस्।` };
+  if (!(draft.retailPrice > 0)) return { en: "Type the selling price.", ne: "बेच्ने मूल्य लेख्नुहोस्।" };
+  if (draft.costPerPair < 0) return { en: "The cost cannot be below zero.", ne: "लागत शून्यभन्दा कम हुँदैन।" };
+  if (sellsAtLoss(draft.retailPrice, draft.costPerPair) && !draft.lossConfirmed) {
+    return {
+      en: `Sells Rs. ${draft.costPerPair - draft.retailPrice} below cost a pair — tick to confirm, or change the price.`,
+      ne: `एक जोडीमा रु. ${draft.costPerPair - draft.retailPrice} घाटा — जानीजानी हो भने टिक गर्नुहोस्, नभए मूल्य सच्याउनुहोस्।`,
+    };
+  }
+  return null;
+}

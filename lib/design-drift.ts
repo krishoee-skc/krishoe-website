@@ -79,6 +79,14 @@ function sameWordsReordered(left: string[], right: string[]) {
   return sortedLeft.every((word, index) => word === sortedRight[index]);
 }
 
+/**
+ * Whether two names read like one shoe — the same rule the drift report uses,
+ * for asking "is it one of these?" before a new name is saved.
+ */
+export function looksLikeSameDesign(left: string, right: string) {
+  return driftReason(left, right) !== null;
+}
+
 function driftReason(left: string, right: string): DriftReason | null {
   const leftWords = words(left);
   const rightWords = words(right);

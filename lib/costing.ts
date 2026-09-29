@@ -1,3 +1,4 @@
+import { getCounterItemCosts } from "@/lib/counter-items-database";
 import { getCostingSettings, type CostingSettings, type ProductionStation } from "@/lib/costing-settings";
 import { getProducts } from "@/lib/product-store";
 import type { Product } from "@/lib/products";
@@ -212,6 +213,8 @@ export type CostingSnapshot = {
   tradingGoodsCostRates: TradingGoodsCostRate[];
   rawMaterialStockValuation: RawMaterialStockValuationRow[];
   finishedStockValuation: FinishedStockValuationRow[];
+  /** Cost of one pair by designKey, for screens that price by name. */
+  unitCostByDesign: Record<string, number>;
   catalogStockReconciliation: CatalogStockReconciliationRow[];
   batchCosting: BatchCostingRow[];
   designCosting: DesignCostingRow[];
@@ -652,6 +655,9 @@ export function buildDesignCosting(
   // A rough per-pair material estimate per design (keyed by designKey), until
   // full recipes exist.
   designMaterialPerPair: Map<string, number> = new Map(),
+  // What one pair cost, typed when the goods were added from the counter
+  // bill — the whole cost of a bought pair, keyed by designKey.
+  counterCostPerPair: Map<string, number> = new Map(),
 ) {
   const groups = new Map<string, DesignCostingRow>();
 
@@ -715,7 +721,13 @@ export function buildDesignCosting(
       const key = designKey(row.design);
       const laborPerPair = (designLaborPerPair.get(key) ?? 0) + silaiPerPair;
       const materialPerPair = designMaterialPerPair.get(key) ?? 0;
-      const derivedUnitCost = roundRate(materialPerPair + laborPerPair + overheadRatePerPair);
+      const counterCost = counterCostPerPair.get(key) ?? 0;
+      // Goods added at the counter carry the cost typed then, whole: they were
+      // bought (or already on the shelf), not made, so no labour or overhead.
+      const derivedUnitCost =
+        laborPerPair === 0 && materialPerPair === 0 && counterCost > 0
+          ? roundRate(counterCost)
+          : roundRate(materialPerPair + laborPerPair + overheadRatePerPair);
       const unitCostPerPair = blendedUnitCost > 0 ? blendedUnitCost : derivedUnitCost;
 
       const netPairs = row.soldPairs - row.returnedPairs;
@@ -1060,9 +1072,10 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   );
   const tradingGoodsCostRates = buildTradingGoodsCostRates(purchasing.purchaseInvoices);
   const designSales = buildDesignSales(posInvoices);
-  const [designLaborPerPair, designMaterialPerPair] = await Promise.all([
+  const [designLaborPerPair, designMaterialPerPair, counterCostPerPair] = await Promise.all([
     getDesignLaborPerPair(),
     getDesignMaterialPerPair(),
+    getCounterItemCosts().catch(() => new Map<string, number>()),
   ]);
   const designCosting = buildDesignCosting(
     batchCosting,
@@ -1075,6 +1088,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     0,
     overheadPerPair(settings),
     designMaterialPerPair,
+    counterCostPerPair,
   );
   // What a made design costs a pair from its rates alone, for one with no
   // costing row yet (never sold, never bought).
@@ -1084,6 +1098,16 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
       key,
       roundRate((designLaborPerPair.get(key) ?? 0) + (designMaterialPerPair.get(key) ?? 0) + overheadPerPair(settings)),
     );
+  }
+  for (const [key, cost] of counterCostPerPair) {
+    if (!derivedUnitCostByKey.has(key)) derivedUnitCostByKey.set(key, roundRate(cost));
+  }
+  // One cost per design for screens that price by name (the counter's
+  // below-cost warning): a costing row's figure, else the derived one, so a
+  // shoe that has not sold yet is not read as costing nothing.
+  const unitCostByDesign: Record<string, number> = Object.fromEntries(derivedUnitCostByKey);
+  for (const row of designCosting) {
+    if (row.unitCostPerPair > 0) unitCostByDesign[designKey(row.design)] = row.unitCostPerPair;
   }
   const finishedStockValuation = buildFinishedStockValuation(
     operations.finishedStock,
@@ -1147,6 +1171,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     tradingGoodsCostRates,
     rawMaterialStockValuation,
     finishedStockValuation,
+    unitCostByDesign,
     catalogStockReconciliation,
     batchCosting,
     designCosting,

@@ -1421,6 +1421,28 @@ $$ LANGUAGE plpgsql;
 -- own shelf.
 -- ---------------------------------------------------------------------------
 
+-- Goods first put on the books from the counter bill (20260929_counter_items.sql).
+CREATE TABLE IF NOT EXISTS counter_items (
+  id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  design text NOT NULL,
+  product_id text NOT NULL DEFAULT '',
+  how text NOT NULL DEFAULT 'old' CHECK (how IN ('old', 'pending_bill', 'factory')),
+  supplier_name text NOT NULL DEFAULT '',
+  supplier_bill_no text NOT NULL DEFAULT '',
+  pairs integer NOT NULL DEFAULT 0 CHECK (pairs >= 0),
+  size_breakdown jsonb NOT NULL DEFAULT '{}'::jsonb,
+  retail_price numeric(12, 2) NOT NULL DEFAULT 0 CHECK (retail_price >= 0),
+  cost_per_pair numeric(12, 2) NOT NULL DEFAULT 0 CHECK (cost_per_pair >= 0),
+  created_by text NOT NULL DEFAULT '',
+  reviewed_at timestamptz DEFAULT NULL,
+  reviewed_by text NOT NULL DEFAULT '',
+  bill_linked_at timestamptz DEFAULT NULL,
+  purchase_invoice_id text NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS counter_items_design_idx ON counter_items (lower(design));
+CREATE INDEX IF NOT EXISTS counter_items_open_idx ON counter_items (created_at) WHERE reviewed_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS stock_locations (
   id TEXT PRIMARY KEY,
   design TEXT NOT NULL,

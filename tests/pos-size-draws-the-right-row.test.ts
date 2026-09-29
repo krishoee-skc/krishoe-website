@@ -105,6 +105,7 @@ describe("found on the recheck", () => {
     const { readFile } = await import("node:fs/promises");
     const page = await readFile("app/admin/pos/page.tsx", "utf8");
     expect(page).toContain('const showCost = canAdmin(role, "costing:read");');
-    expect(page).toContain("showCost ? costing.designCosting.map(");
+    // One cost per design now, shoes not sold yet included (a counter item).
+    expect(page).toContain("showCost ? Object.entries(costing.unitCostByDesign) : []");
   });
 });

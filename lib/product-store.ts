@@ -517,7 +517,8 @@ export function buildDraftProductForDesign(design: string, stock: number, takenC
     image: category.image,
     gallery: [category.image],
     badge: undefined,
-    rating: "4.8",
+    // No review, no stars: a new Draft starts at 0, not the old 4.8 nobody gave.
+    rating: "0",
     description: "",
     longDescription: "",
     material: "Premium synthetic finish",

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
 import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
@@ -358,4 +359,57 @@ export async function openPosCustomerLedgerAction(input: {
     message: `${customerName} को खाता खुल्यो ✅ — account opened.`,
     ledger: { id: ledger.id, label: `${ledger.customerName} (${ledger.channel})` },
   };
+}
+
+export type CounterItemResult =
+  | {
+      ok: true;
+      message: string;
+      item: {
+        design: string;
+        sku: string;
+        category: string;
+        sizes: Record<string, number>;
+        sizeList: string[];
+        pilePairs: number;
+        pairs: number;
+        retailRate: number;
+        costPerPair: number;
+      };
+    }
+  | { ok: false; message: string; messageNe: string; sameAs: string[] };
+
+/**
+ * "+ New item" on the counter bill: put goods on the books and sell them now
+ * (owner, 2026-09-29). Retail only — the counter adds goods for the shop's own
+ * customers. Anyone who may cut a bill may add them; every one is recorded in
+ * the audit log and waits for the Owner's look.
+ */
+export async function createCounterItemAction(input: CounterItemInput): Promise<CounterItemResult> {
+  const { session } = await requireAdminPermission("pos:write");
+  try {
+    const item = await createCounterItem({
+      ...input,
+      createdBy: session?.name || session?.email || "Counter",
+    });
+    await recordAdminAuditEvent(
+      "counter_item_added",
+      `${item.design} (${item.sku}) added from the counter: ${item.pairs} pairs, Rs. ${item.retailRate}` +
+        `${input.costPerPair > 0 ? `, cost Rs. ${input.costPerPair}` : ", cost to come"}, came as ${input.how}.`,
+    );
+    revalidatePath("/admin/pos");
+    revalidatePath("/admin/stock");
+    return { ok: true, message: `${item.design} added: ${item.pairs} pairs at the shop.`, item };
+  } catch (error) {
+    if (error instanceof CounterItemRefusal) {
+      return { ok: false, message: error.message, messageNe: error.ne, sameAs: error.sameAs };
+    }
+    reportError("add an item from the counter bill", error);
+    return {
+      ok: false,
+      message: saveFailureMessage(error, "Could not add the item."),
+      messageNe: "माल थप्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+      sameAs: [],
+    };
+  }
 }

@@ -31,6 +31,11 @@ type PosProductPickerProps = {
   readingPhoto: boolean;
   note: string;
   searchRef: RefObject<HTMLInputElement>;
+  /**
+   * "+ New item" for a name not on the shelf — given only on a retail sale,
+   * where the counter sells to the shop's own customers (owner, 2026-09-29).
+   */
+  onAddNew?: (name: string) => void;
 };
 
 // A shoe is "running low" at this many pairs or fewer — worth a glance before
@@ -59,6 +64,7 @@ export default function PosProductPicker({
   readingPhoto,
   note,
   searchRef,
+  onAddNew,
 }: PosProductPickerProps) {
   const { text } = useLanguage();
   const [category, setCategory] = useState("");
@@ -81,6 +87,9 @@ export default function PosProductPicker({
   }, [catalog, cart, category]);
 
   const sizeQuery = isShoeSize(query) ? query.trim() : "";
+  // A name worth offering as new: typed, not a size, not a #code.
+  const newName = query.trim();
+  const canOfferNew = Boolean(onAddNew) && newName.length >= 2 && !sizeQuery && !newName.startsWith("#");
 
   // The examples under the box, taken from a shoe actually on the shelf.
   const example = useMemo(() => {
@@ -221,11 +230,22 @@ export default function PosProductPicker({
       </div>
 
       {shown.length === 0 ? (
-        <p className="rounded-2xl bg-brand-paper-deep px-4 py-8 text-center text-sm font-semibold text-brand-muted">
-          {sizeQuery
-            ? text(`No shoe has size ${sizeQuery} left.`, `साइज ${sizeQuery} कुनै जुत्तामा बाँकी छैन।`)
-            : text("Nothing matches. Try another name, code or size.", "भेटिएन। अर्को नाम, कोड वा साइज लेख्नुहोस्।")}
-        </p>
+        <div className="grid gap-2">
+          <p className="rounded-2xl bg-brand-paper-deep px-4 py-6 text-center text-sm font-semibold text-brand-muted">
+            {sizeQuery
+              ? text(`No shoe has size ${sizeQuery} left.`, `साइज ${sizeQuery} कुनै जुत्तामा बाँकी छैन।`)
+              : text("Nothing matches. Try another name, code or size.", "भेटिएन। अर्को नाम, कोड वा साइज लेख्नुहोस्।")}
+          </p>
+          {canOfferNew ? (
+            <button
+              type="button"
+              onClick={() => onAddNew?.(newName)}
+              className="min-h-14 rounded-2xl border-2 border-dashed border-brand-green bg-brand-green-wash px-4 text-lg font-black text-brand-green"
+            >
+              ＋ {text(`Add "${newName}" as a new item`, `"${newName}" नयाँ माल थप्ने`)}
+            </button>
+          ) : null}
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
           {shown.map((item, index) => {
@@ -282,6 +302,15 @@ export default function PosProductPicker({
               </button>
             );
           })}
+          {canOfferNew && !shown.some((item) => item.design.trim().toLowerCase() === newName.toLowerCase()) ? (
+            <button
+              type="button"
+              onClick={() => onAddNew?.(newName)}
+              className="col-span-full min-h-11 rounded-2xl border border-dashed border-brand-green px-4 text-base font-bold text-brand-green"
+            >
+              {text(`Not here? ＋ Add "${newName}" as a new item`, `यहाँ छैन? ＋ "${newName}" नयाँ माल थप्ने`)}
+            </button>
+          ) : null}
         </div>
       )}
     </section>

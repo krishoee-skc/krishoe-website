@@ -7,6 +7,7 @@ import { deliveryPricingTag, saveDeliveryPricing } from "@/lib/delivery-settings
 import { prepareDeliveryDatabase } from "@/lib/delivery-database";
 import { preparePosDatabase } from "@/lib/pos-database";
 import { prepareOrderDispatchDatabase } from "@/lib/order-dispatch-database";
+import { prepareCounterItemsDatabase } from "@/lib/counter-items-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -268,6 +269,26 @@ export async function prepareOrderDispatchDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for sending orders.");
+}
+
+/** The Owner's "OK" on the table for goods added from the counter bill. */
+export async function prepareCounterItemsDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the table.");
+    }
+    const { applied } = await prepareCounterItemsDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_counter_items_ready",
+      applied.length
+        ? `Database prepared for new goods from the counter: ${applied.join(", ")}.`
+        : "Database was already ready for new goods from the counter.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for new goods from the counter.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

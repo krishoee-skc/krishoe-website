@@ -1,0 +1,190 @@
+import { randomUUID } from "node:crypto";
+import { counterItemsReady } from "@/lib/counter-items-database";
+import {
+  counterItemProblem,
+  movementTypeForHow,
+  similarNames,
+  totalPairs,
+  type CounterItemHow,
+} from "@/lib/counter-item-rules";
+import { designKey } from "@/lib/design-name";
+import { insertStockMovement } from "@/lib/operations-postgres";
+import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import { buildDraftProductForDesign, getProducts, upsertProduct } from "@/lib/product-store";
+import { categories, formatPrice } from "@/lib/products";
+import { nextShoeCode } from "@/lib/shoe-code";
+import { placePairs } from "@/lib/stock-transfers";
+
+const STORE = "counter items";
+
+export type CounterItemInput = {
+  name: string;
+  categorySlug: string;
+  how: CounterItemHow;
+  supplierName: string;
+  supplierBillNo: string;
+  /** Pairs per size; empty when the sizes were not counted. */
+  sizes: Record<string, number>;
+  /** Pairs whose sizes were not counted. */
+  pilePairs: number;
+  /** Rupees. */
+  retailPrice: number;
+  /** Rupees; 0 when not known. */
+  costPerPair: number;
+  lossConfirmed: boolean;
+  createdBy: string;
+};
+
+export class CounterItemRefusal extends Error {
+  readonly ne: string;
+  constructor(
+    words: { en: string; ne: string },
+    /** Existing names the item may be. */
+    readonly sameAs: string[] = [],
+  ) {
+    super(words.en);
+    this.ne = words.ne;
+  }
+}
+
+/**
+ * Put goods on the books from the counter, so they can be sold now.
+ *
+ * The shop had pairs on its shelves that were never entered, and the counter
+ * refused them ("not in stock yet"). One press makes the item (a Draft on the
+ * website, with the next shoe code), writes its pairs as ordinary stock — by
+ * how they came: already on the shelf, arrived with a bill to come, or made
+ * here — places them at the shop, and remembers the cost and who added it.
+ * The stock rows and the record commit together or not at all.
+ */
+export async function createCounterItem(input: CounterItemInput) {
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const sizes = input.sizes;
+  const pilePairs = Math.max(0, Math.round(input.pilePairs || 0));
+  const problem = counterItemProblem({
+    name,
+    how: input.how,
+    sizes,
+    pilePairs,
+    retailPrice: input.retailPrice,
+    costPerPair: input.costPerPair,
+    lossConfirmed: input.lossConfirmed,
+  });
+  if (problem) throw new CounterItemRefusal(problem);
+
+  if (!(await counterItemsReady())) {
+    throw new CounterItemRefusal({
+      en: "The database is not ready for new goods yet. The Owner can prepare it in Settings.",
+      ne: "नयाँ मालका लागि database तयार छैन। मालिकले Settings मा तयार गर्न सक्नुहुन्छ।",
+    });
+  }
+
+  // One shoe, one name: the same name already on the books is refused here,
+  // whatever the form showed, so the stock is never split between two.
+  const products = await getProducts({ includeDrafts: true });
+  const stockDesigns = await queryPostgres<{ design: string }>(
+    STORE,
+    "SELECT DISTINCT design FROM finished_stock",
+  );
+  const known = [...products.map((product) => product.name), ...stockDesigns.map((row) => row.design)];
+  const exact = known.find((existing) => designKey(existing) === designKey(name));
+  if (exact) {
+    throw new CounterItemRefusal(
+      {
+        en: `"${exact}" is already on the books — add pairs to it instead.`,
+        ne: `"${exact}" पहिले नै छ — नयाँ नबनाई त्यसैमा जोडी थप्नुहोस्।`,
+      },
+      [exact],
+    );
+  }
+
+  const category = categories.find((entry) => entry.slug === input.categorySlug) ?? categories[0];
+  const pairs = totalPairs(sizes, pilePairs);
+  const sizeList = Object.keys(sizes).sort((left, right) => Number(left) - Number(right) || left.localeCompare(right));
+  const takenCodes = products.map((product) => product.sku);
+  const draft = buildDraftProductForDesign(name, pairs, takenCodes);
+  const priceValue = Math.round(input.retailPrice * 100);
+  const product = {
+    ...draft,
+    sku: nextShoeCode(takenCodes, category.slug),
+    category: category.title,
+    categorySlug: category.slug,
+    image: category.image,
+    gallery: [category.image],
+    price: formatPrice(priceValue),
+    priceValue,
+    // Retail only: the counter adds goods for the shop's own customers.
+    wholesalePriceValue: 0,
+    sizes: sizeList.length > 0 ? sizeList : draft.sizes,
+    rating: "0",
+  };
+  await upsertProduct(product);
+
+  const type = movementTypeForHow[input.how];
+  const supplier = input.supplierName.trim();
+  const note =
+    input.how === "old"
+      ? "Already on the shop shelf — added from the counter bill."
+      : input.how === "pending_bill"
+        ? `Arrived, supplier's bill to come${supplier ? ` — ${supplier}` : ""}. Added from the counter bill.`
+        : "Made in our factory — added from the counter bill.";
+  const rows: Array<[string, number]> = [
+    ...Object.entries(sizes),
+    ...(pilePairs > 0 ? ([["Mixed", pilePairs]] as Array<[string, number]>) : []),
+  ];
+
+  const id = `CTR-${randomUUID()}`;
+  await transactionPostgres(STORE, async (db) => {
+    for (const [sizeRun, count] of rows) {
+      const movement = await insertStockMovement(db, {
+        design: name,
+        channel: "Retail",
+        sizeRun,
+        type,
+        pairs: count,
+        note,
+      });
+      // The pairs are on the shop's shelf: say so, or the Stock screen reads
+      // them as "no place" until somebody writes a challan for goods that
+      // never travelled.
+      await placePairs(db, movement.design, movement.sizeRun, "Shop", count);
+    }
+    await db.query(
+      `INSERT INTO counter_items (
+         id, design, product_id, how, supplier_name, supplier_bill_no, pairs,
+         size_breakdown, retail_price, cost_per_pair, created_by
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11)`,
+      [
+        id,
+        name,
+        product.id,
+        input.how,
+        supplier.slice(0, 80),
+        input.supplierBillNo.trim().slice(0, 60),
+        pairs,
+        JSON.stringify(pilePairs > 0 ? { ...sizes, Mixed: pilePairs } : sizes),
+        Math.round(input.retailPrice * 100) / 100,
+        Math.max(0, Math.round(input.costPerPair * 100) / 100),
+        input.createdBy.slice(0, 80),
+      ],
+    );
+  });
+
+  return {
+    id,
+    design: name,
+    sku: product.sku,
+    category: category.title,
+    sizes: sizes,
+    sizeList,
+    pilePairs,
+    pairs,
+    retailRate: input.retailPrice,
+    costPerPair: input.costPerPair,
+  };
+}
+
+/** Names on the books close to the one typed — for the form's "is it one of these?". */
+export function counterItemLookAlikes(name: string, known: string[]) {
+  return similarNames(name, known);
+}

@@ -10,6 +10,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
 import { settleExchange } from "@/lib/pos-payments";
 import PosProductPicker from "@/app/admin/pos/_components/PosProductPicker";
+import PosNewItemSheet from "@/app/admin/pos/_components/PosNewItemSheet";
 import PosSizeSheet from "@/app/admin/pos/_components/PosSizeSheet";
 import {
   addPair,
@@ -49,6 +50,10 @@ export type TodayFigures = {
 type PosBillFormProps = {
   ledgers: LedgerOption[];
   catalog: SellableItem[];
+  /** Whether the database takes goods added from the counter (Owner's Settings button). */
+  counterReady?: boolean;
+  /** Only the Owner is sent to Settings to prepare it. */
+  isOwner?: boolean;
   lastBill?: RepeatBill | null;
   /** Whether this admin may open a customer account without leaving the bill. */
   canOpenLedger?: boolean;
@@ -184,7 +189,9 @@ function BillTimer({ startedAt }: { startedAt: number | null }) {
  */
 export default function PosBillForm({
   ledgers,
-  catalog,
+  catalog: serverCatalog,
+  counterReady = false,
+  isOwner = false,
   lastBill,
   canOpenLedger = false,
   cashierName = "",
@@ -196,6 +203,13 @@ export default function PosBillForm({
   const [submissionKey] = useState(() => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
 
   const [cart, setCart] = useState<CartLine[]>([]);
+  // Goods just added at the counter, sold before the page's own list refreshes.
+  const [addedHere, setAddedHere] = useState<SellableItem[]>([]);
+  const [newItemName, setNewItemName] = useState<string | null>(null);
+  const catalog = useMemo(() => {
+    const onServer = new Set(serverCatalog.map((item) => item.design.trim().toLowerCase()));
+    return [...addedHere.filter((item) => !onServer.has(item.design.trim().toLowerCase())), ...serverCatalog];
+  }, [addedHere, serverCatalog]);
   // Which shoes on the bill have their sizes opened for − / +.
   const [openGroups, setOpenGroups] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -774,6 +788,7 @@ export default function PosBillForm({
             readingPhoto={readingPhoto}
             note={note}
             searchRef={searchRef}
+            onAddNew={channel === "Retail" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}
           />
         </div>
 
@@ -1474,6 +1489,52 @@ export default function PosBillForm({
             {text("Open bill ▲", "बिल हेर्ने ▲")}
           </button>
         </div>
+      ) : null}
+
+      {newItemName !== null ? (
+        <PosNewItemSheet
+          initialName={newItemName}
+          knownNames={catalog.map((item) => item.design)}
+          ready={counterReady}
+          isOwner={isOwner}
+          onClose={() => {
+            setNewItemName(null);
+            searchRef.current?.focus();
+          }}
+          onPickExisting={(design) => {
+            setNewItemName(null);
+            setQuery("");
+            const existing = itemFor(design);
+            if (existing) choose(existing, "");
+            else setQuery(design);
+          }}
+          onCreated={(created) => {
+            const item: SellableItem = {
+              design: created.design,
+              sku: created.sku,
+              stock: created.pairs,
+              retailRate: created.retailRate,
+              wholesaleRate: created.retailRate,
+              sizes: created.sizeList.join(", "),
+              sizeList: created.sizeList,
+              sizeStock: created.sizes,
+              untrackedPairs: created.pilePairs,
+              category: created.category,
+              costPerPair: created.costPerPair,
+            };
+            setAddedHere((current) => [item, ...current]);
+            setNewItemName(null);
+            setQuery("");
+            setNote(
+              text(
+                `${created.design} (${created.sku}) added: ${created.pairs} pairs at the shop.`,
+                `${created.design} (${created.sku}) थपियो: पसलमा ${created.pairs} जोडी।`,
+              ),
+            );
+            choose(item, "");
+            router.refresh();
+          }}
+        />
       ) : null}
 
       {picking ? (
