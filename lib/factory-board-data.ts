@@ -88,6 +88,23 @@ export async function getFactoryDayTotals(date: string): Promise<FactoryDayStats
 }
 
 /**
+ * Pairs the factory put into stock on a Nepal date — "Post to stock" and
+ * Packing/QC both write a Production In. This is what was made; the work
+ * entries are per stage, and the same pair appears once at every stage.
+ */
+export async function getFactoryDayStockPairs(date: string): Promise<number> {
+  const rows = await queryPostgres<{ pairs: number | string }>(
+    STORE,
+    `SELECT COALESCE(SUM(pairs), 0) AS pairs
+       FROM stock_movements
+      WHERE type = 'Production In'
+        AND (created_at AT TIME ZONE 'Asia/Kathmandu')::date = $1::date`,
+    [date],
+  );
+  return Number(rows[0]?.pairs ?? 0) || 0;
+}
+
+/**
  * The payroll already worked out for a Bikram Sambat month.
  *
  * One query for the whole team, however many people that is. The reports

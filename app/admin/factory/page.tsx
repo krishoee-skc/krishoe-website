@@ -4,6 +4,7 @@ import LoadFailure from "@/components/admin/LoadFailure";
 import { nepalDateKey } from "@/app/admin/factory/_components/nepal-date";
 import { stageTotals, topProducts, topWorkers } from "@/lib/factory-board";
 import {
+  getFactoryDayStockPairs,
   getFactoryDayTotals,
   getFactoryOwed,
   getFactoryWorkForDate,
@@ -28,18 +29,21 @@ async function loadBoard(date: string) {
     // The headline figures are counted in the database, so they stay right at
     // any size. The entry list is only for the two short "who and what led the
     // day" panels, and is capped.
-    const [stats, works] = await Promise.all([
+    const [stats, works, stockPairs] = await Promise.all([
       getFactoryDayTotals(date),
       getFactoryWorkForDate(date),
+      // Pairs made is pairs into stock — the work entries are per stage.
+      getFactoryDayStockPairs(date),
     ]);
     const owed = await getFactoryOwed().catch(() => ({ totalOwed: 0, workersOwed: 0 }));
 
-    return { stats, works, owed, error: "" };
+    return { stats, works, stockPairs, owed, error: "" };
   } catch (error) {
     reportError("load the factory board", error);
     return {
       stats: null,
       works: null,
+      stockPairs: 0,
       owed: null,
       error: saveFailureMessage(error, "Could not load the factory board."),
     };
@@ -60,6 +64,7 @@ export default async function FactoryDashboardPage() {
   return (
     <FactoryBoard
       stats={loaded.stats}
+      stockPairs={loaded.stockPairs}
       topWorkers={topWorkers(loaded.works)}
       products={topProducts(loaded.works)}
       stages={stageTotals(loaded.works)}

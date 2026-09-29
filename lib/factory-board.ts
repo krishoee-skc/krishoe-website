@@ -41,7 +41,12 @@ export type FactoryDayStats = {
 };
 
 export type FactoryWorkerTotal = { name: string; pairs: number; amount: number };
-export type FactoryProductTotal = { name: string; pairs: number };
+/**
+ * One shoe's day. pairs is the most any one stage handled, not the sum: the
+ * same sixty pairs pass Upper and then Fibermen, and adding the two read as a
+ * hundred and twenty (owner, 2026-09-29). stages keeps each stage's own count.
+ */
+export type FactoryProductTotal = { name: string; pairs: number; stages: FactoryStageTotal[] };
 
 export type FactoryStageTotal = { stage: string; pairs: number };
 
@@ -332,18 +337,29 @@ export function topWorkers(works: FactoryWorkRow[], limit = 5): FactoryWorkerTot
     .slice(0, limit);
 }
 
-/** What was made today, most pairs first. */
+/**
+ * Each shoe worked on today, stage by stage, most pairs first. Entries at the
+ * same stage add up — two people on the uppers of one shoe — but the stages
+ * are never added to each other, because they are the same pairs.
+ */
 export function topProducts(works: FactoryWorkRow[], limit = 5): FactoryProductTotal[] {
-  const byItem = new Map<string, FactoryProductTotal>();
+  const byItem = new Map<string, { name: string; stages: Map<string, number> }>();
 
   for (const work of works) {
     if (!work.item_id || !work.item_name) continue;
-    const current = byItem.get(work.item_id) ?? { name: work.item_name, pairs: 0 };
-    current.pairs += work.pairs_count;
+    const current = byItem.get(work.item_id) ?? { name: work.item_name, stages: new Map<string, number>() };
+    const stage = work.stage || "Other work";
+    current.stages.set(stage, (current.stages.get(stage) ?? 0) + work.pairs_count);
     byItem.set(work.item_id, current);
   }
 
   return [...byItem.values()]
+    .map(({ name, stages }) => {
+      const byStage = [...stages.entries()]
+        .map(([stage, pairs]) => ({ stage, pairs }))
+        .sort((first, second) => second.pairs - first.pairs || first.stage.localeCompare(second.stage));
+      return { name, pairs: byStage[0]?.pairs ?? 0, stages: byStage };
+    })
     .sort((first, second) => second.pairs - first.pairs || first.name.localeCompare(second.name))
     .slice(0, limit);
 }

@@ -28,12 +28,15 @@ import { money } from "@/lib/format-money";
  */
 export default function FactoryBoard({
   stats,
+  stockPairs,
   topWorkers,
   products,
   stages,
   owed,
 }: {
   stats: FactoryDayStats;
+  /** Pairs posted to stock today — what was made. */
+  stockPairs: number;
   topWorkers: FactoryWorkerTotal[];
   products: FactoryProductTotal[];
   stages: FactoryStageTotal[];
@@ -44,6 +47,12 @@ export default function FactoryBoard({
   // rate is a percentage of.
   const entriesToday =
     stats.completedEntries + stats.inProgressEntries + stats.reworkEntries;
+  // Today's work stage by stage, for the line under "made". Never summed: the
+  // same pairs pass every stage (owner, 2026-09-29).
+  const workToday = stages
+    .filter((row) => row.pairs > 0)
+    .map((row) => `${row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage} ${row.pairs}`)
+    .join(" · ");
 
   return (
     <div className="flex min-h-dvh flex-col space-y-3 p-3 sm:p-5 lg:p-6">
@@ -61,10 +70,12 @@ export default function FactoryBoard({
       {/* Today's summary — the same tile the rest of the admin uses, so the
           factory reads as one shop with the POS and purchase screens. */}
       <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-4">
+        {/* Made is what went into stock. "Total pairs" added every stage's
+            entries, so sixty pairs through Upper and Fibermen read 120. */}
         <StatTile
-          label={text("Total pairs", "जम्मा जोडी")}
-          value={stats.totalPairs}
-          detail={text("Today", "आज")}
+          label={text("Pairs into stock", "स्टकमा चढेको जोडी")}
+          value={stockPairs}
+          detail={workToday ? `${text("Work", "काम")}: ${workToday}` : text("Today", "आज")}
         />
         <StatTile
           label={text("Piece wage earned", "ज्याला कमाएको")}
@@ -171,7 +182,10 @@ export default function FactoryBoard({
               rows={products.map((product) => ({
                 label: product.name,
                 value: product.pairs,
-                hint: `${product.pairs.toLocaleString("en-IN")} ${text("pairs", "जोडी")}`,
+                // Each stage's count, side by side — the same pairs pass them all.
+                hint: product.stages
+                  .map((row) => `${row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage} ${row.pairs.toLocaleString("en-IN")}`)
+                  .join(" · "),
               }))}
               emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
             />
@@ -179,23 +193,21 @@ export default function FactoryBoard({
         </div>
       </div>
 
-      {/* Quality — good against reject pairs, today */}
+      {/* Rejects today. It was called "Quality today (QC)" and led with "good
+          pairs" — every stage's work added up, when no QC entry has ever been
+          made. What it can honestly say is how much work was spoiled. */}
       <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
         <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
-          {text("Quality today (QC)", "आजको गुणस्तर (QC)")}
+          {text("Rejects today", "आजको reject")}
         </h2>
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="rounded bg-emerald-50 p-2 text-center sm:p-2.5">
-            <div className="text-lg font-bold text-emerald-700 sm:text-xl">{stats.goodPairs}</div>
-            <div className="mt-0.5 text-xs text-emerald-700">{text("Good pairs", "राम्रो जोडी")}</div>
-          </div>
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
           <div className="rounded bg-red-50 p-2 text-center sm:p-2.5">
             <div className="text-lg font-bold text-red-600 sm:text-xl">{stats.totalReject}</div>
             <div className="mt-0.5 text-xs text-red-700">{text("Reject pairs", "बिग्रेको जोडी")}</div>
           </div>
           <div className="rounded bg-amber-50 p-2 text-center sm:p-2.5">
             <div className="text-lg font-bold text-amber-700 sm:text-xl">{stats.rejectRate}%</div>
-            <div className="mt-0.5 text-xs text-amber-700">{text("Reject rate", "बिग्रेको दर")}</div>
+            <div className="mt-0.5 text-xs text-amber-700">{text("Reject rate of today's work", "आजको कामको बिग्रेको दर")}</div>
           </div>
         </div>
       </div>
