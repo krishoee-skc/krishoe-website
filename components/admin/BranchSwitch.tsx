@@ -46,9 +46,11 @@ export default function BranchSwitch({
         value={viewingBranchId}
         disabled={saving}
         onChange={(event) => choose(event.target.value)}
-        className="h-9 w-full rounded-lg border border-admin-border bg-admin-surface px-2 text-xs font-bold text-brand-green-ink transition disabled:opacity-60 dark:border-admin-border-dark dark:bg-admin-surface-dark dark:text-white"
+        className="h-9 w-full min-w-0 truncate rounded-full border border-admin-border bg-admin-surface px-2.5 text-sm font-bold text-brand-green-ink transition disabled:opacity-60 dark:border-admin-border-dark dark:bg-admin-surface-dark dark:text-white"
       >
-        <option value="">👁 {text("All branches", "सबै branch")}</option>
+        {/* "All" carries the count, so the chooser alone says how much of the
+            business is on screen — the card no longer adds a line for it. */}
+        <option value="">👁 {text(`All branches (${branches.length})`, `सबै ब्रान्च (${branches.length})`)}</option>
         {branches.map((branch) => (
           <option key={branch.id} value={branch.id}>
             {branch.type === "Factory" ? "🏭 " : branch.type === "Retail" ? "🛒 " : "🏢 "}

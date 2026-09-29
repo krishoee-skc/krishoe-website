@@ -89,7 +89,7 @@ export default function AdminNav({
 
         {/* Admin Info Card */}
         {!isCollapsed && (
-          <div className="border-b border-admin-border px-4 py-4 dark:border-admin-border-dark">
+          <div className="border-b border-admin-border px-3 py-2.5 dark:border-admin-border-dark">
             <AdminIdentityCard
               adminRole={adminRole}
               adminName={adminName}
@@ -105,7 +105,7 @@ export default function AdminNav({
         )}
 
         {/* Which half of the business this menu is showing. */}
-        <div className={`border-b border-admin-border pb-3 pt-3 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
+        <div className={`border-b border-admin-border pb-2.5 pt-2.5 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
           <WorkspaceSwitch
             workspace={workspace}
             onChoose={chooseWorkspace}
@@ -114,12 +114,15 @@ export default function AdminNav({
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 overflow-auto py-4">
-          <nav className={`grid items-start gap-5 font-medium ${isCollapsed ? "px-2" : "px-3"}`}>
+        {/* Bigger, darker, closer rows (owner, 2026-09-29): 19px names in the
+            ink colour, rows about 40px apart. With the one-line card above,
+            all eleven pages fit without scrolling this box on his screen. */}
+        <div className="flex-1 overflow-auto py-2.5">
+          <nav className={`grid items-start gap-3 ${isCollapsed ? "px-2" : "px-3"}`}>
             {groups.map((group) => (
-              <div key={group.id} className="grid gap-1.5">
+              <div key={group.id} className="grid gap-0.5">
                 {!isCollapsed && (
-                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
+                  <p className="px-3 pb-0.5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
                     {text(group.titleEn, group.titleNe)}
                   </p>
                 )}
@@ -131,17 +134,17 @@ export default function AdminNav({
                       key={`${group.id}-${href}`}
                       href={href}
                       title={isCollapsed ? text(label, `${nepali} · ${label}`) : undefined}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
+                      className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-1.5 font-bold transition-all duration-200 ${
                         isActive
                           ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light border-l-4 border-admin-accent"
-                          : "text-brand-muted hover:text-brand-green-ink hover:bg-admin-hover dark:text-white/60 dark:hover:text-white dark:hover:bg-admin-hover-dark"
+                          : "text-brand-green-ink hover:bg-admin-hover dark:text-white/85 dark:hover:text-white dark:hover:bg-admin-hover-dark"
                       } ${isCollapsed ? "justify-center" : ""}`}
                     >
                       {/* The icon carries the dot when this screen wants
                           looking at, so the mark survives the collapsed menu
                           where the label is gone. */}
                       <span className="relative shrink-0">
-                        <Icon className="h-5 w-5" />
+                        <Icon className="h-[22px] w-[22px]" />
                         {needs ? (
                           <span
                             aria-hidden="true"
@@ -162,9 +165,9 @@ export default function AdminNav({
                           all, which is the whole point of the switch. */}
                       {!isCollapsed && (
                         <span className="grid leading-tight">
-                          <span className="text-sm">{language === "ne" ? nepali : label}</span>
+                          <span className="text-[19px]">{language === "ne" ? nepali : label}</span>
                           {language === "ne" ? (
-                            <span className="text-[11px] text-brand-muted-soft dark:text-white/60">
+                            <span className="text-xs font-semibold text-brand-muted-soft dark:text-white/60">
                               {label}
                             </span>
                           ) : null}
@@ -204,7 +207,7 @@ export default function AdminNav({
             <button
               type="submit"
               title={isCollapsed ? "Sign out" : undefined}
-              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-xs font-bold text-brand-muted transition hover:bg-red-50 hover:text-red-600 dark:text-white/50 dark:hover:bg-red-950/20 dark:hover:text-red-400 ${
+              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-sm font-bold text-brand-muted transition hover:bg-red-50 hover:text-red-600 dark:text-white/50 dark:hover:bg-red-950/20 dark:hover:text-red-400 ${
                 isCollapsed ? "justify-center" : ""
               }`}
             >

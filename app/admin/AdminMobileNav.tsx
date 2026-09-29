@@ -141,7 +141,7 @@ export default function AdminMobileNav({
                     <Link
                       key={`${group.id}-${href}`}
                       href={href}
-                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-bold transition ${
+                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-[17px] font-bold transition ${
                         active
                           ? "border-brand-green bg-brand-green-wash text-brand-green"
                           : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
@@ -151,7 +151,7 @@ export default function AdminMobileNav({
                       <span className="grid leading-tight">
                         <span>{language === "ne" ? nepali : label}</span>
                         {language === "ne" ? (
-                          <span className="text-[11px] font-semibold text-brand-muted-soft">
+                          <span className="text-xs font-semibold text-brand-muted-soft">
                             {label}
                           </span>
                         ) : null}
