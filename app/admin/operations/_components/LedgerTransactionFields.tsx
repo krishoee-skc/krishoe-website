@@ -64,7 +64,7 @@ export default function LedgerTransactionFields({
         }}
       />
       {showHint ? (
-        <p className="text-xs font-semibold text-brand-green">
+        <p className="text-sm font-semibold text-brand-green">
           {text(
             `Balance Rs. ${balanceDue.toLocaleString("en-IN")} filled in — you can change it.`,
             `बाँकी रु. ${balanceDue.toLocaleString("en-IN")} अगाडि भरिएको — फेर्न मिल्छ।`,

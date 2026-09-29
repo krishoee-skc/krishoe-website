@@ -76,6 +76,12 @@ export type FinishedStockValuationRow = {
   potentialMarginRate: number;
   missingCostData: boolean;
   missingPriceData: boolean;
+  /**
+   * Made in the factory, costed from its labour rates alone: no material per
+   * pair has been entered, so the cost is low and the profit high by the price
+   * of the sole, upper and glue (owner, 2026-09-29).
+   */
+  labourOnly: boolean;
   signal: FinishedStockValuationSignal;
 };
 
@@ -193,6 +199,8 @@ export type CostingSnapshot = {
     finishedStockPotentialRevenue: number;
     finishedStockPotentialProfit: number;
     finishedStockMissingCostCount: number;
+    /** Shoes in stock whose cost is labour alone, no material entered. */
+    finishedStockLabourOnlyDesigns: string[];
     finishedStockMissingPriceCount: number;
     catalogStockMismatchCount: number;
     catalogStockUnmatchedProductCount: number;
@@ -959,6 +967,11 @@ function buildFinishedStockValuation(
   finishedStock: FinishedStock[],
   designCosting: DesignCostingRow[],
   products: Product[],
+  // A made design that has never been sold or bought has no costing row, and
+  // read Rs. 0 — Fom flat, 60 pairs, with Rs. 63 of labour on its rates.
+  // Its labour + material + overhead per pair, keyed by designKey.
+  derivedUnitCostByKey: Map<string, number> = new Map(),
+  materialPerPairByKey: Map<string, number> = new Map(),
 ) {
   const signalRank: Record<FinishedStockValuationSignal, number> = {
     "Needs cost": 0,
@@ -976,7 +989,12 @@ function buildFinishedStockValuation(
       const designCost = designCostByKey.get(designKey(design));
       const catalogPrice = catalogPriceByDesign.get(designKey(design))?.price ?? 0;
       const stockPairs = cleanNumber(stock.stockPairs);
-      const unitCostPerPair = designCost?.unitCostPerPair ?? 0;
+      const unitCostPerPair =
+        designCost?.unitCostPerPair || derivedUnitCostByKey.get(designKey(design)) || 0;
+      const labourOnly =
+        unitCostPerPair > 0 &&
+        !(designCost && (designCost.purchasedPairs > 0 || designCost.batchCount > 0)) &&
+        (materialPerPairByKey.get(designKey(design)) ?? 0) <= 0;
       const posAverageSalePrice =
         designCost && designCost.netPairs > 0
           ? roundRate(designCost.netRevenue / designCost.netPairs)
@@ -988,7 +1006,7 @@ function buildFinishedStockValuation(
       const potentialRevenue = averageSalePrice > 0 ? roundMoney(stockPairs * averageSalePrice) : 0;
       const potentialGrossProfit =
         averageSalePrice > 0 && unitCostPerPair > 0 ? roundMoney(potentialRevenue - stockValue) : 0;
-      const missingCostData = !designCost || designCost.missingCostData || unitCostPerPair <= 0;
+      const missingCostData = unitCostPerPair <= 0 || Boolean(designCost?.missingCostData);
       const missingPriceData = averageSalePrice <= 0;
       const rowWithoutSignal = {
         stockId: stock.id,
@@ -1008,6 +1026,7 @@ function buildFinishedStockValuation(
         potentialMarginRate: marginRate(potentialGrossProfit, potentialRevenue),
         missingCostData,
         missingPriceData,
+        labourOnly,
       };
 
       return {
@@ -1057,7 +1076,22 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     overheadPerPair(settings),
     designMaterialPerPair,
   );
-  const finishedStockValuation = buildFinishedStockValuation(operations.finishedStock, designCosting, products);
+  // What a made design costs a pair from its rates alone, for one with no
+  // costing row yet (never sold, never bought).
+  const derivedUnitCostByKey = new Map<string, number>();
+  for (const key of new Set([...designLaborPerPair.keys(), ...designMaterialPerPair.keys()])) {
+    derivedUnitCostByKey.set(
+      key,
+      roundRate((designLaborPerPair.get(key) ?? 0) + (designMaterialPerPair.get(key) ?? 0) + overheadPerPair(settings)),
+    );
+  }
+  const finishedStockValuation = buildFinishedStockValuation(
+    operations.finishedStock,
+    designCosting,
+    products,
+    derivedUnitCostByKey,
+    designMaterialPerPair,
+  );
   const catalogStockReconciliation = buildCatalogStockReconciliation(products, operations.finishedStock);
   const periodReports = buildPeriodReports(posInvoices, designCosting);
   const salesRevenue = sum(designCosting, (row) => row.netRevenue);
@@ -1093,6 +1127,9 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
       finishedStockMissingCostCount: finishedStockValuation.filter(
         (row) => row.stockPairs > 0 && row.missingCostData,
       ).length,
+      finishedStockLabourOnlyDesigns: [
+        ...new Set(finishedStockValuation.filter((row) => row.stockPairs > 0 && row.labourOnly).map((row) => row.design)),
+      ],
       finishedStockMissingPriceCount: finishedStockValuation.filter(
         (row) => row.stockPairs > 0 && row.missingPriceData,
       ).length,

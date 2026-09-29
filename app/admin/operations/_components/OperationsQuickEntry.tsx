@@ -62,7 +62,7 @@ export default function OperationsQuickEntry({
           {/* This is now the only way pairs enter the count — the product form
               no longer takes a number — so the three ways in are spelled out
               rather than left to be guessed from the dropdown. */}
-          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
+          <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
             <strong className="text-brand-green-ink">
               <T en="One place to bring stock in" ne="स्टक भित्र्याउने एउटै ठाउँ" />
             </strong>:
@@ -104,7 +104,7 @@ export default function OperationsQuickEntry({
             <input aria-label="Pairs" name="pairs" data-summary="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
             <input aria-label="Size (e.g. 36)" name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
           </div>
-          <p className="rounded-lg bg-brand-mist px-3 py-2 text-xs leading-5 text-brand-muted">
+          <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
             <T
               en="Size: type one size like 36 to file the pairs under that size. Leave it blank for a mixed pile."
               ne="Size: एउटै साइज (जस्तै 36) टाइप गर्नुहोस् — जोडी त्यही साइजमा जान्छ। खाली छोडे मिश्रित (Mixed) पिलोमा बस्छ।"
@@ -162,13 +162,13 @@ export default function OperationsQuickEntry({
           component and the forms are still in the page for anyone who needs
           them. */}
       <details className="mt-6 rounded-lg border border-brand-green-line bg-brand-paper-deep/60 p-4">
-        <summary className="cursor-pointer text-sm font-black text-brand-green-ink">
+        <summary className="cursor-pointer text-base font-black text-brand-green-ink">
           <T
             en="More options (7) — raw materials · workers · vehicles · credit"
             ne="अरू विकल्प (7) — कच्चा पदार्थ · कामदार · गाडी · उधारो"
           />
         </summary>
-        <p className="mt-2 text-xs leading-5 text-brand-muted">
+        <p className="mt-2 text-sm leading-5 text-brand-muted">
           <T en="These are not in use right now. They are here when needed." ne="यी अहिले चलाइएका छैनन्। चाहिँदा यहीँ भेटिन्छन्।" />
         </p>
         <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -184,7 +184,7 @@ export default function OperationsQuickEntry({
             </select>
             <input aria-label="Opening stock" name="openingStock" type="number" min="0" className={inputClass} placeholder="Opening stock" />
             {/* No "received" box: material comes in on a purchase bill. */}
-            <Link href="/admin/purchasing" className="rounded-md border border-dashed border-brand-green-line px-3 py-2 text-sm font-bold text-brand-green underline-offset-2 hover:underline">
+            <Link href="/admin/purchasing" className="rounded-md border border-dashed border-brand-green-line px-3 py-2 text-base font-bold text-brand-green underline-offset-2 hover:underline">
               <T en="🛒 Bought some? Enter it on a purchase bill →" ne="🛒 किनेको हो? खरिद बिलमा चढाउनुहोस् →" />
             </Link>
             <input aria-label="Reorder level" name="reorderLevel" type="number" min="0" className={inputClass} placeholder="Reorder level" />

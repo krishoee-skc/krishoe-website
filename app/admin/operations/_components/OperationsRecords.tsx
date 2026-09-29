@@ -50,7 +50,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
         detail="Kati mal banyo, kati bandai cha, kati reject bhayo."
       />
       <div className="overflow-x-auto">
-        <table className="reflow-table min-w-full text-sm">
+        <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
               <th className="py-2 pr-3">Design</th>
@@ -83,7 +83,7 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
                     </div>
                     <textarea
                       name="rawMaterialUsed"
-                      className="min-h-16 rounded-md border border-brand-green-line px-2 py-2 text-xs outline-none focus:border-brand-green"
+                      className="min-h-16 rounded-md border border-brand-green-line px-2 py-2 text-sm outline-none focus:border-brand-green"
                       defaultValue={batch.rawMaterialUsed.join(", ")}
                       aria-label="Raw materials used"
                     />
@@ -126,17 +126,17 @@ function WorkerProgressCards({ snapshot }: { snapshot: OperationsSnapshot }) {
             <div key={task.id} className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-bold text-brand-green-ink">{task.workerName}</p>
-                <span className="rounded-full bg-brand-paper px-3 py-1 text-xs font-bold text-brand-green">
+                <span className="rounded-full bg-brand-paper px-3 py-1 text-sm font-bold text-brand-green">
                   {task.status}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-brand-muted">
+              <p className="mt-2 text-base text-brand-muted">
                 {task.station} - {task.design}
               </p>
-              <p className="mt-1 text-xs font-bold text-brand-muted-soft">
+              <p className="mt-1 text-sm font-bold text-brand-muted-soft">
                 Batch: {linkedBatch ? `${linkedBatch.design} (${linkedBatch.status})` : "Manual / unlinked"}
               </p>
-              <p className="mt-1 text-sm font-semibold text-brand-muted-deep">
+              <p className="mt-1 text-base font-semibold text-brand-muted-deep">
                 {task.completedPairs}/{task.targetPairs} pairs - {task.cameraZone}
               </p>
               <EnterWalkForm action={updateWorkerTaskAction} className="mt-3 grid gap-2">
@@ -203,11 +203,11 @@ function RawMaterialsPanel({
             <div key={material.id} className="rounded-lg border border-brand-green-line p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="font-bold text-brand-green-ink">{material.name}</p>
-                <span className={material.lowStock ? "text-sm font-bold text-red-700" : "text-sm font-bold text-brand-green"}>
+                <span className={material.lowStock ? "text-base font-bold text-red-700" : "text-base font-bold text-brand-green"}>
                   {material.balance} {material.unit}
                 </span>
               </div>
-              <div className="mb-3 rounded-md bg-brand-paper-deep p-3 text-xs font-semibold text-brand-muted">
+              <div className="mb-3 rounded-md bg-brand-paper-deep p-3 text-sm font-semibold text-brand-muted">
                 <p>
                   Avg cost {money(valuation?.averageUnitCost ?? 0)} | stock value{" "}
                   {money(valuation?.stockValue ?? 0)}
@@ -260,10 +260,10 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
         detail="Batch-wise raw material used, wastage, and production notes."
       />
       {snapshot.materialConsumptions.length === 0 ? (
-        <p className="text-sm text-brand-muted">No material consumption has been recorded yet.</p>
+        <p className="text-base text-brand-muted">No material consumption has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
+          <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -278,7 +278,7 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
             <tbody className="divide-y">
               {snapshot.materialConsumptions.map((consumption) => (
                 <tr key={consumption.id}>
-                  <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted">
+                  <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={consumption.createdAt} time />
                   </td>
                   <td data-label="Batch" className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
@@ -309,17 +309,17 @@ function DemandPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
       <SectionTitle title="Fast and slow designs" detail="Market demand signal by sold pairs." />
       <div className="grid gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
           {snapshot.fastMovingStock.slice(0, 3).map((stock) => (
-            <p key={stock.id} className="mt-2 text-sm text-brand-muted-deep">
+            <p key={stock.id} className="mt-2 text-base text-brand-muted-deep">
               {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
             </p>
           ))}
         </div>
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-clay">Slow moving</p>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-clay">Slow moving</p>
           {snapshot.slowMovingStock.slice(0, 3).map((stock) => (
-            <p key={stock.id} className="mt-2 text-sm text-brand-muted-deep">
+            <p key={stock.id} className="mt-2 text-base text-brand-muted-deep">
               {stock.design}: <span className="font-bold">{stock.soldPairs}</span> sold
             </p>
           ))}
@@ -333,7 +333,7 @@ function CollectionPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle title="Collection summary" detail="Cash, cheque, credit from market vehicles." />
-      <dl className="grid gap-3 text-sm">
+      <dl className="grid gap-3 text-base">
         <div className="flex justify-between">
           <dt className="font-semibold text-brand-muted">Cash</dt>
           <dd className="font-black text-brand-green-ink">{money(snapshot.summary.cash)}</dd>
@@ -366,7 +366,7 @@ function FinishedStockTable({
     <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle title="Finished stock" detail="Design, channel, stock, COGS value, profit potential, and returns." />
       <div className="overflow-x-auto">
-        <table className="reflow-table min-w-full text-sm">
+        <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
               <th className="py-2 pr-3">Design</th>
@@ -405,7 +405,7 @@ function FinishedStockTable({
                         {shoe.sizes.map((size) => (
                           <span
                             key={size.size}
-                            className="rounded-md border border-brand-green-line px-1.5 text-xs font-bold tabular-nums"
+                            className="rounded-md border border-brand-green-line px-1.5 text-sm font-bold tabular-nums"
                           >
                             {size.size}: {size.pairs}
                           </span>
@@ -418,33 +418,33 @@ function FinishedStockTable({
                   <td data-label="Stock" className="py-3 pr-3 font-bold text-brand-green">{shoe.stockPairs}</td>
                   <td data-label="Value" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{money(stockValue)}</p>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-sm text-brand-muted">
                       COGS {money(first?.unitCostPerPair ?? 0)} / profit {money(profit)}
                     </p>
-                    <p className="mt-1 text-xs font-bold text-brand-gold-ink">
+                    <p className="mt-1 text-sm font-bold text-brand-gold-ink">
                       {first?.signal ?? "Needs cost"} / {first?.priceSource ?? "Missing"}
                     </p>
                   </td>
                   <td data-label="Sold" className="py-3 pr-3">{shoe.soldPairs}</td>
                   <td data-label="Return" className="py-3 pr-3">{shoe.returnedPairs}</td>
                   <td data-label="Health" className="py-3 pr-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockSignalClass(health?.signal ?? "Healthy")}`}>
+                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${stockSignalClass(health?.signal ?? "Healthy")}`}>
                       {health?.signal ?? "Healthy"}
                     </span>
-                    <p className="mt-1 text-xs text-brand-muted">
+                    <p className="mt-1 text-sm text-brand-muted">
                       Sell {health?.sellThroughRate ?? 0}% | return {health?.returnRate ?? 0}%
                     </p>
                   </td>
                   <td data-label="Manage" className="min-w-96 py-3 pr-3">
                     {members.length > 1 ? (
                       <details>
-                        <summary className="cursor-pointer text-xs font-black text-brand-green">
+                        <summary className="cursor-pointer text-sm font-black text-brand-green">
                           <T en={`Correct size by size (${members.length})`} ne={`साइज अनुसार सच्याउने (${members.length})`} />
                         </summary>
                         <div className="mt-2 grid gap-3">
                           {members.map((stock) => (
                             <div key={stock.id} className="rounded-lg border border-brand-green-line p-2">
-                              <p className="mb-1 text-xs font-black text-brand-green-ink">
+                              <p className="mb-1 text-sm font-black text-brand-green-ink">
                                 <T en={`Size ${stock.sizeRun}`} ne={`साइज ${stock.sizeRun}`} />
                               </p>
                               <FinishedStockEditForm stock={stock} />
@@ -502,23 +502,23 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">Stock ledger summary</h2>
-          <p className="mt-1 text-sm text-brand-muted">
+          <p className="mt-1 text-base text-brand-muted">
             Book stock compared with stock movement trail for closing, audit, and correction.
           </p>
         </div>
         <ExportButton
           href="/api/admin/operations/export?type=stock-ledger-summary"
-          className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+          className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export ledger CSV
         </ExportButton>
       </div>
 
       {snapshot.reports.stockLedgerRows.length === 0 ? (
-        <p className="text-sm text-brand-muted">No stock ledger rows are available yet.</p>
+        <p className="text-base text-brand-muted">No stock ledger rows are available yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
+          <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Design</th>
@@ -535,29 +535,29 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
                 <tr key={row.id}>
                   <td className="reflow-primary py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{row.design}</p>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-sm text-brand-muted">
                       {row.channel} | {row.sizeRun}
                     </p>
                   </td>
                   <td data-label="Book stock" className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
                   <td data-label="Movement stock" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.movementStockPairs}</p>
-                    <p className="text-xs text-brand-muted">{row.movementCount} movements</p>
+                    <p className="text-sm text-brand-muted">{row.movementCount} movements</p>
                   </td>
                   <td data-label="Variance" className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
                     {row.variancePairs}
                   </td>
-                  <td data-label="Flow" className="py-3 pr-3 text-xs font-semibold text-brand-muted">
+                  <td data-label="Flow" className="py-3 pr-3 text-sm font-semibold text-brand-muted">
                     <p>In {row.productionIn + row.returnIn + row.adjustment}</p>
                     <p>Out {row.dispatchOut + row.saleOut}</p>
                     <p>Market {row.marketSale}</p>
                   </td>
-                  <td data-label="Last movement" className="py-3 pr-3 text-xs text-brand-muted"><OptionalDate value={row.lastMovementAt} /></td>
+                  <td data-label="Last movement" className="py-3 pr-3 text-sm text-brand-muted"><OptionalDate value={row.lastMovementAt} /></td>
                   <td data-label="Signal" className="py-3 pr-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockLedgerSignalClass(row.signal)}`}>
+                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${stockLedgerSignalClass(row.signal)}`}>
                       {row.signal}
                     </span>
-                    <p className="mt-2 max-w-60 text-xs font-semibold text-brand-muted">{row.nextAction}</p>
+                    <p className="mt-2 max-w-60 text-sm font-semibold text-brand-muted">{row.nextAction}</p>
                   </td>
                 </tr>
               ))}
@@ -578,14 +578,14 @@ function VehicleDispatchCards({ snapshot }: { snapshot: OperationsSnapshot }) {
           <div key={dispatch.id} className="rounded-lg border border-brand-green-line p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-bold text-brand-green-ink">{dispatch.vehicleNumber}</p>
-              <span className="rounded-full bg-brand-mist px-3 py-1 text-xs font-bold text-brand-green">
+              <span className="rounded-full bg-brand-mist px-3 py-1 text-sm font-bold text-brand-green">
                 {dispatch.status}
               </span>
             </div>
-            <p className="mt-2 text-sm text-brand-muted">
+            <p className="mt-2 text-base text-brand-muted">
               {dispatch.driverName} - {dispatch.marketRoute}
             </p>
-            <p className="mt-1 text-sm text-brand-muted-deep">
+            <p className="mt-1 text-base text-brand-muted-deep">
               Loaded {dispatch.loadedPairs}, returned {dispatch.returnedPairs}, credit {money(dispatch.creditAmount)}
             </p>
             <EnterWalkForm action={updateVehicleDispatchAction} className="mt-3 grid gap-2">
@@ -630,13 +630,13 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-brand-green-ink">Collection follow-up queue</h2>
-          <p className="mt-1 text-sm text-brand-muted">
+          <p className="mt-1 text-base text-brand-muted">
             Customer-wise priority, payment due date, and next collection action.
           </p>
         </div>
         <ExportButton
           href="/api/admin/operations/export?type=ledger-followups"
-          className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+          className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
         >
           Export follow-ups
         </ExportButton>
@@ -644,25 +644,25 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
 
       <div className="mb-4 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-          <p className="text-xs font-semibold text-brand-muted">Urgent</p>
+          <p className="text-sm font-semibold text-brand-muted">Urgent</p>
           <p className="mt-1 text-xl font-black text-brand-clay">
             {snapshot.reports.ledgerCollectionSummary.urgentCount}
           </p>
         </div>
         <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-          <p className="text-xs font-semibold text-brand-muted">High</p>
+          <p className="text-sm font-semibold text-brand-muted">High</p>
           <p className="mt-1 text-xl font-black text-brand-gold-ink">
             {snapshot.reports.ledgerCollectionSummary.highCount}
           </p>
         </div>
         <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-          <p className="text-xs font-semibold text-brand-muted">This week due</p>
+          <p className="text-sm font-semibold text-brand-muted">This week due</p>
           <p className="mt-1 text-xl font-black text-brand-green-ink">
             {money(snapshot.reports.ledgerCollectionSummary.dueThisWeek)}
           </p>
         </div>
         <div className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-3">
-          <p className="text-xs font-semibold text-brand-muted">Total due</p>
+          <p className="text-sm font-semibold text-brand-muted">Total due</p>
           <p className="mt-1 text-xl font-black text-brand-green-ink">
             {money(snapshot.reports.ledgerCollectionSummary.totalDue)}
           </p>
@@ -670,10 +670,10 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-brand-muted">No customer collection follow-up is due.</p>
+        <p className="text-base text-brand-muted">No customer collection follow-up is due.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
+          <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Customer</th>
@@ -695,26 +695,26 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
                     >
                       {ledger.customerName}
                     </Link>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-sm text-brand-muted">
                       {ledger.channel} | {ledger.phone || "No phone"}
                     </p>
                   </td>
                   <td data-label="Priority" className="py-3 pr-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${collectionPriorityClass(ledger.priority)}`}>
+                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${collectionPriorityClass(ledger.priority)}`}>
                       {ledger.priority}
                     </span>
                   </td>
                   <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
                   <td data-label="Aging" className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(ledger.agingBucket)}`}>{ledger.agingBucket}</p>
-                    <p className="text-xs text-brand-muted">{ledger.daysOutstanding} days</p>
+                    <p className="text-sm text-brand-muted">{ledger.daysOutstanding} days</p>
                   </td>
                   <td data-label="Coverage" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{ledger.collectionCoverageRate}%</p>
-                    <p className="text-xs text-brand-muted">{money(ledger.collectionTotal)} collected</p>
+                    <p className="text-sm text-brand-muted">{money(ledger.collectionTotal)} collected</p>
                   </td>
                   <td data-label="Follow-up" className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
-                  <td data-label="Action" className="max-w-72 py-3 pr-3 text-xs font-semibold leading-5 text-brand-muted">
+                  <td data-label="Action" className="max-w-72 py-3 pr-3 text-sm font-semibold leading-5 text-brand-muted">
                     {ledger.nextAction}
                   </td>
                 </tr>
@@ -735,10 +735,10 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
         detail="Vehicle-wise design, size, loaded, sold, return, and collection trail."
       />
       {snapshot.vehicleDispatchItems.length === 0 ? (
-        <p className="text-sm text-brand-muted">No dispatch item has been recorded yet.</p>
+        <p className="text-base text-brand-muted">No dispatch item has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
+          <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -755,16 +755,16 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
             <tbody className="divide-y">
               {snapshot.vehicleDispatchItems.map((item) => (
                 <tr key={item.id}>
-                  <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted">
+                  <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={item.createdAt} time />
                   </td>
                   <td data-label="Vehicle" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.vehicleNumber}</p>
-                    <p className="text-xs text-brand-muted">{item.marketRoute || "-"}</p>
+                    <p className="text-sm text-brand-muted">{item.marketRoute || "-"}</p>
                   </td>
                   <td data-label="Design" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.design}</p>
-                    <p className="text-xs text-brand-muted">{item.sizeRun}</p>
+                    <p className="text-sm text-brand-muted">{item.sizeRun}</p>
                   </td>
                   <td data-label="Channel" className="py-3 pr-3">{item.channel}</td>
                   <td data-label="Loaded" className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
@@ -772,7 +772,7 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
                   <td data-label="Return" className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
                   <td data-label="Collection" className="py-3 pr-3">
                     <p>{money(item.cashCollected)} cash</p>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-sm text-brand-muted">
                       {money(item.chequeCollected)} cheque, {money(item.creditAmount)} credit
                     </p>
                   </td>
@@ -794,7 +794,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
     <section id="customer-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle title="Customer ledger" detail="Customer details, cash, cheque, credit, balance due." />
       <div className="overflow-x-auto">
-        <table className="reflow-table min-w-full text-sm">
+        <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
               <th className="py-2 pr-3">Customer</th>
@@ -819,7 +819,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     >
                       {ledger.customerName}
                     </Link>
-                    <p className="text-xs text-brand-muted">{ledger.phone}</p>
+                    <p className="text-sm text-brand-muted">{ledger.phone}</p>
                   </td>
                   <td data-label="Channel" className="py-3 pr-3">{ledger.channel}</td>
                   <td data-label="Cash" className="py-3 pr-3">{money(ledger.cashPaid)}</td>
@@ -829,7 +829,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     <p className={`font-bold ${agingClass(aging?.agingBucket ?? "Paid")}`}>
                       {aging?.agingBucket ?? "Paid"}
                     </p>
-                    <p className="text-xs text-brand-muted">
+                    <p className="text-sm text-brand-muted">
                       {aging?.daysOutstanding ?? 0} days | {aging?.collectionCoverageRate ?? 0}% cover
                     </p>
                   </td>
@@ -857,7 +857,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Link
                         href={`/admin/operations/ledger/${ledger.id}`}
-                        className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
+                        className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
                       >
                         Open ledger
                       </Link>
@@ -874,61 +874,102 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
   );
 }
 
+/**
+ * One line per bill, not per size (owner, 2026-09-29). A counter bill writes
+ * a movement for every size of every shoe on it — bill 0003 was eleven lines —
+ * so forty-eight lines told the story of about fifteen events. Movements that
+ * share a bill or purchase number group under it; the rest group by day, shoe
+ * and type. Each line still opens to its rows, with Delete on every one.
+ */
+type MovementRow = OperationsSnapshot["stockMovements"][number];
+
+function movementGroupKey(movement: MovementRow) {
+  const reference = /KR-(?:BILL|PUR)-[A-Za-z0-9-]+/.exec(movement.note ?? "")?.[0]?.replace(/-[A-F0-9]{6}$/, "");
+  if (reference) return { key: `ref:${reference}`, reference };
+  const day = String(movement.createdAt ?? "").slice(0, 10);
+  return { key: `day:${day}:${movement.design}:${movement.type}`, reference: "" };
+}
+
+function groupMovements(movements: MovementRow[]) {
+  const groups = new Map<string, { key: string; reference: string; rows: MovementRow[] }>();
+  for (const movement of movements) {
+    const { key, reference } = movementGroupKey(movement);
+    const group = groups.get(key) ?? { key, reference, rows: [] };
+    group.rows.push(movement);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
+const OUTGOING = new Set(["Sale Out", "Dispatch Out", "Market Sale", "Damage Out"]);
+
 function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
+  const groups = groupMovements(snapshot.stockMovements);
+
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Stock movement history" detail="Production, dispatch, sale, return, and adjustment trail." />
-      {snapshot.stockMovements.length === 0 ? (
-        <p className="text-sm text-brand-muted">No stock movement has been recorded yet.</p>
+      <SectionTitle title="Stock movement history" detail="One line per bill or per shoe a day — open a line for its rows." />
+      {groups.length === 0 ? (
+        <p className="text-lg text-brand-muted">No stock movement has been recorded yet.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
-            <thead className="border-b text-left text-brand-muted">
-              <tr>
-                <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Design</th>
-                <th className="py-2 pr-3">Channel</th>
-                <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">Pairs</th>
-                <th className="py-2 pr-3">Source</th>
-                <th className="py-2 pr-3">Note</th>
-                <th className="py-2 pr-3">Manage</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {snapshot.stockMovements.map((movement) => {
-                const linkedItem = snapshot.vehicleDispatchItems.find((item) =>
-                  item.stockMovementIds.includes(movement.id),
-                );
-                const source = stockMovementSource(movement, linkedItem);
+        <ul className="grid gap-2">
+          {groups.map((group) => {
+            const first = group.rows[0];
+            const types = [...new Set(group.rows.map((row) => row.type))];
+            const pairs = group.rows.reduce((total, row) => total + (Number(row.pairs) || 0), 0);
+            const signed = types.every((type) => OUTGOING.has(type)) ? -pairs : pairs;
+            const byShoe = new Map<string, number>();
+            for (const row of group.rows) byShoe.set(row.design, (byShoe.get(row.design) ?? 0) + (Number(row.pairs) || 0));
 
-                return (
-                  <tr key={movement.id}>
-                    <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted">
-                      <DateDisplayAdmin date={movement.createdAt} time />
-                    </td>
-                    <td data-label="Design" className="py-3 pr-3 font-semibold text-brand-green-ink">{movement.design}</td>
-                    <td data-label="Channel" className="py-3 pr-3">{movement.channel}</td>
-                    <td data-label="Type" className="py-3 pr-3">
-                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${stockMovementTypeClass(movement.type)}`}>
-                        {movement.type}
-                      </span>
-                    </td>
-                    <td data-label="Pairs" className="py-3 pr-3 font-bold">{movement.pairs}</td>
-                    <td data-label="Source" className="py-3 pr-3">
-                      <p className="font-semibold text-brand-green-ink">{source.label}</p>
-                      <p className="text-xs text-brand-muted">{source.detail}</p>
-                    </td>
-                    <td data-label="Note" className="max-w-48 py-3 pr-3 text-brand-muted">{movement.note || "-"}</td>
-                    <td data-label="Manage" className="py-3 pr-3">
-                      <DeleteRecordForm kind="stockMovement" id={movement.id} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            return (
+              <li key={group.key} className="rounded-lg border border-brand-green-line px-3 py-2.5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="font-black text-brand-green-ink">
+                    {group.reference ? group.reference : first.design}
+                    <span className="ml-2 text-base font-semibold text-brand-muted">
+                      <DateDisplayAdmin date={first.createdAt} time />
+                    </span>
+                  </p>
+                  <p className={`text-lg font-black tabular-nums ${signed < 0 ? "text-brand-clay" : "text-brand-green"}`}>
+                    {signed > 0 ? "+" : ""}
+                    {signed}
+                  </p>
+                </div>
+                <p className="mt-0.5 flex flex-wrap items-center gap-2 text-base text-brand-muted">
+                  {types.map((type) => (
+                    <span key={type} className={`rounded-full px-2.5 py-0.5 text-base font-bold ${stockMovementTypeClass(type)}`}>
+                      {type}
+                    </span>
+                  ))}
+                  <span>{[...byShoe.entries()].map(([design, count]) => `${design} ${count}`).join(" · ")}</span>
+                </p>
+                <details className="mt-1.5">
+                  <summary className="cursor-pointer text-base font-bold text-brand-green">
+                    <T en={`Rows (${group.rows.length})`} ne={`लाइन हेर्ने (${group.rows.length})`} />
+                  </summary>
+                  <ul className="mt-2 grid gap-1.5">
+                    {group.rows.map((movement) => {
+                      const linkedItem = snapshot.vehicleDispatchItems.find((item) =>
+                        item.stockMovementIds.includes(movement.id),
+                      );
+                      const source = stockMovementSource(movement, linkedItem);
+                      return (
+                        <li key={movement.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-brand-green-line pt-1.5 text-base">
+                          <span>
+                            <b className="text-brand-green-ink">{movement.design}</b> · {movement.channel}
+                            {movement.sizeRun ? ` · ${movement.sizeRun}` : ""} · {movement.type} · <b>{movement.pairs}</b>
+                            <span className="block text-brand-muted">{source.label} — {movement.note || source.detail}</span>
+                          </span>
+                          <DeleteRecordForm kind="stockMovement" id={movement.id} />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );
@@ -939,10 +980,10 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle title="Ledger transaction history" detail="Cash, cheque, credit sale, return adjustment, and balance adjustment trail." />
       {snapshot.ledgerTransactions.length === 0 ? (
-        <p className="text-sm text-brand-muted">No ledger transaction has been recorded yet.</p>
+        <p className="text-base text-brand-muted">No ledger transaction has been recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="reflow-table min-w-full text-sm">
+          <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
                 <th className="py-2 pr-3">Date</th>
@@ -956,7 +997,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
             <tbody className="divide-y">
               {snapshot.ledgerTransactions.map((transaction) => (
                 <tr key={transaction.id}>
-                  <td className="reflow-primary py-3 pr-3 text-xs text-brand-muted">
+                  <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={transaction.createdAt} time />
                   </td>
                   <td data-label="Customer" className="py-3 pr-3">
@@ -968,7 +1009,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                     </Link>
                   </td>
                   <td data-label="Type" className="py-3 pr-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${ledgerTransactionTypeClass(transaction.type)}`}>
+                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${ledgerTransactionTypeClass(transaction.type)}`}>
                       {transaction.type}
                     </span>
                   </td>
@@ -994,36 +1035,63 @@ export default function OperationsRecords({
   snapshot: OperationsSnapshot;
   costing: OperationsCostingSnapshot;
 }) {
+  // A part of the shop nobody has used yet — batches, vehicles, customer
+  // ledgers — showed as a full empty section, twelve of them, between the
+  // tables that are used every day (owner, 2026-09-29). Empty parts go under
+  // one "more" fold; each comes back out by itself with its first record.
+  const followups = snapshot.reports.ledgerCollectionFollowups.filter((ledger) => ledger.priority !== "Clear");
+  const collected = snapshot.summary.cash + snapshot.summary.cheque + snapshot.summary.credit;
+  const parts: Array<{ id: string; used: boolean; node: React.ReactNode }> = [
+    { id: "batches", used: snapshot.productionBatches.length > 0, node: <ProductionBatchesTable snapshot={snapshot} /> },
+    { id: "workers", used: snapshot.workerTasks.length > 0, node: <WorkerProgressCards snapshot={snapshot} /> },
+    { id: "raw", used: snapshot.rawMaterials.length > 0, node: <RawMaterialsPanel snapshot={snapshot} costing={costing} /> },
+    { id: "collection", used: collected > 0, node: <CollectionPanel snapshot={snapshot} /> },
+    { id: "vehicles", used: snapshot.vehicleDispatches.length > 0, node: <VehicleDispatchCards snapshot={snapshot} /> },
+    { id: "ledgers", used: snapshot.customerLedgers.length > 0, node: <CustomerLedgerTable snapshot={snapshot} /> },
+    { id: "followups", used: followups.length > 0, node: <LedgerFollowupQueue snapshot={snapshot} /> },
+    { id: "dispatch-items", used: snapshot.vehicleDispatchItems.length > 0, node: <VehicleDispatchItemHistory snapshot={snapshot} /> },
+    { id: "consumption", used: snapshot.materialConsumptions.length > 0, node: <MaterialConsumptionHistory snapshot={snapshot} /> },
+    { id: "ledger-txns", used: snapshot.ledgerTransactions.length > 0, node: <LedgerTransactionHistory snapshot={snapshot} /> },
+  ];
+  const used = parts.filter((part) => part.used);
+  const unused = parts.filter((part) => !part.used);
+
   return (
     <>
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <ProductionBatchesTable snapshot={snapshot} />
-        <WorkerProgressCards snapshot={snapshot} />
-      </div>
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-3">
-        <RawMaterialsPanel snapshot={snapshot} costing={costing} />
         <DemandPanel snapshot={snapshot} />
-        <CollectionPanel snapshot={snapshot} />
       </div>
 
       <FinishedStockTable snapshot={snapshot} costing={costing} />
       <StockLedgerSummary snapshot={snapshot} />
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <VehicleDispatchCards snapshot={snapshot} />
-        <CustomerLedgerTable snapshot={snapshot} />
-      </div>
-
-      <LedgerFollowupQueue snapshot={snapshot} />
-
-      <VehicleDispatchItemHistory snapshot={snapshot} />
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-3">
-        <MaterialConsumptionHistory snapshot={snapshot} />
+      <div className="mt-8">
         <StockMovementHistory snapshot={snapshot} />
-        <LedgerTransactionHistory snapshot={snapshot} />
       </div>
+
+      {used.length > 0 ? (
+        <div className="mt-8 grid gap-6 xl:grid-cols-2">
+          {used.map((part) => (
+            <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
+          ))}
+        </div>
+      ) : null}
+
+      {unused.length > 0 ? (
+        <details className="mt-8 rounded-lg border border-dashed border-brand-green-line bg-brand-paper p-4">
+          <summary className="cursor-pointer text-lg font-black text-brand-muted-deep">
+            <T
+              en={`More — parts not used yet (${unused.length}): batches, vehicles, customer ledgers…`}
+              ne={`थप — अहिलेसम्म प्रयोग नभएका भाग (${unused.length}): batch, गाडी, ग्राहक खाता…`}
+            />
+          </summary>
+          <div className="mt-4 grid gap-6 xl:grid-cols-2">
+            {unused.map((part) => (
+              <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </>
   );
 }

@@ -1702,6 +1702,17 @@ export async function getOperationsSnapshot() {
       group.netStockFlow += movement.pairs;
     }
 
+    // Bought-in pairs arrive too. Left out, a shoe bought thirty and sold
+    // thirty read "Net −30" — Doctor Chappal (owner, 2026-09-29).
+    if (movement.type === "Purchase In") {
+      group.netStockFlow += movement.pairs;
+    }
+
+    // A write-off leaves the shelf the same as a sale does.
+    if (movement.type === "Damage Out") {
+      group.netStockFlow -= movement.pairs;
+    }
+
     stockMovementGroups.set(key, group);
   }
 

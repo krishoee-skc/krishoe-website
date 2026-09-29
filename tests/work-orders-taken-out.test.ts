@@ -73,8 +73,11 @@ describe("Work Orders are gone from the daily path", () => {
 
   it("Operations shows the paid week and today's stock, not lot counts", async () => {
     const page = withoutComments(await read("app/admin/operations/page.tsx"));
-    expect(page).toContain("getWeeklyWorkerSettlements(saturdayToFridayPeriod(today))");
-    expect(page).toContain("यो हप्ता बनेको");
+    // The paid week is still the Saturday-to-Friday one; what it shows as made
+    // is the pairs into stock, not every stage added up (owner, 2026-09-29).
+    expect(page).toContain("const week = saturdayToFridayPeriod(today);");
+    expect(page).toContain("getWeeklyWorkerSettlements(week)");
+    expect(page).toContain("यो हप्ता स्टकमा चढेको");
     expect(page).toContain("आज स्टकमा चढेको");
     expect(page).not.toMatch(/activeWorkOrders|overdueWorkOrders|readyForQc|handoverMismatches|हस्तान्तरण/);
   });
