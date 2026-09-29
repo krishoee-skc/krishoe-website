@@ -1306,13 +1306,19 @@ export function formatProductionReportDetail(
 ) {
   const money = (value: number) =>
     `Rs. ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  // Made is what went into stock. The stages are listed side by side: one
+  // pair passes Upper and Fibermen, and the old "Good production" line added
+  // them up, so sixty pairs read as a hundred and twenty.
+  const stages = report.stagePairs.length
+    ? report.stagePairs.map((entry) => `${entry.stage} ${entry.pairs}`).join(" · ")
+    : "No work entered";
   return [
-    `Good production: ${report.goodPairs} pairs`,
+    `Pairs made (into stock): ${report.stockPostedPairs} pairs`,
+    `Work by stage: ${stages}`,
     `Rejected / correction pending: ${report.rejectedPairs} pairs`,
-    `Finished stock posted: ${report.stockPostedPairs} pairs`,
     `Worker wage earned: ${money(report.earnedWage)}`,
     `Worker cash paid: ${money(report.cashPaid)}`,
-    `Top output worker: ${report.topWorker ? `${report.topWorker.name} (${report.topWorker.goodPairs} pairs)` : "No entry"}`,
+    `Top output worker: ${report.topWorker ? `${report.topWorker.name} (${report.topWorker.goodPairs} pairs of work)` : "No entry"}`,
     "",
     `Total worker balance due: ${money(control.workerBalanceDue)}`,
   ].join("\n");

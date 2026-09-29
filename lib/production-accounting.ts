@@ -294,6 +294,8 @@ export type ProductionPeriodSummary = {
   earnedWage: number;
   cashPaid: number;
   stockPostedPairs: number;
+  /** The period's work stage by stage — one pair passes several, so never summed. */
+  stagePairs: Array<{ stage: string; pairs: number }>;
   topWorker: { name: string; goodPairs: number } | null;
 };
 
@@ -456,6 +458,7 @@ export async function getProductionPeriodSummary(period: {
       earned_wage: number | string;
       cash_paid: number | string;
       stock_posted_pairs: number | string;
+      stage_pairs: Array<{ stage: string; pairs: number | string }> | null;
     }>(
       "production period report",
       `SELECT
@@ -478,10 +481,23 @@ export async function getProductionPeriodSummary(period: {
           FROM worker_payments
           WHERE reversed_at IS NULL
             AND payment_date >= $1::date AND payment_date < $2::date) AS cash_paid,
-         (SELECT coalesce(sum(total_pairs), 0)
-          FROM production_qc_postings
-          WHERE reversed_at IS NULL
-            AND qc_date >= $1::date AND qc_date < $2::date) AS stock_posted_pairs`,
+         -- Every pair the factory put into stock: "Post to stock" on the work
+         -- screen and Packing/QC both write a Production In movement. This read
+         -- the QC postings alone, and the factory posts from the work screen,
+         -- so every report said 0 while 180 pairs went in (owner, 2026-09-29).
+         (SELECT coalesce(sum(pairs), 0)
+          FROM stock_movements
+          WHERE type = 'Production In'
+            AND (created_at AT TIME ZONE 'Asia/Kathmandu')::date >= $1::date
+            AND (created_at AT TIME ZONE 'Asia/Kathmandu')::date < $2::date) AS stock_posted_pairs,
+         (SELECT coalesce(json_agg(json_build_object('stage', stage, 'pairs', pairs) ORDER BY pairs DESC, stage), '[]'::json)
+            FROM (
+              SELECT stage, sum(total_pairs - rejected_pairs)::integer AS pairs
+                FROM production_work_entries
+               WHERE status = 'Approved'
+                 AND work_date >= $1::date AND work_date < $2::date
+               GROUP BY stage
+            ) period_stages) AS stage_pairs`,
       [period.start, period.end],
     ),
     queryPostgres<{
@@ -507,6 +523,9 @@ export async function getProductionPeriodSummary(period: {
     earnedWage: numeric(row?.earned_wage ?? 0),
     cashPaid: numeric(row?.cash_paid ?? 0),
     stockPostedPairs: Number(row?.stock_posted_pairs ?? 0),
+    stagePairs: (row?.stage_pairs ?? [])
+      .map((entry) => ({ stage: String(entry.stage), pairs: Number(entry.pairs) || 0 }))
+      .filter((entry) => entry.pairs > 0),
     topWorker: workers[0]
       ? { name: workers[0].employee_name, goodPairs: Number(workers[0].good_pairs) }
       : null,
