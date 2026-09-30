@@ -30,6 +30,9 @@ import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+// Enter walks box to box on the forms that take typing, and asks before it
+// saves (owner, 2026-09-30).
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import StaffAccessManager from "@/components/admin/StaffAccessManager";
 import SettingsSections, { type SettingsSection, type SettingsTodo } from "./SettingsSections";
 import { listFactoryWorkerOptions } from "@/lib/factory-worker-portal";
@@ -191,7 +194,7 @@ export default async function AdminSettingsPage({
   const missingIn = (section: string) => todos.filter((todo) => todo.section === section && !todo.done).length;
 
   const shopBody = (
-    <form action={saveCompanySettingsAction} className={card}>
+    <EnterWalkForm action={saveCompanySettingsAction} className={card}>
       <div className="mb-5">
         <h2 className="text-lg font-black text-brand-green-ink">🏪 <T en="Shop details" ne="पसलको विवरण" /></h2>
         <p className="mt-1 text-sm text-brand-muted"><T en="Printed on bills and shown on the shop." ne="बिलमा छापिने र पसलको website मा देखिने।" /></p>
@@ -217,7 +220,7 @@ export default async function AdminSettingsPage({
         <T en="Last saved" ne="पछिल्लो पटक सेभ" />: {c.updatedAt ? <DateDisplayAdmin date={c.updatedAt} time={true} /> : "—"}
       </p>
       <div className="mt-5"><SubmitButton label="Save shop details" /></div>
-    </form>
+    </EnterWalkForm>
   );
 
   const billBody = (
@@ -225,7 +228,7 @@ export default async function AdminSettingsPage({
       {/* The line printed at the foot of every POS bill: the return window
           belongs on the paper the customer still has three days later. Blank
           prints nothing. */}
-      <form action={saveCompanySettingsAction} className={card}>
+      <EnterWalkForm action={saveCompanySettingsAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">🧾 <T en="Bill" ne="बिल" /></h2>
         <label className="mt-4 grid gap-2 text-sm font-bold text-brand-green-ink">
           Bill footer note
@@ -243,12 +246,12 @@ export default async function AdminSettingsPage({
           </span>
         </label>
         <div className="mt-5"><SubmitButton label="Save bill note" /></div>
-      </form>
+      </EnterWalkForm>
 
       {/* Bank details for customer transfers. The account number is what makes
           the panel useful, so leaving it blank hides the whole bank panel at
           checkout. Cash on delivery is unaffected either way. */}
-      <form action={saveCompanySettingsAction} className={card}>
+      <EnterWalkForm action={saveCompanySettingsAction} className={card}>
         <h2 className="text-lg font-black text-brand-green-ink">🏦 <T en="Bank for customer payments" ne="ग्राहकले पैसा पठाउने बैंक" /></h2>
         <p className="mt-1 text-xs font-semibold text-brand-muted">
           Shown on checkout for bank transfer / QR. Leave the account number blank and the bank
@@ -276,10 +279,10 @@ export default async function AdminSettingsPage({
           </label>
         </div>
         <div className="mt-5"><SubmitButton label="Save bank details" /></div>
-      </form>
+      </EnterWalkForm>
 
       {/* Public review links, and the line across the top of the shop. */}
-      <form action={saveCompanySettingsAction} className={card}>
+      <EnterWalkForm action={saveCompanySettingsAction} className={card}>
         <input type="hidden" name="promoEnabledShown" value="1" />
         <h2 className="text-lg font-black text-brand-green-ink">⭐ <T en="Reviews and the shop's top line" ne="Review र पसलको माथिको सन्देश" /></h2>
         <div className="mt-4 grid gap-4">
@@ -307,13 +310,13 @@ export default async function AdminSettingsPage({
           </label>
         </div>
         <div className="mt-5"><SubmitButton label="Save reviews and message" /></div>
-      </form>
+      </EnterWalkForm>
     </>
   );
 
   const deliveryBody = (
     <>
-        <form
+        <EnterWalkForm
           id="delivery"
           action={saveDeliveryPricingAction}
           className={`scroll-mt-24 ${card}`}
@@ -419,14 +422,14 @@ export default async function AdminSettingsPage({
           <div className="mt-5">
             <SubmitButton label="Save delivery charge" />
           </div>
-        </form>
+        </EnterWalkForm>
 
     </>
   );
 
   const goalBody = (
     <>
-        <form
+        <EnterWalkForm
           id="goals"
           action={saveBusinessGoalAction}
           className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm"
@@ -476,7 +479,7 @@ export default async function AdminSettingsPage({
           <div className="mt-5">
             <SubmitButton label="Save this month's goal" />
           </div>
-        </form>
+        </EnterWalkForm>
 
     </>
   );
@@ -498,7 +501,7 @@ export default async function AdminSettingsPage({
       <details className="mt-3">
         <summary className="cursor-pointer text-sm font-black text-brand-green">➕ <T en="Add a branch" ne="नयाँ शाखा थप्ने" /></summary>
         <div className="mt-3">
-        <form action={createBranchAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+        <EnterWalkForm action={createBranchAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <div className="mb-5">
             <h2 className="text-lg font-black text-brand-green-ink">Add branch</h2>
             <p className="mt-1 text-sm text-brand-muted">Create factory, wholesale, retail, online, or office branch records.</p>
@@ -521,7 +524,7 @@ export default async function AdminSettingsPage({
           <div className="mt-5">
             <SubmitButton label="Create branch" />
           </div>
-        </form>
+        </EnterWalkForm>
         </div>
       </details>
     </div>

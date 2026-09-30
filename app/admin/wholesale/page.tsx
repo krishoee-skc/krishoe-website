@@ -1,3 +1,4 @@
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listWholesaleEnquiries } from "@/lib/wholesale-enquiries";
@@ -129,7 +130,7 @@ export default async function WholesaleEnquiriesPage({
                 </p>
               ) : null}
 
-              <form action={updateEnquiryStatusAction} className="mt-4 grid gap-2 sm:grid-cols-[auto_1fr_auto]">
+              <EnterWalkForm action={updateEnquiryStatusAction} className="mt-4 grid gap-2 sm:grid-cols-[auto_1fr_auto]">
                 <input type="hidden" name="id" value={enquiry.id} />
                 <select aria-label="Status"
                   name="status"
@@ -154,7 +155,7 @@ export default async function WholesaleEnquiriesPage({
                 >
                   <T en="Save" ne="सुरक्षित" />
                 </button>
-              </form>
+              </EnterWalkForm>
             </article>
           ))}
         </div>

@@ -4,7 +4,7 @@ import { writeFileAtomic } from "@/lib/atomic-json";
 import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { designKey } from "@/lib/design-name";
-import { getOperationsData, type FinishedStock } from "@/lib/operations";
+import { getFinishedStockOrThrow, type FinishedStock } from "@/lib/operations";
 import { queryPostgres } from "@/lib/postgres/client";
 import {
   categories,
@@ -557,17 +557,20 @@ async function ensureProductsForFinishedDesigns(finishedStock: FinishedStock[]) 
 }
 
 export async function syncProductCatalogStockWithFinishedStock() {
-  const operations = await getOperationsData();
+  // Only the finished-stock table is needed. This read the whole operations
+  // book — ten tables — after every bill, purchase and posting (owner,
+  // 2026-09-30: saving was slow).
+  const finishedStock = await getFinishedStockOrThrow();
 
   // Before syncing stock onto products, make sure a product exists for every
   // finished design — so a design bought or made for the first time appears in
   // the shop instead of holding stock nothing lists.
-  await ensureProductsForFinishedDesigns(operations.finishedStock);
+  await ensureProductsForFinishedDesigns(finishedStock);
 
   return runWithDataBackend({
     storeName: "products",
-    localJson: () => syncProductCatalogStockWithFinishedStockLocalJson(operations.finishedStock),
-    postgres: () => syncProductCatalogStockWithFinishedStockPostgres(operations.finishedStock),
+    localJson: () => syncProductCatalogStockWithFinishedStockLocalJson(finishedStock),
+    postgres: () => syncProductCatalogStockWithFinishedStockPostgres(finishedStock),
   });
 }
 

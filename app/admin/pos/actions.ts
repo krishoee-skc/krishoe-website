@@ -197,9 +197,8 @@ export async function createPosInvoiceAction(
     `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
   );
 
-  // Recompute the catalog stock so the shop shows the pairs this bill just
-  // moved, without waiting for a manual Catalog sync.
-  await syncCatalogStockAfterBill("POS bill");
+  // The catalog stock was recomputed inside createPosInvoice; doing it again
+  // here read the whole stock a second time on every bill (owner, 2026-09-30).
 
   // A bill changes stock, and the prerendered home/category pages carry stock
   // badges — refresh everything, not a hand-picked list.
@@ -255,7 +254,6 @@ async function saveExchange(formData: FormData): Promise<ActionState> {
     "pos_create_invoice",
     `Exchange: ${returnInvoice.invoiceNumber} return (Rs. ${returnInvoice.total}) against ${saleInvoice.invoiceNumber} sale (Rs. ${saleInvoice.total}).`,
   );
-  await syncCatalogStockAfterBill("POS exchange");
   revalidatePath("/", "layout");
 
   return {

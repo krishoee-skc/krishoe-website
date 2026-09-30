@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { adminDeviceLabel } from "@/lib/device-label";
@@ -98,7 +99,7 @@ export default function StaffAccessManager({
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800">48-hour link</span>
         </div>
-        <form action={inviteStaffAccountAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <EnterWalkForm action={inviteStaffAccountAction} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">Name<input name="name" required autoComplete="name" className={inputClass} /></label>
           <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
             Email <span className="font-normal text-brand-muted">(or leave empty)</span>
@@ -157,7 +158,7 @@ export default function StaffAccessManager({
           <div className="md:col-span-2 xl:col-span-3">
             <FormSubmitButton className={buttonClass} pendingLabel="Sending invitation…">Send secure invitation</FormSubmitButton>
           </div>
-        </form>
+        </EnterWalkForm>
       </section>
 
       <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
@@ -239,7 +240,7 @@ export default function StaffAccessManager({
                   </form>
                 ) : null}
 
-                <form action={updateStaffAccessAction} className="mt-4 grid gap-3 sm:grid-cols-3">
+                <EnterWalkForm action={updateStaffAccessAction} className="mt-4 grid gap-3 sm:grid-cols-3">
                   <input type="hidden" name="id" value={member.id} />
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Role<select name="role" defaultValue={member.role} className={inputClass}>{adminRoles.map((role) => <option key={role}>{role}</option>)}</select></label>
                   <label className="grid gap-1 text-xs font-black text-brand-green-ink">Branch<select name="branchId" defaultValue={member.branchId} className={inputClass}>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
@@ -255,7 +256,7 @@ export default function StaffAccessManager({
                     </select>
                   </label>
                   <div className="sm:col-span-3"><FormSubmitButton className={buttonClass} pendingLabel="Saving access…">Save access</FormSubmitButton></div>
-                </form>
+                </EnterWalkForm>
 
                 <details className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
                   <summary className="cursor-pointer text-sm font-black text-brand-green-ink">Permission preview · {permissions.length} allowed</summary>
@@ -271,7 +272,7 @@ export default function StaffAccessManager({
                   {/* No inbox, no link to send. The Owner hands over a password
                       instead, and the account is forced to replace it. */}
                   {member.email ? null : (
-                    <form action={setStaffTemporaryPasswordAction} className="flex gap-2 sm:col-span-2">
+                    <EnterWalkForm action={setStaffTemporaryPasswordAction} className="flex gap-2 sm:col-span-2">
                       <input type="hidden" name="id" value={member.id} />
                       <TemporaryPasswordField
                         inputClass={inputClass}
@@ -284,7 +285,7 @@ export default function StaffAccessManager({
                         message={`Give ${member.name} a new temporary password? Every device they are signed in on is signed out, and they must change it at the next sign-in.`}
                         className={neutralButtonClass}
                       />
-                    </form>
+                    </EnterWalkForm>
                   )}
                   <form action={updateStaffMfaAction}>
                     <input type="hidden" name="id" value={member.id} />

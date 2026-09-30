@@ -10,6 +10,7 @@ import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import AiDraftButton from "./AiDraftButton";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { codeProblem, codeTakenBy, nextShoeCode } from "@/lib/shoe-code";
 
 type ProductFormProps = {
@@ -65,7 +66,9 @@ export default function ProductForm({ product, categories, takenCodes = [] }: Pr
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-brand-paper p-6 shadow-sm">
+    // Enter walks box to box and asks before it saves (owner, 2026-09-30):
+    // on a plain form Enter in any box filed the shoe half-typed.
+    <EnterWalkForm formRef={formRef} onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-brand-paper p-6 shadow-sm">
       <input type="hidden" name="id" defaultValue={product?.id ?? ""} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -399,6 +402,6 @@ export default function ProductForm({ product, categories, takenCodes = [] }: Pr
               : text("Create product", "जुत्ता थप्ने")}
         </button>
       </div>
-    </form>
+    </EnterWalkForm>
   );
 }

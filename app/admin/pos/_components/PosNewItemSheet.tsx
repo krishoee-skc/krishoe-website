@@ -14,6 +14,7 @@ import {
   type CounterItemHow,
 } from "@/lib/counter-item-rules";
 import { categories } from "@/lib/products";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 
 type Created = Extract<CounterItemResult, { ok: true }>["item"];
 
@@ -105,6 +106,7 @@ export default function PosNewItemSheet({
       <input
         value={price}
         inputMode="numeric"
+        data-summary="money"
         placeholder={isWholesale && wholesalePrice > 0 ? text(`blank: Rs. ${wholesalePrice}`, `खाली भए रु. ${wholesalePrice}`) : ""}
         onChange={(event) => { setPrice(event.target.value); setLossConfirmed(false); }}
         className={isWholesale ? `${box} border-dashed` : box}
@@ -117,6 +119,7 @@ export default function PosNewItemSheet({
       <input
         value={wholesale}
         inputMode="numeric"
+        data-summary="money"
         onChange={(event) => { setWholesale(event.target.value); setLossConfirmed(false); }}
         className={isWholesale ? box : `${box} border-dashed`}
       />
@@ -176,7 +179,16 @@ export default function PosNewItemSheet({
           </p>
         ) : null}
 
-        <div className="mt-4 grid gap-4">
+        {/* Enter walks box to box — name, sizes, pairs, prices — and on the
+            last asks before it saves (owner, 2026-09-30). */}
+        <EnterWalkForm
+          className="mt-4 grid gap-4"
+          confirmTitle={name}
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
           <label className={label}>
             {text("Name", "नाम")}
             <input value={name} onChange={(event) => setName(event.target.value)} className={box} autoFocus />
@@ -345,14 +357,13 @@ export default function PosNewItemSheet({
           ) : null}
 
           <button
-            type="button"
-            onClick={save}
+            type="submit"
             disabled={Boolean(problem) || !ready || saving}
             className="min-h-14 rounded-2xl bg-brand-green px-5 text-lg font-black text-white disabled:opacity-50"
           >
             {saving ? text("Saving…", "राख्दैछौँ…") : text("Save and add to the bill", "सेभ गरेर बिलमा थप्ने")}
           </button>
-        </div>
+        </EnterWalkForm>
       </div>
     </div>
   );

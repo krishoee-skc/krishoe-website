@@ -127,6 +127,39 @@ export async function getPosInvoicesFromPostgres() {
   return rows.map(posInvoiceFromRow);
 }
 
+/**
+ * One bill by its id — the bill page, and the check that a bill was not
+ * already saved. It read the newest thousand bills to find one (owner,
+ * 2026-09-30: saving was slow), and a bill older than those could not be found
+ * at all.
+ */
+export async function getPosInvoiceByIdFromPostgres(id: string) {
+  const columns = await invoiceColumns();
+  const rows = await queryPostgres<PosInvoiceRow>(
+    "pos invoices",
+    `SELECT ${columns} FROM pos_invoices WHERE id = $1`,
+    [id],
+  );
+  return rows[0] ? posInvoiceFromRow(rows[0]) : null;
+}
+
+/**
+ * The highest short bill number with this prefix (KRB, KRR), from the
+ * database itself rather than from reading every bill. Old long numbers do not
+ * match and are not counted.
+ */
+export async function getHighestBillNumberFromPostgres(prefix: string) {
+  const rows = await queryPostgres<{ invoice_number: string }>(
+    "pos invoices",
+    `SELECT invoice_number FROM pos_invoices
+      WHERE invoice_number ~ ('^' || $1 || '[0-9]+$')
+      ORDER BY length(invoice_number) DESC, invoice_number DESC
+      LIMIT 1`,
+    [prefix],
+  );
+  return rows[0]?.invoice_number ?? "";
+}
+
 async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
   const withPayments = await posPaymentsReady();
   const parts = invoice.payments ?? [];

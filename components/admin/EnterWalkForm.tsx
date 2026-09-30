@@ -102,10 +102,15 @@ export default function EnterWalkForm({
   onBlur,
   onSubmit,
   confirmTitle,
+  formRef: outerRef,
   ...props
-}: ComponentProps<"form"> & { confirmTitle?: string }) {
+}: ComponentProps<"form"> & {
+  confirmTitle?: string;
+  /** For a page that reads the form itself — the product form's AI drafter. */
+  formRef?: { current: HTMLFormElement | null };
+}) {
   const { text } = useLanguage();
-  const formRef = useRef<HTMLFormElement>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const yesRef = useRef<HTMLButtonElement>(null);
   const lastStop = useRef<HTMLElement | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
@@ -237,7 +242,10 @@ export default function EnterWalkForm({
   return (
     <form
       {...props}
-      ref={formRef}
+      ref={(node) => {
+        formRef.current = node;
+        if (outerRef) outerRef.current = node;
+      }}
       className={`enter-walk ${className ?? ""}`}
       onKeyDown={handleKeyDown}
       onFocus={handleFocus}

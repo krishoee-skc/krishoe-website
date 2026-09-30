@@ -815,6 +815,19 @@ export async function getFinishedStock(): Promise<FinishedStock[]> {
 }
 
 /**
+ * Just the finished-stock rows, failing loudly. For the catalog stock sync,
+ * which must never read "no stock" from a hiccup and set every shoe to zero —
+ * unlike getFinishedStock above, which may shrug for a product page.
+ */
+export async function getFinishedStockOrThrow(): Promise<FinishedStock[]> {
+  return runWithDataBackend({
+    storeName: "operations",
+    localJson: async () => (await getOperationsDataFromLocalJson()).finishedStock,
+    postgres: getFinishedStockFromPostgres,
+  });
+}
+
+/**
  * The same read, answered once per request.
  *
  * One load of the admin dashboard ran this ten-table read TWELVE times — 120

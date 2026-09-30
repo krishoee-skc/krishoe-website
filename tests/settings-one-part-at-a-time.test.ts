@@ -31,7 +31,7 @@ describe("the company fields survive a partial save", () => {
 
   it("the company is saved from four smaller forms, the switch marked in its own", async () => {
     const source = await page();
-    expect(source.split("<form action={saveCompanySettingsAction}").length - 1).toBe(4);
+    expect(source.split("<EnterWalkForm action={saveCompanySettingsAction}").length - 1).toBe(4);
     expect(source).toContain('<input type="hidden" name="promoEnabledShown" value="1" />');
     // No stale copies of other parts travel with a form.
     expect(source).not.toContain("KeepCompanyFields");

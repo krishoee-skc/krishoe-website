@@ -237,7 +237,10 @@ describe("where the shop runs", () => {
     // The database round trip happens on every request; the shopper round trip
     // happens once. Putting the function beside the data wins, and Singapore is
     // far nearer Nepal than Washington besides.
-    expect(vercel.regions).toEqual(["sin1"]);
+    // The database is now Supabase in Mumbai (ap-south-1), so the functions
+    // moved from Singapore to Mumbai beside it (owner, 2026-09-30: saving was
+    // slow). Mumbai is nearer Nepal than Singapore too.
+    expect(vercel.regions).toEqual(["bom1"]);
   });
 
   it("still keeps its scheduled jobs", async () => {

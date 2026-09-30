@@ -26,13 +26,16 @@ import {
 import {
   createPosExchangePostgres,
   createPosInvoicePostgres,
+  getHighestBillNumberFromPostgres,
+  getPosInvoiceByIdFromPostgres,
   getPosInvoicesFromPostgres,
   savePosInvoiceToPostgres,
   updatePosInvoicePostingToPostgres,
 } from "@/lib/pos-postgres";
 import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { stockRowForSize } from "@/lib/stock-by-size";
-import { isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
+import { BILL_PREFIX, isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
+import { reportingErrors } from "@/lib/report-error";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -577,16 +580,23 @@ export async function getPosInvoices() {
 }
 
 export async function getPosInvoiceById(id: string) {
-  const invoices = await getPosInvoices();
-  return invoices.find((invoice) => invoice.id === id) ?? null;
+  return runWithDataBackend({
+    storeName: "pos invoices",
+    localJson: async () => (await getPosInvoicesFromLocalJson()).find((invoice) => invoice.id === id) ?? null,
+    postgres: () => getPosInvoiceByIdFromPostgres(id),
+  });
 }
 
 // KRB001, KRB002, … — see lib/bill-number.ts. Two bills saved at the same
 // moment can read the same highest number; the database refuses the second
 // (invoice_number is UNIQUE) and it is tried again with the next one.
 async function nextInvoiceNumber(kind: PosInvoiceKind) {
-  const invoices = await getPosInvoices();
-  return nextBillNumber(kind, invoices.map((invoice) => invoice.invoiceNumber));
+  const highest = await runWithDataBackend({
+    storeName: "pos invoices",
+    localJson: async () => (await getPosInvoicesFromLocalJson()).map((invoice) => invoice.invoiceNumber),
+    postgres: async () => [await getHighestBillNumberFromPostgres(BILL_PREFIX[kind])],
+  });
+  return nextBillNumber(kind, highest);
 }
 
 /** Tries after a bill number was taken by a bill saved at the same moment. */
@@ -613,8 +623,12 @@ function qrPayloadForInvoice(invoice: Pick<PosInvoice, "id" | "invoiceNumber" | 
   return `${siteUrl.replace(/\/$/, "")}/admin/pos/${invoice.id}?bill=${encodeURIComponent(invoice.invoiceNumber)}&total=${invoice.total}`;
 }
 
+// The bill has committed by now, so a failure here is logged, never thrown:
+// thrown, the counter was told "Could not save this bill" for a bill that was
+// saved, and a second try filed it twice. The next sync picks the stock up.
+// Done here once for every caller — the counter's actions no longer repeat it.
 async function syncCatalogStockAfterPosting() {
-  await syncProductCatalogStockWithFinishedStock();
+  await reportingErrors("sync catalog stock after a bill", () => syncProductCatalogStockWithFinishedStock());
 }
 
 export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1): Promise<PosInvoice> {
