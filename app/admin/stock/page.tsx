@@ -9,6 +9,9 @@ import { businessContact } from "@/lib/seo";
 import T from "@/components/T";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getOperationsData, type StockMovement } from "@/lib/operations";
+import { movementKind, movementWords, readyParts, salesPace, type MovementKind } from "@/lib/stock-page-rules";
+import { getCostingSnapshot } from "@/lib/costing";
+import { money } from "@/lib/format-money";
 import { getProducts } from "@/lib/product-store";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
@@ -122,8 +125,9 @@ function ReadyStockSection({ title, origin, rows }: { title: string; origin: Rea
   );
 }
 
-function movementTone(type: StockMovement["type"]) {
+function movementTone(type: MovementKind) {
   if (type === "Production In") return "bg-emerald-100 text-emerald-800";
+  if (type === "Counter In") return "bg-[#E6EEF9] text-[#1F4E8C]";
   if (type === "Purchase In") return "bg-brand-green-wash text-brand-green";
   if (type === "Sale Out" || type === "Dispatch Out") return "bg-rose-100 text-rose-800";
   // A write-off is a loss, not a sale — amber so it stands out from routine
@@ -132,17 +136,9 @@ function movementTone(type: StockMovement["type"]) {
   return "bg-brand-mist text-brand-muted-deep";
 }
 
-/** A movement's type in the owner's words, with the sign it moves stock by. */
-const movementWords: Record<StockMovement["type"], { en: string; ne: string; sign: 1 | -1 | 0 }> = {
-  "Production In": { en: "made", ne: "बन्यो", sign: 1 },
-  "Purchase In": { en: "bought in", ne: "किनेर आयो", sign: 1 },
-  "Return In": { en: "returned", ne: "फिर्ता आयो", sign: 1 },
-  "Sale Out": { en: "sold", ne: "बिक्री", sign: -1 },
-  "Market Sale": { en: "sold at a market", ne: "बजारमा बिक्री", sign: -1 },
-  "Dispatch Out": { en: "sent out", ne: "पठाइयो", sign: -1 },
-  "Damage Out": { en: "written off", ne: "बिग्रिएर हटाइयो", sign: -1 },
-  Adjustment: { en: "adjusted", ne: "मिलाइयो", sign: 0 },
-};
+// A movement's kind in the owner's words lives in lib/stock-page-rules.ts,
+// shared with the tests: goods added at the counter read "added at the
+// counter", not "adjusted".
 
 /**
  * The recent movements, one line per shoe, per kind, per day — the owner's
@@ -152,14 +148,15 @@ const movementWords: Record<StockMovement["type"], { en: string; ne: string; sig
  */
 function groupMovements(movements: StockMovement[]) {
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE });
-  const groups: Array<{ key: string; date: string; design: string; type: StockMovement["type"]; pairs: number; times: number; sizes: Set<string> }> = [];
+  const groups: Array<{ key: string; date: string; design: string; type: MovementKind; pairs: number; times: number; sizes: Set<string> }> = [];
   const byKey = new Map<string, (typeof groups)[number]>();
   for (const movement of movements) {
     const date = movement.createdAt ? day.format(new Date(movement.createdAt)) : "";
-    const key = `${date}::${movement.design}::${movement.type}`;
+    const kind = movementKind(movement);
+    const key = `${date}::${movement.design}::${kind}`;
     let group = byKey.get(key);
     if (!group) {
-      group = { key, date, design: movement.design, type: movement.type, pairs: 0, times: 0, sizes: new Set() };
+      group = { key, date, design: movement.design, type: kind, pairs: 0, times: 0, sizes: new Set() };
       byKey.set(key, group);
       groups.push(group);
     }
@@ -170,9 +167,9 @@ function groupMovements(movements: StockMovement[]) {
   return groups;
 }
 
-async function loadStock() {
+async function loadStock(withCost: boolean) {
   try {
-    const [products, operations, byPlace, transfers] = await Promise.all([
+    const [products, operations, byPlace, transfers, costing] = await Promise.all([
       getProducts({ includeDrafts: true }),
       getOperationsData(),
       // Where the pairs are, and the challans that moved them. Read beside the
@@ -180,6 +177,14 @@ async function loadStock() {
       // a failure here must not cost the screen its stock figures.
       getStockByPlace().catch(() => []),
       getStockTransfers(40).catch(() => []),
+      // What the ready pairs cost, for those who may read costing. Never
+      // fatal: the page stands without the figure.
+      withCost
+        ? getCostingSnapshot().catch((error) => {
+            reportError("load the stock value", error);
+            return null;
+          })
+        : Promise.resolve(null),
     ]);
     const overview = buildStockOverview(operations, products);
     // Every design that holds pairs, collapsed across channels: the question
@@ -215,19 +220,22 @@ async function loadStock() {
           ? { status: row.status, ...outlookAdvice(row) }
           : row.soldInWindow === 0
             ? { status: "unknown", en: "No sales yet", ne: "बिक्री छैन" }
-            : { status: "unknown", en: "Can't tell yet", ne: "भन्न मिल्दैन" };
+            : { status: "unknown", ...(salesPace(row.soldInWindow, row.historyDays) ?? { en: "Can't tell yet", ne: "भन्न मिल्दैन" }) };
       extras[row.design] = extra;
     }
 
     // The shoe's code, and its last ten movements worded, for the list.
     const codeByName = new Map<string, string>();
+    const productIdByName = new Map<string, string>();
     for (const product of products) {
       if (product.sku && !codeByName.has(product.name)) codeByName.set(product.name, product.sku);
+      if (!productIdByName.has(product.name)) productIdByName.set(product.name, product.id);
     }
     const latest = [...operations.stockMovements].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     for (const design of new Set([...Object.keys(extras), ...operations.finishedStock.map((row) => row.design)])) {
       const extra = extras[design] ?? { origin: "Other", sold: 0, lasts: null };
       extra.code = codeByName.get(design);
+      extra.productId = productIdByName.get(design);
       extra.history = groupMovements(latest.filter((movement) => movement.design === design))
         .slice(0, 10)
         .map((entry) => {
@@ -248,6 +256,12 @@ async function loadStock() {
       extras,
       byPlace,
       transfers,
+      stockValue: costing
+        ? {
+            value: costing.summary.finishedStockValue,
+            missingCost: costing.summary.finishedStockMissingCostCount,
+          }
+        : null,
       // Products the shop would sell that trace to no ready-stock pool — the
       // catalog number promising pairs the stock count cannot account for.
       catalogWarnings: catalogStockWarnings(products, operations.finishedStock),
@@ -276,6 +290,7 @@ async function loadStock() {
       extras: {} as Record<string, ShoeExtra>,
       byPlace: [],
       transfers: [],
+      stockValue: null,
       catalogWarnings: [],
       designDrift: [],
       error: saveFailureMessage(error, "Could not load stock control."),
@@ -284,9 +299,10 @@ async function loadStock() {
 }
 
 export default async function AdminStockPage() {
-  const [loaded, session, watch] = await Promise.all([
-    loadStock(),
-    getAdminSession(),
+  const session = await getAdminSession();
+  const canCost = session ? canAdmin(getSessionAdminRole(session), "costing:read") : false;
+  const [loaded, watch] = await Promise.all([
+    loadStock(canCost),
     // Goods added at the counter: never fatal, the page stands without them.
     getCounterItemsToWatch().catch((error) => {
       reportError("load counter items to watch", error);
@@ -303,6 +319,8 @@ export default async function AdminStockPage() {
   const atShop = loaded.byPlace.reduce((sum, row) => sum + row.shop, 0);
   const toPutRight = loaded.byPlace.filter((row) => row.unplaced !== 0).length;
   const movementGroups = groupMovements(recentMovements);
+  const parts = readyParts(summary);
+  const partTone: Record<string, string> = { made: "bg-brand-green", bought: "bg-brand-gold-bright", both: "bg-emerald-300", shelf: "bg-[#5B84B8]" };
 
   return (
     // `report-print` carries the table header onto every sheet and stops rows
@@ -349,7 +367,33 @@ export default async function AdminStockPage() {
             are, then how many shoes need putting right. The owner's sample:
             factory 144 and shop 60 do not make 215, and the old page left the
             reader to work out why from two paragraphs. */}
-        <StatCard label={<T en="Pairs ready to sell" ne="बेच्न मिल्ने जोडी" />} value={summary.readyPairs} detail={<T en={`${summary.manufacturedPairs} made here · ${summary.purchasedPairs} bought in`} ne={`${summary.manufacturedPairs} आफैँ बनाएको · ${summary.purchasedPairs} किनेको`} />} tone="good" size="lead" />
+        {/* Every ready pair in one part, so the parts add up to the whole.
+            "156 made here · 59 bought in" under 475 left 260 pairs
+            unexplained (owner, 2026-09-30). */}
+        <StatCard
+          label={<T en="Pairs ready to sell" ne="बेच्न मिल्ने जोडी" />}
+          value={summary.readyPairs}
+          detail={
+            <>
+              {summary.readyPairs > 0 ? (
+                <span className="mb-1.5 flex h-2.5 overflow-hidden rounded-full bg-brand-mist" aria-hidden="true">
+                  {parts.map((part) => (
+                    <span key={part.key} className={partTone[part.key]} style={{ width: `${(part.pairs / summary.readyPairs) * 100}%` }} />
+                  ))}
+                </span>
+              ) : null}
+              {parts.map((part, index) => (
+                <span key={part.key} className="inline-flex items-center gap-1">
+                  {index > 0 ? <span className="mx-1">·</span> : null}
+                  <span className={`inline-block h-2 w-2 rounded-full ${partTone[part.key]}`} aria-hidden="true" />
+                  <span className="tabular-nums">{part.pairs}</span> <T en={part.en} ne={part.ne} />
+                </span>
+              ))}
+            </>
+          }
+          tone="good"
+          size="lead"
+        />
         <StatCard label={<T en="🏭 At the factory" ne="🏭 कारखानामा" />} value={atFactory} detail={<T en="Counted at the factory." ne="कारखानामा गनिएको।" />} />
         <StatCard label={<T en="🛒 At the shop" ne="🛒 पसलमा" />} value={atShop} detail={<T en="Counted at the shop." ne="पसलमा गनिएको।" />} />
         {toPutRight > 0 ? (
@@ -361,6 +405,23 @@ export default async function AdminStockPage() {
         )}
         {summary.rawMaterialReorderItems > 0 ? (
           <StatCard label={<T en="Material running low" ne="सकिन लागेको कच्चा माल" />} value={summary.rawMaterialReorderItems} detail={<T en={`Of ${summary.rawMaterialItems} materials.`} ne={`${summary.rawMaterialItems} वटा मालमध्ये।`} />} tone="warn" />
+        ) : null}
+        {loaded.stockValue ? (
+          <StatCard
+            label={<T en="Stock at cost" ne="स्टकको लागत मूल्य" />}
+            value={money(loaded.stockValue.value)}
+            detail={
+              loaded.stockValue.missingCost > 0 ? (
+                <T
+                  en={`${loaded.stockValue.missingCost} shoe(s) have no cost yet and are not counted. Enter it in Costing.`}
+                  ne={`${loaded.stockValue.missingCost} जुत्ताको लागत छैन, त्यसैले गनिएको छैन। Costing मा राख्नुहोस्।`}
+                />
+              ) : (
+                <T en="Ready pairs at what each pair cost." ne="तयार जोडी, एक जोडीको लागतमा।" />
+              )
+            }
+            tone={loaded.stockValue.missingCost > 0 ? "warn" : "plain"}
+          />
         ) : null}
         {summary.damagedPairs > 0 ? (
           <StatCard label={<T en="Written off" ne="बिग्रिएर हटाएको" />} value={summary.damagedPairs} detail={<T en="Damaged or lost — not a sale." ne="बिग्रिएको वा हराएको — बिक्री होइन।" />} tone="warn" />
@@ -388,6 +449,45 @@ export default async function AdminStockPage() {
           on sale: counting Drafts too, the page once said "the website shows
           the same 215 pairs" while the shop sold 96 of them (owner,
           2026-09-29). The question is asked only when the two numbers differ. */}
+      {/* Shoes with pairs that shoppers cannot see, each a press from its
+          form — the question below only named them in a sentence (owner,
+          2026-09-30: 379 pairs apart). */}
+      {summary.draftShoes.length > 0 ? (
+        <section className="mt-4 rounded-2xl border-2 border-brand-gold/50 bg-brand-cream-soft p-4 sm:p-5">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T
+              en={`Not on the website yet: ${summary.draftShoes.length} shoe(s), ${summary.draftCatalogPairs} pairs`}
+              ne={`वेबसाइटमा अझै नदेखिएका: ${summary.draftShoes.length} जुत्ता, ${summary.draftCatalogPairs} जोडी`}
+            />
+          </h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            <T
+              en="They are in Draft. Give each a price, a photo and its sizes, then make it Active to put it on sale."
+              ne="यी Draft मा छन्। हरेकमा मूल्य, फोटो र साइज राखेर Active गरेपछि वेबसाइटमा बिक्रीमा आउँछन्।"
+            />
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {summary.draftShoes.map((shoe) => (
+              <li key={shoe.id}>
+                <Link
+                  href={`/admin/products?edit=${encodeURIComponent(shoe.id)}`}
+                  className="flex min-h-12 items-center justify-between gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base"
+                >
+                  <span className="min-w-0">
+                    <b className="text-brand-green-ink">{shoe.name}</b>
+                    {shoe.sku ? <span className="ml-1 font-mono text-sm text-brand-muted">{shoe.sku}</span> : null}
+                    <span className="ml-1 text-sm text-brand-muted">· {shoe.pairs} <T en="pairs" ne="जोडी" /></span>
+                  </span>
+                  <span className="shrink-0 text-sm font-black text-brand-green">
+                    <T en="Put on sale →" ne="बिक्रीमा राख्ने →" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {summary.onSaleCatalogPairs === summary.readyPairs ? (
         <p className="mt-4 rounded-2xl border border-brand-green-line bg-brand-green-wash px-4 py-3 text-sm font-bold leading-6 text-brand-green-ink">
           ✓{" "}

@@ -57,7 +57,8 @@ describe("4. recent movement", () => {
   it("is one line per shoe, per kind, per day, without the channel", async () => {
     const page = await readFile(PAGE, "utf8");
     expect(page).toContain("function groupMovements(movements: StockMovement[])");
-    expect(page).toContain("const key = `${date}::${movement.design}::${movement.type}`;");
+    // Keyed by kind since 2026-09-30: goods added at the counter are their own kind.
+    expect(page).toContain("const key = `${date}::${movement.design}::${kind}`;");
     expect(page).not.toContain("{movement.channel} · Size {movement.sizeRun}");
   });
 });

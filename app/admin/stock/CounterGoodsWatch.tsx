@@ -6,6 +6,7 @@ import type { CounterItemRow } from "@/lib/counter-items";
 import type { StockAtPlace } from "@/lib/stock-transfers";
 import { markCounterItemReviewedAction } from "@/app/admin/stock/actions";
 import ReviewButton from "@/app/admin/stock/ReviewButton";
+import { sizesToCount } from "@/lib/stock-page-rules";
 
 const HOW = {
   old: { en: "Already on the shelf", ne: "पहिले नै थियो" },
@@ -23,16 +24,26 @@ const HOW = {
  * all week, so the list does not change under the person counting.
  */
 export function weeklyCountShoes(rows: StockAtPlace[], today: string, howMany = 5) {
-  const byShoe = new Map<string, { design: string; factory: number; shop: number; total: number }>();
+  const byShoe = new Map<
+    string,
+    { design: string; factory: number; shop: number; total: number; rows: StockAtPlace[]; sizes: Array<{ size: string; pairs: number }> }
+  >();
   for (const row of rows) {
     const key = row.design.trim().toLowerCase();
-    const seen = byShoe.get(key) ?? { design: row.design, factory: 0, shop: 0, total: 0 };
+    const seen = byShoe.get(key) ?? { design: row.design, factory: 0, shop: 0, total: 0, rows: [], sizes: [] };
     seen.factory += row.factory;
     seen.shop += row.shop;
     seen.total += row.total;
+    seen.rows.push(row);
     byShoe.set(key, seen);
   }
-  const inStock = [...byShoe.values()].filter((shoe) => shoe.total > 0).sort((a, b) => a.design.localeCompare(b.design));
+  // A big shoe is counted size by size: "count 200 pairs of kitto 770" is a
+  // morning's work and hides a wrong number (owner, 2026-09-30).
+  for (const shoe of byShoe.values()) shoe.sizes = sizesToCount(shoe.rows, shoe.total);
+  const inStock = [...byShoe.values()]
+    .filter((shoe) => shoe.total > 0)
+    .sort((a, b) => a.design.localeCompare(b.design))
+    .map(({ design, factory, shop, total, sizes }) => ({ design, factory, shop, total, sizes }));
   if (inStock.length <= howMany) return inStock;
   // Weeks from Sunday, the shop's week. Day 0 (1 Jan 1970) was a Thursday, so
   // four days are added before dividing, or the list would change on Thursdays.
@@ -158,6 +169,19 @@ export default function CounterGoodsWatch({
                     ne={`एपमा ${shoe.total} · पसल ${shoe.shop} · कारखाना ${shoe.factory} · र्‍याकमा: ____`}
                   />
                 </span>
+                {shoe.sizes.length > 0 ? (
+                  <span className="grid w-full grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1.5 pt-1">
+                    {shoe.sizes.map((entry) => (
+                      <span key={entry.size} className="rounded-lg border border-brand-green-line px-2 py-1 text-sm tabular-nums text-brand-green-ink">
+                        {entry.size === "Mixed" ? (
+                          <T en={`Uncounted: ${entry.pairs} · shelf ___`} ne={`साइज नगनिएको: ${entry.pairs} · र्‍याक ___`} />
+                        ) : (
+                          <T en={`Size ${entry.size}: ${entry.pairs} · shelf ___`} ne={`साइज ${entry.size}: ${entry.pairs} · र्‍याक ___`} />
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

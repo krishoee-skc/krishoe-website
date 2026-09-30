@@ -140,6 +140,12 @@ export function buildStockOverview(data: OperationsData, products: Product[]) {
       draftShoesWithPairs: products
         .filter((product) => product.status !== "Active" && product.stock > 0)
         .map((product) => product.name),
+      // The same shoes with what the page needs to send the owner to each one:
+      // a list to act on rather than a sentence to read (owner, 2026-09-30).
+      draftShoes: products
+        .filter((product) => product.status !== "Active" && product.stock > 0)
+        .map((product) => ({ id: product.id, name: product.name, sku: product.sku, pairs: product.stock }))
+        .sort((left, right) => right.pairs - left.pairs || left.name.localeCompare(right.name)),
     },
   };
 }

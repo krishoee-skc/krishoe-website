@@ -13,6 +13,7 @@ import {
 } from "@/app/admin/stock/actions";
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 import { sameCode } from "@/lib/shoe-code";
+import Link from "next/link";
 
 /** What the stock page knows about a shoe beyond where its pairs are. */
 export type ShoeExtra = {
@@ -22,6 +23,8 @@ export type ShoeExtra = {
   lasts: { status: "out" | "urgent" | "soon" | "healthy" | "unknown"; en: string; ne: string } | null;
   /** The shoe's code (KR-205), when the shop has one for it. */
   code?: string;
+  /** Its product, for "put the name, price or sizes right". */
+  productId?: string;
   /** Its latest movements, newest first, already worded. */
   history?: Array<{ date: string; en: string; ne: string; pairs: number; sign: number }>;
 };
@@ -119,6 +122,10 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
   const [search, setSearch] = useState("");
   const [shoeFilter, setShoeFilter] = useState<ShoeFilter>("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "attention", dir: 1 });
+  // Sold-out shoes sit folded at the foot of the plain list (owner,
+  // 2026-09-30): goods added at the counter and sold the same day came first
+  // in red, above the shoes still selling. "Sold out" above still lists them.
+  const [showSoldOut, setShowSoldOut] = useState(false);
 
   const to = from === "Factory" ? "Shop" : "Factory";
 
@@ -281,10 +288,12 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
     return true;
   };
   const countFor = (filter: ShoeFilter) => groups.filter((group) => passes(group, filter)).length;
+  const soldOut = (group: ShoeGroup) => group.total <= 0 && !gapOf(group);
   const attention = (group: ShoeGroup) => {
     if (gapOf(group)) return 0;
     const status = extras[group.design]?.lasts?.status;
-    if (group.total <= 0 || status === "out") return 1;
+    if (group.total <= 0) return 4;
+    if (status === "out") return 1;
     if (status === "urgent" || status === "soon") return 2;
     return 3;
   };
@@ -309,6 +318,25 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups, extras, search, shoeFilter, sort]);
+  // The plain view folds the sold-out shoes; a search, a filter or another
+  // sort shows every one it finds.
+  const foldSoldOut = shoeFilter === "all" && !search.trim() && sort.key === "attention";
+  const soldOutShoes = foldSoldOut ? shown.filter(soldOut) : [];
+  const listed = foldSoldOut && !showSoldOut ? shown.filter((group) => !soldOut(group)) : shown;
+  const soldOutToggle =
+    soldOutShoes.length > 0 ? (
+      <button
+        type="button"
+        onClick={() => setShowSoldOut((open) => !open)}
+        aria-expanded={showSoldOut}
+        className="w-full rounded-lg border border-dashed border-brand-green-line bg-brand-paper px-3 py-2.5 text-left text-base font-black text-brand-muted"
+      >
+        {showSoldOut ? "▾ " : "▸ "}
+        {showSoldOut
+          ? text(`Hide the ${soldOutShoes.length} sold-out shoe(s)`, `सकिएका ${soldOutShoes.length} जुत्ता लुकाउने`)
+          : text(`${soldOutShoes.length} sold-out shoe(s) — press to see`, `सकिएका ${soldOutShoes.length} जुत्ता — थिचेर हेर्ने`)}
+      </button>
+    ) : null;
   const shownTotals = shown.reduce(
     (sum, group) => ({
       factory: sum.factory + group.factory,
@@ -518,7 +546,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
 
         {/* On a phone: one box per shoe, four equal cells inside. */}
         <ul className="mt-4 grid list-none gap-2 pl-0 sm:hidden">
-          {shown.map((group) => {
+          {listed.map((group) => {
             const extra = extras[group.design];
             const open = openShoes.has(group.design);
             return (
@@ -535,6 +563,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                       {extra?.code ? `${extra.code} · ` : ""}
                       {group.sizes ? `${text("Sizes", "साइज")} ${group.sizes}` : ""}
                     </span>
+                    <NoSizes group={group} text={text} />
                   </span>
                   <OriginTag origin={extra?.origin} text={text} />
                 </button>
@@ -559,6 +588,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
               </li>
             );
           })}
+          {soldOutToggle ? <li>{soldOutToggle}</li> : null}
           {shown.length === 0 ? (
             <li className="py-6 text-center text-brand-muted">
               {groups.length === 0 ? text("No ready stock yet.", "अझै तयारी माल छैन।") : text("No shoe matches.", "मिल्ने जुत्ता भेटिएन।")}
@@ -592,7 +622,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
               </tr>
             </thead>
             <tbody>
-              {shown.map((group, index) => {
+              {listed.map((group, index) => {
                 const extra = extras[group.design];
                 const open = openShoes.has(group.design);
                 const gap = gapOf(group);
@@ -620,6 +650,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                           {extra?.code ? <span className="font-mono">{extra.code}</span> : null}
                           {extra?.code && group.sizes ? " · " : ""}
                           {group.sizes ? `${text("Sizes", "साइज")} ${group.sizes}` : ""}
+                          <NoSizes group={group} text={text} />
                         </span>
                       </td>
                       {number(group.factory, "text-brand-gold-ink")}
@@ -639,6 +670,11 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                   </Fragment>
                 );
               })}
+              {soldOutToggle ? (
+                <tr>
+                  <td colSpan={7} className="border-t border-brand-green-line bg-brand-paper px-3 py-2">{soldOutToggle}</td>
+                </tr>
+              ) : null}
               {shown.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="border-t border-brand-green-line py-6 text-center text-brand-muted">
@@ -1060,6 +1096,22 @@ function sizesLabel(runs: string[]) {
   return named.join(", ");
 }
 
+/**
+ * A shoe whose pairs were never counted by size: the bill cannot say which
+ * size left and prints "Mixed" (owner, 2026-09-30: 8 of 12 shoes).
+ */
+function NoSizes({ group, text }: { group: ShoeGroup; text: Text }) {
+  if (group.sizes || group.total <= 0) return null;
+  return (
+    <span
+      className="ml-1 inline-block rounded-full bg-brand-cream-soft px-2 py-0.5 align-middle text-[11px] font-black text-brand-gold-ink"
+      title={text("Its pairs were not counted by size, so a bill prints Mixed.", "यसका जोडी साइज अनुसार गनिएका छैनन्, त्यसैले बिलमा Mixed छापिन्छ।")}
+    >
+      {text("no sizes", "साइज छैन")}
+    </span>
+  );
+}
+
 function OriginTag({ origin, text }: { origin: ShoeExtra["origin"] | undefined; text: Text }) {
   if (!origin || origin === "Other") return null;
   const label =
@@ -1121,6 +1173,22 @@ function ShoeHistory({ group, extra, text }: { group: ShoeGroup; extra: ShoeExtr
         </div>
       ) : null}
       <div className={sized ? "" : "lg:col-span-2"}>
+        {!group.sizes && group.total > 0 ? (
+          <p className="mb-2 rounded-lg bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-ink">
+            {text(
+              "Not counted by size. Enter its pairs size by size under Operations → Finished stock (and take them off the Mixed pile), and bills will print the size.",
+              "साइज अनुसार गनिएको छैन। Operations → Finished stock मा साइज अनुसार जोडी राख्नुभयो (र Mixed बाट घटाउनुभयो) भने बिलमा साइज छापिन्छ।",
+            )}
+          </p>
+        ) : null}
+        {extra?.productId ? (
+          <Link
+            href={`/admin/products?edit=${encodeURIComponent(extra.productId)}`}
+            className="mb-2 inline-flex min-h-10 items-center rounded-full border border-brand-green px-3 text-sm font-black text-brand-green"
+          >
+            ✎ {text("Put its name, price or sizes right", "नाम, मूल्य वा साइज सच्याउने")}
+          </Link>
+        ) : null}
         <p className="text-xs font-black uppercase tracking-[0.1em] text-brand-muted">{text("Lately", "पछिल्लो")}</p>
         {extra?.history?.length ? (
           <ul className="mt-2 grid gap-1">

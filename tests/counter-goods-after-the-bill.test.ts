@@ -66,6 +66,6 @@ describe("five shoes a week", () => {
 
   it("adds up a shoe kept in several size rows", () => {
     const shoes = weeklyCountShoes([row("x", 2), { ...row("x", 3), sizeRun: "38" }] as never, "2026-09-28");
-    expect(shoes).toEqual([{ design: "x", factory: 5, shop: 0, total: 5 }]);
+    expect(shoes).toEqual([{ design: "x", factory: 5, shop: 0, total: 5, sizes: [] }]);
   });
 });
