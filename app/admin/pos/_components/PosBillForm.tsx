@@ -34,6 +34,7 @@ import {
   type SellableItem,
 } from "@/app/admin/pos/_components/pos-bill-rules";
 import { groupBillLines, sortSizes } from "@/lib/bill-lines";
+import { customerForPhone, customerSuggestions, phoneProblem, type KnownCustomer } from "@/lib/customer-contact-rules";
 
 export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
@@ -50,6 +51,8 @@ export type TodayFigures = {
 type PosBillFormProps = {
   ledgers: LedgerOption[];
   catalog: SellableItem[];
+  /** Customers already billed or given an account, for "is it one of these?". */
+  knownCustomers?: KnownCustomer[];
   /** Whether the database takes goods added from the counter (Owner's Settings button). */
   counterReady?: boolean;
   /** Only the Owner is sent to Settings to prepare it. */
@@ -190,6 +193,7 @@ function BillTimer({ startedAt }: { startedAt: number | null }) {
 export default function PosBillForm({
   ledgers,
   catalog: serverCatalog,
+  knownCustomers = [],
   counterReady = false,
   isOwner = false,
   lastBill,
@@ -285,6 +289,13 @@ export default function PosBillForm({
   const amountDue = isExchange ? settle.toPay : totals.total;
 
   const phoneAccount = phone ? ledgerOptions.find((ledger) => samePhone(ledger.phone, phone)) : undefined;
+  // A number that cannot be rung is only warned about, never refused (owner,
+  // 2026-09-30): bills went through with 5555555 and 11111111111.
+  const phoneWarning = phoneProblem(phone);
+  // One customer, one name and phone: those already on the books whose name
+  // reads like the one typed, and whoever an earlier bill gave this phone.
+  const nameSuggestions = customerSuggestions(customerName, phone, knownCustomers);
+  const phoneCustomer = !customerName.trim() && !phoneAccount ? customerForPhone(phone, knownCustomers) : null;
   const accountId = ledgerId || phoneAccount?.id || "";
   const account = ledgerOptions.find((ledger) => ledger.id === accountId);
 
@@ -1149,6 +1160,20 @@ export default function PosBillForm({
                 aria-label={text("Customer's phone", "ग्राहकको फोन")}
                 className={inputClass}
               />
+              {phoneWarning ? (
+                <p className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-deep">
+                  ⚠ {text(phoneWarning.en, phoneWarning.ne)}
+                </p>
+              ) : null}
+              {phoneCustomer ? (
+                <button
+                  type="button"
+                  onClick={() => setCustomerName(phoneCustomer.name)}
+                  className="rounded-xl bg-brand-green-tint px-3 py-2 text-left text-sm text-brand-green"
+                >
+                  {text("Billed before as", "पहिले यो नामले बिल:")} <b>{phoneCustomer.name}</b> · {text("use this name →", "यही नाम राख्ने →")}
+                </button>
+              ) : null}
               {phoneAccount ? (
                 <p className="rounded-xl bg-brand-green-tint px-3 py-2 text-sm text-brand-green">
                   {text("Known customer:", "पुरानो ग्राहक:")} <b>{phoneAccount.customerName || phoneAccount.label}</b>
@@ -1170,6 +1195,25 @@ export default function PosBillForm({
                 data-summary="text"
                 className={inputClass}
               />
+              {nameSuggestions.length > 0 ? (
+                <div className="grid gap-1.5 rounded-xl border border-brand-green-line bg-brand-paper p-2">
+                  <p className="text-sm font-bold text-brand-muted">{text("Already a customer? Tap to fill:", "पुरानो ग्राहक हो? थिचेर भर्नुहोस्:")}</p>
+                  {nameSuggestions.map((person) => (
+                    <button
+                      key={`${person.name}|${person.phone}`}
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(person.name);
+                        if (person.phone) setPhone(person.phone);
+                      }}
+                      className="flex min-h-10 items-center justify-between gap-2 rounded-lg bg-brand-green-tint px-3 text-left text-sm font-bold text-brand-green-ink"
+                    >
+                      <span>{person.name}</span>
+                      <span className="font-normal text-brand-muted">{person.phone || text("no phone", "फोन छैन")}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {/* A wholesale buyer's PAN is asked for on most bills, so on a
                   wholesale bill it is out in the open, next after the name —
                   not folded under "More". It prints on the bill either way. */}

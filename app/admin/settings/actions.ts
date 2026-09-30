@@ -8,6 +8,7 @@ import { prepareDeliveryDatabase } from "@/lib/delivery-database";
 import { preparePosDatabase } from "@/lib/pos-database";
 import { prepareOrderDispatchDatabase } from "@/lib/order-dispatch-database";
 import { prepareCounterItemsDatabase } from "@/lib/counter-items-database";
+import { prepareChequesDatabase } from "@/lib/cheques";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -289,6 +290,26 @@ export async function prepareCounterItemsDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for new goods from the counter.");
+}
+
+/** The Owner's "OK" on the table that watches cheques on bills until they clear. */
+export async function prepareChequesDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the table.");
+    }
+    const { applied } = await prepareChequesDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_cheques_ready",
+      applied.length
+        ? `Database prepared for cheques on bills: ${applied.join(", ")}.`
+        : "Database was already ready for cheques on bills.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for cheques on bills.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

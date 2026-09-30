@@ -1443,6 +1443,14 @@ CREATE TABLE IF NOT EXISTS counter_items (
 CREATE INDEX IF NOT EXISTS counter_items_design_idx ON counter_items (lower(design));
 CREATE INDEX IF NOT EXISTS counter_items_open_idx ON counter_items (created_at) WHERE reviewed_at IS NULL;
 
+-- Cheques on counter bills, until the bank pays them (20260930_pos_cheques.sql).
+CREATE TABLE IF NOT EXISTS pos_cheques (
+  invoice_id text PRIMARY KEY,
+  state text NOT NULL CHECK (state IN ('cleared', 'bounced', 'recovered')),
+  noted_at timestamptz NOT NULL DEFAULT now(),
+  noted_by text NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS stock_locations (
   id TEXT PRIMARY KEY,
   design TEXT NOT NULL,

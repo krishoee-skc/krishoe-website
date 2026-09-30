@@ -1,4 +1,7 @@
 import { counterItemsReady } from "@/lib/counter-items-database";
+import { chequesReady, chequesToWatch, getChequeStates } from "@/lib/cheques";
+import { knownCustomersFrom } from "@/lib/customer-contact-rules";
+import ChequesToClear from "@/app/admin/pos/_components/ChequesToClear";
 import Link from "next/link";
 import T from "@/components/T";
 import EmptyState from "@/components/admin/EmptyState";
@@ -214,6 +217,17 @@ export default async function AdminPosPage({
     reportError("check the counter items table", error);
     return false;
   });
+  // Cheques are watched once the Owner's database button has been pressed.
+  const chequeReady = await chequesReady().catch((error) => {
+    reportError("check the cheques table", error);
+    return false;
+  });
+  const chequeStates = chequeReady
+    ? await getChequeStates().catch((error) => {
+        reportError("read the cheques on bills", error);
+        return new Map();
+      })
+    : new Map();
 
   if (!loaded.data) {
     return (
@@ -222,6 +236,13 @@ export default async function AdminPosPage({
   }
 
   const [pos, operations, products, costing] = loaded.data;
+  const cheques = chequesToWatch(pos.invoices, chequeStates);
+  // Everyone billed or given an account, newest first, for "is it one of
+  // these?" under the name box — one customer, one name and phone.
+  const knownCustomers = knownCustomersFrom([
+    ...pos.invoices.map((invoice) => ({ name: invoice.customerName, phone: invoice.phone })),
+    ...operations.customerLedgers.map((ledger) => ({ name: ledger.customerName, phone: ledger.phone })),
+  ]);
 
   // What the counter can sell: each design with the pairs on hand and its price
   // per channel, so tapping one fills the rate and shows the stock. Built from
@@ -421,6 +442,7 @@ export default async function AdminPosPage({
             balanceDue: ledger.balanceDue,
           }))}
           catalog={catalog}
+          knownCustomers={knownCustomers}
           counterReady={counterReady}
           isOwner={isOwner}
           lastBill={lastBill}
@@ -684,6 +706,8 @@ export default async function AdminPosPage({
 
       </>
       ) : null}
+
+      <ChequesToClear rows={cheques} ready={chequeReady} isOwner={isOwner} canMark={canAdmin(role, "pos:write")} />
 
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

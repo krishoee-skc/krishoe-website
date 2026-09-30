@@ -6,6 +6,7 @@ import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
+import { chequeAmount, chequeStates, setChequeState, type ChequeState } from "@/lib/cheques";
 import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
@@ -13,6 +14,7 @@ import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import {
   createPosExchange,
   createPosInvoice,
+  getPosInvoiceById,
   repairPosInvoicePosting,
   type PosChannel,
   type PosInvoiceKind,
@@ -414,4 +416,25 @@ export async function createCounterItemAction(input: CounterItemInput): Promise<
       sameAs: [],
     };
   }
+}
+
+/**
+ * A cheque on a bill: the bank paid it, it bounced, or after a bounce the money
+ * came in another way (owner, 2026-09-30). Anyone who may cut a bill may say
+ * so; every mark is in the audit log.
+ */
+export async function setChequeStateAction(formData: FormData) {
+  const { session } = await requireAdminPermission("pos:write");
+  const id = String(formData.get("id") ?? "").trim();
+  const state = String(formData.get("state") ?? "").trim();
+  if (!chequeStates.some((option) => option === state)) return;
+  const invoice = id ? await getPosInvoiceById(id) : null;
+  if (!invoice || chequeAmount(invoice) <= 0) return;
+  const by = session?.name || session?.email || "Counter";
+  await setChequeState(invoice.id, state as ChequeState, by);
+  await recordAdminAuditEvent(
+    "pos_cheque_marked",
+    `Cheque on ${invoice.invoiceNumber} (${invoice.customerName}, Rs. ${chequeAmount(invoice)}) marked ${state} by ${by}.`,
+  );
+  revalidatePath("/admin/pos");
 }
