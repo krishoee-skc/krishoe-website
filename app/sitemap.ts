@@ -1,3 +1,4 @@
+import { productPath } from "@/lib/product-url";
 import type { MetadataRoute } from "next";
 import { getProducts } from "@/lib/product-store";
 import { categories } from "@/lib/products";
@@ -138,11 +139,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       images: [absoluteUrl(category.image)],
     })),
     ...products.map((product) => ({
-      url: `${baseUrl}/product/${product.id}`,
+      url: `${baseUrl}${productPath(product)}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: product.featured ? 0.85 : 0.75,
       images: product.gallery.length > 0 ? product.gallery.map(absoluteUrl) : [absoluteUrl(product.image)],
+    })),
+    // The Nepali pages (app/ne), each the pair of an English one above
+    // (owner, 2026-10-01).
+    { url: `${baseUrl}/ne`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 },
+    { url: `${baseUrl}/ne/shop`, lastModified: now, changeFrequency: "daily" as const, priority: 0.85 },
+    ...categories.map((category) => ({
+      url: `${baseUrl}/ne/shop/${category.slug}`,
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: getProductsByCategory(products, category).length > 0 ? 0.78 : 0.6,
+    })),
+    ...products.map((product) => ({
+      url: `${baseUrl}${productPath(product, "ne")}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
     })),
   ];
 }

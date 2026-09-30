@@ -33,15 +33,28 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
  */
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-export default function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en");
+/**
+ * `initialLanguage` is for the Nepali pages under /ne (owner, 2026-10-01): they
+ * are built in Nepali on the server, so a search engine reads them in Nepali —
+ * the saved choice cannot reach a crawler. There the page's own language wins
+ * over the saved one; everywhere else nothing changes.
+ */
+export default function LanguageProvider({
+  children,
+  initialLanguage,
+}: {
+  children: React.ReactNode;
+  initialLanguage?: Language;
+}) {
+  const [language, setLanguage] = useState<Language>(initialLanguage ?? "en");
 
   useIsomorphicLayoutEffect(() => {
+    if (initialLanguage) return;
     const saved = window.localStorage.getItem("krishoe-language");
     if (saved !== "ne") return;
 
     setLanguage("ne");
-  }, []);
+  }, [initialLanguage]);
 
   useEffect(() => {
     document.documentElement.lang = language;

@@ -171,8 +171,16 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "Replaces the whole app, LanguageProvider included, when everything else has failed. There is no preference left to read, and a stranded reader who cannot understand the one line offered has nowhere to go.",
   },
   "lib/seo.ts": {
-    lines: 3,
-    why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all.",
+    lines: 4,
+    why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all. The fourth is the Nepali page's product title (2026-10-01).",
+  },
+  "lib/nepali-pages.ts": {
+    lines: 13,
+    why: "The titles and descriptions of the Nepali pages under /ne — Nepali by purpose, each the twin of an English page that carries the English (2026-10-01).",
+  },
+  "app/admin/owner-summary-action.ts": {
+    lines: 5,
+    why: "The Owner's summary when the AI is not there: the same points the AI is asked to write in Nepali, for the one reader who reads it (2026-10-01).",
   },
   "app/faq/page.tsx": {
     lines: 2,

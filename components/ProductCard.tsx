@@ -1,3 +1,4 @@
+import { productPath } from "@/lib/product-url";
 import Link from "next/link";
 import ProductText from "@/components/commerce/ProductText";
 import { productImageAlt } from "@/lib/search-words";
@@ -20,7 +21,7 @@ export default function ProductCard({
   intent = "collection",
   eager = false,
 }: ProductCardProps) {
-  const href = `/product/${product.id}`;
+  const href = productPath(product);
   const level = stockLevel(product.stock);
   const outOfStock = level === "out";
   const lowStock = level === "low";

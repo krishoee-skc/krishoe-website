@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import OwnerSummary from "@/components/admin/OwnerSummary";
 
 /**
  * The owner's dashboard — the page everybody's eye lands on. The owner chose on
@@ -335,6 +336,20 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
             {text("What now", "अब के गर्ने")}
             {left > 0 ? <span className="rounded-full bg-brand-clay px-2 text-xs font-black text-white">{left}</span> : null}
           </h2>
+          {/* The day in a few points, on a press (owner, 2026-10-01). */}
+          <OwnerSummary
+            facts={{
+              today: { net: props.today.net, bills: props.today.bills, pairs: props.today.pairs, newOrders: props.today.newOrders },
+              week: props.week,
+              month: props.month,
+              salesGoal: props.salesGoal,
+              todos: props.todos.map((todo) => todo.ne),
+              lowShoes: props.shoes.filter((shoe) => shoe.stock > 0 && shoe.stock <= 5).slice(0, 5),
+              factoryTodayPairs: props.factory.todayPairs,
+              creditOwed: props.kpis.creditOwed,
+              workerDue: props.kpis.workerDue,
+            }}
+          />
           {props.todos.length === 0 ? (
             <p className="rounded-xl bg-brand-green-wash p-3 text-sm font-bold text-brand-green">
               {text("Nothing is stuck right now.", "अहिले केही अड्किएको छैन।")}

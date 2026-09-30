@@ -25,7 +25,8 @@ describe("the product page", () => {
     const page = await readFile(PAGE, "utf8");
 
     expect(page).toContain("export async function generateStaticParams");
-    expect(page).toContain("products.map((product) => ({ id: product.id }))");
+    // By the address in words since 2026-10-01 (lib/product-url.ts).
+    expect(page).toContain("products.map((product) => ({ id: productSlug(product) }))");
   });
 
   it("reads nothing about who is asking", async () => {

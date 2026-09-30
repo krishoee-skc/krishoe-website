@@ -1,5 +1,6 @@
 "use client";
 
+import { productPath } from "@/lib/product-url";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -165,7 +166,7 @@ export default function CommandSearch() {
                       return (
                         <li key={product.id}>
                           <Link
-                            href={`/product/${product.id}`}
+                            href={productPath(product)}
                             onClick={closePalette}
                             className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-brand-mist active:bg-brand-green-mist"
                           >

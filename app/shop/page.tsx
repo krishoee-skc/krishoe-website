@@ -10,6 +10,7 @@ export const metadata: Metadata = createPageMetadata({
   title: "Shop",
   description: "Shop KRISHOE premium footwear collections in Nepal.",
   path: "/shop",
+  pairPath: "/ne/shop",
 });
 
 /**

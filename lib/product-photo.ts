@@ -24,3 +24,21 @@ export function isSamplePhoto(image: string | null | undefined): boolean {
 export function hasNoPhoto(image: string | null | undefined): boolean {
   return typeof image !== "string" || image.trim() === "";
 }
+
+/**
+ * How a real photo could sell better (owner, 2026-10-01): the shop's photos
+ * are WhatsApp snaps, one per shoe. Advice, never a fault — a shoe with any
+ * real photo can be sold. Each item is a pair of words, English and Nepali.
+ */
+export function photoAdvice(product: { image?: string | null; gallery?: string[] | null }) {
+  const advice: Array<{ en: string; ne: string }> = [];
+  if (hasNoPhoto(product.image) || isSamplePhoto(product.image)) return advice;
+  const real = new Set([product.image, ...(product.gallery ?? [])].filter((image): image is string => Boolean(image) && !isSamplePhoto(image)));
+  if (real.size < 2) {
+    advice.push({ en: "One photo only — add 2–4 angles (side, top, sole, worn)", ne: "एउटा मात्र फोटो — २–४ कोणबाट थप्नुहोस् (छेउ, माथि, तलुवा, लगाएको)" });
+  }
+  if ([...real].some((image) => /whatsapp[-_ ]?image/i.test(image))) {
+    advice.push({ en: "A WhatsApp photo — a clear one on a plain white background sells better", ne: "WhatsApp को फोटो — सादा सेतो पृष्ठभूमिमा प्रस्ट फोटोले धेरै बेच्छ" });
+  }
+  return advice;
+}

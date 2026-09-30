@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import ProductText from "@/components/commerce/ProductText";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { productPath, productSlug } from "@/lib/product-url";
 import { getProductById, getProducts } from "@/lib/product-store";
 import { reportError } from "@/lib/report-error";
 import { getProductByIdFromList, getRelatedProductsFromList, productReviewStats } from "@/lib/products";
@@ -74,7 +75,7 @@ export async function generateStaticParams() {
   // added after the last build already is.
   try {
     const products = await getProducts();
-    return products.map((product) => ({ id: product.id }));
+    return products.map((product) => ({ id: productSlug(product) }));
   } catch (error) {
     reportError("list product pages to prerender", error);
     return [];
@@ -88,6 +89,12 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) {
     notFound();
+  }
+  // One address per shoe: an old id link, or a name from before a rename, is
+  // sent on to the address in words — permanently, so a search engine moves
+  // its listing too (owner, 2026-10-01).
+  if (decodeURIComponent(id).toLowerCase() !== productSlug(product)) {
+    permanentRedirect(productPath(product));
   }
 
   const relatedProducts = getRelatedProductsFromList(products, product);
@@ -142,7 +149,7 @@ export default async function ProductPage({ params }: Props) {
           { name: "Home", path: "/" },
           { name: "Shop", path: "/shop" },
           { name: product.category, path: `/shop/${product.categorySlug}` },
-          { name: product.name, path: `/product/${product.id}` },
+          { name: product.name, path: productPath(product) },
         ])}
       />
       <Navbar />
@@ -236,7 +243,7 @@ export default async function ProductPage({ params }: Props) {
                 <ShareProduct
                   name={product.name}
                   price={product.price}
-                  url={absoluteUrl(`/product/${product.id}`)}
+                  url={absoluteUrl(productPath(product))}
                 />
               </div>
 

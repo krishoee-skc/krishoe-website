@@ -130,6 +130,8 @@ export async function submitInvitedReview(
   }
 
   revalidatePath(`/product/${invite.productId}`);
+  // The page is served at the shoe's address in words; this reaches it.
+  revalidatePath("/product/[id]", "page");
   return {
     ok: true,
     message: {

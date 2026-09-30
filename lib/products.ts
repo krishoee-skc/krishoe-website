@@ -323,8 +323,9 @@ export const featuredProducts = products.filter((product) => product.featured);
 export const bestSellerProducts = products.filter((product) => product.bestSeller);
 export const newArrivalProducts = products.filter((product) => product.newArrival);
 
+/** By id, or by the address in words (lib/product-url.ts) — old links keep working. */
 export function getProductByIdFromList(items: Product[], id: string) {
-  return items.find((product) => product.id === id);
+  return findProductByParam(items, id);
 }
 
 export function getProductById(id: string) {
@@ -359,4 +360,5 @@ export function searchProductList(items: Product[], query: string) {
 
 export function searchProducts(query: string) {
   return searchProductList(products, query);
-}
+}import { findProductByParam } from "@/lib/product-url";
+

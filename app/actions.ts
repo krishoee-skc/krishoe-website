@@ -450,6 +450,8 @@ export async function submitReview(
   }
 
   revalidatePath(`/product/${productId}`);
+  // The page is served at the shoe's address in words; this reaches it.
+  revalidatePath("/product/[id]", "page");
   revalidatePath("/admin/inbox");
 
   return successState("Thank you. Your review is waiting for the shop to publish it.");

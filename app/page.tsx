@@ -17,6 +17,14 @@ import { businessContact, getProductsByCategory } from "@/lib/seo";
 import { categories } from "@/lib/products";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
+import type { Metadata } from "next";
+import { languagePair } from "@/lib/seo";
+
+// The home page names its Nepali pair at /ne, so a Nepali search is shown the
+// Nepali page (owner, 2026-10-01). Title and description stay the layout's.
+export const metadata: Metadata = {
+  alternates: { canonical: "/", languages: languagePair("/", "/ne", "en") },
+};
 
 /**
  * Shoes on sale in each collection, counted the way the collection page

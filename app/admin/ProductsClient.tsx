@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Product } from "@/lib/products";
-import { hasNoPhoto, isSamplePhoto } from "@/lib/product-photo";
+import { hasNoPhoto, isSamplePhoto, photoAdvice } from "@/lib/product-photo";
 import { PencilIcon, TrashIcon } from "@/components/Icons";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { deleteProductAction, type ActionState } from "@/app/admin/actions";
@@ -70,9 +70,30 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
       product.stock > 0 && (isSamplePhoto(product.image) || hasNoPhoto(product.image)),
   );
 
+  // Shoes whose real photo could sell better — one photo, or a WhatsApp snap.
+  const betterPhotos = products
+    .filter((product) => product.stock > 0)
+    .map((product) => ({ product, advice: photoAdvice(product) }))
+    .filter((entry) => entry.advice.length > 0);
+
   return (
     <div className="mt-6 space-y-4">
       <ActionMessage state={state} />
+
+      {betterPhotos.length > 0 ? (
+        <details className="rounded-lg border border-brand-gold bg-brand-cream-soft p-4">
+          <summary className="cursor-pointer text-sm font-black text-brand-gold-deep">
+            📷 {text(`${betterPhotos.length} shoe(s) would sell better with better photos`, `${betterPhotos.length} जुत्ताको फोटो अझ राम्रो बनाउँदा धेरै बिक्छ`)}
+          </summary>
+          <ul className="mt-2 grid gap-1.5">
+            {betterPhotos.map(({ product, advice }) => (
+              <li key={product.id} className="text-sm text-brand-green-ink">
+                <b>{product.name}</b> — {advice.map((item) => text(item.en, item.ne)).join(" · ")}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {wrongPhotos.length > 0 ? (
         <div className="rounded-lg border border-brand-clay bg-brand-clay-tint p-4">

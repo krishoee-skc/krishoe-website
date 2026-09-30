@@ -1,3 +1,5 @@
+import { categoryNepali } from "@/lib/nepali-pages";
+import { productPath } from "@/lib/product-url";
 import type { Metadata } from "next";
 import {
   CATEGORY_WORDS,
@@ -175,6 +177,8 @@ export function createPageMetadata({
   path,
   image = siteConfig.defaultImagePath,
   categorySlug,
+  language = "en",
+  pairPath,
 }: {
   title: string;
   description: string;
@@ -182,6 +186,10 @@ export function createPageMetadata({
   image?: string;
   /** Adds the words someone looking for that particular shelf would type. */
   categorySlug?: string;
+  /** Which language this page is in. */
+  language?: "en" | "ne";
+  /** The same page in the other language, for hreflang (owner, 2026-10-01). */
+  pairPath?: string;
 }): Metadata {
   const pageTitle = title.includes(siteConfig.name) ? title : `${title} | ${siteConfig.name}`;
   const canonical = absoluteUrl(path);
@@ -196,6 +204,7 @@ export function createPageMetadata({
     keywords: shopSearchWords(categorySlug),
     alternates: {
       canonical,
+      ...(pairPath ? { languages: languagePair(path, pairPath, language) } : {}),
     },
     openGraph: {
       title: pageTitle,
@@ -251,12 +260,25 @@ export function productSearchDescription(product: Product) {
   ].join(" · ");
 }
 
-export function createProductMetadata(product: Product): Metadata {
+/**
+ * hreflang: the English page, its Nepali pair under /ne, and English as the
+ * default for everyone else. Given on both pages, as Google asks.
+ */
+export function languagePair(path: string, pairPath: string, language: "en" | "ne") {
+  const en = absoluteUrl(language === "en" ? path : pairPath);
+  const ne = absoluteUrl(language === "ne" ? path : pairPath);
+  return { en, "ne-NP": ne, "x-default": en };
+}
+
+export function createProductMetadata(product: Product, language: "en" | "ne" = "en"): Metadata {
   // The category carries the words people search for — "sandal", "chappal",
   // "shoes" — which the product's own name often does not.
-  const title = `${product.name} — ${product.category} | KRISHOE Nepal`;
+  const title =
+    language === "ne"
+      ? `${product.name} — ${categoryNepali[product.categorySlug] ?? product.category} | KRISHOE नेपाल`
+      : `${product.name} — ${product.category} | KRISHOE Nepal`;
   const description = productSearchDescription(product);
-  const canonical = absoluteUrl(`/product/${product.id}`);
+  const canonical = absoluteUrl(productPath(product, language));
   const imageUrl = absoluteUrl(product.image);
 
   return {
@@ -272,6 +294,7 @@ export function createProductMetadata(product: Product): Metadata {
     }),
     alternates: {
       canonical,
+      languages: languagePair(productPath(product, language), productPath(product, language === "ne" ? "en" : "ne"), language),
     },
     openGraph: {
       title,
@@ -385,7 +408,7 @@ export function itemListJsonLd({
     itemListElement: products.map((product, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: absoluteUrl(`/product/${product.id}`),
+      url: absoluteUrl(productPath(product)),
       item: productJsonLd(product),
     })),
   };
@@ -439,7 +462,7 @@ export function productJsonLd(product: Product) {
       price: (product.priceValue / 100).toFixed(2),
       availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
-      url: absoluteUrl(`/product/${product.id}`),
+      url: absoluteUrl(productPath(product)),
     },
   };
 

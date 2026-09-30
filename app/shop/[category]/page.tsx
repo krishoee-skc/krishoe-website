@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     path: `/shop/${category.slug}`,
     image: category.image,
     categorySlug: slug,
+    pairPath: `/ne/shop/${category.slug}`,
   });
 }
 

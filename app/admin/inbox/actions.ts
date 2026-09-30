@@ -46,6 +46,8 @@ export async function setPublishedAction(formData: FormData) {
     // one disappears) without waiting for the page to rebuild on its own.
     if (affected?.productId) {
       revalidatePath(`/product/${affected.productId}`);
+      // The page is served at the shoe's address in words; this reaches it.
+      revalidatePath("/product/[id]", "page");
     }
   } catch (error) {
     reportError("publish customer review", error);

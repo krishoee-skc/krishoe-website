@@ -29,7 +29,7 @@ export function GET() {
 ${siteConfig.name} (legal name ${siteConfig.legalName}) is a Nepali footwear brand and online shop. It designs and makes its own sandals, slippers, casual shoes, heels and kids' styles, and sells them direct to customers across Nepal. Prices are in Nepali Rupees (NPR). Orders can be placed on the website, or over WhatsApp and Viber, and paid by cash on delivery.
 
 - Based in ${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}, Nepal.
-- Order or ask on WhatsApp/Viber: ${businessContact.phoneDisplay}.
+- Order or ask on WhatsApp/Viber: ${businessContact.whatsappDisplay}. Phone: ${businessContact.phoneDisplay}.
 - Cash on delivery available; delivery across Nepal.
 - The site is bilingual (English and Nepali).
 
