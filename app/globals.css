@@ -455,6 +455,38 @@ table th,
   }
 }
 
+/* The admin on a phone (owner, 2026-10-01): 714 places wrote 12px and 75
+   wrote 10-11px, too small to read at the counter; 76 buttons stood 32-36px,
+   under the 44px a thumb needs. On a phone only — the computer's layout was
+   laid out for these sizes — the smallest text reads 14px (13px where it was
+   10-11px) and a short button grows to 44px. Screen only: print keeps the
+   bill's own sizes. */
+@media screen and (max-width: 767px) {
+  .admin-canvas .text-xs {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .admin-canvas .text-\[10px\],
+  .admin-canvas .text-\[11px\] {
+    font-size: 0.8125rem;
+    line-height: 1.15rem;
+  }
+  .admin-canvas :is(button, a, summary).h-8,
+  .admin-canvas :is(button, a, summary).h-9 {
+    height: 2.75rem;
+  }
+  .admin-canvas :is(button, a).min-h-9,
+  .admin-canvas :is(button, a).min-h-10 {
+    min-height: 2.75rem;
+  }
+}
+
+/* A phone card's labels in the reader's language: server-drawn tables carry
+   both (data-label, data-label-ne) and the page says which is being read. */
+html[lang="ne"] .reflow-table td[data-label-ne]::before {
+  content: attr(data-label-ne);
+}
+
 /* iPads and large Android tablets can still trigger Safari's focus zoom even
    when their CSS viewport is wider than the phone breakpoint. */
 @media (hover: none) and (pointer: coarse) and (max-width: 1024px) {

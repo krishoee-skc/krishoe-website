@@ -75,7 +75,7 @@ export default function ProfitPerPair({ rows }: { rows: PairProfitRow[] }) {
         />
       </p>
       <div className="mt-3 overflow-x-auto">
-        <table className="min-w-full text-base">
+        <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-sm text-brand-muted">
             <tr>
               <th className="py-2 pr-3"><T en="Shoe" ne="जुत्ता" /></th>
@@ -90,18 +90,18 @@ export default function ProfitPerPair({ rows }: { rows: PairProfitRow[] }) {
               const tone = marginTone(row);
               return (
                 <tr key={row.design}>
-                  <td className="py-2.5 pr-3 font-bold text-brand-green-ink">{row.design}</td>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">{row.stockPairs}</td>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">
+                  <td className="reflow-primary py-2.5 pr-3 font-bold text-brand-green-ink">{row.design}</td>
+                  <td data-label="Stock" data-label-ne="स्टक" className="py-2.5 pr-3 text-right tabular-nums">{row.stockPairs}</td>
+                  <td data-label="Cost / pair" data-label-ne="लागत / जोडी" className="py-2.5 pr-3 text-right tabular-nums">
                     {row.unitCost > 0 ? money(row.unitCost) : <span className="font-bold text-brand-clay"><T en="No cost" ne="लागत छैन" /></span>}
                     {row.labourOnly ? (
                       <span className="block text-sm font-bold text-brand-gold-ink"><T en="⚠ labour only" ne="⚠ ज्याला मात्र" /></span>
                     ) : null}
                   </td>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">
+                  <td data-label="Sells at" data-label-ne="बिक्री मूल्य" className="py-2.5 pr-3 text-right tabular-nums">
                     {row.salePrice > 0 ? money(Math.round(row.salePrice)) : <span className="text-brand-muted"><T en="No price" ne="मूल्य छैन" /></span>}
                   </td>
-                  <td className="py-2.5 pr-3 text-right">
+                  <td data-label="Profit / pair" data-label-ne="नाफा / जोडी" className="py-2.5 pr-3 text-right">
                     <span className={`inline-block rounded-full px-3 py-0.5 font-black tabular-nums ${toneClass[tone]}`}>
                       {row.profit === null ? "—" : money(Math.round(row.profit))}
                     </span>

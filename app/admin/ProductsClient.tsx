@@ -95,7 +95,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
         </div>
       ) : null}
       <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
-      <table className="min-w-full divide-y divide-brand-green-line text-sm">
+      <table className="reflow-table min-w-full divide-y divide-brand-green-line text-sm">
         <thead className="bg-brand-paper-deep">
           <tr>
             <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink"></th>
@@ -113,12 +113,12 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
         <tbody className="divide-y divide-brand-green-line">
           {products.map((product) => (
             <tr key={product.id} className={editingId === product.id ? "bg-brand-mist" : undefined}>
-              <td className="whitespace-nowrap px-4 py-3">
+              <td data-label={text("Photo", "फोटो")} className="whitespace-nowrap px-4 py-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-md bg-brand-mist">
                   <SafeImage src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
                 </div>
               </td>
-              <td className="whitespace-nowrap px-4 py-3 font-medium text-brand-green-ink">
+              <td className="reflow-primary whitespace-nowrap px-4 py-3 font-medium text-brand-green-ink">
                 {product.name}
                 {/* Stock repeated here, under the name, so it is in view on a
                     phone without scrolling the wide table sideways to the Stock
@@ -145,9 +145,9 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                   </span>
                 ) : null}
               </td>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{product.sku}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{product.price}</td>
-              <td className="whitespace-nowrap px-4 py-3">
+              <td data-label={text("Code", "कोड")} className="whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{product.sku}</td>
+              <td data-label={text("Price", "मूल्य")} className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{product.price}</td>
+              <td data-label={text("Stock", "स्टक")} className="whitespace-nowrap px-4 py-3">
                 <span
                   className={`inline-flex min-w-9 justify-center rounded-full px-2.5 py-1 text-xs font-black ${
                     product.stock > 0
@@ -158,10 +158,10 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                   {product.stock}
                 </span>
               </td>
-              <td className="whitespace-nowrap px-4 py-3">
+              <td data-label={text("Status", "अवस्था")} className="whitespace-nowrap px-4 py-3">
                 <StatusBadge status={product.status} />
               </td>
-              <td className="whitespace-nowrap px-4 py-3">
+              <td data-label="" className="whitespace-nowrap px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
                   <Link
                     href={`/admin/products?edit=${encodeURIComponent(product.id)}`}

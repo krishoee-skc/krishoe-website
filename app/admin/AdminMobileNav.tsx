@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { OPEN_ADMIN_MENU } from "@/app/admin/AdminQuickDock";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import { MenuIcon, XIcon } from "@/components/Icons";
@@ -44,6 +45,12 @@ export default function AdminMobileNav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // The thumb bar's "More" opens this same menu.
+  useEffect(() => {
+    const openMenu = () => setOpen(true);
+    window.addEventListener(OPEN_ADMIN_MENU, openMenu);
+    return () => window.removeEventListener(OPEN_ADMIN_MENU, openMenu);
+  }, []);
   const [lastPath, setLastPath] = useState(pathname);
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
   const { language, text } = useLanguage();

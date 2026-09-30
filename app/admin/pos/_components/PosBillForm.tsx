@@ -1620,7 +1620,13 @@ export default function PosBillForm({
       {!cartOpen ? (
         <div data-pos-bar className="fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2.5 shadow-[0_12px_40px_rgba(16,35,29,0.18)] md:hidden print:hidden">
           <div className="tabular-nums">
-            <p className="text-xs text-brand-muted">{text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}</p>
+            <p className="text-xs text-brand-muted">
+              {/* Which rate, beside the count: on a phone the bill itself is a tap away. */}
+              <span className={`mr-1 rounded-full px-2 font-black ${channel === "Wholesale" ? "bg-brand-gold-bright/30 text-brand-gold-deep" : "bg-brand-green-wash text-brand-green"}`}>
+                {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
+              </span>
+              {text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}
+            </p>
             <p className="text-xl font-black text-brand-green-ink">{money(totals.total)}</p>
           </div>
           <button
@@ -1628,7 +1634,7 @@ export default function PosBillForm({
             onClick={() => setCartOpen(true)}
             className="h-12 rounded-xl bg-brand-green px-5 text-base font-black text-white"
           >
-            {text("Open bill ▲", "बिल हेर्ने ▲")}
+            {cart.length > 0 ? text("Bill & save ▲", "बिल र राख्ने ▲") : text("Open bill ▲", "बिल हेर्ने ▲")}
           </button>
         </div>
       ) : null}

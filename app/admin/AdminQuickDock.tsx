@@ -32,9 +32,15 @@ const links = [
   { href: "/admin/search", labelEn: "Search", labelNe: "खोज्ने", Icon: SearchIcon },
 ];
 
+/**
+ * "More" opens the whole menu from the bottom, where the thumb already is
+ * (owner, 2026-10-01): the menu sat behind ☰ at the top of the screen.
+ */
+export const OPEN_ADMIN_MENU = "krishoe:open-admin-menu";
+
 export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) {
   const pathname = usePathname();
-  const { language } = useLanguage();
+  const { language, text } = useLanguage();
   // Out of the way while typing: the dock sat between the keyboard and the
   // box being filled, on the screens where most typing happens.
   const keyboardOpen = useKeyboardOpen();
@@ -55,7 +61,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
       >
         <div
           className="mx-auto grid max-w-md gap-1"
-          style={{ gridTemplateColumns: `repeat(${Math.max(1, visibleLinks.length)}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${visibleLinks.length + 1}, minmax(0, 1fr))` }}
         >
           {visibleLinks.map(({ href, labelEn, labelNe, Icon }) => {
             const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
@@ -75,6 +81,14 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_ADMIN_MENU))}
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-black text-brand-muted-deep"
+          >
+            <span aria-hidden="true" className="text-lg leading-5">☰</span>
+            {text("More", "अरू")}
+          </button>
         </div>
       </nav>
     </>

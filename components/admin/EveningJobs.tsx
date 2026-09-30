@@ -60,7 +60,7 @@ export default function EveningJobs({
 
       {runs.length ? (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="reflow-table w-full text-left text-sm md:min-w-[560px]">
             <thead className="text-xs uppercase tracking-wider text-brand-muted">
               <tr>
                 <th className="py-2 pr-3 font-black"><T en="Job" ne="काम" /></th>
@@ -72,14 +72,14 @@ export default function EveningJobs({
             <tbody>
               {runs.map((run) => (
                 <tr key={run.job} className="border-t border-brand-green-line align-top">
-                  <td className="py-2 pr-3 font-bold text-brand-green-ink"><T en={run.label.en} ne={run.label.ne} /></td>
-                  <td className="py-2 pr-3">
+                  <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink"><T en={run.label.en} ne={run.label.ne} /></td>
+                  <td data-label="Result" data-label-ne="नतिजा" className="py-2 pr-3">
                     <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-black ${chip[run.outcome].className}`}>
                       <T en={chip[run.outcome].en} ne={chip[run.outcome].ne} />
                     </span>
                   </td>
-                  <td className="whitespace-nowrap py-2 pr-3 text-xs text-brand-muted">{formatAdminDate(run.at, { time: true })}</td>
-                  <td className="py-2 text-xs leading-5 text-brand-muted">{run.detail}</td>
+                  <td data-label="Last run" data-label-ne="अन्तिम पटक" className="whitespace-nowrap py-2 pr-3 text-xs text-brand-muted">{formatAdminDate(run.at, { time: true })}</td>
+                  <td data-label="What it said" data-label-ne="के भन्यो" className="py-2 text-xs leading-5 text-brand-muted">{run.detail}</td>
                 </tr>
               ))}
             </tbody>

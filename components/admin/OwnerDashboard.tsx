@@ -328,7 +328,9 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
           </div>
         </div>
 
-        <div id="what-now" className="grid content-start gap-2 rounded-3xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+        {/* On a phone the to-dos come first, above the money: what needs
+            doing is read before what was made (owner, 2026-10-01). */}
+        <div id="what-now" className="max-lg:-order-1 grid content-start gap-2 rounded-3xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
           <h2 className="flex items-center justify-between text-lg font-black text-brand-green-ink">
             {text("What now", "अब के गर्ने")}
             {left > 0 ? <span className="rounded-full bg-brand-clay px-2 text-xs font-black text-white">{left}</span> : null}
