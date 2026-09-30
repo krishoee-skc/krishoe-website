@@ -105,6 +105,10 @@ export type CounterItemDraft = {
   channel?: CounterItemChannel;
   costPerPair: number;
   lossConfirmed: boolean;
+  /** Least pairs a wholesale buyer takes; checked by counterItemDoubts. */
+  minWholesaleQty?: number;
+  /** The doubts above were looked at and the figures stand. */
+  doubtsConfirmed?: boolean;
 };
 
 /**
@@ -118,6 +122,61 @@ export function counterItemLosses(draft: Pick<CounterItemDraft, "retailPrice" | 
   const wholesale = draft.wholesalePrice ?? 0;
   if (sellsAtLoss(wholesale, draft.costPerPair)) losses.push({ which: "Wholesale", gap: draft.costPerPair - wholesale });
   return losses;
+}
+
+/**
+ * The kind a name reads as, so the form opens on it (owner, 2026-09-30): the
+ * kind stood on "Ladies Sandals" whatever was typed. The words are the shop's
+ * own — "hill" is a heeled sandal here ("bantu hill", "lose hill panja"), not
+ * a party heel. Names are typed in Roman letters at the counter, so the words
+ * are too. Null when nothing in the name says; the form keeps what it had.
+ */
+export function guessKind(name: string): string | null {
+  const n = ` ${String(name ?? "").toLowerCase()} `;
+  const has = (pattern: RegExp) => pattern.test(n);
+  if (has(/kids?|school|baby/)) return "kids-collection";
+  if (has(/party|heel/)) return "party-heels";
+  if (has(/chappal|chapal|chhapal|slipp?ers?/)) {
+    return has(/gents|\bmens?\b|men's/) ? "mens-collection" : "ladies-slippers";
+  }
+  if (has(/ladies|lady|sandal|sandel|flat|putali|hill/)) return "ladies-sandals";
+  if (has(/casual|sneaker|sports?/)) return "casual-shoes";
+  if (has(/gents|\bmens?\b|men's|jeans|shoe|shose/)) return "mens-collection";
+  return null;
+}
+
+/**
+ * Figures that read like a slip and are asked about before saving — KR-210
+ * went in with a wholesale minimum of 77,766 pairs and a cost of Rs. 1, and a
+ * bill was refused for it later (owner, 2026-09-30).
+ */
+export function counterItemDoubts(draft: {
+  pairs: number;
+  minWholesaleQty?: number;
+  costPerPair: number;
+  retailPrice: number;
+  wholesalePrice?: number;
+}) {
+  const doubts: Array<{ en: string; ne: string }> = [];
+  const min = Math.round(Number(draft.minWholesaleQty) || 0);
+  if (min > 1 && (min > 100 || (draft.pairs > 0 && min > draft.pairs))) {
+    const over = draft.pairs > 0 && min > draft.pairs;
+    const more = over
+      ? { en: `, more than the ${draft.pairs} being added`, ne: `, थपेको ${draft.pairs} जोडीभन्दा धेरै` }
+      : { en: "", ne: "" };
+    doubts.push({
+      en: `A wholesale minimum of ${min} pairs${more.en}.`,
+      ne: `थोकको न्यूनतम ${min} जोडी${more.ne}।`,
+    });
+  }
+  const selling = Math.max(draft.retailPrice || 0, draft.wholesalePrice || 0);
+  if (draft.costPerPair > 0 && selling > 0 && draft.costPerPair < selling * 0.1) {
+    doubts.push({
+      en: `A cost of Rs. ${draft.costPerPair} a pair against a price of Rs. ${selling}.`,
+      ne: `एक जोडीको लागत रु. ${draft.costPerPair}, मूल्य रु. ${selling}।`,
+    });
+  }
+  return doubts;
 }
 
 /** What the form still needs, in words; empty when it may be saved. */
@@ -148,6 +207,19 @@ export function counterItemProblem(draft: CounterItemDraft) {
           en: `Sells Rs. ${loss.gap} below cost a pair — tick to confirm, or change the price.`,
           ne: `एक जोडीमा रु. ${loss.gap} घाटा — जानीजानी हो भने टिक गर्नुहोस्, नभए मूल्य सच्याउनुहोस्।`,
         };
+  }
+  const doubts = counterItemDoubts({
+    pairs,
+    minWholesaleQty: draft.minWholesaleQty,
+    costPerPair: draft.costPerPair,
+    retailPrice: draft.retailPrice,
+    wholesalePrice: wholesale,
+  });
+  if (doubts.length > 0 && !draft.doubtsConfirmed) {
+    return {
+      en: `${doubts.map((doubt) => doubt.en).join(" ")} Tick if these figures are right, or change them.`,
+      ne: `${doubts.map((doubt) => doubt.ne).join(" ")} अंक ठीक हो भने टिक गर्नुहोस्, नभए सच्याउनुहोस्।`,
+    };
   }
   return null;
 }

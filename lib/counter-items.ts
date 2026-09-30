@@ -39,6 +39,8 @@ export type CounterItemInput = {
   /** Rupees; 0 when not known. */
   costPerPair: number;
   lossConfirmed: boolean;
+  /** A figure that read like a slip (lib/counter-item-rules.ts counterItemDoubts) was confirmed. */
+  doubtsConfirmed?: boolean;
   createdBy: string;
 };
 
@@ -78,6 +80,8 @@ export async function createCounterItem(input: CounterItemInput) {
     channel: input.channel ?? "Retail",
     costPerPair: input.costPerPair,
     lossConfirmed: input.lossConfirmed,
+    minWholesaleQty: input.minWholesaleQty,
+    doubtsConfirmed: input.doubtsConfirmed,
   });
   if (problem) throw new CounterItemRefusal(problem);
   const wholesalePrice = Math.max(0, Number(input.wholesalePrice) || 0);

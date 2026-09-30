@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { createCounterItemAction, type CounterItemResult } from "@/app/admin/pos/actions";
 import {
+  counterItemDoubts,
   counterItemLosses,
   counterItemProblem,
+  guessKind,
   similarNames,
   tidySizes,
   totalPairs,
@@ -32,6 +34,86 @@ const chip = (on: boolean) =>
     on ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink"
   }`;
 
+type Choice = { id: string; en: string; ne: string };
+
+/**
+ * One choice, shown as the one chosen (owner, 2026-09-30): six kinds and three
+ * ways in stood open as nine buttons, and Enter skipped straight past them.
+ * Now the choice is a stop — Enter accepts it and walks on, ← → changes it,
+ * a press opens every option.
+ */
+function ChoicePicker({
+  title,
+  options,
+  value,
+  onChange,
+  hint,
+  text,
+}: {
+  title: string;
+  options: Choice[];
+  value: string;
+  onChange: (id: string) => void;
+  hint?: string;
+  text: (en: string, ne: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const at = Math.max(0, options.findIndex((option) => option.id === value));
+  const current = options[at];
+
+  function step(event: KeyboardEvent<HTMLButtonElement>) {
+    const forward = event.key === "ArrowRight" || event.key === "ArrowDown";
+    const back = event.key === "ArrowLeft" || event.key === "ArrowUp";
+    if (!forward && !back) return;
+    event.preventDefault();
+    const next = (at + (forward ? 1 : options.length - 1)) % options.length;
+    onChange(options[next].id);
+  }
+
+  return (
+    <div className={label}>
+      <span>
+        {title}
+        {hint ? <span className="ml-1 font-semibold text-brand-gold-ink">· {hint}</span> : null}
+      </span>
+      {open ? (
+        <div className="flex flex-wrap gap-1.5">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => {
+                onChange(option.id);
+                setOpen(false);
+                window.setTimeout(() => button.current?.focus(), 0);
+              }}
+              className={chip(option.id === value)}
+            >
+              {text(option.en, option.ne)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          ref={button}
+          type="button"
+          data-enter-walk
+          onClick={() => setOpen(true)}
+          onKeyDown={step}
+          aria-label={`${title}: ${text(current.en, current.ne)}`}
+          className="flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-left text-base font-black text-brand-green-ink outline-none focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/20"
+        >
+          <span>{text(current.en, current.ne)}</span>
+          <span className="text-xs font-semibold text-brand-muted">
+            {text("Enter = right · ← → = change · press = all", "Enter = ठीक · ← → = बदल्ने · थिच्दा सबै")}
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * "+ New item" on the counter bill (owner, 2026-09-29): goods on the shelf that
  * were never entered, put on the books in one form and sold at once.
@@ -43,6 +125,10 @@ const chip = (on: boolean) =>
  * Opened from a wholesale bill it asks for the wholesale price first and must
  * have it; the retail price and the wholesale minimum are optional there. From
  * a retail bill it is the other way round (owner, 2026-09-30).
+ *
+ * Enter walks it top to bottom: the name, the kind (guessed from the name),
+ * how it came, the sizes — an empty size ends them — and the bill's own price;
+ * the rest sits under "+ more". The box being typed in is kept in view.
  */
 export default function PosNewItemSheet({
   initialName,
@@ -65,7 +151,7 @@ export default function PosNewItemSheet({
 }) {
   const { text } = useLanguage();
   const [name, setName] = useState(initialName.trim());
-  const [categorySlug, setCategorySlug] = useState(categories[0]?.slug ?? "");
+  const [chosenKind, setChosenKind] = useState<string | null>(null);
   const [how, setHow] = useState<CounterItemHow>("old");
   const [supplierName, setSupplierName] = useState("");
   const [supplierBillNo, setSupplierBillNo] = useState("");
@@ -80,6 +166,14 @@ export default function PosNewItemSheet({
   const [minPairs, setMinPairs] = useState("");
   const [cost, setCost] = useState("");
   const [lossConfirmed, setLossConfirmed] = useState(false);
+  const [doubtsConfirmed, setDoubtsConfirmed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const sizeBoxes = useRef<Array<HTMLInputElement | null>>([]);
+  const pileBox = useRef<HTMLInputElement>(null);
+  const kinds = categories.filter((entry) => entry.slug !== "new-arrivals");
+  const guessed = guessKind(name);
+  // Chosen by hand wins; otherwise the name's own words; otherwise the first.
+  const categorySlug = chosenKind ?? guessed ?? kinds[0]?.slug ?? "";
   const [refusal, setRefusal] = useState<{ en: string; ne: string; sameAs: string[] } | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -92,7 +186,26 @@ export default function PosNewItemSheet({
   const costPerPair = Number(cost) || 0;
   const isWholesale = channel === "Wholesale";
   const pairs = totalPairs(sizes, pilePairs);
-  const problem = counterItemProblem({ name, how, sizes, pilePairs, retailPrice, wholesalePrice, channel, costPerPair, lossConfirmed });
+  const problem = counterItemProblem({
+    name,
+    how,
+    sizes,
+    pilePairs,
+    retailPrice,
+    wholesalePrice,
+    channel,
+    costPerPair,
+    lossConfirmed,
+    minWholesaleQty: minPairs ? minWholesaleQty : undefined,
+    doubtsConfirmed,
+  });
+  const doubts = counterItemDoubts({
+    pairs,
+    minWholesaleQty: minPairs ? minWholesaleQty : undefined,
+    costPerPair,
+    retailPrice,
+    wholesalePrice,
+  });
   const losses = counterItemLosses({ retailPrice, wholesalePrice, costPerPair });
   const profits = [
     retailPrice > 0 && costPerPair > 0 ? text(`retail Rs. ${retailPrice - costPerPair}`, `खुद्रा रु. ${retailPrice - costPerPair}`) : "",
@@ -108,7 +221,7 @@ export default function PosNewItemSheet({
         inputMode="numeric"
         data-summary="money"
         placeholder={isWholesale && wholesalePrice > 0 ? text(`blank: Rs. ${wholesalePrice}`, `खाली भए रु. ${wholesalePrice}`) : ""}
-        onChange={(event) => { setPrice(event.target.value); setLossConfirmed(false); }}
+        onChange={(event) => { setPrice(event.target.value); setLossConfirmed(false); setDoubtsConfirmed(false); }}
         className={isWholesale ? `${box} border-dashed` : box}
       />
     </label>
@@ -120,7 +233,7 @@ export default function PosNewItemSheet({
         value={wholesale}
         inputMode="numeric"
         data-summary="money"
-        onChange={(event) => { setWholesale(event.target.value); setLossConfirmed(false); }}
+        onChange={(event) => { setWholesale(event.target.value); setLossConfirmed(false); setDoubtsConfirmed(false); }}
         className={isWholesale ? box : `${box} border-dashed`}
       />
     </label>
@@ -144,6 +257,7 @@ export default function PosNewItemSheet({
         channel,
         costPerPair,
         lossConfirmed,
+        doubtsConfirmed,
         createdBy: "",
       });
       if (result.ok) onCreated(result.item);
@@ -153,7 +267,15 @@ export default function PosNewItemSheet({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-brand-green-ink/40 sm:place-items-center" role="dialog" aria-modal="true" aria-label={text("New item", "नयाँ माल")}>
-      <div className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl bg-brand-paper p-5 shadow-2xl sm:rounded-3xl">
+      <div
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto scroll-smooth rounded-t-3xl bg-brand-paper p-5 shadow-2xl sm:rounded-3xl"
+        onFocusCapture={(event) => {
+          // The box the cursor moves to is brought into view: the sheet is
+          // taller than a phone, and Enter walked into boxes below the fold.
+          const target = event.target as HTMLElement;
+          if (target.matches("input, button, select, textarea")) target.scrollIntoView({ block: "center", behavior: "smooth" });
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-black text-brand-green-ink">
             ＋ {text("New item", "नयाँ माल")}
@@ -214,29 +336,22 @@ export default function PosNewItemSheet({
             </div>
           ) : null}
 
-          <div className={label}>
-            {text("Kind", "किसिम")}
-            <div className="flex flex-wrap gap-1.5">
-              {categories
-                .filter((entry) => entry.slug !== "new-arrivals")
-                .map((entry) => (
-                  <button key={entry.slug} type="button" onClick={() => setCategorySlug(entry.slug)} className={chip(categorySlug === entry.slug)}>
-                    {entry.title}
-                  </button>
-                ))}
-            </div>
-          </div>
+          <ChoicePicker
+            title={text("Kind", "किसिम")}
+            hint={chosenKind === null && guessed ? text("from the name", "नामबाट अनुमान") : undefined}
+            options={kinds.map((entry) => ({ id: entry.slug, en: entry.title, ne: entry.title }))}
+            value={categorySlug}
+            onChange={setChosenKind}
+            text={text}
+          />
 
-          <div className={label}>
-            {text("How did it come?", "यो माल कसरी आयो?")}
-            <div className="flex flex-wrap gap-1.5">
-              {HOWS.map((option) => (
-                <button key={option.id} type="button" onClick={() => setHow(option.id)} className={chip(how === option.id)}>
-                  {text(option.en, option.ne)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ChoicePicker
+            title={text("How did it come?", "यो माल कसरी आयो?")}
+            options={HOWS}
+            value={how}
+            onChange={(id) => setHow(id as CounterItemHow)}
+            text={text}
+          />
 
           {how === "pending_bill" ? (
             <div className="grid grid-cols-2 gap-2">
@@ -257,9 +372,21 @@ export default function PosNewItemSheet({
               {rows.map((row, index) => (
                 <div key={index} className="grid grid-cols-2 gap-2">
                   <input
+                    ref={(element) => {
+                      sizeBoxes.current[index] = element;
+                    }}
                     value={row.size}
                     inputMode="numeric"
                     placeholder={text("Size", "साइज")}
+                    onKeyDown={(event) => {
+                      // An empty size is "no more sizes": on to the next box,
+                      // past the empty rows, rather than into another blank
+                      // row (owner, 2026-09-30).
+                      if (event.key === "Enter" && !event.shiftKey && !row.size.trim()) {
+                        event.preventDefault();
+                        pileBox.current?.focus();
+                      }
+                    }}
                     onChange={(event) =>
                       setRows((current) => current.map((entry, at) => (at === index ? { ...entry, size: event.target.value } : entry)))
                     }
@@ -274,9 +401,12 @@ export default function PosNewItemSheet({
                       setRows((current) => current.map((entry, at) => (at === index ? { ...entry, pairs: event.target.value } : entry)))
                     }
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && index === rows.length - 1) {
+                      // A filled last row grows one more, and the cursor goes
+                      // to its size.
+                      if (event.key === "Enter" && !event.shiftKey && index === rows.length - 1 && row.size.trim() && row.pairs.trim()) {
                         event.preventDefault();
                         setRows((current) => [...current, { size: "", pairs: "" }]);
+                        window.setTimeout(() => sizeBoxes.current[index + 1]?.focus(), 0);
                       }
                     }}
                     className={box}
@@ -292,24 +422,63 @@ export default function PosNewItemSheet({
 
           <label className={label}>
             {text("Pairs with sizes not counted (optional)", "साइज नगनिएका जोडी (चाहे)")}
-            <input value={pile} inputMode="numeric" onChange={(event) => setPile(event.target.value)} className={box} />
+            <input ref={pileBox} value={pile} inputMode="numeric" onChange={(event) => setPile(event.target.value)} className={box} />
           </label>
 
-          {/* The bill's own price first, and the one that must be typed. */}
-          <div className="grid grid-cols-2 gap-2">{isWholesale ? [wholesaleBox, retailBox] : [retailBox, wholesaleBox]}</div>
+          {/* The bill's own price, the one that must be typed, stands open;
+              the rest are optional and fold under "+ more", where Enter does
+              not go unless it is opened (owner, 2026-09-30). */}
+          {isWholesale ? wholesaleBox : retailBox}
 
-          <div className="grid grid-cols-2 gap-2">
-            <label className={label}>
-              {text("Cost of a pair (if known)", "एक जोडीको लागत (थाहा भए)")}
-              <input value={cost} inputMode="numeric" onChange={(event) => { setCost(event.target.value); setLossConfirmed(false); }} className={box} />
+          <details
+            open={moreOpen || losses.length > 0 || doubts.length > 0}
+            onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}
+            className="rounded-xl border border-dashed border-brand-green-line px-3 py-2"
+          >
+            <summary className="cursor-pointer text-sm font-black text-brand-green">
+              ＋{" "}
+              {isWholesale
+                ? text("More (optional): retail price · cost · wholesale minimum", "थप (चाहे): खुद्रा मूल्य · लागत · थोकको न्यूनतम जोडी")
+                : text("More (optional): wholesale price · cost", "थप (चाहे): थोक मूल्य · लागत")}
+            </summary>
+            <div className="mt-3 grid gap-2">
+              {isWholesale ? retailBox : wholesaleBox}
+              <div className="grid grid-cols-2 gap-2">
+                <label className={label}>
+                  {text("Cost of a pair (if known)", "एक जोडीको लागत (थाहा भए)")}
+                  <input
+                    value={cost}
+                    inputMode="numeric"
+                    onChange={(event) => { setCost(event.target.value); setLossConfirmed(false); setDoubtsConfirmed(false); }}
+                    className={box}
+                  />
+                </label>
+                {isWholesale || wholesalePrice > 0 ? (
+                  <label className={label}>
+                    {text("Wholesale minimum pairs (optional)", "थोकको न्यूनतम जोडी (चाहे)")}
+                    <input
+                      value={minPairs}
+                      inputMode="numeric"
+                      onChange={(event) => { setMinPairs(event.target.value); setDoubtsConfirmed(false); }}
+                      className={`${box} border-dashed`}
+                    />
+                  </label>
+                ) : null}
+              </div>
+            </div>
+          </details>
+
+          {/* A figure that reads like a slip is asked about: KR-210 went in with
+              a wholesale minimum of 77,766 pairs and a cost of Rs. 1. */}
+          {doubts.length > 0 ? (
+            <label className="flex items-start gap-2 rounded-xl border-2 border-brand-gold bg-brand-cream-soft px-3 py-2.5 text-base font-bold text-brand-gold-ink">
+              <input type="checkbox" checked={doubtsConfirmed} onChange={(event) => setDoubtsConfirmed(event.target.checked)} className="mt-1 h-5 w-5" />
+              <span>
+                {text("Is this right?", "यो अंक ठीक हो?")} {doubts.map((doubt) => text(doubt.en, doubt.ne)).join(" ")}{" "}
+                {text("Tick if it is, or change it above.", "ठीक भए टिक गर्नुहोस्, नभए माथि सच्याउनुहोस्।")}
+              </span>
             </label>
-            {isWholesale || wholesalePrice > 0 ? (
-              <label className={label}>
-                {text("Wholesale minimum pairs (optional)", "थोकको न्यूनतम जोडी (चाहे)")}
-                <input value={minPairs} inputMode="numeric" onChange={(event) => setMinPairs(event.target.value)} className={`${box} border-dashed`} />
-              </label>
-            ) : null}
-          </div>
+          ) : null}
 
           {/* Guards 2 and 3: a loss is questioned, retail or wholesale; an unknown cost is said. */}
           {losses.length > 0 ? (

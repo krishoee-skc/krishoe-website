@@ -68,7 +68,7 @@ describe("the item made", () => {
 
   it("asks the wholesale price first on a wholesale bill", async () => {
     const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
-    expect(sheet).toContain("{isWholesale ? [wholesaleBox, retailBox] : [retailBox, wholesaleBox]}");
+    expect(sheet).toContain("{isWholesale ? wholesaleBox : retailBox}");
     expect(sheet).toContain('"थोकको न्यूनतम जोडी (चाहे)"');
   });
 });
