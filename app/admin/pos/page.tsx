@@ -316,6 +316,15 @@ export default async function AdminPosPage({
 
   // The most recent actual sale, offered as a one-tap "repeat" for a customer
   // buying the same run again.
+  // Below the bill, only today's (Kathmandu) — the full list, test bills and
+  // all, made the counter page a long scroll (owner, 2026-09-30). Reports keeps
+  // the recent twenty.
+  const kathmanduDay = (value: string | Date) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date(value));
+  const todayKey = kathmanduDay(new Date());
+  const billsShown = showReports
+    ? pos.recentInvoices
+    : pos.recentInvoices.filter((invoice) => kathmanduDay(invoice.createdAt) === todayKey);
   const lastSale = pos.recentInvoices.find(
     (invoice) => invoice.kind !== "Return" && invoice.items.length > 0,
   );
@@ -464,7 +473,9 @@ export default async function AdminPosPage({
       </div>
       )}
 
-      <div className="mt-8 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
+      {/* The month's figures belong with the reports; the counter's own strip
+          at the top already says today (owner, 2026-09-30). */}
+      <div className={`mt-8 grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4 ${showReports ? "" : "hidden"}`}>
         <StatCard label={<T en="Today net sales" ne="आजको खुद बिक्री" />} value={money(pos.summary.todayNetSales)} detail={`${money(pos.summary.todayReturns)} returns`} />
         <StatCard label={<T en="Month net sales" ne="महिनाको खुद बिक्री" />} value={money(pos.summary.monthNetSales)} detail={`${pos.summary.invoiceCount} total bills`} />
         <StatCard label={<T en="Credit from POS" ne="बिलबाट उधारो" />} value={money(pos.summary.totalCredit)} detail="linked to ledger when selected" />
@@ -712,15 +723,23 @@ export default async function AdminPosPage({
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent bills" ne="भर्खरका बिल" /></h2>
+            <h2 className="text-lg font-black text-brand-green-ink">
+              {showReports ? <T en="Recent bills" ne="भर्खरका बिल" /> : <T en={`Today's bills (${billsShown.length})`} ne={`आजका बिल (${billsShown.length})`} />}
+            </h2>
             <p className="mt-1 text-sm text-brand-muted">
               Invoice, stock movement, payment, and ledger posting trail.
             </p>
           </div>
-          <p className="text-sm font-bold text-brand-green">Year net sales {money(pos.summary.yearNetSales)}</p>
+          {showReports ? (
+            <p className="text-sm font-bold text-brand-green">Year net sales {money(pos.summary.yearNetSales)}</p>
+          ) : (
+            <Link href="/admin/pos?view=reports" className="text-sm font-black text-brand-green underline">
+              <T en="All bills and the month → Reports" ne="सबै बिल र महिनाको हिसाब → Reports" />
+            </Link>
+          )}
         </div>
 
-        {pos.recentInvoices.length === 0 ? (
+        {billsShown.length === 0 ? (
           <EmptyState
             icon="🧾"
             title={<T en="No bills yet" ne="अहिलेसम्म कुनै बिल छैन" />}
@@ -747,7 +766,7 @@ export default async function AdminPosPage({
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {pos.recentInvoices.map((invoice) => {
+                {billsShown.map((invoice) => {
                   const posting = pos.postingReviewRows.find((row) => row.id === invoice.id);
 
                   return (

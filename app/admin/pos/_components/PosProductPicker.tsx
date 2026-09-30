@@ -68,6 +68,9 @@ export default function PosProductPicker({
 }: PosProductPickerProps) {
   const { text } = useLanguage();
   const [category, setCategory] = useState("");
+  // Sold-out shoes fold at the foot of the plain list (owner, 2026-09-30): four
+  // of them took as much room as the shoes on the shelf. A search shows them.
+  const [showSoldOut, setShowSoldOut] = useState(false);
 
   const categories = useMemo(
     () => [...new Set(catalog.map((item) => item.category ?? "").filter(Boolean))].sort(),
@@ -117,6 +120,9 @@ export default function PosProductPicker({
       return aLeft - bLeft || a.design.localeCompare(b.design);
     });
   }, [catalog, category, query, cart, returning, sizeQuery]);
+  const foldSoldOut = !returning && !query.trim();
+  const soldOutCount = foldSoldOut ? shown.filter((item) => pairsLeft(item, cart) <= 0).length : 0;
+  const tiles = foldSoldOut && !showSoldOut ? shown.filter((item) => pairsLeft(item, cart) > 0) : shown;
 
   return (
     <section aria-label={text("Pick shoes", "जुत्ता छान्ने")} className="min-w-0">
@@ -248,11 +254,12 @@ export default function PosProductPicker({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-          {shown.map((item, index) => {
+          {tiles.map((item, index) => {
             const left = pairsLeft(item, cart);
             const soldOut = left <= 0 && !returning;
             const sizeLeft = sizeQuery ? sizeChoices(item, cart).find((choice) => choice.size === sizeQuery) : null;
             const rate = rateForChannel(channel, item);
+            const noPrice = !(rate > 0) && !soldOut;
 
             return (
               <button
@@ -260,7 +267,7 @@ export default function PosProductPicker({
                 type="button"
                 disabled={soldOut}
                 onClick={() => onChoose(item, sizeQuery)}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper text-left transition hover:-translate-y-0.5 hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                className={`group relative flex flex-col overflow-hidden rounded-2xl border ${noPrice ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"} text-left transition hover:-translate-y-0.5 hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0`}
               >
                 <span className="relative block aspect-[4/3] w-full bg-brand-paper-deep">
                   {item.image && !hasNoPhoto(item.image) ? (
@@ -285,8 +292,8 @@ export default function PosProductPicker({
                   <span className="line-clamp-2 text-sm font-black leading-tight text-brand-green-ink">{item.design}</span>
                   {item.sku ? <span className="font-mono text-[11px] text-brand-muted">{item.sku}</span> : null}
                   <span className="mt-auto flex items-baseline justify-between gap-1 pt-1">
-                    <span className="text-base font-black tabular-nums text-brand-green">
-                      {rate > 0 ? money(rate) : text("No price", "मूल्य छैन")}
+                    <span className={`text-base font-black tabular-nums ${noPrice ? "text-brand-clay" : "text-brand-green"}`}>
+                      {rate > 0 ? money(rate) : text("No price — tap, type it", "मूल्य छैन — थिचेर लेख्ने")}
                     </span>
                     <span className="text-[11px] font-semibold text-brand-muted">
                       {soldOut
@@ -302,6 +309,18 @@ export default function PosProductPicker({
               </button>
             );
           })}
+          {soldOutCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowSoldOut((open) => !open)}
+              aria-expanded={showSoldOut}
+              className="col-span-full min-h-11 rounded-2xl border border-dashed border-brand-green-line bg-brand-paper-deep px-4 text-left text-base font-bold text-brand-muted"
+            >
+              {showSoldOut
+                ? text(`▾ Hide the ${soldOutCount} sold-out shoe(s)`, `▾ सकिएका ${soldOutCount} जुत्ता लुकाउने`)
+                : text(`▸ ${soldOutCount} sold-out shoe(s)`, `▸ सकिएका ${soldOutCount} जुत्ता`)}
+            </button>
+          ) : null}
           {canOfferNew && !shown.some((item) => item.design.trim().toLowerCase() === newName.toLowerCase()) ? (
             <button
               type="button"

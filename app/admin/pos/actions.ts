@@ -177,6 +177,18 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
     };
   }
 
+  // A cheque can bounce, so the bill has to say whose it was (owner,
+  // 2026-09-30: Rs. 10,500 by cheque sat under "Walk-in Customer"). Cash, QR
+  // and the rest need no name.
+  const paidByCheque = paymentParts.length > 0 ? paymentParts.some((part) => part.method === "Cheque") : paymentMethod === "Cheque";
+  if (kind === "Sale" && paidByCheque && !textValue(formData, "customerName")) {
+    return {
+      ok: false,
+      // The form asks for the name first, in both languages; this is the backstop.
+      message: "A cheque bill needs the customer's name.",
+    };
+  }
+
   let invoice;
   try {
     invoice = await createPosInvoice({

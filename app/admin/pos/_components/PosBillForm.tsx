@@ -33,6 +33,7 @@ import {
   type RepeatBill,
   type SellableItem,
 } from "@/app/admin/pos/_components/pos-bill-rules";
+import { rateForChannel } from "@/app/admin/pos/_components/pos-bill-rules";
 import { groupBillLines, sortSizes } from "@/lib/bill-lines";
 import { customerForPhone, customerSuggestions, phoneProblem, type KnownCustomer } from "@/lib/customer-contact-rules";
 
@@ -76,6 +77,9 @@ type Payment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque"
 type DiscountMode = "none" | "5" | "10" | "amount";
 
 const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];
+// The ways the counter takes most days stand open; the others fold under
+// "More" until one is chosen (owner, 2026-09-30: seven equal buttons).
+const MAIN_PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Credit"];
 // The server refuses these without a transaction number once money is in, so
 // the box is asked for here, before Save, not after.
 const NEEDS_REFERENCE = new Set<Payment>(["Cheque", "QR", "eSewa", "Khalti", "Bank"]);
@@ -248,6 +252,10 @@ export default function PosBillForm({
   const [note, setNote] = useState("");
   const [picking, setPicking] = useState<SellableItem | null>(null);
   const [editingRate, setEditingRate] = useState<string | null>(null);
+  // A shoe with no price put on the bill opens its rate box at once, rather
+  // than leaving a Rs. 0 line to be found later (owner, 2026-09-30).
+  const [askRateFor, setAskRateFor] = useState<string | null>(null);
+  const [morePayments, setMorePayments] = useState(false);
   const [undo, setUndo] = useState<{ label: string; cart: CartLine[] } | null>(null);
   const held = useSyncExternalStore(subscribeHeld, heldSnapshot, () => NONE_HELD);
   const [cartOpen, setCartOpen] = useState(false);
@@ -344,11 +352,24 @@ export default function PosBillForm({
     blocked = text(`Type the ${payment} number`, `${payment} को नम्बर लेख्नुहोस्`);
   } else if (needsRestReference && !restReference.trim()) {
     blocked = text(`Type the ${restMethod} number`, `${restMethod} को नम्बर लेख्नुहोस्`);
+  } else if (!isReturn && payment === "Cheque" && !customerName.trim()) {
+    // A cheque can bounce: the bill has to say whose it was (owner,
+    // 2026-09-30: Rs. 10,500 by cheque sat under "Walk-in Customer").
+    blocked = text("Type the customer's name for a cheque", "चेकमा ग्राहकको नाम लेख्नुहोस्");
   } else if (needsAccount && !accountId) {
     blocked = isReturn
       ? text("Pick whose account the return goes to", "फिर्ता कसको खातामा जाने, छान्नुहोस्")
       : text("Pick whose account the unpaid part goes to", "बाँकी रकम कसको खातामा, छान्नुहोस्");
   }
+
+  // A note is news of the last thing done, and goes after a few seconds: "No
+  // more pairs of that size." stayed up through the next customer (owner,
+  // 2026-09-30).
+  useEffect(() => {
+    if (!note) return;
+    const timer = window.setTimeout(() => setNote(""), 6000);
+    return () => window.clearTimeout(timer);
+  }, [note]);
 
   // ---- putting shoes on the bill -----------------------------------------
   const add = useCallback(
@@ -378,6 +399,7 @@ export default function PosBillForm({
       }
       setCart((current) => addPair(current, item, channel, size, color));
       setStartedAt((value) => value ?? Date.now());
+      if (!(rateForChannel(channel, item) > 0)) setAskRateFor(item.design);
       setNote(
         size
           ? text(`Added ${item.design}, size ${size}.`, `${item.design}, साइज ${size} थपियो।`)
@@ -871,6 +893,15 @@ export default function PosBillForm({
               </button>
               <h2 className="flex-1 text-lg font-black text-brand-green-ink">
                 {isReturn ? text("Return bill", "फिर्ता बिल") : isExchange ? text("Exchange", "साटफेर") : text("Bill", "बिल")}
+                {/* Which rate this bill takes, where the bill is read, not
+                    only up among the shoes. */}
+                <span
+                  className={`ml-2 rounded-full px-2.5 py-0.5 align-middle text-xs font-black ${
+                    channel === "Wholesale" ? "bg-brand-gold-bright/30 text-brand-gold-deep" : "bg-brand-green-wash text-brand-green"
+                  }`}
+                >
+                  {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
+                </span>
               </h2>
               <BillTimer startedAt={startedAt} />
             </div>
@@ -894,6 +925,10 @@ export default function PosBillForm({
               </div>
             ) : null}
 
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">1</span>
+              {text("Shoes", "जुत्ता")}
+            </p>
             {cart.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-brand-green-line px-4 py-8 text-center text-sm text-brand-muted">
                 {isReturn
@@ -935,7 +970,13 @@ export default function PosBillForm({
                             ? text(`${pairs} pairs`, `${pairs} जोडी`)
                             : first.size
                               ? text(`Size ${first.size}`, `साइज ${first.size}`)
-                              : null}
+                              : (
+                                  // Goods never counted by size print "Mixed" on
+                                  // the bill; the counter sees it first.
+                                  <span className="rounded-md bg-brand-cream-soft px-1.5 font-black text-brand-gold-ink">
+                                    {text(`size not counted ×${pairs}`, `साइज नगनिएको ×${pairs}`)}
+                                  </span>
+                                )}
                           {group.color ? ` · ${group.color}` : null}
                         </p>
                       </div>
@@ -944,7 +985,7 @@ export default function PosBillForm({
                         {money(group.rate * pairs)}
                       </p>
                       <div className="flex items-center gap-2">
-                        {editingRate === first.key ? (
+                        {editingRate === first.key || (askRateFor === first.design && !(group.rate > 0) && !back) ? (
                           <input
                             autoFocus
                             inputMode="numeric"
@@ -956,15 +997,18 @@ export default function PosBillForm({
                                 event.preventDefault();
                                 commitRate(first.key, event.currentTarget.value);
                                 setEditingRate(null);
+                                setAskRateFor(null);
                               }
                               if (event.key === "Escape") {
                                 event.preventDefault();
                                 setEditingRate(null);
+                                setAskRateFor(null);
                               }
                             }}
                             onBlur={(event) => {
                               commitRate(first.key, event.currentTarget.value);
                               setEditingRate(null);
+                              setAskRateFor(null);
                             }}
                           />
                         ) : (
@@ -1151,6 +1195,10 @@ export default function PosBillForm({
               </div>
             ) : null}
 
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">2</span>
+              {text("Customer", "ग्राहक")}
+            </p>
             <div className="grid gap-2">
               <input
                 name="phone"
@@ -1194,6 +1242,8 @@ export default function PosBillForm({
                 placeholder={
                   needsAccount && !account
                     ? text("Customer's name (needed for credit)", "ग्राहकको नाम (उधारोका लागि चाहिन्छ)")
+                    : payment === "Cheque" && !isReturn
+                      ? text("Customer's name (needed for a cheque)", "ग्राहकको नाम (चेकका लागि चाहिन्छ)")
                     : text("Customer's name (optional)", "ग्राहकको नाम (नचाहिए खाली)")
                 }
                 aria-label={text("Customer's name", "ग्राहकको नाम")}
@@ -1253,8 +1303,14 @@ export default function PosBillForm({
             ) : null}
 
             {!isReturn && (amountDue > 0 || !isExchange) ? (
+              <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">3</span>
+                {text("Payment", "भुक्तानी")}
+              </p>
+            ) : null}
+            {!isReturn && (amountDue > 0 || !isExchange) ? (
               <div className="grid grid-cols-4 gap-1.5" role="group" aria-label={text("Payment", "भुक्तानी")}>
-                {PAYMENTS.map((option) => (
+                {PAYMENTS.filter((option) => MAIN_PAYMENTS.includes(option) || morePayments || payment === option).map((option) => (
                   <button
                     key={option}
                     type="button"
@@ -1274,6 +1330,15 @@ export default function PosBillForm({
                     {payLabel[option]}
                   </button>
                 ))}
+                {!morePayments && PAYMENTS.some((option) => !MAIN_PAYMENTS.includes(option) && option !== payment) ? (
+                  <button
+                    type="button"
+                    onClick={() => setMorePayments(true)}
+                    className="h-11 rounded-xl border border-dashed border-brand-green-line text-sm font-black text-brand-muted"
+                  >
+                    {text("More ▾", "अरू ▾")}
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
