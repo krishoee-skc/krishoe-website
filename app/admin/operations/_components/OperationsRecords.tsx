@@ -884,7 +884,8 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
 type MovementRow = OperationsSnapshot["stockMovements"][number];
 
 function movementGroupKey(movement: MovementRow) {
-  const reference = /KR-(?:BILL|PUR)-[A-Za-z0-9-]+/.exec(movement.note ?? "")?.[0]?.replace(/-[A-F0-9]{6}$/, "");
+  // Old bills read KR-BILL-…, new ones KRB001 / KRR001 (lib/bill-number.ts).
+  const reference = /KR-(?:BILL|PUR)-[A-Za-z0-9-]+|\bKR[BR]\d+\b/.exec(movement.note ?? "")?.[0]?.replace(/-[A-F0-9]{6}$/, "");
   if (reference) return { key: `ref:${reference}`, reference };
   const day = String(movement.createdAt ?? "").slice(0, 10);
   return { key: `day:${day}:${movement.design}:${movement.type}`, reference: "" };

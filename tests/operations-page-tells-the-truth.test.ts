@@ -80,7 +80,7 @@ describe("the page's shape", () => {
 
   it("lists stock movements one line per bill", async () => {
     const records = await read("app/admin/operations/_components/OperationsRecords.tsx");
-    expect(records).toContain("/KR-(?:BILL|PUR)-[A-Za-z0-9-]+/");
+    expect(records).toContain("/KR-(?:BILL|PUR)-[A-Za-z0-9-]+|\\bKR[BR]\\d+\\b/");
     expect(records).toContain("const groups = groupMovements(snapshot.stockMovements);");
   });
 

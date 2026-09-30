@@ -32,6 +32,7 @@ import {
 } from "@/lib/pos-postgres";
 import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { stockRowForSize } from "@/lib/stock-by-size";
+import { isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -240,10 +241,6 @@ function cleanNumber(value: number) {
   return Math.max(0, Math.round(Number(value) || 0));
 }
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10).replaceAll("-", "");
-}
-
 function currentDateKey() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -320,7 +317,7 @@ function movementMatchesInvoice(
   // invoice number in the note is unique and is the real link.
   return (
     movement.type === invoiceStockMovementType(invoice.kind) &&
-    movement.note.includes(invoice.invoiceNumber)
+    noteNamesBill(movement.note, invoice.invoiceNumber)
   );
 }
 
@@ -360,7 +357,7 @@ function matchingInvoiceLedgerTransaction(invoice: PosInvoice, operations: Opera
   }
 
   const discovered = operations.ledgerTransactions.find(
-    (transaction) => isExpectedTransaction(transaction) && transaction.note.includes(invoice.invoiceNumber),
+    (transaction) => isExpectedTransaction(transaction) && noteNamesBill(transaction.note, invoice.invoiceNumber),
   );
 
   return {
@@ -584,14 +581,16 @@ export async function getPosInvoiceById(id: string) {
   return invoices.find((invoice) => invoice.id === id) ?? null;
 }
 
+// KRB001, KRB002, … — see lib/bill-number.ts. Two bills saved at the same
+// moment can read the same highest number; the database refuses the second
+// (invoice_number is UNIQUE) and it is tried again with the next one.
 async function nextInvoiceNumber(kind: PosInvoiceKind) {
-  const datePart = todayKey();
-  const prefix = kind === "Return" ? `KR-RT-${datePart}` : `KR-BILL-${datePart}`;
   const invoices = await getPosInvoices();
-  const count = invoices.filter((invoice) => invoice.invoiceNumber.startsWith(prefix)).length + 1;
-
-  return `${prefix}-${String(count).padStart(4, "0")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  return nextBillNumber(kind, invoices.map((invoice) => invoice.invoiceNumber));
 }
+
+/** Tries after a bill number was taken by a bill saved at the same moment. */
+const BILL_NUMBER_TRIES = 3;
 
 function invoiceStatus(kind: PosInvoiceKind, total: number, paidAmount: number, creditAmount: number): PosInvoiceStatus {
   if (kind === "Return") {
@@ -618,7 +617,7 @@ async function syncCatalogStockAfterPosting() {
   await syncProductCatalogStockWithFinishedStock();
 }
 
-export async function createPosInvoice(input: CreatePosInvoiceInput) {
+export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1): Promise<PosInvoice> {
   const sourceSubmissionKey = cleanSubmissionKey(input.sourceSubmissionKey);
   const invoiceId = sourceSubmissionKey
     ? idFromSubmissionKey(input.kind === "Return" ? "RETURN" : "POS", sourceSubmissionKey)
@@ -845,6 +844,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput) {
         const existing = invoiceId ? await getPosInvoiceById(invoiceId) : null;
         if (existing) return existing;
       }
+      if (isBillNumberTaken(error) && attempt < BILL_NUMBER_TRIES) return createPosInvoice(input, attempt + 1);
 
       throw error;
     }
@@ -921,7 +921,16 @@ function movementsFor(
  * be named. Whatever the returned pairs were worth beyond the new ones is
  * handed back, and the day close takes it out of the drawer.
  */
-export async function createPosExchange(input: CreatePosExchangeInput) {
+export async function createPosExchange(input: CreatePosExchangeInput, attempt = 1): ReturnType<typeof createPosExchangeOnce> {
+  try {
+    return await createPosExchangeOnce(input);
+  } catch (error) {
+    if (isBillNumberTaken(error) && attempt < BILL_NUMBER_TRIES) return createPosExchange(input, attempt + 1);
+    throw error;
+  }
+}
+
+async function createPosExchangeOnce(input: CreatePosExchangeInput) {
   const sourceSubmissionKey = cleanSubmissionKey(input.sourceSubmissionKey);
   const saleId = sourceSubmissionKey ? idFromSubmissionKey("POS", `${sourceSubmissionKey}-sale`) : "";
   const returnId = sourceSubmissionKey ? idFromSubmissionKey("RETURN", `${sourceSubmissionKey}-return`) : "";

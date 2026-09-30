@@ -22,10 +22,11 @@ type PosInvoicePageProps = {
 
 export const dynamic = "force-dynamic";
 
-// Every pair KRISHOE makes is footwear under one customs heading; shown on the
-// bill the way the sample invoice carries it. Per-product codes can replace this
-// later without touching the layout.
-const HS_CODE = "6402.99.90";
+// The HS Code column is kept, empty (owner, 2026-09-30). It printed 6402.99.90
+// on every line — the heading for plastic uppers — on leather and fabric shoes
+// as well. Put a code here if one is wanted on every bill; per-shoe codes can
+// fill the same column later without touching the layout.
+const HS_CODE = "";
 
 
 // Plain rupees for the invoice columns (the sample prints amounts without the
@@ -207,17 +208,32 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
                 );
               })}
             </tbody>
+            {/* How many pairs in all — what a wholesale buyer counts first
+                when the carton is opened (owner, 2026-09-30). */}
+            <tfoot>
+              <tr className="bg-brand-mist font-black">
+                <td colSpan={4} className="border border-brand-green-line px-2 py-2 text-right">Total Pairs</td>
+                <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">
+                  {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
+                </td>
+                <td colSpan={2} className="border border-brand-green-line px-2 py-2" />
+              </tr>
+            </tfoot>
           </table>
         </div>
 
-        {/* Totals — Basic, Discount, Net. No VAT line: KRISHOE bills on PAN. */}
+        {/* Totals — Basic, Discount, Net. No VAT line: KRISHOE bills on PAN.
+            Basic Total only when something comes off or on it: with neither,
+            it printed the Net Total's figure twice (owner, 2026-09-30). */}
         <div className="mt-4 flex justify-end">
           <table className="border-collapse text-sm">
             <tbody>
-              <tr>
-                <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Basic Total</td>
-                <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.subtotal)}</td>
-              </tr>
+              {invoice.discount > 0 || invoice.tax > 0 ? (
+                <tr>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Basic Total</td>
+                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.subtotal)}</td>
+                </tr>
+              ) : null}
               {invoice.discount > 0 ? (
                 <tr>
                   <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Discount</td>
@@ -251,9 +267,12 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
             paper is the one they will believe.
 
             The shop's own line now prints at the foot instead, from Settings. */}
-        <div className="mt-2 text-xs text-brand-muted">
-          <p>Remarks: {invoice.note || "—"}</p>
-        </div>
+        {/* Remarks only when there is one; "Remarks: —" said nothing. */}
+        {invoice.note ? (
+          <div className="mt-2 text-xs text-brand-muted">
+            <p>Remarks: {invoice.note}</p>
+          </div>
+        ) : null}
 
         {invoice.creditAmount > 0 ? (
           <div className="mt-2 flex justify-end gap-6 text-sm">

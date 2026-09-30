@@ -84,7 +84,7 @@ export function stockMovementSource(
 
   const note = movement.note.toLowerCase();
 
-  if (note.includes("kr-bill") || note.includes("kr-rt")) {
+  if (note.includes("kr-bill") || note.includes("kr-rt") || /\bkr[br]\d+\b/.test(note)) {
     return {
       label: "POS billing",
       detail: "Invoice posting",
