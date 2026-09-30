@@ -8,7 +8,7 @@ import { looksLikeSameDesign } from "@/lib/design-drift";
  * Four guards travel with the feature, because a quick way to add goods is
  * also a quick way to spoil the books:
  *  1. one shoe, one name — a close name is offered before a new one is made;
- *  2. a selling price below cost is questioned;
+ *  2. a selling price below cost is questioned, retail or wholesale;
  *  3. an unknown cost stays "cost to come", never a profit;
  *  4. the pairs land at the shop (done where the stock is written).
  */
@@ -89,15 +89,36 @@ export function sellsAtLoss(retailPrice: number, costPerPair: number) {
   return retailPrice > 0 && costPerPair > 0 && retailPrice < costPerPair;
 }
 
+/** The bill the item is added from. Its own price is the one that must be typed. */
+export type CounterItemChannel = "Retail" | "Wholesale";
+
 export type CounterItemDraft = {
   name: string;
   how: CounterItemHow;
   sizes: Record<string, number>;
   pilePairs: number;
+  /** Rupees; may be 0 on a wholesale bill, where the wholesale price is the one asked. */
   retailPrice: number;
+  /** Rupees; 0 when none. Needed on a wholesale bill, optional on a retail one. */
+  wholesalePrice?: number;
+  /** Retail when not said — the counter's first form. */
+  channel?: CounterItemChannel;
   costPerPair: number;
   lossConfirmed: boolean;
 };
+
+/**
+ * The prices that sell below cost, retail and wholesale each — a wholesale
+ * price under what a pair cost is a loss as much as a retail one (owner,
+ * 2026-09-30). Empty when neither does, or the cost is not known.
+ */
+export function counterItemLosses(draft: Pick<CounterItemDraft, "retailPrice" | "wholesalePrice" | "costPerPair">) {
+  const losses: Array<{ which: CounterItemChannel; gap: number }> = [];
+  if (sellsAtLoss(draft.retailPrice, draft.costPerPair)) losses.push({ which: "Retail", gap: draft.costPerPair - draft.retailPrice });
+  const wholesale = draft.wholesalePrice ?? 0;
+  if (sellsAtLoss(wholesale, draft.costPerPair)) losses.push({ which: "Wholesale", gap: draft.costPerPair - wholesale });
+  return losses;
+}
 
 /** What the form still needs, in words; empty when it may be saved. */
 export function counterItemProblem(draft: CounterItemDraft) {
@@ -106,13 +127,27 @@ export function counterItemProblem(draft: CounterItemDraft) {
   if (!counterItemHows.includes(draft.how)) return { en: "Choose how it came.", ne: "कसरी आयो, छान्नुहोस्।" };
   if (pairs <= 0) return { en: "How many pairs are on the shelf?", ne: "र्‍याकमा कति जोडी छन्?" };
   if (pairs > MAX_COUNTER_PAIRS) return { en: `More than ${MAX_COUNTER_PAIRS} pairs — check the count.`, ne: `${MAX_COUNTER_PAIRS} भन्दा बढी जोडी — गन्ती फेरि हेर्नुहोस्।` };
-  if (!(draft.retailPrice > 0)) return { en: "Type the selling price.", ne: "बेच्ने मूल्य लेख्नुहोस्।" };
+  const wholesale = draft.wholesalePrice ?? 0;
+  // The bill the form was opened from asks for its own price; the other is
+  // optional (owner, 2026-09-30).
+  if (draft.channel === "Wholesale") {
+    if (!(wholesale > 0)) return { en: "Type the wholesale price.", ne: "थोक मूल्य लेख्नुहोस्।" };
+  } else if (!(draft.retailPrice > 0)) {
+    return { en: "Type the selling price.", ne: "बेच्ने मूल्य लेख्नुहोस्।" };
+  }
+  if (draft.retailPrice < 0 || wholesale < 0) return { en: "A price cannot be below zero.", ne: "मूल्य शून्यभन्दा कम हुँदैन।" };
   if (draft.costPerPair < 0) return { en: "The cost cannot be below zero.", ne: "लागत शून्यभन्दा कम हुँदैन।" };
-  if (sellsAtLoss(draft.retailPrice, draft.costPerPair) && !draft.lossConfirmed) {
-    return {
-      en: `Sells Rs. ${draft.costPerPair - draft.retailPrice} below cost a pair — tick to confirm, or change the price.`,
-      ne: `एक जोडीमा रु. ${draft.costPerPair - draft.retailPrice} घाटा — जानीजानी हो भने टिक गर्नुहोस्, नभए मूल्य सच्याउनुहोस्।`,
-    };
+  const loss = counterItemLosses(draft)[0];
+  if (loss && !draft.lossConfirmed) {
+    return loss.which === "Wholesale"
+      ? {
+          en: `The wholesale price is Rs. ${loss.gap} below cost a pair — tick to confirm, or change the price.`,
+          ne: `थोक मूल्यमा एक जोडीमा रु. ${loss.gap} घाटा — जानीजानी हो भने टिक गर्नुहोस्, नभए मूल्य सच्याउनुहोस्।`,
+        }
+      : {
+          en: `Sells Rs. ${loss.gap} below cost a pair — tick to confirm, or change the price.`,
+          ne: `एक जोडीमा रु. ${loss.gap} घाटा — जानीजानी हो भने टिक गर्नुहोस्, नभए मूल्य सच्याउनुहोस्।`,
+        };
   }
   return null;
 }

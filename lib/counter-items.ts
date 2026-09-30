@@ -5,6 +5,7 @@ import {
   movementTypeForHow,
   similarNames,
   totalPairs,
+  type CounterItemChannel,
   type CounterItemHow,
 } from "@/lib/counter-item-rules";
 import { designKey } from "@/lib/design-name";
@@ -27,8 +28,14 @@ export type CounterItemInput = {
   sizes: Record<string, number>;
   /** Pairs whose sizes were not counted. */
   pilePairs: number;
-  /** Rupees. */
+  /** Rupees; 0 on a wholesale bill when only the wholesale price was typed. */
   retailPrice: number;
+  /** Rupees; 0 when none. Needed when added from a wholesale bill. */
+  wholesalePrice?: number;
+  /** Least pairs a wholesale buyer takes; 1 or less for no minimum. */
+  minWholesaleQty?: number;
+  /** The bill it is added from. Retail when not said. */
+  channel?: CounterItemChannel;
   /** Rupees; 0 when not known. */
   costPerPair: number;
   lossConfirmed: boolean;
@@ -67,10 +74,18 @@ export async function createCounterItem(input: CounterItemInput) {
     sizes,
     pilePairs,
     retailPrice: input.retailPrice,
+    wholesalePrice: input.wholesalePrice ?? 0,
+    channel: input.channel ?? "Retail",
     costPerPair: input.costPerPair,
     lossConfirmed: input.lossConfirmed,
   });
   if (problem) throw new CounterItemRefusal(problem);
+  const wholesalePrice = Math.max(0, Number(input.wholesalePrice) || 0);
+  // Added from a wholesale bill with no retail price typed: the item still
+  // needs a price for the shop's own customers, so it takes the wholesale one
+  // until the Owner sets it in Products.
+  const retailPrice = input.retailPrice > 0 ? input.retailPrice : wholesalePrice;
+  const minWholesaleQty = Math.max(1, Math.round(Number(input.minWholesaleQty) || 1));
 
   if (!(await counterItemsReady())) {
     throw new CounterItemRefusal({
@@ -103,7 +118,7 @@ export async function createCounterItem(input: CounterItemInput) {
   const sizeList = Object.keys(sizes).sort((left, right) => Number(left) - Number(right) || left.localeCompare(right));
   const takenCodes = products.map((product) => product.sku);
   const draft = buildDraftProductForDesign(name, pairs, takenCodes);
-  const priceValue = Math.round(input.retailPrice * 100);
+  const priceValue = Math.round(retailPrice * 100);
   const product = {
     ...draft,
     sku: nextShoeCode(takenCodes, category.slug),
@@ -113,8 +128,11 @@ export async function createCounterItem(input: CounterItemInput) {
     gallery: [category.image],
     price: formatPrice(priceValue),
     priceValue,
-    // Retail only: the counter adds goods for the shop's own customers.
-    wholesalePriceValue: 0,
+    // The wholesale price when one was typed — needed from a wholesale bill,
+    // optional from a retail one (owner, 2026-09-30). 0 sells wholesale at the
+    // retail price, as before.
+    wholesalePriceValue: Math.round(wholesalePrice * 100),
+    minWholesaleQty,
     sizes: sizeList.length > 0 ? sizeList : draft.sizes,
     rating: "0",
   };
@@ -168,7 +186,7 @@ export async function createCounterItem(input: CounterItemInput) {
         input.supplierBillNo.trim().slice(0, 60),
         pairs,
         JSON.stringify(pilePairs > 0 ? { ...sizes, Mixed: pilePairs } : sizes),
-        Math.round(input.retailPrice * 100) / 100,
+        Math.round(retailPrice * 100) / 100,
         Math.max(0, Math.round(input.costPerPair * 100) / 100),
         input.createdBy.slice(0, 80),
       ],
@@ -184,7 +202,9 @@ export async function createCounterItem(input: CounterItemInput) {
     sizeList,
     pilePairs,
     pairs,
-    retailRate: input.retailPrice,
+    retailRate: retailPrice,
+    wholesaleRate: wholesalePrice > 0 ? wholesalePrice : retailPrice,
+    minWholesaleQty,
     costPerPair: input.costPerPair,
   };
 }

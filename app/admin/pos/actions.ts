@@ -374,6 +374,8 @@ export type CounterItemResult =
         pilePairs: number;
         pairs: number;
         retailRate: number;
+        wholesaleRate: number;
+        minWholesaleQty: number;
         costPerPair: number;
       };
     }
@@ -381,8 +383,7 @@ export type CounterItemResult =
 
 /**
  * "+ New item" on the counter bill: put goods on the books and sell them now
- * (owner, 2026-09-29). Retail only — the counter adds goods for the shop's own
- * customers. Anyone who may cut a bill may add them; every one is recorded in
+ * (owner, 2026-09-29), from a retail or a wholesale bill (2026-09-30). Anyone who may cut a bill may add them; every one is recorded in
  * the audit log and waits for the Owner's look.
  */
 export async function createCounterItemAction(input: CounterItemInput): Promise<CounterItemResult> {
@@ -394,7 +395,8 @@ export async function createCounterItemAction(input: CounterItemInput): Promise<
     });
     await recordAdminAuditEvent(
       "counter_item_added",
-      `${item.design} (${item.sku}) added from the counter: ${item.pairs} pairs, Rs. ${item.retailRate}` +
+      `${item.design} (${item.sku}) added from the ${input.channel === "Wholesale" ? "wholesale" : "retail"} counter: ${item.pairs} pairs, Rs. ${item.retailRate}` +
+        `${(input.wholesalePrice ?? 0) > 0 ? `, wholesale Rs. ${input.wholesalePrice}` : ""}` +
         `${input.costPerPair > 0 ? `, cost Rs. ${input.costPerPair}` : ", cost to come"}, came as ${input.how}.`,
     );
     revalidatePath("/admin/pos");

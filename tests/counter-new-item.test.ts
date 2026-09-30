@@ -92,18 +92,18 @@ describe("guard 4 and the stock", () => {
     expect(totalPairs(sizes, 5)).toBe(12);
   });
 
-  it("starts the website listing hidden, at the next shoe code, retail only", async () => {
+  it("starts the website listing hidden, at the next shoe code", async () => {
     const source = await read("lib/counter-items.ts");
     expect(source).toContain("nextShoeCode(takenCodes, category.slug)");
-    expect(source).toContain("wholesalePriceValue: 0");
+    expect(source).toContain("wholesalePriceValue: Math.round(wholesalePrice * 100)");
     expect(source).toContain('rating: "0"');
   });
 });
 
 describe("the counter bill", () => {
-  it("offers + New item on a retail sale only", async () => {
+  it("offers + New item on a retail or wholesale sale", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain('onAddNew={channel === "Retail" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}');
+    expect(form).toContain('onAddNew={channel !== "Online" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}');
     const picker = await read("app/admin/pos/_components/PosProductPicker.tsx");
     expect(picker).toContain("नयाँ माल थप्ने");
   });

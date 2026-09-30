@@ -788,7 +788,7 @@ export default function PosBillForm({
             readingPhoto={readingPhoto}
             note={note}
             searchRef={searchRef}
-            onAddNew={channel === "Retail" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}
+            onAddNew={channel !== "Online" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}
           />
         </div>
 
@@ -1522,6 +1522,7 @@ export default function PosBillForm({
       {newItemName !== null ? (
         <PosNewItemSheet
           initialName={newItemName}
+          channel={channel === "Wholesale" ? "Wholesale" : "Retail"}
           knownNames={catalog.map((item) => item.design)}
           ready={counterReady}
           isOwner={isOwner}
@@ -1542,7 +1543,7 @@ export default function PosBillForm({
               sku: created.sku,
               stock: created.pairs,
               retailRate: created.retailRate,
-              wholesaleRate: created.retailRate,
+              wholesaleRate: created.wholesaleRate,
               sizes: created.sizeList.join(", "),
               sizeList: created.sizeList,
               sizeStock: created.sizes,

@@ -5,11 +5,12 @@ import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { createCounterItemAction, type CounterItemResult } from "@/app/admin/pos/actions";
 import {
+  counterItemLosses,
   counterItemProblem,
-  sellsAtLoss,
   similarNames,
   tidySizes,
   totalPairs,
+  type CounterItemChannel,
   type CounterItemHow,
 } from "@/lib/counter-item-rules";
 import { categories } from "@/lib/products";
@@ -37,9 +38,14 @@ const chip = (on: boolean) =>
  * Before anything is made it offers the names already on the books that read
  * like the one typed — one shoe, one name. A price below the typed cost asks
  * to be confirmed. An unknown cost is allowed and shown as "cost to come".
+ *
+ * Opened from a wholesale bill it asks for the wholesale price first and must
+ * have it; the retail price and the wholesale minimum are optional there. From
+ * a retail bill it is the other way round (owner, 2026-09-30).
  */
 export default function PosNewItemSheet({
   initialName,
+  channel = "Retail",
   knownNames,
   ready,
   isOwner,
@@ -48,6 +54,7 @@ export default function PosNewItemSheet({
   onClose,
 }: {
   initialName: string;
+  channel?: CounterItemChannel;
   knownNames: string[];
   ready: boolean;
   isOwner: boolean;
@@ -68,6 +75,8 @@ export default function PosNewItemSheet({
   ]);
   const [pile, setPile] = useState("");
   const [price, setPrice] = useState("");
+  const [wholesale, setWholesale] = useState("");
+  const [minPairs, setMinPairs] = useState("");
   const [cost, setCost] = useState("");
   const [lossConfirmed, setLossConfirmed] = useState(false);
   const [refusal, setRefusal] = useState<{ en: string; ne: string; sameAs: string[] } | null>(null);
@@ -77,10 +86,42 @@ export default function PosNewItemSheet({
   const sizes = tidySizes(rows);
   const pilePairs = Math.round(Number(pile) || 0);
   const retailPrice = Number(price) || 0;
+  const wholesalePrice = Number(wholesale) || 0;
+  const minWholesaleQty = Math.max(1, Math.round(Number(minPairs) || 1));
   const costPerPair = Number(cost) || 0;
+  const isWholesale = channel === "Wholesale";
   const pairs = totalPairs(sizes, pilePairs);
-  const problem = counterItemProblem({ name, how, sizes, pilePairs, retailPrice, costPerPair, lossConfirmed });
-  const atLoss = sellsAtLoss(retailPrice, costPerPair);
+  const problem = counterItemProblem({ name, how, sizes, pilePairs, retailPrice, wholesalePrice, channel, costPerPair, lossConfirmed });
+  const losses = counterItemLosses({ retailPrice, wholesalePrice, costPerPair });
+  const profits = [
+    retailPrice > 0 && costPerPair > 0 ? text(`retail Rs. ${retailPrice - costPerPair}`, `खुद्रा रु. ${retailPrice - costPerPair}`) : "",
+    wholesalePrice > 0 && costPerPair > 0 ? text(`wholesale Rs. ${wholesalePrice - costPerPair}`, `थोक रु. ${wholesalePrice - costPerPair}`) : "",
+  ].filter(Boolean);
+  const anyPrice = isWholesale ? wholesalePrice > 0 : retailPrice > 0;
+
+  const retailBox = (
+    <label className={label} key="retail">
+      {isWholesale ? text("Retail price (optional)", "खुद्रा मूल्य (चाहे)") : text("Selling price (Rs.)", "बेच्ने मूल्य (रु.)")}
+      <input
+        value={price}
+        inputMode="numeric"
+        placeholder={isWholesale && wholesalePrice > 0 ? text(`blank: Rs. ${wholesalePrice}`, `खाली भए रु. ${wholesalePrice}`) : ""}
+        onChange={(event) => { setPrice(event.target.value); setLossConfirmed(false); }}
+        className={isWholesale ? `${box} border-dashed` : box}
+      />
+    </label>
+  );
+  const wholesaleBox = (
+    <label className={label} key="wholesale">
+      {isWholesale ? text("Wholesale price (Rs.)", "थोक मूल्य (रु.)") : text("Wholesale price (optional)", "थोक मूल्य (चाहे)")}
+      <input
+        value={wholesale}
+        inputMode="numeric"
+        onChange={(event) => { setWholesale(event.target.value); setLossConfirmed(false); }}
+        className={isWholesale ? box : `${box} border-dashed`}
+      />
+    </label>
+  );
 
   function save() {
     if (problem || !ready) return;
@@ -95,6 +136,9 @@ export default function PosNewItemSheet({
         sizes,
         pilePairs,
         retailPrice,
+        wholesalePrice,
+        minWholesaleQty,
+        channel,
         costPerPair,
         lossConfirmed,
         createdBy: "",
@@ -108,7 +152,12 @@ export default function PosNewItemSheet({
     <div className="fixed inset-0 z-50 grid place-items-end bg-brand-green-ink/40 sm:place-items-center" role="dialog" aria-modal="true" aria-label={text("New item", "नयाँ माल")}>
       <div className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl bg-brand-paper p-5 shadow-2xl sm:rounded-3xl">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-xl font-black text-brand-green-ink">＋ {text("New item", "नयाँ माल")}</h2>
+          <h2 className="text-xl font-black text-brand-green-ink">
+            ＋ {text("New item", "नयाँ माल")}
+            {isWholesale ? (
+              <span className="ml-2 rounded-full bg-brand-green-wash px-3 py-0.5 align-middle text-sm text-brand-green">{text("wholesale bill", "थोक बिल")}</span>
+            ) : null}
+          </h2>
           <button type="button" onClick={onClose} className="min-h-10 rounded-full border border-brand-green-line px-4 text-sm font-bold">
             {text("Close", "बन्द")}
           </button>
@@ -234,33 +283,42 @@ export default function PosNewItemSheet({
             <input value={pile} inputMode="numeric" onChange={(event) => setPile(event.target.value)} className={box} />
           </label>
 
+          {/* The bill's own price first, and the one that must be typed. */}
+          <div className="grid grid-cols-2 gap-2">{isWholesale ? [wholesaleBox, retailBox] : [retailBox, wholesaleBox]}</div>
+
           <div className="grid grid-cols-2 gap-2">
-            <label className={label}>
-              {text("Selling price (Rs.)", "बेच्ने मूल्य (रु.)")}
-              <input value={price} inputMode="numeric" onChange={(event) => setPrice(event.target.value)} className={box} />
-            </label>
             <label className={label}>
               {text("Cost of a pair (if known)", "एक जोडीको लागत (थाहा भए)")}
               <input value={cost} inputMode="numeric" onChange={(event) => { setCost(event.target.value); setLossConfirmed(false); }} className={box} />
             </label>
+            {isWholesale || wholesalePrice > 0 ? (
+              <label className={label}>
+                {text("Wholesale minimum pairs (optional)", "थोकको न्यूनतम जोडी (चाहे)")}
+                <input value={minPairs} inputMode="numeric" onChange={(event) => setMinPairs(event.target.value)} className={`${box} border-dashed`} />
+              </label>
+            ) : null}
           </div>
 
-          {/* Guards 2 and 3: a loss is questioned; an unknown cost is said. */}
-          {atLoss ? (
+          {/* Guards 2 and 3: a loss is questioned, retail or wholesale; an unknown cost is said. */}
+          {losses.length > 0 ? (
             <label className="flex items-start gap-2 rounded-xl bg-brand-clay-tint px-3 py-2.5 text-base font-bold text-brand-clay">
               <input type="checkbox" checked={lossConfirmed} onChange={(event) => setLossConfirmed(event.target.checked)} className="mt-1 h-5 w-5" />
               <span>
-                {text(
-                  `Rs. ${costPerPair - retailPrice} below cost on every pair. Tick if this is on purpose (a sale).`,
-                  `हरेक जोडीमा रु. ${costPerPair - retailPrice} घाटा। जानीजानी (सेल) हो भने टिक गर्नुहोस्।`,
-                )}
+                {losses
+                  .map((loss) =>
+                    loss.which === "Wholesale"
+                      ? text(`Wholesale: Rs. ${loss.gap} below cost a pair.`, `थोकमा जोडीमा रु. ${loss.gap} घाटा।`)
+                      : text(`Retail: Rs. ${loss.gap} below cost a pair.`, `खुद्रामा जोडीमा रु. ${loss.gap} घाटा।`),
+                  )
+                  .join(" ")}{" "}
+                {text("Tick if this is on purpose (a sale).", "जानीजानी (सेल) हो भने टिक गर्नुहोस्।")}
               </span>
             </label>
-          ) : retailPrice > 0 && costPerPair > 0 ? (
+          ) : profits.length > 0 ? (
             <p className="rounded-xl bg-brand-green-wash px-3 py-2 text-base font-bold text-brand-green">
-              {text(`Rs. ${retailPrice - costPerPair} profit a pair ✓`, `एक जोडीमा रु. ${retailPrice - costPerPair} नाफा ✓`)}
+              {text(`Profit a pair: ${profits.join(" · ")} ✓`, `जोडीमा नाफा: ${profits.join(" · ")} ✓`)}
             </p>
-          ) : retailPrice > 0 ? (
+          ) : anyPrice ? (
             <p className="rounded-xl bg-brand-cream-soft px-3 py-2 text-base font-bold text-brand-gold-ink">
               {text("No cost typed: its profit shows as “cost to come”.", "लागत लेखिएन: नाफा \"लागत बाँकी\" भनेर देखिन्छ।")}
             </p>
