@@ -131,7 +131,11 @@ export default function EnterWalkForm({
   }, []);
 
   useEffect(() => {
-    if (question !== null) yesRef.current?.focus();
+    if (question === null) return;
+    yesRef.current?.focus();
+    // Brought to the middle, not merely inside the edge: at the foot of a
+    // long bill the question sat off the screen and Enter looked dead.
+    yesRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [question]);
 
   function back() {

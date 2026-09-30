@@ -805,7 +805,12 @@ export default function PosBillForm({
 
         <aside
           aria-label={text("The bill", "बिल")}
-          className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper md:sticky md:top-4 md:block ${
+          // Its own scroll on a computer: pinned beside a long shoe list and
+          // taller than the screen, its foot — the Save button and the "Save?"
+          // question Enter brings up after the cash box — sat below the screen
+          // where no scrolling reached it (owner, 2026-09-30: "Enter did not
+          // move"). Now it scrolls inside, and the box in use stays in view.
+          className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper md:sticky md:top-4 md:block md:max-h-[calc(100dvh-2rem)] md:overflow-y-auto md:overscroll-contain ${
             cartOpen
               ? // Full screen on a phone, below the clock and battery: an app
                 // saved to the Home Screen draws under the status bar.
