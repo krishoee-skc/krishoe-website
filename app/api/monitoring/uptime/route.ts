@@ -108,7 +108,17 @@ export async function POST(request: Request) {
   // shop is by definition up whenever the question can be asked at all.
   const previous = await lastUptimeReading();
 
-  await recordUptimeCheck(check);
+  const recorded = await recordUptimeCheck(check);
+  // A reading the database refused is not "filed". Answered 201 regardless, the
+  // checker logged "filed — up" for three days while nothing was written
+  // (owner, 2026-09-30); now it hears the database's own reason and its run
+  // goes red.
+  if (!recorded.ok) {
+    return Response.json(
+      { ok: false, error: `The database refused the reading: ${recorded.error.slice(0, 300)}` },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   return Response.json(
     { ok: true, recorded: check.status, previousStatus: previous?.status ?? null, downSince: previous?.downSince ?? null },

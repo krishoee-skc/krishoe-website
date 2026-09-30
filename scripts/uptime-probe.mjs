@@ -142,7 +142,10 @@ async function file(reading) {
   });
 
   if (!response.ok) {
-    throw new Error(`filing returned HTTP ${response.status}`);
+    // The shop's own words, so the run log says why — "HTTP 500" alone sent the
+    // owner looking in the wrong place (2026-09-30).
+    const said = await response.text().catch(() => "");
+    throw new Error(`filing returned HTTP ${response.status}${said ? `: ${said.slice(0, 300)}` : ""}`);
   }
 
   // What the shop was before this reading landed, so an "up" that follows a

@@ -405,8 +405,21 @@ export async function recordUptimeCheck(
         status.checkedAt ?? null,
       ],
     );
+    return { ok: true as const };
   } catch (err) {
+    // Said, not swallowed. This answered "filed" to the outside checker while
+    // nothing reached the table — from 27 Sept the readings stopped and no
+    // screen, log or run said why (owner, 2026-09-30). The caller now tells the
+    // checker, and the reason lands in the error log the monitoring screen reads.
+    const message = err instanceof Error ? err.message : String(err);
     console.error("Failed to record uptime check:", err);
+    await logError({
+      level: "error",
+      message: `record uptime check failed: ${message}`,
+      context: "Uptime",
+      path: "/api/monitoring/uptime",
+    });
+    return { ok: false as const, error: message };
   }
 }
 
