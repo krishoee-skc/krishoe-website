@@ -119,3 +119,10 @@ describe("11. the Owner's summary", () => {
     expect(action).not.toMatch(/queryPostgres|upsert|insert|update/i);
   });
 });
+
+describe("4. the old address moves with a real 308", () => {
+  it("is sent on above the loading screen, so the answer is not already a 200", async () => {
+    const layout = await read("app/product/[id]/layout.tsx");
+    expect(layout).toContain("permanentRedirect(productPath(product));");
+  });
+});
