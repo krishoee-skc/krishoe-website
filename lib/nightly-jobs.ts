@@ -23,6 +23,7 @@ export const nightlyJobLabels: Record<string, { en: string; ne: string }> = {
   "review-requests": { en: "Review requests", ne: "Review अनुरोध" },
   "idle-staff": { en: "Unused staff accounts", ne: "नचलाएका staff account" },
   "weekly-backup": { en: "Weekly backup", ne: "साप्ताहिक backup" },
+  "outside-check": { en: "Outside check (is the shop answering?)", ne: "बाहिरबाट हुने जाँच (पसल चलिरहेको छ?)" },
   weekly: { en: "Weekly sales report", ne: "साप्ताहिक बिक्री रिपोर्ट" },
   "weekly-production": { en: "Weekly production report", ne: "साप्ताहिक उत्पादन रिपोर्ट" },
   monthly: { en: "Monthly sales report", ne: "मासिक बिक्री रिपोर्ट" },

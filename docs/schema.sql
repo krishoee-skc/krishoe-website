@@ -322,7 +322,7 @@ CREATE TABLE IF NOT EXISTS admin_staff_access_history (
 CREATE TABLE IF NOT EXISTS notification_events (
   id TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'operational-alert')),
+  type TEXT NOT NULL CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'staff-security', 'review-request', 'order-confirmation', 'operational-alert')),
   title TEXT NOT NULL,
   payload JSONB NOT NULL,
   delivery_status TEXT NOT NULL DEFAULT 'pending' CHECK (delivery_status IN ('pending', 'sent', 'failed', 'skipped')),
@@ -339,12 +339,15 @@ ALTER TABLE notification_events
   ADD COLUMN IF NOT EXISTS last_delivery_error TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS last_delivery_channel TEXT NOT NULL DEFAULT '';
 
+-- Every kind lib/notifications.ts writes. This snapshot held the older five,
+-- and a database built from it (the move to Supabase) refused the buyer's
+-- order mail (20260930_notification_types_restore.sql).
 ALTER TABLE notification_events
   DROP CONSTRAINT IF EXISTS notification_events_type_check;
 
 ALTER TABLE notification_events
   ADD CONSTRAINT notification_events_type_check
-  CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'operational-alert'));
+  CHECK (type IN ('order', 'contact', 'password-reset', 'email-verification', 'staff-security', 'review-request', 'order-confirmation', 'operational-alert'));
 
 ALTER TABLE notification_events
   DROP CONSTRAINT IF EXISTS notification_events_delivery_status_check;

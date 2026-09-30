@@ -1,5 +1,6 @@
 "use server";
 
+import { recordSaveTime } from "@/lib/save-timing";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/admin/actions";
@@ -140,9 +141,18 @@ function sizesProblem(items: CreatePurchaseInvoiceItemInput[]) {
 // enforces ("Item 2: choose a raw material", "Choose a supplier") now comes back
 // as a message beside the button, with the form and its lines still standing.
 export async function createPurchaseInvoiceAction(
-  _previousState: ActionState | null,
+  previousState: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
+  // Timed from the press to the answer, for the monitoring screen (owner,
+  // 2026-09-30: "saving is slow").
+  const startedAt = Date.now();
+  const result = await savePurchase(previousState, formData);
+  if (result.ok) await recordSaveTime("Purchase bill", startedAt);
+  return result;
+}
+
+async function savePurchase(_previousState: ActionState | null, formData: FormData): Promise<ActionState> {
   await requireAdminPermission("purchasing:write");
 
   const items = purchaseItems(formData);

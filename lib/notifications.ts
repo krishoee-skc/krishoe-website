@@ -1416,8 +1416,57 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
  * Sent after the order is saved and never in front of it: a mail that fails
  * must not make a saved order look unsaved to the person who placed it.
  */
+/**
+ * A customer's mail did not go out: the Owner's phone is told, once per mail.
+ * The buyer's order mail had been refused for three days with nothing but a
+ * line in an error log nobody opens (owner, 2026-09-30).
+ */
+export async function tellOwnerCustomerMailFailed(what: { en: string; ne: string }, key: string) {
+  await reportingErrors("push a failed customer mail", () =>
+    sendPushToStaff({
+      title: "ग्राहकलाई email गएन 📧",
+      body: what.ne,
+      url: "/admin/monitoring",
+      tag: `customer-mail-${key}`,
+    }),
+  );
+}
+
+/** Refused before it was written, or written and not delivered: either way, say so. */
+async function customerMailOrTell<T>(
+  what: { en: string; ne: string },
+  key: string,
+  append: () => Promise<T & { id: string }>,
+  deliver: (event: T & { id: string }) => Promise<NotificationDeliveryResult>,
+  where: string,
+) {
+  let event: T & { id: string };
+  try {
+    event = await append();
+  } catch (error) {
+    await tellOwnerCustomerMailFailed(what, key);
+    throw error;
+  }
+  const delivered = await reportingErrors(`${where} ${event.id}`, () => deliver(event));
+  if (!delivered || delivered.status === "failed") await tellOwnerCustomerMailFailed(what, key);
+  return event;
+}
+
 export async function notifyOrderConfirmation(payload: OrderConfirmationNotificationPayload) {
-  const event = await appendEvent({
+  return customerMailOrTell(
+    {
+      en: `Order ${payload.orderId}: the buyer's confirmation mail did not go out.`,
+      ne: `अर्डर ${payload.orderId}: ग्राहकलाई "अर्डर पक्का भयो" email गएन।`,
+    },
+    `order-${payload.orderId}`,
+    () => appendOrderConfirmation(payload),
+    (event) => deliverNotificationEvent(event),
+    "deliver order confirmation",
+  );
+}
+
+async function appendOrderConfirmation(payload: OrderConfirmationNotificationPayload) {
+  return appendEvent({
     type: "order-confirmation",
     // The subject line is the half of the letter that shows in the inbox
     // list, so it follows the reader's language too — an English reader
@@ -1428,24 +1477,24 @@ export async function notifyOrderConfirmation(payload: OrderConfirmationNotifica
         : `तपाईंको अर्डर आयो — ${payload.orderId}`,
     payload,
   });
-
-  await reportingErrors(`deliver order confirmation ${event.id}`, () =>
-    deliverNotificationEvent(event),
-  );
-  return event;
 }
 
 export async function notifyReviewRequested(payload: ReviewRequestNotificationPayload) {
-  const event = await appendEvent({
-    type: "review-request",
-    title: `${payload.productName} कस्तो लाग्यो?`,
-    payload,
-  });
-
-  await reportingErrors(`deliver review request ${event.id}`, () =>
-    deliverNotificationEvent(event),
+  return customerMailOrTell(
+    {
+      en: `Order ${payload.orderId}: the review request mail did not go out.`,
+      ne: `अर्डर ${payload.orderId}: review माग्ने email गएन।`,
+    },
+    `review-${payload.orderId}`,
+    () =>
+      appendEvent({
+        type: "review-request",
+        title: `${payload.productName} कस्तो लाग्यो?`,
+        payload,
+      }),
+    (event) => deliverNotificationEvent(event),
+    "deliver review request",
   );
-  return event;
 }
 
 export async function notifyEmailVerificationRequested(

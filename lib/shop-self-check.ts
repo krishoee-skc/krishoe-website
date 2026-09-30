@@ -1,5 +1,6 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import { reportError } from "@/lib/report-error";
+import { notificationTypesStatus } from "@/lib/notification-types-database";
 
 /**
  * The shop looking for its own faults, so the owner does not have to.
@@ -215,6 +216,25 @@ export async function runShopSelfCheck(): Promise<SelfCheck[]> {
         action: "Add the account",
         actionNe: "खाता हाल्ने",
         count: 1,
+      };
+    },
+    // 8. A customer's mail refused by an old database rule. The buyer of the
+    //    only online order got no "your order is placed" (owner, 2026-09-30),
+    //    and nothing said so but a line in an error log.
+    async () => {
+      const { ready, missing } = await notificationTypesStatus();
+      if (ready) return null;
+      return {
+        id: "notification-kinds",
+        severity: "critical",
+        title: "Customers are not getting their order mail",
+        titleNe: "ग्राहकलाई अर्डरको email गइरहेको छैन",
+        detail: `The database refuses ${missing.length} kind(s) of mail: ${missing.join(", ")}.`,
+        detailNe: `database ले ${missing.length} किसिमका email मान्दैन: ${missing.join(", ")}।`,
+        href: "/admin/settings#notification-types",
+        action: "Put the rule right",
+        actionNe: "नियम मिलाउने",
+        count: missing.length,
       };
     },
   ];

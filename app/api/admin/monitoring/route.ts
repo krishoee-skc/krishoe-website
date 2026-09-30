@@ -9,6 +9,7 @@ import {
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { describeMigrationState, getMigrationState } from "@/lib/pending-migrations";
 import { getBranchIsolationStatus } from "@/lib/branch-isolation-status";
+import { getShopWatch } from "@/lib/shop-watch";
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Return all stats
-    const [errors, performance, uptime, health, migrations, branchIsolation] = await Promise.all([
+    const [errors, performance, uptime, health, migrations, branchIsolation, watch] = await Promise.all([
       getErrorStats(hours),
       getPerformanceStats(hours),
       getUptimeEvidence(),
@@ -56,6 +57,10 @@ export async function GET(request: NextRequest) {
       // role the app connects as bypasses row-level security. Shown so nobody
       // relies on a wall that is drawn and not built.
       getBranchIsolationStatus(),
+      // What the screen needs to tell the truth: the customer's mail, when the
+      // outside check last came, a week of problems by kind (owner,
+      // 2026-09-30: "Nothing needs attention" over a refused order mail).
+      getShopWatch().catch(() => null),
     ]);
 
     return NextResponse.json({
@@ -67,6 +72,7 @@ export async function GET(request: NextRequest) {
         health,
         migrations: { ...migrations, summary: describeMigrationState(migrations) },
         branchIsolation,
+        watch,
         timestamp: new Date().toISOString(),
       },
     });

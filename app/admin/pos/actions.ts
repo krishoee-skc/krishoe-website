@@ -7,6 +7,7 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
 import { chequeAmount, chequeStates, setChequeState, type ChequeState } from "@/lib/cheques";
+import { recordSaveTime } from "@/lib/save-timing";
 import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
@@ -122,9 +123,20 @@ function dueFrom(formData: FormData) {
 // to a customer ledger", an oversell) comes back beside the Save button with the
 // bill still standing, and a saved bill returns the receipt link to open.
 export async function createPosInvoiceAction(
-  _previousState: ActionState | null,
+  previousState: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
+  // Timed from the press to the answer, so the monitoring screen can say how
+  // long a bill takes to save (owner, 2026-09-30).
+  const startedAt = Date.now();
+  const result = await saveBill(previousState, formData);
+  if (result.ok) {
+    await recordSaveTime(textValue(formData, "kind") === "Exchange" ? "Exchange (counter)" : "Bill (counter)", startedAt);
+  }
+  return result;
+}
+
+async function saveBill(_previousState: ActionState | null, formData: FormData): Promise<ActionState> {
   await requireAdminPermission("pos:write");
 
   if (textValue(formData, "kind") === "Exchange") {

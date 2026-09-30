@@ -19,6 +19,7 @@ import {
   prepareOrderDispatchDatabaseAction,
   prepareCounterItemsDatabaseAction,
   prepareChequesDatabaseAction,
+  prepareNotificationTypesAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
@@ -28,6 +29,7 @@ import { posDatabaseStatus } from "@/lib/pos-database";
 import { orderDispatchDatabaseStatus } from "@/lib/order-dispatch-database";
 import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
+import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 // Enter walks box to box on the forms that take typing, and asks before it
@@ -155,6 +157,10 @@ export default async function AdminSettingsPage({
   });
   const chequesDatabase = await chequesDatabaseStatus().catch((error) => {
     reportError("check the cheques table", error);
+    return null;
+  });
+  const notificationTypes = await notificationTypesStatus().catch((error) => {
+    reportError("check the notification kinds", error);
     return null;
   });
   const posDatabase = await posDatabaseStatus().catch((error) => {
@@ -807,6 +813,42 @@ export default async function AdminSettingsPage({
               <form action={prepareCounterItemsDatabaseAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, add it" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {/* First of the database buttons: this one is a customer going
+            without their order mail, not a feature waiting to be switched on. */}
+        {notificationTypes && !notificationTypes.ready ? (
+          <section id="notification-types" className="scroll-mt-24 self-start rounded-lg border-2 border-brand-clay/60 bg-brand-clay-tint p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-clay">
+              📧 <T en="Customers are not getting their order mail — put the rule right" ne="ग्राहकलाई अर्डरको email गइरहेको छैन — नियम मिलाउने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-green-ink">
+              <T
+                en={`The database refuses ${notificationTypes.missing.length} kind(s) of mail: ${notificationTypes.missing.join(", ")}. The buyer's "your order is placed" mail and the review request a week later are refused before they are sent. This widens the one rule. No order, mail or other record changes. Take a backup first (Activity → Export backup).`}
+                ne={`database ले ${notificationTypes.missing.length} किसिमका email मान्दैन: ${notificationTypes.missing.join(", ")}। ग्राहकलाई "अर्डर पक्का भयो" email र हप्तापछिको review email पठाउनुअघि नै रोकिन्छन्। यसले त्यो एउटा नियम मात्र फराकिलो बनाउँछ। कुनै अर्डर, email वा अरू रेकर्ड बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।`}
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is changed:" ne="यति बदलिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                <li>
+                  <T en={notificationTypes.label.en} ne={notificationTypes.label.ne} />
+                </li>
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed: nothing ✅ · Records changed: none ✅" ne="मेटिने: केही छैन ✅ · बदलिने रेकर्ड: कुनै छैन ✅" />
+              </p>
+              <form action={prepareNotificationTypesAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, put it right" />
               </form>
             </details>
           </section>

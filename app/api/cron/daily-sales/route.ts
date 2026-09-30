@@ -11,6 +11,7 @@ import { reportError } from "@/lib/report-error";
 import { sweepIdleStaffAccounts } from "@/lib/staff-idle";
 import { alertNightlyFailures, recordNightlyRun, type NightlyOutcome } from "@/lib/nightly-jobs";
 import { runScheduledBackup } from "@/lib/scheduled-backup";
+import { outsideCheckStillRunning } from "@/lib/shop-watch";
 
 /** What a job reports: a digest's delivery status, and a line for the owner. */
 type JobResult = {
@@ -134,6 +135,9 @@ export async function GET(request: Request) {
         };
       },
     },
+    // Is the outside check still filing? It runs on GitHub, where nothing
+    // here would notice it stopping (owner, 2026-09-30).
+    { name: "outside-check", run: () => outsideCheckStillRunning() },
     ...(isSunday
       ? [
           { name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) },

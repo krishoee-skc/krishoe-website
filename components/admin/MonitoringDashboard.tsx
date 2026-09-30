@@ -97,7 +97,9 @@ export default function MonitoringDashboard() {
   // Whether any recommendation below will render. Kept in step with the list
   // by hand — a mismatch would either hide real advice or print "nothing needs
   // attention" above a warning, and the second is worse than the first.
+  const watch = monitoring.watch ?? null;
   const hasAdvice =
+    (watch?.toDo.length ?? 0) > 0 ||
     monitoring.performance.errorRate > 1 ||
     monitoring.performance.avgResponseTime > 2500 ||
     monitoring.errors.totalErrors > 50 ||
@@ -120,10 +122,13 @@ export default function MonitoringDashboard() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">
-              🔍 Production Monitoring
+              🔍 <AlertText en="Shop health" ne="पसलको स्वास्थ्य" />
             </h1>
             <p className="text-brand-muted">
-              Real-time system health, performance, and error tracking
+              <AlertText
+                en="Whether the shop answers, whether mail goes out, and what broke this week."
+                ne="पसल चलिरहेको छ कि, email गइरहेको छ कि, र यो हप्ता के बिग्रियो।"
+              />
             </p>
           </div>
           <div className="flex gap-2">
@@ -146,6 +151,31 @@ export default function MonitoringDashboard() {
           </div>
         </div>
       </div>
+
+      {/* What needs doing, first and in red — only when something does. The
+          page used to open on six green tiles and close on "Nothing needs
+          attention" while a customer's order mail was being refused (owner,
+          2026-09-30). */}
+      {watch && watch.toDo.length > 0 ? (
+        <div className="rounded-lg border-2 border-brand-clay bg-brand-clay-tint p-5">
+          <h2 className="text-lg font-black text-brand-clay">
+            🔴 <AlertText en="To do" ne="गर्नुपर्ने" />
+          </h2>
+          <ul className="mt-2 grid gap-2">
+            {watch.toDo.map((item) => (
+              <li key={item.key} className="rounded-lg bg-brand-paper px-3 py-2 text-base font-bold text-brand-green-ink">
+                {item.href ? (
+                  <a href={item.href} className="underline decoration-brand-clay underline-offset-4">
+                    <AlertText en={item.en} ne={item.ne} /> →
+                  </a>
+                ) : (
+                  <AlertText en={item.en} ne={item.ne} />
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {/* System Health */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
@@ -174,8 +204,19 @@ export default function MonitoringDashboard() {
           {[
             { name: "Database", status: monitoring.health.database, icon: "🗄️" },
             { name: "API", status: monitoring.health.api, icon: "🔌" },
-            { name: "Email", status: monitoring.health.email, icon: "📧" },
-            { name: "SMS", status: monitoring.health.sms, icon: "📱" },
+            {
+              name: "Email",
+              // Set up is not the same as going out: red when a customer's mail
+              // failed this week, however the setting reads.
+              status:
+                watch && (watch.mail.customerFailed7d > 0 || watch.notificationKindsMissing.length > 0)
+                  ? ("down" as ServiceStatus)
+                  : monitoring.health.email,
+              icon: "📧",
+            },
+            // SMS and WhatsApp both need the one Twilio account: "not set up"
+            // here is the answer for the WhatsApp page too.
+            { name: "SMS / WhatsApp", status: monitoring.health.sms, icon: "📱" },
             { name: "Storage", status: monitoring.health.storage, icon: "💾" },
             { name: "Cache", status: monitoring.health.cache, icon: "⚡" },
           ].map((service) => (
@@ -200,6 +241,19 @@ export default function MonitoringDashboard() {
                     ? "⚪ Not set up"
                     : "🔴 Down"}
               </span>
+              {service.name === "Email" && watch ? (
+                <span className="mt-1 block text-xs leading-5">
+                  <AlertText
+                    en={`To the Owner: ${watch.mail.ownerSent30d} sent in 30 days${watch.mail.ownerFailed30d ? `, ${watch.mail.ownerFailed30d} failed` : ""} · To customers: ${watch.mail.customerFailed7d} failed in 7 days`}
+                    ne={`मालिकलाई: ३० दिनमा ${watch.mail.ownerSent30d} गए${watch.mail.ownerFailed30d ? `, ${watch.mail.ownerFailed30d} असफल` : ""} · ग्राहकलाई: ७ दिनमा ${watch.mail.customerFailed7d} असफल`}
+                  />
+                </span>
+              ) : null}
+              {service.name === "SMS / WhatsApp" && service.status === "off" ? (
+                <span className="mt-1 block text-xs leading-5">
+                  <AlertText en="No WhatsApp messages go out either." ne="WhatsApp सन्देश पनि जाँदैनन्।" />
+                </span>
+              ) : null}
             </div>
           ))}
         </div>
@@ -238,6 +292,24 @@ export default function MonitoringDashboard() {
                   ne={`${monitoring.uptime.outside.checks} जाँचमध्ये ${monitoring.uptime.outside.answered} ले जवाफ दियो · ३० दिन, बाहिरबाट जाँचिएको`}
                 />
               </div>
+              {/* A percentage says nothing about whether the checker is still
+                  running: it read 100% three days after it had stopped. */}
+              {watch ? (
+                <div
+                  className={`mt-2 rounded px-2 py-1 text-xs font-bold ${
+                    watch.outsideCheck.freshness === "fresh"
+                      ? "bg-brand-green-tint text-brand-green"
+                      : watch.outsideCheck.freshness === "late"
+                        ? "bg-brand-cream-soft text-brand-gold-ink"
+                        : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  <AlertText
+                    en={`Last check: ${formatWhen(watch.outsideCheck.lastAt)}${watch.outsideCheck.freshness === "stale" ? " — stopped" : ""}`}
+                    ne={`पछिल्लो जाँच: ${formatWhen(watch.outsideCheck.lastAt)}${watch.outsideCheck.freshness === "stale" ? " — रोकिएको" : ""}`}
+                  />
+                </div>
+              ) : null}
             </>
           ) : (
             <div className="mt-2 rounded bg-brand-mist px-2 py-1 text-xs font-medium text-brand-muted">
@@ -378,6 +450,12 @@ export default function MonitoringDashboard() {
                 en={`Branch separation is working on ${monitoring.branchIsolation.policies} table(s). Owner accounts are exempt by design and still see every branch.`}
                 ne={`${monitoring.branchIsolation.policies} वटा तालिकामा शाखा छुट्याउने काम गरिरहेको छ। Owner खातालाई जानाजान छुट दिइएको छ — उहाँले सबै शाखा देख्नुहुन्छ।`}
               />
+            ) : monitoring.branchIsolation.policies === 0 ? (
+              // "Written on 0 tables but NOT working" meant nothing is written.
+              <AlertText
+                en="Keeping each branch's records apart is not built yet. Staff are kept to their pages by their role (a Factory account does not see selling), but anyone who may open a page sees every branch on it."
+                ne="शाखा अनुसार रेकर्ड छुट्याउने काम अझै बनेको छैन। कर्मचारीलाई role अनुसार पेजमा मात्र रोकिन्छ (Factory खाताले बिक्री देख्दैन), तर पेज खोल्न पाउनेले त्यसमा सबै शाखा देख्छ।"
+              />
             ) : (
               <AlertText
                 en={`Branch separation is written on ${monitoring.branchIsolation.policies} table(s) but is NOT working: the app connects as ${monitoring.branchIsolation.role}, which skips it. Everyone signed in sees every branch.`}
@@ -437,6 +515,85 @@ export default function MonitoringDashboard() {
           </div>
         )}
       </div>
+
+      {/* A week, by kind. The lists below are the last day only, so "3 errors in
+          7 days" sat above "No errors detected" (owner, 2026-09-30). And two
+          of those three were the shop's own rule refusing a bill, which is not
+          something breaking. */}
+      {watch ? (
+        <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
+          <h2 className="text-lg font-semibold text-brand-green-ink">
+            📅 <AlertText en="This week, by kind" ne="यो हप्ता, किसिम अनुसार" />
+          </h2>
+          {watch.errors7d.length === 0 ? (
+            <p className="mt-3 text-green-600">
+              ✨ <AlertText en="Nothing logged in 7 days." ne="७ दिनमा केही रेकर्ड भएको छैन।" />
+            </p>
+          ) : (
+            <ul className="mt-3 grid gap-2">
+              {watch.errors7d.map((row, index) => (
+                <li
+                  key={index}
+                  className={`flex flex-wrap items-start justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
+                    row.kind === "broke"
+                      ? "border-red-200 bg-red-50"
+                      : row.kind === "refused"
+                        ? "border-brand-green-line bg-brand-paper-deep"
+                        : "border-brand-green-line bg-brand-paper"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`mr-2 inline-block rounded px-2 py-0.5 text-xs font-black ${
+                        row.kind === "broke"
+                          ? "bg-red-200 text-red-800"
+                          : row.kind === "refused"
+                            ? "bg-brand-cream-soft text-brand-gold-ink"
+                            : "bg-brand-mist text-brand-muted"
+                      }`}
+                    >
+                      {row.kind === "broke" ? (
+                        <AlertText en="Broke" ne="बिग्रियो" />
+                      ) : row.kind === "refused" ? (
+                        <AlertText en="Rule refused (not a fault)" ne="नियमले रोक्यो (गल्ती होइन)" />
+                      ) : (
+                        <AlertText en="Browser warning" ne="browser को चेतावनी" />
+                      )}
+                    </span>
+                    <span className="break-words text-brand-green-ink">{row.message}</span>
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-brand-muted">
+                    {row.count}× · {formatWhen(row.lastAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h3 className="mt-6 font-semibold text-brand-green-ink">
+            ⏱ <AlertText en="How long a save takes on the admin (7 days)" ne="admin मा सेभ हुन लाग्ने समय (७ दिन)" />
+          </h3>
+          {watch.adminSaves.length === 0 ? (
+            <p className="mt-1 text-sm text-brand-muted">
+              <AlertText en="No save measured yet. It fills in as bills and purchases are saved." ne="अझै कुनै सेभ नापिएको छैन। बिल र खरिद सेभ हुँदै जाँदा भरिन्छ।" />
+            </p>
+          ) : (
+            <ul className="mt-2 grid gap-1.5">
+              {watch.adminSaves.map((row) => (
+                <li key={row.what} className="flex flex-wrap justify-between gap-2 rounded-lg border border-brand-green-line px-3 py-2 text-sm">
+                  <span className="font-bold text-brand-green-ink">{row.what}</span>
+                  <span className="tabular-nums text-brand-muted">
+                    <AlertText
+                      en={`usually ${(row.median / 1000).toFixed(1)}s · slowest ${(row.slowest / 1000).toFixed(1)}s · ${row.count} saves`}
+                      ne={`प्रायः ${(row.median / 1000).toFixed(1)}s · सबैभन्दा ढिलो ${(row.slowest / 1000).toFixed(1)}s · ${row.count} पटक`}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
 
       {/* Recent Errors.
           These were being fetched on every refresh and then dropped: the page
@@ -674,6 +831,11 @@ export default function MonitoringDashboard() {
       <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
         <h3 className="font-semibold text-brand-green mb-2">💡 Recommendations</h3>
         <ul className="text-sm text-brand-green space-y-1">
+          {watch && watch.toDo.length > 0 ? (
+            <li>
+              <AlertText en="✓ See “To do” at the top of this page." ne="✓ पेजको सबैभन्दा माथि “गर्नुपर्ने” हेर्नुहोस्।" />
+            </li>
+          ) : null}
           {!hasAdvice ? (
             <li>
               <AlertText

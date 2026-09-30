@@ -9,6 +9,7 @@ import { preparePosDatabase } from "@/lib/pos-database";
 import { prepareOrderDispatchDatabase } from "@/lib/order-dispatch-database";
 import { prepareCounterItemsDatabase } from "@/lib/counter-items-database";
 import { prepareChequesDatabase } from "@/lib/cheques";
+import { prepareNotificationTypes } from "@/lib/notification-types-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -290,6 +291,29 @@ export async function prepareCounterItemsDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for new goods from the counter.");
+}
+
+/**
+ * The Owner's "OK" on widening the notification kinds, so the customer's order
+ * and review mails are recorded and sent again (owner, 2026-09-30).
+ */
+export async function prepareNotificationTypesAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to put the rule right.");
+    }
+    const { applied } = await prepareNotificationTypes();
+    await recordAdminAuditEvent(
+      "settings_database_notification_types_ready",
+      applied
+        ? "Database rule for notification kinds widened: customer order and review mails are recorded again."
+        : "Database rule for notification kinds was already right.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Customer order and review mails can be sent again.");
 }
 
 /** The Owner's "OK" on the table that watches cheques on bills until they clear. */

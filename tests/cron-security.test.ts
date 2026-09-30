@@ -22,6 +22,9 @@ vi.mock("@/lib/scheduled-backup", () => ({
 vi.mock("@/lib/staff-idle", () => ({ sweepIdleStaffAccounts: vi.fn(async () => ({ closed: [], warned: [] })) }));
 vi.mock("@/lib/review-requests", () => ({ sendReviewRequests: vi.fn() }));
 vi.mock("@/lib/monitoring", () => ({ pruneOldMonitoringRows: vi.fn() }));
+vi.mock("@/lib/shop-watch", () => ({
+  outsideCheckStillRunning: vi.fn(async () => ({ deliveryStatus: "sent", outcome: "ok", summary: "test" })),
+}));
 
 import { GET } from "@/app/api/cron/daily-sales/route";
 

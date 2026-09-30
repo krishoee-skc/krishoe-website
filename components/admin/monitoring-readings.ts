@@ -1,5 +1,6 @@
 import type { ServiceStatus, UptimeEvidence } from "@/lib/monitoring";
 import type { BranchIsolationStatus } from "@/lib/branch-isolation-status";
+import type { ShopWatch } from "@/lib/shop-watch";
 
 /**
  * What the monitoring screen reads, apart from how it draws it.
@@ -99,4 +100,6 @@ export interface MonitoringData {
   // so the promise that branch isolation was "shown where somebody opens it"
   // was not true. The library type again, not a copy.
   branchIsolation?: BranchIsolationStatus;
+  /** Null when it could not be read; the screen then says only what it knows. */
+  watch?: ShopWatch | null;
 }
