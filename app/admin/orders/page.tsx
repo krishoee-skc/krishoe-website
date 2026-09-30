@@ -8,7 +8,7 @@ import { getProducts } from "@/lib/product-store";
 import { getOrders } from "@/lib/submissions";
 import { getOrderDispatchByIds, orderDispatchAvailable } from "@/lib/order-dispatch";
 import { reportError } from "@/lib/report-error";
-import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 
 export const metadata = {
   title: "Orders | KRISHOE Admin",
@@ -87,18 +87,22 @@ export default async function AdminOrdersPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
+          {/* Buttons, not links: a <Link> is prefetched as soon as it is on
+              screen, so every visit to this page ran both exports and wrote
+              them to the activity log — nine "exported" rows in a minute nobody
+              pressed (owner, 2026-09-30). Now they run on a press only. */}
+          <ExportButton
             className="rounded-md border border-[#D8E6DD] px-3 py-2 text-xs font-black uppercase tracking-wide text-brand-green-ink transition hover:border-brand-green-ink"
             href="/api/orders/export?type=orders"
           >
             Orders CSV
-          </Link>
-          <Link
+          </ExportButton>
+          <ExportButton
             className="rounded-md bg-brand-green-ink px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#1A3A31]"
             href="/api/orders/export?type=conversion"
           >
             Conversion CSV
-          </Link>
+          </ExportButton>
         </div>
       </div>
       <OrdersClient

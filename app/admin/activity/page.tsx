@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/StatTile";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import T from "@/components/T";
@@ -107,12 +108,15 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
           >
             Export CSV
           </a>
-          <Link
+          {/* A button, not a link: prefetched, this built a whole backup of
+              the shop every time the activity page was opened (owner,
+              2026-09-30). */}
+          <ExportButton
             href="/api/admin/backup"
             className="inline-flex h-9 items-center rounded-full bg-brand-green px-3 text-xs font-bold text-white"
           >
             Export backup
-          </Link>
+          </ExportButton>
         </div>
       </div>
 
