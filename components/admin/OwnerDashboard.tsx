@@ -176,13 +176,15 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
     if (props.factory.todayPairs > 0) {
       items.push({ en: `🏭 ${props.factory.todayPairs} pairs into stock today`, ne: `🏭 आज कारखानाबाट ${props.factory.todayPairs} जोडी स्टकमा चढे` });
     }
+    // The month's sales less purchases is not told here: it sits hidden in its
+    // tile below until the Owner asks to see it.
     for (const todo of props.todos.slice(0, 4)) items.push({ en: `• ${todo.en}`, ne: `• ${todo.ne}` });
-    items.push({
-      en: `💰 This month, sales less purchases ${rupees(props.kpis.salesLessPurchases, "en")}`,
-      ne: `💰 यो महिना बिक्री − खरिद ${rupees(props.kpis.salesLessPurchases, "ne")}`,
-    });
     return items;
-  }, [props.today, props.factory.todayPairs, props.todos, props.kpis.salesLessPurchases]);
+  }, [props.today, props.factory.todayPairs, props.todos]);
+  // The four figures start hidden on every visit (owner, 2026-10-01: "not
+  // shown always, but there when I want to look"). Kept in memory only, so
+  // leaving the page hides them again.
+  const [openFigures, setOpenFigures] = useState<Set<string>>(() => new Set());
   const [turn, setTurn] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || news.length < 2) return;
@@ -385,23 +387,68 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
 
       {/* ── Four figures ───────────────────────────────────────────── */}
       <div data-zone="health" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="col-span-full flex justify-end">
+          <button
+            type="button"
+            data-figures-eye="all"
+            onClick={() =>
+              setOpenFigures((open) =>
+                open.size > 0
+                  ? new Set()
+                  : new Set(["/admin/purchasing?view=accounts", "/admin/stock", "/admin/dues", "/admin/operations/production-accounts/payments"]),
+              )
+            }
+            aria-pressed={openFigures.size > 0}
+            className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink"
+          >
+            {openFigures.size > 0 ? text("🙈 Hide amounts", "🙈 रकम लुकाउने") : text("👁 Show amounts", "👁 रकम हेर्ने")}
+          </button>
+        </div>
         {[
           { href: "/admin/purchasing?view=accounts", en: `Sales less purchases · ${props.monthEn}`, ne: `बिक्री − खरिद · ${props.monthNe}`, value: props.kpis.salesLessPurchases, subEn: "Not profit — bought stock is still on hand", subNe: "नाफा होइन · किनेको माल स्टकमै छ", bar: "bg-brand-green" },
           { href: "/admin/stock", en: "Stock at selling price", ne: "स्टक · बेच्ने मूल्यमा", value: props.kpis.stockValue, subEn: `${props.kpis.stockPairs} pairs`, subNe: `${props.kpis.stockPairs} जोडी`, bar: "bg-brand-gold" },
           { href: "/admin/dues", en: "Customers owe", ne: "ग्राहकको उधारो", value: props.kpis.creditOwed, subEn: props.kpis.creditOwed ? "Still to collect" : "Nobody owes anything ✓", subNe: props.kpis.creditOwed ? "उठाउन बाँकी" : "कसैले तिर्न बाँकी छैन ✓", bar: "bg-[#2458A6]" },
           { href: "/admin/operations/production-accounts/payments", en: "Owed to workers", ne: "कामदारको बाँकी", value: props.kpis.workerDue, subEn: "Wages to pay", subNe: "ज्याला तिर्न बाँकी", bar: "bg-brand-clay" },
-        ].map((tile) => (
-          <Link
-            key={tile.href}
-            href={tile.href}
-            className="relative grid gap-0.5 overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper p-4 pl-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-gold"
-          >
-            <span className={`absolute inset-y-0 left-0 w-1 ${tile.bar}`} aria-hidden="true" />
-            <span className="text-xs font-black text-brand-muted">{text(tile.en, tile.ne)}</span>
-            <Money value={tile.value} className="font-display text-2xl font-black text-brand-green-ink" />
-            <span className="text-xs text-brand-muted">{text(tile.subEn, tile.subNe)}</span>
-          </Link>
-        ))}
+        ].map((tile) => {
+          const isOpen = openFigures.has(tile.href);
+          return (
+            <div key={tile.href} className="relative">
+              <Link
+                href={tile.href}
+                className="relative grid h-full gap-0.5 overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper p-4 pl-5 pr-14 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-gold"
+              >
+                <span className={`absolute inset-y-0 left-0 w-1 ${tile.bar}`} aria-hidden="true" />
+                <span className="text-xs font-black text-brand-muted">{text(tile.en, tile.ne)}</span>
+                {isOpen ? (
+                  <Money value={tile.value} className="font-display text-2xl font-black text-brand-green-ink" />
+                ) : (
+                  <span data-figure-hidden className="font-display text-2xl font-black tracking-widest text-brand-muted" aria-label={text("Amount hidden", "रकम लुकाइएको")}>
+                    {text("Rs.", "रु.")} ••••
+                  </span>
+                )}
+                <span className="text-xs text-brand-muted">{text(tile.subEn, tile.subNe)}</span>
+              </Link>
+              {/* Beside the link, not in it: the eye shows the amount and opens nothing. */}
+              <button
+                type="button"
+                data-figures-eye={tile.href}
+                onClick={() =>
+                  setOpenFigures((open) => {
+                    const next = new Set(open);
+                    if (next.has(tile.href)) next.delete(tile.href);
+                    else next.add(tile.href);
+                    return next;
+                  })
+                }
+                aria-pressed={isOpen}
+                aria-label={isOpen ? text("Hide this amount", "यो रकम लुकाउने") : text("Show this amount", "यो रकम हेर्ने")}
+                className="absolute right-2 top-2 grid min-h-11 min-w-11 place-items-center rounded-xl border border-brand-green-line bg-brand-paper text-lg"
+              >
+                {isOpen ? "🙈" : "👁"}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Shop stock and the factory today ──────────────────────── */}
