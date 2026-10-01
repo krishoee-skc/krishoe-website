@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import T from "@/components/T";
+import { StoreIcon } from "@/components/Icons";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { DateDisplayRoman } from "@/components/DateDisplay";
@@ -135,7 +136,8 @@ export default async function ReviewsPage({ searchParams }: { searchParams?: Pro
                   </Link>
                 ) : (
                   <p className="text-base font-bold text-brand-muted">
-                    🏪 <T en="About the shop" ne="पसलबारे" />
+                    <StoreIcon className="mr-1.5 inline h-5 w-5 align-[-4px] text-brand-green" />
+                  <T en="About the shop" ne="पसलबारे" />
                   </p>
                 )}
               </article>

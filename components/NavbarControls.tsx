@@ -4,7 +4,7 @@ import Link from "next/link";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { HeartIcon, MenuIcon, ShoppingCartIcon, XIcon } from "@/components/Icons";
+import { HeartIcon, MapPinIcon, MenuIcon, PackageIcon, ShoppingCartIcon, StoreIcon, WhatsAppIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import CommandSearch from "@/components/CommandSearch";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -252,7 +252,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                   onClick={() => setIsOpen(false)}
                   className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                 >
-                  <span aria-hidden="true">📦</span>
+                  <PackageIcon className="h-5 w-5 shrink-0 text-brand-green" />
                   {text("Track an order", "अर्डर खोज्ने")}
                 </Link>
                 <Link
@@ -260,7 +260,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                   onClick={() => setIsOpen(false)}
                   className="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2.5 text-base font-semibold text-brand-green-ink transition hover:bg-brand-mist hover:text-brand-green"
                 >
-                  <span aria-hidden="true">🏪</span>
+                  <StoreIcon className="h-5 w-5 shrink-0 text-brand-green" />
                   {text("Wholesale", "थोकमा किन्ने")}
                 </Link>
               </div>
@@ -305,11 +305,11 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
                 rel="noreferrer"
                 className="mt-3 flex items-center gap-3 text-base font-black text-brand-green-ink"
               >
-                <span aria-hidden="true">💬</span>
+                <WhatsAppIcon className="h-5 w-5 shrink-0 text-brand-green" />
                 WhatsApp
               </a>
               <p className="mt-3 flex items-start gap-3 text-sm leading-6 text-brand-muted">
-                <span aria-hidden="true">📍</span>
+                <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-green" />
                 {text(
                   "Kamalnagar, Narayangadh, Chitwan",
                   "कमलनगर, नारायणगढ, चितवन",

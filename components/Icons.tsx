@@ -421,3 +421,54 @@ export function CoinsIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/*
+ * The shop's own line icons for the storefront (owner, 2026-10-01: "icons in
+ * one premium style, in the shop's green, not emojis"). Same frame as the rest:
+ * 24-unit box, round caps and joins, stroke in the current colour.
+ */
+function LineIcon({ className, d }: IconProps & { d: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+    </svg>
+  );
+}
+
+/** WhatsApp, drawn as a line icon: the speech bubble with its tail and the handset inside. */
+export function WhatsAppIcon({ className }: IconProps) {
+  return (
+    <LineIcon
+      className={className}
+      d="M4 20l1.3-3.9A8.2 8.2 0 1 1 8.1 19L4 20ZM9.2 8.6c.2 2.4 2.5 4.8 4.9 5.1l1.2-1.2 1.8.9c-.2 1.3-1.3 2-2.5 2-3.4-.3-6.1-3-6.4-6.4 0-1.2.7-2.3 2-2.5l.9 1.8-1.2 1.2Z"
+    />
+  );
+}
+
+export function TruckIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M3 6.5h11v9H3zM14 9.5h3.8l3.2 3.2v2.8h-7M4.8 18.5a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 1 0-3.6 0M15.8 18.5a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 1 0-3.6 0" />;
+}
+
+export function CashIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M3.5 6.5h17v11h-17zM12 9.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2ZM6.5 9.5v5M17.5 9.5v5" />;
+}
+
+export function ReturnIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M4 9h11a5 5 0 0 1 0 10H8M8 5 4 9l4 4" />;
+}
+
+export function StoreIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M4 9.5 5.5 4h13L20 9.5M4 9.5h16M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0M5.5 12v8h13v-8M10 20v-4.5h4V20" />;
+}
+
+export function MapPinIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M12 21s7-6.2 7-11.5a7 7 0 1 0-14 0C5 14.8 12 21 12 21ZM12 7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" />;
+}
+
+export function RulerIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M3 8.5h18v7H3zM7 8.5v3M10.5 8.5v4M14 8.5v3M17.5 8.5v4" />;
+}
+
+export function SparkleIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />;
+}

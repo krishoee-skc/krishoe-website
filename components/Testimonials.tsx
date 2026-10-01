@@ -1,5 +1,7 @@
 import Link from "next/link";
+import AutoScrollRow from "@/components/AutoScrollRow";
 import T from "@/components/T";
+import { StoreIcon } from "@/components/Icons";
 import type { Product, Review } from "@/lib/products";
 import { initialOf, wallReviews, wallShoes, wallSummary, type ShopReview } from "@/lib/review-wall";
 
@@ -135,7 +137,7 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
         ) : null}
 
         {/* A row to swipe on a phone, a grid on a computer. */}
-        <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-3 md:overflow-visible">
+        <AutoScrollRow className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-3 md:overflow-visible">
           {reviews.map((review) => (
             <article
               key={review.id}
@@ -174,12 +176,13 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
                 </Link>
               ) : (
                 <p className="mt-auto border-t border-brand-green-line pt-3 text-base font-bold text-brand-muted">
-                  🏪 <T en="About the shop" ne="पसलबारे" />
+                  <StoreIcon className="mr-1.5 inline h-5 w-5 align-[-4px] text-brand-green" />
+                  <T en="About the shop" ne="पसलबारे" />
                 </p>
               )}
             </article>
           ))}
-        </div>
+        </AutoScrollRow>
 
         {/* The doors, directly under the reviews — where a reader just
             persuaded by other customers is most likely to add their own. */}

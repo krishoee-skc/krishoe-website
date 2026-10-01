@@ -678,21 +678,16 @@ html[lang="ne"] .reflow-table td[data-label-ne]::before {
   }
 }
 
-/* App-like product discovery on phones: the next card peeks into view, making
-   the horizontal gesture obvious without adding a heavy carousel library. */
+/* Two shoes to a row on a phone (owner, 2026-10-01: "the boxes a little
+   smaller"). One card the width of the screen showed a single shoe at a time
+   and hid the rest behind a swipe nobody was told about; two side by side
+   show the shop at a glance, the way the Shop page already does. */
 @media screen and (max-width: 767px) {
   .mobile-product-rail {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(78vw, 78vw);
-    gap: 14px;
-    margin-left: -20px;
-    margin-right: -20px;
-    padding: 4px 20px 18px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 4px 0 12px;
   }
 
   .mobile-product-rail::-webkit-scrollbar {

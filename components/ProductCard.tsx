@@ -52,7 +52,7 @@ export default function ProductCard({
             // reader both need.
             alt={productImageAlt(product)}
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            sizes={compact ? "(max-width: 768px) 50vw, (max-width: 1200px) 50vw, 25vw" : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"}
             // `eager` marks the cards that are already on screen when the shop
             // opens. loading="eager" only stops the browser deferring the
             // request until the card scrolls into view; it does not move the

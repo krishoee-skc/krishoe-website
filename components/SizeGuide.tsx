@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -16,9 +16,21 @@ function footLengthCm(euSize: number) {
   return Math.round((euSize / 1.5 - 1.5) * 10) / 10;
 }
 
+/**
+ * The size for a foot: the smallest of this shoe's sizes whose foot length is
+ * not shorter than the foot — between two sizes, the larger, as the guide says.
+ */
+export function sizeForFoot(sizes: number[], footCm: number) {
+  const sorted = [...sizes].sort((left, right) => left - right);
+  return sorted.find((size) => footLengthCm(size) >= footCm - 0.05) ?? sorted[sorted.length - 1];
+}
+
 export default function SizeGuide({ sizes }: { sizes: string[] }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { text } = useLanguage();
+  // The foot length on the slider (owner, 2026-10-01: "slide the length, see
+  // the size"). Starts in the middle of this shoe's sizes.
+  const [footCm, setFootCm] = useState<number | null>(null);
 
   const numeric = sizes
     .map((size) => Number(size))
@@ -31,6 +43,10 @@ export default function SizeGuide({ sizes }: { sizes: string[] }) {
   // needs is the one for the pair they are looking at, so the table is built
   // from this product's own sizes rather than showing every size KRISHOE makes.
   const isKids = numeric[0] < 33;
+  const shortest = footLengthCm(numeric[0]) - 0.5;
+  const longest = footLengthCm(numeric[numeric.length - 1]) + 0.3;
+  const foot = footCm ?? footLengthCm(numeric[Math.floor(numeric.length / 2)]);
+  const yourSize = sizeForFoot(numeric, foot);
 
   return (
     <>
@@ -78,6 +94,24 @@ export default function SizeGuide({ sizes }: { sizes: string[] }) {
             </li>
           </ol>
 
+          <div className="mt-4 rounded-2xl bg-brand-green-wash px-4 py-3 text-center" data-size-finder>
+            <p className="text-sm font-bold text-brand-muted">{text("Slide to your foot length", "खुट्टाको लम्बाइमा सार्नुहोस्")}</p>
+            <p className="mt-1 font-display text-3xl font-black text-brand-green tabular-nums">{foot.toFixed(1)} cm</p>
+            <input
+              type="range"
+              min={shortest}
+              max={longest}
+              step={0.1}
+              value={foot}
+              onChange={(event) => setFootCm(Number(event.target.value))}
+              aria-label={text("Foot length in centimetres", "खुट्टाको लम्बाइ सेन्टिमिटरमा")}
+              className="mt-2 w-full accent-[#12634A]"
+            />
+            <p className="mt-1 text-base font-black text-brand-green-ink">
+              {text("Your size:", "तपाईंको साइज:")} <span className="text-2xl text-brand-green">{yourSize}</span>
+            </p>
+          </div>
+
           <div className="mt-4 overflow-hidden rounded-xl border border-black/10">
             <table className="w-full text-sm">
               <thead>
@@ -92,7 +126,7 @@ export default function SizeGuide({ sizes }: { sizes: string[] }) {
               </thead>
               <tbody>
                 {numeric.map((size) => (
-                  <tr key={size} className="border-t border-black/[0.06]">
+                  <tr key={size} className={`border-t border-black/[0.06] ${size === yourSize ? "bg-brand-green-wash" : ""}`}>
                     <td className="px-4 py-2 font-black text-brand-green-ink">{size}</td>
                     <td className="px-4 py-2 tabular-nums text-brand-muted">
                       {footLengthCm(size)} cm

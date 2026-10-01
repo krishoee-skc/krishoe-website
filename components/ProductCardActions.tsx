@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Product } from "@/lib/products";
-import { HeartIcon, ShoppingBagIcon } from "@/components/Icons";
+import { HeartIcon, ShoppingBagIcon, WhatsAppIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { trackCommerceEvent } from "@/lib/analytics-events";
@@ -76,7 +76,7 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
           onClick={() => trackCommerceEvent("contact")}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-brand-green bg-brand-green-tint px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white md:h-11"
         >
-          <span aria-hidden="true">💬</span>
+          <WhatsAppIcon className="h-4 w-4 shrink-0" />
           {text("Ask when it's back", "कहिले आउँछ सोध्ने")}
         </a>
       ) : (

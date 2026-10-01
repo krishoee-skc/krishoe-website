@@ -24,6 +24,7 @@ export type ProductMatch = {
 function haystack(product: Product) {
   return [
     product.name,
+    product.nameNe,
     product.sku,
     product.category,
     product.badge,
@@ -34,6 +35,31 @@ function haystack(product: Product) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
+
+/**
+ * The words a shopper types for what the shop calls something else (owner,
+ * 2026-10-01: search in Nepali too). "चप्पल" finds the chappals and slippers,
+ * "हिल" the hills, Roman spellings included. A typed word matches when any of
+ * its alternatives does; a word not listed stands for itself.
+ */
+const SAME_AS: Array<string[]> = [
+  ["चप्पल", "chappal", "chapal", "slipper", "slippers", "स्लिपर"],
+  ["स्यान्डल", "स्याण्डल", "sandal", "sandals", "sandel", "sandil", "सेन्डल"],
+  ["हिल", "hill", "heel", "heels", "हिल्स"],
+  ["जुत्ता", "shoe", "shoes", "jutta", "juta"],
+  ["बच्चा", "kids", "kid", "bachha", "baccha", "child", "children", "केटाकेटी"],
+  ["महिला", "ladies", "lady", "women", "लेडिज", "लेडीज", "केटी"],
+  ["पुरुष", "men", "mens", "gents", "केटा"],
+  ["कालो", "black", "kalo"],
+  ["सेतो", "white", "seto"],
+  ["रातो", "red", "rato"],
+  ["खैरो", "brown", "khairo"],
+];
+
+function alternativesOf(word: string): string[] {
+  const group = SAME_AS.find((words) => words.includes(word));
+  return group ? group : [word];
 }
 
 /**
@@ -57,15 +83,16 @@ export function searchProducts(products: Product[], rawQuery: string, limit = 6)
 
   for (const product of products) {
     const text = haystack(product);
-    if (!words.every((word) => text.includes(word))) continue;
+    if (!words.every((word) => alternativesOf(word).some((alternative) => text.includes(alternative)))) continue;
 
     const name = product.name.toLowerCase();
     const sku = (product.sku ?? "").toLowerCase();
     const first = words[0];
+    const firstAlternatives = alternativesOf(first);
 
-    const rank = name.startsWith(first)
+    const rank = firstAlternatives.some((alternative) => name.startsWith(alternative))
       ? 0
-      : name.includes(first)
+      : firstAlternatives.some((alternative) => name.includes(alternative))
         ? 1
         : sku.includes(first)
           ? 2

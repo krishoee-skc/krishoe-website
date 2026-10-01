@@ -64,15 +64,25 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
             each reads as the shoes it leads to. Scrolls on a phone, centres on
             a wider screen. */}
         <div className="flex snap-x gap-6 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center">
-          {categories.map((item) => {
+          {/* The collections that have shoes first, the rest smaller after them
+              (owner, 2026-10-01): six full-size "coming soon" circles pushed the
+              one with shoes off a phone screen. */}
+          {[...categories]
+            .sort((a, b) => Number((shoeCounts?.[b.slug] ?? 1) > 0) - Number((shoeCounts?.[a.slug] ?? 1) > 0))
+            .map((item) => {
             const comingSoon = shoeCounts !== undefined && (shoeCounts[item.slug] ?? 0) === 0;
+            const count = shoeCounts?.[item.slug] ?? 0;
             return (
               <Link
                 key={item.slug}
                 href={`/shop/${item.slug}`}
-                className="group flex w-24 flex-none snap-start flex-col items-center gap-3 text-center"
+                className={`group flex flex-none snap-start flex-col items-center gap-3 text-center ${comingSoon ? "w-20" : "w-24"}`}
               >
-                <span className="relative h-24 w-24 overflow-hidden rounded-full shadow-sm ring-2 ring-brand-silver transition duration-300 group-hover:-translate-y-1 group-hover:ring-brand-purple">
+                <span
+                  className={`relative overflow-hidden rounded-full shadow-sm ring-2 transition duration-300 group-hover:-translate-y-1 ${
+                    comingSoon ? "h-16 w-16 ring-brand-silver" : "h-24 w-24 ring-brand-green group-hover:ring-brand-gold"
+                  }`}
+                >
                   <Image
                     src={item.image}
                     alt={item.title}
@@ -81,8 +91,9 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
                     className={`object-cover transition duration-500 group-hover:scale-110 ${comingSoon ? "opacity-60 grayscale" : ""}`}
                   />
                 </span>
-                <span className="text-sm font-semibold leading-tight text-brand-green-ink">
+                <span className={`font-semibold leading-tight ${comingSoon ? "text-xs text-brand-muted" : "text-sm text-brand-green-ink"}`}>
                   {item.title}
+                  {!comingSoon && count > 0 ? <span className="block text-xs font-bold text-brand-green"><T en={`${count} style${count === 1 ? "" : "s"}`} ne={`${count} किसिम`} /></span> : null}
                 </span>
                 {comingSoon ? (
                   <span className="-mt-2 rounded-full border border-brand-gold/50 bg-brand-cream-soft px-2 py-0.5 text-[11px] font-bold leading-tight text-brand-gold-ink">

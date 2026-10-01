@@ -10,7 +10,8 @@ import About from "@/components/About";
 import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
 import { getPublishedShopReviews } from "@/lib/customer-voice";
-import type { ShopReview } from "@/lib/review-wall";
+import { wallReviews, wallSummary, type ShopReview } from "@/lib/review-wall";
+import { ShoppingBagIcon, StarIcon, WhatsAppIcon } from "@/components/Icons";
 import Footer from "@/components/Footer";
 import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/product-store";
@@ -76,6 +77,9 @@ const loadPromo = unstable_cache(
   { revalidate: 600 },
 );
 
+/** How many shoes one row of the home page holds. */
+const HOME_ROW = 8;
+
 export default async function Home() {
   const [products, settings, shopReviews] = await Promise.all([loadHomeProducts(), loadPromo(), loadShopReviews()]);
   // The delivery promise is made once, in the header's strip, from Settings.
@@ -83,6 +87,8 @@ export default async function Home() {
   // line and the first trust badge — which read as filler, and pushed the
   // shoes further down. The promo line is now the owner's own message only.
   const promo = settings.promoEnabled && settings.promoText.trim() ? settings.promoText.trim() : "";
+  // The real rating, from the reviews the Owner published — none, no chip.
+  const homeRating = wallSummary(wallReviews(products, shopReviews));
 
   return (
     <main className="bg-brand-paper">
@@ -143,6 +149,42 @@ export default async function Home() {
         </Link>
       </section>
 
+      {/* What a shopper needs right under the banner (owner, 2026-10-01): the
+          real rating, the way into the shoes, and an order on WhatsApp — the
+          way most of this shop's customers already buy. */}
+      <section className="px-4 pt-4 md:px-8" data-hero-actions>
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-2.5">
+          {homeRating ? (
+            <Link
+              href="/reviews"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-green-line bg-brand-paper px-4 text-base font-black text-brand-green-ink shadow-sm"
+            >
+              <StarIcon className="h-5 w-5 text-brand-gold" />
+              {homeRating.average.toFixed(1)}
+              <span className="font-semibold text-brand-muted">
+                <T en={`· ${homeRating.count} customers`} ne={`· ${homeRating.count} ग्राहक`} />
+              </span>
+            </Link>
+          ) : null}
+          <Link
+            href="/shop"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-green-ink px-5 text-base font-black text-white shadow-sm transition hover:bg-brand-green"
+          >
+            <ShoppingBagIcon className="h-5 w-5" />
+            <T en="Shop the shoes" ne="जुत्ता हेर्ने" />
+          </Link>
+          <a
+            href={`https://wa.me/${businessContact.whatsappNumber}?text=${encodeURIComponent("Namaste KRISHOE 🙏 I want to order.")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-green px-5 text-base font-black text-white shadow-sm transition hover:bg-brand-green-ink"
+          >
+            <WhatsAppIcon className="h-5 w-5" />
+            <T en="Order on WhatsApp" ne="WhatsApp मा अर्डर" />
+          </a>
+        </div>
+      </section>
+
       {/* Trust badges — the four assurances under the hero, like the mockup. */}
       <section className="px-4 pt-5 md:px-8">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4">
@@ -171,9 +213,17 @@ export default async function Home() {
 
       <BestSeller products={products} />
 
-      <FeaturedProducts products={products} />
+      {/* While the shop has a handful of shoes, the tabs above already show
+          them all — Best Sellers, Trending, New — and these two rows only drew
+          the same three shoes again (owner, 2026-10-01). They return when there
+          is more to show than one row holds. */}
+      {products.length > HOME_ROW ? (
+        <>
+          <FeaturedProducts products={products} />
 
-      <NewArrivals products={products} />
+          <NewArrivals products={products} />
+        </>
+      ) : null}
 
       <Testimonials products={products} shopReviews={shopReviews} />
 

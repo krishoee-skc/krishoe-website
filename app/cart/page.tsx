@@ -3,13 +3,15 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartClient from "@/components/CartClient";
 import T from "@/components/T";
+import { getStorefrontDeliveryPricing } from "@/lib/delivery-settings";
 
 export const metadata: Metadata = {
   title: "Cart | KRISHOE",
   description: "Review selected KRISHOE footwear before checkout.",
 };
 
-export default function CartPage() {
+export default async function CartPage() {
+  const delivery = await getStorefrontDeliveryPricing().catch(() => null);
   return (
     <main className="bg-brand-mist">
       <Navbar />
@@ -22,7 +24,7 @@ export default function CartPage() {
             <T en="Your selected pairs." ne="तपाईंले छान्नुभएका जोडीहरू।" />
           </h1>
         </div>
-        <CartClient />
+        <CartClient freeOverPaisa={delivery?.freeOverPaisa ?? 0} />
       </section>
       <Footer />
     </main>

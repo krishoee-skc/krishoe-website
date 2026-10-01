@@ -10,6 +10,10 @@ import { useKeyboardOpen } from "@/lib/use-keyboard-open";
 // App-style bottom navigation for phones/tablets. Hidden on desktop (lg+) and
 // on the admin area. Most customers shop from mobile, so the key destinations
 // stay one thumb-tap away.
+// One tone for every tab (owner, 2026-10-01: icons in one premium style, in
+// the shop's green). Five colours read as five apps.
+const ONE_TONE = "bg-brand-green-tint text-brand-green";
+
 export default function BottomTabBar() {
   const pathname = usePathname();
   const { cartCount } = useCommerce();
@@ -51,14 +55,14 @@ export default function BottomTabBar() {
       >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>
-            <span className={iconBubble("bg-[#FFE4D5] text-[#B74D68]", isHome)}>
+            <span className={iconBubble(ONE_TONE, isHome)}>
               <HomeIcon className="h-[18px] w-[18px]" />
             </span>
             {text("Home", "गृह")}
           </Link>
 
           <Link href="/shop" className={tabClass(isShop)} aria-current={isShop ? "page" : undefined}>
-            <span className={iconBubble("bg-brand-green-tint text-brand-green", isShop)}>
+            <span className={iconBubble(ONE_TONE, isShop)}>
               <ShoppingBagIcon className="h-[18px] w-[18px]" />
             </span>
             {text("Shop", "पसल")}
@@ -70,14 +74,14 @@ export default function BottomTabBar() {
             className={tabClass(false)}
             aria-label={text("Open search", "खोज्ने")}
           >
-            <span className={iconBubble("bg-[#EEE5FF] text-[#7451A8]", false)}>
+            <span className={iconBubble(ONE_TONE, false)}>
               <SearchIcon className="h-[18px] w-[18px]" />
             </span>
             {text("Search", "खोज")}
           </button>
 
           <Link href="/cart" className={tabClass(isCart)} aria-current={isCart ? "page" : undefined}>
-            <span className={`relative ${iconBubble("bg-[#FFF0BF] text-[#8B6718]", isCart)}`}>
+            <span className={`relative ${iconBubble(ONE_TONE, isCart)}`}>
               <ShoppingCartIcon className="h-[18px] w-[18px]" />
               {cartCount > 0 ? (
                 <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#E84C79] px-1 text-[9px] font-black text-white">
@@ -89,7 +93,7 @@ export default function BottomTabBar() {
           </Link>
 
           <Link href="/account" className={tabClass(isAccount)} aria-current={isAccount ? "page" : undefined}>
-            <span className={iconBubble("bg-[#F8DFEF] text-[#A83E70]", isAccount)}>
+            <span className={iconBubble(ONE_TONE, isAccount)}>
               <UserIcon className="h-[18px] w-[18px]" />
             </span>
             {text("Account", "खाता")}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import { CashIcon, FactoryIcon, ReturnIcon, TruckIcon } from "@/components/Icons";
 
 /**
  * Four small reassurances, under the price, on every shoe.
@@ -28,22 +29,22 @@ export default function TrustStrip() {
 
   const items = [
     {
-      icon: "👟",
+      Icon: FactoryIcon,
       value: text("Hand-made", "हातले बनेको"),
       label: text("in our Narayangadh workshop", "नारायणगढकै कारखानामा"),
     },
     {
-      icon: "🚚",
+      Icon: TruckIcon,
       value: text("1-2 days", "१–२ दिन"),
       label: text("local · 3-5 elsewhere", "स्थानीय · अन्यत्र ३–५"),
     },
     {
-      icon: "💵",
+      Icon: CashIcon,
       value: text("Pay on delivery", "पाएपछि तिर्ने"),
       label: text("nothing in advance", "अग्रिम केही पठाउनु पर्दैन"),
     },
     {
-      icon: "↩️",
+      Icon: ReturnIcon,
       value: text("7 days", "७ दिन"),
       label: text("to exchange or return", "साट्न वा फिर्ता गर्न"),
     },
@@ -56,8 +57,8 @@ export default function TrustStrip() {
           key={item.value}
           className="rounded-xl border border-brand-green-line bg-brand-mist px-3 py-3 text-center"
         >
-          <span aria-hidden="true" className="text-lg leading-none">
-            {item.icon}
+          <span aria-hidden="true" className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-brand-green-wash text-brand-green">
+            <item.Icon className="h-5 w-5" />
           </span>
           <p className="mt-1.5 text-sm font-black leading-tight text-brand-green-ink">{item.value}</p>
           <p className="mt-0.5 text-[11px] leading-4 text-brand-muted">{item.label}</p>

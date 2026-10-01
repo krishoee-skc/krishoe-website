@@ -8,10 +8,17 @@ import { MinusIcon, PlusIcon, TrashIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 
-export default function CartClient() {
+/**
+ * freeOverPaisa: the order value from which delivery is free, from Settings —
+ * 0 when the shop has no such line. The bar under the subtotal fills toward it
+ * (owner, 2026-10-01: "Rs. 850 more for free delivery").
+ */
+export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: number }) {
   const { text } = useLanguage();
-  const { cartItems, subtotalLabel, removeFromCart, updateQuantity, stockShortfalls, canCheckout } =
+  const { cartItems, subtotal, subtotalLabel, removeFromCart, updateQuantity, stockShortfalls, canCheckout } =
     useCommerce();
+  const toFree = freeOverPaisa > 0 ? Math.max(0, freeOverPaisa - subtotal) : 0;
+  const freeShare = freeOverPaisa > 0 ? Math.min(100, Math.round((subtotal / freeOverPaisa) * 100)) : 0;
   const shortfallByProductId = new Map(
     stockShortfalls.map((shortfall) => [shortfall.productId, shortfall]),
   );
@@ -116,6 +123,25 @@ export default function CartClient() {
             <span>{text("Subtotal", "जम्मा")}</span>
             <span className="font-bold text-white">{subtotalLabel}</span>
           </div>
+          {freeOverPaisa > 0 ? (
+            <div data-free-delivery>
+              <p className="text-sm font-bold text-white">
+                {toFree > 0
+                  ? text(`Add ${formatPrice(toFree)} more for free delivery`, `${formatPrice(toFree)} थपे डेलिभरी निःशुल्क`)
+                  : text("Free delivery on this order ✓", "यो अर्डरमा डेलिभरी निःशुल्क ✓")}
+              </p>
+              <div
+                className="mt-2 h-2 overflow-hidden rounded-full bg-white/15"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={freeShare}
+                aria-label={text("Toward free delivery", "निःशुल्क डेलिभरीसम्म")}
+              >
+                <span className="block h-full rounded-full bg-brand-gold-bright transition-[width] duration-500" style={{ width: `${freeShare}%` }} />
+              </div>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span>{text("Delivery", "डेलिभरी")}</span>
             <span>{text("Calculated after inquiry", "सोधपुछपछि निर्धारण")}</span>
