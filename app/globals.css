@@ -773,6 +773,13 @@ html[lang="ne"] .reflow-table td[data-label-ne]::before {
     font-size: 12px;
   }
 
+  /* The admin frame stays off the paper: the search row, the language
+     switch and the "Shop > ..." line printed above the bill (owner,
+     2026-10-01). Everything of the frame carries data-admin-chrome. */
+  [data-admin-chrome] {
+    display: none !important;
+  }
+
   .receipt-print h1 {
     font-size: 20px !important;
   }
@@ -1004,4 +1011,29 @@ body:has([data-counter-mode]) [data-pos-bar] {
   body:has(.print-slip) .print-slip,
   body:has(.print-slip) .print-slip * { visibility: visible; }
   body:has(.print-slip) .print-slip { position: absolute; left: 0; top: 0; }
+}
+
+/* A bill printed from a phone (owner, 2026-10-01: a short bill came out on two
+   A4 pages). The phone lays the page out at its own narrow width and blows it
+   up to the paper's: the bill's fields stacked one a line, the sizes wrapped,
+   and the tall result ran onto a second sheet. Only a print as narrow as a
+   phone matches here — an A4 or A5 from a computer is wider and keeps its own
+   layout — and the bill is then laid out at paper width, its fields two
+   a row, and shrunk to the sheet like a computer's print. */
+@media print and (max-width: 440px) {
+  html,
+  body,
+  .admin-canvas {
+    overflow: visible !important;
+  }
+
+  .receipt-print {
+    width: 180mm !important;
+    min-width: 180mm !important;
+    max-width: none !important;
+  }
+
+  .receipt-print .receipt-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }

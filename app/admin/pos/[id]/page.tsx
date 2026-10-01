@@ -139,7 +139,7 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
         {/* Customer (left) and invoice meta (right). Address and PAN carry a
             write-on line for now — a wholesale buyer's PAN can be filled by hand
             until it is captured on the bill form. */}
-        <div className="grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
+        <div className="receipt-fields grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
           <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
           <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span>{invoice.customerAddress ? <span className="font-bold">: {invoice.customerAddress}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
