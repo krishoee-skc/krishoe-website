@@ -98,6 +98,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
+      // Every published review, shoe by shoe (owner, 2026-10-01).
+      url: `${baseUrl}/reviews`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
       url: `${baseUrl}/privacy`,
       lastModified: now,
       changeFrequency: "yearly",

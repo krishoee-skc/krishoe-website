@@ -590,3 +590,91 @@ export async function getReviewSummaryByProduct(): Promise<
     },
   });
 }
+
+/**
+ * Published reviews of the shop itself — written for no shoe (owner,
+ * 2026-10-01: Lila's and Nikesh's were shown nowhere). The home page and
+ * /reviews show them beside the shoes' own.
+ */
+export async function getPublishedShopReviews(): Promise<
+  Array<{ id: string; name: string; comment: string; rating: number; createdAt: string; verified: boolean }>
+> {
+  const shape = (voice: CustomerVoice) => ({
+    id: voice.id,
+    name: voice.customerName,
+    comment: voice.message,
+    rating: voice.rating,
+    createdAt: voice.createdAt,
+    verified: voice.orderId !== "",
+  });
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () =>
+      (await readCustomerVoiceLocal())
+        .filter((voice) => voice.kind === "review" && voice.published && !voice.productId)
+        .map(shape),
+    postgres: async () => {
+      const rows = await queryPostgres<VoiceRow>(
+        STORE,
+        `SELECT ${COLUMNS} FROM customer_voice
+         WHERE kind = 'review' AND published = true AND product_id = ''
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [],
+      );
+      return rows.map(fromRow).map(shape);
+    },
+  });
+}
+
+/** A review written for the wrong shoe, moved to the right one ("" for the shop). */
+export async function setVoiceProduct(id: string, productId: string, productName: string) {
+  await runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      const voices = await readCustomerVoiceLocal();
+      await writeCustomerVoiceLocal(
+        voices.map((voice) => (voice.id === id ? { ...voice, productId, productName } : voice)),
+      );
+    },
+    postgres: async () => {
+      await queryPostgres(
+        STORE,
+        `UPDATE customer_voice SET product_id = $2, product_name = $3, updated_at = now()
+         WHERE id = $1 AND kind = 'review'`,
+        [id, productId, productName.slice(0, 200)],
+      );
+    },
+  });
+}
+
+/** Several reviews published at once — the inbox's "Publish these". Returns how many. */
+export async function publishVoices(ids: string[]): Promise<number> {
+  const unique = [...new Set(ids.filter(Boolean))].slice(0, 100);
+  if (unique.length === 0) return 0;
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => {
+      const voices = await readCustomerVoiceLocal();
+      let changed = 0;
+      await writeCustomerVoiceLocal(
+        voices.map((voice) => {
+          if (!unique.includes(voice.id) || voice.kind !== "review" || voice.published) return voice;
+          changed += 1;
+          return { ...voice, published: true };
+        }),
+      );
+      return changed;
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ id: string }>(
+        STORE,
+        `UPDATE customer_voice SET published = true, updated_at = now()
+         WHERE id = ANY($1) AND kind = 'review' AND published = false
+         RETURNING id`,
+        [unique],
+      );
+      return rows.length;
+    },
+  });
+}

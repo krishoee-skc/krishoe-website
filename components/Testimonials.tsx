@@ -1,6 +1,9 @@
 import Link from "next/link";
 import T from "@/components/T";
 import type { Product, Review } from "@/lib/products";
+import { initialOf, wallReviews, wallShoes, wallSummary, type ShopReview } from "@/lib/review-wall";
+
+const MAX_ON_HOME = 6;
 
 /**
  * What customers actually said.
@@ -72,9 +75,15 @@ export function reviewSummary(products: Product[]) {
   return { count, average, distribution };
 }
 
-export default function Testimonials({ products = [] }: { products?: Product[] }) {
-  const reviews = approvedReviews(products);
-  const summary = reviewSummary(products);
+/**
+ * The home page wall (owner, 2026-10-01): the shoes' published reviews and the
+ * shop's own together — see lib/review-wall.ts — six at most, with the shoe each
+ * is about.
+ */
+export default function Testimonials({ products = [], shopReviews = [] }: { products?: Product[]; shopReviews?: ShopReview[] }) {
+  const wall = wallReviews(products, shopReviews);
+  const reviews = wall.slice(0, MAX_ON_HOME);
+  const summary = wallSummary(wall);
 
   // Nothing published yet. The section used to remove itself entirely — which
   // meant that on the day the shop most needs reviews, the home page offered no
@@ -104,83 +113,91 @@ export default function Testimonials({ products = [] }: { products?: Product[] }
     );
   }
 
+  const shoeCount = wallShoes(wall).shoes.length;
   return (
-    <section className="bg-brand-paper py-8 md:py-20">
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="bg-brand-paper py-10 md:py-20" data-review-wall>
+      <div className="mx-auto max-w-7xl px-5 md:px-6">
         <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-          <T en="What Our Customers Say" ne="ग्राहकहरूले के भन्नुहुन्छ" />
+          <T en="What our customers say" ne="ग्राहकहरूले के भन्नुहुन्छ" />
         </h2>
 
-        <p className="mb-10 mt-3 text-center text-brand-muted">
-          <T
-            en="Trusted by customers who want comfort and clean styling."
-            ne="किनेर लगाउनुभएकाहरूकै भनाइ।"
-          />
-        </p>
-
         {summary ? (
-          <div className="mx-auto mb-10 flex max-w-2xl flex-col items-center gap-6 rounded-2xl border border-brand-green-line bg-brand-mist p-6 shadow-sm sm:flex-row">
-            <div className="text-center">
-              <p className="font-display text-5xl font-black leading-none text-brand-green">
-                {summary.average.toFixed(1)}
-              </p>
-              <p className="mt-1 text-lg tracking-[0.2em] text-brand-gold" aria-hidden>
-                {"★".repeat(Math.round(summary.average))}
-                {"☆".repeat(5 - Math.round(summary.average))}
-              </p>
-              <p className="mt-1 text-xs text-brand-muted">
-                <T en={`${summary.count} reviews`} ne={`${summary.count} राय`} />
-              </p>
-            </div>
-            <div className="w-full flex-1">
-              {summary.distribution.map((row) => (
-                <div key={row.star} className="flex items-center gap-2 py-0.5 text-xs text-brand-muted">
-                  <span className="w-3 tabular-nums">{row.star}</span>
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-green-line">
-                    <span
-                      className="block h-full rounded-full bg-brand-gold"
-                      style={{ width: `${summary.count ? (row.count / summary.count) * 100 : 0}%` }}
-                    />
-                  </span>
-                  <span className="w-6 text-right tabular-nums">{row.count}</span>
-                </div>
-              ))}
-            </div>
+          <div className="mx-auto mt-5 flex w-fit max-w-full flex-wrap items-center justify-center gap-3 rounded-full border border-brand-green-line bg-brand-mist px-5 py-3 shadow-sm">
+            <span className="font-display text-3xl font-black leading-none text-brand-green">{summary.average.toFixed(1)}</span>
+            <span className="text-xl tracking-[0.15em] text-brand-gold" aria-hidden>
+              {"★".repeat(Math.round(summary.average))}
+              {"☆".repeat(5 - Math.round(summary.average))}
+            </span>
+            <span className="text-base font-bold text-brand-green-ink">
+              <T en={`from ${summary.count} customers`} ne={`${summary.count} ग्राहकको राय`} />
+            </span>
           </div>
         ) : null}
 
-        <div className="grid gap-8 md:grid-cols-3">
+        {/* A row to swipe on a phone, a grid on a computer. */}
+        <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-3 md:overflow-visible">
           {reviews.map((review) => (
-            <div
+            <article
               key={review.id}
-              className="rounded-lg bg-brand-mist p-8 shadow-lg duration-300 hover:shadow-2xl"
+              className="flex w-[82%] shrink-0 snap-start flex-col gap-3 rounded-2xl border border-brand-green-line bg-brand-mist p-5 shadow-sm sm:w-[46%] md:w-auto"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black tracking-[0.2em] text-brand-gold">
-                  {review.rating} / 5
-                </div>
-                {review.verifiedPurchase ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-lg tracking-[0.12em] text-brand-gold" aria-label={`${review.rating} / 5`}>
+                  {"★".repeat(Math.max(0, Math.min(5, review.rating)))}
+                </span>
+                {review.verified ? (
                   <span className="rounded-full bg-brand-green-mist px-2.5 py-1 text-xs font-bold text-brand-green">
-                    <T en="Verified buyer" ne="किनेको पक्का" />
+                    <T en="✓ Bought here" ne="✓ यहीँ किनेको" />
                   </span>
                 ) : null}
               </div>
-
-              <p className="mt-5 italic text-gray-600">&ldquo;{review.comment}&rdquo;</p>
-
-              <h3 className="mt-6 font-bold text-brand-green">{review.name}</h3>
-            </div>
+              <p className="text-lg font-semibold leading-7 text-brand-green-ink">&ldquo;{review.comment}&rdquo;</p>
+              <p className="flex items-center gap-2 text-base text-brand-muted">
+                <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full bg-brand-green-wash font-black text-brand-green">
+                  {initialOf(review.name)}
+                </span>
+                <b className="text-brand-green-ink">{review.name}</b>
+              </p>
+              {review.shoe ? (
+                <Link
+                  href={review.shoe.href}
+                  className="mt-auto flex items-center gap-3 border-t border-brand-green-line pt-3 text-base font-bold text-brand-green hover:text-brand-green-ink"
+                >
+                  {review.shoe.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={review.shoe.image} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                  ) : null}
+                  <span className="min-w-0">
+                    {review.shoe.name}
+                    {review.shoe.price ? <span className="font-normal text-brand-muted"> · {review.shoe.price}</span> : null} →
+                  </span>
+                </Link>
+              ) : (
+                <p className="mt-auto border-t border-brand-green-line pt-3 text-base font-bold text-brand-muted">
+                  🏪 <T en="About the shop" ne="पसलबारे" />
+                </p>
+              )}
+            </article>
           ))}
         </div>
 
-        {/* The door, directly under the reviews — where a reader who has just
-            been persuaded by other customers is most likely to add their own. */}
-        <div className="mt-12 text-center">
+        {/* The doors, directly under the reviews — where a reader just
+            persuaded by other customers is most likely to add their own. */}
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link
             href="/review"
-            className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-7 font-bold text-white transition hover:bg-brand-green-ink"
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-green px-7 text-base font-bold text-white transition hover:bg-brand-green-ink"
           >
             <T en="★ Leave a review" ne="★ राय दिनुहोस्" />
+          </Link>
+          <Link
+            href="/reviews"
+            className="inline-flex min-h-12 items-center justify-center rounded-full border border-brand-green px-7 text-base font-bold text-brand-green transition hover:bg-brand-green-wash"
+          >
+            <T
+              en={`See all ${summary?.count ?? reviews.length} reviews${shoeCount > 1 ? ` · ${shoeCount} shoes` : ""}`}
+              ne={`सबै ${summary?.count ?? reviews.length} राय हेर्ने`}
+            />
           </Link>
         </div>
       </div>

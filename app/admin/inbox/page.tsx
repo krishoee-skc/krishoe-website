@@ -15,6 +15,9 @@ import {
 import { deleteVoiceAction, setPublishedAction, setStatusAction } from "./actions";
 import ReviewAskWays from "./ReviewAskWays";
 import AskCounterCustomers from "./AskCounterCustomers";
+import ReviewRow, { reviewView, showsWhenPublished, type ReviewView, type ShoeOnFile } from "./ReviewRow";
+import { publishManyAction } from "./actions";
+import { getProducts } from "@/lib/product-store";
 import { getPosInvoices } from "@/lib/pos";
 import { customersToAsk, type CustomerToAsk } from "@/lib/review-ask-rules";
 import { reportError } from "@/lib/report-error";
@@ -228,7 +231,7 @@ function Row({ voice }: { voice: CustomerVoice }) {
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ kind?: string; status?: string }>;
+  searchParams?: Promise<{ kind?: string; status?: string; view?: string }>;
 }) {
   const { role } = await requireAdminPermission("feedback:read");
 
@@ -237,7 +240,7 @@ export default async function InboxPage({
   const status = params.status === "new" ? ("new" as const) : undefined;
 
   const reviewUrl = `${getSiteUrl().replace(/[/]$/, "")}/review`;
-  const [voices, counts, stats, toAsk] = await Promise.all([
+  const [voices, counts, stats, toAsk, allReviews, shoeList] = await Promise.all([
     getCustomerVoice({ kind, status }),
     getVoiceCounts(),
     getReviewStats().catch(() => ({ reviews: 0, average: 0, live: 0 })),
@@ -251,7 +254,24 @@ export default async function InboxPage({
             return [];
           })
       : Promise.resolve<CustomerToAsk[]>([]),
+    getCustomerVoice({ kind: "review", limit: 500 }),
+    getProducts({ includeDrafts: true }).catch((error) => {
+      reportError("list shoes for the review cards", error);
+      return [];
+    }),
   ]);
+
+  // The shoes a review can belong to, Active or Draft — where it will show.
+  const shoes = new Map<string, ShoeOnFile>(
+    shoeList.map((product) => [product.id, { id: product.id, name: product.name, active: product.status === "Active" }]),
+  );
+  // Reviews to decide, live, kept hidden (owner, 2026-10-01).
+  const toDecide = allReviews.filter((voice) => reviewView(voice) === "decide");
+  const readyToShow = toDecide.filter((voice) => showsWhenPublished(voice, shoes));
+  const view: ReviewView | undefined =
+    kind === "review" && (params.view === "decide" || params.view === "live" || params.view === "hidden") ? params.view : undefined;
+  const listed = view ? voices.filter((voice) => reviewView(voice) === view) : voices;
+  const canPublish = canAdmin(role, "reviews:write");
 
   const tab = (href: string, label: React.ReactNode, active: boolean) => (
     <Link
@@ -291,7 +311,7 @@ export default async function InboxPage({
           do I see the reviews?" — on an empty page nothing said they arrive
           here). */}
       <div className="mt-5 grid gap-3">
-        <div className="grid grid-cols-3 gap-2 sm:max-w-xl" data-review-stats>
+        <div className="grid grid-cols-2 gap-2 sm:max-w-2xl sm:grid-cols-4" data-review-stats>
           <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
             <b className="block font-display text-xl text-brand-green-ink">
               {stats.reviews > 0 ? `★ ${stats.average.toFixed(1)}` : "0"}
@@ -308,6 +328,10 @@ export default async function InboxPage({
             <b className="block font-display text-xl text-brand-green-ink">{stats.live}</b>
             <span className="text-xs text-brand-muted"><T en="live in the shop" ne="पसलमा देखिने" /></span>
           </div>
+          <Link href="/admin/inbox?kind=review&view=decide" className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
+            <b className={`block font-display text-xl ${toDecide.length > 0 ? "text-brand-gold-deep" : "text-brand-green-ink"}`}>{toDecide.length}</b>
+            <span className="text-xs text-brand-muted"><T en="reviews to decide" ne="छान्न बाँकी राय" /></span>
+          </Link>
           <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
             <b className={`block font-display text-xl ${counts.waiting > 0 ? "text-brand-clay" : "text-brand-green-ink"}`}>{counts.waiting}</b>
             <span className="text-xs text-brand-muted"><T en="to reply" ne="जवाफ बाँकी" /></span>
@@ -352,15 +376,51 @@ export default async function InboxPage({
       </div>
       ) : null}
 
+      {kind === "review" ? (
+        <div className="mt-3 flex flex-wrap gap-2" data-review-views>
+          {tab("/admin/inbox?kind=review", <T en="All reviews" ne="सबै राय" />, !view)}
+          {tab("/admin/inbox?kind=review&view=decide", <T en={`To decide ${toDecide.length}`} ne={`छान्न बाँकी ${toDecide.length}`} />, view === "decide")}
+          {tab("/admin/inbox?kind=review&view=live", <T en={`Live ${stats.live}`} ne={`पसलमा ${stats.live}`} />, view === "live")}
+          {tab(
+            "/admin/inbox?kind=review&view=hidden",
+            <T en={`Hidden ${allReviews.filter((voice) => reviewView(voice) === "hidden").length}`} ne={`लुकाइएको ${allReviews.filter((voice) => reviewView(voice) === "hidden").length}`} />,
+            view === "hidden",
+          )}
+        </div>
+      ) : null}
+
+      {canPublish && readyToShow.length > 0 ? (
+        <form action={publishManyAction} className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-green-ink px-4 py-3 text-white" data-publish-many>
+          {readyToShow.map((voice) => (
+            <input key={voice.id} type="hidden" name="id" value={voice.id} />
+          ))}
+          <span className="text-base font-black">
+            <T
+              en={`${readyToShow.length} review${readyToShow.length === 1 ? "" : "s"} will show in the shop once published`}
+              ne={`${readyToShow.length} राय पसलमा राख्न तयार छन्`}
+            />
+          </span>
+          <button className="min-h-11 rounded-xl bg-brand-paper px-5 text-base font-black text-brand-green-ink">
+            <T en={`✓ Publish these ${readyToShow.length}`} ne={`✓ यी ${readyToShow.length} पसलमा राख्ने`} />
+          </button>
+        </form>
+      ) : null}
+
       <div className="mt-5 overflow-hidden rounded-lg border border-brand-green-line bg-brand-paper">
         {counts.total === 0 ? (
           <ReviewAskWays reviewUrl={reviewUrl} />
-        ) : voices.length === 0 ? (
+        ) : listed.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-brand-muted">
             <T en="Nothing in this filter." ne="यो छनोटमा केही छैन।" />
           </p>
         ) : (
-          voices.map((voice) => <Row key={voice.id} voice={voice} />)
+          listed.map((voice) =>
+            voice.kind === "review" && canPublish ? (
+              <ReviewRow key={voice.id} voice={voice} shoes={shoes} />
+            ) : (
+              <Row key={voice.id} voice={voice} />
+            ),
+          )
         )}
       </div>
     </section>

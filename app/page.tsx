@@ -9,6 +9,8 @@ import Categories from "@/components/categories";
 import About from "@/components/About";
 import WhyChoose from "@/components/WhyChoose";
 import Testimonials from "@/components/Testimonials";
+import { getPublishedShopReviews } from "@/lib/customer-voice";
+import type { ShopReview } from "@/lib/review-wall";
 import Footer from "@/components/Footer";
 import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/product-store";
@@ -35,6 +37,16 @@ function categoryShoeCounts(products: Product[]) {
   return Object.fromEntries(
     categories.map((category) => [category.slug, getProductsByCategory(products, category).length]),
   );
+}
+
+/** The shop's own published reviews, beside the shoes' (owner, 2026-10-01). */
+async function loadShopReviews(): Promise<ShopReview[]> {
+  try {
+    return await getPublishedShopReviews();
+  } catch (error) {
+    reportError("load the shop's reviews for the homepage", error);
+    return [];
+  }
 }
 
 async function loadHomeProducts(): Promise<Product[]> {
@@ -65,7 +77,7 @@ const loadPromo = unstable_cache(
 );
 
 export default async function Home() {
-  const [products, settings] = await Promise.all([loadHomeProducts(), loadPromo()]);
+  const [products, settings, shopReviews] = await Promise.all([loadHomeProducts(), loadPromo(), loadShopReviews()]);
   // The delivery promise is made once, in the header's strip, from Settings.
   // On a phone the first screen said it three times — the strip, the promo
   // line and the first trust badge — which read as filler, and pushed the
@@ -163,7 +175,7 @@ export default async function Home() {
 
       <NewArrivals products={products} />
 
-      <Testimonials products={products} />
+      <Testimonials products={products} shopReviews={shopReviews} />
 
       <WhyChoose />
 
