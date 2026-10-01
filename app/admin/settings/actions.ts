@@ -327,13 +327,13 @@ export async function prepareChequesDatabaseAction(formData: FormData) {
     await recordAdminAuditEvent(
       "settings_database_cheques_ready",
       applied.length
-        ? `Database prepared for cheques on bills: ${applied.join(", ")}.`
-        : "Database was already ready for cheques on bills.",
+        ? `Database prepared for cheques: ${applied.join(", ")}.`
+        : "Database was already ready for cheques.",
     );
   } catch (error) {
     failSettingsPage(error);
   }
-  refreshSettingsPage("Database ready for cheques on bills.");
+  refreshSettingsPage("Database ready for the cheque book.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

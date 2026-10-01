@@ -1,4 +1,6 @@
 import { getCounterItemsToWatch } from "@/lib/counter-items";
+import { chequeBookReady, getUsedBanks } from "@/lib/cheque-book";
+import { nepalDayKey } from "@/lib/dashboard-figures";
 import Link from "next/link";
 import T from "@/components/T";
 import CounterBar from "@/app/admin/pos/_components/CounterBar";
@@ -213,6 +215,13 @@ export default async function AdminPurchasingPage({
     reportError("load bill-to-come items for the purchase bill", error);
     return { billToCome: [] as Awaited<ReturnType<typeof getCounterItemsToWatch>>["billToCome"] };
   });
+  // A cheque given asks our bank and its date once the cheque book is there.
+  const bookReady = await chequeBookReady().catch(() => false);
+  const chequeBook = {
+    ready: bookReady,
+    usedBanks: bookReady ? await getUsedBanks("out").catch(() => []) : [],
+    todayKey: nepalDayKey(new Date()),
+  };
 
   return (
     <section className="p-4 sm:p-6">
@@ -308,6 +317,7 @@ export default async function AdminPurchasingPage({
           productStock={productStock}
           memory={memory}
           designSizes={designSizes}
+          chequeBook={chequeBook}
           billToCome={billToCome.map((item) => ({
             id: item.id,
             design: item.design,

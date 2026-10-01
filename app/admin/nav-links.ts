@@ -171,6 +171,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
       { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CoinsIcon },
+      // The cheque book (owner, 2026-10-01): every cheque taken or given.
+      { href: "/admin/cheques", label: "Cheques", nepali: "चेक खाता", icon: CreditCardIcon },
       { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: TagIcon },
     ],
   },

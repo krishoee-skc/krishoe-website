@@ -1454,6 +1454,37 @@ CREATE TABLE IF NOT EXISTS pos_cheques (
   noted_by text NOT NULL DEFAULT ''
 );
 
+-- The cheque book: every cheque taken or given (20261001_cheques.sql).
+CREATE TABLE IF NOT EXISTS cheques (
+  id text PRIMARY KEY,
+  direction text NOT NULL CHECK (direction IN ('in', 'out')),
+  source text NOT NULL CHECK (source IN ('bill', 'purchase', 'manual')),
+  source_id text NOT NULL,
+  source_number text NOT NULL DEFAULT '',
+  party_name text NOT NULL DEFAULT '',
+  party_phone text NOT NULL DEFAULT '',
+  bank text NOT NULL DEFAULT '',
+  cheque_no text NOT NULL DEFAULT '',
+  amount numeric(12, 2) NOT NULL CHECK (amount > 0),
+  cheque_date date,
+  name_on_cheque text NOT NULL DEFAULT '',
+  state text NOT NULL DEFAULT 'waiting'
+    CHECK (state IN ('waiting', 'deposited', 'cleared', 'bounced', 'recovered', 'cancelled')),
+  deposited_on date,
+  cleared_on date,
+  bounced_on date,
+  bounce_reason text NOT NULL DEFAULT '',
+  bank_charge numeric(12, 2) NOT NULL DEFAULT 0 CHECK (bank_charge >= 0),
+  note text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by text NOT NULL DEFAULT '',
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by text NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS cheques_one_per_source ON cheques (source, source_id);
+CREATE INDEX IF NOT EXISTS cheques_open_by_date ON cheques (cheque_date)
+  WHERE state IN ('waiting', 'deposited', 'bounced');
+
 CREATE TABLE IF NOT EXISTS stock_locations (
   id TEXT PRIMARY KEY,
   design TEXT NOT NULL,

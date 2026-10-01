@@ -7,6 +7,7 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
 import { chequeAmount, chequeStates, setChequeState, type ChequeState } from "@/lib/cheques";
+import { addCheque, chequeBookReady } from "@/lib/cheque-book";
 import { recordSaveTime } from "@/lib/save-timing";
 import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -188,6 +189,12 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       message: "A cheque bill needs the customer's name.",
     };
   }
+  // The cheque book wants the bank and the cheque's date (owner, 2026-10-01).
+  // Asked only once its table is there; the form asks first.
+  const chequeBookOn = kind === "Sale" && paidByCheque && (await chequeBookReady());
+  if (chequeBookOn && (!textValue(formData, "chequeBank") || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(textValue(formData, "chequeDate")))) {
+    return { ok: false, message: "A cheque needs its bank and its date." };
+  }
 
   let invoice;
   try {
@@ -220,6 +227,29 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
     "pos_create_invoice",
     `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
   );
+
+  // Into the cheque book, after the bill is safe: a cheque that fails to file
+  // never undoes the sale, and the book lists the bill to fill in instead.
+  if (chequeBookOn && chequeAmount(invoice) > 0) {
+    const chequePart = (invoice.payments ?? []).find((part) => part.method === "Cheque" && part.purpose !== "refund");
+    const { session } = await requireAdminPermission("pos:write");
+    await reportingErrors(`file the cheque on ${invoice.invoiceNumber}`, () =>
+      addCheque({
+        direction: "in",
+        source: "bill",
+        sourceId: invoice.id,
+        sourceNumber: invoice.invoiceNumber,
+        partyName: invoice.customerName,
+        partyPhone: invoice.phone,
+        bank: textValue(formData, "chequeBank"),
+        chequeNo: chequePart?.reference || invoice.paymentReference,
+        amount: chequeAmount(invoice),
+        chequeDate: textValue(formData, "chequeDate"),
+        nameOnCheque: textValue(formData, "chequeName"),
+        by: session.name ?? "",
+      }),
+    );
+  }
 
   // The catalog stock was recomputed inside createPosInvoice; doing it again
   // here read the whole stock a second time on every bill (owner, 2026-09-30).

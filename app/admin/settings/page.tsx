@@ -855,14 +855,14 @@ export default async function AdminSettingsPage({
         ) : null}
 
         {chequesDatabase && !chequesDatabase.ready ? (
-          <section className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+          <section id="cheques-database" className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
             <h2 className="text-lg font-black text-brand-green-ink">
-              🏦 <T en="Prepare the database for cheques on bills" ne="बिलमा लिएका चेकका लागि database तयार गर्ने" />
+              🏦 <T en="Prepare the database for the cheque book" ne="चेक खाताका लागि database तयार गर्ने" />
             </h2>
             <p className="mt-1 text-sm leading-6 text-brand-muted">
               <T
-                en="Adds one new table that remembers, for each bill paid by cheque, whether the bank paid it or it bounced. Until then a cheque bill reads Paid the day it is saved. No bill, payment or stock changes. Take a backup first (Activity → Export backup)."
-                ne="एउटा नयाँ तालिका थपिन्छ, जसले चेकबाट तिरिएको हरेक बिलको चेक बैंकले साट्यो कि बाउन्स भयो सम्झन्छ। अहिले चेक बिल सेभ गरेकै दिन Paid देखिन्छ। कुनै बिल, भुक्तानी वा स्टक बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+                en="Adds the table the cheque book keeps every cheque in — taken on a bill or given on a purchase, with its bank, number, date and what the bank did. No bill, payment or stock changes. Take a backup first (Activity → Export backup)."
+                ne="चेक खाताको तालिका थपिन्छ — बिलमा लिएको र खरिदमा दिएको हरेक चेक, बैंक, नम्बर, मिति र बैंकले के गर्‍यो, सबै। कुनै बिल, भुक्तानी वा स्टक बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
               />
             </p>
             <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">

@@ -10,8 +10,13 @@ vi.mock("@/lib/notifications", () => ({
   notifyDailySalesSummary: notifications.daily,
   notifyPeriodSalesSummary: notifications.period,
   notifyProductionSummary: notifications.production,
+  tellOwnerChequesDue: vi.fn(async () => "Nothing due."),
 }));
-vi.mock("@/lib/bikram-sambat", () => ({ isBikramMonthStart: () => false }));
+vi.mock("@/lib/cheque-book", () => ({ getCheques: vi.fn(async () => []) }));
+vi.mock("@/lib/bikram-sambat", async (original) => ({
+  ...(await original<typeof import("@/lib/bikram-sambat")>()),
+  isBikramMonthStart: () => false,
+}));
 vi.mock("@/lib/report-error", () => ({ reportError: vi.fn() }));
 // The evening-jobs log and the weekly backup write to the audit trail and the
 // file store; a test of who may call the route must not do either.

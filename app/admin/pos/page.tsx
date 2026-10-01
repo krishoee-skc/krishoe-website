@@ -1,5 +1,7 @@
 import { counterItemsReady } from "@/lib/counter-items-database";
 import { chequesReady, chequesToWatch, getChequeStates } from "@/lib/cheques";
+import { chequeBookReady, getUsedBanks } from "@/lib/cheque-book";
+import { nepalDayKey } from "@/lib/dashboard-figures";
 import { knownCustomersFrom } from "@/lib/customer-contact-rules";
 import ChequesToClear from "@/app/admin/pos/_components/ChequesToClear";
 import Link from "next/link";
@@ -228,6 +230,13 @@ export default async function AdminPosPage({
         return new Map();
       })
     : new Map();
+  // The cheque book asks a cheque's bank and date once its table is there.
+  const bookReady = await chequeBookReady().catch(() => false);
+  const chequeBook = {
+    ready: bookReady,
+    usedBanks: bookReady ? await getUsedBanks("in").catch(() => []) : [],
+    todayKey: nepalDayKey(new Date()),
+  };
 
   if (!loaded.data) {
     return (
@@ -458,6 +467,7 @@ export default async function AdminPosPage({
           canOpenLedger={canOpenLedger}
           cashierName={session.name ?? ""}
           paymentsReady={paymentsReady}
+          chequeBook={chequeBook}
           today={{
             bills: pos.todayDayClose.invoiceCount,
             netSales: pos.todayDayClose.netSales,

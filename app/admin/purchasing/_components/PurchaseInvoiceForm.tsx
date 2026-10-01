@@ -15,6 +15,7 @@ import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
 import { rateKey, type PurchaseMemory, type RememberedLine } from "@/lib/purchase-memory";
 import { SIZE_RUNS, sizesInRun } from "@/lib/shoe-sizes";
 import { uploadBillPhoto } from "@/lib/bill-photo-upload";
+import ChequeFields, { type ChequeDetails } from "@/components/admin/ChequeFields";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -39,6 +40,12 @@ type PurchaseInvoiceFormProps = {
    * pairs again (owner, 2026-09-29).
    */
   billToCome?: Array<{ id: string; design: string; pairs: number; sizes: Record<string, number>; supplierName: string }>;
+  /**
+   * The cheque book (owner, 2026-10-01: "we give cheques when we buy, too"):
+   * once its table is there, a cheque asks which of our banks it is written
+   * on and its date.
+   */
+  chequeBook?: { ready: boolean; usedBanks: string[]; todayKey: string };
 };
 
 /** What the last save filed, shown until the next bill is started. */
@@ -111,6 +118,7 @@ export default function PurchaseInvoiceForm({
   memory,
   designSizes,
   billToCome = [],
+  chequeBook = { ready: false, usedBanks: [], todayKey: "" },
 }: PurchaseInvoiceFormProps) {
   const { text } = useLanguage();
   // A one-line bill is as common as a twenty-five line one, so the form opens
@@ -120,6 +128,7 @@ export default function PurchaseInvoiceForm({
   const [discount, setDiscount] = useState("");
   const [tax, setTax] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod>("Cash");
+  const [chequeDetails, setChequeDetails] = useState<ChequeDetails>({ bank: "", date: chequeBook.todayKey, name: "" });
   const [paidAmount, setPaidAmount] = useState("");
   const [state, setState] = useState<ActionState | null>(null);
   const supplierMissing = text(
@@ -594,6 +603,14 @@ export default function PurchaseInvoiceForm({
       return;
     }
 
+    if (chequeBook.ready && paymentMethod === "Cheque" && (!chequeDetails.bank.trim() || !chequeDetails.date)) {
+      setState({
+        ok: false,
+        message: text("Type which bank the cheque is on, and its date.", "चेक कुन बैंकको हो र त्यसको मिति लेख्नुहोस्।"),
+      });
+      return;
+    }
+
     const noSizes = started.findIndex((row) => row.kind === "Trading Goods" && sizesTotalOf(row) === 0);
     if (noSizes !== -1) {
       setState({
@@ -679,6 +696,7 @@ export default function PurchaseInvoiceForm({
         setTax("");
         setPaidAmount("");
         setPaymentMethod("Cash");
+        setChequeDetails({ bank: chequeDetails.bank, date: chequeBook.todayKey, name: "" });
         setSupplierId("");
         setSupplierQuery("");
         setPaidFull(false);
@@ -1791,6 +1809,19 @@ export default function PurchaseInvoiceForm({
                 />
               </div>
             </div>
+
+            {chequeBook.ready && paymentMethod === "Cheque" ? (
+              <div className="mt-3">
+                <ChequeFields
+                  direction="out"
+                  value={chequeDetails}
+                  onChange={setChequeDetails}
+                  usedBanks={chequeBook.usedBanks}
+                  todayKey={chequeBook.todayKey}
+                  inputClass={`${plain} w-full`}
+                />
+              </div>
+            ) : null}
 
             {paymentMethod === "Credit" ? (
               <p className="mt-2 text-sm text-brand-muted">

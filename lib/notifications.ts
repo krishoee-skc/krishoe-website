@@ -17,6 +17,7 @@ import {
 } from "@/lib/period-report";
 import { queryPostgres } from "@/lib/postgres/client";
 import { sendPushToStaff } from "@/lib/push-notifications";
+import { chequeReminders, chequeRupees, type Cheque } from "@/lib/cheque-book-rules";
 import { getProducts } from "@/lib/product-store";
 import {
   getProductionControlSummary,
@@ -1447,6 +1448,36 @@ export async function tellOwnerNewVoice(voice: {
       tag: `voice-${voice.id}`,
     }),
   );
+}
+
+/**
+ * The evening's cheque word to the Owner's phone (owner, 2026-10-01): cheques
+ * taken that are due at the bank by tomorrow, the money to keep in the bank
+ * for cheques given that a supplier may cash within two days, and cheques
+ * that bounced and are still owed. Nothing due, nothing sent.
+ */
+export async function tellOwnerChequesDue(cheques: Cheque[], todayKey: string) {
+  const { toDeposit, coverByBank, bounced } = chequeReminders(cheques, todayKey);
+  const lines: string[] = [];
+  for (const cheque of toDeposit.slice(0, 3)) {
+    lines.push(`बैंकमा राख्ने: ${cheque.partyName || "?"} ${chequeRupees(cheque.amount)} (${cheque.bank || "?"})`);
+  }
+  if (toDeposit.length > 3) lines.push(`+ अरू ${toDeposit.length - 3} चेक`);
+  for (const cover of coverByBank) lines.push(`${cover.bank} मा ${chequeRupees(cover.amount)} राख्ने — दिएको चेक साटिन सक्छ`);
+  if (bounced.length > 0) {
+    const owed = bounced.reduce((sum, cheque) => sum + cheque.amount + cheque.bankCharge, 0);
+    lines.push(`फर्किएका ${bounced.length} चेक — ${chequeRupees(owed)} उठाउन बाँकी`);
+  }
+  if (lines.length === 0) return "Nothing due.";
+  await reportingErrors("push the cheques due", () =>
+    sendPushToStaff({
+      title: "🏦 चेक: भोलिसम्म गर्नुपर्ने",
+      body: lines.join("\n"),
+      url: "/admin/cheques?tab=dates",
+      tag: `cheques-${todayKey}`,
+    }),
+  );
+  return `Told: ${toDeposit.length} to deposit, ${coverByBank.length} bank(s) to cover, ${bounced.length} bounced.`;
 }
 
 export async function tellOwnerCustomerMailFailed(what: { en: string; ne: string }, key: string) {

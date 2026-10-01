@@ -12,6 +12,9 @@ import { sweepIdleStaffAccounts } from "@/lib/staff-idle";
 import { alertNightlyFailures, recordNightlyRun, type NightlyOutcome } from "@/lib/nightly-jobs";
 import { runScheduledBackup } from "@/lib/scheduled-backup";
 import { outsideCheckStillRunning } from "@/lib/shop-watch";
+import { getCheques } from "@/lib/cheque-book";
+import { nepalDayKey } from "@/lib/dashboard-figures";
+import { tellOwnerChequesDue } from "@/lib/notifications";
 
 /** What a job reports: a digest's delivery status, and a line for the owner. */
 type JobResult = {
@@ -138,6 +141,15 @@ export async function GET(request: Request) {
     // Is the outside check still filing? It runs on GitHub, where nothing
     // here would notice it stopping (owner, 2026-09-30).
     { name: "outside-check", run: () => outsideCheckStillRunning() },
+    // The evening's cheque word: due at the bank by tomorrow, money to keep
+    // for cheques given, bounced ones still owed (owner, 2026-10-01).
+    {
+      name: "cheque-reminders",
+      run: async () => ({
+        deliveryStatus: "sent" as const,
+        summary: await tellOwnerChequesDue(await getCheques(), nepalDayKey(new Date())),
+      }),
+    },
     ...(isSunday
       ? [
           { name: "weekly", run: () => notifyPeriodSalesSummary("weekly" as const) },

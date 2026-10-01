@@ -174,6 +174,7 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/stock", "stock:read"],
   ["/admin/pos", "pos:read"],
   ["/admin/dues", "dues:read"],
+  ["/admin/cheques", "pos:read"],
   ["/admin/purchasing", "purchasing:read"],
   ["/admin/costing", "costing:read"],
   ["/admin/operations", "operations:read"],

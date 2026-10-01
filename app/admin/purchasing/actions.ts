@@ -7,7 +7,8 @@ import type { ActionState } from "@/app/admin/actions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
-import { reportError } from "@/lib/report-error";
+import { reportError, reportingErrors } from "@/lib/report-error";
+import { addCheque, chequeBookReady } from "@/lib/cheque-book";
 import {
   addSupplierTransaction,
   createPurchaseInvoice,
@@ -159,6 +160,15 @@ async function savePurchase(_previousState: ActionState | null, formData: FormDa
   const sizes = sizesProblem(items);
   if (sizes) return { ok: false, message: sizes };
 
+  // A cheque given goes into the cheque book with our bank and its date
+  // (owner, 2026-10-01: "we give cheques when we buy, too"). Asked only once
+  // the book's table is there; the form asks first.
+  const givenByCheque =
+    textValue(formData, "paymentMethod") === "Cheque" && numberValue(formData, "paidAmount") > 0 && (await chequeBookReady());
+  if (givenByCheque && (!textValue(formData, "chequeBank") || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(textValue(formData, "chequeDate")))) {
+    return { ok: false, message: "A cheque needs the bank it is written on and its date." };
+  }
+
   let invoice;
   try {
     // createPurchaseInvoice drops the blank rows and checks the rest — supplier,
@@ -180,6 +190,26 @@ async function savePurchase(_previousState: ActionState | null, formData: FormDa
   } catch (error) {
     reportError("save purchase bill", error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this purchase.") };
+  }
+
+  if (givenByCheque && invoice.paidAmount > 0) {
+    const { session } = await requireAdminPermission("purchasing:write");
+    await reportingErrors(`file the cheque on ${invoice.purchaseNumber}`, () =>
+      addCheque({
+        direction: "out",
+        source: "purchase",
+        sourceId: invoice.id,
+        sourceNumber: invoice.purchaseNumber,
+        partyName: invoice.supplierName,
+        partyPhone: textValue(formData, "phone"),
+        bank: textValue(formData, "chequeBank"),
+        chequeNo: invoice.paymentReference,
+        amount: invoice.paidAmount,
+        chequeDate: textValue(formData, "chequeDate"),
+        nameOnCheque: invoice.supplierName,
+        by: session.name ?? "",
+      }),
+    );
   }
 
   await recordAdminAuditEvent(

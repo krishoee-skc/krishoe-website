@@ -35,6 +35,7 @@ import {
 } from "@/app/admin/pos/_components/pos-bill-rules";
 import { rateForChannel } from "@/app/admin/pos/_components/pos-bill-rules";
 import { groupBillLines, sortSizes } from "@/lib/bill-lines";
+import ChequeFields, { type ChequeDetails } from "@/components/admin/ChequeFields";
 import { customerForPhone, customerSuggestions, phoneProblem, type KnownCustomer } from "@/lib/customer-contact-rules";
 
 export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
@@ -70,6 +71,11 @@ type PosBillFormProps = {
    * bill and no old credit on a bill — everything else works as it is.
    */
   paymentsReady?: boolean;
+  /**
+   * The cheque book (owner, 2026-10-01): once its table is there, a cheque
+   * on the bill asks for its bank and date. Banks used before come first.
+   */
+  chequeBook?: { ready: boolean; usedBanks: string[]; todayKey: string };
 };
 
 type Kind = "Sale" | "Return" | "Exchange";
@@ -205,6 +211,7 @@ export default function PosBillForm({
   cashierName = "",
   today = null,
   paymentsReady = false,
+  chequeBook = { ready: false, usedBanks: [], todayKey: "" },
 }: PosBillFormProps) {
   const { text } = useLanguage();
   const router = useRouter();
@@ -228,6 +235,7 @@ export default function PosBillForm({
   // How a cash shortfall is covered: credit, or another method's second part.
   const [restMethod, setRestMethod] = useState<Payment | "">("");
   const [restReference, setRestReference] = useState("");
+  const [chequeDetails, setChequeDetails] = useState<ChequeDetails>({ bank: "", date: chequeBook.todayKey, name: "" });
   // In an exchange: whether the next tapped shoe is one coming back.
   const [addingBack, setAddingBack] = useState(true);
   const [collectDue, setCollectDue] = useState(false);
@@ -331,6 +339,9 @@ export default function PosBillForm({
   const needsAccount = isReturn ? totals.total > 0 : creditAmount > 0;
   const needsReference = Boolean(plan) && NEEDS_REFERENCE.has(payment) && amountDue + dueAmount > 0;
   const needsRestReference = Boolean(plan?.split) && NEEDS_REFERENCE.has(restMethod as Payment);
+  // A cheque on a sale, as the whole payment or its second part.
+  const usesCheque = !isReturn && kind !== "Exchange" && (payment === "Cheque" || (Boolean(plan?.split) && restMethod === "Cheque"));
+  const asksChequeDetails = chequeBook.ready && usesCheque;
   const unpriced = cart.filter((line) => !(line.rate > 0));
   const belowCostLines = cart.filter((line) => !line.back && belowCost(line.rate, itemFor(line.design)?.costPerPair));
   const backLines = cart.filter((line) => line.back);
@@ -356,6 +367,8 @@ export default function PosBillForm({
     // A cheque can bounce: the bill has to say whose it was (owner,
     // 2026-09-30: Rs. 10,500 by cheque sat under "Walk-in Customer").
     blocked = text("Type the customer's name for a cheque", "चेकमा ग्राहकको नाम लेख्नुहोस्");
+  } else if (asksChequeDetails && (!chequeDetails.bank.trim() || !chequeDetails.date)) {
+    blocked = text("Type the cheque's bank and date", "चेकको बैंक र मिति लेख्नुहोस्");
   } else if (needsAccount && !accountId) {
     blocked = isReturn
       ? text("Pick whose account the return goes to", "फिर्ता कसको खातामा जाने, छान्नुहोस्")
@@ -552,6 +565,7 @@ export default function PosBillForm({
     setCustomerPan("");
     setLedgerId("");
     setReference("");
+    setChequeDetails({ bank: "", date: chequeBook.todayKey, name: "" });
     setKind("Sale");
     setEditingRate(null);
   }
@@ -1450,6 +1464,17 @@ export default function PosBillForm({
                 placeholder={text(`${payment} transaction number`, `${payment} को कारोबार नम्बर`)}
                 aria-label={text(`${payment} transaction number`, `${payment} को कारोबार नम्बर`)}
                 className={inputClass}
+              />
+            ) : null}
+
+            {asksChequeDetails ? (
+              <ChequeFields
+                direction="in"
+                value={chequeDetails}
+                onChange={setChequeDetails}
+                usedBanks={chequeBook.usedBanks}
+                todayKey={chequeBook.todayKey}
+                inputClass={inputClass}
               />
             ) : null}
 

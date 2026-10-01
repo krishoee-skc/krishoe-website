@@ -1,5 +1,7 @@
 import { countCounterItemsToReview } from "@/lib/counter-items";
 import { getVoiceCounts } from "@/lib/customer-voice";
+import { getCheques } from "@/lib/cheque-book";
+import { chequeReminders, chequeRupees } from "@/lib/cheque-book-rules";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import AlertText from "@/components/admin/AlertText";
@@ -245,6 +247,46 @@ export default async function AdminDashboardPage() {
         subEn: "Review, question or complaint",
         subNe: "राय, सोधपुछ वा गुनासो",
         href: "/admin/inbox?status=new",
+      });
+    }
+    // Cheques (owner, 2026-10-01): due at the bank, money to keep for cheques
+    // given, and bounced ones still owed. Empty until the cheque book is there.
+    const cheques = await getCheques().catch(() => []);
+    const chequeWord = chequeReminders(cheques, nepalDayKey(now));
+    const dueNow = chequeWord.toDeposit.filter((cheque) => cheque.chequeDate <= nepalDayKey(now));
+    if (dueNow.length > 0) {
+      const sum = chequeRupees(dueNow.reduce((total, cheque) => total + cheque.amount, 0));
+      todos.push({
+        key: "cheques-deposit",
+        tone: "blue",
+        en: `${dueNow.length} ${dueNow.length === 1 ? "cheque" : "cheques"} to take to the bank · ${sum}`,
+        ne: `${dueNow.length} चेक बैंकमा राख्न बाँकी · ${sum}`,
+        subEn: "Their date has come",
+        subNe: "मिति आइसक्यो",
+        href: "/admin/cheques?tab=dates",
+      });
+    }
+    for (const cover of chequeWord.coverByBank) {
+      todos.push({
+        key: `cheques-cover-${cover.bank}`,
+        tone: "gold",
+        en: `Keep ${chequeRupees(cover.amount)} in ${cover.bank}`,
+        ne: `${cover.bank} मा ${chequeRupees(cover.amount)} राख्ने`,
+        subEn: "A cheque given may be cashed within 2 days",
+        subNe: "दिएको चेक २ दिनभित्र साटिन सक्छ",
+        href: "/admin/cheques?tab=out",
+      });
+    }
+    if (chequeWord.bounced.length > 0) {
+      const owed = chequeRupees(chequeWord.bounced.reduce((total, cheque) => total + cheque.amount + cheque.bankCharge, 0));
+      todos.push({
+        key: "cheques-bounced",
+        tone: "red",
+        en: `Bounced cheques: ${owed} to collect`,
+        ne: `फर्किएका चेक: ${owed} उठाउन बाँकी`,
+        subEn: "Call the customer",
+        subNe: "ग्राहकलाई फोन गर्ने",
+        href: "/admin/cheques",
       });
     }
     if (soldOut.length) {
