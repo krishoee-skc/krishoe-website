@@ -5,7 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { repairPosInvoicePostingAction } from "@/app/admin/pos/actions";
+import { repairPosInvoicePostingAction, voidTestBillAction } from "@/app/admin/pos/actions";
+import { canAdmin, requireAdminPermission } from "@/lib/admin-permissions";
+import { voidRefusal } from "@/lib/pos-void";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { money } from "@/lib/format-money";
@@ -18,6 +20,7 @@ import { groupBillLines, sizeSummary } from "@/lib/bill-lines";
 
 type PosInvoicePageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ problem?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -44,13 +47,28 @@ export async function generateMetadata({ params }: PosInvoicePageProps): Promise
   };
 }
 
-export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
+export default async function PosInvoicePage({ params, searchParams }: PosInvoicePageProps) {
   const { id } = await params;
+  const problem = (await searchParams)?.problem ?? "";
+  const { role } = await requireAdminPermission("pos:read");
   const invoice = await getPosInvoiceById(id);
 
   if (!invoice) {
     notFound();
   }
+
+  // A test bill can be cancelled by the Owner (owner, 2026-10-01) — see
+  // lib/pos-void.ts for which bills, and why a return was not the way.
+  const voided = invoice.status === "Voided";
+  const canVoid =
+    canAdmin(role, "settings:write") &&
+    !voidRefusal({
+      kind: invoice.kind,
+      status: invoice.status,
+      creditAmount: invoice.creditAmount,
+      ledgerTransactionId: invoice.ledgerTransactionId,
+      payments: invoice.payments ?? [],
+    });
 
   // The seller block on the bill — legal name, address, phone and PAN — comes
   // from the shop's own company settings, so one edit there updates every bill.
@@ -107,6 +125,26 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           <PrintInvoiceButton />
         </div>
       </div>
+
+      {problem ? (
+        <p role="alert" className="mx-auto mb-4 max-w-3xl rounded-xl border border-brand-clay/40 bg-brand-clay-tint px-4 py-3 text-base font-bold text-brand-clay print:hidden">
+          ⚠ {problem}
+        </p>
+      ) : null}
+
+      {voided ? (
+        <div className="mx-auto mb-4 max-w-3xl rounded-xl border-2 border-brand-clay bg-brand-clay-tint px-4 py-3 text-brand-clay" data-bill-voided>
+          <p className="text-lg font-black">
+            ✕ <T en="CANCELLED — test bill" ne="रद्द — परीक्षण बिल" />
+          </p>
+          <p className="text-sm font-bold">
+            <T
+              en="Not a sale: its pairs went back to stock and it is left out of every total, report and the cheque book."
+              ne="बिक्री होइन: यसका जोडी स्टकमा फर्किए, र यो कुनै जम्मा, रिपोर्ट वा चेक खातामा गनिँदैन।"
+            />
+          </p>
+        </div>
+      ) : null}
 
       <div className="receipt-print mx-auto max-w-3xl rounded-lg border-2 border-brand-green-ink bg-white p-6 text-brand-green-ink shadow-sm print:border-2 print:shadow-none">
         {/* Seller header — legal name, address, phone and PAN, centred like a
@@ -345,6 +383,43 @@ export default async function PosInvoicePage({ params }: PosInvoicePageProps) {
           Billed by {invoice.cashier} · KRISHOE POS
         </p>
       </div>
+
+      {canVoid ? (
+        <details className="mx-auto mt-6 max-w-3xl rounded-xl border border-brand-clay/40 bg-brand-paper p-4 print:hidden" data-void-test-bill>
+          <summary className="cursor-pointer text-base font-black text-brand-clay">
+            <T en="Cancel as a test bill" ne="परीक्षण बिल — रद्द गर्ने" />
+          </summary>
+          <p className="mt-2 text-sm leading-6 text-brand-muted">
+            <T
+              en="Only for a bill cut to try the counter, not a real sale. Its pairs go back to stock, it leaves the sales, reports and the cheque book, and it stays on file marked cancelled with your reason. It cannot be undone here."
+              ne="साँचो बिक्री नभई counter जाँच्न काटिएको बिलका लागि मात्र। यसका जोडी स्टकमा फर्किन्छन्, यो बिक्री, रिपोर्ट र चेक खाताबाट हट्छ, र तपाईंको कारणसहित ‘रद्द’ भनेर रहन्छ। यहाँबाट फेरि फर्काउन मिल्दैन।"
+            />
+          </p>
+          <form action={voidTestBillAction} className="mt-3 grid gap-3">
+            <input type="hidden" name="id" value={invoice.id} />
+            <label className="grid gap-1 text-sm font-bold text-brand-muted">
+              <T en="Why (required)" ne="किन (अनिवार्य)" />
+              <input
+                name="reason"
+                required
+                maxLength={160}
+                defaultValue="Test bill — not a real sale"
+                className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink"
+              />
+            </label>
+            <label className="flex items-start gap-2 text-base font-bold text-brand-green-ink">
+              <input type="checkbox" name="confirm" value="yes" required className="mt-1 h-5 w-5" />
+              <T
+                en={`Yes — ${invoice.invoiceNumber} was a test, not a real sale.`}
+                ne={`हो — ${invoice.invoiceNumber} परीक्षण थियो, साँचो बिक्री होइन।`}
+              />
+            </label>
+            <FormSubmitButton className="min-h-11 w-fit rounded-xl bg-brand-clay px-5 text-base font-black text-white">
+              <T en="Cancel this bill" ne="यो बिल रद्द गर्ने" />
+            </FormSubmitButton>
+          </form>
+        </details>
+      ) : null}
     </section>
   );
 }

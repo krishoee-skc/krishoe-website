@@ -249,3 +249,15 @@ export async function moveCheque(
   }
   return { ...cheque, state };
 }
+
+/** A bill cancelled as a test takes its cheque out of the book with it. */
+export async function cancelBillCheque(invoiceId: string, by: string) {
+  if (!(await chequeBookReady())) return;
+  await queryPostgres(
+    STORE,
+    `UPDATE cheques
+        SET state = 'cancelled', note = 'The bill was cancelled as a test bill.', updated_at = now(), updated_by = $2
+      WHERE source = 'bill' AND source_id = $1 AND state <> 'cancelled'`,
+    [invoiceId, clip(by, 80)],
+  );
+}

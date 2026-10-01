@@ -7,7 +7,8 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
 import { chequeAmount, chequeStates, setChequeState, type ChequeState } from "@/lib/cheques";
-import { addCheque, chequeBookReady } from "@/lib/cheque-book";
+import { addCheque, cancelBillCheque, chequeBookReady } from "@/lib/cheque-book";
+import { VoidRefused, voidTestBill } from "@/lib/pos-void";
 import { recordSaveTime } from "@/lib/save-timing";
 import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -489,4 +490,32 @@ export async function setChequeStateAction(formData: FormData) {
     `Cheque on ${invoice.invoiceNumber} (${invoice.customerName}, Rs. ${chequeAmount(invoice)}) marked ${state} by ${by}.`,
   );
   revalidatePath("/admin/pos");
+}
+
+/**
+ * The Owner cancels a test bill (owner, 2026-10-01): its pairs go back, it
+ * leaves the sales and the cheque book, and it stays on file marked with why.
+ * See lib/pos-void.ts.
+ */
+export async function voidTestBillAction(formData: FormData) {
+  const { session } = await requireAdminPermission("settings:write");
+  const id = textValue(formData, "id");
+  const back = (problem = "") => `/admin/pos/${id}${problem ? `?problem=${encodeURIComponent(problem)}` : ""}`;
+  if (textValue(formData, "confirm") !== "yes") redirect(back("Tick the box to confirm it was a test bill."));
+
+  let done: { invoiceNumber: string; pairs: number };
+  try {
+    done = await voidTestBill(id, textValue(formData, "reason"), session.name ?? "");
+  } catch (error) {
+    if (error instanceof VoidRefused) redirect(back(error.words.en));
+    reportError("cancel a test bill", error);
+    redirect(back("Could not cancel it. Nothing was changed."));
+  }
+  await reportingErrors(`take the cheque of ${done.invoiceNumber} out of the book`, () => cancelBillCheque(id, session.name ?? ""));
+  await recordAdminAuditEvent(
+    "pos_void_test_bill",
+    `${done.invoiceNumber} cancelled as a test bill by ${session.name ?? "?"} — ${done.pairs} pairs back in stock. Reason: ${textValue(formData, "reason").slice(0, 160)}`,
+  );
+  revalidatePath("/", "layout");
+  redirect(back());
 }
