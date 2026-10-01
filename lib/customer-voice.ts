@@ -4,6 +4,8 @@ import path from "node:path";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
+import { reportError } from "@/lib/report-error";
+import { reviewStats, type ReviewStats } from "@/lib/review-ask-rules";
 
 /**
  * Everything a customer says to the shop, in one place.
@@ -251,10 +253,58 @@ async function saveCustomerVoicePostgres(input: CustomerVoiceInput): Promise<Cus
 }
 
 export async function saveCustomerVoice(input: CustomerVoiceInput): Promise<CustomerVoice> {
-  return runWithDataBackend({
+  const voice = await runWithDataBackend({
     storeName: STORE,
     localJson: () => saveCustomerVoiceLocal(input),
     postgres: () => saveCustomerVoicePostgres(input),
+  });
+  // The Owner's phone hears of it (owner, 2026-10-01): a review or a question
+  // used to wait unseen until somebody opened Customer Voice. After the row is
+  // safe, and never able to undo it. A note about the app has its own alert.
+  if (voice.kind !== "app") {
+    try {
+      const { tellOwnerNewVoice } = await import("@/lib/notifications");
+      await tellOwnerNewVoice(voice);
+    } catch (error) {
+      reportError("tell the owner of a customer's message", error);
+    }
+  }
+  return voice;
+}
+
+/** Reviews so far, their average stars, and how many are live in the shop. */
+export async function getReviewStats(): Promise<ReviewStats> {
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => reviewStats(await readCustomerVoiceLocal()),
+    postgres: async () => {
+      const rows = await queryPostgres<{ reviews: number; average: string | null; live: number }>(
+        STORE,
+        `SELECT COUNT(*)::int AS reviews,
+                AVG(rating) FILTER (WHERE rating > 0)::numeric(3,2) AS average,
+                COUNT(*) FILTER (WHERE published)::int AS live
+         FROM customer_voice WHERE kind = 'review'`,
+        [],
+      );
+      const row = rows[0];
+      return { reviews: Number(row?.reviews) || 0, average: Number(row?.average) || 0, live: Number(row?.live) || 0 };
+    },
+  });
+}
+
+/** Every phone a customer has written from — so nobody is asked for a review twice. */
+export async function getVoicePhones(): Promise<string[]> {
+  return runWithDataBackend({
+    storeName: STORE,
+    localJson: async () => (await readCustomerVoiceLocal()).map((voice) => voice.phone).filter(Boolean),
+    postgres: async () =>
+      (
+        await queryPostgres<{ phone: string }>(
+          STORE,
+          `SELECT DISTINCT phone FROM customer_voice WHERE phone <> ''`,
+          [],
+        )
+      ).map((row) => row.phone),
   });
 }
 

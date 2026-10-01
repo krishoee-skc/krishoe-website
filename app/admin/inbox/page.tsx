@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireAdminPermission } from "@/lib/admin-permissions";
+import { canAdmin, requireAdminPermission } from "@/lib/admin-permissions";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import T from "@/components/T";
 import {
   daysWaiting,
   getCustomerVoice,
+  getReviewStats,
   getVoiceCounts,
+  getVoicePhones,
   type CustomerVoice,
   type VoiceKind,
 } from "@/lib/customer-voice";
 import { deleteVoiceAction, setPublishedAction, setStatusAction } from "./actions";
 import ReviewAskWays from "./ReviewAskWays";
+import AskCounterCustomers from "./AskCounterCustomers";
+import { getPosInvoices } from "@/lib/pos";
+import { customersToAsk, type CustomerToAsk } from "@/lib/review-ask-rules";
+import { reportError } from "@/lib/report-error";
 import { getSiteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = { title: "Customer Voice | KRISHOE Admin" };
@@ -224,15 +230,27 @@ export default async function InboxPage({
 }: {
   searchParams?: Promise<{ kind?: string; status?: string }>;
 }) {
-  await requireAdminPermission("feedback:read");
+  const { role } = await requireAdminPermission("feedback:read");
 
   const params = (await searchParams) ?? {};
   const kind = KINDS.find((entry) => entry.id === params.kind)?.id;
   const status = params.status === "new" ? ("new" as const) : undefined;
 
-  const [voices, counts] = await Promise.all([
+  const reviewUrl = `${getSiteUrl().replace(/[/]$/, "")}/review`;
+  const [voices, counts, stats, toAsk] = await Promise.all([
     getCustomerVoice({ kind, status }),
     getVoiceCounts(),
+    getReviewStats().catch(() => ({ reviews: 0, average: 0, live: 0 })),
+    // Customers' phones come from the bills, so only for whoever may read the
+    // bills; and a list that fails to load must not take the inbox with it.
+    canAdmin(role, "pos:read")
+      ? Promise.all([getPosInvoices(), getVoicePhones()])
+          .then(([bills, heard]) => customersToAsk(bills, heard, new Date()))
+          .catch((error): CustomerToAsk[] => {
+            reportError("list counter customers to ask for a review", error);
+            return [];
+          })
+      : Promise.resolve<CustomerToAsk[]>([]),
   ]);
 
   const tab = (href: string, label: React.ReactNode, active: boolean) => (
@@ -269,6 +287,41 @@ export default async function InboxPage({
         </p>
       </div>
 
+      {/* Where reviews show up, and the three counts (owner, 2026-10-01: "where
+          do I see the reviews?" — on an empty page nothing said they arrive
+          here). */}
+      <div className="mt-5 grid gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:max-w-xl" data-review-stats>
+          <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
+            <b className="block font-display text-xl text-brand-green-ink">
+              {stats.reviews > 0 ? `★ ${stats.average.toFixed(1)}` : "0"}
+            </b>
+            <span className="text-xs text-brand-muted">
+              {stats.reviews > 0 ? (
+                <T en={`average · ${stats.reviews} reviews`} ne={`औसत · ${stats.reviews} राय`} />
+              ) : (
+                <T en="reviews so far" ne="अहिलेसम्म राय" />
+              )}
+            </span>
+          </div>
+          <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
+            <b className="block font-display text-xl text-brand-green-ink">{stats.live}</b>
+            <span className="text-xs text-brand-muted"><T en="live in the shop" ne="पसलमा देखिने" /></span>
+          </div>
+          <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
+            <b className={`block font-display text-xl ${counts.waiting > 0 ? "text-brand-clay" : "text-brand-green-ink"}`}>{counts.waiting}</b>
+            <span className="text-xs text-brand-muted"><T en="to reply" ne="जवाफ बाँकी" /></span>
+          </div>
+        </div>
+        <p className="rounded-xl border border-dashed border-brand-green bg-brand-green-wash px-3 py-2 text-sm text-brand-green-ink" data-review-where>
+          <T
+            en="📍 Where reviews show up: right here, in the list below, the moment a customer sends one — and your phone is told. A review you publish shows with its stars on the shoe's page."
+            ne="📍 राय कहाँ आउँछ: ग्राहकले पठाउनेबित्तिकै यहीँ तलको सूचीमा आउँछ, र तपाईंको फोनमा सूचना पनि आउँछ। तपाईंले “पसलमा राख्ने” थिचेको राय जुत्ताको पेजमा तारासहित देखिन्छ।"
+          />
+        </p>
+        <AskCounterCustomers customers={toAsk} reviewUrl={reviewUrl} />
+      </div>
+
       {/* Six "0" tabs say nothing on an empty inbox; they appear with the
           first thing a customer says. */}
       {counts.total > 0 ? (
@@ -301,7 +354,7 @@ export default async function InboxPage({
 
       <div className="mt-5 overflow-hidden rounded-lg border border-brand-green-line bg-brand-paper">
         {counts.total === 0 ? (
-          <ReviewAskWays reviewUrl={`${getSiteUrl().replace(/\/$/, "")}/review`} />
+          <ReviewAskWays reviewUrl={reviewUrl} />
         ) : voices.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-brand-muted">
             <T en="Nothing in this filter." ne="यो छनोटमा केही छैन।" />

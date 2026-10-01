@@ -1,4 +1,5 @@
 import { countCounterItemsToReview } from "@/lib/counter-items";
+import { getVoiceCounts } from "@/lib/customer-voice";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import AlertText from "@/components/admin/AlertText";
@@ -230,6 +231,20 @@ export default async function AdminDashboardPage() {
         subEn: "Check the name, pairs and price",
         subNe: "नाम, जोडी र मूल्य हेर्ने",
         href: "/admin/stock#new-goods",
+      });
+    }
+    // A customer waiting for an answer (owner, 2026-10-01): a review or a
+    // question left in Customer Voice was seen only by whoever opened it.
+    const voiceWaiting = await getVoiceCounts().then((counts) => counts.waiting).catch(() => 0);
+    if (voiceWaiting > 0) {
+      todos.push({
+        key: "customer-voice",
+        tone: "blue",
+        en: `${voiceWaiting} ${voiceWaiting === 1 ? "customer waits" : "customers wait"} for a reply`,
+        ne: `${voiceWaiting} ग्राहकलाई जवाफ दिन बाँकी`,
+        subEn: "Review, question or complaint",
+        subNe: "राय, सोधपुछ वा गुनासो",
+        href: "/admin/inbox?status=new",
       });
     }
     if (soldOut.length) {

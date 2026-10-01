@@ -1421,6 +1421,34 @@ export async function notifyPasswordResetRequested(payload: PasswordResetNotific
  * The buyer's order mail had been refused for three days with nothing but a
  * line in an error log nobody opens (owner, 2026-09-30).
  */
+/**
+ * A customer said something (owner, 2026-10-01): a review, a question or a
+ * complaint reaches the Owner's phone the moment it is saved, tagged by the
+ * message so a retry replaces rather than stacks.
+ */
+export async function tellOwnerNewVoice(voice: {
+  id: string;
+  kind: string;
+  customerName: string;
+  productName: string;
+  rating: number;
+  message: string;
+}) {
+  const heading =
+    voice.kind === "review" ? "⭐ नयाँ राय आयो" : voice.kind === "complaint" ? "😟 ग्राहकको गुनासो आयो" : "💬 ग्राहकले सोधे";
+  const stars = voice.rating > 0 ? ` ${"★".repeat(voice.rating)}` : "";
+  const who = [voice.customerName || "नाम नभएको ग्राहक", voice.productName].filter(Boolean).join(" · ");
+  const said = voice.message.trim().slice(0, 80);
+  await reportingErrors("push a customer's message", () =>
+    sendPushToStaff({
+      title: heading,
+      body: `${who}${stars}${said ? ` — ${said}` : ""}`,
+      url: "/admin/inbox?status=new",
+      tag: `voice-${voice.id}`,
+    }),
+  );
+}
+
 export async function tellOwnerCustomerMailFailed(what: { en: string; ne: string }, key: string) {
   await reportingErrors("push a failed customer mail", () =>
     sendPushToStaff({

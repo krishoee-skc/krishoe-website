@@ -215,8 +215,8 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "The enquiry email, which goes to the owner and nobody else. One reader, who reads Nepali, and no switch involved.",
   },
   "lib/notifications.ts": {
-    lines: 22,
-    why: "The owner's own evening and weekly digests, which nobody else ever reads — and the review invitation, whose payload carries no language because it is sent by a cron long after the shopper has closed the tab. And the push to the owner's phone when a customer's mail fails (2026-09-30), read by the owner alone.",
+    lines: 24,
+    why: "The owner's own evening and weekly digests, which nobody else ever reads — and the review invitation, whose payload carries no language because it is sent by a cron long after the shopper has closed the tab. And the push to the owner's phone when a customer's mail fails (2026-09-30), read by the owner alone. And the push when a customer writes to Customer Voice (2026-10-01), his alone too.",
   },
   "lib/coupons.ts": {
     lines: 4,
