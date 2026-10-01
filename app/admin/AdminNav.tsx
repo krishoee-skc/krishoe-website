@@ -51,8 +51,12 @@ export default function AdminNav({
   const { language, text } = useLanguage();
 
   return (
-    <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
-      <div className="flex h-full max-h-screen flex-col gap-0">
+    <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:sticky md:top-0 md:h-dvh md:self-start md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
+      {/* The menu stays on screen (owner, 2026-10-01): it used to scroll away
+          with a long page, leaving a blank strip under Sign out and sending
+          him back to the top to open another page. The sidebar is sticky and
+          the full height of the screen; the names scroll inside it. */}
+      <div className="flex h-full flex-col gap-0">
         {/* Header with Logo */}
         <div className="flex h-16 items-center justify-between gap-2 border-b border-admin-border px-4 dark:border-admin-border-dark">
           {/* The shop's own mark, not a letter in a gradient box. It stays
@@ -195,6 +199,9 @@ export default function AdminNav({
               </div>
             ))}
           </nav>
+          {/* A soft fade at the foot says more names wait below, where the
+              browser's own small arrow was the only sign. */}
+          <div aria-hidden="true" className="pointer-events-none sticky -bottom-2.5 -mt-6 h-6 bg-gradient-to-t from-admin-sidebar to-transparent dark:from-admin-sidebar-dark" />
         </div>
 
         {/* The language toggle now lives in the top row beside the search, so
