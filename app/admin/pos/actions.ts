@@ -512,6 +512,10 @@ export async function voidTestBillAction(formData: FormData) {
     redirect(back("Could not cancel it. Nothing was changed."));
   }
   await reportingErrors(`take the cheque of ${done.invoiceNumber} out of the book`, () => cancelBillCheque(id, session.name ?? ""));
+  // The pairs are back in the stock book; the shop reads its own figure, so it
+  // is recomputed as after any bill (it was missed at first: Doctor Chappal
+  // showed out of stock with 13 pairs on the books).
+  await syncCatalogStockAfterBill(`cancelling ${done.invoiceNumber}`);
   await recordAdminAuditEvent(
     "pos_void_test_bill",
     `${done.invoiceNumber} cancelled as a test bill by ${session.name ?? "?"} — ${done.pairs} pairs back in stock. Reason: ${textValue(formData, "reason").slice(0, 160)}`,

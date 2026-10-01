@@ -54,3 +54,11 @@ describe("how it cancels", () => {
     expect(await read("lib/cheques.ts")).toContain('if (invoice.kind !== "Sale" || invoice.status === "Voided") return 0;');
   });
 });
+
+describe("the shop's own stock figure", () => {
+  it("is recomputed after a cancel, as after any bill", async () => {
+    const action = (await readFile("app/admin/pos/actions.ts", "utf8")).replace(/\r\n/g, "\n");
+    const voidPart = action.slice(action.indexOf("export async function voidTestBillAction"));
+    expect(voidPart).toContain("await syncCatalogStockAfterBill(`cancelling ${done.invoiceNumber}`);");
+  });
+});
