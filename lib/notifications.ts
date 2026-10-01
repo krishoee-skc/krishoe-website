@@ -1457,8 +1457,9 @@ export async function tellOwnerNewVoice(voice: {
  * that bounced and are still owed. Nothing due, nothing sent.
  */
 export async function tellOwnerChequesDue(cheques: Cheque[], todayKey: string) {
-  const { toDeposit, coverByBank, bounced } = chequeReminders(cheques, todayKey);
+  const { toDeposit, coverByBank, bounced, toFill } = chequeReminders(cheques, todayKey);
   const lines: string[] = [];
+  if (toFill.length > 0) lines.push(`विवरण भर्न बाँकी: ${toFill.length} चेक (नम्बर, बैंक वा मिति)`);
   for (const cheque of toDeposit.slice(0, 3)) {
     lines.push(`बैंकमा राख्ने: ${cheque.partyName || "?"} ${chequeRupees(cheque.amount)} (${cheque.bank || "?"})`);
   }
@@ -1477,7 +1478,7 @@ export async function tellOwnerChequesDue(cheques: Cheque[], todayKey: string) {
       tag: `cheques-${todayKey}`,
     }),
   );
-  return `Told: ${toDeposit.length} to deposit, ${coverByBank.length} bank(s) to cover, ${bounced.length} bounced.`;
+  return `Told: ${toFill.length} to fill, ${toDeposit.length} to deposit, ${coverByBank.length} bank(s) to cover, ${bounced.length} bounced.`;
 }
 
 export async function tellOwnerCustomerMailFailed(what: { en: string; ne: string }, key: string) {

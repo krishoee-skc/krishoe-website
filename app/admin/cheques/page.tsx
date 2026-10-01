@@ -15,6 +15,7 @@ import {
   chequeTotals,
   chequeWeeks,
   daysBetween,
+  needsDetails,
   NEPAL_BANKS,
   type Cheque,
   type ChequeAction,
@@ -337,6 +338,8 @@ export default async function ChequesPage({
     ? (await getPosInvoices().catch(() => [])).filter((invoice) => chequeAmount(invoice) > 0)
     : [];
   const missing = billsMissingDetails(chequeBills, all);
+  // Taken with the amount only (owner, 2026-10-01): filled here, after.
+  const toFill = canAdmin(role, "pos:write") ? all.filter(needsDetails) : [];
   const canWriteIn = canAdmin(role, "pos:write");
   const canWriteOut = canAdmin(role, "purchasing:write");
 
@@ -428,6 +431,47 @@ export default async function ChequesPage({
               </div>
             ))}
           </div>
+
+          {toFill.length > 0 ? (
+            <div id="to-fill" className="grid gap-3 rounded-2xl border-2 border-brand-gold bg-brand-cream-soft p-4">
+              <p className="text-lg font-black text-brand-green-ink">
+                <T
+                  en={`✎ ${toFill.length} cheque${toFill.length === 1 ? "" : "s"} to fill — number, bank and date, so the reminders work`}
+                  ne={`✎ ${toFill.length} चेकको विवरण भर्न बाँकी — नम्बर, बैंक र मिति, ताकि सम्झना आओस्`}
+                />
+              </p>
+              {toFill.map((cheque) => (
+                <form key={cheque.id} action={editChequeAction} className="grid gap-3 rounded-xl bg-brand-paper p-3 sm:grid-cols-2 lg:grid-cols-5">
+                  <input type="hidden" name="id" value={cheque.id} />
+                  <input type="hidden" name="tab" value="in" />
+                  <input type="hidden" name="partyPhone" value={cheque.partyPhone} />
+                  <p className="text-base text-brand-green-ink sm:col-span-2 lg:col-span-5">
+                    <b>{cheque.partyName || "—"}</b> · <b>{chequeRupees(cheque.amount)}</b>
+                    {cheque.sourceNumber ? <> · {cheque.sourceNumber}</> : null} · {bs(nepalDayKey(cheque.createdAt))}
+                  </p>
+                  <label className="grid gap-1 text-sm font-bold text-brand-muted">
+                    <T en="Cheque no." ne="चेक नं." />
+                    <input name="chequeNo" defaultValue={cheque.chequeNo} inputMode="numeric" className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
+                  </label>
+                  <label className="grid gap-1 text-sm font-bold text-brand-muted">
+                    <T en="Bank *" ne="बैंक *" />
+                    <input name="chequeBank" list="cheque-bank-list" defaultValue={cheque.bank} required className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
+                  </label>
+                  <label className="grid gap-1 text-sm font-bold text-brand-muted">
+                    <T en="Cheque date *" ne="चेकको मिति *" />
+                    <NepaliDateFieldUncontrolled name="chequeDate" defaultValue={cheque.chequeDate} required />
+                  </label>
+                  <label className="grid gap-1 text-sm font-bold text-brand-muted">
+                    <T en="Name on cheque" ne="चेकमा नाम" />
+                    <input name="chequeName" defaultValue={cheque.nameOnCheque || cheque.partyName} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
+                  </label>
+                  <button className="min-h-11 self-end rounded-xl bg-brand-green-ink px-5 text-base font-black text-white">
+                    <T en="Save details" ne="विवरण सेभ" />
+                  </button>
+                </form>
+              ))}
+            </div>
+          ) : null}
 
           {missing.length > 0 && canWriteIn ? (
             <div className="grid gap-3 rounded-2xl border-2 border-brand-gold bg-brand-cream-soft p-4">

@@ -125,6 +125,15 @@ export function chequeStage(cheque: Pick<Cheque, "direction" | "state" | "cheque
   return cheque.chequeDate > todayKey ? "hold" : "deposit";
 }
 
+/**
+ * A cheque taken with only its amount on the bill (owner, 2026-10-01): its
+ * number, bank or date still to be filled in the book. Until its date is
+ * there, nothing can remind anyone to deposit it.
+ */
+export function needsDetails(cheque: Pick<Cheque, "direction" | "state" | "bank" | "chequeDate" | "chequeNo">) {
+  return cheque.direction === "in" && cheque.state === "waiting" && (!cheque.bank || !cheque.chequeDate || !cheque.chequeNo);
+}
+
 /** Still the shop's business: not cleared, collected or cancelled. */
 export function isOpen(cheque: Pick<Cheque, "state">) {
   return cheque.state === "waiting" || cheque.state === "deposited" || cheque.state === "bounced";
@@ -179,9 +188,10 @@ export function chequeReminders(cheques: Cheque[], todayKey: string) {
     (cheque) => cheque.direction === "out" && cheque.state === "waiting" && cheque.chequeDate !== "" && cheque.chequeDate <= twoDays,
   );
   const bounced = cheques.filter((cheque) => cheque.direction === "in" && cheque.state === "bounced");
+  const toFill = cheques.filter(needsDetails);
   const byBank = new Map<string, number>();
   for (const cheque of toCover) byBank.set(cheque.bank || "?", (byBank.get(cheque.bank || "?") ?? 0) + cheque.amount);
-  return { toDeposit, toCover, bounced, coverByBank: [...byBank.entries()].map(([bank, amount]) => ({ bank, amount })) };
+  return { toDeposit, toCover, bounced, toFill, coverByBank: [...byBank.entries()].map(([bank, amount]) => ({ bank, amount })) };
 }
 
 export type ChequeWeek = {

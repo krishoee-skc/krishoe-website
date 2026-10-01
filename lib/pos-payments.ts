@@ -35,7 +35,10 @@ const PURPOSES: PosPaymentPurpose[] = ["bill", "due", "refund"];
 
 /** Methods a transaction number is asked for, the same as a one-method bill. */
 export function needsReference(method: PosPaymentPartMethod) {
-  return method !== "Cash" && method !== "Exchange";
+  // A cheque's number, bank and date go into the cheque book, filled there
+  // after the customer has gone (owner, 2026-10-01: "only the amount on the
+  // bill").
+  return method !== "Cash" && method !== "Exchange" && method !== "Cheque";
 }
 
 function whole(value: unknown) {

@@ -88,7 +88,8 @@ const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", 
 const MAIN_PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Credit"];
 // The server refuses these without a transaction number once money is in, so
 // the box is asked for here, before Save, not after.
-const NEEDS_REFERENCE = new Set<Payment>(["Cheque", "QR", "eSewa", "Khalti", "Bank"]);
+// A cheque's number is filled in the cheque book, not here (owner, 2026-10-01).
+const NEEDS_REFERENCE = new Set<Payment>(["QR", "eSewa", "Khalti", "Bank"]);
 
 type HeldBill = {
   id: string;
@@ -235,7 +236,8 @@ export default function PosBillForm({
   // How a cash shortfall is covered: credit, or another method's second part.
   const [restMethod, setRestMethod] = useState<Payment | "">("");
   const [restReference, setRestReference] = useState("");
-  const [chequeDetails, setChequeDetails] = useState<ChequeDetails>({ bank: "", date: chequeBook.todayKey, name: "" });
+  // Empty until typed: a cheque left blank here is filled in the cheque book.
+  const [chequeDetails, setChequeDetails] = useState<ChequeDetails>({ bank: "", date: "", name: "", number: "" });
   // In an exchange: whether the next tapped shoe is one coming back.
   const [addingBack, setAddingBack] = useState(true);
   const [collectDue, setCollectDue] = useState(false);
@@ -367,8 +369,7 @@ export default function PosBillForm({
     // A cheque can bounce: the bill has to say whose it was (owner,
     // 2026-09-30: Rs. 10,500 by cheque sat under "Walk-in Customer").
     blocked = text("Type the customer's name for a cheque", "चेकमा ग्राहकको नाम लेख्नुहोस्");
-  } else if (asksChequeDetails && (!chequeDetails.bank.trim() || !chequeDetails.date)) {
-    blocked = text("Type the cheque's bank and date", "चेकको बैंक र मिति लेख्नुहोस्");
+
   } else if (needsAccount && !accountId) {
     blocked = isReturn
       ? text("Pick whose account the return goes to", "फिर्ता कसको खातामा जाने, छान्नुहोस्")
@@ -565,7 +566,7 @@ export default function PosBillForm({
     setCustomerPan("");
     setLedgerId("");
     setReference("");
-    setChequeDetails({ bank: "", date: chequeBook.todayKey, name: "" });
+    setChequeDetails({ bank: "", date: "", name: "", number: "" });
     setKind("Sale");
     setEditingRate(null);
   }
@@ -1470,6 +1471,7 @@ export default function PosBillForm({
             {asksChequeDetails ? (
               <ChequeFields
                 direction="in"
+                later
                 value={chequeDetails}
                 onChange={setChequeDetails}
                 usedBanks={chequeBook.usedBanks}

@@ -254,6 +254,17 @@ export default async function AdminDashboardPage() {
     const cheques = await getCheques().catch(() => []);
     const chequeWord = chequeReminders(cheques, nepalDayKey(now));
     const dueNow = chequeWord.toDeposit.filter((cheque) => cheque.chequeDate <= nepalDayKey(now));
+    if (chequeWord.toFill.length > 0) {
+      todos.push({
+        key: "cheques-fill",
+        tone: "gold",
+        en: `${chequeWord.toFill.length} ${chequeWord.toFill.length === 1 ? "cheque needs" : "cheques need"} its number, bank or date`,
+        ne: `${chequeWord.toFill.length} चेकको नम्बर, बैंक वा मिति भर्न बाँकी`,
+        subEn: "Taken on a bill with the amount only",
+        subNe: "बिलमा रकम मात्र लेखिएको",
+        href: "/admin/cheques#to-fill",
+      });
+    }
     if (dueNow.length > 0) {
       const sum = chequeRupees(dueNow.reduce((total, cheque) => total + cheque.amount, 0));
       todos.push({

@@ -134,6 +134,25 @@ describe("words and lists", () => {
   });
 });
 
+describe("a cheque taken with the amount only", () => {
+  it("asks nothing more on the bill, and is listed to fill in the book", async () => {
+    const { needsDetails, chequeReminders } = await import("@/lib/cheque-book-rules");
+    const bare = cheque({ bank: "", chequeDate: "", chequeNo: "" });
+    expect(needsDetails(bare)).toBe(true);
+    expect(needsDetails(cheque({}))).toBe(false);
+    expect(needsDetails(cheque({ bank: "", state: "cleared" }))).toBe(false);
+    expect(chequeReminders([bare], today).toFill).toHaveLength(1);
+    const { needsReference } = await import("@/lib/pos-payments");
+    expect(needsReference("Cheque")).toBe(false);
+    expect(needsReference("QR")).toBe(true);
+    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    expect(form).toContain('const NEEDS_REFERENCE = new Set<Payment>(["QR", "eSewa", "Khalti", "Bank"]);');
+    expect(form).toMatch(/direction="in"\s+later/);
+    expect(await read("app/admin/cheques/page.tsx")).toContain('id="to-fill"');
+    expect(await read("app/admin/page.tsx")).toContain('key: "cheques-fill",');
+  });
+});
+
 describe("the wiring", () => {
   it("adds its table by the Owner's button, word for word from the migration", async () => {
     const migration = chequeMigrations.find((item) => item.table === "cheques");
@@ -146,7 +165,9 @@ describe("the wiring", () => {
 
   it("files a bill's and a purchase's cheque after they are safe, never failing them", async () => {
     const pos = await read("app/admin/pos/actions.ts");
-    expect(pos).toContain('return { ok: false, message: "A cheque needs its bank and its date." };');
+    // Only the amount on the bill (owner, 2026-10-01): the rest is filled in the book.
+    expect(pos).not.toContain('message: "A cheque needs its bank and its date."');
+    expect(pos).toContain('chequeNo: textValue(formData, "chequeNo") || chequePart?.reference || invoice.paymentReference,');
     expect(pos).toContain("await reportingErrors(`file the cheque on ${invoice.invoiceNumber}`, () =>");
     const purchase = await read("app/admin/purchasing/actions.ts");
     expect(purchase).toContain('direction: "out",');

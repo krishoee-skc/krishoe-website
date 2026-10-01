@@ -39,7 +39,9 @@ async function syncCatalogStockAfterBill(what: string) {
 const channels: PosChannel[] = ["Retail", "Wholesale", "Online"];
 const invoiceKinds: PosInvoiceKind[] = ["Sale", "Return"];
 const paymentMethods: PosPaymentMethod[] = ["Cash", "Cheque", "Credit", "QR", "eSewa", "Khalti", "Bank"];
-const referencePaymentMethods: PosPaymentMethod[] = ["Cheque", "QR", "eSewa", "Khalti", "Bank"];
+// A cheque's number is filled in the cheque book, not on the bill (owner,
+// 2026-10-01); the rest still carry their transaction number here.
+const referencePaymentMethods: PosPaymentMethod[] = ["QR", "eSewa", "Khalti", "Bank"];
 const ledgerChannels: CustomerLedger["channel"][] = ["Wholesale", "Retail", "Online"];
 
 function textValue(formData: FormData, key: string) {
@@ -190,12 +192,10 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       message: "A cheque bill needs the customer's name.",
     };
   }
-  // The cheque book wants the bank and the cheque's date (owner, 2026-10-01).
-  // Asked only once its table is there; the form asks first.
+  // Into the cheque book once its table is there. Only the amount is needed
+  // on the bill; the number, bank and date may be given now or filled in the
+  // book later (owner, 2026-10-01).
   const chequeBookOn = kind === "Sale" && paidByCheque && (await chequeBookReady());
-  if (chequeBookOn && (!textValue(formData, "chequeBank") || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(textValue(formData, "chequeDate")))) {
-    return { ok: false, message: "A cheque needs its bank and its date." };
-  }
 
   let invoice;
   try {
@@ -243,7 +243,7 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
         partyName: invoice.customerName,
         partyPhone: invoice.phone,
         bank: textValue(formData, "chequeBank"),
-        chequeNo: chequePart?.reference || invoice.paymentReference,
+        chequeNo: textValue(formData, "chequeNo") || chequePart?.reference || invoice.paymentReference,
         amount: chequeAmount(invoice),
         chequeDate: textValue(formData, "chequeDate"),
         nameOnCheque: textValue(formData, "chequeName"),
