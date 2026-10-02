@@ -11,9 +11,34 @@ import { whatsappOrderUrl } from "@/lib/commerce";
 import { useLanguage } from "@/components/LanguageProvider";
 type ProductCardActionsProps = {
   product: Product;
+  /** The card's one small button beside the price (owner, 2026-10-02); the heart sits on the photo. */
+  compact?: boolean;
 };
 
-export default function ProductCardActions({ product }: ProductCardActionsProps) {
+/**
+ * The heart, on the photo's corner (owner, 2026-10-02): a separate round
+ * button beside Add cost a third of a narrow card's width.
+ */
+export function WishlistHeart({ product }: { product: Product }) {
+  const { toggleWishlist, isWishlisted } = useCommerce();
+  const { text } = useLanguage();
+  const wished = isWishlisted(product.id);
+  return (
+    <button
+      type="button"
+      onClick={() => toggleWishlist(product.id)}
+      aria-pressed={wished}
+      aria-label={wished ? text("Remove from wishlist", "मनपर्नेबाट हटाउने") : text("Add to wishlist", "मनपर्नेमा राख्ने")}
+      className={`absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full shadow-sm backdrop-blur transition active:scale-90 ${
+        wished ? "bg-brand-gold-bright text-brand-green-ink" : "bg-brand-paper/90 text-brand-green-ink hover:text-brand-green"
+      }`}
+    >
+      <HeartIcon className="h-5 w-5" />
+    </button>
+  );
+}
+
+export default function ProductCardActions({ product, compact = false }: ProductCardActionsProps) {
   const { addToCart, toggleWishlist, isWishlisted } = useCommerce();
   const [added, setAdded] = useState(false);
   const { text } = useLanguage();
@@ -38,6 +63,38 @@ export default function ProductCardActions({ product }: ProductCardActionsProps)
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
+  }
+
+  if (compact) {
+    return outOfStock ? (
+      <a
+        href={whatsappOrderUrl(
+          text(
+            `Namaste KRISHOE — when will "${product.name}" be back in stock?`,
+            `नमस्ते KRISHOE — "${product.name}" कहिले आउँछ?`,
+          ),
+        )}
+        target="_blank"
+        rel="noreferrer"
+        onClick={() => trackCommerceEvent("contact")}
+        aria-label={text("Ask when it's back, on WhatsApp", "कहिले आउँछ सोध्ने, WhatsApp मा")}
+        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-brand-green-tint px-3 text-xs font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+      >
+        <WhatsAppIcon className="h-4 w-4" />
+        {text("Notify me", "आएपछि भन्ने")}
+      </a>
+    ) : (
+      <button
+        type="button"
+        onClick={addDefaultItem}
+        className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition active:scale-95 ${
+          added ? "bg-brand-gold-bright text-brand-green-ink" : "bg-brand-green-ink text-white hover:bg-brand-green"
+        }`}
+      >
+        <ShoppingBagIcon className="h-4 w-4" />
+        {added ? text("Added ✓", "थपियो ✓") : text("Add", "थप्ने")}
+      </button>
+    );
   }
 
   return (

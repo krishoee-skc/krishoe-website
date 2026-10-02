@@ -16,7 +16,8 @@ describe("the product card", () => {
 
     expect(card).toContain('ne="अहिले सकियो"');
     expect(card).toContain("जोडी मात्र बाँकी");
-    expect(card).toContain('ne="हेर्नुहोस्"');
+    // The "Details" button is gone — the photo and the name open the shoe.
+    expect(card).toContain('ne="प्रति जोडी"');
   });
 
   it("stays a server component", async () => {

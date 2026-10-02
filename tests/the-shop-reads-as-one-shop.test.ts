@@ -124,7 +124,9 @@ describe("the card on a phone", () => {
 
     // It used to be smaller than the shoe's own name. The unit matters because
     // this shop sells wholesale as well as single pairs.
-    expect(card).toContain("font-display font-black tracking-tight");
+    // In the body face, bold, on one line (owner, 2026-10-02): in the display
+    // face at 30px it broke into "Rs." over "950" on a phone.
+    expect(card).toContain("whitespace-nowrap text-base font-extrabold tabular-nums");
     expect(card).toContain('<T en="per pair" ne="प्रति जोडी" />');
   });
 

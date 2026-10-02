@@ -73,10 +73,12 @@ describe("the card itself", () => {
     expect(source).toContain("product.badge?.trim() ?");
   });
 
-  it("keeps the category in one place, under the photo", async () => {
+  it("leaves the category to the shoe's own page", async () => {
     const source = await readFile(CARD, "utf8");
 
-    expect(source.match(/\{product\.category\}/g)?.length ?? 0).toBe(1);
+    // Once under the photo, never twice; now not at all (owner, 2026-10-02):
+    // in a shop of ladies' sandals it said "Ladies Sandals" on every card.
+    expect(source.match(/\{product\.category\}/g)?.length ?? 0).toBe(0);
   });
 
   it("takes no room at all when there is no description", async () => {
@@ -86,7 +88,8 @@ describe("the card itself", () => {
     // baseline. Measured on a 360px phone that cost 48px of every card to hold
     // nothing, and the grid already keeps the row even — so now it renders
     // nothing and the card is shorter.
-    expect(source).toContain("product.description?.trim() ?");
-    expect(source).toContain(") : null}");
+    // And now the description is on the shoe's own page only (owner,
+    // 2026-10-02: less writing on a card).
+    expect(source).not.toContain("{product.description}");
   });
 });

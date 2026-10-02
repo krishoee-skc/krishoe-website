@@ -166,11 +166,14 @@ describe("the chat button and the tab bar", () => {
     const launcher = chat.slice(chat.indexOf("fixed bottom-"), chat.indexOf("fixed bottom-") + 200);
     expect(launcher.length, "the chat launcher moved").toBeGreaterThan(0);
 
-    const offset = launcher.match(/bottom-(\d+)/);
-    expect(offset, "the chat button has no bottom offset").not.toBeNull();
+    // In rem, with the phone's own safe area added (owner, 2026-10-02: on
+    // an iPhone the bar sits higher by its home-bar inset, and a plain 96px
+    // still covered "Account").
+    const offset = launcher.match(/bottom-\[calc\((\d+(?:\.\d+)?)rem\+env\(safe-area-inset-bottom\)\)\]/);
+    expect(offset, "the chat button has no bottom offset clear of the safe area").not.toBeNull();
     expect(
-      Number(offset?.[1]) * 4,
+      Number(offset?.[1]) * 16,
       "the chat button still covers the last tab",
-    ).toBeGreaterThanOrEqual(88);
+    ).toBeGreaterThanOrEqual(100);
   });
 });
