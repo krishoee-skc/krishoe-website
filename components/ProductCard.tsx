@@ -91,14 +91,16 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
       </div>
 
       <div className="flex flex-1 flex-col p-3 md:p-4">
-        <Link href={href} className="min-w-0">
+        {/* The name and the stars are one link. On a phone every link is held
+            to a 44px tap height; the name alone in one left a gap the height
+            of another line under it (rechecked on an iPhone, 2026-10-02). */}
+        <Link href={href} className="block min-w-0">
           {/* The display face, on one line: a name cut to "lose hill…" over
               two lines read as broken. */}
           <h3 className="truncate font-display text-[15px] font-semibold leading-snug tracking-tight text-brand-green-ink transition hover:text-brand-green md:text-lg">
             <ProductText en={product.name} ne={product.nameNe} />
           </h3>
-        </Link>
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-brand-muted">
+        <span className="mt-0.5 flex items-center gap-1 text-xs text-brand-muted">
           {reviewStats.count > 0 ? (
             <>
               <StarIcon className="h-3.5 w-3.5 text-brand-gold" />
@@ -112,9 +114,10 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
               <T en="New" ne="नयाँ" />
             </span>
           )}
-        </p>
+        </span>
+        </Link>
 
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
+        <div className="mt-auto flex items-center justify-between gap-1.5 pt-2">
           {/* The price in the body face, bold and on one line. Set in the
               display face at 30px it broke into "Rs." over "950" on a phone.
               "Per pair" stays on a wider screen — this shop sells wholesale

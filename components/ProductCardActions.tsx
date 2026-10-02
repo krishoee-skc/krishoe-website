@@ -78,21 +78,24 @@ export default function ProductCardActions({ product, compact = false }: Product
         rel="noreferrer"
         onClick={() => trackCommerceEvent("contact")}
         aria-label={text("Ask when it's back, on WhatsApp", "कहिले आउँछ सोध्ने, WhatsApp मा")}
-        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-brand-green-tint px-3 text-xs font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+        className="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-brand-green-tint px-2.5 text-xs font-bold text-brand-green transition hover:bg-brand-green hover:text-white sm:px-3"
       >
         <WhatsAppIcon className="h-4 w-4" />
-        {text("Notify me", "आएपछि भन्ने")}
+        {/* The word on a wider card; on a phone the price needs the room
+            (rechecked 2026-10-02: "Rs. 1,000" showed as "Rs. 1"). */}
+        <span className="hidden sm:inline">{text("Notify me", "आएपछि भन्ने")}</span>
       </a>
     ) : (
       <button
         type="button"
         onClick={addDefaultItem}
-        className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition active:scale-95 ${
+        aria-label={added ? text("Added ✓", "थपियो ✓") : text(`Add ${product.name} to the cart`, `${product.name} कार्टमा थप्ने`)}
+        className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition active:scale-95 sm:px-3 ${
           added ? "bg-brand-gold-bright text-brand-green-ink" : "bg-brand-green-ink text-white hover:bg-brand-green"
         }`}
       >
-        <ShoppingBagIcon className="h-4 w-4" />
-        {added ? text("Added ✓", "थपियो ✓") : text("Add", "थप्ने")}
+        {added ? <span aria-hidden="true">✓</span> : <ShoppingBagIcon className="h-4 w-4" />}
+        <span className="hidden sm:inline">{added ? text("Added ✓", "थपियो ✓") : text("Add", "थप्ने")}</span>
       </button>
     );
   }
