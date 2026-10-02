@@ -175,7 +175,8 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all. The fourth is the Nepali page's product title (2026-10-01).",
   },
   "app/worker/photos/page.tsx": {
-    lines: 8,
+    // +3 (2026-10-03): what the owner did with a photo — on the books with its pay, or not work and why.
+    lines: 11,
     why: "The worker app, Nepali-first by the owner's choice (2026-10-02: big, easy, in the worker's own words) — the factory floor reads Nepali. The worker portal's existing pages already carry the same debt in the list above.",
   },
   "app/worker/photos/WorkerPhotoForm.tsx": {

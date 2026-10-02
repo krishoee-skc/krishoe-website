@@ -20,9 +20,12 @@ describe("work from a worker's photo", () => {
     expect(actions).toContain("entry = await createFactoryWork({");
     // keyed to the photo: a second press, or two people at once, books it once
     expect(actions).toContain("submissionKey: `worker-photo:${photo.id}`");
-    expect(actions).toContain("date: nepalDay(photo.createdAt)");
-    // at the worker's own stage and its rate
-    expect(actions).toContain("stage: null,");
+    expect(actions).toContain("date: workDate,");
+    // the day defaults to the day the photo was sent, and never after today
+    expect(actions).toContain(": nepalDay(photo.createdAt);");
+    expect(actions).toContain("if (workDate > nepalDay(new Date().toISOString()))");
+    // the worker's own stage unless the owner picks another
+    expect(actions).toContain("stage,");
     expect(actions).toContain('requireAdminPermission("production:entry")');
   });
 
@@ -42,7 +45,7 @@ describe("work from a worker's photo", () => {
 
   it("lets the owner correct the shoe and pairs before ✓, and ✓ them all at once", async () => {
     const inbox = await read("app/admin/factory/photos/WorkerInbox.tsx");
-    expect(inbox).toContain("bookPhotoWorkAction(photo.id, draftOf(photo).itemId, Number(draftOf(photo).pairs))");
+    expect(inbox).toContain("return bookPhotoWorkAction(photo.id, {");
     expect(inbox).toContain("const bookAll = () =>");
   });
 });

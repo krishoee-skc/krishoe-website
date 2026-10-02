@@ -7,6 +7,7 @@ import { isWorkerOnLeave, listWorkerPhotos, PHOTO_KINDS } from "@/lib/worker-por
 import { photoDraftReady, workerTableReady } from "@/lib/worker-portal-db";
 import { getFactoryItems } from "@/lib/factory-board-data";
 import WorkerPhotoForm from "./WorkerPhotoForm";
+import { money } from "@/lib/format-money";
 
 export const metadata: Metadata = { title: "कामको फोटो | KRISHOE" };
 export const dynamic = "force-dynamic";
@@ -57,7 +58,16 @@ export default async function WorkerPhotosPage() {
                     {photo.pairs ? ` · ${photo.pairs} जोडी` : ""}
                     {photo.itemName ? ` · ${photo.itemName}` : ""}
                   </p>
-                  <p className={photo.status === "new" ? "text-brand-muted" : "font-bold text-brand-green"}>{statusWords[photo.status]}</p>
+                  {/* What the owner did with it (owner, 2026-10-03): on the books with
+                      what it paid, or not work and why — so nobody has to ring. */}
+                  {photo.status === "added" ? (
+                    <p className="font-bold text-brand-green">✓ हिसाबमा थपियो{photo.amountEarned !== null ? ` · ${money(photo.amountEarned)}` : ""}</p>
+                  ) : photo.verdict === "not_work" ? (
+                    <p className="font-bold text-red-800">✖ मिलेन{photo.reply ? `: ${photo.reply}` : ""}</p>
+                  ) : (
+                    <p className={photo.status === "new" ? "text-brand-muted" : "font-bold text-brand-green"}>{statusWords[photo.status]}</p>
+                  )}
+                  {photo.status === "added" && photo.reply ? <p className="text-brand-muted">मालिक: {photo.reply}</p> : null}
                 </div>
               </li>
             ))}

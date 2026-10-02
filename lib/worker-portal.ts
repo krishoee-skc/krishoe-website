@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { queryPostgres } from "@/lib/postgres/client";
-import { photoDraftReady, workerTableReady } from "@/lib/worker-portal-db";
+import { photoDraftReady, photoReviewReady, workerTableReady } from "@/lib/worker-portal-db";
 
 /**
  * What the worker app keeps beyond the factory's own books (owner, 2026-10-02):
@@ -40,6 +40,19 @@ export type WorkerPhoto = {
   workId: string;
   workerCategory: string;
   workerType: string;
+  /** The owner's check (owner, 2026-10-03): "" not decided, "not_work" when it was not. */
+  verdict: "" | "not_work";
+  /** A word back to the worker — the reason, when it was not work. */
+  reply: string;
+  hidden: boolean;
+  /** The stage, day and damaged pairs it was booked with (or will be). */
+  stage: string;
+  workDate: string;
+  rejectPairs: number;
+  /** What was done to it and by whom, oldest first. */
+  history: Array<{ at: string; by: string; what: string }>;
+  /** What it was paid at, once on the books. */
+  amountEarned: number | null;
 };
 
 export type WorkerRequest = {
@@ -59,6 +72,8 @@ type PhotoRow = {
   id: string; worker_id: string; worker_name: string; kind: PhotoKind; pairs: number | null; note: string; image_url: string;
   status: WorkerPhoto["status"]; created_at: string | Date; item_id: string | null; item_name: string | null; work_id: string | null;
   worker_category: string; worker_type: string;
+  verdict: string | null; reply: string | null; hidden: boolean | null; stage: string | null; work_date: string | Date | null;
+  reject_pairs: number | null; history: unknown; amount_earned: string | number | null;
 };
 type RequestRow = { id: string; worker_id: string; worker_name: string; kind: WorkerRequest["kind"]; amount: string | number | null; about_date: string | Date | null; message: string; status: WorkerRequest["status"]; reply: string; created_at: string | Date };
 
@@ -70,6 +85,14 @@ function photoFromRow(row: PhotoRow): WorkerPhoto {
     id: row.id, workerId: row.worker_id, workerName: row.worker_name, kind: row.kind, pairs: row.pairs, note: row.note, imageUrl: row.image_url,
     status: row.status, createdAt: iso(row.created_at), itemId: row.item_id ?? "", itemName: row.item_name ?? "", workId: row.work_id ?? "",
     workerCategory: row.worker_category, workerType: row.worker_type,
+    verdict: row.verdict === "not_work" ? "not_work" : "",
+    reply: row.reply ?? "",
+    hidden: Boolean(row.hidden),
+    stage: row.stage ?? "",
+    workDate: day(row.work_date),
+    rejectPairs: Number(row.reject_pairs) || 0,
+    history: Array.isArray(row.history) ? (row.history as WorkerPhoto["history"]) : [],
+    amountEarned: row.amount_earned === null || row.amount_earned === undefined ? null : Number(row.amount_earned),
   };
 }
 function requestFromRow(row: RequestRow): WorkerRequest {
@@ -147,18 +170,24 @@ export async function addWorkerPhoto(input: { workerId: string; staffId: string;
   return id;
 }
 
+/** The photo columns, each later one only once its migration has run (Settings → OK). */
+async function photoSelect() {
+  const [draft, review] = await Promise.all([photoDraftReady(), photoReviewReady()]);
+  return `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
+            p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
+            ${draft ? "p.item_id, i.name AS item_name, p.work_id, d.amount_earned" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id, NULL::numeric AS amount_earned"},
+            ${review ? "p.verdict, p.reply, p.hidden, p.stage, p.work_date, p.reject_pairs, p.history" : "''::text AS verdict, ''::text AS reply, false AS hidden, NULL::text AS stage, NULL::date AS work_date, NULL::int AS reject_pairs, '[]'::jsonb AS history"}
+       FROM factory_worker_photos p
+       JOIN factory_workers w ON w.id = p.worker_id
+       ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id LEFT JOIN factory_daily_work d ON d.id = p.work_id" : ""}`;
+}
+
 /** The newest photos — one worker's, or everyone's. */
 export async function listWorkerPhotos(options: { workerId?: string; limit?: number } = {}): Promise<WorkerPhoto[]> {
   if (!(await workerTableReady("factory_worker_photos"))) return [];
-  const draft = await photoDraftReady();
   const rows = await queryPostgres<PhotoRow>(
     STORE,
-    `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
-            p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
-            ${draft ? "p.item_id, i.name AS item_name, p.work_id" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id"}
-       FROM factory_worker_photos p
-       JOIN factory_workers w ON w.id = p.worker_id
-       ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id" : ""}
+    `${await photoSelect()}
       WHERE ($1::text IS NULL OR p.worker_id = $1)
       ORDER BY p.created_at DESC
       LIMIT $2`,
@@ -169,19 +198,53 @@ export async function listWorkerPhotos(options: { workerId?: string; limit?: num
 
 /** One photo, for turning it into a work entry. */
 export async function getWorkerPhoto(id: string): Promise<WorkerPhoto | null> {
-  const draft = await photoDraftReady();
   const rows = await queryPostgres<PhotoRow>(
     STORE,
-    `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
-            p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
-            ${draft ? "p.item_id, i.name AS item_name, p.work_id" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id"}
-       FROM factory_worker_photos p
-       JOIN factory_workers w ON w.id = p.worker_id
-       ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id" : ""}
+    `${await photoSelect()}
       WHERE p.id = $1`,
     [id],
   );
   return rows[0] ? photoFromRow(rows[0]) : null;
+}
+
+/** What the owner changed on a photo, and a line for its history. Only once the review columns exist. */
+export async function reviewWorkerPhoto(
+  id: string,
+  patch: Partial<{ verdict: "" | "not_work"; reply: string; hidden: boolean; stage: string; workDate: string; rejectPairs: number; itemId: string; pairs: number | null; status: "new" | "seen" | "added"; workId: string | null }>,
+  line: { by: string; what: string },
+) {
+  if (!(await photoReviewReady())) throw new Error("NOT_READY");
+  const sets: string[] = [];
+  const values: Array<string | number | boolean | null> = [id];
+  const put = (column: string, value: string | number | boolean | null, cast = "") => {
+    values.push(value);
+    sets.push(`${column} = ${values.length}${cast}`);
+  };
+  if (patch.verdict !== undefined) put("verdict", patch.verdict);
+  if (patch.reply !== undefined) put("reply", patch.reply.slice(0, 300));
+  if (patch.hidden !== undefined) put("hidden", patch.hidden);
+  if (patch.stage !== undefined) put("stage", patch.stage || null);
+  if (patch.workDate !== undefined) put("work_date", patch.workDate || null, "::date");
+  if (patch.rejectPairs !== undefined) put("reject_pairs", patch.rejectPairs);
+  if (patch.itemId !== undefined) put("item_id", patch.itemId || null);
+  if (patch.pairs !== undefined) put("pairs", patch.pairs);
+  if (patch.status !== undefined) put("status", patch.status);
+  if (patch.workId !== undefined) put("work_id", patch.workId);
+  values.push(JSON.stringify([{ at: new Date().toISOString(), by: line.by, what: line.what.slice(0, 200) }]));
+  sets.push(`history = history || ${values.length}::jsonb`);
+  values.push(line.by);
+  sets.push(`reviewed_by = ${values.length}, reviewed_at = now()`);
+  await queryPostgres(STORE, `UPDATE factory_worker_photos SET ${sets.join(", ")} WHERE id = $1`, values);
+}
+
+/** A photo off the books for good — never one that is on the books. Returns its file's address. */
+export async function deleteWorkerPhotoRow(id: string): Promise<string | null> {
+  const rows = await queryPostgres<{ image_url: string }>(
+    STORE,
+    `DELETE FROM factory_worker_photos WHERE id = $1 AND status <> 'added' RETURNING image_url`,
+    [id],
+  );
+  return rows[0]?.image_url ?? null;
 }
 
 /** The photo became this work entry: marked added, with the entry's id. */

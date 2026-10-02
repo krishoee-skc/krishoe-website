@@ -94,6 +94,24 @@ ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS item_id TEXT REFERENC
 ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS work_id TEXT;
 `,
   },
+  {
+    // Checking a photo (owner, 2026-10-03): work or not, which stage, the day,
+    // damaged pairs, a word back to the worker, hidden from the list, and what
+    // was done to it and by whom. Columns added; nothing existing changes.
+    name: "20261003_factory_worker_photos_review",
+    table: "factory_worker_photos",
+    column: "history",
+    label: { en: "Check a photo: work or not, the stage, the day, a word back", ne: "फोटो जाँच्ने: काम हो कि होइन, चरण, दिन, कामदारलाई जवाफ" },
+    sql: `
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS verdict TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS reply TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS stage TEXT;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS work_date DATE;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS reject_pairs INTEGER;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS history JSONB NOT NULL DEFAULT '[]'::jsonb;
+`,
+  },
 ] as const;
 
 export type WorkerPortalTable = (typeof workerPortalMigrations)[number]["table"];
@@ -176,6 +194,23 @@ export async function photoDraftReady(): Promise<boolean> {
   }
 }
 
+let reviewReady: { value: boolean; at: number } | null = null;
+
+/** Whether a photo can be checked in full — the fifth migration. */
+export async function photoReviewReady(): Promise<boolean> {
+  if (getDataBackendConfig().backend !== "postgres") return false;
+  if (reviewReady?.value) return true;
+  if (reviewReady && Date.now() - reviewReady.at < RECHECK_MS) return false;
+  try {
+    const { pending } = await workerPortalDatabaseStatus();
+    const value = !pending.some((item) => item.name === "20261003_factory_worker_photos_review");
+    reviewReady = { value, at: Date.now() };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
 /** Adds the tables, stamped as applied. Safe to press twice. */
 export async function prepareWorkerPortalDatabase() {
   if (getDataBackendConfig().backend !== "postgres") return { applied: [] as string[] };
@@ -200,5 +235,6 @@ export async function prepareWorkerPortalDatabase() {
   });
   readyAt.clear();
   draftReady = null;
+  reviewReady = null;
   return { applied: toApply.map((migration) => migration.name) };
 }

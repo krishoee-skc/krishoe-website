@@ -149,6 +149,13 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
         <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={300} className="rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 py-3 text-lg" />
       </label>
 
+      {/* A soft reminder, not a stop: the owner can still fill it in. */}
+      {items.length > 0 && kind !== "problem" && file && (!itemId || !pairs) ? (
+        <p className="rounded-2xl bg-brand-cream-soft px-4 py-3 text-base font-bold text-brand-green-ink">
+          💡 मालिकले छिटो हिसाबमा थप्न जुत्ता र जोडी पनि भर्नुहोस्। नभरी पनि पठाउन मिल्छ।
+        </p>
+      ) : null}
+
       <button
         type="button"
         disabled={!file || busy}

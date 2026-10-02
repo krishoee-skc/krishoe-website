@@ -1943,6 +1943,14 @@ CREATE TABLE IF NOT EXISTS factory_worker_photos (
   -- and the work entry it became when the owner pressed ✓.
   item_id TEXT REFERENCES factory_items(id) ON DELETE RESTRICT,
   work_id TEXT,
+  -- Added by 20261003_factory_worker_photos_review: the owner's check.
+  verdict TEXT NOT NULL DEFAULT '',
+  reply TEXT NOT NULL DEFAULT '',
+  hidden BOOLEAN NOT NULL DEFAULT false,
+  stage TEXT,
+  work_date DATE,
+  reject_pairs INTEGER,
+  history JSONB NOT NULL DEFAULT '[]'::jsonb,
   CONSTRAINT factory_worker_photos_kind_check CHECK (kind IN ('done', 'upper', 'ready', 'problem')),
   CONSTRAINT factory_worker_photos_status_check CHECK (status IN ('new', 'seen', 'added'))
 );
