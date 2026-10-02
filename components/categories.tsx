@@ -40,9 +40,29 @@ const categories = [
     image: "/images/products/casual-shoes.jpg",
   },
   {
+    title: "Men's Slippers",
+    slug: "mens-slippers",
+    image: "/images/products/ph-pu-chappal.svg",
+  },
+  {
+    title: "Men's Shoes",
+    slug: "mens-shoes",
+    image: "/images/products/ph-shoes.svg",
+  },
+  {
     title: "Kids Collection",
     slug: "kids-collection",
     image: "/images/products/kids-collection.jpg",
+  },
+  {
+    title: "Kids Shoes",
+    slug: "kids-shoes",
+    image: "/images/products/kids-collection.jpg",
+  },
+  {
+    title: "Kids Slippers",
+    slug: "kids-slippers",
+    image: "/images/products/ph-bachha-rubber-kids.svg",
   },
   {
     title: "New Arrivals",

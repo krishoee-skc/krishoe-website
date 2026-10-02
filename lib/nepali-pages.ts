@@ -13,6 +13,10 @@ export const categoryNepali: Record<string, string> = {
   "casual-shoes": "क्याजुअल जुत्ता",
   "party-heels": "पार्टी हिल",
   "mens-collection": "पुरुषका जुत्ता",
+  "mens-slippers": "पुरुषको चप्पल",
+  "mens-shoes": "पुरुषको जुत्ता",
+  "kids-shoes": "बच्चाको जुत्ता",
+  "kids-slippers": "बच्चाको चप्पल",
   "kids-collection": "बालबालिकाका जुत्ता",
   "new-arrivals": "नयाँ आएका जुत्ता",
 };

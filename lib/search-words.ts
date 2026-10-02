@@ -85,6 +85,10 @@ export const CATEGORY_WORDS: Record<string, string[]> = {
   "party-heels": ["हिल", "party heels", "heels nepal"],
   "ladies-close-shoes": ["बन्द जुत्ता", "महिलाको बन्द जुत्ता", "ladies close shoes", "close shoes Nepal", "band jutta"],
   "ladies-shoes": ["महिलाको जुत्ता", "ladies shoes", "mahila jutta", "women shoes Nepal"],
+  "mens-slippers": ["पुरुषको चप्पल", "gents chappal", "mens slippers Nepal"],
+  "mens-shoes": ["पुरुषको जुत्ता", "gents jutta", "mens shoes Nepal"],
+  "kids-shoes": ["बच्चाको जुत्ता", "bachha jutta", "kids shoes Nepal"],
+  "kids-slippers": ["बच्चाको चप्पल", "bachha chappal", "kids slippers Nepal"],
   "new-arrivals": ["नयाँ जुत्ता", "naya jutta", "new shoes Nepal"],
 };
 

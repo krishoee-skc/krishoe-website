@@ -145,11 +145,37 @@ export const categories: Category[] = [
     image: "/images/products/casual-shoes.jpg",
     description: "Sturdy slippers, sandals and shoes made for men.",
   },
+  // Men's and children's own shelves (owner, 2026-10-02), beside the
+  // collections that hold everything for each. Stand-in pictures for now.
+  {
+    title: "Men's Slippers",
+    slug: "mens-slippers",
+    image: "/images/products/ph-pu-chappal.svg",
+    description: "Chappal and slippers for men, for home and outside.",
+  },
+  {
+    title: "Men's Shoes",
+    slug: "mens-shoes",
+    image: "/images/products/ph-shoes.svg",
+    description: "Shoes for men — for work, school runs and every day.",
+  },
   {
     title: "Kids Collection",
     slug: "kids-collection",
     image: "/images/products/kids-collection.jpg",
     description: "Durable pairs for active little steps.",
+  },
+  {
+    title: "Kids Shoes",
+    slug: "kids-shoes",
+    image: "/images/products/kids-collection.jpg",
+    description: "Shoes for children, made to take a school day.",
+  },
+  {
+    title: "Kids Slippers",
+    slug: "kids-slippers",
+    image: "/images/products/ph-bachha-rubber-kids.svg",
+    description: "Chappal and slippers for children.",
   },
   {
     title: "New Arrivals",

@@ -17,10 +17,12 @@ describe("the kind a name reads as", () => {
     expect(guessKind("putali patta flat")).toBe("ladies-sandals");
     expect(guessKind("ladies magic chappal")).toBe("ladies-slippers");
     expect(guessKind("eva fab slipers efm1o1")).toBe("ladies-slippers");
-    expect(guessKind("gents chappal")).toBe("mens-collection");
-    expect(guessKind("nauty shoe #1001")).toBe("mens-collection");
-    expect(guessKind("close shoe chinies# 233")).toBe("mens-collection");
-    expect(guessKind("school shoe")).toBe("kids-collection");
+    // Men's and children's own shelves since 2026-10-02.
+    expect(guessKind("gents chappal")).toBe("mens-slippers");
+    expect(guessKind("nauty shoe #1001")).toBe("mens-shoes");
+    expect(guessKind("close shoe chinies# 233")).toBe("mens-shoes");
+    expect(guessKind("school shoe")).toBe("kids-shoes");
+    expect(guessKind("bachha chappal")).toBe("kids-slippers");
     expect(guessKind("party heel")).toBe("party-heels");
     expect(guessKind("kitto 770")).toBeNull();
   });

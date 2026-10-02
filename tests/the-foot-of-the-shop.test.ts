@@ -134,7 +134,7 @@ describe("shorter, without losing anything", () => {
     const shop = footer.slice(footer.indexOf("const shopLinks"), footer.indexOf("const companyLinks"));
     const company = footer.slice(footer.indexOf("const companyLinks"), footer.indexOf("const GOLD_GROUND"));
 
-    expect(shop.match(/href:/g)?.length, "a Shop link was dropped").toBe(9); // Ladies Close Shoes and Ladies Shoes joined on 2026-10-02
+    expect(shop.match(/href:/g)?.length, "a Shop link was dropped").toBe(13); // Ladies Close Shoes, Ladies Shoes, Men's Slippers, Men's Shoes, Kids Shoes and Kids Slippers joined on 2026-10-02
     expect(company.match(/href:/g)?.length, "a Company link was dropped").toBe(8);
 
     // Both lists must actually be rendered — keeping the data but not drawing

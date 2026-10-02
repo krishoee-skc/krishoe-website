@@ -44,7 +44,11 @@ const shopLinks = [
   { href: "/shop/casual-shoes", en: "Casual Shoes", ne: "दैनिक जुत्ता" },
   { href: "/shop/party-heels", en: "Party Heels", ne: "पार्टी हिल" },
   { href: "/shop/mens-collection", en: "Men's Collection", ne: "पुरुष कलेक्शन" },
+  { href: "/shop/mens-slippers", en: "Men's Slippers", ne: "पुरुषको चप्पल" },
+  { href: "/shop/mens-shoes", en: "Men's Shoes", ne: "पुरुषको जुत्ता" },
   { href: "/shop/kids-collection", en: "Kids", ne: "बालबालिका" },
+  { href: "/shop/kids-shoes", en: "Kids Shoes", ne: "बच्चाको जुत्ता" },
+  { href: "/shop/kids-slippers", en: "Kids Slippers", ne: "बच्चाको चप्पल" },
   { href: "/shop/new-arrivals", en: "New Arrivals", ne: "नयाँ आगमन" },
 ];
 

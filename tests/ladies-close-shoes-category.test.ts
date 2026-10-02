@@ -7,7 +7,7 @@ import { guessKind } from "@/lib/counter-item-rules";
 /** Owner, 2026-10-02: a shelf for women's closed shoes, and one for women's shoes. */
 describe("Ladies Close Shoes and Ladies Shoes", () => {
   it("are categories, with a Nepali name, on the home tiles and in the footer", async () => {
-    for (const slug of ["ladies-close-shoes", "ladies-shoes"]) {
+    for (const slug of ["ladies-close-shoes", "ladies-shoes", "mens-slippers", "mens-shoes", "kids-shoes", "kids-slippers"]) {
       expect(categories.some((category) => category.slug === slug), slug).toBe(true);
       expect(categoryNepali[slug], slug).toBeTruthy();
       expect(await readFile("components/categories.tsx", "utf8")).toContain(`slug: "${slug}"`);
