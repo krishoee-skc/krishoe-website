@@ -45,6 +45,8 @@ type CommerceContextValue = {
   addToCart: (item: CartItem) => void;
   removeFromCart: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
+  /** Moves a line to another size; joins the line already in that size, if there is one. */
+  changeSize: (key: string, size: string) => void;
   clearCart: () => void;
   toggleWishlist: (productId: string) => void;
   isWishlisted: (productId: string) => boolean;
@@ -154,6 +156,25 @@ export function CommerceProvider({
     );
   }, []);
 
+  // A shopper who put the wrong size in the cart (owner, 2026-10-02: the card
+  // used to add the first size without asking) changes it here rather than
+  // removing the line and finding the shoe again. When the cart already holds
+  // that size of that shoe in that colour, the pairs join that line — two
+  // lines for one size would read as two different things.
+  const changeSize = useCallback((key: string, size: string) => {
+    setCart((current) => {
+      const moving = current.find((item) => itemKey(item) === key);
+      if (!moving || moving.size === size) return current;
+      const moved = { ...moving, size };
+      const target = itemKey(moved);
+      const joins = current.some((item) => itemKey(item) === target);
+      if (!joins) return current.map((item) => (itemKey(item) === key ? moved : item));
+      return current
+        .filter((item) => itemKey(item) !== key)
+        .map((item) => (itemKey(item) === target ? { ...item, quantity: Math.min(item.quantity + moving.quantity, 9) } : item));
+    });
+  }, []);
+
   const clearCart = useCallback(() => setCart([]), []);
 
   const toggleWishlist = useCallback((productId: string) => {
@@ -233,6 +254,7 @@ export function CommerceProvider({
       addToCart,
       removeFromCart,
       updateQuantity,
+      changeSize,
       clearCart,
       toggleWishlist,
       isWishlisted,
@@ -251,6 +273,7 @@ export function CommerceProvider({
       addToCart,
       removeFromCart,
       updateQuantity,
+      changeSize,
       clearCart,
       toggleWishlist,
       isWishlisted,

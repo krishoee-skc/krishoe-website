@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getProductById, upsertProduct } from "@/lib/product-store";
+import { put } from "@vercel/blob";
+import { getProductById, getProducts, upsertProduct } from "@/lib/product-store";
+import { databaseImagesAvailable, getDatabaseImage, saveDatabaseImage } from "@/lib/image-store";
+import { findReframe, reframePhoto, type Reframe } from "@/lib/photo-reframe";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
@@ -148,4 +151,92 @@ export async function removePhotoAction(
   revalidatePath("/", "layout");
   revalidatePath("/admin/products/photos");
   return { ok: true, en: `${product.name} — photo removed`, ne: `${product.name} — फोटो हट्यो` };
+}
+
+/** A cover photo with bars in it, and the piece the fix would keep — for the screen to show before anything is saved. */
+export type FramedPhoto = { productId: string; name: string; image: string; frame: Reframe };
+
+/**
+ * The bytes of a photo the shop itself stored: on its Blob store, or in its
+ * database. Nothing else is fetched — an address typed into a product is not a
+ * reason for the server to go and load it.
+ */
+async function storedPhotoBytes(image: string): Promise<Buffer | null> {
+  try {
+    if (image.startsWith("/api/images/")) {
+      const stored = await getDatabaseImage(image.slice("/api/images/".length));
+      return stored ? stored.bytes : null;
+    }
+    const url = new URL(image);
+    if (url.protocol !== "https:" || !url.hostname.endsWith(".blob.vercel-storage.com")) return null;
+    const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The shoes whose cover photo has bars in it (owner, 2026-10-02). Only looks;
+ * changes nothing.
+ */
+export async function findFramedPhotosAction(): Promise<FramedPhoto[]> {
+  await requireAdminPermission("products:write");
+  const products = await getProducts({ includeDrafts: true });
+  const found: FramedPhoto[] = [];
+  for (const product of products) {
+    if (!product.image || product.image.startsWith("/images/")) continue;
+    const bytes = await storedPhotoBytes(product.image);
+    const frame = bytes ? await findReframe(bytes) : null;
+    if (frame) found.push({ productId: product.id, name: product.name, image: product.image, frame });
+  }
+  return found;
+}
+
+/**
+ * Mends one shoe's cover photo: the bars cut, the shoe framed 4:5. The new
+ * photo goes in as another photo and becomes the cover; the old one stays in
+ * the strip behind it, so the owner can put it back with one tap.
+ */
+export async function fixFramedPhotoAction(productId: string): Promise<PhotoActionState> {
+  await requireAdminPermission("products:write");
+  const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
+  if (!product) return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
+  if (product.gallery.length >= MAX_PHOTOS) {
+    return { ok: false, en: `${product.name} already has ${MAX_PHOTOS} photos — remove one first.`, ne: `${product.name} मा ${MAX_PHOTOS} फोटो भइसके — पहिले एउटा हटाउनुहोस्।` };
+  }
+  const bytes = await storedPhotoBytes(product.image);
+  const frame = bytes ? await findReframe(bytes) : null;
+  if (!bytes || !frame) return { ok: false, en: `${product.name} — nothing to mend in this photo.`, ne: `${product.name} — यो फोटोमा मिलाउनु पर्ने केही छैन।` };
+
+  let url: string;
+  try {
+    const fixed = await reframePhoto(bytes, frame);
+    if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+      const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "shoe";
+      url = (await put(`products/${slug}-framed.webp`, fixed, { access: "public", addRandomSuffix: true, contentType: "image/webp" })).url;
+    } else if (databaseImagesAvailable()) {
+      url = (await saveDatabaseImage({ bytes: fixed, contentType: "image/webp" })).url;
+    } else {
+      return { ok: false, en: "Photo storage is not set up here.", ne: "यहाँ फोटो राख्ने ठाउँ मिलाइएको छैन।" };
+    }
+  } catch (error) {
+    reportError(`mend the photo of product ${product.sku}`, error);
+    return { ok: false, en: `${product.name} — the photo was not mended.`, ne: `${product.name} — फोटो मिलेन।` };
+  }
+
+  try {
+    await upsertProduct({ ...product, image: url, gallery: [url, ...product.gallery.filter((item) => item !== url)] });
+  } catch (error) {
+    reportError(`save the mended photo of product ${product.sku}`, error);
+    return { ok: false, en: `${product.name} — the mended photo was not saved.`, ne: `${product.name} — मिलाएको फोटो सुरक्षित भएन।` };
+  }
+  await recordAdminAuditEvent(
+    "product_photo_reframed",
+    `Bars cut from the cover photo of ${product.sku} (${product.name}); framed 4:5 as a new cover, the old photo kept.`,
+  );
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/products/photos");
+  return { ok: true, en: `${product.name} — photo mended ✅ (the old one is kept)`, ne: `${product.name} — फोटो मिल्यो ✅ (पुरानो पनि राखिएको छ)` };
 }

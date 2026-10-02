@@ -12,6 +12,8 @@ import OfflineNotice from "@/components/OfflineNotice";
 import { getProducts } from "@/lib/product-store";
 import { getReservedPairsByProduct } from "@/lib/submissions";
 import { withAvailableStock } from "@/lib/order-stock";
+import { getFinishedStock } from "@/lib/operations";
+import { withSizeStock } from "@/lib/stock-by-size";
 import { reportError } from "@/lib/report-error";
 import { pwaMetadata, pwaViewport } from "@/lib/pwa";
 import { getSiteUrl, siteConfig } from "@/lib/seo";
@@ -182,8 +184,12 @@ const loadBuyableProducts = unstable_cache(async (): Promise<Product[]> => {
   try {
     // The database adds up the held pairs and sends back one short list —
     // not the latest thousand orders with every line of each.
-    const [catalog, reserved] = await Promise.all([getProducts(), getReservedPairsByProduct()]);
-    return withAvailableStock(catalog, reserved);
+    // The finished-stock rows tell the card's size sheet which sizes are on
+    // the shelf (owner, 2026-10-02). getFinishedStock answers an empty list on
+    // a failure, and an empty list leaves every size choosable — never a shoe
+    // made unbuyable by a stock hiccup.
+    const [catalog, reserved, finished] = await Promise.all([getProducts(), getReservedPairsByProduct(), getFinishedStock()]);
+    return withSizeStock(withAvailableStock(catalog, reserved), finished);
   } catch (error) {
     reportError("load catalog for the storefront layout", error);
     return [];

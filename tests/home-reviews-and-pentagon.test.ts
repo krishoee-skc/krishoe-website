@@ -24,9 +24,11 @@ describe("the home page's reviews", () => {
 });
 
 describe("shop by style", () => {
-  it("is a five-sided tile for every collection, coming soon included", async () => {
+  it("is a ten-sided stone for every collection, coming soon included", async () => {
+    // Five sides first; ten, gold over green, from the second compare (ख२).
     const source = await read("components/categories.tsx");
-    expect(source).toContain('const PENTAGON = "polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%)";');
+    expect(source).toContain("const DECAGON =");
+    expect(source).toContain("style={{ clipPath: DECAGON }}");
     expect(source).not.toContain("if (comingSoon) return null;");
     expect(source).not.toContain("rounded-full shadow-sm ring-2");
   });

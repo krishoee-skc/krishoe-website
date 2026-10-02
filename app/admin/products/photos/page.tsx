@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PhotoCard from "./PhotoCard";
+import FixFramedPhotos from "./FixFramedPhotos";
 import T from "@/components/T";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { getProducts } from "@/lib/product-store";
@@ -108,6 +109,8 @@ export default async function ProductPhotosPage() {
           />
         </p>
       ) : null}
+
+      <FixFramedPhotos />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {sorted.map((product) => (

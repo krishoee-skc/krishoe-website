@@ -131,6 +131,20 @@ export function hasSizeWiseStock(rows: FinishedStock[], design: string): boolean
 }
 
 /**
+ * Each shoe with its pairs per size, for the shop's size sheet (owner,
+ * 2026-10-02), on the same rule the product page uses to disable a size: only
+ * a shoe kept fully size by size gets it. Any other shoe is returned as it was,
+ * and all its sizes stay choosable.
+ */
+export function withSizeStock<T extends { name: string; sizes: string[] }>(products: T[], rows: FinishedStock[]): Array<T & { sizeStock?: Record<string, number> }> {
+  return products.map((product) => {
+    if (!isSizeTracked(rows, product.name)) return product;
+    const bySize = availableBySize(rows, product.name);
+    return { ...product, sizeStock: Object.fromEntries(product.sizes.map((size) => [size, bySize.get(size.trim()) ?? 0])) };
+  });
+}
+
+/**
  * Whether a design's stock is FULLY tracked by size — every available pair sits
  * under a real size, with no "Mixed"/range pile left over.
  *

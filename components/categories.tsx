@@ -42,8 +42,12 @@ const categories = [
 ];
 
 
-/** Five sides, point up, the base wider than the shoulders. */
-const PENTAGON = "polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%)";
+/**
+ * Ten sides, flat on top and bottom, like a cut stone (owner, 2026-10-02:
+ * "five lines to ten" — chosen from the compare as ख२).
+ */
+const DECAGON =
+  "polygon(65.5% 2.4%, 90.5% 20.6%, 100% 50%, 90.5% 79.4%, 65.5% 97.6%, 34.5% 97.6%, 9.5% 79.4%, 0% 50%, 9.5% 20.6%, 34.5% 2.4%)";
 
 /**
  * shoeCounts: shoes on sale in each collection, by slug. A collection with
@@ -80,32 +84,43 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
                   data-coming-soon={comingSoon || undefined}
                   className="group flex w-[5.75rem] flex-none snap-start flex-col items-center gap-2 text-center sm:w-32 lg:w-36"
                 >
-                  {/* The rim is the shape itself in green, the photo the same
-                      shape set 3px inside it; gold on hover. */}
-                  <span
-                    className={`relative block aspect-[1.05/1] w-full p-[3px] transition duration-300 group-hover:-translate-y-1 ${
-                      comingSoon ? "bg-brand-green-line" : "bg-brand-green group-hover:bg-brand-gold"
-                    }`}
-                    style={{ clipPath: PENTAGON }}
-                  >
-                    <span className="relative block h-full w-full overflow-hidden bg-brand-paper" style={{ clipPath: PENTAGON }}>
+                  {/* Two rims, each the shape itself: gold outside, a hair of
+                      paper, green inside, then the photo — and a light sheen
+                      across the top corner, like a cut stone. A collection
+                      still to come has both rims faded. */}
+                  <span className="relative block aspect-square w-full transition duration-300 group-hover:-translate-y-1">
+                    <span className={`absolute inset-0 ${comingSoon ? "bg-brand-green-line" : "bg-brand-gold"}`} style={{ clipPath: DECAGON }} />
+                    <span className="absolute inset-[3px] bg-brand-paper" style={{ clipPath: DECAGON }} />
+                    <span className={`absolute inset-[5px] transition ${comingSoon ? "bg-brand-green-line" : "bg-brand-green group-hover:bg-brand-gold"}`} style={{ clipPath: DECAGON }} />
+                    <span className="absolute inset-[8px] overflow-hidden bg-brand-paper" style={{ clipPath: DECAGON }}>
+                      {/* The collection photos carry their name on a band
+                          along the bottom; drawn larger from the top, the
+                          band falls outside the stone and the name is said
+                          once, underneath. */}
                       <Image
                         src={item.image}
                         alt={item.title}
                         fill
                         sizes="(min-width: 1024px) 144px, (min-width: 640px) 128px, 92px"
-                        className={`object-cover transition duration-500 group-hover:scale-110 ${comingSoon ? "opacity-75 saturate-[.35]" : ""}`}
+                        className={`origin-[50%_8%] scale-[1.38] object-cover transition duration-500 group-hover:scale-[1.48] ${comingSoon ? "opacity-75 saturate-[.35]" : ""}`}
                       />
+                      <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.5)_0%,rgba(255,255,255,0)_38%,rgba(255,255,255,0)_62%,rgba(255,255,255,0.16)_100%)]" />
                     </span>
+                    {/* How many shoes, on a small stone of its own. */}
+                    {!comingSoon && count > 0 ? (
+                      <span className="absolute right-0 top-0 grid h-6 min-w-6 place-items-center rounded-full bg-brand-green-ink px-1.5 text-[11px] font-extrabold text-white shadow-md sm:right-1 sm:top-1">
+                        {count}
+                        <span className="sr-only">
+                          {" "}
+                          <T en={`style${count === 1 ? "" : "s"}`} ne="किसिम" />
+                        </span>
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-[13px] font-semibold leading-tight text-brand-green-ink sm:text-sm">{item.title}</span>
                   {comingSoon ? (
-                    <span className="-mt-1 rounded-full border border-brand-gold/50 bg-brand-cream-soft px-2 py-0.5 text-[11px] font-bold leading-tight text-brand-gold-ink">
+                    <span className="-mt-1 whitespace-nowrap rounded-full border border-brand-gold/50 bg-brand-cream-soft px-1.5 py-0.5 text-[10px] font-bold leading-tight text-brand-gold-ink sm:px-2 sm:text-[11px]">
                       <T en="Coming soon" ne="छिट्टै आउँदैछ" />
-                    </span>
-                  ) : count > 0 ? (
-                    <span className="-mt-1 text-xs font-bold text-brand-green">
-                      <T en={`${count} style${count === 1 ? "" : "s"}`} ne={`${count} किसिम`} />
                     </span>
                   ) : null}
                 </Link>

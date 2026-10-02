@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { Product } from "@/lib/products";
 import { HeartIcon, ShoppingBagIcon, WhatsAppIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { trackCommerceEvent } from "@/lib/analytics-events";
 import { whatsappOrderUrl } from "@/lib/commerce";
+import SizeSheet, { AddedToast, addedLine } from "@/components/SizeSheet";
 
 import { useLanguage } from "@/components/LanguageProvider";
 type ProductCardActionsProps = {
@@ -45,8 +46,26 @@ export default function ProductCardActions({ product, compact = false }: Product
   const wished = isWishlisted(product.id);
   const outOfStock = stockLevel(product.stock) === "out";
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [toast, setToast] = useState<{ en: string; ne: string } | null>(null);
+  const clearToast = useCallback(() => setToast(null), []);
+
+  function showAdded(sizes: string[]) {
+    setToast(addedLine(product.name, sizes));
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1400);
+  }
+
+  // The bag asks for the size (owner, 2026-10-02). It used to put the first
+  // size in without asking, so a shopper after a 38 got a 36. Only a shoe
+  // with one size and one colour has nothing to ask, and goes straight in.
   function addDefaultItem() {
     if (outOfStock) {
+      return;
+    }
+
+    if (product.sizes.length > 1 || product.colors.length > 1) {
+      setSheetOpen(true);
       return;
     }
 
@@ -61,9 +80,17 @@ export default function ProductCardActions({ product, compact = false }: Product
       name: product.name,
       pricePaisa: product.priceValue,
     });
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1400);
+    showAdded(product.sizes[0] ? [product.sizes[0]] : []);
   }
+
+  // The sheet and the line saying what went in, beside whichever button opened them.
+  const sheet = (
+    <>
+      {/* Drawn only while open: a shop page holds a card per shoe. */}
+      {sheetOpen ? <SizeSheet product={product} open onClose={() => setSheetOpen(false)} onAdded={showAdded} /> : null}
+      <AddedToast message={toast} onDone={clearToast} />
+    </>
+  );
 
   if (compact) {
     return outOfStock ? (
@@ -86,9 +113,11 @@ export default function ProductCardActions({ product, compact = false }: Product
         <span className="hidden sm:inline">{text("Notify me", "आएपछि भन्ने")}</span>
       </a>
     ) : (
+      <>
       <button
         type="button"
         onClick={addDefaultItem}
+        aria-haspopup="dialog"
         aria-label={added ? text("Added ✓", "थपियो ✓") : text(`Add ${product.name} to the cart`, `${product.name} कार्टमा थप्ने`)}
         className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition active:scale-95 sm:px-3 ${
           added ? "bg-brand-gold-bright text-brand-green-ink" : "bg-brand-green-ink text-white hover:bg-brand-green"
@@ -97,6 +126,8 @@ export default function ProductCardActions({ product, compact = false }: Product
         {added ? <span aria-hidden="true">✓</span> : <ShoppingBagIcon className="h-4 w-4" />}
         <span className="hidden sm:inline">{added ? text("Added ✓", "थपियो ✓") : text("Add", "थप्ने")}</span>
       </button>
+      {sheet}
+      </>
     );
   }
 
@@ -171,6 +202,7 @@ export default function ProductCardActions({ product, compact = false }: Product
         </span>
       </button>
       )}
+      {sheet}
     </div>
   );
 }

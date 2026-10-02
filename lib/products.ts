@@ -65,6 +65,12 @@ export type Product = {
   colors: string[];
   sizes: string[];
   stock: number;
+  /**
+   * Pairs on the shelf in each size, only when the shoe's stock is kept size by
+   * size (see lib/stock-by-size.ts isSizeTracked). Absent means "not known by
+   * size" and every size stays choosable.
+   */
+  sizeStock?: Record<string, number>;
   highlights: string[];
   care: string[];
   reviews: Review[];

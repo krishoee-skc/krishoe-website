@@ -6,6 +6,8 @@ import { formatPrice } from "@/lib/products";
 import { describeStockShortfalls } from "@/lib/order-stock";
 import { MinusIcon, PlusIcon, TrashIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
+import { sizeChoices } from "@/components/SizeSheet";
+import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -15,8 +17,15 @@ import { useLanguage } from "@/components/LanguageProvider";
  */
 export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: number }) {
   const { text } = useLanguage();
-  const { cartItems, subtotal, subtotalLabel, removeFromCart, updateQuantity, stockShortfalls, canCheckout } =
+  const { cartItems, subtotal, subtotalLabel, removeFromCart, updateQuantity, changeSize, products, stockShortfalls, canCheckout } =
     useCommerce();
+  // Which line just had its size changed, and to what — said under it for a moment.
+  const [moved, setMoved] = useState<{ productId: string; color: string; size: string } | null>(null);
+  function moveSize(key: string, productId: string, color: string, size: string) {
+    changeSize(key, size);
+    setMoved({ productId, color, size });
+    window.setTimeout(() => setMoved((current) => (current?.size === size && current.productId === productId ? null : current)), 2500);
+  }
   const toFree = freeOverPaisa > 0 ? Math.max(0, freeOverPaisa - subtotal) : 0;
   const freeShare = freeOverPaisa > 0 ? Math.min(100, Math.round((subtotal / freeOverPaisa) * 100)) : 0;
   const shortfallByProductId = new Map(
@@ -62,9 +71,45 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
                   <Link href={`/product/${item.productId}`}>
                     <h2 className="text-xl font-black text-brand-green-ink hover:text-brand-green">{item.name}</h2>
                   </Link>
-                  <p className="mt-2 text-sm text-brand-muted">
-                    {text("Size", "साइज")} {item.size} / {item.color}
-                  </p>
+                  {/* The size can be changed right here (owner, 2026-10-02): a
+                      pair added in the wrong size used to mean removing it and
+                      finding the shoe again. A size the shelf has none of is
+                      not offered, unless it is the one already chosen. */}
+                  {(() => {
+                    const product = products.find((entry) => entry.id === item.productId);
+                    const options = product ? sizeChoices(product).filter((choice) => !choice.soldOut || choice.size === item.size) : [];
+                    return (
+                      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-brand-muted">
+                        {options.length > 1 ? (
+                          <label className="inline-flex items-center gap-2">
+                            {text("Size", "साइज")}
+                            <select
+                              value={item.size}
+                              onChange={(event) => moveSize(item.key, item.productId, item.color, event.target.value)}
+                              aria-label={text(`Size of ${item.name}`, `${item.name} को साइज`)}
+                              className="h-10 rounded-xl border-[1.5px] border-brand-green-ink bg-brand-paper px-2 text-base font-bold text-brand-green-ink"
+                            >
+                              {options.map((choice) => (
+                                <option key={choice.size} value={choice.size}>
+                                  {choice.size}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : (
+                          <span>
+                            {text("Size", "साइज")} {item.size}
+                          </span>
+                        )}
+                        <span>/ {item.color}</span>
+                        {moved && moved.productId === item.productId && moved.color === item.color && moved.size === item.size ? (
+                          <span role="status" className="font-bold text-brand-green">
+                            {text(`Size changed to ${item.size}`, `साइज ${item.size} मा फेरियो`)}
+                          </span>
+                        ) : null}
+                      </p>
+                    );
+                  })()}
                   {shortfallByProductId.has(item.productId) ? (
                     <p className="mt-2 text-sm font-semibold text-brand-clay">
                       {item.available === 0
