@@ -19,6 +19,8 @@ const GROUP_BY_CATEGORY: Record<string, number> = {
   "mens-collection": 1,
   "ladies-sandals": 2,
   "party-heels": 2,
+  "ladies-close-shoes": 2,
+  "ladies-shoes": 2,
   "ladies-slippers": 3,
   "kids-collection": 4,
 };

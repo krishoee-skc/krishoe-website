@@ -139,6 +139,9 @@ export function guessKind(name: string): string | null {
   if (has(/chappal|chapal|chhapal|slipp?ers?/)) {
     return has(/gents|\bmens?\b|men's/) ? "mens-collection" : "ladies-slippers";
   }
+  // A lady's closed shoe, or her shoe, before her sandal (owner, 2026-10-02).
+  if (has(/ladies|lady/) && has(/\bclosed?\b/)) return "ladies-close-shoes";
+  if (has(/ladies|lady/) && has(/\bshoes?\b|\bshose\b/)) return "ladies-shoes";
   if (has(/ladies|lady|sandal|sandel|flat|putali|hill/)) return "ladies-sandals";
   if (has(/casual|sneaker|sports?/)) return "casual-shoes";
   if (has(/gents|\bmens?\b|men's|jeans|shoe|shose/)) return "mens-collection";

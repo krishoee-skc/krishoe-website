@@ -128,13 +128,13 @@ describe("the frame the owner asked for", () => {
 });
 
 describe("shorter, without losing anything", () => {
-  it("still offers every one of the twenty links", async () => {
+  it("still offers every one of the links", async () => {
     const footer = await readFile(FOOTER, "utf8");
 
     const shop = footer.slice(footer.indexOf("const shopLinks"), footer.indexOf("const companyLinks"));
     const company = footer.slice(footer.indexOf("const companyLinks"), footer.indexOf("const GOLD_GROUND"));
 
-    expect(shop.match(/href:/g)?.length, "a Shop link was dropped").toBe(7);
+    expect(shop.match(/href:/g)?.length, "a Shop link was dropped").toBe(9); // Ladies Close Shoes and Ladies Shoes joined on 2026-10-02
     expect(company.match(/href:/g)?.length, "a Company link was dropped").toBe(8);
 
     // Both lists must actually be rendered — keeping the data but not drawing

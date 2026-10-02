@@ -8,6 +8,8 @@
 export const categoryNepali: Record<string, string> = {
   "ladies-sandals": "लेडिज स्यान्डल",
   "ladies-slippers": "लेडिज चप्पल",
+  "ladies-close-shoes": "महिलाको बन्द जुत्ता",
+  "ladies-shoes": "महिलाको जुत्ता",
   "casual-shoes": "क्याजुअल जुत्ता",
   "party-heels": "पार्टी हिल",
   "mens-collection": "पुरुषका जुत्ता",

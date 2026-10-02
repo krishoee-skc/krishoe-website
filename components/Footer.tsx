@@ -39,6 +39,8 @@ import T from "@/components/T";
 const shopLinks = [
   { href: "/shop/ladies-sandals", en: "Ladies Sandals", ne: "महिला सेन्डिल" },
   { href: "/shop/ladies-slippers", en: "Ladies Slippers", ne: "महिला चप्पल" },
+  { href: "/shop/ladies-close-shoes", en: "Ladies Close Shoes", ne: "महिलाको बन्द जुत्ता" },
+  { href: "/shop/ladies-shoes", en: "Ladies Shoes", ne: "महिलाको जुत्ता" },
   { href: "/shop/casual-shoes", en: "Casual Shoes", ne: "दैनिक जुत्ता" },
   { href: "/shop/party-heels", en: "Party Heels", ne: "पार्टी हिल" },
   { href: "/shop/mens-collection", en: "Men's Collection", ne: "पुरुष कलेक्शन" },

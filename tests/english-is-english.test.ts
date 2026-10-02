@@ -175,8 +175,8 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all. The fourth is the Nepali page's product title (2026-10-01).",
   },
   "lib/nepali-pages.ts": {
-    lines: 13,
-    why: "The titles and descriptions of the Nepali pages under /ne — Nepali by purpose, each the twin of an English page that carries the English (2026-10-01).",
+    lines: 15,
+    why: "The titles and descriptions of the Nepali pages under /ne — Nepali by purpose, each the twin of an English page that carries the English (2026-10-01). Two more for Ladies Close Shoes and Ladies Shoes (2026-10-02).",
   },
   "app/admin/owner-summary-action.ts": {
     lines: 5,
@@ -266,7 +266,8 @@ const STILL_OWED: Record<string, number> = {
   "lib/period-report.ts": 12,
   "lib/pos.ts": 2,
   "lib/push-notifications.ts": 1,
-  "lib/search-words.ts": 13,
+  // +2: the Nepali search words of Ladies Close Shoes and Ladies Shoes (2026-10-02).
+  "lib/search-words.ts": 15,
   "lib/sms-gateway.ts": 30,
   "lib/whatsapp-gateway.ts": 3,
   "lib/worker-auth.ts": 2,

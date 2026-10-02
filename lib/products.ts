@@ -109,6 +109,21 @@ export const categories: Category[] = [
     image: "/images/products/ladies-slippers.jpg",
     description: "Lightweight comfort for daily movement.",
   },
+  // Two of the shop's own kinds (owner, 2026-10-02): closed shoes for women
+  // had no shelf of their own — close shoe chinies# 233 sat under Ladies
+  // Sandals. Stand-in pictures until the shop's own photos come.
+  {
+    title: "Ladies Close Shoes",
+    slug: "ladies-close-shoes",
+    image: "/images/products/ph-ladies-closed-shoes.svg",
+    description: "Closed shoes for women — toes and heel covered, for work and every day.",
+  },
+  {
+    title: "Ladies Shoes",
+    slug: "ladies-shoes",
+    image: "/images/products/new-arrivals.jpg",
+    description: "Women's shoes — canvas, sports and flats.",
+  },
   {
     title: "Casual Shoes",
     slug: "casual-shoes",

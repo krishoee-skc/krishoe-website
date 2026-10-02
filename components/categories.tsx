@@ -15,6 +15,16 @@ const categories = [
     image: "/images/products/ladies-slippers.jpg",
   },
   {
+    title: "Ladies Close Shoes",
+    slug: "ladies-close-shoes",
+    image: "/images/products/ph-ladies-closed-shoes.svg",
+  },
+  {
+    title: "Ladies Shoes",
+    slug: "ladies-shoes",
+    image: "/images/products/new-arrivals.jpg",
+  },
+  {
     title: "Casual Shoes",
     slug: "casual-shoes",
     image: "/images/products/casual-shoes.jpg",
