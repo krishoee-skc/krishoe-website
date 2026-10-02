@@ -48,7 +48,9 @@ describe("few, true words", () => {
   });
 
   it("says coming soon once, and hides tabs that would show the same shoes", async () => {
-    expect(await read("components/categories.tsx")).toContain("data-coming-soon-line");
+    // Since 2026-10-02 each coming-soon collection is its own faded tile with
+    // the tag, in the sliding row, instead of one line of names.
+    expect(await read("components/categories.tsx")).toContain("data-coming-soon={comingSoon || undefined}");
     expect(await read("components/BestSellerTabs.tsx")).toContain("const sameShelf =");
   });
 });

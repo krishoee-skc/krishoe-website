@@ -1,11 +1,14 @@
 import Link from "next/link";
 import AutoScrollRow from "@/components/AutoScrollRow";
+import ReviewFilter, { type ReviewChip } from "@/components/ReviewFilter";
 import T from "@/components/T";
 import { StoreIcon } from "@/components/Icons";
 import type { Product, Review } from "@/lib/products";
 import { initialOf, wallReviews, wallShoes, wallSummary, type ShopReview } from "@/lib/review-wall";
 
-const MAX_ON_HOME = 6;
+// Twelve, not six, now that the shoe buttons sort them: a button for a shoe
+// whose reviews were cut off would show nothing.
+const MAX_ON_HOME = 12;
 
 /**
  * What customers actually said.
@@ -116,6 +119,14 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
   }
 
   const shoeCount = wallShoes(wall).shoes.length;
+  // The buttons count what is on this page, so a number never promises cards
+  // that were left off.
+  const onHome = wallShoes(reviews);
+  const chips: ReviewChip[] = [
+    { key: "all", en: `All ${reviews.length}`, ne: `सबै ${reviews.length}` },
+    ...onHome.shoes.map(({ shoe, count }) => ({ key: shoe.id, en: `${shoe.name} ${count}`, ne: `${shoe.name} ${count}` })),
+    ...(onHome.shop > 0 ? [{ key: "shop", en: `The shop ${onHome.shop}`, ne: `पसल ${onHome.shop}` }] : []),
+  ];
   return (
     <section className="bg-brand-paper py-10 md:py-20" data-review-wall>
       <div className="mx-auto max-w-7xl px-5 md:px-6">
@@ -123,25 +134,44 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
           <T en="What our customers say" ne="ग्राहकहरूले के भन्नुहुन्छ" />
         </h2>
 
+        {/* The reviews page's own box (owner, 2026-10-02): the real average,
+            and how the stars fall, from the same reviews as the cards. Side by
+            side even on a phone, so it stays one short block. */}
         {summary ? (
-          <div className="mx-auto mt-5 flex w-fit max-w-full flex-wrap items-center justify-center gap-3 rounded-full border border-brand-green-line bg-brand-mist px-5 py-3 shadow-sm">
-            <span className="font-display text-3xl font-black leading-none text-brand-green">{summary.average.toFixed(1)}</span>
-            <span className="text-xl tracking-[0.15em] text-brand-gold" aria-hidden>
-              {"★".repeat(Math.round(summary.average))}
-              {"☆".repeat(5 - Math.round(summary.average))}
-            </span>
-            <span className="text-base font-bold text-brand-green-ink">
-              <T en={`from ${summary.count} customers`} ne={`${summary.count} ग्राहकको राय`} />
-            </span>
+          <div className="mx-auto mt-5 grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-brand-green-line bg-brand-mist p-4 shadow-sm sm:gap-7 sm:p-6">
+            <div className="text-center">
+              <p className="font-display text-4xl font-black leading-none text-brand-green sm:text-5xl">{summary.average.toFixed(1)}</p>
+              <p className="mt-1 text-sm tracking-[0.12em] text-brand-gold sm:text-xl" aria-hidden>
+                {"★".repeat(Math.round(summary.average))}
+                {"☆".repeat(5 - Math.round(summary.average))}
+              </p>
+              <p className="mt-0.5 text-xs text-brand-muted sm:text-base">
+                <T en={`${summary.count} reviews`} ne={`${summary.count} राय`} />
+              </p>
+            </div>
+            <div className="grid gap-1 sm:gap-1.5">
+              {summary.distribution.map((row) => (
+                <div key={row.star} className="flex items-center gap-2 text-xs text-brand-muted sm:gap-3 sm:text-sm">
+                  <span className="w-6 tabular-nums sm:w-8">{row.star}★</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-brand-green-line sm:h-2.5">
+                    <span className="block h-full rounded-full bg-brand-gold" style={{ width: `${(row.count / summary.count) * 100}%` }} />
+                  </span>
+                  <span className="w-5 text-right tabular-nums sm:w-8">{row.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 
-        {/* A row to swipe on a phone, a grid on a computer. */}
-        <AutoScrollRow className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-3 md:overflow-visible">
+        {/* One row that moves on every screen; the shoe buttons above it keep
+            only that shoe's reviews in it. */}
+        <ReviewFilter chips={chips}>
+        <AutoScrollRow className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {reviews.map((review) => (
             <article
               key={review.id}
-              className="flex w-[82%] shrink-0 snap-start flex-col gap-3 rounded-2xl border border-brand-green-line bg-brand-mist p-5 shadow-sm sm:w-[46%] md:w-auto"
+              data-review-shoe={review.shoe?.id ?? "shop"}
+              className="flex w-[82%] shrink-0 snap-start flex-col gap-3 rounded-2xl border border-brand-green-line bg-brand-mist p-5 shadow-sm sm:w-[46%] md:w-[31.5%] lg:w-[23.5%]"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-lg tracking-[0.12em] text-brand-gold" aria-label={`${review.rating} / 5`}>
@@ -183,6 +213,7 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
             </article>
           ))}
         </AutoScrollRow>
+        </ReviewFilter>
 
         {/* The doors, directly under the reviews — where a reader just
             persuaded by other customers is most likely to add their own. */}
