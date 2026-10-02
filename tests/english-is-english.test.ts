@@ -174,6 +174,10 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 4,
     why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all. The fourth is the Nepali page's product title (2026-10-01).",
   },
+  "lib/worker-join.ts": {
+    lines: 9,
+    why: "The WhatsApp message a factory worker is sent with their sign-in code — Nepali by purpose, read by the worker on their own phone — and the password refusals shown to a worker, each already carrying its English half before the Nepali (2026-10-02).",
+  },
   "lib/nepali-pages.ts": {
     lines: 19,
     why: "The titles and descriptions of the Nepali pages under /ne — Nepali by purpose, each the twin of an English page that carries the English (2026-10-01). Two more for Ladies Close Shoes and Ladies Shoes (2026-10-02).",

@@ -13,6 +13,7 @@ import {
 } from "@/lib/factory-worker-options";
 // One shape for a person on the books, defined where they are read.
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
+import WorkerAppPanel, { type WorkerApp } from "./WorkerAppPanel";
 
 const categories = FACTORY_WORKER_CATEGORIES;
 
@@ -25,7 +26,11 @@ const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg
  * screen that can bring someone back. After adding or correcting someone it
  * reloads through the API, which reads the very same query.
  */
-export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] }) {
+/**
+ * apps: each worker's app account, by worker id, when the reader may manage
+ * accounts (Owner and Admin); null hides the app row for everyone else.
+ */
+export default function TeamList({ initialWorkers, apps = null }: { initialWorkers: Worker[]; apps?: Record<string, WorkerApp> | null }) {
   const { text, language } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
   const [edits, setEdits] = useState<Record<string, { name: string; category: string; worker_type: string }>>({});
@@ -348,6 +353,10 @@ export default function TeamList({ initialWorkers }: { initialWorkers: Worker[] 
                     )
                   : text("Make active again", "फेरि चालु गर्ने")}
             </button>
+
+            {apps && worker.status === "active" ? (
+              <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} />
+            ) : null}
 
             <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
               <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>

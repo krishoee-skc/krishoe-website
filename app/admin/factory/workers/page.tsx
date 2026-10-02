@@ -5,6 +5,11 @@ import { getFactoryWorkers } from "@/lib/factory-board-data";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import type { FactoryWorker } from "@/lib/factory-board";
+import { getAdminSession } from "@/lib/admin-auth";
+import { canAdmin, getSessionAdminRole } from "@/lib/admin-role-permissions";
+import { getAdminSettings } from "@/lib/admin-settings";
+import { formatStaffPhone } from "@/lib/staff-phone";
+import type { WorkerApp } from "./WorkerAppPanel";
 
 export const metadata: Metadata = {
   title: "Team | KRISHOE Admin",
@@ -36,5 +41,26 @@ export default async function FactoryWorkersPage() {
     );
   }
 
-  return <TeamList initialWorkers={loaded.workers} />;
+  return <TeamList initialWorkers={loaded.workers} apps={await loadWorkerApps()} />;
+}
+
+/**
+ * Which workers already have the app (owner, 2026-10-02) — only for a reader
+ * who may make and reset accounts; for anyone else the row is left out rather
+ * than shown with buttons that would be refused.
+ */
+async function loadWorkerApps(): Promise<Record<string, WorkerApp> | null> {
+  const session = await getAdminSession();
+  if (!session || !canAdmin(getSessionAdminRole(session), "settings:write")) return null;
+  try {
+    const { staff } = await getAdminSettings();
+    const apps: Record<string, WorkerApp> = {};
+    for (const member of staff) {
+      if (member.factoryWorkerId) apps[member.factoryWorkerId] = { phone: formatStaffPhone(member.phone), status: member.status };
+    }
+    return apps;
+  } catch (error) {
+    reportError("load the workers' app accounts", error);
+    return null;
+  }
 }

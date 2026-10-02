@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { WORKER_PASSWORD_MIN } from "@/lib/worker-join";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import path from "path";
@@ -899,7 +900,10 @@ async function staffRecordFromInput(
   // floor, so twelve characters is the wrong bar — it would be written on a
   // wall to be remembered. It is short, and it cannot survive the first
   // sign-in.
-  const minimumPasswordLength = input.temporaryPassword ? 8 : 12;
+  // A Worker's own password may be eight too (owner, 2026-10-02 — see
+  // lib/worker-join.ts); every other role keeps twelve.
+  const isWorker = (input.role ?? existing?.role) === "Worker";
+  const minimumPasswordLength = input.temporaryPassword || isWorker ? 8 : 12;
 
   if (!existing && status !== "Invited" && password.length < minimumPasswordLength) {
     throw new Error(`New staff password must be at least ${minimumPasswordLength} characters.`);
@@ -1447,8 +1451,9 @@ export async function updateAdminStaffPassword(
   const staff = await getStaffById(staffId);
 
   if (!staff) throw new Error("Staff account not found.");
-  if (password.trim().length < 12) {
-    throw new Error("New password must be at least 12 characters.");
+  const minimum = staff.role === "Worker" ? WORKER_PASSWORD_MIN : 12;
+  if (password.trim().length < minimum) {
+    throw new Error(`New password must be at least ${minimum} characters.`);
   }
 
   return saveAdminStaffAccount({

@@ -286,7 +286,8 @@ export function AdminSetPasswordForm({
   );
 }
 
-export function AdminChangePasswordForm() {
+export function AdminChangePasswordForm({ minLength = 12, worker = false }: { minLength?: number; worker?: boolean } = {}) {
+  const { text } = useLanguage();
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
@@ -306,16 +307,16 @@ export function AdminChangePasswordForm() {
   return (
     <form onSubmit={submit} className="grid gap-4">
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Current temporary password
+        {worker ? text("The code you were sent", "सुरुको कोड") : "Current temporary password"}
         <input name="currentPassword" type="password" autoComplete="current-password" required className={inputClass} />
       </label>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        New password
+        {worker ? text(`Your new password (at least ${minLength} characters)`, `आफ्नो नयाँ password (कम्तीमा ${minLength} अक्षर)`) : "New password"}
         <input
           name="password"
           type={visible ? "text" : "password"}
           autoComplete="new-password"
-          minLength={12}
+          minLength={minLength}
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -329,15 +330,17 @@ export function AdminChangePasswordForm() {
         <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
       </div>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Confirm new password
-        <input name="confirmPassword" type={visible ? "text" : "password"} autoComplete="new-password" minLength={12} required className={inputClass} />
+        {worker ? text("Type it again", "फेरि लेख्नुहोस्") : "Confirm new password"}
+        <input name="confirmPassword" type={visible ? "text" : "password"} autoComplete="new-password" minLength={minLength} required className={inputClass} />
       </label>
       <label className="flex min-h-11 items-center gap-2 text-sm font-bold text-brand-muted-deep">
         <input type="checkbox" checked={visible} onChange={(event) => setVisible(event.target.checked)} className="h-4 w-4 accent-brand-green" />
-        Show new password
+        {worker ? text("👁 Show password", "👁 Password देखाउने") : "Show new password"}
       </label>
       <button disabled={pending || state.ok} className="min-h-12 rounded-xl bg-brand-maroon px-5 font-black text-white disabled:opacity-60">
-        {pending ? "Changing password..." : "Change password and continue"}
+        {pending
+          ? worker ? text("Saving…", "बचत गर्दै…") : "Changing password..."
+          : worker ? text("Save the password and go in", "Password बचत गरेर भित्र जाने") : "Change password and continue"}
       </button>
       <ResultMessage state={state} />
     </form>

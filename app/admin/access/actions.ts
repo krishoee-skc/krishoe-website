@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { workerPasswordProblem } from "@/lib/worker-join";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import {
   getAdminSession,
@@ -158,10 +159,11 @@ export async function requestAdminPasswordResetAction(
   return { ok: true, message: genericMessage };
 }
 
-async function validateNewPassword(formData: FormData) {
+async function validateNewPassword(formData: FormData, worker?: { phone: string }) {
   const password = textValue(formData, "password");
   const confirmPassword = textValue(formData, "confirmPassword");
-  const policyMessage = adminPasswordPolicyMessage(password);
+  // A worker's own password: eight characters, not their number (lib/worker-join.ts).
+  const policyMessage = worker ? workerPasswordProblem(password, worker.phone) : adminPasswordPolicyMessage(password);
   if (policyMessage) return { error: policyMessage, password: "" };
   if (password !== confirmPassword) {
     return { error: "New password and confirmation do not match.", password: "" };
@@ -359,7 +361,7 @@ export async function changeRequiredAdminPasswordAction(
   if (!verified || verified.id !== session.staffId) {
     return { ok: false, message: "Current password is incorrect." };
   }
-  const passwordResult = await validateNewPassword(formData);
+  const passwordResult = await validateNewPassword(formData, account?.role === "Worker" ? { phone: account.phone ?? "" } : undefined);
   if (passwordResult.error) return { ok: false, message: passwordResult.error };
   if (currentPassword === passwordResult.password) {
     return { ok: false, message: "New password must be different from the current password." };
