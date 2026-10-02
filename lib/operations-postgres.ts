@@ -985,6 +985,25 @@ async function findOrCreateFinishedStock(
   return finishedStockFromRow(createdRows[0]);
 }
 
+/**
+ * After a cancelled test bill's pairs are put back (lib/pos-void.ts): the
+ * put-back went in as a Return In, which counted the pairs as returned. They
+ * were never sold either, so take them off both counts. The pairs on the shelf
+ * are not touched. Same row the put-back landed on — the same lookup.
+ */
+export async function undoCancelledSaleCounts(
+  db: PostgresExecutor,
+  movement: Pick<StockMovement, "design" | "channel" | "sizeRun" | "pairs">,
+) {
+  const stock = await findOrCreateFinishedStock(db, movement);
+  const pairs = Math.max(0, Number(movement.pairs) || 0);
+  await updateFinishedStockTotals(db, {
+    ...stock,
+    soldPairs: Math.max(0, stock.soldPairs - pairs),
+    returnedPairs: Math.max(0, stock.returnedPairs - pairs),
+  });
+}
+
 async function updateFinishedStockTotals(db: PostgresExecutor, stock: FinishedStock) {
   await db.query<FinishedStockRow>(
     `

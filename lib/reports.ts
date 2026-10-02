@@ -277,9 +277,13 @@ async function countEverything(window: PeriodWindow): Promise<Counts & Figures> 
        (SELECT count(*) FROM factory_daily_work
          WHERE status <> 'reversed' AND ${withinDate("date", "$1", "$2")})::int AS factory_entries,
        (SELECT coalesce(sum(pairs), 0) FROM stock_movements
-         WHERE type IN ('Production In', 'Purchase In', 'Return In') AND ${within("created_at", "$1", "$2")})::int AS stock_in,
+         WHERE type IN ('Production In', 'Purchase In', 'Return In') AND NOT (type = 'Return In' AND note LIKE '% cancelled — test bill')
+           AND ${within("created_at", "$1", "$2")})::int AS stock_in,
        (SELECT coalesce(sum(pairs), 0) FROM stock_movements
-         WHERE type IN ('Sale Out', 'Market Sale', 'Dispatch Out', 'Damage Out') AND ${within("created_at", "$1", "$2")})::int AS stock_out,
+         WHERE type IN ('Sale Out', 'Market Sale', 'Dispatch Out', 'Damage Out')
+           AND NOT (type = 'Sale Out' AND split_part(note, ' ', 1) IN (
+             SELECT split_part(note, ' ', 1) FROM stock_movements WHERE type = 'Return In' AND note LIKE '% cancelled — test bill' LIMIT 500))
+           AND ${within("created_at", "$1", "$2")})::int AS stock_out,
        (SELECT count(*) FROM orders WHERE ${within("created_at", "$1", "$2")})::int AS period_orders,
        (SELECT coalesce(sum(total_paisa), 0) / 100.0 FROM orders WHERE ${within("created_at", "$1", "$2")})::float AS period_order_total,
        (SELECT count(*) FROM monitoring_performance

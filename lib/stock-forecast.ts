@@ -1,4 +1,5 @@
 import type { StockMovement } from "@/lib/operations";
+import { withoutCancelledBills } from "@/lib/cancelled-bills";
 import type { Said } from "@/lib/words";
 
 /**
@@ -68,7 +69,8 @@ export function outlookForDesign(
   movements: StockMovement[],
   now = new Date(),
 ): StockOutlook {
-  const sales = movements
+  // A cancelled test bill sold nothing (lib/cancelled-bills.ts).
+  const sales = withoutCancelledBills(movements)
     .filter((movement) => designKey(movement.design) === designKey(design))
     .filter((movement) => movement.type === "Sale Out" && movement.pairs > 0);
 

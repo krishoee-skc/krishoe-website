@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { withoutCancelledBills } from "@/lib/cancelled-bills";
 import { cacheBriefly } from "@/lib/brief-cache";
 import {
   applyLedgerTransactionToBalances,
@@ -1660,7 +1661,11 @@ export async function getOperationsSnapshot() {
     totalDue: 0,
   };
 
-  for (const movement of data.stockMovements) {
+  // A cancelled test bill's sale and its put-back leave the selling figures
+  // together (lib/cancelled-bills.ts); the movement list keeps them.
+  const countedMovements = withoutCancelledBills(data.stockMovements);
+
+  for (const movement of countedMovements) {
     stockMovementTotals[movement.type] += movement.pairs;
     const key = `${movement.design.toLowerCase()}::${movement.channel}`;
     const group =
@@ -1898,7 +1903,7 @@ export async function getOperationsSnapshot() {
   };
   const stockLedgerRows = stockByShoe
     .map((stock) => {
-      const movements = data.stockMovements.filter((movement) => stockKey(movement) === stockKey(stock));
+      const movements = countedMovements.filter((movement) => stockKey(movement) === stockKey(stock));
       const movementTotals = emptyStockMovementTotals();
 
       for (const movement of movements) {

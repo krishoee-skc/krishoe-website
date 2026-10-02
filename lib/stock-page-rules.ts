@@ -1,4 +1,5 @@
 import type { StockMovement } from "@/lib/operations";
+import { cancelledBillOf } from "@/lib/cancelled-bills";
 
 /**
  * The stock page's wording and arithmetic, kept pure so the page and its tests
@@ -6,7 +7,7 @@ import type { StockMovement } from "@/lib/operations";
  */
 
 /** A movement's kind on the page: its type, or "Counter In" for goods added from the counter bill. */
-export type MovementKind = StockMovement["type"] | "Counter In";
+export type MovementKind = StockMovement["type"] | "Counter In" | "Bill Cancelled";
 
 /**
  * Goods put on the books from the counter bill as "already on the shelf" are
@@ -15,6 +16,8 @@ export type MovementKind = StockMovement["type"] | "Counter In";
  */
 export function movementKind(movement: Pick<StockMovement, "type" | "note">): MovementKind {
   if (movement.type === "Adjustment" && /from the counter bill/i.test(movement.note ?? "")) return "Counter In";
+  // Pairs put back by cancelling a test bill are not a customer's return.
+  if (cancelledBillOf(movement)) return "Bill Cancelled";
   return movement.type;
 }
 
@@ -28,6 +31,7 @@ export const movementWords: Record<MovementKind, { en: string; ne: string; sign:
   "Purchase In": { en: "bought in", ne: "किनेर आयो", sign: 1 },
   "Counter In": { en: "added at the counter", ne: "बिलबाट थपियो", sign: 1 },
   "Return In": { en: "returned", ne: "फिर्ता आयो", sign: 1 },
+  "Bill Cancelled": { en: "put back — bill cancelled", ne: "बिल रद्द — फिर्ता राखियो", sign: 1 },
   "Sale Out": { en: "sold", ne: "बिक्री", sign: -1 },
   "Market Sale": { en: "sold at a market", ne: "बजारमा बिक्री", sign: -1 },
   "Dispatch Out": { en: "sent out", ne: "पठाइयो", sign: -1 },

@@ -1,6 +1,7 @@
 import { getDataBackendConfig } from "@/lib/data-backend";
 import type { BusinessChannel, StockMovementType } from "@/lib/operations";
-import { insertStockMovement } from "@/lib/operations-postgres";
+import { insertStockMovement, undoCancelledSaleCounts } from "@/lib/operations-postgres";
+import { CANCEL_NOTE } from "@/lib/cancelled-bills";
 import { transactionPostgres } from "@/lib/postgres/client";
 import { readPaymentParts } from "@/lib/pos-payments";
 
@@ -101,14 +102,16 @@ export async function voidTestBill(invoiceId: string, reason: string, by: string
     }
 
     for (const move of moves) {
-      await insertStockMovement(db, {
+      const back = {
         design: move.design,
         channel: move.channel as BusinessChannel,
         sizeRun: move.size_run,
-        type: "Return In" as StockMovementType,
         pairs: Number(move.pairs) || 0,
-        note: `${bill.invoice_number} cancelled — test bill`,
-      });
+      };
+      await insertStockMovement(db, { ...back, type: "Return In" as StockMovementType, note: `${bill.invoice_number} ${CANCEL_NOTE}` });
+      // Not sold, and not returned either (owner, 2026-10-02): the shoe's
+      // sold and returned counts go back to what they were before the bill.
+      await undoCancelledSaleCounts(db, back);
     }
 
     const stamp = `[Cancelled as a test bill by ${by.slice(0, 60) || "?"}: ${why}]`;
