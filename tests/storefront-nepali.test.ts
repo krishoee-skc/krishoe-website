@@ -46,17 +46,20 @@ describe("the footer", () => {
     const footer = await readFile("components/Footer.tsx", "utf8");
 
     for (const nepali of [
-      // Section headings (the footer's columns are Shop / Company / Contact now —
-      // the old "छिटो जाने"/"किसिम" headings were renamed):
+      // Group headings (2026-10-02: Women / Men / Kids / Shop, Contact, Help):
+      "महिला",
+      "पुरुष",
+      "बच्चा",
       "पसल",
-      "कम्पनी",
       "सम्पर्क",
-      // Link labels, all still carried:
-      "गृह पृष्ठ",
+      "सहयोग",
+      // Link labels, all still carried (Home went on the owner's word — the
+      // logo and the tab bar already are it):
       "हाम्रो कथा",
       "थोक बिक्री",
       "साट्ने नियम",
-      "महिला सेन्डिल",
+      "स्यान्डल",
+      "अर्डर ट्र्याक",
     ]) {
       expect(footer, nepali).toContain(nepali);
     }

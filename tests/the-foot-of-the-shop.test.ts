@@ -122,8 +122,9 @@ describe("the frame the owner asked for", () => {
   it("leaves the width alone, which the owner said was right", async () => {
     const footer = await readFile(FOOTER, "utf8");
 
-    // Three rows, all still max-w-7xl: offer line, columns, bottom bar.
-    expect(footer.match(/max-w-7xl/g)?.length).toBe(3);
+    // Four rows, all still max-w-7xl: offer line, groups, help, bottom bar.
+    expect(footer.match(/max-w-7xl/g)?.length).toBe(4);
+    expect(footer).not.toMatch(/max-w-(?:[0-6]xl|screen)/);
   });
 });
 
@@ -131,25 +132,34 @@ describe("shorter, without losing anything", () => {
   it("still offers every one of the links", async () => {
     const footer = await readFile(FOOTER, "utf8");
 
-    const shop = footer.slice(footer.indexOf("const shopLinks"), footer.indexOf("const companyLinks"));
-    const company = footer.slice(footer.indexOf("const companyLinks"), footer.indexOf("const GOLD_GROUND"));
+    // Grouped on 2026-10-02: the 13 shelves and 8 pages of before, less Home
+    // (the owner's choice), in four groups and a help row.
+    const groups = footer.slice(footer.indexOf("const footerGroups"), footer.indexOf("const helpLinks"));
+    const help = footer.slice(footer.indexOf("const helpLinks"), footer.indexOf("function HelpMark"));
+    expect(groups.match(/href:/g)?.length, "a shelf or page was dropped").toBe(16);
+    expect(help.match(/href:/g)?.length, "a help link was dropped").toBe(4);
+    for (const href of [
+      "/shop/ladies-sandals", "/shop/ladies-slippers", "/shop/ladies-close-shoes", "/shop/ladies-shoes", "/shop/party-heels",
+      "/shop/mens-slippers", "/shop/mens-shoes", "/shop/mens-collection", "/shop/kids-shoes", "/shop/kids-slippers",
+      "/shop/kids-collection", "/shop/new-arrivals", "/shop/casual-shoes", "/wholesale", "/guides", "/faq",
+      "/track-order", "/return-policy", "/review", "/about", "/privacy", "/terms", "/enter",
+    ]) {
+      expect(footer, href).toContain(`"${href}"`);
+    }
 
-    expect(shop.match(/href:/g)?.length, "a Shop link was dropped").toBe(13); // Ladies Close Shoes, Ladies Shoes, Men's Slippers, Men's Shoes, Kids Shoes and Kids Slippers joined on 2026-10-02
-    expect(company.match(/href:/g)?.length, "a Company link was dropped").toBe(8);
-
-    // Both lists must actually be rendered — keeping the data but not drawing
+    // Both lists must actually be drawn — keeping the data but not drawing
     // it would pass the counts above and still lose the links.
-    expect(footer).toContain("[...shopLinks, ...companyLinks]");
+    expect(footer).toContain("<FooterGroups groups={footerGroups} />");
+    expect(footer).toContain("helpLinks.map((link) =>");
   });
 
-  it("flows the links across a grid rather than stacking them", async () => {
-    const footer = await readFile(FOOTER, "utf8");
-    const list = footer.slice(footer.indexOf("Links across, not down"), footer.indexOf('<T en="Contact"'));
-
-    // Twenty links in one column ran 262px. In three columns they are 4 rows.
-    expect(list).toContain("grid grid-cols-2");
-    expect(list).toContain("sm:grid-cols-3");
-    expect(list).not.toContain("space-y-2.5 text-sm text-brand-green-ink/85");
+  it("lays the groups across a computer and folds them on a phone", async () => {
+    // Twenty links in one column ran 262px; then in one heap they mixed shelves
+    // and pages. Now four columns on a computer, four tap-to-open rows on a phone.
+    const groups = await readFile("components/FooterGroups.tsx", "utf8");
+    expect(groups).toContain("lg:grid-cols-4");
+    expect(groups).toContain("aria-expanded={isOpen}");
+    expect(groups).toContain("grid-rows-[0fr]");
   });
 
   it("puts the brand and the offer on one line", async () => {
