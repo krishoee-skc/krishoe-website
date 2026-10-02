@@ -1939,6 +1939,10 @@ CREATE TABLE IF NOT EXISTS factory_worker_photos (
   reviewed_by TEXT NOT NULL DEFAULT '',
   reviewed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Added by 20261002_factory_worker_photos_draft: the shoe the photo is of,
+  -- and the work entry it became when the owner pressed ✓.
+  item_id TEXT REFERENCES factory_items(id) ON DELETE RESTRICT,
+  work_id TEXT,
   CONSTRAINT factory_worker_photos_kind_check CHECK (kind IN ('done', 'upper', 'ready', 'problem')),
   CONSTRAINT factory_worker_photos_status_check CHECK (status IN ('new', 'seen', 'added'))
 );

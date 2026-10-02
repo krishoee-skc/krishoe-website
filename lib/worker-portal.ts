@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { queryPostgres } from "@/lib/postgres/client";
-import { workerTableReady } from "@/lib/worker-portal-db";
+import { photoDraftReady, workerTableReady } from "@/lib/worker-portal-db";
 
 /**
  * What the worker app keeps beyond the factory's own books (owner, 2026-10-02):
@@ -33,6 +33,13 @@ export type WorkerPhoto = {
   imageUrl: string;
   status: "new" | "seen" | "added";
   createdAt: string;
+  /** The shoe it is of, when the worker said — what makes it a draft of the day's work. */
+  itemId: string;
+  itemName: string;
+  /** The work entry it became, once the owner pressed ✓. */
+  workId: string;
+  workerCategory: string;
+  workerType: string;
 };
 
 export type WorkerRequest = {
@@ -48,14 +55,22 @@ export type WorkerRequest = {
   createdAt: string;
 };
 
-type PhotoRow = { id: string; worker_id: string; worker_name: string; kind: PhotoKind; pairs: number | null; note: string; image_url: string; status: WorkerPhoto["status"]; created_at: string | Date };
+type PhotoRow = {
+  id: string; worker_id: string; worker_name: string; kind: PhotoKind; pairs: number | null; note: string; image_url: string;
+  status: WorkerPhoto["status"]; created_at: string | Date; item_id: string | null; item_name: string | null; work_id: string | null;
+  worker_category: string; worker_type: string;
+};
 type RequestRow = { id: string; worker_id: string; worker_name: string; kind: WorkerRequest["kind"]; amount: string | number | null; about_date: string | Date | null; message: string; status: WorkerRequest["status"]; reply: string; created_at: string | Date };
 
 const iso = (value: string | Date) => (value instanceof Date ? value.toISOString() : String(value));
 const day = (value: string | Date | null) => (!value ? "" : value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10));
 
 function photoFromRow(row: PhotoRow): WorkerPhoto {
-  return { id: row.id, workerId: row.worker_id, workerName: row.worker_name, kind: row.kind, pairs: row.pairs, note: row.note, imageUrl: row.image_url, status: row.status, createdAt: iso(row.created_at) };
+  return {
+    id: row.id, workerId: row.worker_id, workerName: row.worker_name, kind: row.kind, pairs: row.pairs, note: row.note, imageUrl: row.image_url,
+    status: row.status, createdAt: iso(row.created_at), itemId: row.item_id ?? "", itemName: row.item_name ?? "", workId: row.work_id ?? "",
+    workerCategory: row.worker_category, workerType: row.worker_type,
+  };
 }
 function requestFromRow(row: RequestRow): WorkerRequest {
   return {
@@ -114,13 +129,20 @@ export async function countPhotosToday(workerId: string) {
   return rows[0]?.n ?? 0;
 }
 
-export async function addWorkerPhoto(input: { workerId: string; staffId: string; kind: PhotoKind; pairs: number | null; note: string; imageUrl: string }) {
+export async function addWorkerPhoto(input: { workerId: string; staffId: string; kind: PhotoKind; pairs: number | null; note: string; imageUrl: string; itemId?: string }) {
   const id = `WPH-${randomUUID()}`;
+  // The shoe goes in only once its column is there (Settings → OK).
+  const withItem = Boolean(input.itemId) && (await photoDraftReady());
   await queryPostgres(
     STORE,
-    `INSERT INTO factory_worker_photos (id, worker_id, staff_id, kind, pairs, note, image_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [id, input.workerId, input.staffId, input.kind, input.pairs, input.note.slice(0, 300), input.imageUrl],
+    withItem
+      ? `INSERT INTO factory_worker_photos (id, worker_id, staff_id, kind, pairs, note, image_url, item_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+      : `INSERT INTO factory_worker_photos (id, worker_id, staff_id, kind, pairs, note, image_url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    withItem
+      ? [id, input.workerId, input.staffId, input.kind, input.pairs, input.note.slice(0, 300), input.imageUrl, input.itemId ?? ""]
+      : [id, input.workerId, input.staffId, input.kind, input.pairs, input.note.slice(0, 300), input.imageUrl],
   );
   return id;
 }
@@ -128,16 +150,47 @@ export async function addWorkerPhoto(input: { workerId: string; staffId: string;
 /** The newest photos — one worker's, or everyone's. */
 export async function listWorkerPhotos(options: { workerId?: string; limit?: number } = {}): Promise<WorkerPhoto[]> {
   if (!(await workerTableReady("factory_worker_photos"))) return [];
+  const draft = await photoDraftReady();
   const rows = await queryPostgres<PhotoRow>(
     STORE,
-    `SELECT p.id, p.worker_id, w.name AS worker_name, p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at
-       FROM factory_worker_photos p JOIN factory_workers w ON w.id = p.worker_id
+    `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
+            p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
+            ${draft ? "p.item_id, i.name AS item_name, p.work_id" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id"}
+       FROM factory_worker_photos p
+       JOIN factory_workers w ON w.id = p.worker_id
+       ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id" : ""}
       WHERE ($1::text IS NULL OR p.worker_id = $1)
       ORDER BY p.created_at DESC
       LIMIT $2`,
     [options.workerId ?? null, Math.min(Math.max(options.limit ?? 60, 1), 200)],
   );
   return rows.map(photoFromRow);
+}
+
+/** One photo, for turning it into a work entry. */
+export async function getWorkerPhoto(id: string): Promise<WorkerPhoto | null> {
+  const draft = await photoDraftReady();
+  const rows = await queryPostgres<PhotoRow>(
+    STORE,
+    `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
+            p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
+            ${draft ? "p.item_id, i.name AS item_name, p.work_id" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id"}
+       FROM factory_worker_photos p
+       JOIN factory_workers w ON w.id = p.worker_id
+       ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id" : ""}
+      WHERE p.id = $1`,
+    [id],
+  );
+  return rows[0] ? photoFromRow(rows[0]) : null;
+}
+
+/** The photo became this work entry: marked added, with the entry's id. */
+export async function linkWorkerPhotoToWork(id: string, workId: string, by: string) {
+  await queryPostgres(
+    STORE,
+    `UPDATE factory_worker_photos SET status = 'added', work_id = $2, reviewed_by = $3, reviewed_at = now() WHERE id = $1`,
+    [id, workId, by],
+  );
 }
 
 export async function markWorkerPhoto(id: string, status: "seen" | "added", by: string) {

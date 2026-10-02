@@ -4,7 +4,8 @@ import T from "@/components/T";
 import { getAdminSession } from "@/lib/admin-auth";
 import { canAdmin, getSessionAdminRole } from "@/lib/admin-role-permissions";
 import { listWorkerPhotos, listWorkerRequests } from "@/lib/worker-portal";
-import { workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
+import { photoDraftReady, workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
+import { getFactoryItems } from "@/lib/factory-board-data";
 import WorkerInbox from "./WorkerInbox";
 
 export const metadata: Metadata = { title: "Workers' photos | KRISHOE Admin" };
@@ -12,11 +13,15 @@ export const dynamic = "force-dynamic";
 
 /** What the factory's workers have sent from their app (owner, 2026-10-02). */
 export default async function WorkerPhotosAdminPage() {
-  const [status, photos, requests, session] = await Promise.all([
+  const [status, photos, requests, session, draftsOn, items] = await Promise.all([
     workerPortalDatabaseStatus().catch(() => ({ ready: false, pending: [] })),
     listWorkerPhotos({ limit: 90 }).catch(() => []),
     listWorkerRequests({ limit: 60 }).catch(() => []),
     getAdminSession(),
+    photoDraftReady(),
+    getFactoryItems()
+      .then((loaded) => loaded.items.map((item) => ({ id: item.id, name: item.name })))
+      .catch(() => [] as Array<{ id: string; name: string }>),
   ]);
   const canAnswer = Boolean(session && canAdmin(getSessionAdminRole(session), "wages:write"));
 
@@ -51,7 +56,7 @@ export default async function WorkerPhotosAdminPage() {
       ) : null}
 
       <div className="mt-6">
-        <WorkerInbox photos={photos} requests={requests} canAnswer={canAnswer} />
+        <WorkerInbox photos={photos} requests={requests} canAnswer={canAnswer} items={items} draftsOn={draftsOn} />
       </div>
     </section>
   );

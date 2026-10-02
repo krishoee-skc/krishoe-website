@@ -4,7 +4,8 @@ import WorkerPortalShell from "@/components/worker/WorkerPortalShell";
 import WorkerPortalUnavailable from "@/components/worker/WorkerPortalUnavailable";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 import { isWorkerOnLeave, listWorkerPhotos, PHOTO_KINDS } from "@/lib/worker-portal";
-import { workerTableReady } from "@/lib/worker-portal-db";
+import { photoDraftReady, workerTableReady } from "@/lib/worker-portal-db";
+import { getFactoryItems } from "@/lib/factory-board-data";
 import WorkerPhotoForm from "./WorkerPhotoForm";
 
 export const metadata: Metadata = { title: "कामको फोटो | KRISHOE" };
@@ -19,10 +20,14 @@ export default async function WorkerPhotosPage() {
   if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} closed={"closed" in access && access.closed} />;
   const { detail } = access;
 
-  const [ready, onLeave, mine] = await Promise.all([
+  const [ready, onLeave, mine, draft, items] = await Promise.all([
     workerTableReady("factory_worker_photos"),
     isWorkerOnLeave(detail.worker.id).catch(() => false),
     listWorkerPhotos({ workerId: detail.worker.id, limit: 12 }).catch(() => []),
+    photoDraftReady(),
+    getFactoryItems()
+      .then((loaded) => loaded.items.map((item) => ({ id: item.id, name: item.name })))
+      .catch(() => [] as Array<{ id: string; name: string }>),
   ]);
   const disabledReason = !ready
     ? "फोटो पठाउने सुविधा अझै खुलेको छैन — मालिकलाई भन्नुहोस्।"
@@ -35,7 +40,7 @@ export default async function WorkerPhotosPage() {
       <h1 className="text-2xl font-black text-brand-green-ink">📷 कामको फोटो पठाउने</h1>
       <p className="mt-1 text-base text-brand-muted">मालिकले हेरेर हिसाबमा थप्नुहुन्छ। एक दिनमा १० फोटोसम्म।</p>
       <div className="mt-4">
-        <WorkerPhotoForm disabledReason={disabledReason} />
+        <WorkerPhotoForm disabledReason={disabledReason} items={draft && detail.worker.workerType === "piece_rate" ? items : []} />
       </div>
 
       {mine.length > 0 ? (
@@ -50,6 +55,7 @@ export default async function WorkerPhotosPage() {
                   <p className="font-black">
                     {PHOTO_KINDS.find((kind) => kind.value === photo.kind)?.icon} {PHOTO_KINDS.find((kind) => kind.value === photo.kind)?.ne}
                     {photo.pairs ? ` · ${photo.pairs} जोडी` : ""}
+                    {photo.itemName ? ` · ${photo.itemName}` : ""}
                   </p>
                   <p className={photo.status === "new" ? "text-brand-muted" : "font-bold text-brand-green"}>{statusWords[photo.status]}</p>
                 </div>

@@ -41,10 +41,12 @@ describe("a worker who has left cannot get back in", () => {
 
 describe("photos, questions and leave", () => {
   it("adds three tables and touches nothing else", () => {
-    expect(workerPortalMigrations.map((migration) => migration.table)).toEqual(["factory_worker_photos", "factory_worker_requests", "factory_worker_leave"]);
+    expect(workerPortalMigrations.map((migration) => migration.table)).toEqual(["factory_worker_photos", "factory_worker_requests", "factory_worker_leave", "factory_worker_photos"]);
     for (const migration of workerPortalMigrations) {
-      // No statement that removes or changes; "ON DELETE RESTRICT" is a guard that keeps rows.
-      expect(migration.sql).not.toMatch(/\b(DROP|ALTER|TRUNCATE)\b|^\s*(DELETE|UPDATE)\b/im);
+      // Nothing removed or changed; "ON DELETE RESTRICT" is a guard that keeps rows,
+      // and the one ALTER allowed is adding a column that is not there.
+      const withoutAddColumn = migration.sql.replace(/ALTER TABLE \w+ ADD COLUMN IF NOT EXISTS/g, "");
+      expect(withoutAddColumn).not.toMatch(/\b(DROP|ALTER|TRUNCATE)\b|^\s*(DELETE|UPDATE)\b/im);
     }
   });
 

@@ -179,7 +179,8 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "The worker app, Nepali-first by the owner's choice (2026-10-02: big, easy, in the worker's own words) — the factory floor reads Nepali. The worker portal's existing pages already carry the same debt in the list above.",
   },
   "app/worker/photos/WorkerPhotoForm.tsx": {
-    lines: 13,
+    // +3: "which shoe?", for a photo to become a draft of the day's work (2026-10-02).
+    lines: 16,
     why: "The worker's photo form — Nepali-first by the owner's choice (2026-10-02), read by factory workers on their phones.",
   },
   "app/worker/ask/page.tsx": {

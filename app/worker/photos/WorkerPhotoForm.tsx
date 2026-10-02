@@ -35,13 +35,14 @@ async function shrink(file: File): Promise<Blob> {
  * photo, say what it is, pairs if they like, a word if they like, and send.
  * It reaches the owner as proof; the books change only when the owner adds it.
  */
-export default function WorkerPhotoForm({ disabledReason }: { disabledReason?: string }) {
+export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabledReason?: string; items?: Array<{ id: string; name: string }> }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [kind, setKind] = useState<string>("done");
   const [pairs, setPairs] = useState("");
   const [note, setNote] = useState("");
+  const [itemId, setItemId] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState<{ ok: boolean; text: string } | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -63,6 +64,7 @@ export default function WorkerPhotoForm({ disabledReason }: { disabledReason?: s
       body.set("kind", kind);
       body.set("pairs", pairs);
       body.set("note", note);
+      if (kind !== "problem" && itemId) body.set("item_id", itemId);
       const response = await fetch("/api/worker/photos", { method: "POST", body });
       const data = (await response.json().catch(() => ({}))) as { ok?: boolean; ne?: string };
       setReply({ ok: Boolean(data.ok), text: data.ne || (response.ok ? "पठाइयो ✅" : "पठाइएन। फेरि प्रयास गर्नुहोस्।") });
@@ -70,6 +72,7 @@ export default function WorkerPhotoForm({ disabledReason }: { disabledReason?: s
         pick(null);
         setPairs("");
         setNote("");
+        setItemId("");
         router.refresh();
       }
     } catch {
@@ -123,6 +126,19 @@ export default function WorkerPhotoForm({ disabledReason }: { disabledReason?: s
           ))}
         </div>
       </fieldset>
+
+      {items.length > 0 && kind !== "problem" ? (
+        <label className="grid gap-1 text-lg font-black">
+          कुन जुत्ता?
+          <select value={itemId} onChange={(event) => setItemId(event.target.value)} className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-lg">
+            <option value="">— छान्नुहोस् —</option>
+            {items.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <span className="text-base font-semibold text-brand-muted">जुत्ता र जोडी भरे मालिकले एक थिचाइमा हिसाबमा थप्नुहुन्छ।</span>
+        </label>
+      ) : null}
 
       <label className="grid gap-1 text-lg font-black">
         कति जोडी? <span className="text-base font-semibold text-brand-muted">(नभरे पनि हुन्छ)</span>

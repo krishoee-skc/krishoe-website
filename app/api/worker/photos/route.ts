@@ -5,6 +5,7 @@ import { reportError } from "@/lib/report-error";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 import { addWorkerPhoto, countPhotosToday, isPhotoKind, isWorkerOnLeave, PHOTOS_PER_DAY } from "@/lib/worker-portal";
 import { workerTableReady } from "@/lib/worker-portal-db";
+import { queryPostgres } from "@/lib/postgres/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
   const kind = String(form?.get("kind") ?? "");
   const pairsText = String(form?.get("pairs") ?? "").trim();
   const note = String(form?.get("note") ?? "").trim();
+  const itemId = String(form?.get("item_id") ?? "").trim();
 
   if (!(file instanceof File) || file.size === 0) return reply(400, { en: "Choose a photo.", ne: "फोटो छान्नुहोस्।" });
   if (file.size > MAX_BYTES) return reply(413, { en: "That photo is too big.", ne: "फोटो धेरै ठूलो भयो।" });
@@ -54,6 +56,13 @@ export async function POST(request: Request) {
     return reply(400, { en: "Pairs should be a number.", ne: "जोडी अंकमा लेख्नुहोस्।" });
   }
 
+  // The shoe, when said, must be one the factory makes — it decides the rate
+  // the owner's ✓ will pay at.
+  if (itemId) {
+    const found = await queryPostgres<{ id: string }>("worker portal", "SELECT id FROM factory_items WHERE id = $1 AND status = 'active'", [itemId]).catch(() => []);
+    if (!found[0]) return reply(400, { en: "Choose the shoe again.", ne: "जुत्ता फेरि छान्नुहोस्।" });
+  }
+
   try {
     const bytes = await sharp(Buffer.from(await file.arrayBuffer()), { failOn: "none" })
       .rotate()
@@ -61,7 +70,7 @@ export async function POST(request: Request) {
       .webp({ quality: 78 })
       .toBuffer();
     const stored = await put(`worker-photos/${worker.id}.webp`, bytes, { access: "public", addRandomSuffix: true, contentType: "image/webp" });
-    await addWorkerPhoto({ workerId: worker.id, staffId: access.staff.id, kind, pairs, note, imageUrl: stored.url });
+    await addWorkerPhoto({ workerId: worker.id, staffId: access.staff.id, kind, pairs, note, imageUrl: stored.url, itemId: kind === "problem" ? "" : itemId });
   } catch (error) {
     reportError(`store a work photo from factory worker ${worker.id}`, error);
     return reply(500, { en: "The photo did not send. Try again.", ne: "फोटो पठाइएन। फेरि प्रयास गर्नुहोस्।" });

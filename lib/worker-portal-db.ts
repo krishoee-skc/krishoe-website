@@ -81,9 +81,23 @@ CREATE TABLE IF NOT EXISTS factory_worker_leave (
 );
 `,
   },
+  {
+    // The photo becomes a draft of the day's work (owner, 2026-10-02, "ख"):
+    // which shoe it is of, and — once the owner presses ✓ — the work entry it
+    // became. Two columns added; nothing existing changes.
+    name: "20261002_factory_worker_photos_draft",
+    table: "factory_worker_photos",
+    column: "work_id",
+    label: { en: "Work photos become one-tap work entries", ne: "फोटोबाट एक थिचाइमा काम लेख्ने" },
+    sql: `
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS item_id TEXT REFERENCES factory_items(id) ON DELETE RESTRICT;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS work_id TEXT;
+`,
+  },
 ] as const;
 
 export type WorkerPortalTable = (typeof workerPortalMigrations)[number]["table"];
+type Migration = (typeof workerPortalMigrations)[number] & { column?: string };
 
 function checksum(sql: string) {
   return createHash("sha256").update(sql).digest("hex");
@@ -97,15 +111,28 @@ export type WorkerPortalDatabaseStatus = {
 /** Which of the three tables the live database still lacks. */
 export async function workerPortalDatabaseStatus(): Promise<WorkerPortalDatabaseStatus> {
   if (getDataBackendConfig().backend !== "postgres") return { ready: false, pending: [] };
-  const rows = await queryPostgres<{ table_name: string }>(
-    STORE,
-    `SELECT table_name FROM information_schema.tables
-      WHERE table_schema = current_schema() AND table_name = ANY($1)`,
-    [workerPortalMigrations.map((migration) => migration.table)],
-  );
+  const [rows, columns] = await Promise.all([
+    queryPostgres<{ table_name: string }>(
+      STORE,
+      `SELECT table_name FROM information_schema.tables
+        WHERE table_schema = current_schema() AND table_name = ANY($1)`,
+      [workerPortalMigrations.map((migration) => migration.table)],
+    ),
+    queryPostgres<{ table_name: string; column_name: string }>(
+      STORE,
+      `SELECT table_name, column_name FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = ANY($1)`,
+      [workerPortalMigrations.map((migration) => migration.table)],
+    ),
+  ]);
   const present = new Set(rows.map((row) => row.table_name));
-  const pending = workerPortalMigrations
-    .filter((migration) => !present.has(migration.table))
+  const presentColumns = new Set(columns.map((row) => `${row.table_name}.${row.column_name}`));
+  // A migration that adds a column is done when that column is there; one that
+  // adds a table, when the table is.
+  const done = (migration: Migration) =>
+    migration.column ? presentColumns.has(`${migration.table}.${migration.column}`) : present.has(migration.table);
+  const pending = (workerPortalMigrations as readonly Migration[])
+    .filter((migration) => !done(migration))
     .map(({ name, label }) => ({ name, label }));
   return { ready: pending.length === 0, pending };
 }
@@ -121,11 +148,29 @@ export async function workerTableReady(table: WorkerPortalTable): Promise<boolea
   if (readyAt.get(table) === false && Date.now() - (checkedAt.get(table) ?? 0) < RECHECK_MS) return false;
   try {
     const { pending } = await workerPortalDatabaseStatus();
-    const name = workerPortalMigrations.find((migration) => migration.table === table)?.name;
+    // The table itself — its first migration, not a later column on it.
+    const name = (workerPortalMigrations as readonly Migration[]).find((migration) => migration.table === table && !migration.column)?.name;
     const ready = !pending.some((item) => item.name === name);
     readyAt.set(table, ready);
     checkedAt.set(table, Date.now());
     return ready;
+  } catch {
+    return false;
+  }
+}
+
+let draftReady: { value: boolean; at: number } | null = null;
+
+/** Whether a photo can carry its shoe and become a work entry — the fourth migration. */
+export async function photoDraftReady(): Promise<boolean> {
+  if (getDataBackendConfig().backend !== "postgres") return false;
+  if (draftReady?.value) return true;
+  if (draftReady && Date.now() - draftReady.at < RECHECK_MS) return false;
+  try {
+    const { pending } = await workerPortalDatabaseStatus();
+    const value = !pending.some((item) => item.name === "20261002_factory_worker_photos_draft");
+    draftReady = { value, at: Date.now() };
+    return value;
   } catch {
     return false;
   }
@@ -154,5 +199,6 @@ export async function prepareWorkerPortalDatabase() {
     }
   });
   readyAt.clear();
+  draftReady = null;
   return { applied: toApply.map((migration) => migration.name) };
 }

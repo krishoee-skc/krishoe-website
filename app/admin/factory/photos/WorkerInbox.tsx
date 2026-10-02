@@ -7,7 +7,7 @@ import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { WorkerPhoto, WorkerRequest } from "@/lib/worker-portal";
 import { formatAdminDate } from "@/lib/format-date";
-import { answerWorkerRequestAction, markWorkerPhotoAction, type InboxReply } from "./actions";
+import { answerWorkerRequestAction, bookPhotoWorkAction, markWorkerPhotoAction, type InboxReply } from "./actions";
 
 const KIND_WORDS: Record<WorkerPhoto["kind"], { en: string; ne: string; icon: string }> = {
   done: { en: "Work done", ne: "काम सकियो", icon: "✅" },
@@ -27,12 +27,56 @@ function when(iso: string) {
  * changes the books by itself — "Add to the books" opens the work form, and
  * an advance is paid on the ledger as always.
  */
-export default function WorkerInbox({ photos, requests, canAnswer }: { photos: WorkerPhoto[]; requests: WorkerRequest[]; canAnswer: boolean }) {
+/** A photo that can go on the books with one press: work, by the pair, not yet booked. */
+function isDraft(photo: WorkerPhoto) {
+  return photo.status === "new" && photo.kind !== "problem" && photo.workerType === "piece_rate";
+}
+
+export default function WorkerInbox({
+  photos,
+  requests,
+  canAnswer,
+  items = [],
+  draftsOn = false,
+}: {
+  photos: WorkerPhoto[];
+  requests: WorkerRequest[];
+  canAnswer: boolean;
+  /** The factory's shoes, for correcting a draft. */
+  items?: Array<{ id: string; name: string }>;
+  /** Whether a photo can carry its shoe and be booked — Settings → OK. */
+  draftsOn?: boolean;
+}) {
   const { text } = useLanguage();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [notice, setNotice] = useState<InboxReply | null>(null);
   const [replies, setReplies] = useState<Record<string, string>>({});
+  // The owner's corrections to a draft before ✓: the shoe and the pairs.
+  const [fix, setFix] = useState<Record<string, { itemId: string; pairs: string }>>({});
+  const draftOf = (photo: WorkerPhoto) => fix[photo.id] ?? { itemId: photo.itemId, pairs: photo.pairs ? String(photo.pairs) : "" };
+  const complete = (photo: WorkerPhoto) => Boolean(draftOf(photo).itemId) && Number(draftOf(photo).pairs) > 0;
+  const readyDrafts = draftsOn ? photos.filter((photo) => isDraft(photo) && complete(photo)) : [];
+
+  /** ✓ every complete draft, one after another; stops at the first that is refused. */
+  const bookAll = () =>
+    start(async () => {
+      let booked = 0;
+      let total = 0;
+      for (const photo of readyDrafts) {
+        const draft = draftOf(photo);
+        const reply = await bookPhotoWorkAction(photo.id, draft.itemId, Number(draft.pairs));
+        if (!reply.ok) {
+          setNotice(reply);
+          router.refresh();
+          return;
+        }
+        booked += 1;
+        total += reply.amount ?? 0;
+      }
+      setNotice({ ok: true, en: `${booked} on the books — Rs. ${total.toLocaleString("en-IN")} in all`, ne: `${booked} वटा हिसाबमा — जम्मा Rs. ${total.toLocaleString("en-IN")}` });
+      router.refresh();
+    });
 
   const run = (action: () => Promise<InboxReply>) =>
     start(async () => {
@@ -99,7 +143,14 @@ export default function WorkerInbox({ photos, requests, canAnswer }: { photos: W
       </section>
 
       <section>
-        <h2 className="text-xl font-black text-brand-green-ink">{text("Work photos", "कामका फोटो")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-black text-brand-green-ink">{text("Work photos", "कामका फोटो")}</h2>
+          {readyDrafts.length > 1 ? (
+            <button type="button" disabled={pending} onClick={bookAll} className="min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60">
+              {text(`✓ All ${readyDrafts.length} right — put on the books`, `✓ सबै ${readyDrafts.length} ठीक — हिसाबमा थप्ने`)}
+            </button>
+          ) : null}
+        </div>
         {ordered.length === 0 ? (
           <p className="mt-2 text-sm text-brand-muted">{text("No photos yet.", "अहिलेसम्म फोटो छैन।")}</p>
         ) : (
@@ -116,7 +167,46 @@ export default function WorkerInbox({ photos, requests, canAnswer }: { photos: W
                   </p>
                   <p className="text-xs text-brand-muted">{when(photo.createdAt)}</p>
                   {photo.note ? <p className="text-sm text-brand-green-ink">“{photo.note}”</p> : null}
-                  {photo.status === "new" ? (
+                  {draftsOn && isDraft(photo) ? (
+                    <div className="grid gap-2 rounded-xl bg-brand-mist p-2">
+                      <p className="text-xs font-black uppercase tracking-[0.1em] text-brand-muted">
+                        {text(`Draft · ${photo.workerCategory}`, `मस्यौदा · ${photo.workerCategory}`)}
+                      </p>
+                      <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2">
+                        <select
+                          value={draftOf(photo).itemId}
+                          onChange={(event) => setFix((current) => ({ ...current, [photo.id]: { ...draftOf(photo), itemId: event.target.value } }))}
+                          aria-label={text(`Shoe for ${photo.workerName}'s photo`, `${photo.workerName} को फोटोको जुत्ता`)}
+                          className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-2 text-sm"
+                        >
+                          <option value="">{text("— the shoe —", "— जुत्ता —")}</option>
+                          {items.map((item) => (
+                            <option key={item.id} value={item.id}>{item.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          value={draftOf(photo).pairs}
+                          onChange={(event) => setFix((current) => ({ ...current, [photo.id]: { ...draftOf(photo), pairs: event.target.value } }))}
+                          inputMode="numeric"
+                          aria-label={text(`Pairs in ${photo.workerName}'s photo`, `${photo.workerName} को फोटोका जोडी`)}
+                          className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-2 text-sm"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={pending || !complete(photo)}
+                          onClick={() => run(() => bookPhotoWorkAction(photo.id, draftOf(photo).itemId, Number(draftOf(photo).pairs)))}
+                          className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white disabled:opacity-50"
+                        >
+                          {text("✓ Right — put on the books", "✓ ठीक छ — हिसाबमा")}
+                        </button>
+                        <button type="button" disabled={pending} onClick={() => run(() => markWorkerPhotoAction(photo.id, "seen"))} className="min-h-11 rounded-xl border border-brand-green-line px-3 text-sm font-bold text-brand-muted disabled:opacity-60">
+                          {text("Not this — seen", "होइन — देखेँ मात्र")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : photo.status === "new" ? (
                     <div className="flex flex-wrap gap-2">
                       <Link
                         href="/admin/factory/add-work"
