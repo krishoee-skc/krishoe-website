@@ -174,6 +174,30 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 4,
     why: "What Google is given to show. It is written before any reader arrives and it is how a Nepali search finds the shop at all. The fourth is the Nepali page's product title (2026-10-01).",
   },
+  "app/worker/photos/page.tsx": {
+    lines: 8,
+    why: "The worker app, Nepali-first by the owner's choice (2026-10-02: big, easy, in the worker's own words) — the factory floor reads Nepali. The worker portal's existing pages already carry the same debt in the list above.",
+  },
+  "app/worker/photos/WorkerPhotoForm.tsx": {
+    lines: 13,
+    why: "The worker's photo form — Nepali-first by the owner's choice (2026-10-02), read by factory workers on their phones.",
+  },
+  "app/worker/ask/page.tsx": {
+    lines: 7,
+    why: "The worker's \"the sum is wrong\" / \"an advance\" page — Nepali-first by the owner's choice (2026-10-02).",
+  },
+  "app/worker/ask/AskForm.tsx": {
+    lines: 8,
+    why: "The worker's question form — Nepali-first by the owner's choice (2026-10-02).",
+  },
+  "app/worker/ask/actions.ts": {
+    lines: 9,
+    why: "The replies a worker reads after sending a question — Nepali-first by the owner's choice (2026-10-02).",
+  },
+  "components/worker/WorkerChrome.tsx": {
+    lines: 3,
+    why: "The worker app's text-size buttons, each labelled in Nepali with its English after it (2026-10-02).",
+  },
   "lib/worker-join.ts": {
     lines: 9,
     why: "The WhatsApp message a factory worker is sent with their sign-in code — Nepali by purpose, read by the worker on their own phone — and the password refusals shown to a worker, each already carrying its English half before the Nepali (2026-10-02).",
@@ -259,11 +283,13 @@ const STILL_OWED: Record<string, number> = {
   "app/api/admin/search/route.ts": 3,
   "app/api/cron/checkout-reminders/route.ts": 6,
   "app/api/factory/ready/route.ts": 3,
-  "app/worker/dashboard/page.tsx": 15,
+  // +5 on 2026-10-02: the worker's home was rebuilt bigger and Nepali-first (see the worker-app exemptions).
+  "app/worker/dashboard/page.tsx": 20,
   "app/worker/payslip/page.tsx": 11,
   "app/worker/production/page.tsx": 8,
   "components/worker/WorkerPortalShell.tsx": 3,
-  "components/worker/WorkerPortalUnavailable.tsx": 9,
+  // +3 on 2026-10-02: "your account is closed", for a worker who has left — Nepali first, English under it.
+  "components/worker/WorkerPortalUnavailable.tsx": 12,
   "lib/google-analytics.ts": 10,
   "lib/login-alerts.ts": 2,
   "lib/passkeys.ts": 5,

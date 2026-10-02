@@ -14,6 +14,7 @@ import {
 // One shape for a person on the books, defined where they are read.
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
 import WorkerAppPanel, { type WorkerApp } from "./WorkerAppPanel";
+import { setWorkerLeaveAction } from "./actions";
 
 const categories = FACTORY_WORKER_CATEGORIES;
 
@@ -30,8 +31,57 @@ const inputClass = "min-h-12 w-full rounded-xl border border-brand-green-line bg
  * apps: each worker's app account, by worker id, when the reader may manage
  * accounts (Owner and Admin); null hides the app row for everyone else.
  */
-export default function TeamList({ initialWorkers, apps = null }: { initialWorkers: Worker[]; apps?: Record<string, WorkerApp> | null }) {
+export default function TeamList({
+  initialWorkers,
+  apps = null,
+  leave = null,
+  balances = {},
+}: {
+  initialWorkers: Worker[];
+  apps?: Record<string, WorkerApp> | null;
+  /** Who is on leave, since when; null until the leave table is added in Settings. */
+  leave?: Record<string, string> | null;
+  /** What the factory still owes each worker, shown before they are closed. */
+  balances?: Record<string, number>;
+}) {
   const { text, language } = useLanguage();
+  const [onLeave, setOnLeave] = useState<Record<string, string> | null>(leave);
+
+  /** On leave, or back at work — the worker stays active on the books either way. */
+  async function changeLeave(workerId: string, away: boolean) {
+    setSaving(workerId);
+    setError("");
+    setMessage("");
+    const reply = await setWorkerLeaveAction(workerId, away);
+    setSaving("");
+    if (!reply.ok) {
+      setError(text(reply.en, reply.ne));
+      return;
+    }
+    setOnLeave((current) => {
+      const next = { ...(current ?? {}) };
+      if (away) next[workerId] = new Date().toISOString().slice(0, 10);
+      else delete next[workerId];
+      return next;
+    });
+    setMessage(text(reply.en, reply.ne));
+  }
+
+  /** Left the factory: asks first, with what is still owed, then closes them and their app. */
+  function leaveFactory(worker: Worker) {
+    const owed = balances[worker.id] ?? 0;
+    const owedLine =
+      owed > 0
+        ? text(`They are still owed Rs. ${owed.toLocaleString("en-IN")} — settle it first.`, `उसको बाँकी तलब Rs. ${owed.toLocaleString("en-IN")} छ — पहिले चुक्ता गर्नुहोस्।`)
+        : text("Nothing is owed to them.", "उसको बाँकी तलब छैन।");
+    const sure = window.confirm(
+      text(
+        `${worker.name} has left?\n\n• Taken off the work forms\n• Their app is switched off and their phones signed out\n• Their work and wages are kept\n\n${owedLine}`,
+        `${worker.name} ले काम छोड्यो?\n\n• काम भर्ने फारमबाट हट्छ\n• App बन्द हुन्छ, फोनबाट निस्कन्छ\n• काम र ज्याला मेटिँदैन\n\n${owedLine}`,
+      ),
+    );
+    if (sure) void saveWorker(worker.id, { status: "inactive" });
+  }
   const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
   const [edits, setEdits] = useState<Record<string, { name: string; category: string; worker_type: string }>>({});
   const [loading, setLoading] = useState(false);
@@ -338,24 +388,59 @@ export default function TeamList({ initialWorkers, apps = null }: { initialWorke
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void saveWorker(worker.id, { status: worker.status === "active" ? "inactive" : "active" })}
-              disabled={saving === worker.id}
-              className={`mt-3 min-h-12 w-full rounded-xl border px-4 text-sm font-bold disabled:opacity-60 ${worker.status === "active" ? "border-brand-green-line text-brand-muted" : "border-brand-green font-black text-brand-green"}`}
-            >
-              {saving === worker.id
-                ? text("Saving…", "गर्दैछौँ…")
-                : worker.status === "active"
-                  ? text(
-                      "Close — remove from the work form",
-                      "बन्द गर्ने — काम भर्ने फारमबाट हटाउने",
-                    )
-                  : text("Make active again", "फेरि चालु गर्ने")}
-            </button>
+            {/* Three states (owner, 2026-10-02): at work, on leave, left. Left
+                closes them on the forms and switches their app off. */}
+            {worker.status === "active" ? (
+              <div className="mt-3 grid gap-1.5">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-brand-muted">{text("Status", "अवस्था")}</p>
+                <div className="grid grid-cols-3 gap-2" role="group" aria-label={text(`Status of ${worker.name}`, `${worker.name} को अवस्था`)}>
+                  <button
+                    type="button"
+                    aria-pressed={!onLeave?.[worker.id]}
+                    disabled={saving === worker.id || !onLeave?.[worker.id]}
+                    onClick={() => void changeLeave(worker.id, false)}
+                    className={`min-h-12 rounded-xl border px-2 text-sm font-black ${!onLeave?.[worker.id] ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"}`}
+                  >
+                    🟢 {text("At work", "काममा")}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={Boolean(onLeave?.[worker.id])}
+                    disabled={saving === worker.id || onLeave === null || Boolean(onLeave?.[worker.id])}
+                    title={onLeave === null ? text("Add the worker app tables in Settings first", "पहिले Settings मा कामदार app को database थप्नुहोस्") : undefined}
+                    onClick={() => void changeLeave(worker.id, true)}
+                    className={`min-h-12 rounded-xl border px-2 text-sm font-black disabled:cursor-default ${onLeave?.[worker.id] ? "border-brand-gold bg-brand-gold-bright text-brand-green-ink" : "border-brand-green-line text-brand-green-ink"} ${onLeave === null ? "opacity-50" : ""}`}
+                  >
+                    🟡 {text("On leave", "बिदा")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving === worker.id}
+                    onClick={() => leaveFactory(worker)}
+                    className="min-h-12 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-clay"
+                  >
+                    🔴 {text("Left", "छोड्यो")}
+                  </button>
+                </div>
+                <p className="text-xs leading-5 text-brand-muted">
+                  {onLeave?.[worker.id]
+                    ? text(`On leave since ${onLeave[worker.id]} — still on the books; their app shows, but sends nothing.`, `${onLeave[worker.id]} देखि बिदामा — हिसाबमा छ; app हेर्न मिल्छ, पठाउन मिल्दैन।`)
+                    : text("\"Left\" = Close — remove from the work form and switch their app off.", "\"छोड्यो\" = बन्द गर्ने — काम भर्ने फारमबाट हटाउने र app पनि बन्द।")}
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void saveWorker(worker.id, { status: "active" })}
+                disabled={saving === worker.id}
+                className="mt-3 min-h-12 w-full rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:opacity-60"
+              >
+                {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Make active again", "फेरि चालु गर्ने")}
+              </button>
+            )}
 
-            {apps && worker.status === "active" ? (
-              <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} />
+            {apps && (worker.status === "active" || apps[worker.id]) ? (
+              <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} workerActive={worker.status === "active"} />
             ) : null}
 
             <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">

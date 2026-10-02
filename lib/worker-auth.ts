@@ -40,6 +40,9 @@ export async function getCurrentWorkerAccess() {
     return {
       authenticated: true as const,
       linked: false as const,
+      // Left the factory: the portal shows "your account is closed", not a
+      // set-up problem for the owner to fix (owner, 2026-10-02).
+      closed: Boolean(detail),
       session,
       staff,
       reason: "जोडिएको कामदारको विवरण भेटिएन, वा त्यो कामदार अहिले निष्क्रिय छ।",

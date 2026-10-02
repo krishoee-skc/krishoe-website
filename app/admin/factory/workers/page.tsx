@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import WorkerInboxLink from "./WorkerInboxLink";
 import TeamList from "@/app/admin/factory/workers/TeamList";
 import LoadFailure from "@/components/admin/LoadFailure";
 import { getFactoryWorkers } from "@/lib/factory-board-data";
@@ -10,6 +11,8 @@ import { canAdmin, getSessionAdminRole } from "@/lib/admin-role-permissions";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { formatStaffPhone } from "@/lib/staff-phone";
 import type { WorkerApp } from "./WorkerAppPanel";
+import { getWorkersOnLeave, workerBalances, workerInboxCounts } from "@/lib/worker-portal";
+import { workerTableReady } from "@/lib/worker-portal-db";
 
 export const metadata: Metadata = {
   title: "Team | KRISHOE Admin",
@@ -41,7 +44,20 @@ export default async function FactoryWorkersPage() {
     );
   }
 
-  return <TeamList initialWorkers={loaded.workers} apps={await loadWorkerApps()} />;
+  const [apps, leave, balances, inbox] = await Promise.all([
+    loadWorkerApps(),
+    workerTableReady("factory_worker_leave")
+      .then(async (ready) => (ready ? Object.fromEntries(await getWorkersOnLeave()) : null))
+      .catch(() => null),
+    workerBalances().catch(() => ({})),
+    workerInboxCounts().catch(() => ({ photos: 0, requests: 0 })),
+  ]);
+  return (
+    <>
+      <WorkerInboxLink photos={inbox.photos} requests={inbox.requests} />
+      <TeamList initialWorkers={loaded.workers} apps={apps} leave={leave} balances={balances} />
+    </>
+  );
 }
 
 /**
@@ -56,7 +72,9 @@ async function loadWorkerApps(): Promise<Record<string, WorkerApp> | null> {
     const { staff } = await getAdminSettings();
     const apps: Record<string, WorkerApp> = {};
     for (const member of staff) {
-      if (member.factoryWorkerId) apps[member.factoryWorkerId] = { phone: formatStaffPhone(member.phone), status: member.status };
+      if (member.factoryWorkerId) {
+        apps[member.factoryWorkerId] = { phone: formatStaffPhone(member.phone), status: member.status, lastLoginAt: member.lastLoginAt };
+      }
     }
     return apps;
   } catch (error) {

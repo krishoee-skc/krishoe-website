@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { isClosedWorkerSignIn } from "@/lib/worker-app-lock";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { getConfiguredAdminRole } from "@/lib/admin-permissions";
@@ -370,6 +371,18 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     }
 
     const staff = await verifyAdminStaffCredentials(email, password);
+
+    // A worker who has left, typing their own right password: tell them the
+    // account is closed (owner, 2026-10-02) — not "wrong password", which
+    // sends them to try again. A wrong password is still told nothing new.
+    if (!staff && (await isClosedWorkerSignIn(email, password))) {
+      await recordAdminAuditEvent("login_closed_worker", `A closed worker account (${email}) tried to sign in.`, "warning", { actorEmail: email });
+      const closed = {
+        en: "Your account is closed — your work at KRISHOE has ended. Your past work and pay are kept; ask the owner if you need anything.",
+        ne: "तपाईंको खाता बन्द छ — KRISHOE मा काम सकिएकाले। पुरानो हिसाब सुरक्षित छ; केही सोध्नु छ भने मालिकलाई फोन गर्नुहोस्।",
+      };
+      return { ok: false, message: `${closed.ne} · ${closed.en}` } satisfies LoginState;
+    }
 
     if (!staff) {
       await recordAdminStaffFailedLogin(email);

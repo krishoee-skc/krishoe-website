@@ -11,7 +11,7 @@ import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 export default async function WorkerPayslipPage() {
   const access = await getCurrentWorkerAccess();
   if (!access.authenticated) redirect("/worker/login");
-  if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} />;
+  if (!access.linked) return <WorkerPortalUnavailable reason={access.reason} closed={"closed" in access && access.closed} />;
 
   const { detail } = access;
 

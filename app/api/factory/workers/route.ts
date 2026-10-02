@@ -1,4 +1,7 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
+import { getAdminSession } from "@/lib/admin-auth";
+import { getSessionAdminRole } from "@/lib/admin-role-permissions";
+import { lockWorkerApp } from "@/lib/worker-app-lock";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { isDuplicateNameViolation } from "@/lib/duplicate-name-error";
 import {
@@ -214,7 +217,21 @@ export async function PATCH(request: NextRequest) {
           `Factory worker ${name}: ${changes.join("; ") || "no change"}.`,
         );
 
-        return NextResponse.json({ worker: saved[0] });
+        // Left the factory: their app account goes off and their phones are
+        // signed out, in the same step (owner, 2026-10-02). Coming back does
+        // not switch it on by itself — "New code" on their row does.
+        let appLocked = 0;
+        if (status === "inactive" && current[0].status !== "inactive") {
+          const session = await getAdminSession();
+          appLocked = await lockWorkerApp(workerId, {
+            id: session?.staffId ?? "",
+            email: session?.email ?? "",
+            role: session ? getSessionAdminRole(session) : "",
+          });
+        }
+
+        return NextResponse.json({ worker: saved[0], appLocked });
+
       } catch (error) {
         if (isDuplicateNameViolation(error, "factory_workers_name_unique_idx")) {
           return NextResponse.json({ error: duplicateWorkerMessage(name) }, { status: 409 });

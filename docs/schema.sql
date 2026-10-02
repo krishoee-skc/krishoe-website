@@ -1923,3 +1923,50 @@ AS $$
     OR krishoe_admin_branch_bypass_enabled()
     OR target_branch_id = krishoe_effective_branch_id()
 $$;
+
+-- The worker app (owner, 2026-10-02): photos workers send of their work, their
+-- questions and advance requests, and who is on leave. Added from Settings →
+-- "Worker app — photos and requests" (lib/worker-portal-db.ts).
+CREATE TABLE IF NOT EXISTS factory_worker_photos (
+  id TEXT PRIMARY KEY,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  staff_id TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL,
+  pairs INTEGER CHECK (pairs IS NULL OR pairs > 0),
+  note TEXT NOT NULL DEFAULT '',
+  image_url TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new',
+  reviewed_by TEXT NOT NULL DEFAULT '',
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_worker_photos_kind_check CHECK (kind IN ('done', 'upper', 'ready', 'problem')),
+  CONSTRAINT factory_worker_photos_status_check CHECK (status IN ('new', 'seen', 'added'))
+);
+CREATE INDEX IF NOT EXISTS factory_worker_photos_created_idx ON factory_worker_photos (created_at DESC);
+CREATE INDEX IF NOT EXISTS factory_worker_photos_worker_idx ON factory_worker_photos (worker_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS factory_worker_requests (
+  id TEXT PRIMARY KEY,
+  worker_id TEXT NOT NULL REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  staff_id TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL,
+  amount NUMERIC(12, 2) CHECK (amount IS NULL OR amount > 0),
+  about_date DATE,
+  message TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open',
+  reply TEXT NOT NULL DEFAULT '',
+  resolved_by TEXT NOT NULL DEFAULT '',
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT factory_worker_requests_kind_check CHECK (kind IN ('hisab', 'advance')),
+  CONSTRAINT factory_worker_requests_status_check CHECK (status IN ('open', 'done', 'declined'))
+);
+CREATE INDEX IF NOT EXISTS factory_worker_requests_created_idx ON factory_worker_requests (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS factory_worker_leave (
+  worker_id TEXT PRIMARY KEY REFERENCES factory_workers(id) ON DELETE RESTRICT,
+  since DATE NOT NULL DEFAULT CURRENT_DATE,
+  note TEXT NOT NULL DEFAULT '',
+  set_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -8,7 +8,28 @@ import { logoutWorkerAction } from "@/app/worker/actions";
  * needs is Settings → staff account → Factory worker, so the screen now names
  * that path, in Nepali, where the person reading it will be standing.
  */
-export default function WorkerPortalUnavailable({ reason }: { reason: string }) {
+export default function WorkerPortalUnavailable({ reason, closed = false }: { reason: string; closed?: boolean }) {
+  // A worker who has left: the account is closed, and that is all there is to
+  // say — their record is safe, and the owner is the one to ask.
+  if (closed) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-[linear-gradient(180deg,#0b2e22,#123f30)] px-5 py-10 text-white">
+        <div className="grid w-full max-w-md justify-items-center gap-4 text-center">
+          <span aria-hidden="true" className="grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-3xl">🔒</span>
+          <h1 className="text-2xl font-black text-white">तपाईंको खाता बन्द छ</h1>
+          <p className="text-base leading-7 text-white/80">
+            KRISHOE मा तपाईंको काम सकिएकाले यो खाता बन्द गरिएको छ। तपाईंको पुरानो हिसाब र तलब सुरक्षित छ।
+          </p>
+          <p className="text-sm text-white/70">Your account is closed. Your past work and pay are kept. Ask the owner if you need anything.</p>
+          <form action={logoutWorkerAction}>
+            <button type="submit" className="min-h-12 rounded-2xl bg-brand-gold-bright px-6 text-base font-black text-brand-green-ink">
+              बाहिर निस्कने · Sign out
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="grid min-h-dvh place-items-center bg-brand-mist px-5 py-10">
       <div className="w-full max-w-lg rounded-lg border border-black/10 bg-brand-paper p-7 text-center shadow-sm">

@@ -1410,6 +1410,18 @@ export async function verifyAdminStaffCredentials(identifier: string, password: 
   return toSafeStaff(staff);
 }
 
+/**
+ * The right password for an account in any state — for the sign-in to say
+ * "this account is closed" to a worker who has left, rather than "wrong
+ * password". Never signs anyone in.
+ */
+export async function verifyPasswordForStaffIdentifier(identifier: string, password: string) {
+  const staff = await getStaffByIdentifier(identifier);
+  if (!staff || !password) return null;
+  if (!(await verifyPassword(password, staff.passwordHash))) return null;
+  return { role: staff.role, status: staff.status };
+}
+
 export async function markAdminStaffLogin(
   staffId: string,
   context: AdminLoginContext = {},

@@ -19,6 +19,7 @@ import {
   prepareOrderDispatchDatabaseAction,
   prepareCounterItemsDatabaseAction,
   prepareChequesDatabaseAction,
+  prepareWorkerPortalDatabaseAction,
   prepareNotificationTypesAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -29,6 +30,7 @@ import { posDatabaseStatus } from "@/lib/pos-database";
 import { orderDispatchDatabaseStatus } from "@/lib/order-dispatch-database";
 import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
+import { workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -155,6 +157,7 @@ export default async function AdminSettingsPage({
     reportError("check the counter items table", error);
     return null;
   });
+  const workerAppDatabase = await workerPortalDatabaseStatus().catch(() => null);
   const chequesDatabase = await chequesDatabaseStatus().catch((error) => {
     reportError("check the cheques table", error);
     return null;
@@ -849,6 +852,42 @@ export default async function AdminSettingsPage({
               <form action={prepareNotificationTypesAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, put it right" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {workerAppDatabase && workerAppDatabase.pending.length > 0 ? (
+          <section id="worker-app-database" className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              👷 <T en="Worker app — photos and requests" ne="कामदारको app — फोटो र कुरा" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="Adds three tables for the worker app: the work photos workers send, their questions and advance requests, and who is on leave. No wage, payment, work entry or stock changes."
+                ne="कामदारको app का लागि तीन तालिका थपिन्छन्: कामदारले पठाउने कामका फोटो, हिसाबका प्रश्न र पेस्की माग, अनि को बिदामा छ। कुनै ज्याला, भुक्तानी, काम वा स्टक बदलिँदैन।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is added:" ne="यति थपिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                {workerAppDatabase.pending.map((item) => (
+                  <li key={item.name}>
+                    <T en={item.label.en} ne={item.label.ne} />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
+              </p>
+              <form action={prepareWorkerPortalDatabaseAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add it" />
               </form>
             </details>
           </section>

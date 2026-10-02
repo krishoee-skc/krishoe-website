@@ -9,6 +9,7 @@ import { preparePosDatabase } from "@/lib/pos-database";
 import { prepareOrderDispatchDatabase } from "@/lib/order-dispatch-database";
 import { prepareCounterItemsDatabase } from "@/lib/counter-items-database";
 import { prepareChequesDatabase } from "@/lib/cheques";
+import { prepareWorkerPortalDatabase } from "@/lib/worker-portal-db";
 import { prepareNotificationTypes } from "@/lib/notification-types-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
@@ -334,6 +335,24 @@ export async function prepareChequesDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for the cheque book.");
+}
+
+/** The Owner's "OK" on the worker app's three tables: photos, requests, leave. */
+export async function prepareWorkerPortalDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the tables.");
+    }
+    const { applied } = await prepareWorkerPortalDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_worker_app_ready",
+      applied.length ? `Database prepared for the worker app: ${applied.join(", ")}.` : "Database was already ready for the worker app.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Worker app ready: photos, requests and leave.");
 }
 
 export async function saveDeliveryPricingAction(formData: FormData) {

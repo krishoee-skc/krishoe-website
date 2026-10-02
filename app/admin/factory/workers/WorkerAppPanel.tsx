@@ -7,7 +7,18 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { joinMessage, spacedCode, whatsappNumberFor } from "@/lib/worker-join";
 import { joinWorkerToAppAction, newWorkerCodeAction, type WorkerJoinResult } from "./actions";
 
-export type WorkerApp = { phone: string; status: string };
+export type WorkerApp = { phone: string; status: string; lastLoginAt?: string };
+
+/** "today 9:12", "yesterday", "3 days ago" — when the worker last opened the app. */
+function lastSeen(iso: string | undefined, text: (en: string, ne: string) => string) {
+  if (!iso) return text("Not opened yet", "अझै खोलेको छैन");
+  const then = new Date(iso);
+  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
+  const time = then.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kathmandu" });
+  if (days <= 0) return text(`Signed in today at ${time}`, `आज ${time} मा login`);
+  if (days === 1) return text("Signed in yesterday", "हिजो login");
+  return text(`Signed in ${days} days ago`, `${days} दिनअघि login`);
+}
 
 /**
  * A worker's door into the app, on their own row (owner, 2026-10-02).
@@ -17,7 +28,7 @@ export type WorkerApp = { phone: string; status: string };
  * WhatsApp. Already in: their number, and a new code if they forgot. The code
  * is shown here once and kept nowhere; the next press makes another.
  */
-export default function WorkerAppPanel({ workerId, workerName, app }: { workerId: string; workerName: string; app?: WorkerApp }) {
+export default function WorkerAppPanel({ workerId, workerName, app, workerActive = true }: { workerId: string; workerName: string; app?: WorkerApp; workerActive?: boolean }) {
   const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
@@ -48,14 +59,13 @@ export default function WorkerAppPanel({ workerId, workerName, app }: { workerId
           📱 {text("App", "App")}
           {app ? (
             <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 text-xs font-black text-brand-green">
-              {text("Has the app ✓", "App छ ✓")} · {app.phone}
-              {app.status !== "Active" ? ` · ${app.status}` : ""}
+              {app.status === "Active" ? text("Has the app ✓", "App छ ✓") : text("App closed 🔒", "App बन्द 🔒")} · {app.phone}
             </span>
           ) : (
             <span className="rounded-full bg-brand-cream-soft px-2.5 py-0.5 text-xs font-black text-brand-gold-ink">{text("No app yet", "App छैन")}</span>
           )}
         </p>
-        {!card ? (
+        {!card && workerActive ? (
           app ? (
             <button
               type="button"
@@ -78,7 +88,18 @@ export default function WorkerAppPanel({ workerId, workerName, app }: { workerId
         ) : null}
       </div>
 
-      {app && !card ? (
+      {app ? <p className="mt-1 text-xs font-bold text-brand-muted">{lastSeen(app.lastLoginAt, text)}</p> : null}
+
+      {app && !workerActive ? (
+        <p className="mt-2 text-xs leading-5 text-brand-muted">
+          {text(
+            "Left the factory — their app is switched off. To bring them back: \"Make active again\", then \"New code\".",
+            "काम छोडेको — app बन्द छ। फेरि राख्न: \"फेरि चालु गर्ने\", अनि \"नयाँ कोड\"।",
+          )}
+        </p>
+      ) : null}
+
+      {app && workerActive && !card ? (
         <p className="mt-2 text-xs leading-5 text-brand-muted">
           {text(
             "Forgot the password, or a new phone? \"New code\" signs their phones out and makes a code for them to start again.",

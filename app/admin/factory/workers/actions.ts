@@ -10,6 +10,26 @@ import { reportError } from "@/lib/report-error";
 import { absoluteUrl } from "@/lib/seo";
 import { formatStaffPhone, normalizeStaffPhone } from "@/lib/staff-phone";
 import { generateJoinCode } from "@/lib/worker-join";
+import { setWorkerLeave } from "@/lib/worker-portal";
+
+/** On leave, or back (owner, 2026-10-02). Owner only, like closing a worker. */
+export async function setWorkerLeaveAction(workerId: string, away: boolean): Promise<{ ok: boolean; en: string; ne: string }> {
+  const actor = await requireAdminPermission("wages:write");
+  try {
+    await setWorkerLeave(workerId, away, actor.session.email ?? actor.session.staffId ?? "");
+  } catch (error) {
+    if (error instanceof Error && error.message === "NOT_READY") {
+      return { ok: false, en: "Add the worker app tables in Settings first.", ne: "पहिले Settings मा कामदार app को database थप्नुहोस्।" };
+    }
+    reportError(`set leave for factory worker ${workerId}`, error);
+    return { ok: false, en: "Not saved. Try again.", ne: "सुरक्षित भएन। फेरि प्रयास गर्नुहोस्।" };
+  }
+  await recordAdminAuditEvent("factory_worker_leave", `Factory worker ${workerId} ${away ? "put on leave" : "back at work"}.`);
+  revalidatePath("/admin/factory/workers");
+  return away
+    ? { ok: true, en: "On leave — still on the books.", ne: "बिदामा राखियो — हिसाबमा छ।" }
+    : { ok: true, en: "Back at work.", ne: "काममा फर्कियो।" };
+}
 
 /**
  * What the screen gets back: either why not, in both languages, or the card to
@@ -96,12 +116,17 @@ export async function newWorkerCodeAction(workerId: string): Promise<WorkerJoinR
   const settings = await getAdminSettings();
   const staff = settings.staff.find((member) => member.factoryWorkerId === workerId);
   if (!staff) return { ok: false, en: "This worker has no app account yet.", ne: "यो कामदारको app खाता अझै छैन।" };
-  if (staff.status === "Disabled") {
-    return { ok: false, en: "This account is switched off in Settings.", ne: "यो खाता Settings मा बन्द गरिएको छ।" };
+  const worker = (await getFactoryWorkers({ includeRetired: true })).find((item) => item.id === workerId);
+  if (!worker || worker.status !== "active") {
+    return { ok: false, en: "Make the worker active again first.", ne: "पहिले कामदारलाई “फेरि चालु” गर्नुहोस्।" };
   }
 
   const code = generateJoinCode();
   try {
+    // A worker who left and came back: their closed account opens again here.
+    if (staff.status === "Disabled" || staff.status === "Locked") {
+      await saveAdminStaffAccount({ id: staff.id, status: "Active" });
+    }
     await updateAdminStaffPassword(staff.id, code, { mustChangePassword: true, activateInvitation: staff.status === "Invited" });
     const revoked = await revokeAllAdminStaffSessions(staff.id, actor.session.staffId ?? actor.session.email ?? "new-worker-code");
     await recordAdminStaffAccessHistory({
