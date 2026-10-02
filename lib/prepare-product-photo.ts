@@ -13,7 +13,7 @@ import sharp from "sharp";
  *
  * So this does four things, and deliberately not a fifth.
  *
- * It squares the frame, because the shop's grid is one shape and photos that
+ * It frames it (4:5, see FRAME_RATIO), because the shop's grid is one shape and photos that
  * disagree with it are cropped by the browser at display time, without anyone
  * choosing where. Squaring by *padding* rather than cropping: a sandal shot
  * in portrait has its length along the long edge, so a centre crop takes the
@@ -41,8 +41,16 @@ import sharp from "sharp";
  * already tells them when a photo is too small to look good.
  */
 
-/** What the shop draws at its largest, on a wide screen's product page. */
+/** What the shop draws at its largest, on a wide screen's product page — the frame's height. */
 export const TARGET_EDGE = 1600;
+
+/**
+ * The shop's frame is 4:5 now, tall like a phone photo (owner, 2026-10-02):
+ * a square padded a portrait shot with wide bars either side and drew the shoe
+ * small. The Add photos screen frames each photo before it goes up, so most
+ * arrive 4:5 already; anything else is fitted whole, never cropped here.
+ */
+export const FRAME_RATIO = 4 / 5;
 
 /** The shop's paper colour, so padding reads as the page behind it. */
 const PAPER = { r: 0xfd, g: 0xfb, b: 0xf7, alpha: 1 };
@@ -99,9 +107,10 @@ export async function prepareProductPhoto(
     // better photograph, which the Add photos screen asks for.
     const edge = Math.min(TARGET_EDGE, Math.max(longest, Math.min(longest * 2, TARGET_EDGE)));
 
+    const frameWidth = Math.round(edge * FRAME_RATIO);
     const bytes = await image
-      .resize(edge, edge, {
-        // `contain` fits the whole picture inside the square and fills the
+      .resize(frameWidth, edge, {
+        // `contain` fits the whole picture inside the frame and fills the
         // rest — nothing is cut off.
         fit: "contain",
         background: PAPER,
@@ -120,8 +129,8 @@ export async function prepareProductPhoto(
       bytes,
       contentType: "image/webp",
       extension: "webp",
-      note: describe(input.length, bytes.length, longest, edge),
-      width: edge,
+      note: describe(input.length, bytes.length, longest, edge, frameWidth),
+      width: frameWidth,
       height: edge,
       originalBytes: input.length,
     };
@@ -131,9 +140,9 @@ export async function prepareProductPhoto(
   }
 }
 
-function describe(before: number, after: number, wasEdge: number, nowEdge: number) {
+function describe(before: number, after: number, wasEdge: number, nowEdge: number, nowWidth: number) {
   const kb = (n: number) => `${Math.max(1, Math.round(n / 1024))} KB`;
-  const parts = [`squared to ${nowEdge}px`];
+  const parts = [`framed to ${nowWidth}×${nowEdge}px`];
 
   if (nowEdge > wasEdge) parts.push(`enlarged from ${wasEdge}px`);
   if (after < before) parts.push(`${kb(before)} to ${kb(after)}`);

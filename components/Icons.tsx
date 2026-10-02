@@ -425,7 +425,15 @@ export function CoinsIcon({ className }: IconProps) {
 /*
  * The shop's own line icons for the storefront (owner, 2026-10-01: "icons in
  * one premium style, in the shop's green, not emojis"). Same frame as the rest:
- * 24-unit box, round caps and joins, stroke in the current colour.
+ * 24-unit box, round caps and joins, stroke 2 in the current colour.
+ *
+ * The rules (owner, 2026-10-02):
+ *   size    three only — 16px (h-4) inside buttons and on cards, 20px (h-5)
+ *           in the tab bar and menus, 22px for the "why" and trust tiles
+ *   colour  green for what you can press, muted for what only tells; red
+ *           for a fault and nothing else
+ *   fill    only the star and a chosen heart; everything else is a line
+ *   emoji   none in the shop
  */
 function LineIcon({ className, d }: IconProps & { d: string }) {
   return (
@@ -471,4 +479,12 @@ export function RulerIcon({ className }: IconProps) {
 
 export function SparkleIcon({ className }: IconProps) {
   return <LineIcon className={className} d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />;
+}
+
+export function CameraIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M4 8.5h3l1.5-2.5h7L17 8.5h3v10H4zM12 10.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />;
+}
+
+export function ImageIcon({ className }: IconProps) {
+  return <LineIcon className={className} d="M4 5h16v14H4zM4 16l4.5-4.5 3.5 3.5 2.5-2.5L20 17.5M15.5 9.5a1.5 1.5 0 1 0 0 .01" />;
 }

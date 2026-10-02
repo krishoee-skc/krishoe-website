@@ -106,8 +106,10 @@ function SocialGlyph({ label }: { label: string }) {
   );
 }
 
+// On a phone the links go plain (owner, 2026-10-02: a shorter, lighter
+// foot) — the green medallions return on a wider screen.
 const linkMedallion =
-  "grid h-6 w-6 flex-none place-items-center rounded-md bg-brand-green text-brand-gold-bright transition group-hover/link:bg-brand-green-ink";
+  "hidden h-6 w-6 flex-none place-items-center rounded-md bg-brand-green text-brand-gold-bright transition group-hover/link:bg-brand-green-ink sm:grid";
 
 export default function Footer() {
   const socials = businessSocialProfiles();
@@ -155,7 +157,7 @@ export default function Footer() {
           <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-brand-green-ink">
             <T en="Shop" ne="पसल" /> &amp; <T en="Company" ne="कम्पनी" />
           </h3>
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-brand-green-ink sm:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-brand-green-ink sm:grid-cols-3 sm:gap-y-2">
             {[...shopLinks, ...companyLinks].map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="group/link flex items-center gap-2 font-semibold transition hover:text-brand-green">

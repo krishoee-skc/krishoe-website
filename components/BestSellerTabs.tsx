@@ -46,10 +46,13 @@ export default function BestSellerTabs({ pool, best, trending, newArrivals }: Li
 
   const chosen = resolve(tab === "trending" ? trending : tab === "new" ? newArrivals : best);
   const list = chosen.length > 0 ? chosen : resolve(best);
+  // Three tabs that all show the same shoes are three buttons that do nothing
+  // (owner, 2026-10-02) — on a small shop every tab falls back to one shelf.
+  const sameShelf = best.join() === trending.join() && best.join() === newArrivals.join();
 
   return (
     <>
-      <div className="mt-8 flex gap-6 overflow-x-auto border-b border-brand-green-line">
+      <div className={`mt-6 flex gap-6 overflow-x-auto border-b border-brand-green-line ${sameShelf ? "hidden" : ""}`}>
         {TABS.map((entry) => {
           const active = entry.id === tab;
           return (
@@ -69,7 +72,7 @@ export default function BestSellerTabs({ pool, best, trending, newArrivals }: Li
         })}
       </div>
 
-      <div className="mobile-product-rail mt-8 md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-4">
+      <div className="mobile-product-rail mt-6 md:grid md:grid-cols-3 md:gap-5 lg:grid-cols-4">
         {list.slice(0, 8).map((product) => (
           <div key={product.id} className="mobile-product-slide">
             <ProductCard product={product} intent="shop" />

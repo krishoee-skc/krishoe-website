@@ -118,7 +118,7 @@ export default async function ProductPhotosPage() {
               name: product.name,
               sku: product.sku,
               image: product.image,
-              galleryCount: product.gallery.length,
+              gallery: product.gallery,
               hasRealPhoto: hasRealPhoto(product.image),
             }}
           />

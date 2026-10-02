@@ -89,6 +89,7 @@ export default async function Home() {
   const promo = settings.promoEnabled && settings.promoText.trim() ? settings.promoText.trim() : "";
   // The real rating, from the reviews the Owner published — none, no chip.
   const homeRating = wallSummary(wallReviews(products, shopReviews));
+  const fromPrice = products.filter((product) => product.priceValue > 0).sort((a, b) => a.priceValue - b.priceValue)[0]?.price ?? "";
 
   return (
     <main className="bg-brand-paper">
@@ -152,7 +153,22 @@ export default async function Home() {
       {/* What a shopper needs right under the banner (owner, 2026-10-01): the
           real rating, the way into the shoes, and an order on WhatsApp — the
           way most of this shop's customers already buy. */}
-      <section className="px-4 pt-4 md:px-8" data-hero-actions>
+      <section className="px-4 pt-5 md:px-8" data-hero-actions>
+        {/* Who and what, in one breath (owner, 2026-10-02). The price is the
+            shop's own lowest, so it is never a promise the shelf cannot keep. */}
+        <div className="mx-auto mb-4 max-w-2xl text-center">
+          <p className="font-display text-xl font-black tracking-tight text-brand-green-ink md:text-3xl">
+            <T en="Made by hand in Narayangadh." ne="नारायणगढमा हातले बनेका।" />
+          </p>
+          {fromPrice ? (
+            <p className="mt-1 text-sm text-brand-muted md:text-base">
+              <T
+                en={`Sandals for every day and every occasion — from ${fromPrice}.`}
+                ne={`हरेक दिन र हरेक अवसरका स्यान्डल — ${fromPrice} देखि।`}
+              />
+            </p>
+          ) : null}
+        </div>
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-2.5">
           {homeRating ? (
             <Link

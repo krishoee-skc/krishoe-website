@@ -76,7 +76,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
 
   if (images.length === 0) {
     return (
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg">
         <NoPhotoYet name={name} />
       </div>
     );
@@ -114,7 +114,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           }
         }}
         aria-label={text(`See ${name} larger`, `${name} ठूलो पारेर हेर्ने`)}
-        className="group relative aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
+        className="group relative aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
       >
         <SafeImage
           src={selectedImage}
@@ -152,7 +152,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
                 aria-label={`View ${name} image ${index + 1}`}
                 aria-pressed={isSelected}
                 onClick={() => showImage(imgUrl)}
-                className={`relative aspect-square w-full overflow-hidden rounded-lg bg-brand-mist transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
+                className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-brand-mist transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
                   isSelected ? "ring-2 ring-brand-green ring-offset-2" : "hover:opacity-85"
                 }`}
               >

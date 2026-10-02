@@ -35,7 +35,9 @@ const SECTIONS = [
   "components/Testimonials.tsx",
 ];
 
-const HEADING = "font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl";
+// One step smaller on every section (owner, 2026-10-02): 30px headings on a
+// phone pushed the shoes down a screen; the scale is still one scale.
+const HEADING = "font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl";
 const CARD = "components/ProductCard.tsx";
 
 describe("every section heading is the same heading", () => {
@@ -57,7 +59,7 @@ describe("every section heading is the same heading", () => {
 
   it("wears the shop's own face everywhere, not on some sections only", async () => {
     const sources = await Promise.all(SECTIONS.map((file) => readFile(file, "utf8")));
-    const plain = SECTIONS.filter((_, index) => !sources[index].includes("font-display text-3xl"));
+    const plain = SECTIONS.filter((_, index) => !sources[index].includes("font-display text-2xl"));
 
     expect(plain.join(", ")).toBe("");
   });

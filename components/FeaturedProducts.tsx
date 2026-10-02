@@ -19,7 +19,7 @@ export default async function FeaturedProducts({ products }: FeaturedProductsPro
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
               <T en="Featured Collection" ne="छानिएका जुत्ता" />
             </p>
-            <h2 className="mt-3 font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
+            <h2 className="mt-3 font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
               <T en="Polished pairs for daily confidence." ne="दिनहुँ लगाउन मिल्ने, हेर्दा राम्रो।" />
             </h2>
           </div>

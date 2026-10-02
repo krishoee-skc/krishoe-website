@@ -1,4 +1,5 @@
 import BestSellerTabs from "@/components/BestSellerTabs";
+import Link from "next/link";
 import T from "@/components/T";
 import { getProducts } from "@/lib/product-store";
 import type { Product } from "@/lib/products";
@@ -44,13 +45,16 @@ export default async function BestSeller({ products }: BestSellerProps = {}) {
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            <T en="Shop the edit" ne="छानिएका जुत्ता" />
-          </p>
-          <h2 className="mt-3 font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-            <T en="Most-loved styles, selected by repeat buyers." ne="फेरि-फेरि किन्नेहरूले रोजेका जुत्ता।" />
+        {/* One plain heading (owner, 2026-10-02: fewer, truer words). "Most-
+            loved styles, selected by repeat buyers" claimed a choosing that a
+            shop of three shoes has not done. */}
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
+            <T en="Our shoes" ne="हाम्रा जुत्ता" />
           </h2>
+          <Link href="/shop" className="text-sm font-bold text-brand-green underline-offset-4 hover:underline">
+            <T en="See all →" ne="सबै हेर्ने →" />
+          </Link>
         </div>
 
         {/* Each shoe crosses the wire once, however many tabs it sits on.

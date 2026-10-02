@@ -56,14 +56,14 @@ export default function BottomTabBar() {
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>
             <span className={iconBubble(ONE_TONE, isHome)}>
-              <HomeIcon className="h-[18px] w-[18px]" />
+              <HomeIcon className="h-5 w-5" />
             </span>
             {text("Home", "गृह")}
           </Link>
 
           <Link href="/shop" className={tabClass(isShop)} aria-current={isShop ? "page" : undefined}>
             <span className={iconBubble(ONE_TONE, isShop)}>
-              <ShoppingBagIcon className="h-[18px] w-[18px]" />
+              <ShoppingBagIcon className="h-5 w-5" />
             </span>
             {text("Shop", "पसल")}
           </Link>
@@ -75,14 +75,14 @@ export default function BottomTabBar() {
             aria-label={text("Open search", "खोज्ने")}
           >
             <span className={iconBubble(ONE_TONE, false)}>
-              <SearchIcon className="h-[18px] w-[18px]" />
+              <SearchIcon className="h-5 w-5" />
             </span>
             {text("Search", "खोज")}
           </button>
 
           <Link href="/cart" className={tabClass(isCart)} aria-current={isCart ? "page" : undefined}>
             <span className={`relative ${iconBubble(ONE_TONE, isCart)}`}>
-              <ShoppingCartIcon className="h-[18px] w-[18px]" />
+              <ShoppingCartIcon className="h-5 w-5" />
               {cartCount > 0 ? (
                 <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#E84C79] px-1 text-[9px] font-black text-white">
                   {cartCount}
@@ -94,7 +94,7 @@ export default function BottomTabBar() {
 
           <Link href="/account" className={tabClass(isAccount)} aria-current={isAccount ? "page" : undefined}>
             <span className={iconBubble(ONE_TONE, isAccount)}>
-              <UserIcon className="h-[18px] w-[18px]" />
+              <UserIcon className="h-5 w-5" />
             </span>
             {text("Account", "खाता")}
           </Link>

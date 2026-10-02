@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { canPrepare, prepareProductPhoto, TARGET_EDGE } from "@/lib/prepare-product-photo";
+import { canPrepare, FRAME_RATIO, prepareProductPhoto, TARGET_EDGE } from "@/lib/prepare-product-photo";
 import sharp from "sharp";
 
 /**
@@ -33,11 +33,13 @@ async function realisticPhoto(width = 900, height = 1600) {
 }
 
 describe("what happens to a photo on its way in", () => {
-  it("squares it, because the shop's grid is one shape", async () => {
+  it("frames it 4:5, because the shop's grid is one shape — tall, like a phone photo", async () => {
     const prepared = await prepareProductPhoto(await realisticPhoto(), "image/jpeg");
 
     expect(prepared, "a normal JPEG was refused").not.toBeNull();
-    expect(prepared!.width).toBe(prepared!.height);
+    // Was square (owner, 2026-10-02: a square drew a portrait shot small
+    // between wide bars).
+    expect(prepared!.width).toBe(Math.round(prepared!.height * FRAME_RATIO));
   });
 
   it("pads rather than crops, so no part of the shoe is lost", async () => {
@@ -46,7 +48,7 @@ describe("what happens to a photo on its way in", () => {
     const prepared = await prepareProductPhoto(await realisticPhoto(900, 1600), "image/jpeg");
     const meta = await sharp(prepared!.bytes).metadata();
 
-    expect(meta.width).toBe(TARGET_EDGE);
+    expect(meta.width).toBe(Math.round(TARGET_EDGE * FRAME_RATIO));
     expect(meta.height).toBe(TARGET_EDGE);
 
     // The proof that it padded: the corners carry the shop's paper colour,
@@ -66,7 +68,7 @@ describe("what happens to a photo on its way in", () => {
 
     // 1600 on the long edge already; the point is that it is not shrunk to
     // fit some smaller idea of "optimised".
-    expect(prepared!.width).toBe(TARGET_EDGE);
+    expect(prepared!.height).toBe(TARGET_EDGE);
   });
 
   it("re-encodes as WebP, which is about half the bytes", async () => {

@@ -1,73 +1,66 @@
-import { CheckIcon } from "@/components/Icons";
+import { CashIcon, FactoryIcon, TagIcon, WhatsAppIcon } from "@/components/Icons";
 import T from "@/components/T";
 
 /**
- * Four reasons, in the reader's language.
+ * Four reasons, in the reader's language — and in a person's words (owner,
+ * 2026-10-02: "not what a robot writes; little, but sweet and true"). "Order
+ * requests are captured clearly so the KRISHOE team can confirm quickly" was
+ * a software brochure; what a shopper wants is that the pairs are made here,
+ * cost what a factory charges, that somebody calls, and that nothing is paid
+ * before the shoes arrive.
  *
  * Kept as a server component with the T island doing the translating, so the
- * home and category pages that carry this section stay statically prerendered.
- *
- * The Nepali is not a word-for-word rendering of the English. "Fast
- * Confirmation" is a phrase from a software brochure; what a Nepali shopper
- * wants to know is that someone will pick up the phone. The claims stay the
- * same — only the way of saying them changes.
+ * pages that carry it stay prerendered.
  */
 export default function WhyChoose() {
   const features = [
     {
-      en: "Premium Quality",
-      ne: "राम्रो गुणस्तर",
-      descEn: "Selected pairs with reliable materials, clean finishing, and a polished look.",
-      descNe: "छानिएको सामान, सफा सिलाइ — कारखानाबाट निस्कनुअघि हरेक जोडी जाँचिन्छ।",
+      Icon: FactoryIcon,
+      en: "Our own workshop",
+      ne: "आफ्नै कारखाना",
+      descEn: "Every pair is cut, stitched and checked in Narayangadh.",
+      descNe: "हरेक जोडी नारायणगढकै कारखानामा काटिन्छ, सिलाइन्छ र जाँचिन्छ।",
     },
     {
-      en: "Comfort",
-      ne: "आरामदायी",
-      descEn: "Built around easy movement for daily wear, work days, and family outings.",
-      descNe: "दिनभरि लगाउन मिल्ने — काममा, बजारमा, घुम्न जाँदा।",
+      Icon: TagIcon,
+      en: "Factory price",
+      ne: "कारखानाकै मूल्य",
+      descEn: "No middle shop between us and you.",
+      descNe: "हाम्रै कारखाना, बीचमा कोही छैन — त्यसैले मूल्य इमानदार हुन्छ।",
     },
     {
-      en: "Fast Confirmation",
-      ne: "छिटो जवाफ",
-      descEn: "Order requests are captured clearly so the KRISHOE team can confirm quickly.",
+      Icon: WhatsAppIcon,
+      en: "A real person calls",
+      ne: "साँचो मान्छेको फोन",
+      descEn: "We call to confirm your size, colour and day.",
       descNe: "अर्डर गरेपछि हामी चाँडै फोन गरेर पक्का गर्छौँ — साइज, रङ, कहिले पुग्छ।",
     },
     {
-      en: "Fair Price",
-      ne: "इमानदार मूल्य",
-      descEn: "Premium everyday footwear with pricing that makes sense for repeat use.",
-      descNe: "हाम्रै कारखाना, बीचमा कोही छैन — त्यसैले मूल्य इमानदार हुन्छ।",
+      Icon: CashIcon,
+      en: "Pay on delivery",
+      ne: "आएपछि तिर्ने",
+      descEn: "Nothing to pay before the pair is in your hands.",
+      descNe: "जुत्ता हातमा नआउँदासम्म केही तिर्नु पर्दैन।",
     },
   ];
 
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl text-brand-green">
-          <T en="Why Choose KRISHOE?" ne="किन KRISHOE?" />
+        <h2 className="text-center font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl mb-6 md:mb-10">
+          <T en="Why KRISHOE" ne="किन KRISHOE?" />
         </h2>
 
-        <p className="mb-14 mt-4 text-center text-gray-500">
-          <T
-            en="A cleaner shopping experience for everyday footwear."
-            ne="दिनहुँ लगाउने जुत्ता — सिधै कारखानाबाट, झन्झट बिना।"
-          />
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {features.map((item) => (
-            <div
-              key={item.en}
-              className="rounded-lg bg-brand-paper p-4 text-center shadow-lg duration-300 hover:shadow-2xl sm:p-6 md:p-8"
-            >
-              <div className="mx-auto mb-3 grid h-10 w-10 md:mb-5 md:h-12 md:w-12 place-items-center rounded-full bg-brand-green-mist text-brand-green">
-                <CheckIcon className="h-6 w-6" />
-              </div>
-
-              <h3 className="text-base font-bold text-brand-green sm:text-xl md:text-2xl">
+            <div key={item.en} className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-6">
+              <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-brand-green-wash text-brand-green">
+                <item.Icon className="h-[22px] w-[22px]" />
+              </span>
+              <h3 className="text-base font-bold text-brand-green-ink sm:text-lg">
                 <T en={item.en} ne={item.ne} />
               </h3>
-              <p className="mt-2 text-sm text-gray-600 md:mt-4 md:text-base">
+              <p className="mt-1 text-sm leading-6 text-brand-muted">
                 <T en={item.descEn} ne={item.descNe} />
               </p>
             </div>

@@ -119,7 +119,7 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
   return (
     <section className="bg-brand-paper py-10 md:py-20" data-review-wall>
       <div className="mx-auto max-w-7xl px-5 md:px-6">
-        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
+        <h2 className="text-center font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl">
           <T en="What our customers say" ne="ग्राहकहरूले के भन्नुहुन्छ" />
         </h2>
 

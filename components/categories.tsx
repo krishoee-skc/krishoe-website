@@ -51,13 +51,9 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="text-center font-display text-3xl font-black tracking-tight text-brand-green-ink md:text-5xl">
-          <T en="Shop by Collection" ne="किसिम अनुसार" />
+        <h2 className="text-center font-display text-2xl font-black tracking-tight text-brand-green-ink md:text-4xl mb-6 md:mb-8">
+          <T en="Shop by style" ne="किसिम अनुसार" />
         </h2>
-
-        <p className="mb-10 mt-3 text-center text-brand-muted">
-          <T en="Find your perfect footwear." ne="आफूलाई मिल्ने जुत्ता भेट्टाउनुहोस्।" />
-        </p>
 
         {/* Round chips with a platinum-silver rim that turns purple on hover —
             the storefront's new accents. Real category photos, not emoji, so
@@ -72,6 +68,8 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
             .map((item) => {
             const comingSoon = shoeCounts !== undefined && (shoeCounts[item.slug] ?? 0) === 0;
             const count = shoeCounts?.[item.slug] ?? 0;
+            // Coming soon is said once, in the line below the tiles.
+            if (comingSoon) return null;
             return (
               <Link
                 key={item.slug}
@@ -104,6 +102,17 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
             );
           })}
         </div>
+        {shoeCounts !== undefined && categories.some((item) => (shoeCounts[item.slug] ?? 0) === 0) ? (
+          <p className="mt-4 text-center text-sm text-brand-muted" data-coming-soon-line>
+            <span className="rounded-full border border-brand-gold/50 bg-brand-cream-soft px-2.5 py-0.5 text-xs font-bold text-brand-gold-ink">
+              <T en="Coming soon" ne="छिट्टै आउँदैछ" />
+            </span>{" "}
+            {categories
+              .filter((item) => (shoeCounts[item.slug] ?? 0) === 0)
+              .map((item) => item.title)
+              .join(" · ")}
+          </p>
+        ) : null}
       </div>
     </section>
   );

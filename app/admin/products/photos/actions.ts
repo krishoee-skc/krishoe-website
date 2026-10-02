@@ -50,6 +50,10 @@ export async function saveProductPhotoAction(
     return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
   }
 
+  if (slot === "gallery" && product.gallery.length >= MAX_PHOTOS) {
+    return { ok: false, en: `A shoe holds ${MAX_PHOTOS} photos — remove one first.`, ne: `एउटा जुत्तामा ${MAX_PHOTOS} फोटो मात्र — पहिले एउटा हटाउनुहोस्।` };
+  }
+
   try {
     await upsertProduct({
       ...product,
@@ -88,4 +92,60 @@ export async function saveProductPhotoAction(
   return slot === "main"
     ? { ok: true, en: `${product.name} — main photo changed ✅`, ne: `${product.name} — मुख्य फोटो बदलियो ✅` }
     : { ok: true, en: `${product.name} — another photo added ✅`, ne: `${product.name} — थप फोटो जोडियो ✅` };
+}
+
+/** At most this many photos on a shoe: a strip of six is already a lot to swipe. */
+const MAX_PHOTOS = 6;
+
+/**
+ * Another photo is the cover now — the one on every card (owner,
+ * 2026-10-02). The others keep their order behind it.
+ */
+export async function setCoverPhotoAction(
+  _previousState: PhotoActionState | null,
+  formData: FormData,
+): Promise<PhotoActionState> {
+  await requireAdminPermission("products:write");
+  const productId = textValue(formData, "productId");
+  const image = textValue(formData, "image");
+  const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
+  if (!product || !image || !product.gallery.includes(image)) {
+    return { ok: false, en: "That photo was not found on this shoe.", ne: "यो जुत्तामा त्यो फोटो भेटिएन।" };
+  }
+  try {
+    await upsertProduct({ ...product, image, gallery: [image, ...product.gallery.filter((item) => item !== image)] });
+  } catch (error) {
+    reportError(`set cover photo for product ${product.sku}`, error);
+    return { ok: false, en: "The cover was not changed.", ne: "मुख्य फोटो बदलिएन।" };
+  }
+  await recordAdminAuditEvent("product_photo_cover", `Cover photo changed for ${product.sku} (${product.name}).`);
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/products/photos");
+  return { ok: true, en: `${product.name} — cover photo changed ✅`, ne: `${product.name} — मुख्य फोटो बदलियो ✅` };
+}
+
+/** A photo taken off a shoe. The last one stays: a shoe with no photo does not sell. */
+export async function removePhotoAction(
+  _previousState: PhotoActionState | null,
+  formData: FormData,
+): Promise<PhotoActionState> {
+  await requireAdminPermission("products:write");
+  const productId = textValue(formData, "productId");
+  const image = textValue(formData, "image");
+  const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
+  if (!product || !image) return { ok: false, en: "That photo was not found.", ne: "फोटो भेटिएन।" };
+  const rest = product.gallery.filter((item) => item !== image);
+  if (rest.length === 0) {
+    return { ok: false, en: "This is the only photo — add another before removing it.", ne: "यो एउटै फोटो हो — पहिले अर्को राखेर मात्र हटाउनुहोस्।" };
+  }
+  try {
+    await upsertProduct({ ...product, image: product.image === image ? rest[0] : product.image, gallery: rest });
+  } catch (error) {
+    reportError(`remove photo from product ${product.sku}`, error);
+    return { ok: false, en: "The photo was not removed.", ne: "फोटो हटेन।" };
+  }
+  await recordAdminAuditEvent("product_photo_removed", `A photo removed from ${product.sku} (${product.name}).`);
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/products/photos");
+  return { ok: true, en: `${product.name} — photo removed`, ne: `${product.name} — फोटो हट्यो` };
 }
