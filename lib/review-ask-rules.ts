@@ -1,4 +1,5 @@
 import { noteNamesBill } from "@/lib/bill-number";
+import { whatsappNumber } from "@/lib/phone-intl";
 
 /**
  * Who to ask for a review (owner, 2026-10-01): counter customers whose bill
@@ -36,8 +37,8 @@ export function mobileDigits(phone: string) {
 
 /** wa.me wants the country code. */
 export function whatsappTo(phone: string) {
-  const digits = mobileDigits(phone);
-  return digits ? `977${digits}` : "";
+  // Any country now (lib/phone-intl.ts), not Nepal alone.
+  return whatsappNumber(phone);
 }
 
 /**

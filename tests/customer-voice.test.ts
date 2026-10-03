@@ -108,8 +108,9 @@ describe("the inbox screen", () => {
   it("dials a Nepali number the way wa.me needs it", async () => {
     const page = await readFile(PAGE, "utf8");
 
-    // Ten digits is a local number; wa.me wants the country code on it.
-    expect(page).toContain('digits.length === 10 ? `977${digits}` : digits');
+    // Ten digits is a local number; wa.me wants the country code on it. Since
+    // 2026-10-03 one rule (lib/phone-intl.ts) adds it, and keeps a foreign one.
+    expect(page).toContain('return toWhatsApp(digits) || digits;');
   });
 
   it("says nothing rather than an empty table", async () => {

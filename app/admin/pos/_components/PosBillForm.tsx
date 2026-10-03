@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { useRouter } from "next/navigation";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
@@ -1215,18 +1216,17 @@ export default function PosBillForm({
               {text("Customer", "ग्राहक")}
             </p>
             <div className="grid gap-2">
-              <input
+              <PhoneWithCountry
                 name="phone"
-                inputMode="tel"
                 value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                onChange={setPhone}
                 placeholder={
                   needsAccount
                     ? text("Customer's phone (needed)", "ग्राहकको फोन (चाहिन्छ)")
                     : text("Customer's phone (optional)", "ग्राहकको फोन (नचाहिए खाली)")
                 }
-                aria-label={text("Customer's phone", "ग्राहकको फोन")}
-                className={inputClass}
+                ariaLabel={text("Customer's phone", "ग्राहकको फोन")}
+                inputClass={inputClass}
               />
               {phoneWarning ? (
                 <p className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-deep">
@@ -1524,13 +1524,12 @@ export default function PosBillForm({
                         aria-label={text("Customer's name for the account", "खाताका लागि ग्राहकको नाम")}
                         className={inputClass}
                       />
-                      <input
-                        inputMode="tel"
+                      <PhoneWithCountry
                         value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
+                        onChange={setPhone}
                         placeholder={text("Customer's phone", "ग्राहकको फोन")}
-                        aria-label={text("Customer's phone for the account", "खाताका लागि ग्राहकको फोन")}
-                        className={inputClass}
+                        ariaLabel={text("Customer's phone for the account", "खाताका लागि ग्राहकको फोन")}
+                        inputClass={inputClass}
                       />
                     </div>
                     <button

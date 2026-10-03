@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import type { SafeUser } from "@/lib/user-store";
 import { updateProfileAction, type AccountActionState } from "@/app/account/actions";
 import SubmitButton from "@/components/SubmitButton";
@@ -51,15 +52,10 @@ export default function ProfileEditForm({ user }: { user: SafeUser }) {
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Phone
-          <input
+          <PhoneWithCountry
             name="phone"
-            type="tel"
-            defaultValue={user.phone}
-            maxLength={20}
-            pattern="^\+?[0-9\s().-]{7,20}$"
-            autoComplete="tel"
-            className="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
-            placeholder="+977 9800000000"
+            defaultValue={user.phone ?? ""}
+            inputClass="h-12 rounded-lg border border-black/10 px-4 font-normal outline-none focus:border-brand-green"
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">

@@ -1,3 +1,5 @@
+import { whatsappNumber } from "@/lib/phone-intl";
+
 /**
  * Bringing a factory worker into the app (owner, 2026-10-02: "how do I open my
  * worker's account — by mobile or by Gmail?").
@@ -61,9 +63,7 @@ export function joinMessage(input: { name: string; phone: string; code: string; 
   ].join("\n");
 }
 
-/** wa.me wants the number with Nepal's 977 and nothing else. */
+/** wa.me wants the country code: one rule for every country (lib/phone-intl.ts). */
 export function whatsappNumberFor(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("977")) return digits;
-  return digits.length === 10 ? `977${digits}` : digits;
+  return whatsappNumber(phone) || phone.replace(/\D/g, "");
 }

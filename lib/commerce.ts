@@ -1,4 +1,5 @@
 import { businessContact } from "@/lib/seo";
+import { whatsappNumber } from "@/lib/phone-intl";
 
 // wa.me needs the recipient number in the path, otherwise the customer is
 // dropped into WhatsApp with no contact selected and most abandon the order.
@@ -14,8 +15,9 @@ export const viberOrderUrl = (message: string) =>
 // shop). Nepal numbers are stored locally as 10 digits (98xxxxxxxx); wa.me
 // needs the 977 country code, so add it when it is missing.
 export const whatsappToUrl = (phone: string, message: string) => {
-  const digits = phone.replace(/\D/g, "");
-  const withCode = digits.length === 10 && digits.startsWith("9") ? `977${digits}` : digits;
+  // One rule for every country (lib/phone-intl.ts): a Nepali ten digits gets
+  // 977, a number typed with its own code keeps it.
+  const withCode = whatsappNumber(phone) || phone.replace(/\D/g, "");
   return `https://wa.me/${withCode}?text=${encodeURIComponent(message)}`;
 };
 

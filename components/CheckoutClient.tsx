@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { paymentOptions, shippingOptions, whatsappOrderUrl } from "@/lib/commerce";
 import { paymentOptionLabel, shippingOptionLabel } from "@/lib/commerce-labels";
@@ -216,16 +217,13 @@ function CheckoutForm({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
             {text("Phone", "फोन नम्बर")}
-            <input
+            {/* The country beside the number (owner, 2026-10-03): Nepal to start, so a
+                Nepali number is typed as before; any other keeps its code. */}
+            <PhoneWithCountry
               name="phone"
-              type="tel"
-              defaultValue={user?.phone}
+              defaultValue={user?.phone ?? ""}
               required
-              maxLength={20}
-              pattern="^\+?[0-9\s().-]{7,20}$"
-              autoComplete="tel"
-              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
-              placeholder="+977..."
+              inputClass="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">

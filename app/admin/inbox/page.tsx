@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { whatsappNumber as toWhatsApp } from "@/lib/phone-intl";
 import Link from "next/link";
 import { canAdmin, requireAdminPermission } from "@/lib/admin-permissions";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -63,7 +64,7 @@ function dialable(phone: string) {
 
 /** Nepali mobile numbers are stored as ten digits; wa.me needs the country code. */
 function whatsappNumber(digits: string) {
-  return digits.length === 10 ? `977${digits}` : digits;
+  return toWhatsApp(digits) || digits;
 }
 
 function Stars({ rating }: { rating: number }) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { whatsappNumber as toWhatsApp } from "@/lib/phone-intl";
 import { useState, useTransition } from "react";
 import type {
   OnlineOrderConversionReport,
@@ -425,8 +426,7 @@ const DISPATCH_BY = ["Own person", "Upaya Courier", "Pathao", "Nepal Can Move"] 
 
 /** Digits only, with Nepal's code on a ten-digit mobile — what wa.me wants. */
 function whatsappNumber(phone: string) {
-  const digits = phone.replace(/[^\d]/g, "");
-  return digits.length === 10 ? `977${digits}` : digits;
+  return toWhatsApp(phone) || phone.replace(/[^\d]/g, "");
 }
 
 /** What to send the customer at each step, in the language the desk is read in. */

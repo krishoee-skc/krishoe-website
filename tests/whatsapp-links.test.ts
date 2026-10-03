@@ -61,7 +61,8 @@ describe("links that open WhatsApp", () => {
   it("adds the country code to a customer's own number rather than assuming it", async () => {
     const inbox = await readFile("app/admin/inbox/page.tsx", "utf8");
 
-    // Customers are stored as ten digits. Sending that to wa.me reaches nobody.
-    expect(inbox).toContain('digits.length === 10 ? `977${digits}` : digits');
+    // Customers are stored as ten digits. Sending that to wa.me reaches nobody;
+    // since 2026-10-03 the one rule in lib/phone-intl.ts adds it, for any country.
+    expect(inbox).toContain('return toWhatsApp(digits) || digits;');
   });
 });

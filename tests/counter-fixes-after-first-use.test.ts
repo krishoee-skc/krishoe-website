@@ -25,7 +25,8 @@ describe("a credit sale opens its account where it is asked for", () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
     const panel = form.slice(form.indexOf("canOpenLedger ? ("), form.indexOf("onClick={openLedger}"));
     expect(panel).toContain('aria-label={text("Customer\'s name for the account"');
-    expect(panel).toContain('aria-label={text("Customer\'s phone for the account"');
+    // the phone box carries its country since 2026-10-03
+    expect(panel).toContain('ariaLabel={text("Customer\'s phone for the account"');
   });
 
   it("says the name is needed, not optional, while credit waits for an account", async () => {

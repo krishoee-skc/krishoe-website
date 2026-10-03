@@ -1,3 +1,5 @@
+import { isForeignPhone } from "@/lib/phone-intl";
+
 /**
  * Plain checks on who a bill is for, kept pure so the counter's form and its
  * tests read them the same way (owner, 2026-09-30).
@@ -18,6 +20,8 @@ function digitsOf(value: string) {
 export function phoneProblem(phone: string): { en: string; ne: string } | null {
   let number = digitsOf(phone);
   if (!number) return null;
+  // A number with another country's code was chosen as such (2026-10-03).
+  if (isForeignPhone(phone)) return null;
   if (number.length === 13 && number.startsWith("977")) number = number.slice(3);
   if (/^9[78]\d{8}$/.test(number)) return null;
   if (/^0\d{7,9}$/.test(number)) return null;

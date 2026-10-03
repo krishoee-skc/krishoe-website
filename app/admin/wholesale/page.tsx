@@ -1,4 +1,5 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
+import { whatsappNumber } from "@/lib/phone-intl";
 import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { listWholesaleEnquiries } from "@/lib/wholesale-enquiries";
@@ -92,7 +93,7 @@ export default async function WholesaleEnquiriesPage({
                   📞 {enquiry.phone}
                 </a>
                 <a
-                  href={`https://wa.me/${enquiry.phone.replace(/[^\d]/g, "")}`}
+                  href={`https://wa.me/${whatsappNumber(enquiry.phone) || enquiry.phone.replace(/[^\d]/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex min-h-11 items-center rounded-xl border border-brand-green-line px-4 text-sm font-black text-brand-green-ink transition hover:border-brand-green"

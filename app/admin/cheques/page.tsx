@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import Link from "next/link";
 import T from "@/components/T";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
@@ -284,7 +285,7 @@ function ChequeCard({
                 </label>
                 <label className="grid gap-1 text-sm font-bold text-brand-muted">
                   <T en="Mobile (for WhatsApp)" ne="मोबाइल (WhatsApp का लागि)" />
-                  <input name="partyPhone" inputMode="tel" defaultValue={cheque.partyPhone} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
+                  <PhoneWithCountry name="partyPhone" defaultValue={cheque.partyPhone ?? ""} inputClass="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
                 </label>
                 <button className="min-h-11 self-end rounded-xl bg-brand-green-ink px-5 text-base font-black text-white">
                   <T en="Save" ne="सेभ" />

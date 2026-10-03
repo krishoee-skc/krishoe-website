@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import SubmitButton from "@/components/SubmitButton";
 import { useLanguage } from "@/components/LanguageProvider";
 import { submitWholesaleEnquiry, type WholesaleFormState } from "./actions";
@@ -47,15 +48,7 @@ export default function WholesaleForm() {
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
         {text("Phone number *", "फोन नम्बर *")}
-        <input
-          name="phone"
-          type="tel"
-          required
-          maxLength={40}
-          autoComplete="tel"
-          className={inputClass}
-          placeholder="98XXXXXXXX"
-        />
+        <PhoneWithCountry name="phone" required inputClass={inputClass} />
       </label>
 
       <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
