@@ -6,6 +6,7 @@ import { reportError } from "@/lib/report-error";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
 import { addWorkerRequest, countOpenRequests, isWorkerOnLeave } from "@/lib/worker-portal";
 import { workerTableReady } from "@/lib/worker-portal-db";
+import { requestLine, tellOwnerWorkerSent } from "@/lib/worker-inbox-alert";
 
 export type AskState = { ok: boolean; text: string } | null;
 
@@ -47,6 +48,7 @@ export async function askOwnerAction(_previous: AskState, formData: FormData): P
     "factory_worker_request",
     kind === "advance" ? `${worker.name} asked for an advance of Rs. ${amount}.` : `${worker.name} said a sum does not add up.`,
   );
+  await tellOwnerWorkerSent("request", worker.name, requestLine(kind === "advance" ? amount : null, message));
   revalidatePath("/worker/ask");
   revalidatePath("/admin/factory/photos");
   return { ok: true, text: "मालिकलाई पठाइयो ✅ जवाफ यहीँ देखिन्छ।" };

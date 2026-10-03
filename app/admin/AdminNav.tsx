@@ -17,6 +17,7 @@ import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
 
 export default function AdminNav({
   attention,
+  counts,
   adminRole,
   adminName,
   adminEmail,
@@ -29,6 +30,8 @@ export default function AdminNav({
 }: {
   /** Which links the shop's own checks say want looking at. */
   attention?: Map<string, AttentionLevel>;
+  /** How many things wait behind a link, shown as a number (workers' photos). */
+  counts?: Record<string, number>;
   adminRole: AdminRole;
   adminName?: string;
   adminEmail?: string;
@@ -134,6 +137,7 @@ export default function AdminNav({
                 {group.links.map(({ href, label, nepali, icon: Icon }) => {
                   const isActive = pathname === href;
                   const needs = attention?.get(href);
+                  const waiting = counts?.[href] ?? 0;
                   return (
                     <Link
                       key={`${group.id}-${href}`}
@@ -157,7 +161,11 @@ export default function AdminNav({
                         }`}
                       >
                         <Icon className="h-5 w-5" />
-                        {needs ? (
+                        {waiting > 0 && isCollapsed ? (
+                          <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-brand-clay px-1 text-center text-[11px] font-black leading-5 text-white ring-2 ring-admin-sidebar dark:ring-admin-sidebar-dark">
+                            {waiting > 99 ? "99+" : waiting}
+                          </span>
+                        ) : needs ? (
                           <span
                             aria-hidden="true"
                             className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-admin-sidebar dark:ring-admin-sidebar-dark ${
@@ -185,6 +193,12 @@ export default function AdminNav({
                           ) : null}
                         </span>
                       )}
+                      {waiting > 0 && !isCollapsed ? (
+                        <span className="ml-auto rounded-full bg-brand-clay px-2 py-0.5 text-sm font-black leading-5 text-white">
+                          {waiting > 99 ? "99+" : waiting}
+                        </span>
+                      ) : null}
+                      {waiting > 0 ? <span className="sr-only">{text(`${waiting} waiting`, `${waiting} बाँकी`)}</span> : null}
                       {/* The dot is colour only. Said in words too, or the
                           app's one prompt to act is invisible to anyone not
                           reading colour. */}

@@ -33,6 +33,7 @@ export default function FactoryBoard({
   products,
   stages,
   owed,
+  inbox = { photos: 0, requests: 0 },
 }: {
   stats: FactoryDayStats;
   /** Pairs posted to stock today — what was made. */
@@ -41,6 +42,8 @@ export default function FactoryBoard({
   products: FactoryProductTotal[];
   stages: FactoryStageTotal[];
   owed: FactoryOwed;
+  /** Workers' photos and questions still to check (owner, 2026-10-03). */
+  inbox?: { photos: number; requests: number };
 }) {
   const { text } = useLanguage();
   // Every entry made today, whatever its state — the denominator the success
@@ -107,6 +110,32 @@ export default function FactoryBoard({
           }
         />
       </div>
+
+      {/* What workers sent, waiting to be checked — loud while it waits,
+          a quiet green line once all is checked. */}
+      <Link
+        href="/admin/factory/photos"
+        className={`flex min-h-14 items-center gap-3 rounded-2xl border px-4 py-2.5 transition ${
+          inbox.photos + inbox.requests > 0
+            ? "border-brand-clay/40 bg-red-50 text-brand-green-ink hover:border-brand-clay dark:bg-red-950/30"
+            : "border-brand-green-line bg-brand-paper text-brand-muted hover:border-brand-green"
+        }`}
+      >
+        <span className={`text-3xl font-black tabular-nums ${inbox.photos + inbox.requests > 0 ? "text-brand-clay" : "text-brand-green"}`}>
+          {inbox.photos + inbox.requests}
+        </span>
+        <span className="grid leading-tight">
+          <span className="text-base font-black">
+            {inbox.photos + inbox.requests > 0 ? text("Workers' photos to check", "जाँच्न बाँकी कामदारको फोटो") : text("Workers' photos — all checked ✓", "कामदारको फोटो — सबै जाँचियो ✓")}
+          </span>
+          {inbox.photos + inbox.requests > 0 ? (
+            <span className="text-sm text-brand-muted">
+              {text(`${inbox.photos} photo(s) · ${inbox.requests} to answer`, `${inbox.photos} फोटो · ${inbox.requests} कुरा`)}
+            </span>
+          ) : null}
+        </span>
+        <span aria-hidden="true" className="ml-auto text-lg">→</span>
+      </Link>
 
       {/* Where the pairs have reached.
           A shoe passes four stages, and the number that matters is how many

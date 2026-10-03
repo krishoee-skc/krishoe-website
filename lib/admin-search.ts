@@ -138,6 +138,7 @@ export function searchRecords(records: AdminSearchRecord[], query: string, limit
  */
 export const ADMIN_SEARCH_PAGES: AdminSearchRecord[] = [
   { kind: "page", title: "काम टिप्ने", titleEn: "Add work", detail: "कामदारको दैनिक काम र ज्याला", detailEn: "A worker's day and what it earned", href: "/admin/factory/add-work", terms: ["काम टिप्ने", "add work", "factory entry", "kaam", "wage", "ज्याला"], group: "factory" },
+  { kind: "page", title: "कामदारको फोटो", titleEn: "Workers' photos", detail: "कामदारले पठाएको फोटो र कुरा जाँच्ने", detailEn: "Check the photos and questions workers send", href: "/admin/factory/photos", terms: ["फोटो", "photo", "photos", "कामदारको फोटो", "worker photo", "request", "पेस्की"], group: "factory" },
   { kind: "page", title: "कामदार", titleEn: "Workers", detail: "नाम, चरण, ज्यालाको किसिम", detailEn: "Name, stage, how they are paid", href: "/admin/factory/workers", terms: ["कामदार", "workers", "worker", "staff", "kamdar"], group: "factory" },
   { kind: "page", title: "कामदारको खाता", titleEn: "Worker ledger", detail: "कसले कति कमायो, कति पाए", detailEn: "Who earned what, and what they were paid", href: "/admin/factory/ledger", terms: ["खाता", "ledger", "khata", "balance", "हिसाब", "कामदार"], group: "factory" },
   { kind: "page", title: "तलब", titleEn: "Salary", detail: "मासिक तलब र भुक्तानी", detailEn: "Monthly salary and payment", href: "/admin/factory/salary", terms: ["तलब", "salary", "talab", "pay"], group: "factory" },

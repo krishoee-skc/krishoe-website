@@ -17,6 +17,8 @@ import { getSessionAdminRole } from "@/lib/admin-permissions";
 import { allBranchAdminRole } from "@/lib/admin-branch-context";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { redirect } from "next/navigation";
+import { canAccessAdminPath } from "@/lib/admin-role-permissions";
+import { workerInboxCounts } from "@/lib/worker-portal";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
@@ -58,7 +60,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   //
   // Never fatal: the menu is how every screen is reached, and a failing
   // check must not take the whole admin down with it.
-  const checks = await runShopSelfCheck().catch(() => []);
+  const [checks, inboxWaiting] = await Promise.all([
+    runShopSelfCheck().catch(() => []),
+    // How many workers' photos and questions wait, as a number on the menu
+    // (owner, 2026-10-03). Only for those who may open that screen.
+    canAccessAdminPath(adminRole, "/admin/factory/photos")
+      ? workerInboxCounts().then((waiting) => waiting.photos + waiting.requests).catch(() => 0)
+      : Promise.resolve(0),
+  ]);
+  const counts: Record<string, number> = inboxWaiting > 0 ? { "/admin/factory/photos": inboxWaiting } : {};
   const attention = attentionByHref(checks);
   // The same checks, in words, at the top of the page the dot sends you to.
   const reasons = checks.map(({ id, severity, title, titleNe, detail, detailNe, href, action, actionNe }) => ({
@@ -70,6 +80,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <SidebarProvider>
       <AdminNav
         attention={attention}
+        counts={counts}
         adminRole={adminRole}
         adminName={session?.name}
         adminEmail={session?.email}
@@ -86,6 +97,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       />
       <main className="admin-canvas min-w-0 overflow-x-clip bg-brand-paper-deep">
         <AdminMobileNav
+          counts={counts}
           adminRole={adminRole}
           adminName={session?.name}
           adminEmail={session?.email}

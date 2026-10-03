@@ -439,13 +439,41 @@ export default function WorkerInbox({
                             </ul>
                           ) : null}
                         </div>
+                      ) : photo.status !== "added" && photo.kind !== "problem" && photo.verdict !== "not_work" && (!photo.itemId || !photo.pairs) ? (
+                        // Half-told (owner, 2026-10-03): say what is missing on
+                        // the card, and let a wrong one be called not work
+                        // without first filling it in.
+                        <div className="grid gap-2">
+                          <p className="w-max rounded-full bg-amber-100 px-3 py-0.5 text-xs font-black text-amber-900">
+                            ⚠ {!photo.itemId && !photo.pairs
+                              ? text("No shoe · no pairs", "जुत्ता र जोडी छैन")
+                              : !photo.itemId
+                                ? text("No shoe", "जुत्ता छैन")
+                                : text("No pairs", "जोडी छैन")}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => setOpen(photo.id)} className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white">
+                              {text("Fill in and check →", "भरेर जाँच्ने →")}
+                            </button>
+                            {reviewOn ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  change(photo, { work: false });
+                                  setOpen(photo.id);
+                                }}
+                                className="min-h-11 rounded-xl border border-red-700 px-3 text-sm font-black text-red-800"
+                              >
+                                {text("✖ Not work", "✖ काम होइन")}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
                       ) : (
                         <button type="button" onClick={() => setOpen(photo.id)} className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white">
                           {photo.status === "added" || photo.kind === "problem"
                             ? text("Open", "खोल्ने")
-                            : !photo.itemId || !photo.pairs
-                              ? text("Fill in and check →", "भरेर जाँच्ने →")
-                              : text("Check ✓ →", "जाँच्ने ✓ →")}
+                            : text("Check ✓ →", "जाँच्ने ✓ →")}
                         </button>
                       )}
                     </div>

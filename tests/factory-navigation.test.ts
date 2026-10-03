@@ -10,7 +10,8 @@ describe("Factory admin navigation", () => {
       "utf8",
     );
 
-    expect(layout).toContain("<FactoryNav />");
+    // with how many workers' photos wait (2026-10-03)
+    expect(layout).toContain("<FactoryNav waiting={inbox.photos + inbox.requests} />");
     expect(layout).not.toContain("lg:w-56");
     expect(navigation).toContain('aria-label="Factory sections"');
     expect(navigation).toContain("overflow-x-auto");

@@ -11,6 +11,7 @@ import {
 } from "@/lib/factory-board-data";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { workerInboxCounts } from "@/lib/worker-portal";
 
 export const metadata: Metadata = {
   title: "Factory today | KRISHOE Admin",
@@ -53,7 +54,10 @@ async function loadBoard(date: string) {
 export default async function FactoryDashboardPage() {
   // Nepal's day, not the server's — a board opened at 6am in the workshop must
   // show that morning's work, whatever timezone the machine runs in.
-  const loaded = await loadBoard(nepalDateKey());
+  const [loaded, inbox] = await Promise.all([
+    loadBoard(nepalDateKey()),
+    workerInboxCounts().catch(() => ({ photos: 0, requests: 0 })),
+  ]);
 
   if (!loaded.stats || !loaded.works || !loaded.owed) {
     return (
@@ -69,6 +73,7 @@ export default async function FactoryDashboardPage() {
       products={topProducts(loaded.works)}
       stages={stageTotals(loaded.works)}
       owed={loaded.owed}
+      inbox={inbox}
     />
   );
 }

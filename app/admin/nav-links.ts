@@ -17,6 +17,7 @@ import {
   CalculatorIcon,
   BarChartIcon,
   GearIcon,
+  CameraIcon,
 } from "@/components/Icons";
 
 /**
@@ -114,6 +115,10 @@ export const adminNavGroups: AdminNavGroup[] = [
       // the dashboard, search, the chip row — opens the work form. One name,
       // two places; the owner pressed it to enter work and landed elsewhere.
       { href: "/admin/factory", label: "Factory today", nepali: "कारखाना आज", icon: FactoryIcon },
+      // What workers send from their app (owner, 2026-10-03): it was three
+      // presses deep, behind a link on Workers, and a photo sat unseen. The
+      // menu shows how many wait (AdminNav `counts`).
+      { href: "/admin/factory/photos", label: "Workers' photos", nepali: "कामदारको फोटो", icon: CameraIcon },
       // Wages, kharcha, stock postings and cost cards — a daily-needed screen that
       // had no menu link and could only be reached by typing its URL. It read
       // "Cost & profit", which is the costing screen further down this file:

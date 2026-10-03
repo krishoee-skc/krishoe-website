@@ -3,7 +3,8 @@ import sharp from "sharp";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { reportError } from "@/lib/report-error";
 import { getCurrentWorkerAccess } from "@/lib/worker-auth";
-import { addWorkerPhoto, countPhotosToday, isPhotoKind, isWorkerOnLeave, PHOTOS_PER_DAY } from "@/lib/worker-portal";
+import { addWorkerPhoto, countPhotosToday, isPhotoKind, isWorkerOnLeave, PHOTO_KINDS, PHOTOS_PER_DAY } from "@/lib/worker-portal";
+import { photoLine, tellOwnerWorkerSent } from "@/lib/worker-inbox-alert";
 import { workerTableReady } from "@/lib/worker-portal-db";
 import { queryPostgres } from "@/lib/postgres/client";
 
@@ -77,5 +78,8 @@ export async function POST(request: Request) {
   }
 
   await recordAdminAuditEvent("factory_worker_photo", `${worker.name} sent a work photo (${kind}${pairs ? `, ${pairs} pairs` : ""}).`);
+  // The admin phones hear of it now, not when someone next opens the page.
+  const kindWords = PHOTO_KINDS.find((entry) => entry.value === kind);
+  await tellOwnerWorkerSent("photo", worker.name, photoLine(kindWords?.icon ?? "", kindWords?.ne ?? kind, pairs));
   return Response.json({ ok: true, en: "Sent to the owner ✅", ne: "मालिकलाई पठाइयो ✅" }, { headers: { "Cache-Control": "no-store" } });
 }

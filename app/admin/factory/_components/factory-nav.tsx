@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { usePathname } from "next/navigation";
 import {
+  CameraIcon,
   CreditCardIcon,
   HomeIcon,
   InfoIcon,
@@ -25,6 +26,8 @@ import {
 export const factoryLinks = [
   { href: "/admin/factory", label: "कारखाना आज", english: "Factory today", Icon: HomeIcon },
   { href: "/admin/factory/add-work", label: "काम टिप्ने", english: "Add work", Icon: PlusIcon },
+  // Workers' photos and questions, with how many wait (owner, 2026-10-03).
+  { href: "/admin/factory/photos", label: "फोटो", english: "Photos", Icon: CameraIcon },
   { href: "/admin/factory/workers", label: "कामदार", english: "Workers", Icon: UserIcon },
   { href: "/admin/factory/worker-portal-qr", label: "QR पोस्टर", english: "Worker QR", Icon: UserIcon },
   { href: "/admin/factory/items", label: "item र दर", english: "Items", Icon: PackageIcon },
@@ -33,7 +36,7 @@ export const factoryLinks = [
   { href: "/admin/factory/salary", label: "तलब", english: "Staff salary", Icon: PackageIcon },
 ] as const;
 
-export default function FactoryNav() {
+export default function FactoryNav({ waiting = 0 }: { waiting?: number }) {
   const pathname = usePathname();
   const { text } = useLanguage();
 
@@ -68,6 +71,11 @@ export default function FactoryNav() {
               >
                 <Icon className="h-4 w-4" />
                 {text(english, label)}
+                {href === "/admin/factory/photos" && waiting > 0 ? (
+                  <span className={`rounded-full px-1.5 text-[11px] leading-5 ${active ? "bg-white text-brand-clay" : "bg-brand-clay text-white"}`}>
+                    {waiting > 99 ? "99+" : waiting}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

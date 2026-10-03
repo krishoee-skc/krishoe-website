@@ -23,6 +23,7 @@ import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
 // that a laptop at 125% scaling (~1093px) still shows the menu and the
 // dashboard side by side rather than dropping to this bar. Hidden on paper too.
 export default function AdminMobileNav({
+  counts,
   adminRole,
   adminName,
   adminEmail,
@@ -33,6 +34,8 @@ export default function AdminMobileNav({
   branchCount,
   branchSwitch,
 }: {
+  /** How many things wait behind a link (workers' photos), as a number. */
+  counts?: Record<string, number>;
   adminRole: AdminRole;
   adminName?: string;
   adminEmail?: string;
@@ -100,9 +103,13 @@ export default function AdminMobileNav({
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid h-11 w-11 place-items-center rounded-lg border border-brand-green-line text-brand-green-ink transition hover:border-brand-green"
+            className="relative grid h-11 w-11 place-items-center rounded-lg border border-brand-green-line text-brand-green-ink transition hover:border-brand-green"
           >
             {open ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+            {/* Something waits inside the menu: say so on the button. */}
+            {!open && Object.values(counts ?? {}).some((n) => n > 0) ? (
+              <span aria-hidden="true" className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-brand-clay ring-2 ring-brand-paper" />
+            ) : null}
           </button>
         </div>
       </div>
@@ -145,6 +152,7 @@ export default function AdminMobileNav({
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                 {group.links.map(({ href, label, nepali, icon: Icon }) => {
                   const active = pathname === href;
+                  const waiting = counts?.[href] ?? 0;
                   return (
                     <Link
                       key={`${group.id}-${href}`}
@@ -170,6 +178,11 @@ export default function AdminMobileNav({
                           </span>
                         ) : null}
                       </span>
+                      {waiting > 0 ? (
+                        <span className="ml-auto rounded-full bg-brand-clay px-2 py-0.5 text-sm font-black leading-5 text-white">
+                          {waiting > 99 ? "99+" : waiting}
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}
