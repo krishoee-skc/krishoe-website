@@ -234,7 +234,7 @@ export async function reviewWorkerPhoto(
   const values: Array<string | number | boolean | null> = [id];
   const put = (column: string, value: string | number | boolean | null, cast = "") => {
     values.push(value);
-    sets.push(`${column} = ${values.length}${cast}`);
+    sets.push(`${column} = $${values.length}${cast}`);
   };
   if (patch.verdict !== undefined) put("verdict", patch.verdict);
   if (patch.reply !== undefined) put("reply", patch.reply.slice(0, 300));
@@ -247,9 +247,9 @@ export async function reviewWorkerPhoto(
   if (patch.status !== undefined) put("status", patch.status);
   if (patch.workId !== undefined) put("work_id", patch.workId);
   values.push(JSON.stringify([{ at: new Date().toISOString(), by: line.by, what: line.what.slice(0, 200) }]));
-  sets.push(`history = history || ${values.length}::jsonb`);
+  sets.push(`history = history || $${values.length}::jsonb`);
   values.push(line.by);
-  sets.push(`reviewed_by = ${values.length}, reviewed_at = now()`);
+  sets.push(`reviewed_by = $${values.length}, reviewed_at = now()`);
   await queryPostgres(STORE, `UPDATE factory_worker_photos SET ${sets.join(", ")} WHERE id = $1`, values);
 }
 
@@ -426,4 +426,16 @@ export async function robotExamplePhotos(): Promise<Array<{ itemId: string; imag
   )
     .then((rows) => rows.map((row) => ({ itemId: row.item_id, imageUrl: row.image_url })))
     .catch(() => []);
+}
+
+/** The work already booked from a photo, found by the photo's own key — so a photo is never booked twice. */
+export async function workBookedFromPhoto(submissionKey: string): Promise<{ id: string; amount: number; pairs: number; color: string; size: string; workDate: string; itemId: string } | null> {
+  const rows = await queryPostgres<{ id: string; amount_earned: string | number; pairs_count: number; color: string | null; size: string | null; date: string | Date; item_id: string }>(
+    STORE,
+    "SELECT id, amount_earned, pairs_count, color, size, date, item_id FROM factory_daily_work WHERE submission_key = $1 LIMIT 1",
+    [submissionKey],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return { id: row.id, amount: Number(row.amount_earned), pairs: Number(row.pairs_count), color: row.color ?? "", size: row.size ?? "", workDate: day(row.date), itemId: row.item_id };
 }

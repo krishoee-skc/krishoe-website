@@ -27,7 +27,7 @@ describe("a photo's colour and size reach the books", () => {
     expect(actions).toContain('if (!size) return { ok: false, en: "Choose the size."');
     expect(actions).toContain("      color,\n      size,\n      pairsCount: count,");
     const inbox = await read("app/admin/factory/photos/WorkerInbox.tsx");
-    expect(inbox).toContain("color: photo.robot?.color || history[itemId]?.color || \"\",");
+
     expect(inbox).toContain("size: history[itemId]?.size || \"\",");
     expect(inbox).toContain("!complete(draft)");
   });
@@ -89,5 +89,35 @@ describe("the photo robot", () => {
   it("can be switched off in Settings by the Owner or Admin", async () => {
     expect(await read("app/admin/factory/photos/actions.ts")).toContain('const actor = await requireAdminPermission("wages:write");\n  if (!(await photoRobotReady())) return NOT_READY;\n  await setPhotoRobotOn(on);');
     expect(await read("app/admin/settings/page.tsx")).toContain("<PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />");
+  });
+});
+
+/**
+ * 2026-10-03: Ranjita's 60 pairs went on the books, but the photo's own mark
+ * failed ("cannot cast type integer to date" — "$" missing from a placeholder),
+ * so it still read "to check" and a second ✓ was refused. The mark is put
+ * right, a photo already booked is marked from its entry, and nothing is ever
+ * booked twice.
+ */
+describe("a photo's mark after the books", () => {
+  it("numbers every value as a placeholder", async () => {
+    const portal = await read("lib/worker-portal.ts");
+    expect(portal).toContain("sets.push(`${column} = $${values.length}${cast}`);");
+    expect(portal).toContain("sets.push(`history = history || $${values.length}::jsonb`);");
+    expect(portal).toContain("sets.push(`reviewed_by = $${values.length}, reviewed_at = now()`);");
+  });
+
+  it("marks a photo from the entry already booked with its key, before booking anything", async () => {
+    const actions = await read("app/admin/factory/photos/actions.ts");
+    const found = actions.indexOf("const already = await workBookedFromPhoto(submissionKey)");
+    const booked = actions.indexOf("entry = await createFactoryWork({");
+    expect(found).toBeGreaterThan(0);
+    expect(found).toBeLessThan(booked);
+    expect(actions).toContain("nothing was added twice");
+  });
+
+  it("puts the books' own colour before the robot's", async () => {
+    const inbox = await read("app/admin/factory/photos/WorkerInbox.tsx");
+    expect(inbox).toContain('color: history[itemId]?.color || photo.robot?.color || "",');
   });
 });

@@ -129,7 +129,9 @@ export default function WorkerInbox({
       stage: photo.stage || photo.workerCategory,
       itemId,
       pairs: photo.pairs ? String(photo.pairs) : photo.robot?.pairs ? String(photo.robot.pairs) : "",
-      color: photo.robot?.color || history[itemId]?.color || "",
+      // What the books know first: the robot's colour only when this shoe has
+      // none (it read Ranjita's red pairs as black).
+      color: history[itemId]?.color || photo.robot?.color || "",
       size: history[itemId]?.size || "",
       workDate: photo.workDate || nepalDay(photo.createdAt),
       rejects: photo.rejectPairs ? String(photo.rejectPairs) : "0",
@@ -140,7 +142,7 @@ export default function WorkerInbox({
   const change = (photo: WorkerPhoto, patch: Partial<Draft>) => setDrafts((current) => ({ ...current, [photo.id]: { ...draftOf(photo), ...patch } }));
   /** Another shoe brings its own last colour and size, unless the robot saw the colour. */
   const changeItem = (photo: WorkerPhoto, itemId: string) =>
-    change(photo, { itemId, color: photo.robot?.color || history[itemId]?.color || "", size: history[itemId]?.size || "" });
+    change(photo, { itemId, color: history[itemId]?.color || photo.robot?.color || "", size: history[itemId]?.size || "" });
   /** Filled by the robot and not changed since — marked 🤖 for checking. */
   const byRobot = (photo: WorkerPhoto, field: "itemId" | "pairs" | "color") => {
     const draft = draftOf(photo);

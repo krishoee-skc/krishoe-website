@@ -19,7 +19,8 @@ describe("work from a worker's photo", () => {
     const actions = await read("app/admin/factory/photos/actions.ts");
     expect(actions).toContain("entry = await createFactoryWork({");
     // keyed to the photo: a second press, or two people at once, books it once
-    expect(actions).toContain("submissionKey: `worker-photo:${photo.id}`");
+    expect(actions).toContain("const submissionKey = `worker-photo:${photo.id}`;");
+    expect(actions).toContain("      submissionKey,\n      date: workDate,");
     expect(actions).toContain("date: workDate,");
     // the day defaults to the day the photo was sent, and never after today
     expect(actions).toContain(": nepalDay(photo.createdAt);");

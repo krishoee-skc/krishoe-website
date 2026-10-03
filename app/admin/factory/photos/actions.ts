@@ -5,7 +5,7 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { reportError } from "@/lib/report-error";
 import { del } from "@vercel/blob";
-import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, resolveWorkerRequest, reviewWorkerPhoto, setPhotoRobotOn } from "@/lib/worker-portal";
+import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, resolveWorkerRequest, reviewWorkerPhoto, setPhotoRobotOn, workBookedFromPhoto } from "@/lib/worker-portal";
 import { robotLookAtPhoto } from "@/lib/worker-photo-robot";
 import { isAiConfigured } from "@/lib/ai/gemini";
 import { photoRobotReady } from "@/lib/worker-portal-db";
@@ -60,10 +60,42 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
   const rejects = Math.max(0, Math.min(count, Math.round(Number(input.rejectPairs) || 0)));
   if (workDate > nepalDay(new Date().toISOString())) return { ok: false, en: "The day cannot be after today.", ne: "दिन आजभन्दा पछिको हुन सक्दैन।" };
 
+  const submissionKey = `worker-photo:${photo.id}`;
+  const markBooked = (work: { id: string; amount: number; pairs: number; color: string; size: string; workDate: string; itemId: string }) =>
+    photoReviewReady().then((ready) =>
+      ready
+        ? reviewWorkerPhoto(
+            photo.id,
+            { status: "added", workId: work.id, verdict: "", itemId: work.itemId, pairs: work.pairs, stage: stage ?? "", workDate: work.workDate, rejectPairs: rejects, reply: input.reply ?? photo.reply },
+            { by: byOf(actor), what: `On the books: ${work.pairs} pairs, ${work.color}, ${work.size}${rejects ? ` (${rejects} damaged)` : ""}${stage ? ` at ${stage}` : ""}, ${work.workDate} — Rs. ${work.amount}` },
+          )
+        : linkWorkerPhotoToWork(photo.id, work.id, byOf(actor)),
+    );
+
+  // Already on the books from this photo (2026-10-03: the work saved and the
+  // photo's own mark failed, so it still read "to check"): mark the photo with
+  // the entry that is there. Never a second entry — the key is the photo's.
+  const already = await workBookedFromPhoto(submissionKey).catch(() => null);
+  if (already) {
+    try {
+      await markBooked(already);
+    } catch (error) {
+      reportError(`mark worker photo ${photoId} as booked`, error);
+      return { ok: false, en: "It is on the books already, but the photo could not be marked. Try again.", ne: "काम हिसाबमा पहिले नै छ, तर फोटोमा चिनो लागेन। फेरि थिच्नुहोस्।" };
+    }
+    revalidatePath("/admin/factory/photos");
+    return {
+      ok: true,
+      en: `Already on the books: ${already.pairs} pairs, ${already.color}, ${already.size} — Rs. ${already.amount}. The photo is marked now; nothing was added twice.`,
+      ne: `पहिले नै हिसाबमा छ: ${already.pairs} जोडी, ${already.color}, ${already.size} — Rs. ${already.amount}। अब फोटोमा चिनो लाग्यो; दोहोरो थपिएन।`,
+      amount: already.amount,
+    };
+  }
+
   let entry: Awaited<ReturnType<typeof createFactoryWork>>;
   try {
     entry = await createFactoryWork({
-      submissionKey: `worker-photo:${photo.id}`,
+      submissionKey,
       date: workDate,
       workerId: photo.workerId,
       itemId: item,
@@ -75,15 +107,6 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
       stage,
       sizeCounts: null,
     });
-    if (await photoReviewReady()) {
-      await reviewWorkerPhoto(
-        photo.id,
-        { status: "added", workId: entry.id, verdict: "", itemId: item, pairs: count, stage: stage ?? "", workDate, rejectPairs: rejects, reply: input.reply ?? photo.reply },
-        { by: byOf(actor), what: `On the books: ${count} pairs, ${color}, ${size}${rejects ? ` (${rejects} damaged)` : ""}${stage ? ` at ${stage}` : ""}, ${workDate} — Rs. ${entry.amount_earned}` },
-      );
-    } else {
-      await linkWorkerPhotoToWork(photo.id, entry.id, byOf(actor));
-    }
   } catch (error) {
     if (error instanceof FactoryMutationError) {
       return { ok: false, en: `Not booked: ${error.message}`, ne: `हिसाबमा थपिएन: ${error.message}` };
@@ -98,6 +121,15 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
   );
   revalidatePath("/admin/factory/photos");
   revalidatePath("/admin/factory/add-work");
+
+  // The work is in. If the photo's own mark fails, say exactly that: the next
+  // ✓ finds the entry above and marks the photo, without booking it again.
+  try {
+    await markBooked({ id: entry.id, amount: Number(entry.amount_earned), pairs: count, color, size, workDate, itemId: item });
+  } catch (error) {
+    reportError(`mark worker photo ${photoId} as booked`, error);
+    return { ok: false, en: `On the books (Rs. ${entry.amount_earned}), but the photo could not be marked. Press ✓ again — it will not be added twice.`, ne: `हिसाबमा चढ्यो (Rs. ${entry.amount_earned}), तर फोटोमा चिनो लागेन। फेरि ✓ थिच्नुहोस् — दोहोरो थपिँदैन।` };
+  }
   return { ok: true, en: `${photo.workerName}: ${count} pairs on the books — Rs. ${entry.amount_earned}`, ne: `${photo.workerName}: ${count} जोडी हिसाबमा — Rs. ${entry.amount_earned}`, amount: entry.amount_earned };
 }
 
