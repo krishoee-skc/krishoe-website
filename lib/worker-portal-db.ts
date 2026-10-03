@@ -112,6 +112,20 @@ ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS reject_pairs INTEGER;
 ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS history JSONB NOT NULL DEFAULT '[]'::jsonb;
 `,
   },
+  {
+    // The robot's guess at a photo (owner, 2026-10-03: the worker sends only
+    // the photo): the shoe, the colour and about how many pairs, kept beside
+    // the photo for the owner to check. And the switch that turns it off.
+    // Columns added; nothing existing changes.
+    name: "20261003_factory_worker_photos_robot",
+    table: "factory_worker_photos",
+    column: "robot",
+    label: { en: "The robot looks at a photo: shoe, colour, about how many pairs", ne: "रोबोटले फोटो हेर्ने: जुत्ता, रङ, लगभग कति जोडी" },
+    sql: `
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS robot JSONB;
+ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS factory_photo_robot BOOLEAN NOT NULL DEFAULT true;
+`,
+  },
 ] as const;
 
 export type WorkerPortalTable = (typeof workerPortalMigrations)[number]["table"];
@@ -195,6 +209,7 @@ export async function photoDraftReady(): Promise<boolean> {
 }
 
 let reviewReady: { value: boolean; at: number } | null = null;
+let robotReady: { value: boolean; at: number } | null = null;
 
 /** Whether a photo can be checked in full — the fifth migration. */
 export async function photoReviewReady(): Promise<boolean> {
@@ -205,6 +220,21 @@ export async function photoReviewReady(): Promise<boolean> {
     const { pending } = await workerPortalDatabaseStatus();
     const value = !pending.some((item) => item.name === "20261003_factory_worker_photos_review");
     reviewReady = { value, at: Date.now() };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether a photo can carry the robot's guess — the sixth migration. */
+export async function photoRobotReady(): Promise<boolean> {
+  if (getDataBackendConfig().backend !== "postgres") return false;
+  if (robotReady?.value) return true;
+  if (robotReady && Date.now() - robotReady.at < RECHECK_MS) return false;
+  try {
+    const { pending } = await workerPortalDatabaseStatus();
+    const value = !pending.some((item) => item.name === "20261003_factory_worker_photos_robot");
+    robotReady = { value, at: Date.now() };
     return value;
   } catch {
     return false;
@@ -236,5 +266,6 @@ export async function prepareWorkerPortalDatabase() {
   readyAt.clear();
   draftReady = null;
   reviewReady = null;
+  robotReady = null;
   return { applied: toApply.map((migration) => migration.name) };
 }

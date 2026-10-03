@@ -1,4 +1,6 @@
 import { put } from "@vercel/blob";
+import { after } from "next/server";
+import { robotLookAtPhoto } from "@/lib/worker-photo-robot";
 import sharp from "sharp";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { reportError } from "@/lib/report-error";
@@ -64,6 +66,7 @@ export async function POST(request: Request) {
     if (!found[0]) return reply(400, { en: "Choose the shoe again.", ne: "जुत्ता फेरि छान्नुहोस्।" });
   }
 
+  let photoId = "";
   try {
     const bytes = await sharp(Buffer.from(await file.arrayBuffer()), { failOn: "none" })
       .rotate()
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
       .webp({ quality: 78 })
       .toBuffer();
     const stored = await put(`worker-photos/${worker.id}.webp`, bytes, { access: "public", addRandomSuffix: true, contentType: "image/webp" });
-    await addWorkerPhoto({ workerId: worker.id, staffId: access.staff.id, kind, pairs, note, imageUrl: stored.url, itemId: kind === "problem" ? "" : itemId });
+    photoId = await addWorkerPhoto({ workerId: worker.id, staffId: access.staff.id, kind, pairs, note, imageUrl: stored.url, itemId: kind === "problem" ? "" : itemId });
   } catch (error) {
     reportError(`store a work photo from factory worker ${worker.id}`, error);
     return reply(500, { en: "The photo did not send. Try again.", ne: "फोटो पठाइएन। फेरि प्रयास गर्नुहोस्।" });
@@ -81,5 +84,8 @@ export async function POST(request: Request) {
   // The admin phones hear of it now, not when someone next opens the page.
   const kindWords = PHOTO_KINDS.find((entry) => entry.value === kind);
   await tellOwnerWorkerSent("photo", worker.name, photoLine(kindWords?.icon ?? "", kindWords?.ne ?? kind, pairs));
+  // The robot looks once the worker has their answer (owner, 2026-10-03):
+  // its guess waits beside the photo for the owner's check.
+  if (kind !== "problem") after(() => robotLookAtPhoto(photoId));
   return Response.json({ ok: true, en: "Sent to the owner ✅", ne: "मालिकलाई पठाइयो ✅" }, { headers: { "Cache-Control": "no-store" } });
 }

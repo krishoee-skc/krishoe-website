@@ -125,7 +125,12 @@ function readFailure(status: number, body: unknown, model: string): { reason: Bi
  * `asJson` puts Google's own structured-output mode on, which is what stops the
  * model wrapping its answer in a markdown fence and the caller parsing prose.
  */
-export async function askGemini(prompt: string, options: { asJson?: boolean } = {}): Promise<AiResult> {
+/** Pictures sent with the question, as base64 (the worker-photo robot, 2026-10-03). */
+export type AskImage = { mimeType: "image/jpeg" | "image/webp" | "image/png"; data: string };
+
+type AskOptions = { asJson?: boolean; images?: AskImage[]; temperature?: number };
+
+export async function askGemini(prompt: string, options: AskOptions = {}): Promise<AiResult> {
   const key = process.env.GEMINI_API_KEY?.trim();
 
   if (!key) {
@@ -165,7 +170,7 @@ async function askOneModel(
   model: string,
   prompt: string,
   key: string,
-  options: { asJson?: boolean },
+  options: AskOptions,
 ): Promise<Extract<AiResult, { ok: true }> | ModelFailure> {
   const started = Date.now();
   const abort = AbortSignal.timeout(TIMEOUT_MS);
@@ -176,9 +181,9 @@ async function askOneModel(
       headers: { "Content-Type": "application/json" },
       signal: abort,
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: prompt }, ...(options.images ?? []).map((image) => ({ inline_data: { mime_type: image.mimeType, data: image.data } }))] }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: options.temperature ?? 0.7,
           ...(options.asJson ? { responseMimeType: "application/json" } : {}),
         },
       }),

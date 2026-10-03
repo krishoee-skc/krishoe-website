@@ -32,7 +32,8 @@ async function shrink(file: File): Promise<Blob> {
 
 /**
  * The worker's "send a photo of my work" (owner, 2026-10-02): take or pick a
- * photo, say what it is, pairs if they like, a word if they like, and send.
+ * photo, say what it is, and send. Since 2026-10-03 that is all that is asked —
+ * the pairs, shoe and a word fold away for whoever wants to write them.
  * It reaches the owner as proof; the books change only when the owner adds it.
  */
 export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabledReason?: string; items?: Array<{ id: string; name: string }> }) {
@@ -110,6 +111,12 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
         )}
       </button>
 
+      {/* The shoe only (owner, 2026-10-03): the robot looks at this photo,
+          and Google's free tier may keep what it is sent. */}
+      <p className="rounded-2xl bg-brand-cream-soft px-4 py-3 text-base font-bold text-brand-green-ink">
+        👟 जुत्ता मात्र खिच्नुहोस् — अनुहार र कोठा होइन। बाँकी मालिक र app ले भर्छ।
+      </p>
+
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-lg font-black">के को फोटो?</legend>
         <div className="flex flex-wrap gap-2">
@@ -127,34 +134,33 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
         </div>
       </fieldset>
 
-      {items.length > 0 && kind !== "problem" ? (
-        <label className="grid gap-1 text-lg font-black">
-          कुन जुत्ता?
-          <select value={itemId} onChange={(event) => setItemId(event.target.value)} className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-lg">
-            <option value="">— छान्नुहोस् —</option>
-            {items.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-          <span className="text-base font-semibold text-brand-muted">जुत्ता र जोडी भरे मालिकले एक थिचाइमा हिसाबमा थप्नुहुन्छ।</span>
-        </label>
-      ) : null}
-
-      <label className="grid gap-1 text-lg font-black">
-        कति जोडी? <span className="text-base font-semibold text-brand-muted">(नभरे पनि हुन्छ)</span>
-        <input value={pairs} onChange={(event) => setPairs(event.target.value)} inputMode="numeric" className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-xl" />
-      </label>
-      <label className="grid gap-1 text-lg font-black">
-        केही भन्नु छ? <span className="text-base font-semibold text-brand-muted">(नभरे पनि हुन्छ)</span>
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={300} className="rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 py-3 text-lg" />
-      </label>
-
-      {/* A soft reminder, not a stop: the owner can still fill it in. */}
-      {items.length > 0 && kind !== "problem" && file && (!itemId || !pairs) ? (
-        <p className="rounded-2xl bg-brand-cream-soft px-4 py-3 text-base font-bold text-brand-green-ink">
-          💡 मालिकले छिटो हिसाबमा थप्न जुत्ता र जोडी पनि भर्नुहोस्। नभरी पनि पठाउन मिल्छ।
-        </p>
-      ) : null}
+      {/* Only the photo is needed now ("क", owner 2026-10-03). The pairs, the
+          shoe and a word stay here, folded away, for a worker who wants to
+          write them — what they write is used before the robot's guess. */}
+      <details className="rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 py-3">
+        <summary className="cursor-pointer text-lg font-black text-brand-green-ink">✏️ जोडी लेख्ने <span className="text-base font-semibold text-brand-muted">(नभरे पनि हुन्छ)</span></summary>
+        <div className="mt-3 grid gap-3">
+          <label className="grid gap-1 text-lg font-black">
+            कति जोडी?
+            <input value={pairs} onChange={(event) => setPairs(event.target.value)} inputMode="numeric" className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-xl" />
+          </label>
+          {items.length > 0 && kind !== "problem" ? (
+            <label className="grid gap-1 text-lg font-black">
+              कुन जुत्ता?
+              <select value={itemId} onChange={(event) => setItemId(event.target.value)} className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-lg">
+                <option value="">— छान्नुहोस् —</option>
+                {items.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <label className="grid gap-1 text-lg font-black">
+            केही भन्नु छ?
+            <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={300} className="rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 py-3 text-lg" />
+          </label>
+        </div>
+      </details>
 
       <button
         type="button"

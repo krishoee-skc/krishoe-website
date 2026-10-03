@@ -30,7 +30,10 @@ import { posDatabaseStatus } from "@/lib/pos-database";
 import { orderDispatchDatabaseStatus } from "@/lib/order-dispatch-database";
 import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
-import { workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
+import { photoRobotReady, workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
+import { photoRobotOn } from "@/lib/worker-portal";
+import { isAiConfigured } from "@/lib/ai/gemini";
+import PhotoRobotSwitch from "./PhotoRobotSwitch";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
@@ -158,6 +161,8 @@ export default async function AdminSettingsPage({
     return null;
   });
   const workerAppDatabase = await workerPortalDatabaseStatus().catch(() => null);
+  // The robot that looks at workers' photos (2026-10-03): its switch, once its column is there.
+  const photoRobot = (await photoRobotReady()) ? { on: await photoRobotOn().catch(() => false), connected: isAiConfigured() } : null;
   const chequesDatabase = await chequesDatabaseStatus().catch((error) => {
     reportError("check the cheques table", error);
     return null;
@@ -890,6 +895,21 @@ export default async function AdminSettingsPage({
                 <SubmitButton label="✅ OK, add it" />
               </form>
             </details>
+          </section>
+        ) : null}
+
+        {photoRobot ? (
+          <section id="photo-robot" className="self-start rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🤖 <T en="Photo robot" ne="फोटो हेर्ने रोबोट" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="Looks at a worker's photo and guesses the shoe, the colour and about how many pairs, for you to check. It never puts anything on the books. Google's free robot may learn from the photos it is sent, so only a small copy of the photo goes — no name, phone or wage."
+                ne="कामदारको फोटो हेरेर जुत्ता, रङ र लगभग कति जोडी भनेर अनुमान लेख्छ, तपाईंले जाँच्न। हिसाबमा आफैँ केही चढाउँदैन। Google को निःशुल्क रोबोटले पठाएको फोटोबाट सिक्न सक्छ, त्यसैले फोटोको सानो copy मात्र जान्छ — नाम, फोन र ज्याला होइन।"
+              />
+            </p>
+            <PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />
           </section>
         ) : null}
 

@@ -226,7 +226,9 @@ CREATE TABLE IF NOT EXISTS company_settings (
   currency TEXT NOT NULL DEFAULT 'NPR',
   timezone TEXT NOT NULL DEFAULT 'Asia/Kathmandu',
   default_branch_id TEXT NOT NULL DEFAULT '',
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Added by 20261003_factory_worker_photos_robot: the photo robot's switch.
+  factory_photo_robot BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE TABLE IF NOT EXISTS company_branches (
@@ -1951,6 +1953,9 @@ CREATE TABLE IF NOT EXISTS factory_worker_photos (
   work_date DATE,
   reject_pairs INTEGER,
   history JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Added by 20261003_factory_worker_photos_robot: the robot's guess (shoe,
+  -- colour, about how many pairs) for the owner to check. Never the books.
+  robot JSONB,
   CONSTRAINT factory_worker_photos_kind_check CHECK (kind IN ('done', 'upper', 'ready', 'problem')),
   CONSTRAINT factory_worker_photos_status_check CHECK (status IN ('new', 'seen', 'added'))
 );

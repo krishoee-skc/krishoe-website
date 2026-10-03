@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { queryPostgres } from "@/lib/postgres/client";
-import { photoDraftReady, photoReviewReady, workerTableReady } from "@/lib/worker-portal-db";
+import { photoDraftReady, photoReviewReady, photoRobotReady, workerTableReady } from "@/lib/worker-portal-db";
 
 /**
  * What the worker app keeps beyond the factory's own books (owner, 2026-10-02):
@@ -53,6 +53,20 @@ export type WorkerPhoto = {
   history: Array<{ at: string; by: string; what: string }>;
   /** What it was paid at, once on the books. */
   amountEarned: number | null;
+  /** The robot's guess (owner, 2026-10-03), null until it has looked. */
+  robot: RobotGuess | null;
+};
+
+/** What the robot made of a photo. Only ever a suggestion for the owner's check. */
+export type RobotGuess = {
+  itemId: string;
+  color: string;
+  pairs: number | null;
+  sureItem: "high" | "medium" | "low" | "";
+  sureColor: "high" | "medium" | "low" | "";
+  /** Why there is no guess, when there is none ("limit", "off", "failed"). */
+  missing?: string;
+  at: string;
 };
 
 export type WorkerRequest = {
@@ -73,7 +87,7 @@ type PhotoRow = {
   status: WorkerPhoto["status"]; created_at: string | Date; item_id: string | null; item_name: string | null; work_id: string | null;
   worker_category: string; worker_type: string;
   verdict: string | null; reply: string | null; hidden: boolean | null; stage: string | null; work_date: string | Date | null;
-  reject_pairs: number | null; history: unknown; amount_earned: string | number | null;
+  reject_pairs: number | null; history: unknown; amount_earned: string | number | null; robot?: unknown;
 };
 type RequestRow = { id: string; worker_id: string; worker_name: string; kind: WorkerRequest["kind"]; amount: string | number | null; about_date: string | Date | null; message: string; status: WorkerRequest["status"]; reply: string; created_at: string | Date };
 
@@ -93,6 +107,7 @@ function photoFromRow(row: PhotoRow): WorkerPhoto {
     rejectPairs: Number(row.reject_pairs) || 0,
     history: Array.isArray(row.history) ? (row.history as WorkerPhoto["history"]) : [],
     amountEarned: row.amount_earned === null || row.amount_earned === undefined ? null : Number(row.amount_earned),
+    robot: row.robot && typeof row.robot === "object" ? (row.robot as RobotGuess) : null,
   };
 }
 function requestFromRow(row: RequestRow): WorkerRequest {
@@ -172,11 +187,12 @@ export async function addWorkerPhoto(input: { workerId: string; staffId: string;
 
 /** The photo columns, each later one only once its migration has run (Settings → OK). */
 async function photoSelect() {
-  const [draft, review] = await Promise.all([photoDraftReady(), photoReviewReady()]);
+  const [draft, review, robot] = await Promise.all([photoDraftReady(), photoReviewReady(), photoRobotReady()]);
   return `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
             p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
             ${draft ? "p.item_id, i.name AS item_name, p.work_id, d.amount_earned" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id, NULL::numeric AS amount_earned"},
-            ${review ? "p.verdict, p.reply, p.hidden, p.stage, p.work_date, p.reject_pairs, p.history" : "''::text AS verdict, ''::text AS reply, false AS hidden, NULL::text AS stage, NULL::date AS work_date, NULL::int AS reject_pairs, '[]'::jsonb AS history"}
+            ${review ? "p.verdict, p.reply, p.hidden, p.stage, p.work_date, p.reject_pairs, p.history" : "''::text AS verdict, ''::text AS reply, false AS hidden, NULL::text AS stage, NULL::date AS work_date, NULL::int AS reject_pairs, '[]'::jsonb AS history"},
+            ${robot ? "p.robot" : "NULL::jsonb AS robot"}
        FROM factory_worker_photos p
        JOIN factory_workers w ON w.id = p.worker_id
        ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id LEFT JOIN factory_daily_work d ON d.id = p.work_id" : ""}`;
@@ -349,4 +365,65 @@ export async function workerBalances(): Promise<Record<string, number>> {
       LIMIT 500`,
   );
   return Object.fromEntries(rows.map((row) => [row.worker_id, Number(row.balance) || 0]));
+}
+
+/* ---------------- the robot, and what the books already know ---------------- */
+
+/** Keeps the robot's guess beside the photo. Never touches what the worker or owner wrote. */
+export async function saveRobotGuess(id: string, guess: RobotGuess) {
+  if (!(await photoRobotReady())) return;
+  await queryPostgres(STORE, "UPDATE factory_worker_photos SET robot = $2::jsonb WHERE id = $1", [id, JSON.stringify(guess)]);
+}
+
+/** Whether the robot may look at photos (Settings switch; on once its column is added). */
+export async function photoRobotOn(): Promise<boolean> {
+  if (!(await photoRobotReady())) return false;
+  const rows = await queryPostgres<{ on: boolean }>(STORE, "SELECT factory_photo_robot AS on FROM company_settings WHERE id = 'default'").catch(() => []);
+  return rows[0]?.on ?? true;
+}
+
+export async function setPhotoRobotOn(on: boolean) {
+  if (!(await photoRobotReady())) return;
+  await queryPostgres(STORE, "UPDATE company_settings SET factory_photo_robot = $1 WHERE id = 'default'", [on]);
+}
+
+export type ItemHistory = { color: string; size: string; colors: string[] };
+
+/**
+ * The colour and size each shoe was last made in, and every colour it has been
+ * made in (owner, 2026-10-03): the books need both, and a photo has neither.
+ * Read from the work entries themselves; reversed ones do not count.
+ */
+export async function factoryItemHistory(): Promise<Record<string, ItemHistory>> {
+  const rows = await queryPostgres<{ item_id: string; color: string | null; size: string | null }>(
+    STORE,
+    `SELECT item_id, color, size
+       FROM factory_daily_work
+      WHERE status <> 'reversed' AND coalesce(color, '') <> ''
+      ORDER BY date DESC, created_at DESC
+      LIMIT 600`,
+  ).catch(() => []);
+  const out: Record<string, ItemHistory> = {};
+  for (const row of rows) {
+    const color = String(row.color ?? "").trim();
+    const size = String(row.size ?? "").trim();
+    const known = (out[row.item_id] ??= { color, size, colors: [] });
+    if (!known.size && size) known.size = size;
+    if (color && !known.colors.some((seen) => seen.toLowerCase() === color.toLowerCase())) known.colors.push(color);
+  }
+  return out;
+}
+
+/** The newest booked photo of each shoe — the robot's examples of what each one looks like. */
+export async function robotExamplePhotos(): Promise<Array<{ itemId: string; imageUrl: string }>> {
+  if (!(await photoDraftReady())) return [];
+  return queryPostgres<{ item_id: string; image_url: string }>(
+    STORE,
+    `SELECT DISTINCT ON (item_id) item_id, image_url
+       FROM factory_worker_photos
+      WHERE status = 'added' AND item_id IS NOT NULL AND kind <> 'problem'
+      ORDER BY item_id, created_at DESC`,
+  )
+    .then((rows) => rows.map((row) => ({ itemId: row.item_id, imageUrl: row.image_url })))
+    .catch(() => []);
 }

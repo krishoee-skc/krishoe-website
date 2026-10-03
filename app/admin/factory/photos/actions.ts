@@ -5,7 +5,10 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { reportError } from "@/lib/report-error";
 import { del } from "@vercel/blob";
-import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, resolveWorkerRequest, reviewWorkerPhoto } from "@/lib/worker-portal";
+import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, resolveWorkerRequest, reviewWorkerPhoto, setPhotoRobotOn } from "@/lib/worker-portal";
+import { robotLookAtPhoto } from "@/lib/worker-photo-robot";
+import { isAiConfigured } from "@/lib/ai/gemini";
+import { photoRobotReady } from "@/lib/worker-portal-db";
 import { createFactoryWork, deleteFactoryWork, FactoryMutationError } from "@/lib/factory-mutations";
 import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
 import { photoDraftReady, photoReviewReady } from "@/lib/worker-portal-db";
@@ -26,7 +29,8 @@ export type DraftReply = InboxReply & { amount?: number };
  * sent. The owner may correct the shoe or the pairs first. Keyed to the photo,
  * so a second press, or two people pressing at once, books it once.
  */
-export type BookInput = { itemId: string; pairs: number; stage?: string; workDate?: string; rejectPairs?: number; reply?: string };
+/** Colour and size too (owner, 2026-10-03): the books refuse work without them. */
+export type BookInput = { itemId: string; pairs: number; color?: string; size?: string; stage?: string; workDate?: string; rejectPairs?: number; reply?: string };
 
 export async function bookPhotoWorkAction(photoId: string, input: BookInput): Promise<DraftReply> {
   const { itemId, pairs } = input;
@@ -45,6 +49,10 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
   const count = Math.round(Number(pairs));
   if (!item) return { ok: false, en: "Choose the shoe.", ne: "जुत्ता छान्नुहोस्।" };
   if (!Number.isFinite(count) || count <= 0 || count > 10000) return { ok: false, en: "Enter the pairs.", ne: "जोडी लेख्नुहोस्।" };
+  const color = String(input.color ?? "").trim().slice(0, 40);
+  const size = String(input.size ?? "").trim().slice(0, 80);
+  if (!color) return { ok: false, en: "Choose the colour.", ne: "रङ छान्नुहोस्।" };
+  if (!size) return { ok: false, en: "Choose the size.", ne: "साइज छान्नुहोस्।" };
   // The stage the work was done at (owner, 2026-10-03): the worker's own unless
   // the owner picks another; the day it was done; damaged pairs among them.
   const stage = input.stage && (FACTORY_WORKER_CATEGORIES as readonly string[]).includes(input.stage) && input.stage !== "Staff" ? input.stage : null;
@@ -59,8 +67,8 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
       date: workDate,
       workerId: photo.workerId,
       itemId: item,
-      color: null,
-      size: null,
+      color,
+      size,
       pairsCount: count,
       rejectPairs: rejects,
       status: "completed",
@@ -71,7 +79,7 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
       await reviewWorkerPhoto(
         photo.id,
         { status: "added", workId: entry.id, verdict: "", itemId: item, pairs: count, stage: stage ?? "", workDate, rejectPairs: rejects, reply: input.reply ?? photo.reply },
-        { by: byOf(actor), what: `On the books: ${count} pairs${rejects ? ` (${rejects} damaged)` : ""}${stage ? ` at ${stage}` : ""}, ${workDate} — Rs. ${entry.amount_earned}` },
+        { by: byOf(actor), what: `On the books: ${count} pairs, ${color}, ${size}${rejects ? ` (${rejects} damaged)` : ""}${stage ? ` at ${stage}` : ""}, ${workDate} — Rs. ${entry.amount_earned}` },
       );
     } else {
       await linkWorkerPhotoToWork(photo.id, entry.id, byOf(actor));
@@ -207,4 +215,28 @@ export async function answerWorkerRequestAction(id: string, status: "done" | "de
   revalidatePath("/admin/factory/photos");
   revalidatePath("/admin/factory/workers");
   return { ok: true, en: "The worker will see your answer.", ne: "कामदारले तपाईंको जवाफ देख्नेछ।" };
+}
+
+/** Ask the robot again, or for the first time, about one photo (owner, 2026-10-03). */
+export async function robotPhotoAction(photoId: string): Promise<InboxReply> {
+  await requireAdminPermission("production:entry");
+  if (!(await photoRobotReady())) return NOT_READY;
+  if (!isAiConfigured()) return { ok: false, en: "The robot is not connected (no Gemini key).", ne: "रोबोट जोडिएको छैन (Gemini key छैन)।" };
+  const guess = await robotLookAtPhoto(photoId, { force: true });
+  revalidatePath("/admin/factory/photos");
+  if (!guess) return { ok: false, en: "The robot is switched off, or could not look.", ne: "रोबोट बन्द छ, वा हेर्न सकेन।" };
+  if (guess.missing === "limit") return { ok: false, en: "Today's free robot limit is used up — try tomorrow.", ne: "आजको निःशुल्क सीमा सकियो — भोलि फेरि।" };
+  if (guess.missing) return { ok: false, en: "The robot could not tell. Fill it in yourself.", ne: "रोबोटले चिन्न सकेन। आफैँ भर्नुहोस्।" };
+  return { ok: true, en: "The robot has looked 🤖", ne: "रोबोटले हेर्‍यो 🤖" };
+}
+
+/** The Settings switch: the robot looks at new photos, or not. Owner and Admin. */
+export async function setPhotoRobotAction(on: boolean): Promise<InboxReply> {
+  const actor = await requireAdminPermission("wages:write");
+  if (!(await photoRobotReady())) return NOT_READY;
+  await setPhotoRobotOn(on);
+  await recordAdminAuditEvent("factory_photo_robot", `${byOf(actor)} turned the photo robot ${on ? "on" : "off"}.`);
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/factory/photos");
+  return on ? { ok: true, en: "The robot is on.", ne: "रोबोट खुल्यो।" } : { ok: true, en: "The robot is off.", ne: "रोबोट बन्द भयो।" };
 }

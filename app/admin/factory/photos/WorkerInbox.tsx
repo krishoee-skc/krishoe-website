@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
-import type { WorkerPhoto, WorkerRequest } from "@/lib/worker-portal";
+import type { ItemHistory, WorkerPhoto, WorkerRequest } from "@/lib/worker-portal";
 import { formatAdminDate } from "@/lib/format-date";
 import { quoteWork, type FactoryRate } from "@/lib/factory-rate-book";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
@@ -16,6 +16,7 @@ import {
   deletePhotoAction,
   hidePhotoAction,
   notWorkPhotoAction,
+  robotPhotoAction,
   takeBackPhotoWorkAction,
   type InboxReply,
 } from "./actions";
@@ -29,8 +30,8 @@ const KIND_WORDS: Record<WorkerPhoto["kind"], { en: string; ne: string; icon: st
 
 /** The reasons a photo is not work, as the worker will read them. */
 const NOT_WORK_REASONS = [
-  { en: "Send the shoe and the pairs", ne: "जुत्ता र जोडी लेखेर फेरि पठाउनुहोस्" },
   { en: "The photo is not clear — send again", ne: "फोटो प्रस्ट भएन — फेरि पठाउनुहोस्" },
+  { en: "Send the shoe and the pairs", ne: "जुत्ता र जोडी लेखेर फेरि पठाउनुहोस्" },
   { en: "Already on the books", ne: "यो काम पहिले नै हिसाबमा छ" },
   { en: "Not our work", ne: "यो हाम्रो काम होइन" },
 ] as const;
@@ -56,7 +57,12 @@ function tabOf(photo: WorkerPhoto): Tab {
   return "check";
 }
 
-type Draft = { work: boolean; stage: string; itemId: string; pairs: string; workDate: string; rejects: string; reason: string; message: string };
+type Draft = { work: boolean; stage: string; itemId: string; pairs: string; color: string; size: string; workDate: string; rejects: string; reason: string; message: string };
+
+/** "36, 37, 38" → its single sizes, for the chips. */
+function sizesOf(run: string) {
+  return run.split(/[,/s]+/).map((size) => size.trim()).filter((size) => /^d{1,2}$/.test(size));
+}
 
 /**
  * What workers have sent (owner, 2026-10-02/03), and the check of each photo:
@@ -72,6 +78,8 @@ export default function WorkerInbox({
   rates = [],
   draftsOn = false,
   reviewOn = false,
+  history = {},
+  robotOn = false,
 }: {
   photos: WorkerPhoto[];
   requests: WorkerRequest[];
@@ -81,6 +89,10 @@ export default function WorkerInbox({
   rates?: FactoryRate[];
   draftsOn?: boolean;
   reviewOn?: boolean;
+  /** The colour and size each shoe was last made in (2026-10-03). */
+  history?: Record<string, ItemHistory>;
+  /** The robot looks at photos (Settings switch, Gemini key). */
+  robotOn?: boolean;
 }) {
   const { text, language } = useLanguage();
   const router = useRouter();
@@ -102,18 +114,38 @@ export default function WorkerInbox({
       }
     });
 
-  const draftOf = (photo: WorkerPhoto): Draft =>
-    drafts[photo.id] ?? {
+  /** The robot's shoe, only when it is one the factory makes. */
+  const robotItem = (photo: WorkerPhoto) => (photo.robot?.itemId && items.some((item) => item.id === photo.robot?.itemId) ? photo.robot.itemId : "");
+  // What the worker wrote comes first, then the robot's guess, then what the
+  // books knew of this shoe last time (owner, 2026-10-03).
+  const draftOf = (photo: WorkerPhoto): Draft => {
+    if (drafts[photo.id]) return drafts[photo.id];
+    const itemId = photo.itemId || robotItem(photo);
+    return {
       work: photo.verdict !== "not_work",
       stage: photo.stage || photo.workerCategory,
-      itemId: photo.itemId,
-      pairs: photo.pairs ? String(photo.pairs) : "",
+      itemId,
+      pairs: photo.pairs ? String(photo.pairs) : photo.robot?.pairs ? String(photo.robot.pairs) : "",
+      color: photo.robot?.color || history[itemId]?.color || "",
+      size: history[itemId]?.size || "",
       workDate: photo.workDate || nepalDay(photo.createdAt),
       rejects: photo.rejectPairs ? String(photo.rejectPairs) : "0",
       reason: NOT_WORK_REASONS[0].ne,
       message: "",
     };
+  };
   const change = (photo: WorkerPhoto, patch: Partial<Draft>) => setDrafts((current) => ({ ...current, [photo.id]: { ...draftOf(photo), ...patch } }));
+  /** Another shoe brings its own last colour and size, unless the robot saw the colour. */
+  const changeItem = (photo: WorkerPhoto, itemId: string) =>
+    change(photo, { itemId, color: photo.robot?.color || history[itemId]?.color || "", size: history[itemId]?.size || "" });
+  /** Filled by the robot and not changed since — marked 🤖 for checking. */
+  const byRobot = (photo: WorkerPhoto, field: "itemId" | "pairs" | "color") => {
+    const draft = draftOf(photo);
+    if (!photo.robot) return false;
+    if (field === "itemId") return !photo.itemId && Boolean(draft.itemId) && draft.itemId === photo.robot.itemId;
+    if (field === "pairs") return !photo.pairs && Boolean(draft.pairs) && draft.pairs === String(photo.robot.pairs ?? "");
+    return Boolean(draft.color) && draft.color === photo.robot.color;
+  };
 
   /** What the books would pay, from the same rate book Add work uses. */
   const quote = (photo: WorkerPhoto) => {
@@ -135,13 +167,16 @@ export default function WorkerInbox({
   }, [photos, who]);
   const shown = photos.filter((photo) => tabOf(photo) === tab && (!who || photo.workerName === who));
   const bookable = (photo: WorkerPhoto) => draftsOn && photo.workerType === "piece_rate" && photo.kind !== "problem" && photo.status !== "added";
-  const readyToBook = shown.filter((photo) => tab === "check" && bookable(photo) && Boolean(draftOf(photo).itemId) && Number(draftOf(photo).pairs) > 0);
+  const complete = (draft: Draft) => Boolean(draft.itemId) && Number(draft.pairs) > 0 && Boolean(draft.color.trim()) && Boolean(draft.size.trim());
+  const readyToBook = shown.filter((photo) => tab === "check" && bookable(photo) && complete(draftOf(photo)));
 
   const book = (photo: WorkerPhoto) => {
     const draft = draftOf(photo);
     return bookPhotoWorkAction(photo.id, {
       itemId: draft.itemId,
       pairs: Number(draft.pairs),
+      color: draft.color,
+      size: draft.size,
       stage: draft.stage,
       workDate: draft.workDate,
       rejectPairs: Number(draft.rejects) || 0,
@@ -316,6 +351,16 @@ export default function WorkerInbox({
 
                           {photo.status !== "added" && draft.work && bookable(photo) ? (
                             <div className="grid gap-2">
+                              {photo.robot && !photo.robot.missing ? (
+                                <p className="rounded-xl bg-sky-50 px-3 py-2 text-sm font-black text-sky-900 dark:bg-sky-950/40 dark:text-sky-100">
+                                  🤖 {text("Robot's guess", "रोबोटको अनुमान")}: {items.find((item) => item.id === photo.robot?.itemId)?.name ?? text("shoe not known", "जुत्ता चिनेन")}
+                                  {photo.robot.color ? ` · ${photo.robot.color}` : ""}
+                                  {photo.robot.pairs ? text(` · about ${photo.robot.pairs} pairs`, ` · लगभग ${photo.robot.pairs} जोडी`) : ""}
+                                  <span className="block text-xs font-semibold">
+                                    {text("A guess only — check the shoe and count the pairs.", "अनुमान मात्र — जुत्ता हेर्नुहोस्, जोडी गन्नुहोस्।")}
+                                  </span>
+                                </p>
+                              ) : null}
                               <div className="flex flex-wrap gap-1.5" role="group" aria-label={text("Which work", "कुन काम")}>
                                 {STAGES.map((stage) => (
                                   <button
@@ -332,8 +377,8 @@ export default function WorkerInbox({
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <label className="grid gap-1 text-xs font-black">
-                                  {text("Shoe", "जुत्ता")}
-                                  <select value={draft.itemId} onChange={(event) => change(photo, { itemId: event.target.value })} className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-2 text-sm font-normal">
+                                  <span>{text("Shoe", "जुत्ता")}{byRobot(photo, "itemId") ? " 🤖" : ""}</span>
+                                  <select value={draft.itemId} onChange={(event) => changeItem(photo, event.target.value)} className={`min-h-11 rounded-xl border px-2 text-sm font-normal ${byRobot(photo, "itemId") ? "border-sky-600 bg-sky-50 dark:bg-sky-950/40" : "border-brand-green-line bg-brand-paper"}`}>
                                     <option value="">{text("— choose —", "— छान्नुहोस् —")}</option>
                                     {items.map((item) => (
                                       <option key={item.id} value={item.id}>{item.name}</option>
@@ -341,8 +386,8 @@ export default function WorkerInbox({
                                   </select>
                                 </label>
                                 <label className="grid gap-1 text-xs font-black">
-                                  {text("Pairs", "जोडी")}
-                                  <input value={draft.pairs} onChange={(event) => change(photo, { pairs: event.target.value })} inputMode="numeric" className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-2 text-sm font-normal" />
+                                  <span>{text("Pairs", "जोडी")}{byRobot(photo, "pairs") ? text(" 🤖 — check", " 🤖 — गन्नुहोस्") : ""}</span>
+                                  <input value={draft.pairs} onChange={(event) => change(photo, { pairs: event.target.value })} inputMode="numeric" className={`min-h-11 rounded-xl border px-2 text-sm font-normal ${byRobot(photo, "pairs") ? "border-sky-600 bg-sky-50 dark:bg-sky-950/40" : "border-brand-green-line bg-brand-paper"}`} />
                                 </label>
                                 {reviewOn ? (
                                   <>
@@ -356,6 +401,35 @@ export default function WorkerInbox({
                                     </label>
                                   </>
                                 ) : null}
+                              </div>
+                              <div className="grid gap-2">
+                                <div className="grid gap-1 text-xs font-black">
+                                  <span>{text("Colour", "रङ")}{byRobot(photo, "color") ? " 🤖" : ""}</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {[...new Set([photo.robot?.color, ...(history[draft.itemId]?.colors ?? [])].filter((colour): colour is string => Boolean(colour)))].map((colour) => (
+                                      <button key={colour} type="button" aria-pressed={draft.color === colour} onClick={() => change(photo, { color: colour })} className={`min-h-9 rounded-full border px-3 text-xs font-black ${draft.color === colour ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line"}`}>
+                                        {colour}{colour === photo.robot?.color ? " 🤖" : colour === history[draft.itemId]?.color ? text(" · last time", " · पहिले") : ""}
+                                      </button>
+                                    ))}
+                                    <input value={draft.color} onChange={(event) => change(photo, { color: event.target.value })} maxLength={40} placeholder={text("or type", "वा लेख्नुहोस्")} aria-label={text("Colour", "रङ")} className="min-h-9 w-32 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-normal" />
+                                  </div>
+                                </div>
+                                <div className="grid gap-1 text-xs font-black">
+                                  <span>{text("Size", "साइज")}</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {history[draft.itemId]?.size ? (
+                                      <button type="button" aria-pressed={draft.size === history[draft.itemId].size} onClick={() => change(photo, { size: history[draft.itemId].size })} className={`min-h-9 rounded-full border px-3 text-xs font-black ${draft.size === history[draft.itemId].size ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line"}`}>
+                                        {history[draft.itemId].size}{text(" · last time", " · पहिले")}
+                                      </button>
+                                    ) : null}
+                                    {sizesOf(history[draft.itemId]?.size ?? "").map((single) => (
+                                      <button key={single} type="button" aria-pressed={draft.size === single} onClick={() => change(photo, { size: single })} className={`min-h-9 rounded-full border px-3 text-xs font-black ${draft.size === single ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line"}`}>
+                                        {single}
+                                      </button>
+                                    ))}
+                                    <input value={draft.size} onChange={(event) => change(photo, { size: event.target.value })} maxLength={80} placeholder={text("e.g. 36, 37, 38", "जस्तै 36, 37, 38")} aria-label={text("Size", "साइज")} className="min-h-9 w-40 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-normal" />
+                                  </div>
+                                </div>
                               </div>
                               <p className={`rounded-xl px-3 py-2 text-sm font-black ${price?.rate ? "bg-emerald-50 text-emerald-900" : "bg-brand-cream-soft text-brand-green-ink"}`}>
                                 {!price
@@ -387,8 +461,20 @@ export default function WorkerInbox({
 
                           <div className="flex flex-wrap gap-2">
                             {photo.status !== "added" && draft.work && bookable(photo) ? (
-                              <button type="button" disabled={pending || !price?.rate} onClick={() => run(() => book(photo), () => setOpen(null))} className="min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-50">
-                                {text("✓ Put on the books", "✓ हिसाबमा थप्ने")}
+                              <>
+                                <button type="button" disabled={pending || !price?.rate || !complete(draft)} onClick={() => run(() => book(photo), () => setOpen(null))} className="min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-50">
+                                  {text("✓ Put on the books", "✓ हिसाबमा थप्ने")}
+                                </button>
+                                {price?.rate && !complete(draft) ? (
+                                  <span className="self-center text-sm font-bold text-amber-800">
+                                    {!draft.color.trim() ? text("Choose the colour", "रङ छान्नुहोस्") : text("Choose the size", "साइज छान्नुहोस्")}
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : null}
+                            {robotOn && photo.status !== "added" && photo.kind !== "problem" && (!photo.robot || photo.robot.missing) ? (
+                              <button type="button" disabled={pending} onClick={() => run(() => robotPhotoAction(photo.id))} className="min-h-11 rounded-xl border border-sky-600 px-4 text-sm font-black text-sky-900 disabled:opacity-50 dark:text-sky-100">
+                                🤖 {text("Ask the robot", "रोबोटलाई सोध्ने")}
                               </button>
                             ) : null}
                             {photo.status !== "added" && !draft.work && reviewOn ? (
@@ -439,15 +525,15 @@ export default function WorkerInbox({
                             </ul>
                           ) : null}
                         </div>
-                      ) : photo.status !== "added" && photo.kind !== "problem" && photo.verdict !== "not_work" && (!photo.itemId || !photo.pairs) ? (
+                      ) : photo.status !== "added" && photo.kind !== "problem" && photo.verdict !== "not_work" && (!draftOf(photo).itemId || !draftOf(photo).pairs) ? (
                         // Half-told (owner, 2026-10-03): say what is missing on
                         // the card, and let a wrong one be called not work
                         // without first filling it in.
                         <div className="grid gap-2">
                           <p className="w-max rounded-full bg-amber-100 px-3 py-0.5 text-xs font-black text-amber-900">
-                            ⚠ {!photo.itemId && !photo.pairs
+                            ⚠ {!draftOf(photo).itemId && !draftOf(photo).pairs
                               ? text("No shoe · no pairs", "जुत्ता र जोडी छैन")
-                              : !photo.itemId
+                              : !draftOf(photo).itemId
                                 ? text("No shoe", "जुत्ता छैन")
                                 : text("No pairs", "जोडी छैन")}
                           </p>
