@@ -256,7 +256,7 @@ export default function PosProductPicker({
         // A short list, not big cards (owner, 2026-10-04): on a laptop the
         // cards filled the screen and squeezed the bill. One column on a
         // phone, two on a computer; a small photo, the name, price and pairs.
-        <div className="grid gap-1.5 sm:grid-cols-2">
+        <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
           {tiles.map((item, index) => {
             const left = pairsLeft(item, cart);
             const soldOut = left <= 0 && !returning;

@@ -807,7 +807,7 @@ export default function PosBillForm({
       </div>
 
       {/* The bill wider and the shoes a short list (owner, 2026-10-04). */}
-      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:grid-cols-[minmax(0,1fr)_470px] min-[1600px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4">
           {isExchange ? (
             // Which side the next tapped shoe goes to. The pair that came back
@@ -988,7 +988,7 @@ export default function PosBillForm({
                   return (
                     <li key={group.key} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 py-2.5">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-brand-green-ink min-[1600px]:text-xl">
+                        <p className="truncate text-base font-black text-brand-green-ink lg:text-xl">
                           {back ? <span className="text-brand-clay">↩ </span> : null}
                           {first.design}
                         </p>
@@ -1014,7 +1014,7 @@ export default function PosBillForm({
                           ) : null}
                         </p>
                       </div>
-                      <p className="text-right text-sm font-black tabular-nums text-brand-green-ink min-[1600px]:text-xl">
+                      <p className="text-right text-base font-black tabular-nums text-brand-green-ink lg:text-xl">
                         {isReturn || back ? "− " : ""}
                         {money(group.rate * pairs)}
                       </p>
@@ -1093,8 +1093,8 @@ export default function PosBillForm({
                                 title={text("Tap to change the pairs", "जोडी फेर्न थिच्नुहोस्")}
                                 className="grid min-w-9 justify-items-center gap-0.5"
                               >
-                                <span className="text-[10px] font-bold leading-none text-brand-muted min-[1600px]:text-sm">{row.size || "—"}</span>
-                                <span className="grid h-7 min-w-9 place-items-center rounded-lg border-[1.5px] border-brand-green bg-brand-green-wash px-1 text-sm font-black tabular-nums text-brand-green min-[1600px]:h-10 min-[1600px]:min-w-12 min-[1600px]:text-lg">
+                                <span className="text-[10px] font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>
+                                <span className="grid h-8 min-w-10 place-items-center rounded-lg border-[1.5px] border-brand-green bg-brand-green-wash px-1 text-sm font-black tabular-nums text-brand-green lg:h-10 lg:min-w-12 lg:text-lg">
                                   {row.quantity}
                                 </span>
                               </button>
@@ -1219,32 +1219,6 @@ export default function PosBillForm({
                     <span>{money(dueAmount)}</span>
                   </div>
                 ) : null}
-                <div className="mt-1 flex items-baseline justify-between border-t-2 border-brand-green-ink pt-2">
-                  <span className="font-bold text-brand-green-ink">
-                    {isReturn
-                      ? text("Back to the account", "खातामा फिर्ता")
-                      : isExchange && settle.toRefund > 0
-                        ? text("Give back", "ग्राहकलाई फिर्ता")
-                        : isExchange || dueAmount > 0
-                          ? text("To take", "लिनुपर्ने")
-                          : text("Total", "जम्मा")}
-                  </span>
-                  <span
-                    className={`text-3xl font-black min-[1600px]:text-6xl ${
-                      isReturn || (isExchange && settle.toRefund > 0) ? "text-brand-clay" : "text-brand-green-ink"
-                    }`}
-                  >
-                    {money(
-                      isReturn
-                        ? totals.total
-                        : isExchange
-                          ? settle.toRefund > 0
-                            ? settle.toRefund
-                            : settle.toPay
-                          : totals.total + dueAmount,
-                    )}
-                  </span>
-                </div>
               </div>
             ) : null}
 
@@ -1371,7 +1345,7 @@ export default function PosBillForm({
                       setPayment(option);
                       setRestMethod("");
                     }}
-                    className={`h-11 rounded-xl border text-sm font-black min-[1600px]:h-14 min-[1600px]:text-lg ${
+                    className={`h-12 rounded-xl border text-base font-black lg:h-14 lg:text-lg ${
                       payment === option
                         ? option === "Credit"
                           ? "border-brand-gold bg-brand-gold text-brand-green-ink"
@@ -1426,7 +1400,7 @@ export default function PosBillForm({
                     }}
                     onFocus={(event) => event.currentTarget.select()}
                     aria-label={text("Cash handed over", "ग्राहकले दिएको नगद")}
-                    className="h-11 w-32 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-right text-lg font-black tabular-nums text-brand-green-ink outline-none focus:border-brand-green min-[1600px]:h-14 min-[1600px]:w-44 min-[1600px]:text-2xl"
+                    className="h-11 w-32 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-right text-lg font-black tabular-nums text-brand-green-ink outline-none focus:border-brand-green lg:h-14 lg:w-44 lg:text-2xl"
                   />
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -1455,7 +1429,7 @@ export default function PosBillForm({
                   ))}
                 </div>
                 {plan.change > 0 ? (
-                  <p className="text-lg font-black text-brand-green min-[1600px]:text-2xl">
+                  <p className="text-lg font-black text-brand-green lg:text-2xl">
                     {text(`Change to give: ${money(plan.change)}`, `फिर्ता दिने: ${money(plan.change)}`)}
                   </p>
                 ) : received !== "" && Number(received) < amountDue + dueAmount ? (
@@ -1664,10 +1638,39 @@ export default function PosBillForm({
                   )}
                 </p>
               ) : null}
+              {/* The total, beside Save (owner, 2026-10-04: the namuna's model). */}
+              {cart.length > 0 ? (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-bold text-brand-green-ink lg:text-xl">
+                      {isReturn
+                        ? text("Back to the account", "खातामा फिर्ता")
+                        : isExchange && settle.toRefund > 0
+                          ? text("Give back", "ग्राहकलाई फिर्ता")
+                          : isExchange || dueAmount > 0
+                            ? text("To take", "लिनुपर्ने")
+                            : text("Total", "जम्मा")}
+                    </span>
+                    <span
+                      className={`text-4xl font-black tabular-nums lg:text-6xl ${
+                        isReturn || (isExchange && settle.toRefund > 0) ? "text-brand-clay" : "text-brand-green-ink"
+                      }`}
+                    >
+                      {money(
+                        isReturn
+                          ? totals.total
+                          : isExchange
+                            ? settle.toRefund > 0
+                              ? settle.toRefund
+                              : settle.toPay
+                            : totals.total + dueAmount,
+                      )}
+                    </span>
+                  </div>
+                ) : null}
               <button
                 type="submit"
                 disabled={isSaving || saveLocked || Boolean(blocked)}
-                className={`min-h-14 w-full rounded-2xl px-4 text-lg font-black text-white transition min-[1600px]:min-h-16 min-[1600px]:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black text-white transition lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
                   isReturn ? "bg-brand-clay" : "bg-brand-green-ink hover:bg-brand-green"
                 }`}
               >

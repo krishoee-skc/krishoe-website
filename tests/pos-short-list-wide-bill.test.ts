@@ -11,18 +11,18 @@ const read = (file: string) => readFile(file, "utf8");
 describe("the bill screen's new look", () => {
   it("lists the shoes short, one column on a phone and two on a computer", async () => {
     const picker = await read("app/admin/pos/_components/PosProductPicker.tsx");
-    expect(picker).toContain('<div className="grid gap-1.5 sm:grid-cols-2">');
+    expect(picker).toContain('<div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">');
     expect(picker).toContain("const inBill = cart.some((line) => line.design === item.design);");
   });
 
   it("gives the bill more room", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain("lg:grid-cols-[minmax(0,1fr)_470px]");
+    expect(form).toContain("md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]");
   });
 
   it("puts each size above its pairs, in a box of their own", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain('<span className="text-[10px] font-bold leading-none text-brand-muted min-[1600px]:text-sm">{row.size || "—"}</span>');
+    expect(form).toContain('<span className="text-[10px] font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>');
     expect(form).toContain("border-[1.5px] border-brand-green bg-brand-green-wash");
   });
 
@@ -51,7 +51,7 @@ describe("the cash box and the big screen", () => {
 
   it("gives the bill half of a big screen, in larger type", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain("min-[1600px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]");
-    expect(form).toContain("min-[1600px]:text-6xl");
+    expect(form).toContain("{/* The total, beside Save (owner, 2026-10-04: the namuna's model). */}");
+    expect(form).toContain("lg:text-6xl");
   });
 });
