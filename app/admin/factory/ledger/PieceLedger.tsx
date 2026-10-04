@@ -1,5 +1,7 @@
 "use client";
 
+import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useToast } from "@/components/admin/ToastProvider";
@@ -34,7 +36,9 @@ import type { LedgerData, WorkerLedger } from "@/app/admin/factory/ledger/piece-
  * fetches that ledger — it is a different read each time, and there is nothing
  * to prefetch for a person nobody has picked yet.
  */
-export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker[] }) {
+export default function PieceLedger({ initialWorkers, canFix = false }: { initialWorkers: Worker[]; canFix?: boolean }) {
+  /** The row whose ✏️ is open, showing Correct and Delete. */
+  const [fixingId, setFixingId] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const workerId = searchParams.get("workerId");
 
@@ -502,15 +506,34 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                             {entry.item_name ? (
                               <>
                                 <span className="block break-words font-bold">{entry.item_name}</span>
+                                {/* Colour and size as chips, read at a glance
+                                    (owner, 2026-10-04). */}
                                 {entry.color || entry.size ? (
-                                  <span className="mt-0.5 block break-words text-xs text-brand-muted">
-                                    {[entry.color, entry.size].filter(Boolean).join(" · ")}
+                                  <span className="mt-1 flex flex-wrap justify-end gap-1 sm:justify-start">
+                                    {entry.color ? (
+                                      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
+                                        {colourSwatch(entry.color) ? (
+                                          <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(entry.color) ?? undefined }} />
+                                        ) : null}
+                                        {entry.color}
+                                      </span>
+                                    ) : null}
+                                    {entry.size ? (
+                                      <span title={entry.size} className="rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
+                                        {text("Size", "साइज")} {compactSizes(entry.size)}
+                                      </span>
+                                    ) : null}
                                   </span>
                                 ) : (
                                   <span className="mt-0.5 block text-xs text-brand-muted">
                                     {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
                                   </span>
                                 )}
+                                {entry.from_photo ? (
+                                  <Link href="/admin/factory/photos" className="mt-1 inline-block text-xs font-bold text-brand-green underline underline-offset-2">
+                                    📷 {text("from the worker's photo", "कामदारको फोटोबाट")}
+                                  </Link>
+                                ) : null}
                               </>
                             ) : (
                               <span className="text-brand-muted-soft">—</span>
@@ -524,10 +547,16 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                           }`}
                         >
                           <span className="block min-w-0">
-                            {entry.work_pairs || <span className="text-brand-muted-soft">—</span>}
+                            {entry.work_pairs ? (
+                              <span className="text-lg font-black tabular-nums">
+                                {entry.work_pairs} <span className="text-xs font-bold text-brand-muted">{text("pairs", "जोडी")}</span>
+                              </span>
+                            ) : (
+                              <span className="text-brand-muted-soft">—</span>
+                            )}
                             {entry.rate_applied ? (
-                              <span className="mt-0.5 block text-xs text-brand-muted">
-                                × Rs. {Number(entry.rate_applied)}
+                              <span className="mt-0.5 block text-sm font-bold tabular-nums text-brand-green-ink">
+                                × Rs. {Number(entry.rate_applied).toLocaleString("en-IN")}
                               </span>
                             ) : null}
                             {entry.reject_pairs ? (
@@ -702,15 +731,16 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                   </button>
                                 </div>
                               </div>
-                            ) : (
-                              /* Correct the details, or remove the entry.
-                                 Both belong on the row where the mistake is
-                                 read. */
-                              <span className="mt-1 flex flex-wrap gap-3">
-                                {entry.source_work_id ? (
+                            ) : canFix ? (
+                              /* Kept off the row (owner, 2026-10-04): one quiet
+                                 ✏️ for the Owner opens Correct and Delete — the
+                                 server lets only the Owner do either. */
+                              fixingId === entry.source_work_id ? (
+                                <span className="mt-1 flex flex-wrap items-center gap-3">
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      setFixingId(null);
                                       setEditingId(entry.source_work_id);
                                       setEditForm({
                                         color: entry.color ?? "",
@@ -724,19 +754,33 @@ export default function PieceLedger({ initialWorkers }: { initialWorkers: Worker
                                   >
                                     {text("Correct", "सच्याउने")}
                                   </button>
-                                ) : null}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFixingId(null);
+                                      setDeletingId(entry.source_work_id);
+                                      setDeleteReason("");
+                                    }}
+                                    className="text-xs font-black text-brand-clay underline underline-offset-2"
+                                  >
+                                    {text("Delete", "मेट्ने")}
+                                  </button>
+                                  <button type="button" onClick={() => setFixingId(null)} className="text-xs font-bold text-brand-muted">
+                                    {text("Cancel", "रद्द")}
+                                  </button>
+                                </span>
+                              ) : (
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setDeletingId(entry.source_work_id);
-                                    setDeleteReason("");
-                                  }}
-                                  className="text-xs font-black text-brand-clay underline underline-offset-2"
+                                  onClick={() => setFixingId(entry.source_work_id)}
+                                  aria-label={text("Fix this entry", "यो entry सच्याउने")}
+                                  title={text("Fix this entry", "यो entry सच्याउने")}
+                                  className="mt-1 grid h-8 w-8 place-items-center rounded-lg border border-brand-green-line text-sm hover:border-brand-green"
                                 >
-                                  {text("Delete", "मेट्ने")}
+                                  ✏️
                                 </button>
-                              </span>
-                            )
+                              )
+                            ) : null
                           ) : entry.notes ? null : (
                             <span className="text-brand-muted-soft">—</span>
                           )}

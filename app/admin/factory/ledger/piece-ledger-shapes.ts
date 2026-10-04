@@ -34,6 +34,8 @@ export interface WorkerLedger {
    *  correction rewrites, and the item it was for. Null on a payment. */
   source_work_id: string | null;
   item_id: string | null;
+  /** Booked from a worker's photo (2026-10-04). */
+  from_photo?: boolean | null;
 }
 
 export interface LedgerData {

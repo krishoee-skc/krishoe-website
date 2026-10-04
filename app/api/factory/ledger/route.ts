@@ -41,6 +41,8 @@ interface LedgerEntry {
    *  needs to send back. */
   item_id: string | null;
   source_work_id: string | null;
+  /** Booked from a worker's photo (2026-10-04). */
+  from_photo?: boolean | null;
 }
 
 interface Worker {
@@ -111,7 +113,8 @@ export async function GET(request: NextRequest) {
                               balanced.notes, balanced.created_at,
                               items.name AS item_name, work.color, work.size,
                               work.rate_applied, work.reject_pairs,
-                              work.item_id, work.id AS source_work_id
+                              work.item_id, work.id AS source_work_id,
+                              (work.submission_key LIKE 'worker-photo:%') AS from_photo
                        FROM balanced
                        LEFT JOIN factory_daily_work work ON work.id = balanced.source_work_id
                        LEFT JOIN factory_items items ON items.id = work.item_id

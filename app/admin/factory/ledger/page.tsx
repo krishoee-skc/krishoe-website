@@ -5,6 +5,8 @@ import type { FactoryWorker } from "@/lib/factory-board";
 import { getFactoryWorkers } from "@/lib/factory-board-data";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { getAdminSession } from "@/lib/admin-auth";
+import { getSessionAdminRole } from "@/lib/admin-role-permissions";
 
 export const metadata: Metadata = {
   title: "Piece ledger | KRISHOE Admin",
@@ -38,5 +40,8 @@ export default async function FactoryLedgerPage() {
     );
   }
 
-  return <PieceLedger initialWorkers={loaded.workers} />;
+  // Correct and Delete are the Owner's alone on the server; the ✏️ shows only to them.
+  const session = await getAdminSession();
+  const canFix = Boolean(session) && getSessionAdminRole(session!) === "Owner";
+  return <PieceLedger initialWorkers={loaded.workers} canFix={canFix} />;
 }
