@@ -253,13 +253,18 @@ export default function PosProductPicker({
           ) : null}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+        // A short list, not big cards (owner, 2026-10-04): on a laptop the
+        // cards filled the screen and squeezed the bill. One column on a
+        // phone, two on a computer; a small photo, the name, price and pairs.
+        <div className="grid gap-1.5 sm:grid-cols-2">
           {tiles.map((item, index) => {
             const left = pairsLeft(item, cart);
             const soldOut = left <= 0 && !returning;
             const sizeLeft = sizeQuery ? sizeChoices(item, cart).find((choice) => choice.size === sizeQuery) : null;
             const rate = rateForChannel(channel, item);
             const noPrice = !(rate > 0) && !soldOut;
+            const inBill = cart.some((line) => line.design === item.design);
+            const low = !soldOut && left <= LOW_STOCK;
 
             return (
               <button
@@ -267,44 +272,55 @@ export default function PosProductPicker({
                 type="button"
                 disabled={soldOut}
                 onClick={() => onChoose(item, sizeQuery)}
-                className={`group relative flex flex-col overflow-hidden rounded-2xl border ${noPrice ? "border-brand-clay bg-brand-clay-tint/40" : "border-brand-green-line bg-brand-paper"} text-left transition hover:-translate-y-0.5 hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0`}
+                className={`flex min-h-14 items-center gap-2.5 rounded-xl border px-2 py-1.5 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-50 ${
+                  inBill
+                    ? "border-brand-green bg-brand-green-wash"
+                    : noPrice
+                      ? "border-brand-clay/50 bg-brand-clay-tint/30 hover:border-brand-clay"
+                      : "border-brand-green-line bg-brand-paper hover:border-brand-green"
+                }`}
               >
-                <span className="relative block aspect-[4/3] w-full bg-brand-paper-deep">
+                <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-brand-paper-deep">
                   {item.image && !hasNoPhoto(item.image) ? (
-                    <SafeImage src={item.image} alt="" fill sizes="(max-width: 768px) 50vw, 220px" className="object-cover" />
+                    <SafeImage src={item.image} alt="" fill sizes="40px" className="object-cover" />
                   ) : (
-                    <span className="grid h-full place-items-center text-3xl text-brand-green-line" aria-hidden="true">
+                    <span className="grid h-full place-items-center text-lg text-brand-green-line" aria-hidden="true">
                       👟
                     </span>
                   )}
-                  {index === 0 && query.trim() ? (
-                    <span className="absolute left-1.5 top-1.5 hidden rounded bg-brand-green-ink/80 px-1.5 font-mono text-[10px] text-white md:block">
-                      Enter
-                    </span>
-                  ) : null}
-                  {!soldOut && left <= LOW_STOCK ? (
-                    <span className="absolute right-1.5 top-1.5 rounded-full bg-brand-clay px-2 text-[11px] font-black text-white">
-                      {text(`only ${left}`, `${left} मात्र`)}
-                    </span>
-                  ) : null}
                 </span>
-                <span className="flex flex-1 flex-col gap-0.5 p-2.5">
-                  <span className="line-clamp-2 text-sm font-black leading-tight text-brand-green-ink">{item.design}</span>
-                  {item.sku ? <span className="font-mono text-[11px] text-brand-muted">{item.sku}</span> : null}
-                  <span className="mt-auto flex items-baseline justify-between gap-1 pt-1">
-                    <span className={`text-base font-black tabular-nums ${noPrice ? "text-brand-clay" : "text-brand-green"}`}>
-                      {rate > 0 ? money(rate) : text("No price — tap, type it", "मूल्य छैन — थिचेर लेख्ने")}
-                    </span>
-                    <span className="text-[11px] font-semibold text-brand-muted">
-                      {soldOut
-                        ? text("sold out", "सकियो")
-                        : sizeLeft
-                          ? sizeLeft.left === null
-                            ? text(`size ${sizeQuery}: in pile`, `साइज ${sizeQuery}: थुप्रोमा`)
-                            : text(`size ${sizeQuery}: ${sizeLeft.left}`, `साइज ${sizeQuery}: ${sizeLeft.left}`)
-                          : text(`${left} pairs`, `${left} जोडा`)}
-                    </span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block truncate text-sm font-black text-brand-green-ink">{item.design}</span>
+                  <span className="block truncate text-[11px] text-brand-muted">
+                    {item.sku ? <span className="font-mono">{item.sku}</span> : null}
+                    {index === 0 && query.trim() ? (
+                      <span className="ms-1.5 hidden rounded bg-brand-green-ink/80 px-1 font-mono text-[10px] text-white md:inline">Enter</span>
+                    ) : null}
                   </span>
+                </span>
+                <span className="shrink-0 text-right leading-tight">
+                  <span className={`block text-sm font-black tabular-nums ${noPrice ? "text-brand-clay" : "text-brand-green-ink"}`}>
+                    {rate > 0 ? money(rate) : text("Set price", "मूल्य लेख्ने")}
+                  </span>
+                  <span className={`block text-[11px] tabular-nums ${low ? "font-black text-brand-clay" : "text-brand-muted"}`}>
+                    {soldOut
+                      ? text("sold out", "सकियो")
+                      : sizeLeft
+                        ? sizeLeft.left === null
+                          ? text(`size ${sizeQuery}: in pile`, `साइज ${sizeQuery}: थुप्रोमा`)
+                          : text(`size ${sizeQuery}: ${sizeLeft.left}`, `साइज ${sizeQuery}: ${sizeLeft.left}`)
+                        : low
+                          ? text(`only ${left}`, `${left} मात्र`)
+                          : text(`${left} pairs`, `${left} जोडा`)}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-base font-black ${
+                    inBill ? "bg-brand-green text-white" : "bg-brand-green-wash text-brand-green"
+                  }`}
+                >
+                  {inBill ? "✓" : "+"}
                 </span>
               </button>
             );

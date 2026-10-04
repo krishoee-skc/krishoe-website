@@ -9,6 +9,7 @@ import ActionMessage from "@/components/admin/ActionMessage";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
+import { colourSwatch } from "@/lib/shoe-colour";
 import { settleExchange } from "@/lib/pos-payments";
 import PosProductPicker from "@/app/admin/pos/_components/PosProductPicker";
 import PosNewItemSheet from "@/app/admin/pos/_components/PosNewItemSheet";
@@ -290,6 +291,15 @@ export default function PosBillForm({
     return map;
   }, [catalog]);
   const itemFor = (design: string) => byDesign.get(design.trim().toLowerCase());
+  /** Pairs still wanting before a wholesale bill can carry this shoe (0 when none). */
+  const wholesaleShort = (design: string) => {
+    if (channel !== "Wholesale" || kind !== "Sale") return 0;
+    const least = itemFor(design)?.minWholesaleQty ?? 1;
+    if (least <= 1) return 0;
+    const have = cart.filter((line) => !line.back && line.design === design).reduce((sum, line) => sum + line.quantity, 0);
+    return have > 0 && have < least ? least - have : 0;
+  };
+  const shortDesigns = [...new Set(cart.filter((line) => !line.back).map((line) => line.design))].filter((design) => wholesaleShort(design) > 0);
 
   // ---- what the bill comes to -------------------------------------------
   const lines = billTotals(cart, 0, 0);
@@ -796,7 +806,8 @@ export default function PosBillForm({
         ) : null}
       </div>
 
-      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
+      {/* The bill wider and the shoes a short list (owner, 2026-10-04). */}
+      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:grid-cols-[minmax(0,1fr)_470px]">
         <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4">
           {isExchange ? (
             // Which side the next tapped shoe goes to. The pair that came back
@@ -981,9 +992,9 @@ export default function PosBillForm({
                           {back ? <span className="text-brand-clay">↩ </span> : null}
                           {first.design}
                         </p>
-                        <p className="text-xs text-brand-muted">
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-brand-muted">
                           {many
-                            ? text(`${pairs} pairs`, `${pairs} जोडी`)
+                            ? <span className="rounded-md border-[1.5px] border-brand-green-ink px-1.5 font-black tabular-nums text-brand-green-ink">{text(`${pairs} pairs`, `${pairs} जोडी`)}</span>
                             : first.size
                               ? text(`Size ${first.size}`, `साइज ${first.size}`)
                               : (
@@ -993,7 +1004,14 @@ export default function PosBillForm({
                                     {text(`size not counted ×${pairs}`, `साइज नगनिएको ×${pairs}`)}
                                   </span>
                                 )}
-                          {group.color ? ` · ${group.color}` : null}
+                          {group.color ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-brand-green-ink">
+                              {colourSwatch(group.color) ? (
+                                <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(group.color) ?? undefined }} />
+                              ) : null}
+                              {group.color}
+                            </span>
+                          ) : null}
                         </p>
                       </div>
                       <p className="text-right text-sm font-black tabular-nums text-brand-green-ink">
@@ -1072,12 +1090,31 @@ export default function PosBillForm({
                                 key={row.key}
                                 type="button"
                                 onClick={toggle}
-                                className="rounded-lg border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black tabular-nums text-brand-green-ink"
+                                title={text("Tap to change the pairs", "जोडी फेर्न थिच्नुहोस्")}
+                                className="grid min-w-9 justify-items-center gap-0.5"
                               >
-                                {row.size || "—"} <span className="text-brand-green">×{row.quantity}</span>
+                                <span className="text-[10px] font-bold leading-none text-brand-muted">{row.size || "—"}</span>
+                                <span className="grid h-7 min-w-9 place-items-center rounded-lg border-[1.5px] border-brand-green bg-brand-green-wash px-1 text-sm font-black tabular-nums text-brand-green">
+                                  {row.quantity}
+                                </span>
                               </button>
                             ),
                           )}
+                        </div>
+                      ) : null}
+                      {!back && wholesaleShort(first.design) > 0 && group.key === groupBillLines(cart, (line) => (line.back ? "back" : "")).find((other) => other.lines[0].design === first.design && !other.lines[0].back)?.key ? (
+                        <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg bg-brand-cream-soft px-2.5 py-1.5 text-xs font-black text-brand-gold-deep">
+                          <span>
+                            {text(
+                              `Wholesale: ${itemFor(first.design)?.minWholesaleQty} pairs minimum — ${wholesaleShort(first.design)} more`,
+                              `थोक: कम्तीमा ${itemFor(first.design)?.minWholesaleQty} जोडी — ${wholesaleShort(first.design)} जोडी थप्नुहोस्`,
+                            )}
+                          </span>
+                          {item ? (
+                            <button type="button" onClick={() => choose(item, "")} className="shrink-0 rounded-md bg-brand-gold-deep px-2.5 py-1 text-white">
+                              ＋ {text("Add pairs", "जोडी थप्ने")}
+                            </button>
+                          ) : null}
                         </div>
                       ) : null}
                       {cheap && !isReturn && !back ? (
@@ -1604,7 +1641,15 @@ export default function PosBillForm({
 
             <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
 
-            <div className="sticky bottom-0 -mx-4 grid gap-2 border-t border-brand-green-line bg-brand-paper px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:static md:mx-0 md:border-0 md:p-0">
+            <div className="sticky bottom-0 z-10 -mx-4 grid gap-2 border-t border-brand-green-line bg-brand-paper px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:pb-4">
+              {shortDesigns.length > 0 ? (
+                <p className="rounded-lg bg-brand-cream-soft px-3 py-1.5 text-xs font-black text-brand-gold-deep">
+                  ⚠ {text(
+                    `Wholesale minimum not reached: ${shortDesigns.join(", ")}`,
+                    `थोकको कम्तीमा जोडी पुगेन: ${shortDesigns.join(", ")}`,
+                  )}
+                </p>
+              ) : null}
               <button
                 type="submit"
                 disabled={isSaving || saveLocked || Boolean(blocked)}
@@ -1652,6 +1697,9 @@ export default function PosBillForm({
                 {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
               </span>
               {text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}
+              {shortDesigns.length > 0 ? (
+                <span className="ml-1 font-black text-brand-gold-deep">⚠ {text(`${shortDesigns.length} to fix`, `${shortDesigns.length} मिलाउनु`)}</span>
+              ) : null}
             </p>
             <p className="text-xl font-black text-brand-green-ink">{money(totals.total)}</p>
           </div>

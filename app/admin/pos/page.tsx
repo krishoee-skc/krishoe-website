@@ -297,6 +297,7 @@ export default async function AdminPosPage({
       nameNe: product.nameNe ?? "",
       colors: product.colors,
       costPerPair: unitCost.get(designKey(product.name)) ?? 0,
+      minWholesaleQty: product.minWholesaleQty,
     });
   }
   // A design that has finished stock but no catalog product still belongs in the

@@ -17,7 +17,8 @@ describe("the bill page, tidied", () => {
 
   it("marks a shoe with no price and opens its rate box once it is on the bill", async () => {
     const picker = await read("app/admin/pos/_components/PosProductPicker.tsx");
-    expect(picker).toContain('text("No price — tap, type it", "मूल्य छैन — थिचेर लेख्ने")');
+    // the short list (2026-10-04) says it in fewer words
+    expect(picker).toContain('text("Set price", "मूल्य लेख्ने")');
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
     expect(form).toContain("if (!(rateForChannel(channel, item) > 0)) setAskRateFor(item.design);");
     expect(form).toContain("(askRateFor === first.design && !(group.rate > 0) && !back)");
