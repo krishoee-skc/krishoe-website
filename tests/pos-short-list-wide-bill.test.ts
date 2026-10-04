@@ -66,3 +66,24 @@ describe("Enter from the cash box", () => {
     expect(form).toContain("saveButton.focus();");
   });
 });
+
+/** Owner, 2026-10-04: Enter goes rate → phone → name → PAN → cash → Save; PAN optional. */
+describe("Enter's way through a bill", () => {
+  it("goes on from a rate to the next shoe without one, else to the customer's phone", async () => {
+    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    expect(form).toContain("goOnFromRate(first.design);");
+    expect(form).toContain('document.querySelector<HTMLInputElement>(`#${BILL_FORM_ID} input[type="tel"]`)?.focus()');
+  });
+
+  it("keeps the discount in rupees and the country off the way", async () => {
+    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    expect(form).toContain('aria-label={text("Discount in rupees", "छुट रकम")}\n                  // Off Enter\'s way to the customer and the cash (2026-10-04).\n                  data-enter-skip=""');
+    const phone = await read("components/PhoneWithCountry.tsx");
+    expect(phone).toContain('data-enter-skip=""');
+  });
+
+  it("says PAN is optional — the save never asked for it", async () => {
+    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    expect(form).toContain('text("PAN (optional — prints on the bill if given)"');
+  });
+});

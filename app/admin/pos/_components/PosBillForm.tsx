@@ -512,6 +512,21 @@ export default function PosBillForm({
 
   // The value is read here, in the handler: React runs a state updater later,
   // when the event has already let go of its input.
+  /**
+   * After a rate, Enter goes on (owner, 2026-10-04): to the next shoe still
+   * without a rate, or else to the customer's phone — not nowhere.
+   */
+  function goOnFromRate(fromDesign: string) {
+    const unpriced = cart.find((line) => !line.back && line.design !== fromDesign && !(line.rate > 0));
+    if (unpriced) {
+      setEditingRate(cart.find((line) => !line.back && line.design === unpriced.design)?.key ?? unpriced.key);
+      return;
+    }
+    window.requestAnimationFrame(() =>
+      document.querySelector<HTMLInputElement>(`#${BILL_FORM_ID} input[type="tel"]`)?.focus(),
+    );
+  }
+
   function commitRate(key: string, typed: string) {
     const rate = Number(digits(typed));
     setCart((current) => setRate(current, key, rate));
@@ -549,7 +564,7 @@ export default function PosBillForm({
       value={customerPan}
       onChange={(event) => setCustomerPan(event.target.value)}
       inputMode="numeric"
-      placeholder={text("Customer's PAN (prints on the bill)", "ग्राहकको PAN (बिलमा छापिन्छ)")}
+      placeholder={text("PAN (optional — prints on the bill if given)", "PAN (नभए खाली — दिए बिलमा छापिन्छ)")}
       aria-label={text("Customer PAN", "ग्राहकको PAN")}
       className={inputClass}
     />
@@ -1032,6 +1047,7 @@ export default function PosBillForm({
                                 commitRate(first.key, event.currentTarget.value);
                                 setEditingRate(null);
                                 setAskRateFor(null);
+                                goOnFromRate(first.design);
                               }
                               if (event.key === "Escape") {
                                 event.preventDefault();
@@ -1175,6 +1191,8 @@ export default function PosBillForm({
                   }}
                   placeholder={text("Rs …", "रु …")}
                   aria-label={text("Discount in rupees", "छुट रकम")}
+                  // Off Enter's way to the customer and the cash (2026-10-04).
+                  data-enter-skip=""
                   className="h-9 w-24 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm tabular-nums outline-none focus:border-brand-green"
                 />
               </div>

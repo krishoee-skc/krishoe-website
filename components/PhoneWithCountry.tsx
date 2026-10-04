@@ -83,6 +83,9 @@ export default function PhoneWithCountry({
         value={code}
         onChange={(event) => chooseCountry(event.target.value)}
         aria-label={text("Country", "देश")}
+        // Off the Enter walk (bill counter, 2026-10-04): Nepal stays chosen,
+        // and "+91…" typed in the number switches it.
+        data-enter-skip=""
         // The country box keeps its own width: a "w-full" in the shared input
         // style took the whole row on the bill page and left the number a
         // sliver (owner, 2026-10-04).
