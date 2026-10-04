@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { adminRoles, type AdminRole } from "@/lib/admin-permissions";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
-import { looksLikePhone, normalizeStaffPhone } from "@/lib/staff-phone";
+import { looksLikePhone, normalizeStaffPhone, phoneLookupCandidates } from "@/lib/staff-phone";
 
 export const companyBranchTypes = ["Factory", "Wholesale", "Retail", "Online", "Office"] as const;
 export const companyBranchStatuses = ["Active", "Inactive"] as const;
@@ -1171,15 +1171,19 @@ async function getStaffByEmailFromPostgres(email: string) {
 }
 
 async function getStaffByPhoneFromLocalJson(phone: string) {
-  const digits = normalizeStaffPhone(phone);
-  if (!digits) return undefined;
+  const candidates = phoneLookupCandidates(phone);
+  if (!candidates.length) return undefined;
   const settings = await readSettingsFromLocalJson();
-  return settings.staff.find((member) => normalizeStaffPhone(member.phone) === digits);
+  const exact = settings.staff.find((member) => normalizeStaffPhone(member.phone) === candidates[0]);
+  if (exact) return exact;
+  // With or without the country code — but only one account, never a guess.
+  const matches = settings.staff.filter((member) => candidates.includes(normalizeStaffPhone(member.phone)));
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 async function getStaffByPhoneFromPostgres(phone: string) {
-  const digits = normalizeStaffPhone(phone);
-  if (!digits) return undefined;
+  const candidates = phoneLookupCandidates(phone);
+  if (!candidates.length) return undefined;
   const rows = await queryPostgres<AdminStaffAccountRow>(
     "admin settings",
     `
@@ -1189,12 +1193,16 @@ async function getStaffByPhoneFromPostgres(phone: string) {
         last_login_ip, last_login_user_agent,
         created_at, updated_at, last_login_at
       FROM admin_staff_accounts
-      WHERE phone = $1
-      LIMIT 1
+      WHERE phone = ANY($1::text[])
+      ORDER BY (phone = $2) DESC
+      LIMIT 2
     `,
-    [digits],
+    [candidates, candidates[0]],
   );
 
+  // The number exactly as typed wins; otherwise one account with or without
+  // the country code — two would be a guess, and a guess is refused.
+  if (rows.length === 2 && normalizeStaffPhone(rows[0].phone ?? "") !== candidates[0]) return undefined;
   return rows[0] ? staffFromRow(rows[0]) : undefined;
 }
 

@@ -39,6 +39,9 @@ export type WorkerJoinResult =
   | { ok: false; en: string; ne: string }
   | { ok: true; name: string; phone: string; code: string; loginUrl: string; renewed: boolean };
 
+/** A plain check that an address could be one — the inbox itself is not asked. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
  * A factory worker into the app, from their own row (owner, 2026-10-02).
  *
@@ -48,10 +51,13 @@ export type WorkerJoinResult =
  * kind Settings → Invite makes for a mobile-only worker — Active, the code a
  * temporary password the worker must replace at the first sign-in.
  */
-export async function joinWorkerToAppAction(workerId: string, phoneInput: string): Promise<WorkerJoinResult> {
+export async function joinWorkerToAppAction(workerId: string, phoneInput: string, emailInput = ""): Promise<WorkerJoinResult> {
   const actor = await requireAdminPermission("settings:write");
   const phone = normalizeStaffPhone(phoneInput);
   if (!phone) return { ok: false, en: "Enter the worker's mobile number.", ne: "कामदारको मोबाइल नम्बर ठीकसँग हाल्नुहोस्।" };
+  // An email too, if they have one: the app then opens with either (2026-10-04).
+  const email = emailInput.trim().toLowerCase();
+  if (email && !EMAIL_SHAPE.test(email)) return { ok: false, en: "That email does not look right.", ne: "Email मिलेन — फेरि हेर्नुहोस्।" };
 
   const worker = (await getFactoryWorkers()).find((item) => item.id === workerId);
   if (!worker || worker.status !== "active") {
@@ -63,6 +69,10 @@ export async function joinWorkerToAppAction(workerId: string, phoneInput: string
     return { ok: false, en: `${worker.name} already has the app — give a new code instead.`, ne: `${worker.name} को app पहिले नै छ — "नयाँ कोड" थिच्नुहोस्।` };
   }
   const sameNumber = settings.staff.find((member) => normalizeStaffPhone(member.phone) === phone);
+  const sameEmail = email ? settings.staff.find((member) => (member.email ?? "").toLowerCase() === email) : undefined;
+  if (sameEmail) {
+    return { ok: false, en: `This email already signs in as ${sameEmail.name}.`, ne: `यो email ${sameEmail.name} को खातामा पहिले नै छ।` };
+  }
   if (sameNumber) {
     return { ok: false, en: `This number already signs in as ${sameNumber.name}.`, ne: `यो नम्बर ${sameNumber.name} को खातामा पहिले नै छ।` };
   }
@@ -73,6 +83,7 @@ export async function joinWorkerToAppAction(workerId: string, phoneInput: string
     const created = await saveAdminStaffAccount({
       name: worker.name,
       phone,
+      ...(email ? { email } : {}),
       role: "Worker",
       branchId: factoryBranch?.id ?? settings.company.defaultBranchId,
       factoryWorkerId: worker.id,
@@ -150,4 +161,39 @@ export async function newWorkerCodeAction(workerId: string): Promise<WorkerJoinR
   );
   revalidatePath("/admin/factory/workers");
   return { ok: true, name: staff.name, phone: formatStaffPhone(staff.phone), code, loginUrl: absoluteUrl("/worker/login"), renewed: true };
+}
+
+/**
+ * An email for a worker already in the app (owner, 2026-10-04), so they open
+ * it with either the mobile or the email. Like every account with an email, a
+ * new phone is then sent a sign-in code there.
+ */
+export async function setWorkerEmailAction(workerId: string, emailInput: string): Promise<{ ok: boolean; en: string; ne: string }> {
+  const actor = await requireAdminPermission("settings:write");
+  const email = emailInput.trim().toLowerCase();
+  if (!EMAIL_SHAPE.test(email)) return { ok: false, en: "That email does not look right.", ne: "Email मिलेन — फेरि हेर्नुहोस्।" };
+  const settings = await getAdminSettings();
+  const staff = settings.staff.find((member) => member.factoryWorkerId === workerId);
+  if (!staff) return { ok: false, en: "This worker has no app account yet.", ne: "यो कामदारको app खाता अझै छैन।" };
+  const other = settings.staff.find((member) => member.id !== staff.id && (member.email ?? "").toLowerCase() === email);
+  if (other) return { ok: false, en: `This email already signs in as ${other.name}.`, ne: `यो email ${other.name} को खातामा पहिले नै छ।` };
+  try {
+    await saveAdminStaffAccount({ id: staff.id, email });
+    await recordAdminStaffAccessHistory({
+      staffId: staff.id,
+      action: "worker_email_set",
+      beforeState: { email: staff.email ?? "" },
+      afterState: { email },
+      actorId: actor.session.staffId,
+      actorEmail: actor.session.email,
+      actorRole: actor.role,
+    });
+  } catch (error) {
+    reportError(`set the email of factory worker ${workerId}`, error);
+    return { ok: false, en: "The email was not saved. Try again.", ne: "Email बचत भएन। फेरि प्रयास गर्नुहोस्।" };
+  }
+  await recordAdminAuditEvent("factory_worker_email_set", `${actor.session.email ?? "Owner"} gave ${staff.name}'s app the email ${email}.`);
+  revalidatePath("/admin/factory/workers");
+  revalidatePath("/admin/settings");
+  return { ok: true, en: `Saved — ${staff.name} can now open the app with ${email} too.`, ne: `बचत भयो — ${staff.name} ले अब ${email} बाट पनि app खोल्न सक्छ।` };
 }

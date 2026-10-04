@@ -38,9 +38,10 @@ describe("a worker joins the app from their own row", () => {
     expect(access).toContain('account?.role === "Worker" ? { phone: account.phone ?? "" } : undefined');
   });
 
-  it("is Owner/Admin only, asks for the mobile alone, and never keeps the code", async () => {
+  it("is Owner/Admin only, asks for the mobile (an email if they have one), and never keeps the code", async () => {
     const actions = await read("app/admin/factory/workers/actions.ts");
-    expect(actions.match(/requireAdminPermission\("settings:write"\)/g)?.length).toBe(2);
+    // join, new code, and (2026-10-04) an email for a worker already in
+    expect(actions.match(/requireAdminPermission\("settings:write"\)/g)?.length).toBe(3);
     expect(actions).toContain('role: "Worker"');
     expect(actions).toContain("temporaryPassword: true");
     expect(actions).toContain("The code is not recorded.");

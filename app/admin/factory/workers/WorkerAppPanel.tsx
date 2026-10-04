@@ -5,9 +5,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { joinMessage, spacedCode, whatsappNumberFor } from "@/lib/worker-join";
-import { joinWorkerToAppAction, newWorkerCodeAction, type WorkerJoinResult } from "./actions";
+import { joinWorkerToAppAction, newWorkerCodeAction, setWorkerEmailAction, type WorkerJoinResult } from "./actions";
 
-export type WorkerApp = { phone: string; status: string; lastLoginAt?: string };
+export type WorkerApp = { phone: string; email?: string; status: string; lastLoginAt?: string };
 
 /** "today 9:12", "yesterday", "3 days ago" — when the worker last opened the app. */
 function lastSeen(iso: string | undefined, text: (en: string, ne: string) => string) {
@@ -32,6 +32,8 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
   const { text } = useLanguage();
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailNote, setEmailNote] = useState<{ ok: boolean; en: string; ne: string } | null>(null);
   const [result, setResult] = useState<WorkerJoinResult | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -44,7 +46,16 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
       setResult(reply);
       if (reply.ok) router.refresh();
     });
-  const join = () => run(() => joinWorkerToAppAction(workerId, phone));
+  const join = () => run(() => joinWorkerToAppAction(workerId, phone, email));
+  const saveEmail = () =>
+    start(async () => {
+      const reply = await setWorkerEmailAction(workerId, email);
+      setEmailNote(reply);
+      if (reply.ok) {
+        setEmail("");
+        router.refresh();
+      }
+    });
   const renew = () => run(() => newWorkerCodeAction(workerId));
 
   const card = result && result.ok ? result : null;
@@ -99,6 +110,37 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
         </p>
       ) : null}
 
+      {/* Email too, so the worker opens the app with either (owner,
+          2026-10-04: a worker tried his Gmail on a mobile-only account). */}
+      {app && workerActive && !card ? (
+        <div className="mt-2 grid gap-1.5">
+          <p className="text-xs font-bold text-brand-green-ink">
+            ✉️ {app.email ? text(`Email: ${app.email}`, `Email: ${app.email}`) : text("No email yet — opens with the mobile only", "Email छैन — मोबाइलबाट मात्र खुल्छ")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              inputMode="email"
+              autoComplete="off"
+              placeholder={text("name@gmail.com", "name@gmail.com")}
+              aria-label={text(`${workerName}'s email`, `${workerName} को email`)}
+              className="min-h-10 min-w-0 flex-1 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm text-brand-green-ink"
+            />
+            <button
+              type="button"
+              disabled={pending || !email.includes("@")}
+              onClick={saveEmail}
+              className="min-h-10 rounded-xl border border-brand-green px-3 text-sm font-black text-brand-green disabled:opacity-50"
+            >
+              {app.email ? text("Change email", "Email फेर्ने") : text("Add email", "Email थप्ने")}
+            </button>
+          </div>
+          {emailNote ? <p role="status" className={`text-xs font-bold ${emailNote.ok ? "text-brand-green" : "text-red-800"}`}>{text(emailNote.en, emailNote.ne)}</p> : null}
+        </div>
+      ) : null}
+
       {app && workerActive && !card ? (
         <p className="mt-2 text-xs leading-5 text-brand-muted">
           {text(
@@ -118,7 +160,19 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
               type="tel"
               inputMode="tel"
               autoComplete="off"
-              placeholder="98XXXXXXXX"
+              placeholder={text("98XXXXXXXX · India: +91 …", "98XXXXXXXX · भारत: +91 …")}
+              className="min-h-12 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-bold text-brand-green-ink">
+            {text(`${workerName}'s email (if they have one)`, `${workerName} को email (भए)`)}
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              inputMode="email"
+              autoComplete="off"
+              placeholder="name@gmail.com"
               className="min-h-12 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink"
             />
           </label>
@@ -132,8 +186,8 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
           </button>
           <p className="text-xs leading-5 text-brand-muted">
             {text(
-              "No email or password needed — the app makes an 8-digit code. The worker sets their own password at the first sign-in.",
-              "Email वा password चाहिँदैन — app ले ८ अंकको कोड बनाउँछ। कामदारले पहिलो पटक भित्र जाँदा आफ्नै password बनाउँछ।",
+              "Email is optional — with it, the app opens with the mobile or the email. The app makes an 8-digit code; the worker sets their own password at the first sign-in.",
+              "Email नभए पनि हुन्छ — भए मोबाइल वा email दुवैबाट app खुल्छ। App ले ८ अंकको कोड बनाउँछ; कामदारले पहिलो पटक भित्र जाँदा आफ्नै password बनाउँछ।",
             )}
           </p>
         </div>

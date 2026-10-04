@@ -40,6 +40,26 @@ export function looksLikePhone(value: string) {
   return normalizeStaffPhone(trimmed).length > 0;
 }
 
+/** Country codes a worker's number may carry (lib/phone-intl.ts's list), longest first. */
+const CODES = ["977", "971", "974", "966", "965", "973", "968", "91", "60", "81", "82", "61", "44", "1"];
+
+/**
+ * Every form a typed number may be stored under, for sign-in (owner,
+ * 2026-10-04: an Indian worker). "+91 98765 43210" is also tried as
+ * "9876543210", and "9876543210" also as "919876543210" — whichever way the
+ * account was made. More than one account matching is refused by the caller.
+ */
+export function phoneLookupCandidates(value: string): string[] {
+  const digits = normalizeStaffPhone(value);
+  if (!digits) return [];
+  const out = new Set([digits]);
+  for (const code of CODES) {
+    if (digits.startsWith(code) && digits.length - code.length >= 7 && digits.length - code.length <= 11) out.add(digits.slice(code.length));
+  }
+  if (digits.length === 10) for (const code of CODES) if (code !== "977") out.add(code + digits);
+  return [...out];
+}
+
 /** Nepali mobiles are ten digits starting with 9. Advisory, not enforced. */
 export function isNepaliMobile(value: string) {
   const digits = normalizeStaffPhone(value);

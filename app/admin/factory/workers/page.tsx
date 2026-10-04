@@ -73,7 +73,7 @@ async function loadWorkerApps(): Promise<Record<string, WorkerApp> | null> {
     const apps: Record<string, WorkerApp> = {};
     for (const member of staff) {
       if (member.factoryWorkerId) {
-        apps[member.factoryWorkerId] = { phone: formatStaffPhone(member.phone), status: member.status, lastLoginAt: member.lastLoginAt };
+        apps[member.factoryWorkerId] = { phone: formatStaffPhone(member.phone), email: member.email ?? "", status: member.status, lastLoginAt: member.lastLoginAt };
       }
     }
     return apps;
