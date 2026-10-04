@@ -288,6 +288,17 @@ export default function AdminLoginForm({
           placeholder={text("your email or mobile number", "तपाईंकै email वा मोबाइल नम्बर")}
         />
       </label>
+      {/* A worker from India or the Gulf (owner, 2026-10-04): their number
+          opens the app with its country code or without it. Only an account
+          the owner made opens at all. */}
+      {portal === "worker" ? (
+        <p className="mt-1.5 text-xs leading-5 text-brand-muted">
+          🌏 {text(
+            "From India or another country? Type +91 … or just the number — both work.",
+            "भारत वा अर्को देशको नम्बर? +91 … लेख्नुहोस् वा नम्बर मात्र — दुवै हुन्छ।",
+          )}
+        </p>
+      ) : null}
 
       {/* The eye sits beside the box, outside the label, so the label still
           names only the box and a tap on the eye never focuses the field. */}

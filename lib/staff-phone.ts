@@ -56,8 +56,19 @@ export function phoneLookupCandidates(value: string): string[] {
   for (const code of CODES) {
     if (digits.startsWith(code) && digits.length - code.length >= 7 && digits.length - code.length <= 11) out.add(digits.slice(code.length));
   }
-  if (digits.length === 10) for (const code of CODES) if (code !== "977") out.add(code + digits);
+  // A number typed without its code — India's ten digits, Dubai's or
+  // Malaysia's nine, with or without a leading 0 — is also tried with each code.
+  const national = digits.replace(/^0+/, "");
+  if (national.length >= 7 && national.length <= 11) {
+    for (const code of CODES) if (code !== "977") out.add(code + national);
+  }
   return [...out];
+}
+
+/** The country code at the front of a stored foreign number, or "" (Nepal's numbers are kept without one). */
+function foreignCode(digits: string) {
+  const byLength = [...CODES].sort((a, b) => b.length - a.length);
+  return byLength.find((code) => code !== "977" && digits.startsWith(code) && digits.length - code.length >= 7 && digits.length - code.length <= 11) ?? "";
 }
 
 /** Nepali mobiles are ten digits starting with 9. Advisory, not enforced. */
@@ -69,6 +80,11 @@ export function isNepaliMobile(value: string) {
 /** 9841112222 → 984-111-2222, for reading back on screen. */
 export function formatStaffPhone(value: string) {
   const digits = normalizeStaffPhone(value);
+  // A number kept with another country's code reads with it: "+91 9876543210".
+  if (digits.length > 10 && foreignCode(digits)) {
+    const code = foreignCode(digits);
+    return `+${code} ${digits.slice(code.length)}`;
+  }
   if (digits.length !== 10) return digits || value.trim();
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 }

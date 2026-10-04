@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { joinMessage, spacedCode, whatsappNumberFor } from "@/lib/worker-join";
+import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { joinWorkerToAppAction, newWorkerCodeAction, setWorkerEmailAction, type WorkerJoinResult } from "./actions";
 
 export type WorkerApp = { phone: string; email?: string; status: string; lastLoginAt?: string };
@@ -152,18 +153,17 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
 
       {!app && open && !card ? (
         <div className="mt-3 grid gap-2">
-          <label className="grid gap-1 text-sm font-bold text-brand-green-ink">
-            {text(`${workerName}'s mobile number`, `${workerName} को मोबाइल नम्बर`)}
-            <input
+          {/* The country beside the number (owner, 2026-10-04): Nepal to start;
+              India and the rest one tap away, kept with their code. */}
+          <div className="grid gap-1 text-sm font-bold text-brand-green-ink">
+            <span>{text(`${workerName}'s mobile number`, `${workerName} को मोबाइल नम्बर`)}</span>
+            <PhoneWithCountry
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              placeholder={text("98XXXXXXXX · India: +91 …", "98XXXXXXXX · भारत: +91 …")}
-              className="min-h-12 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink"
+              onChange={setPhone}
+              ariaLabel={text(`${workerName}'s mobile number`, `${workerName} को मोबाइल नम्बर`)}
+              inputClass="min-h-12 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base font-normal text-brand-green-ink"
             />
-          </label>
+          </div>
           <label className="grid gap-1 text-sm font-bold text-brand-green-ink">
             {text(`${workerName}'s email (if they have one)`, `${workerName} को email (भए)`)}
             <input
