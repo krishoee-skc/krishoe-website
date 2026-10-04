@@ -55,3 +55,11 @@ describe("phone numbers from any country", () => {
     expect(whatsappToUrl("9841234567", "hi")).toBe("https://wa.me/9779841234567?text=hi");
   });
 });
+
+describe("the country box beside the number", () => {
+  it("keeps its own width whatever style the number box is given", async () => {
+    const { withoutWidth } = await import("@/components/PhoneWithCountry");
+    expect(withoutWidth("h-11 w-full rounded-xl md:w-1/2 min-w-0 px-3")).toBe("h-11 rounded-xl px-3");
+    expect(withoutWidth("min-h-11 rounded-xl border")).toBe("min-h-11 rounded-xl border");
+  });
+});

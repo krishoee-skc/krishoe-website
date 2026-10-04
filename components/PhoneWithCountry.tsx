@@ -4,6 +4,14 @@ import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { joinPhone, NEPAL_CODE, PHONE_COUNTRIES, splitPhone } from "@/lib/phone-intl";
 
+/** A style without its width classes, so the box's own width stands. */
+export function withoutWidth(classes: string) {
+  return classes
+    .split(/\s+/)
+    .filter((name) => name && !/^(?:[a-z]+:)*(?:min-|max-)?w-/.test(name))
+    .join(" ");
+}
+
 /**
  * A phone box with its country beside it (owner, 2026-10-03). Nepal is chosen
  * to start with, so a Nepali number is typed exactly as before and kept as its
@@ -75,7 +83,10 @@ export default function PhoneWithCountry({
         value={code}
         onChange={(event) => chooseCountry(event.target.value)}
         aria-label={text("Country", "देश")}
-        className={`w-[7.75rem] flex-none ${selectClass || inputClass}`}
+        // The country box keeps its own width: a "w-full" in the shared input
+        // style took the whole row on the bill page and left the number a
+        // sliver (owner, 2026-10-04).
+        className={`w-[7.75rem] flex-none ${withoutWidth(selectClass || inputClass)}`}
       >
         {PHONE_COUNTRIES.map((country) => (
           <option key={country.code} value={country.code}>
