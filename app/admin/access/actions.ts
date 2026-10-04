@@ -13,6 +13,7 @@ import {
   getAdminSettings,
   getAdminStaffAccountByEmail,
   getAdminStaffAccountById,
+  getAdminStaffAccountByIdentifier,
   updateAdminStaffPassword,
   verifyAdminStaffCredentials,
 } from "@/lib/admin-settings";
@@ -32,6 +33,7 @@ import {
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
+import { sendPushToStaff } from "@/lib/push-notifications";
 
 export type AdminAccessActionState = {
   ok: boolean;
@@ -45,6 +47,13 @@ function textValue(formData: FormData, key: string) {
 }
 
 const publicSiteUrl = emailLinkBaseUrl;
+
+/** A worker's words, both languages; the Nepali is what is sent (2026-10-04). */
+const workerWords = {
+  codeLine: { en: "Your 6-digit code to change the password: ", ne: "तपाईंको password फेर्ने ६ अंकको कोड: " },
+  forgotTitle: { en: "🔑 {name} forgot the password", ne: "🔑 {name} ले password बिर्स्यो" },
+  forgotBody: { en: 'Press "New code" on the Workers page and send it on WhatsApp.', ne: 'Workers पानामा "New code" थिचेर WhatsApp मा पठाउनुहोस्।' },
+};
 
 async function requestFingerprint(email = "") {
   const headerStore = await headers();
@@ -123,7 +132,9 @@ export async function requestAdminPasswordResetAction(
     withCode: true,
     codeBoundTo: "staff",
   });
-  const resetUrl = `${publicSiteUrl()}/admin/reset-password?token=${encodeURIComponent(reset.token)}`;
+  // A worker's reset opens the worker's version of the page (owner, 2026-10-04).
+  const forWorker = staff.role === "Worker" ? "&for=worker" : "";
+  const resetUrl = `${publicSiteUrl()}/admin/reset-password?token=${encodeURIComponent(reset.token)}${forWorker}`;
   const delivery = await sendStaffSecurityEmail({
     email: staff.email,
     subject: "Reset your KRISHOE staff password",
@@ -134,7 +145,8 @@ export async function requestAdminPasswordResetAction(
         "A KRISHOE staff password reset was requested. Ignore this email if it was not you.",
         "",
         `Your 6-digit reset code is ${reset.code}`,
-        `Enter it at ${publicSiteUrl()}/admin/reset-password`,
+        `Enter it at ${publicSiteUrl()}/admin/reset-password${forWorker ? "?for=worker" : ""}`,
+        ...(forWorker ? ["", `${workerWords.codeLine.ne}${reset.code}`] : []),
         "",
         "Or open the one-time link below.",
       ].join("\n"),
@@ -176,12 +188,15 @@ export async function completeAdminPasswordResetAction(
   formData: FormData,
 ): Promise<AdminAccessActionState> {
   const token = textValue(formData, "token");
-  const passwordResult = await validateNewPassword(formData);
   if (!token) return { ok: false, message: "Invalid password reset link." };
-  if (passwordResult.error) return { ok: false, message: passwordResult.error };
 
   const valid = await getValidAdminStaffToken(token, "password_reset");
   if (!valid) return { ok: false, message: "This password reset link is invalid or expired." };
+  // A worker's password is held to the worker's rule — eight characters, not
+  // their number — as when they first set it (owner, 2026-10-04).
+  const holder = await getAdminStaffAccountById(valid.staffId);
+  const passwordResult = await validateNewPassword(formData, holder?.role === "Worker" ? { phone: holder.phone ?? "" } : undefined);
+  if (passwordResult.error) return { ok: false, message: passwordResult.error };
 
   const consumed = await consumeAdminStaffToken(token, "password_reset");
   if (!consumed) return { ok: false, message: "This password reset link was already used." };
@@ -211,7 +226,7 @@ export async function completeAdminPasswordResetAction(
     `${updated.email} completed a password reset. ${revokedSessions} old session(s) were signed out automatically.`,
   );
 
-  return { ok: true, message: "Password reset complete. You can now sign in.", href: "/admin/login" };
+  return { ok: true, message: "Password reset complete. You can now sign in.", href: updated.role === "Worker" ? "/worker/login" : "/admin/login" };
 }
 
 /**
@@ -243,14 +258,15 @@ export async function completeAdminPasswordResetWithCodeAction(
     };
   }
 
-  const passwordResult = await validateNewPassword(formData);
-  if (passwordResult.error) return { ok: false, message: passwordResult.error };
-
   const staff = await getAdminStaffAccountByEmail(email);
   if (!staff || staff.status !== "Active") {
     await shortDelay();
     return { ok: false, message: wrongCode };
   }
+
+  // The worker's rule for a worker (eight characters), everyone else's for the rest.
+  const passwordResult = await validateNewPassword(formData, staff.role === "Worker" ? { phone: staff.phone ?? "" } : undefined);
+  if (passwordResult.error) return { ok: false, message: passwordResult.error };
 
   const verified = await verifyAdminStaffResetCode(staff.id, code);
   if (!verified.ok) {
@@ -289,7 +305,7 @@ export async function completeAdminPasswordResetWithCodeAction(
     `${updated.email} completed a password reset with an emailed code. ${revokedSessions} old session(s) were signed out automatically.`,
   );
 
-  return { ok: true, message: "Password reset complete. You can now sign in.", href: "/admin/login" };
+  return { ok: true, message: "Password reset complete. You can now sign in.", href: updated.role === "Worker" ? "/worker/login" : "/admin/login" };
 }
 
 export async function acceptAdminInvitationAction(
@@ -426,4 +442,44 @@ export async function hasValidAdminAccessToken(
 export async function currentAdminNeedsPasswordChange() {
   const session = await getAdminSession();
   return Boolean(session?.staffId && session.mustChangePassword);
+}
+
+/**
+ * "I forgot my password" from a worker (owner, 2026-10-04, option 2): the
+ * owner's phone is told, and the owner sends a new code from the Workers page.
+ * It changes nothing and never says whether the number or email has an
+ * account; a few asks per half hour at most.
+ */
+export async function tellOwnerWorkerForgotAction(identifier: string): Promise<{ ok: boolean; en: string; ne: string }> {
+  const typed = identifier.trim();
+  if (!typed) {
+    return { ok: false, en: "Write your mobile number or email above first.", ne: "पहिले माथि आफ्नो मोबाइल नम्बर वा email लेख्नुहोस्।" };
+  }
+  const told = { ok: true, en: "The owner has been told. A new code will come to you on WhatsApp.", ne: "मालिकलाई खबर गयो। नयाँ कोड WhatsApp मा आउँछ।" };
+  const rateLimit = await checkAndRecordSubmissionLimit({
+    bucket: "worker-forgot-password",
+    key: await requestFingerprint(typed),
+    maxAttempts: 3,
+    windowMs: 30 * 60_000,
+  });
+  if (rateLimit.limited) return told;
+
+  const staff = await getAdminStaffAccountByIdentifier(typed).catch(() => undefined);
+  if (!staff || staff.role !== "Worker" || staff.status !== "Active") {
+    await shortDelay();
+    return told;
+  }
+  await sendPushToStaff({
+    title: workerWords.forgotTitle.ne.replace("{name}", staff.name),
+    body: workerWords.forgotBody.ne,
+    url: "/admin/factory/workers",
+    tag: `worker-forgot-${staff.id}`,
+  }).catch(() => undefined);
+  await recordAdminAuditEvent(
+    "worker_forgot_password",
+    `${staff.name} asked for a new code from the worker sign-in page. Nothing was changed.`,
+    "success",
+    { actorId: staff.id, actorEmail: staff.email ?? "", actorRole: staff.role },
+  );
+  return told;
 }

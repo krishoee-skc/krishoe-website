@@ -44,8 +44,10 @@ function ResultMessage({ state }: { state: AdminAccessActionState }) {
   );
 }
 
-export function AdminForgotPasswordForm() {
+/** `forWorker`: a worker's words and way back (owner, 2026-10-04, option 2). */
+export function AdminForgotPasswordForm({ forWorker = false }: { forWorker?: boolean } = {}) {
   const { text } = useLanguage();
+  const q = forWorker ? "?for=worker" : "";
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
 
@@ -62,31 +64,33 @@ export function AdminForgotPasswordForm() {
   return (
     <form onSubmit={submit} className="grid gap-5">
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Staff email
+        {forWorker ? text("Your email", "तपाईंको email") : "Staff email"}
         <input
           name="email"
           type="email"
           autoComplete="email"
           required
           className={inputClass}
-          placeholder="staff@krishoe.com"
+          placeholder={forWorker ? "name@gmail.com" : "staff@krishoe.com"}
         />
       </label>
       <button
         disabled={pending}
         className="min-h-12 rounded-xl bg-brand-green px-5 font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
       >
-        {pending ? "Sending instructions..." : "Send reset instructions"}
+        {pending
+          ? forWorker ? text("Sending…", "पठाउँदै…") : "Sending instructions..."
+          : forWorker ? text("Send me a code", "मलाई कोड पठाउने") : "Send reset instructions"}
       </button>
       <ResultMessage state={state} />
       <Link
-        href="/admin/reset-password"
+        href={`/admin/reset-password${q}`}
         className="text-center text-sm font-black text-brand-green hover:underline"
       >
         {text("I already have a code", "कोड आइसक्यो? यहाँ हाल्नुहोस्")}
       </Link>
-      <Link href="/admin/login" className="text-center text-sm font-black text-brand-green hover:underline">
-        Back to staff sign in
+      <Link href={forWorker ? "/worker/login" : "/admin/login"} className="text-center text-sm font-black text-brand-green hover:underline">
+        {forWorker ? text("← Back to the worker sign-in", "← कामदारको login मा फर्किने") : "Back to staff sign in"}
       </Link>
     </form>
   );
@@ -99,8 +103,10 @@ export function AdminForgotPasswordForm() {
  * a different device from the one that asked for the reset, so nothing here can
  * depend on a session or on the emailed link having been opened.
  */
-export function AdminResetWithCodeForm() {
+export function AdminResetWithCodeForm({ forWorker = false }: { forWorker?: boolean } = {}) {
   const { text } = useLanguage();
+  // A worker's password is eight characters at least; everyone else's twelve.
+  const least = forWorker ? 8 : 12;
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
@@ -122,7 +128,7 @@ export function AdminResetWithCodeForm() {
   return (
     <form onSubmit={submit} className="grid gap-4">
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Staff email
+        {forWorker ? text("Your email", "तपाईंको email") : "Staff email"}
         <input name="email" type="email" autoComplete="email" required className={inputClass} />
       </label>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
@@ -139,17 +145,17 @@ export function AdminResetWithCodeForm() {
         />
       </label>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        New password
+        {forWorker ? text("New password", "नयाँ password") : "New password"}
         <input
           name="password"
           type={visible ? "text" : "password"}
           autoComplete="new-password"
-          minLength={12}
+          minLength={least}
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className={inputClass}
-          placeholder="12+ characters"
+          placeholder={forWorker ? text("8+ characters", "कम्तीमा ८ अक्षर") : "12+ characters"}
         />
       </label>
       <div className="flex items-center gap-2" aria-label={`Password strength: ${strength.label}`}>
@@ -162,12 +168,12 @@ export function AdminResetWithCodeForm() {
         <span className="w-14 text-right text-xs font-black text-brand-muted-deep">{strength.label}</span>
       </div>
       <label className="grid gap-2 text-sm font-black text-brand-green-ink">
-        Confirm new password
+        {forWorker ? text("Type it again", "फेरि लेख्नुहोस्") : "Confirm new password"}
         <input
           name="confirmPassword"
           type={visible ? "text" : "password"}
           autoComplete="new-password"
-          minLength={12}
+          minLength={least}
           required
           className={inputClass}
         />
@@ -189,7 +195,7 @@ export function AdminResetWithCodeForm() {
       </button>
       <ResultMessage state={state} />
       <Link
-        href="/admin/forgot-password"
+        href={`/admin/forgot-password${forWorker ? "?for=worker" : ""}`}
         className="text-center text-sm font-black text-brand-green hover:underline"
       >
         {text("Send a new code", "नयाँ कोड पठाउने")}
@@ -201,10 +207,14 @@ export function AdminResetWithCodeForm() {
 export function AdminSetPasswordForm({
   token,
   mode,
+  forWorker = false,
 }: {
   token: string;
   mode: "invitation" | "password-reset";
+  forWorker?: boolean;
 }) {
+  const { text } = useLanguage();
+  const least = forWorker ? 8 : 12;
   const [state, setState] = useState(initialState);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
@@ -234,12 +244,12 @@ export function AdminSetPasswordForm({
           name="password"
           type={visible ? "text" : "password"}
           autoComplete="new-password"
-          minLength={12}
+          minLength={least}
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className={inputClass}
-          placeholder="12+ characters"
+          placeholder={forWorker ? text("8+ characters", "कम्तीमा ८ अक्षर") : "12+ characters"}
         />
       </label>
       <div className="flex items-center gap-2" aria-label={`Password strength: ${strength.label}`}>
@@ -257,7 +267,7 @@ export function AdminSetPasswordForm({
           name="confirmPassword"
           type={visible ? "text" : "password"}
           autoComplete="new-password"
-          minLength={12}
+          minLength={least}
           required
           className={inputClass}
         />
@@ -279,7 +289,7 @@ export function AdminSetPasswordForm({
           ? "Saving password..."
           : mode === "invitation"
             ? "Activate staff account"
-            : "Reset staff password"}
+            : forWorker ? text("Save the new password", "नयाँ password बचत गर्ने") : "Reset staff password"}
       </button>
       <ResultMessage state={state} />
     </form>

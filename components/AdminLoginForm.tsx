@@ -1,4 +1,5 @@
 "use client";
+import WorkerForgotHelp from "@/components/WorkerForgotHelp";
 
 import { FormEvent, KeyboardEvent, useState } from "react";
 import Link from "next/link";
@@ -389,12 +390,16 @@ export default function AdminLoginForm({
             {state.message}
           </p>
         ) : null}
-        <Link
-          href="/admin/forgot-password"
-          className="text-center text-sm font-black text-brand-green hover:underline"
-        >
-          {text("Forgotten your password?", "आफ्नो password बिर्सनुभयो?")}
-        </Link>
+        {portal === "worker" ? (
+          <WorkerForgotHelp />
+        ) : (
+          <Link
+            href="/admin/forgot-password"
+            className="text-center text-sm font-black text-brand-green hover:underline"
+          >
+            {text("Forgotten your password?", "आफ्नो password बिर्सनुभयो?")}
+          </Link>
+        )}
       </div>
     </form>
   );
