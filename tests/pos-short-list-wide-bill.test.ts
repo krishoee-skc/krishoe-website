@@ -42,7 +42,8 @@ describe("the bill screen's new look", () => {
 describe("the cash box and the big screen", () => {
   it("puts the exact amount in an empty cash box on Enter, and lets the next Enter walk on", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain('if (event.key !== "Enter" || event.shiftKey || received !== "") return;');
+    expect(form).toContain('if (event.key !== "Enter" || event.shiftKey) return;');
+    expect(form).toContain('if (received === "") {');
     expect(form).toContain("setReceived(String(amountDue + dueAmount));");
     // the walk stops for that one press only — EnterWalkForm skips a prevented key
     const walk = await read("components/admin/EnterWalkForm.tsx");
@@ -53,5 +54,15 @@ describe("the cash box and the big screen", () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
     expect(form).toContain("{/* The total, beside Save (owner, 2026-10-04: the namuna's model). */}");
     expect(form).toContain("lg:text-6xl");
+  });
+});
+
+/** Owner, 2026-10-04: after the exact amount, Enter did not reach Save. */
+describe("Enter from the cash box", () => {
+  it("goes to Save once the amount is in, unless Save is shut", async () => {
+    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    expect(form).toContain('const saveButton = document.querySelector<HTMLButtonElement>(`#${BILL_FORM_ID} button[type="submit"]`);');
+    expect(form).toContain("if (!saveButton || saveButton.disabled) return;");
+    expect(form).toContain("saveButton.focus();");
   });
 });

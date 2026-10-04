@@ -1390,13 +1390,25 @@ export default function PosBillForm({
                     // seen, and selected so a different note is typed straight
                     // over it; the next Enter walks on as before (owner,
                     // 2026-10-04).
+                    // With the amount in, Enter goes straight to Save, and
+                    // Enter there saves (owner, 2026-10-04: it walked on to
+                    // "Sold by" instead). Save shut — cash short and the rest
+                    // not chosen — leaves the walk as it was.
                     onKeyDown={(event) => {
-                      if (event.key !== "Enter" || event.shiftKey || received !== "") return;
+                      if (event.key !== "Enter" || event.shiftKey) return;
+                      if (received === "") {
+                        event.preventDefault();
+                        setReceived(String(amountDue + dueAmount));
+                        setRestMethod("");
+                        const box = event.currentTarget;
+                        window.requestAnimationFrame(() => box.select());
+                        return;
+                      }
+                      const saveButton = document.querySelector<HTMLButtonElement>(`#${BILL_FORM_ID} button[type="submit"]`);
+                      if (!saveButton || saveButton.disabled) return;
                       event.preventDefault();
-                      setReceived(String(amountDue + dueAmount));
-                      setRestMethod("");
-                      const box = event.currentTarget;
-                      window.requestAnimationFrame(() => box.select());
+                      saveButton.focus();
+                      saveButton.scrollIntoView({ block: "nearest", behavior: "smooth" });
                     }}
                     onFocus={(event) => event.currentTarget.select()}
                     aria-label={text("Cash handed over", "ग्राहकले दिएको नगद")}
@@ -1670,7 +1682,7 @@ export default function PosBillForm({
               <button
                 type="submit"
                 disabled={isSaving || saveLocked || Boolean(blocked)}
-                className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black text-white transition lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold focus-visible:ring-offset-2 lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
                   isReturn ? "bg-brand-clay" : "bg-brand-green-ink hover:bg-brand-green"
                 }`}
               >
