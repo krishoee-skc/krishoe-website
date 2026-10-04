@@ -112,3 +112,13 @@ describe("after a save", () => {
     expect(list).toContain('text("just now", "भर्खर")');
   });
 });
+
+/** Recheck, 2026-10-04: the pairs box goes blank after a save, so a count typed only in the size boxes must still count. */
+describe("pairs counted in the size boxes", () => {
+  it("count for Save and for the pairs check", async () => {
+    const source = await readFile(FORM, "utf8");
+    expect(source).toContain("const pairsEntered = showSizeCounts && countedPairs > 0 ? countedPairs : parseInt(formData.pairs_count) || 0;");
+    expect(source).toContain("if (!(pairsEntered > 0)) {");
+    expect(source).toContain("const pairsNow = pairsEntered;");
+  });
+});

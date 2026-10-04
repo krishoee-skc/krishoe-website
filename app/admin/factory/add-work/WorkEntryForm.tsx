@@ -475,6 +475,10 @@ export default function WorkEntryForm({
   // tapped out size by size.
   const countableSizes = expandSizeRun(formData.size);
   const countedPairs = sizeCountsTotal(normaliseSizeCounts(sizeCounts));
+  // The pairs this entry is for: the size boxes' total while they are open,
+  // else the pairs box. Since the pairs box goes blank after a save
+  // (2026-10-04), a count typed only in the boxes must still count.
+  const pairsEntered = showSizeCounts && countedPairs > 0 ? countedPairs : parseInt(formData.pairs_count) || 0;
 
   /**
    * Open the boxes, pre-filled from the run.
@@ -524,7 +528,7 @@ export default function WorkEntryForm({
       pendingFocus.current = "item";
       return false;
     }
-    if (!(parseInt(formData.pairs_count) > 0)) {
+    if (!(pairsEntered > 0)) {
       setError(text("How many pairs?", "कति जोडी?"));
       pendingFocus.current = "pairs";
       return false;
@@ -753,7 +757,7 @@ export default function WorkEntryForm({
   const dateLabel = [dayWord, `${text(weekday.en, weekday.ne)} ${bsDate}`].filter(Boolean).join(" · ");
 
   const worker = workers.find((w) => w.id === formData.worker_id);
-  const pairsNow = parseInt(formData.pairs_count) || 0;
+  const pairsNow = pairsEntered;
   const confirmSummary = [
     worker?.name ?? "",
     currentItem?.name ?? "",
@@ -1352,8 +1356,8 @@ export default function WorkEntryForm({
                     // usual lot, and a 12-pair job saved without changing it
                     // books five times the wage. The wage beside it.
                     ? text(
-                        `✅ Save ${formData.pairs_count} pairs${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
-                        `✅ ${formData.pairs_count} जोडी टिप्ने${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
+                        `✅ Save ${pairsNow} pairs${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
+                        `✅ ${pairsNow} जोडी टिप्ने${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
                       )
                     : text("Enter the pairs to save", "टिप्न जोडी लेख्नुहोस्")}
               </button>
