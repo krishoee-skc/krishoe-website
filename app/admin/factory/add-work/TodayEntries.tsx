@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
+import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
 
 export type DayEntry = {
   id: string;
@@ -30,16 +31,23 @@ export default function TodayEntries({
   entries,
   heading,
   looksLikeForm,
+  fresh = null,
 }: {
   entries: DayEntry[] | null;
   heading: string;
   /** Whether a row matches what is on the form now (a likely double entry). */
   looksLikeForm: (entry: DayEntry) => boolean;
+  /** The entry just saved, marked "just now" (2026-10-04). */
+  fresh?: { workerId: string; pairs: number } | null;
 }) {
   const { text } = useLanguage();
   const live = (entries ?? []).filter((entry) => entry.status !== "reversed");
   const pairs = live.reduce((total, entry) => total + (Number(entry.pairs_count) || 0), 0);
   const wage = live.reduce((total, entry) => total + (Number(entry.amount_earned) || 0), 0);
+  // The newest row of that worker and count — the one just saved.
+  const freshId = fresh
+    ? [...live].reverse().find((entry) => entry.worker_id === fresh.workerId && Number(entry.pairs_count) === fresh.pairs)?.id ?? null
+    : null;
 
   return (
     <aside
@@ -55,15 +63,22 @@ export default function TodayEntries({
         <ul className="max-h-[60vh] divide-y divide-brand-green-line overflow-y-auto">
           {live.map((entry) => {
             const twin = looksLikeForm(entry);
+            const isFresh = entry.id === freshId;
             return (
               <li
                 key={entry.id}
-                className={`flex justify-between gap-3 py-2 text-sm ${twin ? "rounded-md bg-amber-50 px-2" : ""}`}
+                className={`flex justify-between gap-3 py-2 text-sm ${isFresh ? "rounded-md bg-brand-green-wash px-2" : twin ? "rounded-md bg-amber-50 px-2" : ""}`}
               >
                 <div className="min-w-0">
-                  <p className="truncate font-black text-brand-green-ink">{entry.worker_name}</p>
-                  <p className="truncate text-xs text-brand-muted">
-                    {[entry.item_name, entry.color, entry.size].filter(Boolean).join(" · ")}
+                  <p className="truncate font-black text-brand-green-ink">
+                    {entry.worker_name}
+                    {isFresh ? <span className="ms-1.5 rounded-full bg-brand-paper px-1.5 text-[11px] font-black text-brand-green">{text("just now", "भर्खर")}</span> : null}
+                  </p>
+                  <p className="flex min-w-0 items-center gap-1 truncate text-xs text-brand-muted">
+                    {entry.color && colourSwatch(entry.color) ? (
+                      <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(entry.color) ?? undefined }} />
+                    ) : null}
+                    <span className="truncate">{[entry.item_name, entry.color, entry.size ? compactSizes(entry.size) : ""].filter(Boolean).join(" · ")}</span>
                   </p>
                   {twin ? (
                     <p className="text-xs font-bold text-amber-900">

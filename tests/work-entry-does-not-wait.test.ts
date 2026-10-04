@@ -15,11 +15,10 @@ describe("entering the next row without waiting", () => {
 
     // The clearing happens before the fetch, not in its .then — that is the
     // whole point. If these ever swap order the wait comes back.
-    // The pairs box resets to "60" rather than empty: every entry this shop
-    // makes is sixty pairs, so the common case starts filled in. The order is
+    // The pairs box goes blank after a save (owner, 2026-10-04) — the order is
     // what matters here, not the value.
     const clearAt = source.indexOf(
-      "pairs_count: String(DEFAULT_PAIRS),\n      reject_pairs: \"\",",
+      "pairs_count: \"\",\n      reject_pairs: \"\",",
     );
     const fetchAt = source.indexOf('await fetch("/api/factory/work"');
 
@@ -95,5 +94,21 @@ describe("entering the next row without waiting", () => {
     // recognise: "Saved — 20 pairs for Ram", not "Saved".
     expect(source).toContain("toast.show(");
     expect(source).toContain("pairs for");
+  });
+});
+
+/** Owner, 2026-10-04: after a save, what was saved is shown in full. */
+describe("after a save", () => {
+  it("shows what was saved until the next entry is begun", async () => {
+    const source = await readFile(FORM, "utf8");
+    expect(source).toContain('savedCard.pending ? text("⏳ Saving…", "⏳ टिप्दै…") : text("✓ Saved", "✓ टिपियो")');
+    expect(source).toContain('text("Next entry · same worker", "अर्को entry · उही कामदार")');
+    expect(source).toContain('text("Another worker", "अर्को कामदार")');
+    // a failed save takes the card away and puts the form back as typed
+    const failure = source.slice(source.indexOf("} catch (err) {"), source.indexOf("setFormData(entry);"));
+    expect(failure).toContain("setSavedCard(null);");
+    // the day's list marks the row just saved
+    const list = await readFile("app/admin/factory/add-work/TodayEntries.tsx", "utf8");
+    expect(list).toContain('text("just now", "भर्खर")');
   });
 });

@@ -32,15 +32,18 @@ describe("the pair count", () => {
     const form = await screen();
 
     expect(form).toContain("const DEFAULT_PAIRS = 60");
-    expect(form).not.toContain(`pairs_count: "",`);
+    // The form opens at sixty; only the reset after a save is blank (below).
+    expect(form.match(/pairs_count: String\(DEFAULT_PAIRS\)/g) ?? []).toHaveLength(1);
   });
 
-  it("goes back to sixty after a save, ready for the next entry", async () => {
+  it("goes blank after a save, so the saved count is not read as unsaved", async () => {
     const form = await screen();
 
-    // Two places hold it: the form's initial state and the reset after a save.
-    const matches = form.match(/pairs_count: String\(DEFAULT_PAIRS\)/g) ?? [];
-    expect(matches.length).toBe(2);
+    // Owner, 2026-10-04: sixty again after a save read as the entry not saved.
+    // The saved card says what went in; the blank box keeps Save shut.
+    const reset = form.slice(form.indexOf("    setFormData((current) => ({\n      ...current,"), form.indexOf('await fetch("/api/factory/work"'));
+    expect(reset).toContain('pairs_count: "",');
+    expect(form).toContain("disabled={!submitting && pairsNow <= 0}");
   });
 
   it("steps by a dozen, not by one", async () => {

@@ -24,6 +24,7 @@ import {
 import { colourKey } from "@/lib/colour-name";
 import { toBikramSambatNepali } from "@/lib/bikram-sambat";
 import { money } from "@/lib/format-money";
+import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
 import { stageNeedingUpperFirst } from "@/lib/stage-order";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
@@ -173,6 +174,10 @@ export default function WorkEntryForm({
   const [pickingDate, setPickingDate] = useState(false);
   // What was saved last, for "↻ same as last".
   const [lastEntry, setLastEntry] = useState<LastEntry | null>(null);
+  /** What was just saved, shown in full until the next entry is begun (2026-10-04). */
+  const [savedCard, setSavedCard] = useState<{
+    workerId: string; workerName: string; itemName: string; color: string; size: string; pairs: string; amount: number; pending: boolean;
+  } | null>(null);
   // The question Save asks before writing: always after Enter, and after a
   // click when the same work is already on the day's list.
   const [confirming, setConfirming] = useState<{ duplicate: boolean } | null>(null);
@@ -275,6 +280,7 @@ export default function WorkEntryForm({
 
   const handlePairsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const pairs = parseInt(e.target.value) || 0;
+    setSavedCard((card) => (card?.pending ? card : null));
     setFormData((prev) => ({ ...prev, pairs_count: e.target.value }));
     setCalculatedAmount(selectedRate ? pieceWage(pairs, selectedRate) : 0);
   };
@@ -291,6 +297,7 @@ export default function WorkEntryForm({
     const from = Number.isFinite(typed) && typed > 0 ? typed : DEFAULT_PAIRS;
     const next = Math.max(PAIRS_STEP, Math.round((from + by) / PAIRS_STEP) * PAIRS_STEP);
 
+    setSavedCard((card) => (card?.pending ? card : null));
     setFormData((prev) => ({ ...prev, pairs_count: String(next) }));
     setCalculatedAmount(selectedRate ? pieceWage(next, selectedRate) : 0);
   };
@@ -594,6 +601,7 @@ export default function WorkEntryForm({
   /** Fill the form with what was saved last, leaving the pairs to type. */
   const repeatLast = () => {
     if (!lastEntry) return;
+    setSavedCard(null);
     setFormData((prev) => ({ ...prev, ...lastEntry }));
     applyQuote(lastEntry.worker_id, lastEntry.item_id, lastEntry.stage, formData.pairs_count);
     setError("");
@@ -629,17 +637,31 @@ export default function WorkEntryForm({
     const key = idempotencyKeys.get(keyScope);
     idempotencyKeys.rotate(keyScope);
 
+    // What is being saved, in full, on a card above the form.
+    setSavedCard({
+      workerId: entry.worker_id,
+      workerName: workers.find((worker) => worker.id === entry.worker_id)?.name ?? "",
+      itemName: items.find((item) => item.id === entry.item_id)?.name ?? "",
+      color: entry.color,
+      size: entry.size,
+      pairs: entry.pairs_count,
+      amount: calculatedAmount,
+      pending: true,
+    });
+
     // Clear for the next row now, not when the server answers. The worker, the
     // item and the stage stay: a person makes three or four rows of the same
-    // work, and re-picking them each time was most of the typing.
+    // work, and re-picking them each time was most of the typing. The pairs
+    // go blank, not back to sixty (owner, 2026-10-04): sixty again read as the
+    // entry not saved, and a blank box keeps Save shut until the next count.
     setFormData((current) => ({
       ...current,
-      pairs_count: String(DEFAULT_PAIRS),
+      pairs_count: "",
       reject_pairs: "",
       size: "",
       color: "",
     }));
-    setCalculatedAmount(selectedRate ? pieceWage(DEFAULT_PAIRS, selectedRate) : 0);
+    setCalculatedAmount(0);
     // The size is cleared, so boxes for it would be boxes for nothing.
     closeSizeCounts();
     // Back to the first box, ready for the next entry.
@@ -667,6 +689,7 @@ export default function WorkEntryForm({
       // so the note only appears on the day something needs looking at.
       setUpperWarning(typeof saved?.upper_warning === "string" ? saved.upper_warning : "");
       setWorkSaved((count) => count + 1);
+      setSavedCard((card) => (card ? { ...card, pending: false, amount: Number(saved?.amount_earned) || card.amount } : card));
       setLastEntry({
         worker_id: entry.worker_id,
         stage: entry.stage,
@@ -685,6 +708,7 @@ export default function WorkEntryForm({
         "success",
       );
     } catch (err) {
+      setSavedCard(null);
       // Put it back exactly as typed. A wage entry that vanishes because the
       // network blinked is a day's work the factory has to remember by hand —
       // the per-size boxes included, which are the slowest part to retype.
@@ -789,6 +813,76 @@ export default function WorkEntryForm({
               {error}
             </div>
           )}
+
+          {/* What was just saved, in full, until the next entry is begun
+              (owner, 2026-10-04: after a save the form showed "Save 60 pairs ·
+              Rs. 2,400" again, and it read as not saved). */}
+          {savedCard ? (
+            <div role="status" className="grid gap-2 rounded-2xl border-2 border-brand-green bg-brand-green-wash p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-lg font-black text-brand-green">
+                  {savedCard.pending ? text("⏳ Saving…", "⏳ टिप्दै…") : text("✓ Saved", "✓ टिपियो")}
+                </p>
+                <p className="text-xs font-bold text-brand-muted">{text("just now", "भर्खर")}</p>
+              </div>
+              <p className="flex flex-wrap items-center gap-x-1.5 text-sm font-bold text-brand-green-ink">
+                <span>{savedCard.workerName}</span>
+                <span aria-hidden="true">·</span>
+                <span>{savedCard.itemName}</span>
+                {savedCard.color ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      {colourSwatch(savedCard.color) ? (
+                        <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(savedCard.color) ?? undefined }} />
+                      ) : null}
+                      {savedCard.color}
+                    </span>
+                  </>
+                ) : null}
+                {savedCard.size ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{compactSizes(savedCard.size)}</span>
+                  </>
+                ) : null}
+              </p>
+              <p className="text-2xl font-black tabular-nums text-brand-green">
+                {text(`${savedCard.pairs} pairs`, `${savedCard.pairs} जोडी`)}
+                {savedCard.amount > 0 ? ` · ${money(savedCard.amount)}` : ""}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavedCard(null);
+                    walkRefs.current.get("pairs")?.focus();
+                  }}
+                  className="min-h-11 rounded-full bg-brand-green px-4 text-sm font-black text-white"
+                >
+                  ➕ {text("Next entry · same worker", "अर्को entry · उही कामदार")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavedCard(null);
+                    setFormData((prev) => ({ ...prev, worker_id: "", stage: "", item_id: "", color: "", size: "", pairs_count: "" }));
+                    setCalculatedAmount(0);
+                    walkRefs.current.get("worker")?.focus();
+                  }}
+                  className="min-h-11 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink"
+                >
+                  👤 {text("Another worker", "अर्को कामदार")}
+                </button>
+                <Link
+                  href={`/admin/factory/ledger?workerId=${savedCard.workerId}`}
+                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-brand-green underline underline-offset-4"
+                >
+                  ✏️ {text("Wrong? Fix it", "गल्ती? सच्याउने")}
+                </Link>
+              </div>
+            </div>
+          ) : null}
 
           {success && (
             <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -1248,7 +1342,8 @@ export default function WorkEntryForm({
                   walkRefs.current.set("save", element);
                 }}
                 onKeyDown={(event) => handleFieldWalk(event, "save")}
-                className="flex h-12 w-full items-center justify-center rounded-lg bg-brand-green px-4 font-black text-white transition-colors hover:bg-brand-green-ink focus:outline-none focus:ring-4 focus:ring-brand-gold"
+                disabled={!submitting && pairsNow <= 0}
+                className="flex h-12 w-full items-center justify-center rounded-lg bg-brand-green px-4 font-black text-white transition-colors hover:bg-brand-green-ink focus:outline-none focus:ring-4 focus:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {submitting
                   ? text("Saving… (carry on)", "टिप्दै… (अर्को हाल्न सक्नुहुन्छ)")
@@ -1260,7 +1355,7 @@ export default function WorkEntryForm({
                         `✅ Save ${formData.pairs_count} pairs${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
                         `✅ ${formData.pairs_count} जोडी टिप्ने${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
                       )
-                    : text("✅ Save work entry", "✅ काम टिप्ने")}
+                    : text("Enter the pairs to save", "टिप्न जोडी लेख्नुहोस्")}
               </button>
               <p className={`${HINT} hidden sm:block`}>
                 {text("Enter: next box · Shift+Enter: back · Esc: cancel", "Enter: अर्को बक्स · Shift+Enter: पछाडि · Esc: रद्द")}
@@ -1319,6 +1414,7 @@ export default function WorkEntryForm({
               : text(`Entered on ${bsDate}`, `${bsDate} मा टिपिएका काम`)
           }
           looksLikeForm={looksLikeForm}
+          fresh={savedCard && !savedCard.pending ? { workerId: savedCard.workerId, pairs: Number(savedCard.pairs) } : null}
         />
       </div>
 
