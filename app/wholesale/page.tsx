@@ -4,22 +4,18 @@ import Footer from "@/components/Footer";
 import T from "@/components/T";
 import WholesaleForm from "./WholesaleForm";
 import { getProducts } from "@/lib/product-store";
-import { absoluteUrl, siteConfig } from "@/lib/seo";
+import { createPageMetadata } from "@/lib/seo";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
 
-export const metadata: Metadata = {
-  title: "Wholesale | KRISHOE",
+// The shared builder (owner, 2026-10-07): the page had no picture for a
+// shared link and no language links, so a WhatsApp share showed a bare URL.
+export const metadata: Metadata = createPageMetadata({
+  title: "Wholesale",
   description:
     "KRISHOE sells wholesale to shops across Nepal, direct from our own factory in Narayangadh. Trade rates on enquiry, minimum order per design.",
-  alternates: { canonical: absoluteUrl("/wholesale") },
-  openGraph: {
-    title: "Wholesale — KRISHOE",
-    description: "हाम्रै कारखानाबाट थोकमा — पसलहरूका लागि।",
-    url: absoluteUrl("/wholesale"),
-    siteName: siteConfig.name,
-  },
-};
+  path: "/wholesale",
+});
 
 /**
  * The page a shopkeeper needs and could not find.

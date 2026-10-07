@@ -63,7 +63,7 @@ export default function BestSellerTabs({ pool, best, trending, newArrivals }: Li
               className={`-mb-px flex-none border-b-2 pb-3 text-sm font-bold uppercase tracking-[0.08em] transition ${
                 active
                   ? "border-brand-green text-brand-green"
-                  : "border-transparent text-brand-muted-soft hover:text-brand-green-ink"
+                  : "border-transparent text-brand-muted hover:text-brand-green-ink"
               }`}
             >
               {text(entry.en, entry.ne)}

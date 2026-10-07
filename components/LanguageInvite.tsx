@@ -63,51 +63,46 @@ export default function LanguageInvite() {
     setShow(false);
   };
 
+  // One slim line, not a card (owner, 2026-10-07): the card covered the first
+  // shoes on a phone and the hero's buttons on a laptop. Same question, same
+  // place, a third of the height.
   return (
     <div
-      role="dialog"
+      role="region"
       aria-label="भाषा छान्नुहोस् · Choose language"
       // Above the tab bar (and the buy bar on a product page), not across it:
       // at bottom-3 the two sat on the same strip of a phone.
-      className="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md rounded-2xl border border-brand-gold/40 bg-brand-paper p-4 shadow-[0_18px_50px_rgba(11,77,59,0.22)] md:inset-x-auto md:right-6 lg:bottom-6"
+      className="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-2 rounded-full border border-brand-gold/40 bg-brand-paper py-1.5 pl-3 pr-1.5 shadow-[0_10px_30px_rgba(11,77,59,0.18)] md:inset-x-auto md:right-6 lg:bottom-6"
     >
-      <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none" aria-hidden="true">
-          🇳🇵
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-black leading-6 text-brand-green-ink">
-            नेपालीमा हेर्नुहुन्छ?
-          </p>
-          <p className="mt-0.5 text-sm text-brand-muted">Read this shop in Nepali?</p>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => answer("ne")}
-              className="min-h-11 rounded-xl bg-brand-green px-3 text-sm font-black text-white"
-            >
-              नेपाली
-            </button>
-            <button
-              type="button"
-              onClick={() => answer("en")}
-              className="min-h-11 rounded-xl border border-brand-green/30 bg-brand-paper px-3 text-sm font-black text-brand-green-ink"
-            >
-              English
-            </button>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => answer(null)}
-          aria-label="बन्द गर्ने · Close"
-          className="-mr-1 -mt-1 grid h-11 w-11 flex-none place-items-center rounded-lg text-lg leading-none text-brand-muted hover:bg-brand-mist"
-        >
-          ✕
-        </button>
-      </div>
+      <span className="text-lg leading-none" aria-hidden="true">
+        🇳🇵
+      </span>
+      <p className="m-0 min-w-0 flex-1 truncate text-sm font-black leading-5 text-brand-green-ink">
+        नेपालीमा हेर्नुहुन्छ?
+        <span className="sr-only"> Read this shop in Nepali?</span>
+      </p>
+      <button
+        type="button"
+        onClick={() => answer("ne")}
+        className="min-h-10 flex-none rounded-full bg-brand-green px-4 text-sm font-black text-white"
+      >
+        नेपाली
+      </button>
+      <button
+        type="button"
+        onClick={() => answer("en")}
+        className="min-h-10 flex-none rounded-full border border-brand-green/30 px-3 text-sm font-black text-brand-green-ink"
+      >
+        English
+      </button>
+      <button
+        type="button"
+        onClick={() => answer(null)}
+        aria-label="बन्द गर्ने · Close"
+        className="grid h-10 w-10 flex-none place-items-center rounded-full text-base leading-none text-brand-muted hover:bg-brand-mist"
+      >
+        ✕
+      </button>
     </div>
   );
 }

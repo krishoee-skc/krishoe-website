@@ -21,6 +21,10 @@ const ALLOWED = new Set([
   // looking like the app it opens.
   "#25D366", // WhatsApp
   "#7360F2", // Viber
+  // The same two, deepened until white words on them pass the 4.5:1 contrast
+  // check (owner, 2026-10-07): the bright ones were hard to read in sunlight.
+  "#0E7A42", // WhatsApp, deep
+  "#5A43D6", // Viber, deep
   "#1877F2", // Facebook
   // The sign-in card states its own colours because globals.css repaints
   // `bg-white` in dark mode, which once turned the card dark while its inputs

@@ -294,7 +294,7 @@ export default async function Home() {
               href={`https://wa.me/${businessContact.whatsappNumber}`}
               className="flex items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm transition hover:border-brand-gold"
             >
-              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[#25D366] text-white">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[#0E7A42] text-white">
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 20l1.5-4A8 8 0 1 1 9 19Z" /></svg>
               </span>
               <span className="font-bold text-brand-green-ink"><T en="WhatsApp order" ne="WhatsApp अर्डर" /></span>

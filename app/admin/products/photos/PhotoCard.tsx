@@ -4,7 +4,9 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { CameraIcon, ImageIcon, SearchIcon } from "@/components/Icons";
-import { removePhotoAction, saveProductPhotoAction, setCoverPhotoAction, type PhotoActionState } from "./actions";
+import { upload as uploadToStore } from "@vercel/blob/client";
+import { removePhotoAction, saveProductPhotoAction, setCoverPhotoAction, setProductVideoAction, type PhotoActionState } from "./actions";
+import { photosOf, VIDEO_MAX_BYTES, videoOf } from "@/lib/product-media";
 import PhotoCropper from "./PhotoCropper";
 
 type PhotoProduct = {
@@ -66,6 +68,45 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLInputElement>(null);
   const viewRef = useRef<HTMLDialogElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+  // The video rides in the same list as the photos (lib/product-media.ts);
+  // the strip and the counts are pictures only.
+  const photos = photosOf(gallery);
+  const video = videoOf(gallery);
+
+  /**
+   * A short video, straight from the phone to the file store (owner,
+   * 2026-10-07) — too big to pass through the shop's server — then saved on
+   * the shoe, which checks it came from this upload.
+   */
+  async function chooseVideo(files: FileList | null) {
+    const file = files?.[0];
+    if (videoRef.current) videoRef.current.value = "";
+    if (!file) return;
+    setState(null);
+    if (file.size > VIDEO_MAX_BYTES) {
+      setState({ ok: false, en: "That video is over 20 MB. Keep it to about 10 seconds.", ne: "भिडियो २० MB भन्दा ठूलो भयो। करिब १० सेकेन्डको मात्र खिच्नुहोस्।" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const extension = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      const stored = await uploadToStore(`products/videos/${product.sku || product.id}.${extension}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/admin/products/video",
+        contentType: file.type || "video/mp4",
+      });
+      const result = await setProductVideoAction(product.id, stored.url);
+      setState(result);
+      if (result.ok) setGallery((current) => [...photosOf(current), stored.url]);
+    } catch (error) {
+      const failed = error instanceof Error ? error.message : "";
+      const fallback = { en: "The video did not upload.", ne: "भिडियो चढेन।" };
+      setState({ ok: false, en: failed || fallback.en, ne: failed || fallback.ne });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function choose(files: FileList | null, slot: "main" | "gallery") {
     const file = files?.[0];
@@ -148,13 +189,13 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
     if (result.ok) {
       const rest = gallery.filter((item) => item !== url);
       setGallery(rest);
-      if (image === url) setImage(rest[0] ?? "");
+      if (image === url) setImage(photosOf(rest)[0] ?? "");
     }
     setBusy(false);
   }
 
   const previewable = image.startsWith("/") || image.startsWith("http");
-  const room = MAX_PHOTOS - gallery.length;
+  const room = MAX_PHOTOS - photos.length;
 
   return (
     <article className="grid gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
@@ -184,14 +225,14 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
       <div>
         <h3 className="truncate font-black text-brand-green-ink">{product.name}</h3>
         <p className="truncate font-mono text-[11px] text-brand-muted-soft">
-          {product.sku} · {text(`${gallery.length} photo${gallery.length === 1 ? "" : "s"}`, `${gallery.length} फोटो`)}
+          {product.sku} · {text(`${photos.length} photo${photos.length === 1 ? "" : "s"}`, `${photos.length} फोटो`)}{video ? " · 🎬" : ""}
         </p>
       </div>
 
       {/* The strip: tap a photo to make it the cover, × to take it off. */}
-      {gallery.length > 0 ? (
+      {photos.length > 0 ? (
         <ul className="flex flex-wrap gap-2 pl-0" data-photo-strip>
-          {gallery.map((url) => (
+          {photos.map((url) => (
             <li key={url} className="relative list-none">
               <button
                 type="button"
@@ -205,7 +246,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
                   <span className="absolute inset-x-0 bottom-0 bg-brand-green text-center text-[9px] font-black text-white">{text("Cover", "मुख्य")}</span>
                 ) : null}
               </button>
-              {gallery.length > 1 ? (
+              {photos.length > 1 ? (
                 <button
                   type="button"
                   disabled={busy}
@@ -239,7 +280,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           <ImageIcon className="h-4 w-4" /> {text("From a file", "फाइलबाट")}
         </button>
       </div>
-      {gallery.length > 0 && room > 0 ? (
+      {photos.length > 0 && room > 0 ? (
         <button
           type="button"
           disabled={busy}
@@ -249,11 +290,40 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
           {text("+ Add another photo", "+ अर्को फोटो थप्ने")}
         </button>
       ) : null}
-      {gallery.length === 1 ? (
+      {photos.length === 1 ? (
         <p className="rounded-lg bg-brand-cream-soft px-3 py-2 text-xs font-bold leading-5 text-brand-gold-deep">
           {text("Only one photo. Add the side and the sole — shoppers look for 3–4.", "एउटा मात्र फोटो। छेउ र तलुवाको पनि राख्नुहोस् — ग्राहकले ३–४ वटा हेर्छन्।")}
         </p>
       ) : null}
+
+      {/* The shoe's short video: one per shoe, shown under its photos. */}
+      <div className="grid gap-2 rounded-xl border border-dashed border-brand-green-line p-2.5">
+        {video ? (
+          <>
+            <video src={video} controls playsInline muted preload="metadata" className="aspect-[4/5] w-full rounded-lg bg-black object-cover" />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => remove(video)}
+              className="min-h-10 rounded-lg text-xs font-black text-brand-clay disabled:opacity-60"
+            >
+              {text("Remove the video", "भिडियो हटाउने")}
+            </button>
+          </>
+        ) : null}
+        <button
+          type="button"
+          disabled={busy || photos.length === 0}
+          onClick={() => videoRef.current?.click()}
+          className="min-h-11 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-green-ink disabled:opacity-60"
+        >
+          🎬 {video ? text("Replace the video", "भिडियो फेर्ने") : text("Add a 10-second video", "१० सेकेन्डको भिडियो थप्ने")}
+        </button>
+        <p className="text-[11px] leading-4 text-brand-muted">
+          {text("Turn the shoe slowly in daylight. Up to 20 MB.", "उज्यालोमा जुत्ता बिस्तारै घुमाउँदै खिच्नुहोस्। २० MB सम्म।")}
+        </p>
+      </div>
+      <input aria-label={text("Add a video", "भिडियो थप्ने")} ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime" capture="environment" hidden onChange={(event) => chooseVideo(event.target.files)} />
 
       {/* capture asks the phone for the rear camera; a desktop ignores it and
           opens the file picker, which is the right fallback either way. */}

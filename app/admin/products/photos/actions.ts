@@ -9,6 +9,7 @@ import { databaseImagesAvailable, getDatabaseImage, saveDatabaseImage } from "@/
 import { findReframe, reframePhoto, type Reframe } from "@/lib/photo-reframe";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { isShopVideoUrl, isVideoUrl, photosOf } from "@/lib/product-media";
 
 /**
  * The outcome, in both languages.
@@ -53,7 +54,7 @@ export async function saveProductPhotoAction(
     return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
   }
 
-  if (slot === "gallery" && product.gallery.length >= MAX_PHOTOS) {
+  if (slot === "gallery" && photosOf(product.gallery).length >= MAX_PHOTOS) {
     return { ok: false, en: `A shoe holds ${MAX_PHOTOS} photos — remove one first.`, ne: `एउटा जुत्तामा ${MAX_PHOTOS} फोटो मात्र — पहिले एउटा हटाउनुहोस्।` };
   }
 
@@ -112,7 +113,7 @@ export async function setCoverPhotoAction(
   const productId = textValue(formData, "productId");
   const image = textValue(formData, "image");
   const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
-  if (!product || !image || !product.gallery.includes(image)) {
+  if (!product || !image || !product.gallery.includes(image) || isVideoUrl(image)) {
     return { ok: false, en: "That photo was not found on this shoe.", ne: "यो जुत्तामा त्यो फोटो भेटिएन।" };
   }
   try {
@@ -138,11 +139,12 @@ export async function removePhotoAction(
   const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
   if (!product || !image) return { ok: false, en: "That photo was not found.", ne: "फोटो भेटिएन।" };
   const rest = product.gallery.filter((item) => item !== image);
-  if (rest.length === 0) {
+  // The video can always go; the last picture cannot.
+  if (!isVideoUrl(image) && photosOf(rest).length === 0) {
     return { ok: false, en: "This is the only photo — add another before removing it.", ne: "यो एउटै फोटो हो — पहिले अर्को राखेर मात्र हटाउनुहोस्।" };
   }
   try {
-    await upsertProduct({ ...product, image: product.image === image ? rest[0] : product.image, gallery: rest });
+    await upsertProduct({ ...product, image: product.image === image ? photosOf(rest)[0] : product.image, gallery: rest });
   } catch (error) {
     reportError(`remove photo from product ${product.sku}`, error);
     return { ok: false, en: "The photo was not removed.", ne: "फोटो हटेन।" };
@@ -203,7 +205,7 @@ export async function fixFramedPhotoAction(productId: string): Promise<PhotoActi
   await requireAdminPermission("products:write");
   const product = productId ? await getProductById(productId, { includeDrafts: true }) : null;
   if (!product) return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
-  if (product.gallery.length >= MAX_PHOTOS) {
+  if (photosOf(product.gallery).length >= MAX_PHOTOS) {
     return { ok: false, en: `${product.name} already has ${MAX_PHOTOS} photos — remove one first.`, ne: `${product.name} मा ${MAX_PHOTOS} फोटो भइसके — पहिले एउटा हटाउनुहोस्।` };
   }
   const bytes = await storedPhotoBytes(product.image);
@@ -239,4 +241,28 @@ export async function fixFramedPhotoAction(productId: string): Promise<PhotoActi
   revalidatePath("/", "layout");
   revalidatePath("/admin/products/photos");
   return { ok: true, en: `${product.name} — photo mended ✅ (the old one is kept)`, ne: `${product.name} — फोटो मिल्यो ✅ (पुरानो पनि राखिएको छ)` };
+}
+
+/**
+ * A shoe's video, once the phone has sent it to the file store (owner,
+ * 2026-10-07). Only the shop's own upload is accepted, and a shoe keeps one:
+ * a new video replaces the old.
+ */
+export async function setProductVideoAction(productId: string, url: string): Promise<PhotoActionState> {
+  await requireAdminPermission("products:write");
+  if (!isShopVideoUrl(url)) {
+    return { ok: false, en: "That video did not come from this shop's upload.", ne: "यो भिडियो पसलकै upload बाट आएको होइन।" };
+  }
+  const product = await getProductById(productId, { includeDrafts: true });
+  if (!product) return { ok: false, en: "That product was not found.", ne: "सामान भेटिएन।" };
+  try {
+    await upsertProduct({ ...product, gallery: [...photosOf(product.gallery), url] });
+  } catch (error) {
+    reportError(`save video for product ${product.sku}`, error);
+    return { ok: false, en: "The video was not saved.", ne: "भिडियो सुरक्षित भएन।" };
+  }
+  await recordAdminAuditEvent("product_video_set", `Video set for ${product.sku} (${product.name}).`);
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/products/photos");
+  return { ok: true, en: `${product.name} — video added ✅`, ne: `${product.name} — भिडियो थपियो ✅` };
 }

@@ -5,6 +5,7 @@ import SafeImage from "@/components/SafeImage";
 import { useLanguage } from "@/components/LanguageProvider";
 import NoPhotoYet from "@/components/NoPhotoYet";
 import { isStandInPhoto } from "@/lib/products";
+import { isVideoUrl, videoOf } from "@/lib/product-media";
 
 type ProductGalleryProps = {
   name: string;
@@ -20,7 +21,8 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
 
     // A category's stand-in picture is another shoe; it is not shown as this one.
     return [image, ...gallery].filter((src) => {
-      if (!src || seen.has(src) || isStandInPhoto(src)) {
+      // The shoe's video is shown on its own, under the photos.
+      if (!src || seen.has(src) || isStandInPhoto(src) || isVideoUrl(src)) {
         return false;
       }
 
@@ -28,6 +30,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
       return true;
     });
   }, [gallery, image]);
+  const video = videoOf(gallery);
   const [selectedImage, setSelectedImage] = useState(images[0] ?? image);
   const [zoomed, setZoomed] = useState(false);
   // Magnification inside the big view, and the point it grows around, so a tap
@@ -166,6 +169,25 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
               </button>
             );
           })}
+        </div>
+      ) : null}
+
+      {/* The shoe turning in daylight (owner, 2026-10-07): it starts only when
+          pressed, muted, and loads nothing but its first frame until then. */}
+      {video ? (
+        <div className="grid gap-1.5">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+            ▶ {text("Watch it turn", "घुमाएर हेर्नुहोस्")}
+          </p>
+          <video
+            src={video}
+            controls
+            playsInline
+            muted
+            preload="metadata"
+            aria-label={text(`${name}, a short video`, `${name} को छोटो भिडियो`)}
+            className="aspect-[4/5] w-full rounded-lg bg-black object-cover"
+          />
         </div>
       ) : null}
 

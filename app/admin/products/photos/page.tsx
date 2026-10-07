@@ -31,6 +31,9 @@ const photoTips = [
   { icon: "⬜", ne: "पछाडि सेतो पर्खाल वा सादा कपडा", en: "A white wall or plain cloth behind it" },
   { icon: "📐", ne: "निहुरिएर जुत्ताकै उचाइबाट", en: "Crouch down and shoot at the shoe's own height" },
   { icon: "🚫", ne: "Zoom नगर्ने — फोन नै नजिक लैजाने", en: "No zoom — move the phone closer instead" },
+  // The four a shopper looks for, and the shoe turning (owner, 2026-10-07).
+  { icon: "🔄", ne: "४ कोण: छेउ, माथि, तलुवा, लगाएको", en: "4 angles: side, top, sole, worn on a foot" },
+  { icon: "🎬", ne: "१० सेकेन्डको भिडियो: जुत्ता बिस्तारै घुमाउने", en: "A 10-second video: turn the shoe slowly" },
 ];
 
 /**
@@ -73,7 +76,7 @@ export default async function ProductPhotosPage() {
         </p>
       </div>
 
-      <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {photoTips.map((tip) => (
           <li
             key={tip.en}

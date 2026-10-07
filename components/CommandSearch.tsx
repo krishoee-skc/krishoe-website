@@ -89,12 +89,14 @@ export default function CommandSearch() {
 
   return (
     <>
-      {/* Desktop: full search pill with keyboard hint. */}
+      {/* Wide screens: full search pill with keyboard hint. From 1536px, not
+          1280: on a 1366 laptop the pill pushed "Account" off the edge (owner,
+          2026-10-07); below that it is the round button. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label={text("Search premium styles", "जुत्ता खोज्ने")}
-        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-brand-mist px-4 text-brand-muted-deep transition hover:border-brand-green/40 xl:flex"
+        className="hidden h-10 items-center gap-2 rounded-full border border-black/10 bg-brand-mist px-4 text-brand-muted-deep transition hover:border-brand-green/40 2xl:flex"
       >
         <SearchIcon className="h-4 w-4" />
         <span className="text-sm">{text("Search premium styles", "जुत्ता खोज्ने")}</span>
@@ -109,7 +111,7 @@ export default function CommandSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={text("Search premium styles", "जुत्ता खोज्ने")}
-        className="hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid xl:hidden"
+        className="hidden h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist lg:grid 2xl:hidden"
       >
         <SearchIcon className="h-5 w-5" />
       </button>

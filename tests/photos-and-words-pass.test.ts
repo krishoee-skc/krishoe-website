@@ -29,8 +29,9 @@ describe("framing a photo", () => {
     expect(card).toContain("setCoverPhotoAction");
     expect(card).toContain("removePhotoAction");
     const actions = await read("app/admin/products/photos/actions.ts");
-    expect(actions).toContain("if (rest.length === 0) {");
-    expect(actions).toContain('if (slot === "gallery" && product.gallery.length >= MAX_PHOTOS) {');
+    // The last picture stays; a video can always go (2026-10-07).
+    expect(actions).toContain("if (!isVideoUrl(image) && photosOf(rest).length === 0) {");
+    expect(actions).toContain('if (slot === "gallery" && photosOf(product.gallery).length >= MAX_PHOTOS) {');
   });
 
   it("shows the shop's frame, 4:5, on the card and the shoe's page", async () => {

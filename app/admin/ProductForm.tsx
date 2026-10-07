@@ -18,6 +18,8 @@ type ProductFormProps = {
   categories: Category[];
   /** Every shoe's code, so a new one is numbered after them and a clash is seen. */
   takenCodes?: Array<{ id: string; sku: string; name: string }>;
+  /** Start the AI draft as the form opens (the Drafts panel's "✨ AI" link). */
+  autoDraft?: boolean;
 };
 
 /** Rupees as typed, shown the way the storefront will show them. */
@@ -25,7 +27,7 @@ function rupeeLabel(rupees: number) {
   return formatPrice(Math.round(rupees * 100));
 }
 
-export default function ProductForm({ product, categories, takenCodes = [] }: ProductFormProps) {
+export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -267,7 +269,7 @@ export default function ProductForm({ product, categories, takenCodes = [] }: Pr
         </label>
       </div>
 
-      <AiDraftButton formRef={formRef} />
+      <AiDraftButton formRef={formRef} autoStart={autoDraft} />
 
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">{text("Short description", "छोटो विवरण")}</span>

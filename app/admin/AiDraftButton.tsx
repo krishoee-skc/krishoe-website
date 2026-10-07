@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { draftProductCopyAction } from "./ai-copy-action";
 
@@ -51,7 +51,18 @@ type Field = HTMLInputElement | HTMLTextAreaElement;
 
 type Note = { ok: boolean; head: { en: string; ne: string }; body: { en: string; ne: string } };
 
-export default function AiDraftButton({ formRef }: { formRef: React.RefObject<HTMLFormElement | null> }) {
+/**
+ * `autoStart`: draft once as soon as the form opens — the Drafts panel's
+ * "✨ AI" link (owner, 2026-10-07). Still only the empty boxes, still nothing
+ * saved until Save is pressed.
+ */
+export default function AiDraftButton({
+  formRef,
+  autoStart = false,
+}: {
+  formRef: React.RefObject<HTMLFormElement | null>;
+  autoStart?: boolean;
+}) {
   const { text } = useLanguage();
   const [pending, startDrafting] = useTransition();
   const [message, setMessage] = useState<Note | null>(null);
@@ -162,6 +173,15 @@ export default function AiDraftButton({ formRef }: { formRef: React.RefObject<HT
       });
     });
   };
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStarted.current) return;
+    autoStarted.current = true;
+    handleDraft();
+    // Once, when the form opens with ?ai=1; the press below does the rest.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   const handleUndo = () => {
     for (const [field, original] of before.current) {

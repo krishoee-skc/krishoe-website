@@ -30,13 +30,15 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
   const more = ordered.length - shown.length;
 
   return (
-    <p
-      className="mt-1 flex items-center gap-1 overflow-hidden whitespace-nowrap"
-      aria-label={text(
-        `Sizes: ${choices.filter((choice) => !choice.soldOut).map((choice) => choice.size).join(", ")}`,
-        `साइज: ${choices.filter((choice) => !choice.soldOut).map((choice) => choice.size).join(", ")}`,
-      )}
-    >
+    <p className="mt-1 flex items-center gap-1 overflow-hidden whitespace-nowrap">
+      {/* Read aloud as words: a label on a <p> is not allowed, and screen
+          readers skip it (accessibility check, 2026-10-07). */}
+      <span className="sr-only">
+        {text(
+          `Sizes: ${choices.filter((choice) => !choice.soldOut).map((choice) => choice.size).join(", ")}`,
+          `साइज: ${choices.filter((choice) => !choice.soldOut).map((choice) => choice.size).join(", ")}`,
+        )}
+      </span>
       {shown.map((choice) => (
         <span
           key={choice.size}

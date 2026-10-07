@@ -1,4 +1,5 @@
 import { categoryNepali } from "@/lib/nepali-pages";
+import { photosOf } from "@/lib/product-media";
 import { productPath } from "@/lib/product-url";
 import type { Metadata } from "next";
 import {
@@ -391,28 +392,55 @@ export function websiteJsonLd(description = siteConfig.description) {
   };
 }
 
+/**
+ * `summary`: the list as Google's guide asks for a page that only lists shoes
+ * — each one's address, the full details left to the shoe's own page (owner,
+ * 2026-10-07). Every page used to carry every shoe in full, reviews and all,
+ * which made the home page 316 KB and told Google the same thing many times.
+ */
 export function itemListJsonLd({
   name,
   url,
   products,
+  summary = false,
 }: {
   name: string;
   url: string;
   products: Product[];
+  summary?: boolean;
 }) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name,
     url: absoluteUrl(url),
-    itemListElement: products.map((product, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      url: absoluteUrl(productPath(product)),
-      item: productJsonLd(product),
-    })),
+    itemListElement: products.map((product, index) =>
+      summary
+        ? { "@type": "ListItem", position: index + 1, url: absoluteUrl(productPath(product)) }
+        : {
+            "@type": "ListItem",
+            position: index + 1,
+            url: absoluteUrl(productPath(product)),
+            item: productJsonLd(product),
+          },
+    ),
   };
 }
+
+/**
+ * The shop's return terms as Google reads them, from the return policy page:
+ * seven days from delivery, in Nepal, by sending it back; the customer pays
+ * the postage unless the pair is faulty (owner, 2026-10-07).
+ */
+export const returnPolicyJsonLd = {
+  "@type": "MerchantReturnPolicy",
+  applicableCountry: "NP",
+  returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+  merchantReturnDays: 7,
+  returnMethod: "https://schema.org/ReturnByMail",
+  returnFees: "https://schema.org/ReturnShippingFees",
+  merchantReturnLink: "/return-policy",
+} as const;
 
 export function collectionPageJsonLd({
   name,
@@ -433,7 +461,7 @@ export function collectionPageJsonLd({
     name,
     description,
     url: absolutePageUrl,
-    mainEntity: itemListJsonLd({ name: `${name} products`, url: absolutePageUrl, products }),
+    mainEntity: itemListJsonLd({ name: `${name} products`, url: absolutePageUrl, products, summary: true }),
   };
 }
 
@@ -448,7 +476,8 @@ export function productJsonLd(product: Product) {
     "@type": "Product",
     name: product.name,
     sku: product.sku,
-    image: product.gallery.length > 0 ? product.gallery.map(absoluteUrl) : [absoluteUrl(product.image)],
+    // Pictures only: the shoe's video rides in the same list.
+    image: photosOf(product.gallery).length > 0 ? photosOf(product.gallery).map(absoluteUrl) : [absoluteUrl(product.image)],
     description: product.description,
     category: product.category,
     brand: {
@@ -463,8 +492,12 @@ export function productJsonLd(product: Product) {
       availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
       url: absoluteUrl(productPath(product)),
+      hasMerchantReturnPolicy: { ...returnPolicyJsonLd, merchantReturnLink: absoluteUrl(returnPolicyJsonLd.merchantReturnLink) },
     },
   };
+  // The sizes and colours the shoe comes in, as the page offers them.
+  if (product.sizes.length > 0) data.size = product.sizes.join(", ");
+  if (product.colors.length > 0) data.color = product.colors.join(", ");
 
   if (ratingValue > 0 && approvedReviews.length > 0) {
     data.aggregateRating = {

@@ -1881,6 +1881,42 @@ export function daySummaryLines(day: { sales: number; bills: number; pairsSold: 
   ];
 }
 
+/**
+ * The one shoe that moved most this week against last, in pairs sold (owner,
+ * 2026-10-07: "बेलुकाको हिसाबमा एक लाइन सल्लाह"). Worked out here, not by the
+ * AI: the free AI may learn from what it is sent, and the shop's sales are not
+ * public. Null when nothing moved by two pairs or more.
+ */
+export function weekMover(
+  invoices: Array<{ createdAt: string; kind: string; status: string; items: Array<{ design: string; quantity: number }> }>,
+  todayKey: string,
+) {
+  const dayIndex = (key: string) => Math.round(Date.parse(`${key}T00:00:00Z`) / 86_400_000);
+  const today = dayIndex(todayKey);
+  const thisWeek = new Map<string, number>();
+  const lastWeek = new Map<string, number>();
+  for (const invoice of invoices) {
+    if (invoice.kind !== "Sale" || invoice.status === "Voided") continue;
+    const ago = today - dayIndex(nepalDayKey(invoice.createdAt));
+    const bucket = ago >= 0 && ago < 7 ? thisWeek : ago >= 7 && ago < 14 ? lastWeek : null;
+    if (!bucket) continue;
+    for (const item of invoice.items) {
+      const design = item.design.trim();
+      bucket.set(design, (bucket.get(design) ?? 0) + (Number(item.quantity) || 0));
+    }
+  }
+  let best: { design: string; before: number; now: number } | null = null;
+  for (const design of new Set([...thisWeek.keys(), ...lastWeek.keys()])) {
+    const now = thisWeek.get(design) ?? 0;
+    const before = lastWeek.get(design) ?? 0;
+    if (Math.abs(now - before) < 2) continue;
+    if (!best || Math.abs(now - before) > Math.abs(best.now - best.before)) best = { design, before, now };
+  }
+  if (!best) return null;
+  const change = best.now - best.before;
+  return `यो हप्ता ${best.design} ${change > 0 ? "▲" : "▼"} ${Math.abs(change)} जोडी ${change > 0 ? "बढी" : "कम"} (${best.before} → ${best.now})`;
+}
+
 export async function tellOwnerTheDay(now = new Date()) {
   const todayKey = nepalDayKey(now);
   const utcKey = now.toISOString().slice(0, 10);
@@ -1901,6 +1937,8 @@ export async function tellOwnerTheDay(now = new Date()) {
     onlineOrders: orders.filter((order) => nepalDayKey(order.createdAt) === todayKey).length,
     toCollect: operations.summary.receivable,
   });
+  const mover = weekMover(pos.invoices, todayKey);
+  if (mover) lines.push(mover);
   await reportingErrors("push the day's summary", () =>
     sendPushToStaff({
       title: "📊 आजको हिसाब",

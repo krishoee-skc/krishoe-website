@@ -96,14 +96,14 @@ export default function ShareProduct({ name, price, url }: ShareProductProps) {
             onClick={() => trackShare("whatsapp")}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[#25D366] px-3 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0E7A42] px-3 text-sm font-bold text-white transition hover:brightness-95"
           >
             WhatsApp
           </a>
           <a
             href={viberShareUrl(messageFor("viber"))}
             onClick={() => trackShare("viber")}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[#7360F2] px-3 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#5A43D6] px-3 text-sm font-bold text-white transition hover:brightness-95"
           >
             Viber
           </a>

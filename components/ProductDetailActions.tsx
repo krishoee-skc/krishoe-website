@@ -192,7 +192,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
             onClick={() => trackContact("whatsapp")}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#25D366] px-6 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0E7A42] px-6 text-sm font-bold text-white transition hover:brightness-95"
           >
             {outOfStock
               ? text("Ask on WhatsApp", "WhatsApp मा सोध्नुहोस्")
@@ -201,7 +201,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
           <a
             href={viberOrderUrl(orderMessage)}
             onClick={() => trackContact("viber")}
-            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#7360F2] px-6 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#5A43D6] px-6 text-sm font-bold text-white transition hover:brightness-95"
           >
             {outOfStock
               ? text("Ask on Viber", "Viber मा सोध्नुहोस्")
@@ -265,7 +265,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
             target="_blank"
             rel="noreferrer"
             aria-label={text("Order on WhatsApp", "WhatsApp बाट अर्डर")}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-sm font-bold text-white"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#0E7A42] text-sm font-bold text-white"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2Zm5.8 14.16c-.24.68-1.42 1.31-1.95 1.36-.5.05-.97.24-3.27-.68-2.76-1.09-4.5-3.9-4.64-4.08-.14-.18-1.11-1.48-1.11-2.82 0-1.34.7-2 .95-2.28.24-.27.53-.34.71-.34.18 0 .36 0 .51.01.16.01.39-.06.6.46.24.57.79 1.96.86 2.1.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.28-.12.55.16.27.72 1.18 1.54 1.91 1.06.94 1.95 1.24 2.22 1.38.27.14.43.12.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.23.6-.14.24.09 1.55.73 1.82.86.27.14.45.2.51.31.07.12.07.66-.17 1.34Z"/></svg>
           </a>

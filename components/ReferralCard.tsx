@@ -81,14 +81,14 @@ export default function ReferralCard({
           onClick={() => trackShare("whatsapp")}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-11 items-center rounded-full bg-[#25D366] px-5 text-sm font-bold text-white"
+          className="inline-flex h-11 items-center rounded-full bg-[#0E7A42] px-5 text-sm font-bold text-white"
         >
           {text("Send on WhatsApp", "WhatsApp मा पठाउने")}
         </a>
         <a
           href={viberShareUrl(message)}
           onClick={() => trackShare("viber")}
-          className="inline-flex h-11 items-center rounded-full bg-[#7360F2] px-5 text-sm font-bold text-white"
+          className="inline-flex h-11 items-center rounded-full bg-[#5A43D6] px-5 text-sm font-bold text-white"
         >
           Viber
         </a>

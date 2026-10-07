@@ -38,6 +38,8 @@ export function StructuredData({ metadata, products }: StructuredDataProps) {
       name: `${title} product catalog`,
       url: "/shop",
       products: activeProducts,
+      // Addresses only on every page; each shoe's page carries it in full.
+      summary: true,
     }),
   ];
 

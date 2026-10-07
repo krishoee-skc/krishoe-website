@@ -21,6 +21,7 @@ export const metadata = {
 type AdminProductsPageProps = {
   searchParams?: Promise<{
     edit?: string;
+    ai?: string;
   }>;
 };
 
@@ -123,6 +124,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           product={editingProduct}
           categories={categories}
           takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
+          autoDraft={Boolean(editingProduct) && resolvedSearchParams?.ai === "1"}
         />
       </div>
 

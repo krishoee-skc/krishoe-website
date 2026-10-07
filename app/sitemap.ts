@@ -5,6 +5,7 @@ import { categories } from "@/lib/products";
 import { guides } from "@/lib/guides";
 import { absoluteUrl, getProductsByCategory, getSiteUrl } from "@/lib/seo";
 import { reportError } from "@/lib/report-error";
+import { photosOf } from "@/lib/product-media";
 import type { Product } from "@/lib/products";
 
 // The sitemap is built with the site. An unreachable database threw here and
@@ -89,6 +90,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
+      // For people nearby: "shoe shop Narayangadh", "चप्पल नारायणगढ" (owner,
+      // 2026-10-07). Both languages, like the shop's own pages.
+      url: `${baseUrl}/narayangadh`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: `${baseUrl}/ne/narayangadh`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
       // Customers said they could not find where to leave a review. This is
       // that page, and a page Google has never been shown is a page nobody can
       // search their way to.
@@ -150,7 +165,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: product.featured ? 0.85 : 0.75,
-      images: product.gallery.length > 0 ? product.gallery.map(absoluteUrl) : [absoluteUrl(product.image)],
+      images: photosOf(product.gallery).length > 0 ? photosOf(product.gallery).map(absoluteUrl) : [absoluteUrl(product.image)],
     })),
     // The Nepali pages (app/ne), each the pair of an English one above
     // (owner, 2026-10-01).

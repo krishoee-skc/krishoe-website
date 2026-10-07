@@ -95,6 +95,16 @@ export default function DraftsPanel({ drafts }: { drafts: Draft[] }) {
               >
                 ✏️ {text("Fill in", "भर्ने")}
               </Link>
+              {/* Opens the form with the AI already writing the empty boxes;
+                  the owner reads them and presses Save (owner, 2026-10-07). */}
+              {draft.advice.some((need) => need.key === "description" || need.key === "name-ne") ? (
+                <Link
+                  href={`/admin/products?edit=${encodeURIComponent(draft.id)}&ai=1`}
+                  className="inline-flex min-h-10 items-center rounded-full border border-brand-gold/60 bg-brand-cream-soft px-3 text-xs font-bold text-brand-green-ink"
+                >
+                  ✨ {text("AI writes it", "AI ले लेख्ने")}
+                </Link>
+              ) : null}
               {draft.ready ? (
                 <button
                   type="button"

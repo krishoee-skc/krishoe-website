@@ -17,10 +17,22 @@
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://analytics.tiktok.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://www.facebook.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://analytics.tiktok.com",
+  // www.gstatic.com and translate.google.com: Chrome's own "Translate this
+  // page" draws its bar from there; a shopper reading the shop in Hindi was
+  // blocked (monitoring, 2026-10-02).
+  "style-src 'self' 'unsafe-inline' https://www.gstatic.com",
+  // google.com, google.com.np and doubleclick: where GA4 sends a visit when
+  // Google signals are on, per Google's own CSP guide (owner, 2026-10-07).
+  "img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://www.facebook.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://analytics.tiktok.com https://www.google.com https://www.google.com.np https://*.g.doubleclick.net https://www.gstatic.com https://fonts.gstatic.com https://translate.google.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://analytics.tiktok.com",
+  // A shoe's short video plays from the shop's own file store (owner,
+  // 2026-10-07); without this the browser falls back to default-src and
+  // refuses it.
+  "media-src 'self' blob: https://*.public.blob.vercel-storage.com",
+  // GA4 posts to www.google.com/g/collect as well as google-analytics.com;
+  // without it here visits were blocked and went uncounted (monitoring:
+  // "CSP blocked https://www.google.com/g/collect", owner, 2026-10-07).
+  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com https://www.google.com.np https://*.g.doubleclick.net https://connect.facebook.net https://www.facebook.com https://analytics.tiktok.com https://translate.googleapis.com https://vercel.com https://*.blob.vercel-storage.com",
   // 'self' plus Facebook: the Meta Pixel drops a hidden facebook.com iframe to
   // set its cookie. Without it here the pixel is blocked and every page view
   // files a CSP warning — the "frame-src" errors in monitoring. connect.facebook

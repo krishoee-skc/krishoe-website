@@ -1,3 +1,5 @@
+import { photosOf } from "@/lib/product-media";
+
 /**
  * Whether a product is still wearing one of the sample photos.
  *
@@ -33,7 +35,7 @@ export function hasNoPhoto(image: string | null | undefined): boolean {
 export function photoAdvice(product: { image?: string | null; gallery?: string[] | null }) {
   const advice: Array<{ en: string; ne: string }> = [];
   if (hasNoPhoto(product.image) || isSamplePhoto(product.image)) return advice;
-  const real = new Set([product.image, ...(product.gallery ?? [])].filter((image): image is string => Boolean(image) && !isSamplePhoto(image)));
+  const real = new Set([product.image, ...photosOf(product.gallery)].filter((image): image is string => Boolean(image) && !isSamplePhoto(image)));
   if (real.size < 2) {
     advice.push({ en: "One photo only — add 2–4 angles (side, top, sole, worn)", ne: "एउटा मात्र फोटो — २–४ कोणबाट थप्नुहोस् (छेउ, माथि, तलुवा, लगाएको)" });
   }

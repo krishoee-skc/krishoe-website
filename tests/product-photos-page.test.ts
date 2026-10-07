@@ -19,7 +19,8 @@ describe("photo page", () => {
     // to exist, so there are two inputs.
     expect(card).toContain('capture="environment"');
     // And a third, for another photo after the first (owner, 2026-10-02).
-    expect((card.match(/type="file"/g) ?? []).length).toBe(3);
+    // And a fourth, for the shoe's short video (owner, 2026-10-07).
+    expect((card.match(/type="file"/g) ?? []).length).toBe(4);
     // Each label written as a pair, so the two doors are named in whichever
     // language the reader pressed.
     expect(card).toContain('text("Take one", "खिच्ने")');
