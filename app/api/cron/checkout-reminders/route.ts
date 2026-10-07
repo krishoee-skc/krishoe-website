@@ -1,8 +1,13 @@
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import {
+  isEmailKey,
   listAttemptsToRemind,
+  reminderSms,
   markAttemptReminded,
 } from "@/lib/checkout-attempts";
+import { sendSMS } from "@/lib/sms-gateway";
+import { nepaliMobile } from "@/lib/sms-sparrow";
+import { businessContact } from "@/lib/seo";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { reportError } from "@/lib/report-error";
 
@@ -10,6 +15,17 @@ export const dynamic = "force-dynamic";
 
 function rupees(paisa: number) {
   return `Rs. ${Math.round(paisa / 100).toLocaleString("en-IN")}`;
+}
+
+/** SMS when the phone is a Nepali mobile and SMS can be sent; "" when it cannot. */
+async function remindBySms(attempt: { id: string; phone: string; summary: string; totalPaisa: number }) {
+  if (!nepaliMobile(attempt.phone)) return "";
+  return sendSMS({
+    to: attempt.phone,
+    text: reminderSms(attempt, emailLinkBaseUrl(), businessContact.whatsappDisplay),
+    type: "customer",
+    eventType: "checkout_reminder",
+  });
 }
 
 /**
@@ -47,6 +63,21 @@ export async function GET(request: Request) {
   let failed = 0;
 
   for (const attempt of attempts) {
+    // A phone first: an SMS is read; then the email, when there is one.
+    try {
+      if (await remindBySms(attempt)) {
+        sent += 1;
+        await markAttemptReminded(attempt.id);
+        continue;
+      }
+    } catch (error) {
+      reportError(`send checkout reminder SMS for ${attempt.id}`, error);
+    }
+    if (!isEmailKey(attempt.email)) {
+      // Phone only, and no SMS gateway yet: left for a later night.
+      continue;
+    }
+
     const greeting = attempt.name ? `${attempt.name},` : "नमस्ते,";
     const delivery = await sendStaffSecurityEmail({
       email: attempt.email,

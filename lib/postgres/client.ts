@@ -19,7 +19,25 @@ declare global {
   var krishoePgPool: Pool | undefined;
 }
 
-type SslConfig = false | { rejectUnauthorized: boolean };
+type SslConfig = false | { rejectUnauthorized: boolean; ca?: string };
+
+/**
+ * The provider's own certificate authority, from PGSSL_CA (owner, 2026-10-07).
+ *
+ * Supabase's certificate is signed by Supabase's own root, which no public list
+ * trusts, so the link ran with PGSSL_INSECURE=true: encrypted, but without
+ * checking it is really Supabase at the other end. With the root they publish
+ * (Database settings → SSL → Download certificate) pasted into PGSSL_CA, the
+ * certificate is checked again. Taken as the PEM text, or that text in base64
+ * for a settings box that will not hold line breaks.
+ */
+export function caFromEnv(value = process.env.PGSSL_CA): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.includes("BEGIN CERTIFICATE")) return raw.replace(/\\n/g, "\n");
+  const decoded = Buffer.from(raw, "base64").toString("utf8");
+  return decoded.includes("BEGIN CERTIFICATE") ? decoded : null;
+}
 
 function connectionStringWithoutLegacySslMode(connectionString: string) {
   try {
@@ -42,7 +60,12 @@ function getSslConfig(connectionString: string): SslConfig {
   // Validate the server certificate by default so the DB link can't be MITM'd.
   // Managed providers with publicly-trusted certs (Neon, Supabase, Vercel
   // Postgres) work as-is. Only set PGSSL_INSECURE=true for a provider whose
-  // certificate chain is self-signed and cannot be validated.
+  // certificate chain is self-signed and cannot be validated — or better, give
+  // its root in PGSSL_CA, which checks the certificate and wins over INSECURE.
+  const ca = caFromEnv();
+  if (ca) {
+    return { rejectUnauthorized: true, ca };
+  }
   if (process.env.PGSSL_INSECURE === "true") {
     return { rejectUnauthorized: false };
   }

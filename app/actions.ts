@@ -299,9 +299,9 @@ export async function submitCheckout(_previousState: FormState, formData: FormDa
   // Whether or not a reminder was ever sent. An attempt that turned into an
   // order on its own must stop being a candidate — nobody should be chased for
   // a basket they already paid for.
-  if (email) {
-    await reportingErrors(`close checkout attempt for ${email}`, () =>
-      markCheckoutRecovered(email, record.id),
+  if (email || record.phone) {
+    await reportingErrors(`close checkout attempt for order ${record.id}`, () =>
+      markCheckoutRecovered(email, record.id, record.phone),
     );
   }
 

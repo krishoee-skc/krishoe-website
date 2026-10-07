@@ -133,17 +133,56 @@ function CheckoutForm({
   }
 
   useEffect(() => () => window.clearTimeout(couponTimer.current), []);
-  const steps = [
-    text("Details", "विवरण"),
-    text("Delivery", "डेलिभरी"),
-    text("Confirm", "पुष्टि"),
-  ];
+  // Two steps on one form (owner, 2026-10-07): the delivery details, then the
+  // payment and the order. Both stay in the form — the first is only folded
+  // away — so the order the server receives is the same as before.
+  const steps = [text("Delivery", "डेलिभरी"), text("Payment", "भुक्तानी")];
+  const [step, setStep] = useState<1 | 2>(1);
+  const [details, setDetails] = useState({ name: "", phone: "", address: "" });
+  const formRef = useRef<HTMLFormElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
+
+  // The first step's boxes are checked here, by the browser's own rules, before
+  // the second opens: a folded-away box the browser cannot point at would stop
+  // the order with no word on screen.
+  function goToPayment() {
+    const form = formRef.current;
+    const part = detailsRef.current;
+    if (!form || !part) return;
+    for (const field of part.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")) {
+      if (!field.checkValidity()) {
+        field.reportValidity();
+        return;
+      }
+    }
+    const data = new FormData(form);
+    setDetails({
+      name: String(data.get("name") ?? "").trim(),
+      phone: String(data.get("phone") ?? "").trim(),
+      address: String(data.get("address") ?? "").trim(),
+    });
+    rememberAttempt(form);
+    setStep(2);
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Enter in a first-step box continues; it does not send the order.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (step === 1) {
+      event.preventDefault();
+      goToPayment();
+      return;
+    }
+    onSubmit(event);
+  }
 
   function rememberAttempt(form: HTMLFormElement | null) {
     if (!form) return;
     const data = new FormData(form);
     const email = String(data.get("email") ?? "").trim();
-    if (!email.includes("@")) return;
+    const phoneDigits = String(data.get("phone") ?? "").replace(/\D/g, "");
+    // The email, or the phone when there is none (owner, 2026-10-07).
+    if (!email.includes("@") && phoneDigits.length < 10) return;
 
     // Deliberately not awaited. A shopper waiting on a background note would be
     // a shopper waiting for nothing.
@@ -151,7 +190,7 @@ function CheckoutForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
       <div className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <input type="hidden" name="order" value={orderItemsForDb} />
         <input type="hidden" name="total" value={subtotalLabel} />
@@ -172,16 +211,22 @@ function CheckoutForm({
               {text("Delivery request", "डेलिभरी अनुरोध")}
             </h2>
           </div>
-          <div className="flex gap-1.5">
-            {steps.map((step, index) => (
-              <span
-                key={step}
-                className="inline-flex min-h-8 items-center rounded-full border border-brand-green/20 bg-brand-mist px-3 text-xs font-black text-brand-green-ink"
+          <ol className="flex gap-1.5" aria-label={text("Checkout steps", "अर्डरका चरण")}>
+            {steps.map((label, index) => (
+              <li
+                key={label}
+                aria-current={step === index + 1 ? "step" : undefined}
+                className={`inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-black ${
+                  step === index + 1
+                    ? "border-brand-green bg-brand-green text-white"
+                    : "border-brand-green/20 bg-brand-mist text-brand-green-ink"
+                }`}
               >
-                {index + 1}. {step}
-              </span>
+                {step > index + 1 ? "✓ " : `${index + 1}. `}
+                {label}
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
 
         <div
@@ -202,277 +247,325 @@ function CheckoutForm({
               )}
         </div>
 
-        <div className="mt-7 grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-            {text("Full name", "पूरा नाम")}
-            <input
-              name="name"
-              defaultValue={user?.name}
-              required
-              maxLength={80}
-              autoComplete="name"
-              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
-              placeholder={text("Your name", "तपाईंको नाम")}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-            {text("Phone", "फोन नम्बर")}
-            {/* The country beside the number (owner, 2026-10-03): Nepal to start, so a
-                Nepali number is typed as before; any other keeps its code. */}
-            <PhoneWithCountry
-              name="phone"
-              defaultValue={user?.phone ?? ""}
-              required
-              inputClass="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
-            {text("Email for confirmation", "पुष्टिका लागि इमेल")}
-            {/* On blur, not on every keystroke: the moment the shopper has
-                finished giving an address is the moment the shop can write to
-                them if they walk away. Nothing is created here — no order, no
-                held stock — and a failure is silent, because a background
-                note-to-self must never interrupt a purchase. */}
-            <input
-              name="email"
-              defaultValue={user?.email}
-              type="email"
-              maxLength={120}
-              autoComplete="email"
-              onBlur={(event) => rememberAttempt(event.currentTarget.form)}
-              className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
-              placeholder="you@example.com"
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
-            {text("Delivery address", "डेलिभरी ठेगाना")}
-            <textarea
-              name="address"
-              defaultValue={user?.address}
-              required
-              rows={4}
-              maxLength={600}
-              autoComplete="street-address"
-              className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
-              placeholder={text("City, area, landmark", "सहर, टोल, नजिकको चिनारी")}
-            />
-          </label>
-          {/* Optional, and small. A discount box shouted at every customer
-              teaches them all to go looking for a code before they buy. */}
-          <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
-            {text("Discount code (if you have one)", "छुटको कोड (भए मात्र)")}
-            <input
-              name="couponCode"
-              value={couponCode}
-              onChange={(event) => {
-                setCouponCode(event.target.value);
-                // The form this input sits in — it carries the phone and email
-                // the self-referral check needs.
-                askAboutCoupon(event.target.value, event.target.form);
-              }}
-              maxLength={24}
-              autoComplete="off"
-              autoCapitalize="characters"
-              className={`rounded-lg border px-4 py-3 font-normal uppercase tracking-[0.12em] outline-none ${
-                coupon.status === "ok"
-                  ? "border-brand-green bg-brand-green-mist"
-                  : coupon.status === "no"
-                    ? "border-brand-clay"
-                    : "border-black/10 focus:border-brand-green"
-              }`}
-              placeholder={text("e.g. DASHAIN10", "जस्तै DASHAIN10")}
-            />
-            {/* aria-live, because a shopper using a screen reader has no other
-                way to learn the box changed its mind about their code. */}
-            <span aria-live="polite" className="text-sm font-bold normal-case tracking-normal">
-              {coupon.status === "ok" ? (
-                <span className="text-brand-green">
-                  {text(
-                    `${coupon.discountLabel} off — total ${estimatedTotalLabel}`,
-                    `${coupon.discountLabel} छुट — जम्मा ${estimatedTotalLabel}`,
-                  )}
-                </span>
-              ) : null}
-              {coupon.status === "no" ? (
-                <span className="text-brand-clay">{coupon.reason}</span>
-              ) : null}
-            </span>
-          </label>
-        </div>
-
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
-          <div>
-            <p className="text-sm font-bold text-brand-green-ink">
-              {text("Delivery option", "डेलिभरी विकल्प")}
-            </p>
-            <div className="mt-3 grid gap-2">
-              {shippingOptions.map((option, index) => (
-                <label
-                  key={option}
-                  className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
-                >
-                  {/* value stays English — the server validates against it */}
-                  <input
-                    className="accent-brand-green"
-                    type="radio"
-                    name="delivery"
-                    value={option}
-                    defaultChecked={index === 0}
-                    onChange={() => onDeliveryChange(option)}
-                  />
-                  {shippingOptionLabel(option, nepali)}
-                </label>
-              ))}
-            </div>
-            {/* The area, when the owner charges by area. Required: without
-                it the server cannot price the delivery and asks again. */}
-            {deliveryZones.length && delivery !== STORE_PICKUP ? (
-              <fieldset className="mt-4">
-                <legend className="text-sm font-bold text-brand-green-ink">
-                  {text("Your area", "तपाईंको ठाउँ")}
-                </legend>
-                <div className="mt-2 grid gap-2">
-                  {deliveryZones.map((zone) => (
-                    <label
-                      key={zone.id}
-                      className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
-                    >
-                      <input
-                        className="accent-brand-green"
-                        type="radio"
-                        name="deliveryZone"
-                        value={zone.id}
-                        required
-                        checked={deliveryZone === zone.id}
-                        onChange={() => onDeliveryZoneChange(zone.id)}
-                      />
-                      <span className="flex-1">{zone.name}</span>
-                      <span className="tabular-nums text-brand-green-ink">
-                        {zone.feePaisa > 0 ? formatPrice(zone.feePaisa) : text("Free", "Free")}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ) : null}
-            {/* Said from the same numbers the server charges by, so the
-                customer reads here exactly what the order will say. */}
-            <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
-              {delivery === STORE_PICKUP
-                ? text("Store pickup has no delivery fee.", "पसलमै आएर लिँदा डेलिभरी शुल्क लाग्दैन।")
-                : deliveryCharge.kind === "choose-area"
-                  ? text(
-                      "Choose your area above to see the delivery charge.",
-                      "डेलिभरी शुल्क हेर्न माथि आफ्नो ठाउँ रोज्नुहोस्।",
-                    )
-                  : deliveryCharge.kind === "charged"
-                  ? text(
-                      `Delivery charge ${formatPrice(deliveryCharge.feePaisa)} is included in your total.`,
-                      `डेलिभरी शुल्क ${formatPrice(deliveryCharge.feePaisa)} जम्मा रकममा जोडिएको छ।`,
-                    )
-                  : deliveryCharge.kind === "free"
-                    ? text("Delivery is free for this order.", "यो अर्डरमा डेलिभरी Free छ।")
-                    : text(
-                        "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
-                        "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलमै आएर लिँदा शुल्क लाग्दैन।",
-                      )}
-              {freeDeliveryGapLabel ? (
-                <span className="mt-1 block text-brand-green">
-                  {text(
-                    `Add ${freeDeliveryGapLabel} more for free delivery.`,
-                    `अझै ${freeDeliveryGapLabel} को सामान थप्दा डेलिभरी Free।`,
-                  )}
-                </span>
-              ) : null}
-            </p>
-            {/* Someone choosing to fetch it themselves needs the hours before
-                they set out, not after. Monday especially — a closed shutter
-                after a journey is the kind of thing a customer tells people
-                about. */}
-            <p className="mt-2 rounded-lg border border-brand-gold/40 bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
-              {text(
-                "Store pickup: open 8 AM – 6 PM. Closed every Monday.",
-                "पसलमै आएर लिने: बिहान ८ बजे – साँझ ६ बजे। हरेक सोमबार बन्द।",
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-brand-green-ink">
-              {text("Payment option", "भुक्तानी विकल्प")}
-            </p>
-            <div className="mt-3 grid gap-2">
-              {/* QR / bank transfer only once there is an account to pay into.
-                  With none set, a shopper who chose it saw no account and no
-                  QR, and the self-check marked Settings for it (owner,
-                  2026-09-29). It returns by itself when the account is added. */}
-              {paymentOptions
-                .filter((option) => option !== "QR / bank transfer confirmation" || hasBankAccount)
-                .map((option, index) => (
-                <label
-                  key={option}
-                  className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
-                >
-                  {/* value stays English — it is stored on the order record */}
-                  <input className="accent-brand-green" type="radio" name="payment" value={option} defaultChecked={index === 0} />
-                  {paymentOptionLabel(option, nepali)}
-                </label>
-              ))}
-            </div>
-            <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
-              {text(
-                "Digital payment is requested only after KRISHOE confirms stock and delivery.",
-                "स्टक र डेलिभरी पक्का भएपछि मात्र अनलाइन भुक्तानी मागिन्छ।",
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 grid gap-3">
-          {stockShortfalls.length > 0 ? (
-            <p
-              role="status"
-              className="rounded-lg bg-brand-clay-mist px-4 py-3 text-sm font-semibold leading-6 text-brand-clay"
+        {/* Step 1: who and where. */}
+        <div ref={detailsRef} hidden={step === 2}>
+          <div className="mt-7 grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
+              {text("Full name", "पूरा नाम")}
+              <input
+                name="name"
+                defaultValue={user?.name}
+                required
+                maxLength={80}
+                autoComplete="name"
+                className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
+                placeholder={text("Your name", "तपाईंको नाम")}
+              />
+            </label>
+            {/* onBlur bubbles here from the number box: leaving it remembers the
+                basket for a shopper who gives no email (owner, 2026-10-07). */}
+            <label
+              className="grid gap-2 text-sm font-semibold text-brand-green-ink"
+              onBlur={(event) => rememberAttempt(event.currentTarget.closest("form"))}
             >
-              {describeStockShortfalls(stockShortfalls)}.{" "}
-              <Link href="/cart" className="underline">
-                {text("Update your cart", "कार्ट मिलाउनुहोस्")}
-              </Link>{" "}
-              {text("to continue.", "अनि अगाडि बढ्नुहोस्।")}
-            </p>
-          ) : null}
-          {coupon.status === "ok" ? (
-            <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-green-mist px-4 py-3 text-sm font-black text-brand-green">
-              <span>{text("With your discount code", "छुटको कोड लागेपछि")}</span>
-              <span className="text-base">{estimatedTotalLabel}</span>
-            </p>
-          ) : null}
-          <SubmitButton
-            idleLabel={
-              isPending
-                ? text("Sending request", "अनुरोध पठाइँदै")
-                : text("Submit order request", "अर्डर अनुरोध पठाउनुहोस्")
-            }
-            pendingLabel={text("Sending request", "अनुरोध पठाइँदै")}
-            disabled={isPending || stockShortfalls.length > 0}
-          />
-          <a
-            href={whatsappOrderUrl(whatsappMessage)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-12 w-full items-center justify-center rounded-full border border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
+              {text("Phone", "फोन नम्बर")}
+              {/* The country beside the number (owner, 2026-10-03): Nepal to start, so a
+                  Nepali number is typed as before; any other keeps its code. */}
+              <PhoneWithCountry
+                name="phone"
+                defaultValue={user?.phone ?? ""}
+                required
+                inputClass="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
+              {text("Email for confirmation", "पुष्टिका लागि इमेल")}
+              {/* On blur, not on every keystroke: the moment the shopper has
+                  finished giving an address is the moment the shop can write to
+                  them if they walk away. Nothing is created here — no order, no
+                  held stock — and a failure is silent, because a background
+                  note-to-self must never interrupt a purchase. */}
+              <input
+                name="email"
+                defaultValue={user?.email}
+                type="email"
+                maxLength={120}
+                autoComplete="email"
+                onBlur={(event) => rememberAttempt(event.currentTarget.form)}
+                className="min-h-14 rounded-lg border border-black/10 px-4 py-2 font-normal outline-none focus:border-brand-green md:h-12 md:py-0"
+                placeholder="you@example.com"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-brand-green-ink md:col-span-2">
+              {text("Delivery address", "डेलिभरी ठेगाना")}
+              <textarea
+                name="address"
+                defaultValue={user?.address}
+                required
+                rows={4}
+                maxLength={600}
+                autoComplete="street-address"
+                className="rounded-lg border border-black/10 px-4 py-3 font-normal outline-none focus:border-brand-green"
+                placeholder={text("City, area, landmark", "सहर, टोल, नजिकको चिनारी")}
+              />
+            </label>
+          </div>
+
+          <div className="mt-8">
+            <div>
+              <p className="text-sm font-bold text-brand-green-ink">
+                {text("Delivery option", "डेलिभरी विकल्प")}
+              </p>
+              <div className="mt-3 grid gap-2">
+                {shippingOptions.map((option, index) => (
+                  <label
+                    key={option}
+                    className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                  >
+                    {/* value stays English — the server validates against it */}
+                    <input
+                      className="accent-brand-green"
+                      type="radio"
+                      name="delivery"
+                      value={option}
+                      defaultChecked={index === 0}
+                      onChange={() => onDeliveryChange(option)}
+                    />
+                    {shippingOptionLabel(option, nepali)}
+                  </label>
+                ))}
+              </div>
+              {/* The area, when the owner charges by area. Required: without
+                  it the server cannot price the delivery and asks again. */}
+              {deliveryZones.length && delivery !== STORE_PICKUP ? (
+                <fieldset className="mt-4">
+                  <legend className="text-sm font-bold text-brand-green-ink">
+                    {text("Your area", "तपाईंको ठाउँ")}
+                  </legend>
+                  <div className="mt-2 grid gap-2">
+                    {deliveryZones.map((zone) => (
+                      <label
+                        key={zone.id}
+                        className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                      >
+                        <input
+                          className="accent-brand-green"
+                          type="radio"
+                          name="deliveryZone"
+                          value={zone.id}
+                          required
+                          checked={deliveryZone === zone.id}
+                          onChange={() => onDeliveryZoneChange(zone.id)}
+                        />
+                        <span className="flex-1">{zone.name}</span>
+                        <span className="tabular-nums text-brand-green-ink">
+                          {zone.feePaisa > 0 ? formatPrice(zone.feePaisa) : text("Free", "Free")}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
+              {/* Said from the same numbers the server charges by, so the
+                  customer reads here exactly what the order will say. */}
+              <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
+                {delivery === STORE_PICKUP
+                  ? text("Store pickup has no delivery fee.", "पसलमै आएर लिँदा डेलिभरी शुल्क लाग्दैन।")
+                  : deliveryCharge.kind === "choose-area"
+                    ? text(
+                        "Choose your area above to see the delivery charge.",
+                        "डेलिभरी शुल्क हेर्न माथि आफ्नो ठाउँ रोज्नुहोस्।",
+                      )
+                    : deliveryCharge.kind === "charged"
+                    ? text(
+                        `Delivery charge ${formatPrice(deliveryCharge.feePaisa)} is included in your total.`,
+                        `डेलिभरी शुल्क ${formatPrice(deliveryCharge.feePaisa)} जम्मा रकममा जोडिएको छ।`,
+                      )
+                    : deliveryCharge.kind === "free"
+                      ? text("Delivery is free for this order.", "यो अर्डरमा डेलिभरी Free छ।")
+                      : text(
+                          "Delivery charge is not included in the product total. KRISHOE confirms the exact fee from your location before dispatch; store pickup has no delivery fee.",
+                          "डेलिभरी शुल्क सामानको मूल्यमा समावेश छैन। पठाउनुअघि KRISHOE ले तपाईंको ठाउँअनुसार शुल्क पक्का गरेर बताउँछ; पसलमै आएर लिँदा शुल्क लाग्दैन।",
+                        )}
+                {freeDeliveryGapLabel ? (
+                  <span className="mt-1 block text-brand-green">
+                    {text(
+                      `Add ${freeDeliveryGapLabel} more for free delivery.`,
+                      `अझै ${freeDeliveryGapLabel} को सामान थप्दा डेलिभरी Free।`,
+                    )}
+                  </span>
+                ) : null}
+              </p>
+              {/* Someone choosing to fetch it themselves needs the hours before
+                  they set out, not after. Monday especially — a closed shutter
+                  after a journey is the kind of thing a customer tells people
+                  about. */}
+              <p className="mt-2 rounded-lg border border-brand-gold/40 bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
+                {text(
+                  "Store pickup: open 8 AM – 6 PM. Closed every Monday.",
+                  "पसलमै आएर लिने: बिहान ८ बजे – साँझ ६ बजे। हरेक सोमबार बन्द।",
+                )}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={goToPayment}
+            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded-full bg-brand-green px-6 text-base font-black text-white transition hover:bg-brand-green-ink"
           >
-            {text("Send details on WhatsApp", "WhatsApp मा विवरण पठाउनुहोस्")}
-          </a>
-          {state.message ? (
-            <p
-              aria-live="polite"
-              className={`rounded-lg p-4 text-sm font-semibold ${
-                state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-mist text-brand-clay"
-              }`}
+            {text("Continue to payment →", "भुक्तानीतिर जाने →")}
+          </button>
+        </div>
+
+        {/* Step 2: what was given, folded, with a way back; then the payment. */}
+        {step === 2 ? (
+          <div className="mt-6 flex flex-wrap items-start justify-between gap-3 rounded-lg border border-brand-green/30 bg-brand-green-mist p-4 text-sm">
+            <div className="min-w-0 flex-1">
+              <p className="font-black text-brand-green">✓ {text("1. Delivery", "१. डेलिभरी")}</p>
+              <p className="mt-1 font-semibold text-brand-green-ink">
+                {details.name} · {details.phone}
+              </p>
+              <p className="mt-0.5 break-words text-brand-muted">
+                {details.address} · {shippingOptionLabel(delivery, nepali)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="min-h-10 rounded-full border border-brand-green px-4 text-xs font-black text-brand-green"
             >
-              {state.message}
-            </p>
-          ) : null}
+              {text("Change", "बदल्ने")}
+            </button>
+          </div>
+        ) : null}
+        <div hidden={step === 1}>
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            <div>
+              {/* Optional, and small. A discount box shouted at every customer
+                  teaches them all to go looking for a code before they buy. */}
+              <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
+                {text("Discount code (if you have one)", "छुटको कोड (भए मात्र)")}
+                <input
+                  name="couponCode"
+                  value={couponCode}
+                  onChange={(event) => {
+                    setCouponCode(event.target.value);
+                    // The form this input sits in — it carries the phone and email
+                    // the self-referral check needs.
+                    askAboutCoupon(event.target.value, event.target.form);
+                  }}
+                  maxLength={24}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  className={`rounded-lg border px-4 py-3 font-normal uppercase tracking-[0.12em] outline-none ${
+                    coupon.status === "ok"
+                      ? "border-brand-green bg-brand-green-mist"
+                      : coupon.status === "no"
+                        ? "border-brand-clay"
+                        : "border-black/10 focus:border-brand-green"
+                  }`}
+                  placeholder={text("e.g. DASHAIN10", "जस्तै DASHAIN10")}
+                />
+                {/* aria-live, because a shopper using a screen reader has no other
+                    way to learn the box changed its mind about their code. */}
+                <span aria-live="polite" className="text-sm font-bold normal-case tracking-normal">
+                  {coupon.status === "ok" ? (
+                    <span className="text-brand-green">
+                      {text(
+                        `${coupon.discountLabel} off — total ${estimatedTotalLabel}`,
+                        `${coupon.discountLabel} छुट — जम्मा ${estimatedTotalLabel}`,
+                      )}
+                    </span>
+                  ) : null}
+                  {coupon.status === "no" ? (
+                    <span className="text-brand-clay">{coupon.reason}</span>
+                  ) : null}
+                </span>
+              </label>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-brand-green-ink">
+                {text("Payment option", "भुक्तानी विकल्प")}
+              </p>
+              <div className="mt-3 grid gap-2">
+                {/* QR / bank transfer only once there is an account to pay into.
+                    With none set, a shopper who chose it saw no account and no
+                    QR, and the self-check marked Settings for it (owner,
+                    2026-09-29). It returns by itself when the account is added. */}
+                {paymentOptions
+                  .filter((option) => option !== "QR / bank transfer confirmation" || hasBankAccount)
+                  .map((option, index) => (
+                  <label
+                    key={option}
+                    className="flex min-h-12 items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-semibold text-brand-muted transition has-[:checked]:border-brand-green has-[:checked]:bg-brand-green-mist has-[:checked]:text-brand-green-ink"
+                  >
+                    {/* value stays English — it is stored on the order record */}
+                    <input className="accent-brand-green" type="radio" name="payment" value={option} defaultChecked={index === 0} />
+                    {paymentOptionLabel(option, nepali)}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-3 rounded-lg bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-muted">
+                {text(
+                  "Digital payment is requested only after KRISHOE confirms stock and delivery.",
+                  "स्टक र डेलिभरी पक्का भएपछि मात्र अनलाइन भुक्तानी मागिन्छ।",
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-3">
+            {stockShortfalls.length > 0 ? (
+              <p
+                role="status"
+                className="rounded-lg bg-brand-clay-mist px-4 py-3 text-sm font-semibold leading-6 text-brand-clay"
+              >
+                {describeStockShortfalls(stockShortfalls)}.{" "}
+                <Link href="/cart" className="underline">
+                  {text("Update your cart", "कार्ट मिलाउनुहोस्")}
+                </Link>{" "}
+                {text("to continue.", "अनि अगाडि बढ्नुहोस्।")}
+              </p>
+            ) : null}
+            {coupon.status === "ok" ? (
+              <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-green-mist px-4 py-3 text-sm font-black text-brand-green">
+                <span>{text("With your discount code", "छुटको कोड लागेपछि")}</span>
+                <span className="text-base">{estimatedTotalLabel}</span>
+              </p>
+            ) : null}
+            <SubmitButton
+              idleLabel={
+                isPending
+                  ? text("Sending request", "अनुरोध पठाइँदै")
+                  : text("Submit order request", "अर्डर अनुरोध पठाउनुहोस्")
+              }
+              pendingLabel={text("Sending request", "अनुरोध पठाइँदै")}
+              disabled={isPending || stockShortfalls.length > 0}
+            />
+            {state.message ? (
+              <p
+                aria-live="polite"
+                className={`rounded-lg p-4 text-sm font-semibold ${
+                  state.ok ? "bg-brand-green-mist text-brand-green" : "bg-brand-clay-mist text-brand-clay"
+                }`}
+              >
+                {state.message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* For anyone who would rather finish by chat, at either step. */}
+        <div className="mt-3">
+            <a
+              href={whatsappOrderUrl(whatsappMessage)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white"
+            >
+              {text("Send details on WhatsApp", "WhatsApp मा विवरण पठाउनुहोस्")}
+            </a>
         </div>
       </div>
     </form>

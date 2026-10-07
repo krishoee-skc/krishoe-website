@@ -285,6 +285,8 @@ const STILL_OWED: Record<string, number> = {
   "app/api/admin/push/route.ts": 2,
   "app/api/admin/search/route.ts": 3,
   "app/api/cron/checkout-reminders/route.ts": 6,
+  // 2026-10-07: the same reminder as one SMS, in the same Nepali as the email beside it — a checkout attempt keeps no language.
+  "lib/checkout-attempts.ts": 2,
   "app/api/factory/ready/route.ts": 3,
   // +5 on 2026-10-02: the worker's home was rebuilt bigger and Nepali-first (see the worker-app exemptions).
   "app/worker/dashboard/page.tsx": 20,

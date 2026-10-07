@@ -42,6 +42,24 @@ function normalizeEmail(email: string) {
 }
 
 /**
+ * Who the basket belongs to: the email, or — when the shopper gave none, as
+ * most here do — "phone:" and the number's digits (owner, 2026-10-07). The
+ * table's one-row-per-shopper key is this column, so a phone-only shopper is
+ * still one row and one reminder.
+ */
+export function attemptKey(email: string, phone: string) {
+  const address = normalizeEmail(email);
+  if (address.includes("@")) return address;
+  const digits = (phone ?? "").replace(/\D/g, "");
+  return digits.length >= 10 ? `phone:${digits.slice(-10)}` : "";
+}
+
+/** Whether a stored key is an email the reminder can be written to. */
+export function isEmailKey(key: string) {
+  return key.includes("@") && !key.startsWith("phone:");
+}
+
+/**
  * Remembers a basket that reached the checkout page and stopped.
  *
  * One row per shopper, updated in place: someone who opens checkout three times
@@ -58,8 +76,8 @@ export async function recordCheckoutAttempt(input: {
   totalPaisa: number;
   summary: string;
 }) {
-  const email = normalizeEmail(input.email);
-  if (!email || !email.includes("@") || input.itemCount <= 0) return;
+  const email = attemptKey(input.email, input.phone);
+  if (!email || input.itemCount <= 0) return;
 
   await queryPostgres<{ id: string }>(
     STORE,
@@ -98,17 +116,18 @@ export async function recordCheckoutAttempt(input: {
  * and the order id is what lets the shop see whether the reminders are worth
  * sending at all.
  */
-export async function markCheckoutRecovered(email: string, orderId: string) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return;
+export async function markCheckoutRecovered(email: string, orderId: string, phone = "") {
+  // Either key the basket may have been kept under.
+  const keys = [attemptKey(email, ""), attemptKey("", phone)].filter(Boolean);
+  if (keys.length === 0) return;
 
   await queryPostgres<{ id: string }>(
     STORE,
     `UPDATE checkout_attempts
      SET recovered_order_id = $2, updated_at = now()
-     WHERE lower(email) = $1 AND recovered_order_id IS NULL
+     WHERE lower(email) = ANY($1::text[]) AND recovered_order_id IS NULL
      RETURNING id`,
-    [normalized, orderId],
+    [keys, orderId],
   );
 }
 
@@ -148,3 +167,14 @@ export async function markAttemptReminded(id: string) {
     [id],
   );
 }
+
+/**
+ * The reminder as one short SMS (owner, 2026-10-07): most shoppers here give a
+ * phone and no email, so the email reminder reached almost nobody. Kept short —
+ * a Nepali SMS is billed per seventy letters.
+ */
+export function reminderSms(attempt: { summary: string; totalPaisa: number }, siteUrl: string, whatsapp: string) {
+  const what = (attempt.summary || "तपाईंको जुत्ता").slice(0, 40);
+  return `KRISHOE: ${what} अझै कार्टमा छ (Rs. ${Math.round(attempt.totalPaisa / 100).toLocaleString("en-IN")})। अर्डर: ${siteUrl.replace(/^https?:\/\//, "")}/cart · ${whatsapp}`;
+}
+

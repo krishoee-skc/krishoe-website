@@ -84,6 +84,36 @@ describe("when the order finally arrives", () => {
     const actions = await readFile("app/actions.ts", "utf8");
     // Whether or not a reminder was ever sent: nobody should be chased for a
     // basket they already paid for.
-    expect(actions).toContain("markCheckoutRecovered(email, record.id)");
+    expect(actions).toContain("markCheckoutRecovered(email, record.id, record.phone)");
+  });
+});
+
+// Owner, 2026-10-07: most shoppers here give a phone and no email, and the
+// email reminder reached almost nobody. A phone now keeps the basket too, and
+// the reminder goes by SMS first.
+describe("a shopper with a phone and no email", () => {
+  it("is still one basket, kept under the phone", async () => {
+    const { attemptKey, isEmailKey } = await import("@/lib/checkout-attempts");
+    expect(attemptKey("Sita@Gmail.com", "9766630193")).toBe("sita@gmail.com");
+    expect(attemptKey("", "+977 976-6630193")).toBe("phone:9766630193");
+    expect(attemptKey("", "98123")).toBe("");
+    expect(isEmailKey("phone:9766630193")).toBe(false);
+    expect(isEmailKey("sita@gmail.com")).toBe(true);
+  });
+
+  it("is remembered on leaving the phone box", async () => {
+    const checkout = await readFile("components/CheckoutClient.tsx", "utf8");
+    expect(checkout).toContain('onBlur={(event) => rememberAttempt(event.currentTarget.closest("form"))}');
+    expect(checkout).toContain('if (!email.includes("@") && phoneDigits.length < 10) return;');
+  });
+
+  it("is reminded by one short SMS, before any email", async () => {
+    const { reminderSms } = await import("@/lib/checkout-attempts");
+    expect(reminderSms({ summary: "Doctor Chappal × 1", totalPaisa: 100000 }, "https://www.krishoe.com", "+977 9766630193")).toBe(
+      "KRISHOE: Doctor Chappal × 1 अझै कार्टमा छ (Rs. 1,000)। अर्डर: www.krishoe.com/cart · +977 9766630193",
+    );
+    const route = await readFile("app/api/cron/checkout-reminders/route.ts", "utf8");
+    expect(route.indexOf("await remindBySms(attempt)")).toBeLessThan(route.indexOf("sendStaffSecurityEmail({"));
+    expect(route).toContain("if (!isEmailKey(attempt.email)) {");
   });
 });

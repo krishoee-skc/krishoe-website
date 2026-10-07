@@ -1,5 +1,6 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import twilio from "twilio";
+import { e164, nepaliMobile, sendViaSparrow, sparrowConfig } from "@/lib/sms-sparrow";
 
 const STORE = "krishoe";
 
@@ -35,23 +36,42 @@ export interface SMSRecord {
   created_at: string;
 }
 
+/**
+ * One SMS, by the cheapest road that reaches it (owner, 2026-10-07): Sparrow
+ * for a Nepali mobile when it is set up, Twilio for the rest and whenever
+ * Sparrow refuses. Twilio is handed the number with +977, which it needs.
+ */
+async function deliver(to: string, text: string): Promise<string> {
+  let sparrowError: unknown = null;
+  if (sparrowConfig() && nepaliMobile(to)) {
+    try {
+      return await sendViaSparrow(to, text);
+    } catch (error) {
+      sparrowError = error;
+      console.error("Sparrow SMS failed, trying Twilio:", error);
+    }
+  }
+  if (twilioClient && twilioSMSNumber) {
+    const message = await twilioClient.messages.create({ from: twilioSMSNumber, to: e164(to), body: text });
+    return message.sid;
+  }
+  if (sparrowError) throw sparrowError;
+  return "";
+}
+
 // Send SMS message
 export async function sendSMS(params: SMSMessage): Promise<string> {
-  if (!twilioClient || !twilioSMSNumber) {
+  if (!(sparrowConfig() && nepaliMobile(params.to)) && !(twilioClient && twilioSMSNumber)) {
     console.error("SMS gateway not configured");
     return "";
   }
 
   try {
-    const message = await twilioClient.messages.create({
-      from: twilioSMSNumber,
-      to: params.to,
-      body: params.text,
-    });
+    const sid = await deliver(params.to, params.text);
 
     // Save to database
     await saveSMSRecord({
-      id: message.sid,
+      id: sid,
       phone_number: params.to,
       message_text: params.text,
       message_type: params.type,
@@ -61,7 +81,7 @@ export async function sendSMS(params: SMSMessage): Promise<string> {
       worker_id: params.workerId,
     });
 
-    return message.sid;
+    return sid;
   } catch (error) {
     console.error("Failed to send SMS:", error);
     // Still save as failed for audit trail
@@ -212,7 +232,7 @@ export async function sendOrderConfirmationSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.customerName}! 🎉
-आपकोको अर्डर #${data.orderId} सफलतापूर्वक लिइयो।
+तपाईंको अर्डर #${data.orderId} सफलतापूर्वक लिइयो।
 रकम: Rs. ${data.totalAmount.toLocaleString()}
 डेलिभरी: ${data.estimatedDelivery}
 धन्यवाद! - KRISHOE`
@@ -250,7 +270,7 @@ export async function sendPaymentLinkSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.customerName}!
-आपकोको अर्डर #${data.orderId} को भुक्तानी गर्नुस्।
+तपाईंको अर्डर #${data.orderId} को भुक्तानी गर्नुहोस्।
 रकम: Rs. ${data.amount.toLocaleString()}
 तरिका: ${methodLabel}
 Link: ${data.paymentLink.substring(0, 40)}...
@@ -282,8 +302,8 @@ export async function sendShippedSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.customerName}! 📦
-आपकोको अर्डर #${data.orderId} पठाइयो।
-ट्र्याकिङ्ग: ${data.trackingNumber || "Available on website"}
+तपाईंको अर्डर #${data.orderId} पठाइयो।
+ट्र्याकिङ: ${data.trackingNumber || "Available on website"}
 आउने मिति: ${data.estimatedDelivery}
 - KRISHOE`
       : `Hi ${data.customerName}! 📦
@@ -312,7 +332,7 @@ export async function sendOutForDeliverySMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.customerName}! 🚚
-आपकोको अर्डर #${data.orderId} आज डेलिभरी को लागि निकली।
+तपाईंको अर्डर #${data.orderId} आज डेलिभरीका लागि निस्कियो।
 समय: ${data.deliveryWindow}
 ${data.driverName ? `चालक: ${data.driverName}` : ""}
 - KRISHOE`
@@ -340,8 +360,8 @@ export async function sendDeliveredSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.customerName}! ✅
-आपकोको अर्डर #${data.orderId} डेलिभर भयो।
-धन्यवाद! आपको प्रतिक्रिया साझा गर्नुस्।
+तपाईंको अर्डर #${data.orderId} डेलिभर भयो।
+धन्यवाद! आफ्नो राय दिनुहोस्।
 - KRISHOE`
       : `Hi ${data.customerName}! ✅
 Your order #${data.orderId} has been delivered.
@@ -367,16 +387,16 @@ export async function sendWorkerPaymentAlertSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.workerName}! 💰
-आपकोको भुक्तानी तयारी छ।
+तपाईंको भुक्तानी तयार छ।
 रकम: Rs. ${data.amount.toLocaleString()}
 मिति: ${data.dueDate}
-काठमाडौं को अफिसमा आउनुस्।
+नारायणगढको कारखानामा आउनुहोस्।
 - KRISHOE`
       : `Hi ${data.workerName}! 💰
 Your payment is ready.
 Amount: Rs. ${data.amount.toLocaleString()}
 Date: ${data.dueDate}
-Visit office in Kathmandu.
+Collect it at the Narayangadh factory.
 - KRISHOE`;
 
   return sendSMS({
@@ -398,7 +418,7 @@ export async function sendWorkerPaymentConfirmedSMS(data: {
   const text =
     data.language === "np"
       ? `नमस्ते ${data.workerName}! ✅
-आपकोको भुक्तानी दिइयो।
+तपाईंको भुक्तानी दिइयो।
 रकम: Rs. ${data.amount.toLocaleString()}
 मिति: ${data.date}
 धन्यवाद!

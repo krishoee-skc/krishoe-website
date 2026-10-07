@@ -1,6 +1,6 @@
 "use server";
 
-import { recordCheckoutAttempt } from "@/lib/checkout-attempts";
+import { attemptKey, recordCheckoutAttempt } from "@/lib/checkout-attempts";
 import { computeAuthoritativeOrderTotal, parseCheckoutItems } from "@/lib/order-pricing";
 import { reportError } from "@/lib/report-error";
 import { checkAndRecordSubmissionLimit } from "@/lib/submission-rate-limit";
@@ -21,12 +21,15 @@ function textValue(formData: FormData, key: string) {
  */
 export async function rememberCheckoutAttemptAction(formData: FormData) {
   const email = textValue(formData, "email");
-  if (!email.includes("@")) return;
+  // An email, or a phone when there is none (owner, 2026-10-07): most shoppers
+  // here give only a phone, and were never reminded.
+  const key = attemptKey(email, textValue(formData, "phone"));
+  if (!key) return;
 
   // One shopper hammering the page must not become a write per keystroke.
   const limit = await checkAndRecordSubmissionLimit({
     bucket: "checkout-attempt",
-    key: email.toLowerCase(),
+    key,
     maxAttempts: 12,
     windowMs: 10 * 60_000,
   });
