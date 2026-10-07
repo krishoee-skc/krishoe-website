@@ -28,6 +28,7 @@ import { getPurchasingSnapshot } from "@/lib/purchasing";
 import { isLowOrOut } from "@/lib/stock-thresholds";
 import { reportingErrors } from "@/lib/report-error";
 import { getOrders } from "@/lib/submissions";
+import { nepalDayKey } from "@/lib/dashboard-figures";
 import type { ContactSubmission, OrderSubmission } from "@/lib/submissions";
 
 export type NotificationDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
@@ -1863,4 +1864,50 @@ export async function createAndDeliverOperationalAlertNotifications(limit = 10) 
     ...created,
     delivery,
   };
+}
+
+/**
+ * The day in one line on the Owner's phone at 8 pm (owner, 2026-10-07): the
+ * reports went by email only, which is opened late or not at all. The email
+ * stays, with every figure; this is what to glance at. Tagged by the day, so
+ * the 9 pm retry run replaces it on the phone instead of stacking a second.
+ */
+export function daySummaryLines(day: { sales: number; bills: number; pairsSold: number; pairsMade: number; onlineOrders: number; toCollect: number }) {
+  const rupees = (value: number) => `रु ${Math.round(value).toLocaleString("en-IN")}`;
+  return [
+    `बिक्री ${rupees(day.sales)} (${day.bills} बिल, ${day.pairsSold} जोडी)`,
+    `उत्पादन ${day.pairsMade} जोडी · online अर्डर ${day.onlineOrders}`,
+    `उठाउन बाँकी ${rupees(day.toCollect)}`,
+  ];
+}
+
+export async function tellOwnerTheDay(now = new Date()) {
+  const todayKey = nepalDayKey(now);
+  const utcKey = now.toISOString().slice(0, 10);
+  const [pos, operations, production, orders] = await Promise.all([
+    getPosSnapshot(),
+    getOperationsSnapshot(),
+    getProductionPeriodSummary({ start: utcKey, end: tomorrowKey(utcKey) }),
+    getOrders(),
+  ]);
+  const bills = pos.invoices.filter(
+    (invoice) => invoice.kind === "Sale" && invoice.status !== "Voided" && nepalDayKey(invoice.createdAt) === todayKey,
+  ).length;
+  const lines = daySummaryLines({
+    sales: pos.summary.todayNetSales,
+    bills,
+    pairsSold: pos.summary.todayPairs,
+    pairsMade: production.stockPostedPairs,
+    onlineOrders: orders.filter((order) => nepalDayKey(order.createdAt) === todayKey).length,
+    toCollect: operations.summary.receivable,
+  });
+  await reportingErrors("push the day's summary", () =>
+    sendPushToStaff({
+      title: "📊 आजको हिसाब",
+      body: lines.join("\n"),
+      url: "/admin",
+      tag: `day-summary-${todayKey}`,
+    }),
+  );
+  return `Told: ${lines.join(" · ")}`;
 }

@@ -11,6 +11,7 @@ vi.mock("@/lib/notifications", () => ({
   notifyPeriodSalesSummary: notifications.period,
   notifyProductionSummary: notifications.production,
   tellOwnerChequesDue: vi.fn(async () => "Nothing due."),
+  tellOwnerTheDay: vi.fn(async () => "Told."),
 }));
 vi.mock("@/lib/cheque-book", () => ({ getCheques: vi.fn(async () => []) }));
 vi.mock("@/lib/bikram-sambat", async (original) => ({

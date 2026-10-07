@@ -27,11 +27,16 @@ afterEach(() => {
 });
 
 describe("1. the uptime checker", () => {
-  it("files nothing on an ordinary run when the shop is up", async () => {
+  // On Supabase, which does not sleep, every run is deep and filed (owner,
+  // 2026-10-07): the three-a-day window was missed by late runs, and nothing
+  // was filed for a week while the shop was fine.
+  it("files every run, database included, unless told to ask only the site", async () => {
     const probe = await readFile("scripts/uptime-probe.mjs", "utf8");
-    expect(probe).toContain('if (reading.status === "up" && !DEEP && !AFTER_FAILURE)');
+    const workflow = await readFile(".github/workflows/uptime.yml", "utf8");
+    expect(probe).toContain('const DEEP = env("PROBE_DEEP").toLowerCase() !== "false";');
     expect(probe).toContain('url.searchParams.set("deep", "1")');
-    expect(probe).toContain("const DEEP_HOURS_UTC = new Set([4, 8, 12]);");
+    expect(probe).not.toContain("DEEP_HOURS_UTC");
+    expect(workflow).not.toContain("PROBE_DEEP:");
   });
 
   it("ends a down run red, so the next run records the recovery", async () => {

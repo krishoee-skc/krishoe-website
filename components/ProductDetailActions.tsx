@@ -233,11 +233,21 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
             type="button"
             onClick={buyNow}
             disabled={blockPurchase}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-green px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
+            className="inline-flex h-12 min-w-0 flex-col items-center justify-center rounded-full bg-brand-green px-4 text-sm font-black leading-tight text-white disabled:cursor-not-allowed disabled:bg-brand-muted-soft"
           >
-            {outOfStock
-              ? text("Sold out", `बिक्री ${goods.soldOut.ne}`)
-              : text("Buy now", "अहिले किन्ने")}
+            {/* The size and the price ride on the bar (owner, 2026-10-07): a
+                shopper who has scrolled down to the reviews still sees what
+                the press will buy, and a sold-out size says so here too. */}
+            <span className="truncate">
+              {outOfStock
+                ? text("Sold out", `बिक्री ${goods.soldOut.ne}`)
+                : selectedSizeOut
+                  ? text(`Size ${size} sold out`, `साइज ${size} सकियो`)
+                  : size
+                    ? text(`Buy now · ${size}`, `अहिले किन्ने · ${size}`)
+                    : text("Buy now", "अहिले किन्ने")}
+            </span>
+            {!blockPurchase ? <span className="text-[11px] font-bold opacity-85">{product.price}</span> : null}
           </button>
           <button
             type="button"

@@ -1032,3 +1032,30 @@ body:has([data-counter-mode]) [data-pos-bar] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* The shop's header, once the page is scrolled (owner, 2026-10-07): the
+   delivery strip folds away and the logo row tightens, so more of the shoes
+   fit a phone. Back at the top it is whole again. Set by HeaderShrink. */
+.krs-header-strip {
+  max-height: 3rem;
+  overflow: hidden;
+  transition: max-height 200ms ease, padding 200ms ease;
+}
+.krs-header-row {
+  transition: padding 200ms ease;
+}
+header[data-scrolled="true"] .krs-header-strip {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+header[data-scrolled="true"] .krs-header-row {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .krs-header-strip,
+  .krs-header-row {
+    transition: none;
+  }
+}

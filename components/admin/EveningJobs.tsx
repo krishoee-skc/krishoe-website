@@ -101,8 +101,8 @@ export default function EveningJobs({
           </h3>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             <T
-              en="A locked copy of the shop's books is kept every week; the last 8 are kept. Downloading gives the same file as Activity → Export backup."
-              ne="हरेक हप्ता पसलको खाताको ताला लगाइएको प्रति राखिन्छ; पछिल्ला ८ वटा रहन्छन्। Download गर्दा Activity → Export backup जस्तै फाइल आउँछ।"
+              en="A locked copy of the shop's books is made every night; the last 30 are kept. Downloading gives the same file as Activity → Export backup."
+              ne="हरेक रात पसलको खाताको ताला लगाइएको प्रति बन्छ; पछिल्ला ३० वटा रहन्छन्। Download गर्दा Activity → Export backup जस्तै फाइल आउँछ।"
             />
           </p>
           {!backups.ready ? (

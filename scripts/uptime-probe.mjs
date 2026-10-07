@@ -42,34 +42,21 @@ const WRITE_URL =
 const TOKEN = env("UPTIME_WRITE_TOKEN");
 
 /**
- * Asking the shop without waking its database, most of the time.
+ * Every run asks the database too, and files what it found (owner, 2026-10-07).
  *
- * Neon puts an idle database to sleep and bills each wake-up for at least five
- * minutes of compute. This check ran forty-four times a day and every run woke
- * the database twice — once for /api/health's SELECT 1 and once to file the
- * reading — which kept it awake for hours a day and ran the old database out of
- * its quota.
+ * On Neon, an idle database slept and each wake-up was billed, so ordinary runs
+ * only asked whether the site answered and filed nothing; a reading was filed
+ * three times a day, inside forty-minute windows. GitHub starts scheduled runs
+ * late and skips some, so runs kept missing those windows: nothing was filed
+ * from 30 September, and the dashboard said the outside check had stopped while
+ * the shop was fine. The database is Supabase now, which does not sleep or bill
+ * a wake-up, so every run is a deep run and every reading is filed.
  *
- * So an ordinary run only asks whether the site answers, which touches no
- * database, and files nothing when all is well. The database is woken when it
- * has something to say:
- *
- *   deep run     three times a day, and whenever run by hand — asks the
- *                database too (?deep=1) and files the reading, up or down
- *   down         always filed: an outage is the reading that matters
- *   after down   the previous run failed, so this one is filed as well — that
- *                is what records the recovery and sends the "back up" message
- *
- * The uptime figure is weighted by time (lib/monitoring.ts), so fewer "up" rows
- * do not make the downs count for more than they lasted.
+ * PROBE_DEEP=false still asks only the site, for a run that must not touch it.
+ * The uptime figure is weighted by time (lib/monitoring.ts), so more "up" rows
+ * do not make the downs count for less than they lasted.
  */
-const DEEP_HOURS_UTC = new Set([4, 8, 12]);
-const now = new Date();
-const DEEP =
-  env("PROBE_DEEP").toLowerCase() === "true" ||
-  // The first forty minutes of those hours, so a run GitHub starts a little
-  // late still counts; twice in one window costs one more short wake-up.
-  (DEEP_HOURS_UTC.has(now.getUTCHours()) && now.getUTCMinutes() < 40);
+const DEEP = env("PROBE_DEEP").toLowerCase() !== "false";
 const AFTER_FAILURE = env("LAST_CHECK_FAILED").toLowerCase() === "true";
 
 function probeUrl() {

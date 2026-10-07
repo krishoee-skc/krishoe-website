@@ -238,6 +238,168 @@ export default function TeamList({
     }
   }
 
+  const closedWorkers = workers.filter((worker) => worker.status !== "active");
+
+  const workerCard = (worker: (typeof workers)[number]) => (
+      <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : "border-brand-green-line bg-brand-paper"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{worker.name}</h2>
+            <p className="mt-1 text-xs font-semibold text-brand-muted">
+              {worker.category} ·{" "}
+              {FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType]
+                ? text(
+                    FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].en,
+                    FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].ne,
+                  )
+                : worker.worker_type.replaceAll("_", " ")}
+            </p>
+          </div>
+          {worker.status !== "active" ? (
+            <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
+              {text("Closed", "बन्द")}
+            </span>
+          ) : null}
+          {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
+              rates and the worker portal all read this list directly, and
+              the HR link only matters for the production-accounts ledger. Amber read as "fix
+              me" and pointed at a module holding no attendance or payroll. */}
+        </div>
+
+        {/* What was typed can be typed again. The stage list comes from
+            lib/factory-worker-options so it cannot drift from what the
+            database will accept — it had already lost "Fibermen", which is
+            where five of this shop's eight workers work, so their stage
+            could not have been saved back. */}
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
+            {text("Name", "नाम")}
+            <input
+              value={edits[worker.id]?.name ?? worker.name}
+              onChange={(event) =>
+                setEdits((current) => ({
+                  ...current,
+                  [worker.id]: { ...current[worker.id], name: event.target.value },
+                }))
+              }
+              className={`mt-1 ${inputClass}`}
+              aria-label={`Name for ${worker.name}`}
+            />
+          </label>
+          <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
+            {text("Factory stage", "कारखानाको चरण")}
+            <select
+              value={edits[worker.id]?.category ?? worker.category}
+              onChange={(event) =>
+                setEdits((current) => ({
+                  ...current,
+                  [worker.id]: { ...current[worker.id], category: event.target.value },
+                }))
+              }
+              className={`mt-1 ${inputClass}`}
+              aria-label={`Stage for ${worker.name}`}
+            >
+              {FACTORY_WORKER_CATEGORIES.map((option) => (
+                <option key={option} value={option}>
+                  {factoryCategoryLabel(option, language === "ne")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
+            {text("Wage type", "ज्यालाको किसिम")}
+            <select
+              value={edits[worker.id]?.worker_type ?? worker.worker_type}
+              onChange={(event) =>
+                setEdits((current) => ({
+                  ...current,
+                  [worker.id]: { ...current[worker.id], worker_type: event.target.value },
+                }))
+              }
+              className={`mt-1 ${inputClass}`}
+              aria-label={`Pay type for ${worker.name}`}
+            >
+              {FACTORY_WORKER_TYPES.map((option) => (
+                <option key={option} value={option}>{text(FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].en, FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].ne)}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => void saveWorker(worker.id, edits[worker.id] ?? {})}
+            disabled={
+              saving === worker.id ||
+              ((edits[worker.id]?.name ?? worker.name) === worker.name &&
+                (edits[worker.id]?.category ?? worker.category) === worker.category &&
+                (edits[worker.id]?.worker_type ?? worker.worker_type) === worker.worker_type)
+            }
+            className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-brand-green-line disabled:text-brand-muted-soft"
+          >
+            {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Save", "सच्याउने")}
+          </button>
+        </div>
+
+        {/* Three states (owner, 2026-10-02): at work, on leave, left. Left
+            closes them on the forms and switches their app off. */}
+        {worker.status === "active" ? (
+          <div className="mt-3 grid gap-1.5">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-brand-muted">{text("Status", "अवस्था")}</p>
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label={text(`Status of ${worker.name}`, `${worker.name} को अवस्था`)}>
+              <button
+                type="button"
+                aria-pressed={!onLeave?.[worker.id]}
+                disabled={saving === worker.id || !onLeave?.[worker.id]}
+                onClick={() => void changeLeave(worker.id, false)}
+                className={`min-h-12 rounded-xl border px-2 text-sm font-black ${!onLeave?.[worker.id] ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"}`}
+              >
+                🟢 {text("At work", "काममा")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={Boolean(onLeave?.[worker.id])}
+                disabled={saving === worker.id || onLeave === null || Boolean(onLeave?.[worker.id])}
+                title={onLeave === null ? text("Add the worker app tables in Settings first", "पहिले Settings मा कामदार app को database थप्नुहोस्") : undefined}
+                onClick={() => void changeLeave(worker.id, true)}
+                className={`min-h-12 rounded-xl border px-2 text-sm font-black disabled:cursor-default ${onLeave?.[worker.id] ? "border-brand-gold bg-brand-gold-bright text-brand-green-ink" : "border-brand-green-line text-brand-green-ink"} ${onLeave === null ? "opacity-50" : ""}`}
+              >
+                🟡 {text("On leave", "बिदा")}
+              </button>
+              <button
+                type="button"
+                disabled={saving === worker.id}
+                onClick={() => leaveFactory(worker)}
+                className="min-h-12 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-clay"
+              >
+                🔴 {text("Left", "छोड्यो")}
+              </button>
+            </div>
+            <p className="text-xs leading-5 text-brand-muted">
+              {onLeave?.[worker.id]
+                ? text(`On leave since ${onLeave[worker.id]} — still on the books; their app shows, but sends nothing.`, `${onLeave[worker.id]} देखि बिदामा — हिसाबमा छ; app हेर्न मिल्छ, पठाउन मिल्दैन।`)
+                : text("\"Left\" = Close — remove from the work form and switch their app off.", "\"छोड्यो\" = बन्द गर्ने — काम भर्ने फारमबाट हटाउने र app पनि बन्द।")}
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void saveWorker(worker.id, { status: "active" })}
+            disabled={saving === worker.id}
+            className="mt-3 min-h-12 w-full rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:opacity-60"
+          >
+            {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Make active again", "फेरि चालु गर्ने")}
+          </button>
+        )}
+
+        {apps && (worker.status === "active" || apps[worker.id]) ? (
+          <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} workerActive={worker.status === "active"} />
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
+          <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>
+        </div>
+      </article>
+  );
+
   return (
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -289,166 +451,23 @@ export default function TeamList({
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         {loading ? <p className="text-sm text-brand-muted">{text("Loading workers…", "कामदार खुल्दैछ…")}</p> : null}
         {!loading && workers.length === 0 ? <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">{text("No workers yet.", "अझै कामदार थपिएको छैन।")}</p> : null}
-        {workers.map((worker) => (
-          <article key={worker.id} className={`rounded-3xl border p-5 shadow-sm ${worker.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : "border-brand-green-line bg-brand-paper"}`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className={`text-lg font-black ${worker.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{worker.name}</h2>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">
-                  {worker.category} ·{" "}
-                  {FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType]
-                    ? text(
-                        FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].en,
-                        FACTORY_WORKER_TYPE_LABELS[worker.worker_type as FactoryWorkerType].ne,
-                      )
-                    : worker.worker_type.replaceAll("_", " ")}
-                </p>
-              </div>
-              {worker.status !== "active" ? (
-                <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
-                  {text("Closed", "बन्द")}
-                </span>
-              ) : null}
-              {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
-                  rates and the worker portal all read this list directly, and
-                  the HR link only matters for the production-accounts ledger. Amber read as "fix
-                  me" and pointed at a module holding no attendance or payroll. */}
-            </div>
-
-            {/* What was typed can be typed again. The stage list comes from
-                lib/factory-worker-options so it cannot drift from what the
-                database will accept — it had already lost "Fibermen", which is
-                where five of this shop's eight workers work, so their stage
-                could not have been saved back. */}
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                {text("Name", "नाम")}
-                <input
-                  value={edits[worker.id]?.name ?? worker.name}
-                  onChange={(event) =>
-                    setEdits((current) => ({
-                      ...current,
-                      [worker.id]: { ...current[worker.id], name: event.target.value },
-                    }))
-                  }
-                  className={`mt-1 ${inputClass}`}
-                  aria-label={`Name for ${worker.name}`}
-                />
-              </label>
-              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                {text("Factory stage", "कारखानाको चरण")}
-                <select
-                  value={edits[worker.id]?.category ?? worker.category}
-                  onChange={(event) =>
-                    setEdits((current) => ({
-                      ...current,
-                      [worker.id]: { ...current[worker.id], category: event.target.value },
-                    }))
-                  }
-                  className={`mt-1 ${inputClass}`}
-                  aria-label={`Stage for ${worker.name}`}
-                >
-                  {FACTORY_WORKER_CATEGORIES.map((option) => (
-                    <option key={option} value={option}>
-                      {factoryCategoryLabel(option, language === "ne")}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-xs font-black uppercase tracking-wide text-brand-muted">
-                {text("Wage type", "ज्यालाको किसिम")}
-                <select
-                  value={edits[worker.id]?.worker_type ?? worker.worker_type}
-                  onChange={(event) =>
-                    setEdits((current) => ({
-                      ...current,
-                      [worker.id]: { ...current[worker.id], worker_type: event.target.value },
-                    }))
-                  }
-                  className={`mt-1 ${inputClass}`}
-                  aria-label={`Pay type for ${worker.name}`}
-                >
-                  {FACTORY_WORKER_TYPES.map((option) => (
-                    <option key={option} value={option}>{text(FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].en, FACTORY_WORKER_TYPE_LABELS[option as FactoryWorkerType].ne)}</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                onClick={() => void saveWorker(worker.id, edits[worker.id] ?? {})}
-                disabled={
-                  saving === worker.id ||
-                  ((edits[worker.id]?.name ?? worker.name) === worker.name &&
-                    (edits[worker.id]?.category ?? worker.category) === worker.category &&
-                    (edits[worker.id]?.worker_type ?? worker.worker_type) === worker.worker_type)
-                }
-                className="mt-5 min-h-12 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:bg-brand-green-line disabled:text-brand-muted-soft"
-              >
-                {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Save", "सच्याउने")}
-              </button>
-            </div>
-
-            {/* Three states (owner, 2026-10-02): at work, on leave, left. Left
-                closes them on the forms and switches their app off. */}
-            {worker.status === "active" ? (
-              <div className="mt-3 grid gap-1.5">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-brand-muted">{text("Status", "अवस्था")}</p>
-                <div className="grid grid-cols-3 gap-2" role="group" aria-label={text(`Status of ${worker.name}`, `${worker.name} को अवस्था`)}>
-                  <button
-                    type="button"
-                    aria-pressed={!onLeave?.[worker.id]}
-                    disabled={saving === worker.id || !onLeave?.[worker.id]}
-                    onClick={() => void changeLeave(worker.id, false)}
-                    className={`min-h-12 rounded-xl border px-2 text-sm font-black ${!onLeave?.[worker.id] ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"}`}
-                  >
-                    🟢 {text("At work", "काममा")}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={Boolean(onLeave?.[worker.id])}
-                    disabled={saving === worker.id || onLeave === null || Boolean(onLeave?.[worker.id])}
-                    title={onLeave === null ? text("Add the worker app tables in Settings first", "पहिले Settings मा कामदार app को database थप्नुहोस्") : undefined}
-                    onClick={() => void changeLeave(worker.id, true)}
-                    className={`min-h-12 rounded-xl border px-2 text-sm font-black disabled:cursor-default ${onLeave?.[worker.id] ? "border-brand-gold bg-brand-gold-bright text-brand-green-ink" : "border-brand-green-line text-brand-green-ink"} ${onLeave === null ? "opacity-50" : ""}`}
-                  >
-                    🟡 {text("On leave", "बिदा")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving === worker.id}
-                    onClick={() => leaveFactory(worker)}
-                    className="min-h-12 rounded-xl border border-brand-green-line px-2 text-sm font-black text-brand-clay"
-                  >
-                    🔴 {text("Left", "छोड्यो")}
-                  </button>
-                </div>
-                <p className="text-xs leading-5 text-brand-muted">
-                  {onLeave?.[worker.id]
-                    ? text(`On leave since ${onLeave[worker.id]} — still on the books; their app shows, but sends nothing.`, `${onLeave[worker.id]} देखि बिदामा — हिसाबमा छ; app हेर्न मिल्छ, पठाउन मिल्दैन।`)
-                    : text("\"Left\" = Close — remove from the work form and switch their app off.", "\"छोड्यो\" = बन्द गर्ने — काम भर्ने फारमबाट हटाउने र app पनि बन्द।")}
-                </p>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void saveWorker(worker.id, { status: "active" })}
-                disabled={saving === worker.id}
-                className="mt-3 min-h-12 w-full rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:opacity-60"
-              >
-                {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Make active again", "फेरि चालु गर्ने")}
-              </button>
-            )}
-
-            {apps && (worker.status === "active" || apps[worker.id]) ? (
-              <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} workerActive={worker.status === "active"} />
-            ) : null}
-
-            <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
-              <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>
-            </div>
-          </article>
-        ))}
+        {workers.filter((worker) => worker.status === "active").map(workerCard)}
       </div>
+
+      {/* Those who left, folded away (owner, 2026-10-07): kept, never deleted —
+          their entries are the proof of what they were paid — but out of the
+          way of the people at work. Open it to see them or make one active. */}
+      {closedWorkers.length > 0 ? (
+        <details className="mt-6 rounded-3xl border border-brand-green-line bg-brand-paper-deep p-4">
+          <summary className="cursor-pointer text-sm font-black text-brand-muted-deep">
+            {text(`▸ Closed workers (${closedWorkers.length})`, `▸ बन्द कामदार (${closedWorkers.length})`)}
+          </summary>
+          <p className="mt-2 text-xs text-brand-muted">
+            {text("Kept for their wage records; nothing is deleted.", "तलबको हिसाबका लागि राखिएका छन्; केही मेटिँदैन।")}
+          </p>
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">{closedWorkers.map(workerCard)}</div>
+        </details>
+      ) : null}
 
       <p className="mt-5 text-xs leading-5 text-brand-muted">Only the Owner can create workers or change HR links. Linking does not delete or merge any historical record.</p>
     </section>

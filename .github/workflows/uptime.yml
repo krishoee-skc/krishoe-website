@@ -88,8 +88,9 @@ jobs:
           # whether the alert would have worked — until the night it matters.
           # This sends one on request and files nothing.
           UPTIME_TEST_ALERT: ${{ inputs.send_test_alert }}
-          # Run by hand = a full check, database included, and filed.
-          PROBE_DEEP: ${{ github.event_name == 'workflow_dispatch' }}
+          # Every run is a full check, database included, and filed (owner,
+          # 2026-10-07): Supabase does not sleep, and the old three-a-day window
+          # kept being missed by late runs. See scripts/uptime-probe.mjs.
           LAST_CHECK_FAILED: ${{ steps.last.outputs.conclusion == 'failure' }}
           # Writes one uptime row and can do nothing else. Deliberately NOT the
           # database connection string: anything reaching these secrets should

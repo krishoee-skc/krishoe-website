@@ -25,16 +25,17 @@ beforeEach(() => {
   blob.put.mockResolvedValue({ pathname: "backups/new.krbk" });
 });
 
-describe("the weekly backup in the file store", () => {
-  it("does nothing when last week's copy is recent", async () => {
-    blob.list.mockResolvedValue({ blobs: [stored(2, 1)] });
+// Nightly since 2026-10-07 (owner): it was weekly, eight kept.
+describe("the nightly backup in the file store", () => {
+  it("does nothing when tonight's copy is already made", async () => {
+    blob.list.mockResolvedValue({ blobs: [stored(0.05, 1)] });
     const run = await runScheduledBackup();
     expect(run.outcome).toBe("skipped");
     expect(blob.put).not.toHaveBeenCalled();
   });
 
-  it("saves a locked copy when a week has passed, under backups/ with a random name", async () => {
-    blob.list.mockResolvedValue({ blobs: [stored(7, 1)] });
+  it("saves a locked copy when last night's is a day old, under backups/ with a random name", async () => {
+    blob.list.mockResolvedValue({ blobs: [stored(1, 1)] });
     const run = await runScheduledBackup();
     expect(run.outcome).toBe("ok");
     const [pathname, body, options] = blob.put.mock.calls[0];
@@ -44,15 +45,15 @@ describe("the weekly backup in the file store", () => {
     expect(JSON.parse(openBackup(body as Buffer, KEY)).source).toBe("KRISHOE admin backup");
   });
 
-  it("keeps the newest eight and deletes the rest", async () => {
-    blob.list.mockResolvedValue({ blobs: Array.from({ length: 9 }, (_, i) => stored(7 + i * 7, i)) });
+  it("keeps the newest thirty and deletes the rest", async () => {
+    blob.list.mockResolvedValue({ blobs: Array.from({ length: 31 }, (_, i) => stored(1 + i, i)) });
     await runScheduledBackup();
-    // New one + 9 old = 10; the two oldest go.
-    expect(blob.del).toHaveBeenCalledWith(["backups/b7.krbk", "backups/b8.krbk"]);
+    // New one + 31 old = 32; the two oldest go.
+    expect(blob.del).toHaveBeenCalledWith(["backups/b29.krbk", "backups/b30.krbk"]);
   });
 
   it("makes one now when the Owner asks, even if recent", async () => {
-    blob.list.mockResolvedValue({ blobs: [stored(1, 1)] });
+    blob.list.mockResolvedValue({ blobs: [stored(0.05, 1)] });
     expect((await runScheduledBackup({ force: true })).outcome).toBe("ok");
   });
 

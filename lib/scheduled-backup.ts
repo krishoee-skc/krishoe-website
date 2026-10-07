@@ -5,10 +5,11 @@ import { buildAdminBackup } from "@/lib/backup";
 import { nepalDate } from "@/lib/format-date";
 
 /**
- * A copy of the shop's books every week, kept without anyone remembering to.
+ * A copy of the shop's books every night, kept without anyone remembering to.
  *
  * "Export backup" in Activity works, and depends on the owner pressing it.
- * This makes the same backup on its own once a week and keeps the last eight —
+ * This makes the same backup on its own every night and keeps the last thirty —
+ * a month to go back to (owner, 2026-10-07; it was weekly, eight kept) —
  * two months to go back to if something is deleted or goes wrong.
  *
  * The file store is the one product photos live in, which serves anything in
@@ -24,9 +25,13 @@ import { nepalDate } from "@/lib/format-date";
 
 const PREFIX = "backups/";
 const MAGIC = Buffer.from("KRBK1");
-const KEEP = 8;
-/** A little under a week, so a run a few minutes early is not a week late. */
-const EVERY_MS = 6.5 * 24 * 60 * 60 * 1000;
+/** A month of nights. Each copy is small (0.04 MB on 2 Oct 2026). */
+const KEEP = 30;
+/**
+ * Under a day, so tonight's 8 pm run is due after last night's, and the 9 pm
+ * retry finds tonight's copy and stops.
+ */
+const EVERY_MS = 20 * 60 * 60 * 1000;
 
 export type StoredBackup = { url: string; pathname: string; size: number; uploadedAt: string };
 
@@ -87,9 +92,9 @@ function megabytes(bytes: number) {
 }
 
 /**
- * Makes this week's backup if it is due — or now, when the Owner asks
- * (`force`). The nightly job calls it every night; on six nights of seven it
- * only sees that the newest copy is recent and stops.
+ * Makes tonight's backup if it is due — or now, when the Owner asks
+ * (`force`). The 8 pm run makes it; the 9 pm retry sees tonight's copy and
+ * stops.
  */
 export async function runScheduledBackup({ force = false } = {}): Promise<BackupRun> {
   const key = backupKey();
@@ -105,7 +110,7 @@ export async function runScheduledBackup({ force = false } = {}): Promise<Backup
   if (!force && newest && Date.now() - new Date(newest.uploadedAt).getTime() < EVERY_MS) {
     return {
       outcome: "skipped",
-      summary: `Skipped: the latest backup (${nepalDate(newest.uploadedAt)}) is less than a week old.`,
+      summary: `Skipped: tonight's backup (${nepalDate(newest.uploadedAt)}) is already made.`,
     };
   }
 
@@ -118,7 +123,7 @@ export async function runScheduledBackup({ force = false } = {}): Promise<Backup
     contentType: "application/octet-stream",
   });
 
-  // Keep the newest eight, this one included.
+  // Keep the newest thirty, this one included.
   const older = [{ pathname: saved.pathname }, ...stored].slice(KEEP);
   if (older.length) await del(older.map((blob) => blob.pathname));
 

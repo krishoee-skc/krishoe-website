@@ -7,6 +7,7 @@ import NoPhotoYet from "@/components/NoPhotoYet";
 import { StarIcon } from "@/components/Icons";
 import ProductCardActions, { WishlistHeart } from "@/components/ProductCardActions";
 import SafeImage from "@/components/SafeImage";
+import CardSizes from "@/components/CardSizes";
 import { stockLevel } from "@/lib/stock-thresholds";
 import T from "@/components/T";
 
@@ -116,6 +117,8 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
           )}
         </span>
         </Link>
+        {/* Which sizes there are, before opening the shoe (owner, 2026-10-07). */}
+        {!outOfStock ? <CardSizes product={product} /> : null}
 
         <div className="mt-auto flex items-center justify-between gap-1.5 pt-2">
           {/* The price in the body face, bold and on one line. Set in the

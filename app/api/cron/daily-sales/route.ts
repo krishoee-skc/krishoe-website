@@ -14,7 +14,7 @@ import { runScheduledBackup } from "@/lib/scheduled-backup";
 import { outsideCheckStillRunning } from "@/lib/shop-watch";
 import { getCheques } from "@/lib/cheque-book";
 import { nepalDayKey } from "@/lib/dashboard-figures";
-import { tellOwnerChequesDue } from "@/lib/notifications";
+import { tellOwnerChequesDue, tellOwnerTheDay } from "@/lib/notifications";
 
 /** What a job reports: a digest's delivery status, and a line for the owner. */
 type JobResult = {
@@ -141,6 +141,12 @@ export async function GET(request: Request) {
     // Is the outside check still filing? It runs on GitHub, where nothing
     // here would notice it stopping (owner, 2026-09-30).
     { name: "outside-check", run: () => outsideCheckStillRunning() },
+    // The day in one line on the Owner's phone, beside the email (owner,
+    // 2026-10-07).
+    {
+      name: "day-phone",
+      run: async () => ({ deliveryStatus: "sent" as const, summary: await tellOwnerTheDay(now) }),
+    },
     // The evening's cheque word: due at the bank by tomorrow, money to keep
     // for cheques given, bounced ones still owed (owner, 2026-10-01).
     {

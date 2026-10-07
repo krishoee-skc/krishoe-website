@@ -3,6 +3,7 @@ import Link from "next/link";
 import T from "@/components/T";
 import NavbarControls from "@/components/NavbarControls";
 import PrimaryNav from "@/components/PrimaryNav";
+import HeaderShrink from "@/components/HeaderShrink";
 import { deliveryPromise } from "@/lib/delivery-fee";
 import { getStorefrontDeliveryPricing } from "@/lib/delivery-settings";
 
@@ -27,7 +28,8 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
   const delivery = deliveryPromise(await getStorefrontDeliveryPricing());
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+    <header className="krs-header sticky top-0 z-50 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <HeaderShrink />
       {/* The utility bar the approved shop leads with: the free-delivery line a
           first-time shopper checks, and the two links they reach for — on every
           page, since it rides on top of the header. */}
@@ -35,7 +37,7 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
           On a phone only the delivery line — Track Order is in the menu and
           Help in the footer — so it is one line and never truncated to
           "Free delivery ove…" beside two links. */}
-      <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 bg-brand-green-ink px-4 py-1.5 text-xs font-semibold text-brand-gold-bright sm:justify-between md:px-8">
+      <div className="krs-header-strip mx-auto flex max-w-7xl items-center justify-center gap-2 bg-brand-green-ink px-4 py-1.5 text-xs font-semibold text-brand-gold-bright sm:justify-between md:px-8">
         <span className="flex min-w-0 items-center gap-1.5">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5 shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3zM14 10h3l3 3v3h-6M6 18a1.5 1.5 0 1 0 3 0M15 18a1.5 1.5 0 1 0 3 0" />
@@ -58,7 +60,7 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
       <div className="border-b border-black/[0.08]">
         {/* Tighter on a phone: the header with its strip was 149px of a 667px
             screen, and the menu button was pushed to the very edge. */}
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:gap-6 sm:px-5 sm:py-3.5 md:px-8">
+        <div className="krs-header-row mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:gap-6 sm:px-5 sm:py-3.5 md:px-8">
           {/* The shop's own name does not shrink. With `shrink` on this link it
               was the item that gave way when the search box and the buttons
               wanted room, and on a wide laptop the brand rendered as "K .."
