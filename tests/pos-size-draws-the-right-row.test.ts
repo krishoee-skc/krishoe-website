@@ -91,6 +91,21 @@ describe("the stock check on the routed line", () => {
   });
 });
 
+describe("an online order's bill (owner, 2026-10-07)", () => {
+  // The live case: a size-36 order for a shoe kept as one 60-pair pile.
+  const pile = [row({ id: "FS-PILE", design: "lose hill panja", channel: "Factory", sizeRun: "36, 37, 38, 39, 40, 41", stockPairs: 60 })];
+
+  it("takes the pair from the pile the size sits in", () => {
+    expect(stockRowForSize(pile, "lose hill panja", "36", 1, "Sale")).toBe("36, 37, 38, 39, 40, 41");
+  });
+
+  it("sends the customer's size the way the counter does, so it is routed", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const orderPos = await readFile("lib/order-pos.ts", "utf8");
+    expect(orderPos).toContain("...(/^\\d{1,2}$/.test(item.sizeRun.trim()) ? { size: item.sizeRun.trim() } : {}),");
+  });
+});
+
 describe("found on the recheck", () => {
   it("checks the wholesale minimum per design, not per size line", async () => {
     const { readFile } = await import("node:fs/promises");

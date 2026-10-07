@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getProducts, setProductCodes, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { getProducts, setProductCodes, setProductStatus, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { getFinishedStock } from "@/lib/operations";
+import { shoeReadiness } from "@/lib/product-readiness";
+import { stockSizesOf } from "@/lib/stock-by-size";
 import { codeProblem, codeTakenBy, tidyCode } from "@/lib/shoe-code";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
@@ -112,4 +115,33 @@ export async function clearUnbackedRatingsAction(): Promise<void> {
     `Star rating cleared on ${cleared} shoe(s) with no published review.`,
   );
   revalidatePath("/", "layout");
+}
+
+/** What the drafts panel hears back, in both languages. */
+export type PublishState = { ok: boolean; en: string; ne: string };
+
+/**
+ * "Put on the shop" from the drafts panel (owner, 2026-10-07). Checked again
+ * here, against the stock as it stands now, so a shoe that lost its last pair
+ * or its photo since the page opened does not go live.
+ */
+export async function publishDraftAction(id: string): Promise<PublishState> {
+  await requireAdminPermission("products:write");
+  const product = (await getProducts({ includeDrafts: true })).find((item) => item.id === id);
+  if (!product) return { ok: false, en: "That shoe was not found.", ne: "त्यो जुत्ता भेटिएन।" };
+  if (product.status === "Active") return { ok: true, en: `${product.name} is already on the shop.`, ne: `${product.name} पहिल्यै पसलमा छ।` };
+
+  const readiness = shoeReadiness(product, stockSizesOf(await getFinishedStock(), product.name));
+  if (!readiness.ready) {
+    return {
+      ok: false,
+      en: `${product.name} still needs ${readiness.blocking.map((need) => need.en).join(", ")}.`,
+      ne: `${product.name} मा अझै ${readiness.blocking.map((need) => need.ne).join(", ")} चाहिन्छ।`,
+    };
+  }
+
+  await setProductStatus(product.id, "Active");
+  await recordAdminAuditEvent("product_published", `${product.name} put on the shop from the drafts panel.`);
+  revalidatePath("/", "layout");
+  return { ok: true, en: `${product.name} is on the shop now.`, ne: `${product.name} अब पसलमा देखिन्छ।` };
 }

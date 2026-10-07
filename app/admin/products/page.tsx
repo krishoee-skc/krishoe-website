@@ -2,11 +2,15 @@ import Link from "next/link";
 import T from "@/components/T";
 import ProductForm from "@/app/admin/ProductForm";
 import ProductsClient from "@/app/admin/ProductsClient";
+import DraftsPanel from "@/app/admin/products/DraftsPanel";
 import { syncProductCatalogStockAction } from "@/app/admin/products/actions";
 import LoadFailure from "@/components/admin/LoadFailure";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { categories } from "@/lib/products";
 import { getProducts } from "@/lib/product-store";
+import { getFinishedStock } from "@/lib/operations";
+import { shoeReadiness } from "@/lib/product-readiness";
+import { stockSizesOf } from "@/lib/stock-by-size";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
@@ -50,6 +54,17 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   }
 
   const products = loaded.products;
+  // What each Draft still needs (owner, 2026-10-07). An empty stock read only
+  // skips the size check; the rest needs nothing but the product.
+  const finishedStock = await getFinishedStock();
+  const drafts = products
+    .filter((product) => product.status === "Draft")
+    .map((product) => ({
+      id: product.id,
+      name: product.name,
+      stock: product.stock,
+      ...shoeReadiness(product, stockSizesOf(finishedStock, product.name)),
+    }));
   const resolvedSearchParams = await searchParams;
   const editingProduct = resolvedSearchParams?.edit
     ? products.find((product) => product.id === resolvedSearchParams.edit) ?? null
@@ -110,6 +125,8 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
         />
       </div>
+
+      <DraftsPanel drafts={drafts} />
 
       <ProductsClient products={products} editingId={editingProduct?.id ?? null} />
     </section>

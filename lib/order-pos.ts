@@ -289,10 +289,17 @@ export async function buildPosInvoiceInputFromOnlineOrder(
       `Address: ${order.address}`,
       `Payment request: ${order.payment}`,
     ].join(". "),
+    // The customer's size goes on as `size`, the way the counter sends it, so the
+    // bill takes the pair from that size's row or from the pile it sits in
+    // (stockRowForSize). Sent only as `sizeRun`, a size-36 order looked for a
+    // "36" row alone, found none beside a 60-pair "36, 37 … 41" pile, and the
+    // bill was refused as "has only 0 pairs" (owner, 2026-10-07).
     items: draft.items.map((item) => ({
       sku: item.sku,
       design: item.design,
       sizeRun: item.sizeRun,
+      ...(/^\d{1,2}$/.test(item.sizeRun.trim()) ? { size: item.sizeRun.trim() } : {}),
+      ...(item.color ? { color: item.color } : {}),
       quantity: item.quantity,
       rate: item.rate,
       discount: item.discount,

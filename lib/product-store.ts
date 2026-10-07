@@ -820,6 +820,30 @@ export async function setProductCodes(changes: Array<{ id: string; sku: string }
   });
 }
 
+/**
+ * Put a shoe on the shop or take it off — the status alone, nothing else on
+ * the row (owner, 2026-10-07). The whole-row save would write back whatever
+ * the list had decorated the product with.
+ */
+export async function setProductStatus(id: string, status: Product["status"]) {
+  return runWithDataBackend({
+    storeName: "products",
+    localJson: async () => {
+      const products = await getProductsFromLocalJson({ includeDrafts: true });
+      if (!products.some((product) => product.id === id)) throw new Error("Product not found.");
+      await writeProducts(products.map((product) => (product.id === id ? { ...product, status } : product)));
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ id: string }>(
+        "products",
+        "UPDATE products SET status = $2, updated_at = NOW() WHERE id::text = $1 RETURNING id",
+        [id, status],
+      );
+      if (rows.length === 0) throw new Error("Product not found.");
+    },
+  });
+}
+
 export async function removeProduct(id: string) {
   return runWithDataBackend({
     storeName: "products",

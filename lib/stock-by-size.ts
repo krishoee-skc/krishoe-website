@@ -122,6 +122,17 @@ export function stockRowForSize(
   return pile ?? wanted;
 }
 
+/**
+ * The real sizes a design holds pairs in, in size order — empty when its stock
+ * is one pile whose sizes are not known. For the drafts panel's size check.
+ */
+export function stockSizesOf(rows: FinishedStock[], design: string): string[] {
+  return [...availableBySize(rows, design).entries()]
+    .filter(([size, pairs]) => isRealSize(size) && pairs > 0)
+    .map(([size]) => size)
+    .sort((a, b) => Number(a) - Number(b));
+}
+
 /** True once a design has any size-wise stock (a real size, not just "Mixed"/a range). */
 export function hasSizeWiseStock(rows: FinishedStock[], design: string): boolean {
   for (const size of availableBySize(rows, design).keys()) {
