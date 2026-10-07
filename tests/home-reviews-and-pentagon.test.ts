@@ -24,12 +24,14 @@ describe("the home page's reviews", () => {
 });
 
 describe("shop by style", () => {
-  it("is a ten-sided stone for every collection, coming soon included", async () => {
+  it("is a ten-sided stone for every collection that has shoes", async () => {
     // Five sides first; ten, gold over green, from the second compare (ख२).
+    // Empty collections left out since 2026-10-08 — unless none has a shoe.
     const source = await read("components/categories.tsx");
     expect(source).toContain("const DECAGON =");
     expect(source).toContain("style={{ clipPath: DECAGON }}");
-    expect(source).not.toContain("if (comingSoon) return null;");
+    expect(source).toContain("Object.values(shoeCounts).some((count) => count > 0)");
+    expect(source).toContain(".filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0)");
     expect(source).not.toContain("rounded-full shadow-sm ring-2");
   });
 

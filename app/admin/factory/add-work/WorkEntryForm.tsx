@@ -974,6 +974,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("worker", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "worker")}
                 value={formData.worker_id}
                 onChange={handleWorkerChange}
@@ -1009,6 +1010,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("stage", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "stage")}
                 value={formData.stage}
                 onChange={handleStageChange}
@@ -1038,6 +1040,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("item", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "item")}
                 value={formData.item_id}
                 onChange={handleItemChange}
@@ -1096,6 +1099,7 @@ export default function WorkEntryForm({
                   ref={(element) => {
                   walkRefs.current.set("pairs", element);
                 }}
+                  enterKeyHint="next"
                   onKeyDown={(event) => handleFieldWalk(event, "pairs")}
                   type="number"
                   value={formData.pairs_count}
@@ -1144,6 +1148,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("colour", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "colour")}
                 type="text"
                 value={formData.color}
@@ -1189,6 +1194,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("size", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "size")}
                 type="text"
                 value={formData.size}
@@ -1309,6 +1315,7 @@ export default function WorkEntryForm({
                 ref={(element) => {
                   walkRefs.current.set("rejected", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => handleFieldWalk(event, "rejected")}
                 id="work-reject"
                 type="number"

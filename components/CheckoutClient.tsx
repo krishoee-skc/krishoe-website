@@ -103,7 +103,7 @@ function CheckoutForm({
 
   // Only the newest question is allowed to answer. A slow reply about "DASHAI"
   // must not overwrite a fast one about "DASHAIN10".
-  function askAboutCoupon(typed: string, form: HTMLFormElement | null) {
+  function askAboutCoupon(typed: string, form: HTMLFormElement | null, wait = 500) {
     window.clearTimeout(couponTimer.current);
     const code = typed.trim();
     couponAsked.current = code;
@@ -129,7 +129,7 @@ function CheckoutForm({
         setCoupon(answer);
         onDiscountChange(answer.status === "ok" ? answer.discountPaisa : 0);
       });
-    }, 500);
+    }, wait);
   }
 
   useEffect(() => () => window.clearTimeout(couponTimer.current), []);
@@ -455,6 +455,15 @@ function CheckoutForm({
                     // the self-referral check needs.
                     askAboutCoupon(event.target.value, event.target.form);
                   }}
+                  // Enter here checks the code now. By the browser's own rule it
+                  // would send the order — before the shopper saw whether the code
+                  // took, or looked at the payment below.
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+                    event.preventDefault();
+                    askAboutCoupon(event.currentTarget.value, event.currentTarget.form, 0);
+                  }}
+                  enterKeyHint="go"
                   maxLength={24}
                   autoComplete="off"
                   autoCapitalize="characters"

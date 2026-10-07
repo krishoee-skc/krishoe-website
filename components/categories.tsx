@@ -92,8 +92,15 @@ const DECAGON =
  * soon" tag, and still open — their page says what is coming and offers
  * WhatsApp. A line of names under one round photo left six doors with no
  * handle.
+ *
+ * Since 2026-10-08 (owner, from the compare): a collection with no shoes is
+ * left out of the row. Seven "coming soon" tiles beside one real one told a
+ * first visitor the shop was empty. A collection appears by itself the day its
+ * first shoe goes on sale. Only when no collection has a shoe do they all
+ * show, faded, so the row is never empty; their pages still say "coming soon".
  */
 export default function Categories({ shoeCounts }: { shoeCounts?: Record<string, number> } = {}) {
+  const hideEmpty = shoeCounts !== undefined && Object.values(shoeCounts).some((count) => count > 0);
   return (
     <section className="bg-brand-mist py-8 md:py-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -103,6 +110,7 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
 
         <SlideRail className="gap-3 px-0.5 pb-2 pt-1 sm:gap-5 lg:[&>*:first-child]:ml-auto lg:[&>*:last-child]:mr-auto">
           {[...categories]
+            .filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0)
             .sort((a, b) => Number((shoeCounts?.[b.slug] ?? 1) > 0) - Number((shoeCounts?.[a.slug] ?? 1) > 0))
             .map((item) => {
               const comingSoon = shoeCounts !== undefined && (shoeCounts[item.slug] ?? 0) === 0;

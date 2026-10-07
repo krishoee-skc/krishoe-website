@@ -1016,6 +1016,7 @@ export default function PurchaseInvoiceForm({
                   }}
                   onClick={() => setSupplierListOpen(true)}
                   onBlur={() => setSupplierListOpen(false)}
+                  enterKeyHint="next"
                   onKeyDown={onSupplierKey}
                   className={`${fieldClass(supplierError)} w-full`}
                   placeholder={text("Supplier — type to search, or a new name", "साहु — नाम टाइप गर्ने, वा नयाँ नाम")}
@@ -1075,6 +1076,7 @@ export default function PurchaseInvoiceForm({
                   ref={(element) => {
                     boxes.current.set("supplierBillNo", element);
                   }}
+                  enterKeyHint="next"
                   onKeyDown={(event) => {
                     handleFieldWalk(event, "supplierBillNo");
                     settle();
@@ -1133,6 +1135,7 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("phone", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => {
                   handleFieldWalk(event, "phone");
                   settle();
@@ -1356,6 +1359,7 @@ export default function PurchaseInvoiceForm({
                         placeholder={text("Type the item or #code — leather, sole, sandal…", "सामान वा #कोड टाइप गर्नुहोस् — छाला, सोल, चप्पल…")}
                         value={itemNameOf(row, rawMaterials)}
                         onChange={(event) => setItemName(row, event.target.value)}
+                        enterKeyHint="next"
                         onKeyDown={(event) => {
                           handleWalk(event, index, "item");
                           settle();
@@ -1378,6 +1382,7 @@ export default function PurchaseInvoiceForm({
                         // A ready-made line's quantity is its sizes added up.
                         readOnly={trading}
                         onChange={(event) => updateRow(row.key, { quantity: event.target.value })}
+                        enterKeyHint="next"
                         onKeyDown={(event) => {
                           handleWalk(event, index, "quantity");
                           settle();
@@ -1398,6 +1403,7 @@ export default function PurchaseInvoiceForm({
                         placeholder={text("Rate", "दर")}
                         value={row.rate}
                         onChange={(event) => updateRow(row.key, { rate: event.target.value, rateAuto: false })}
+                        enterKeyHint="next"
                         onKeyDown={(event) => {
                           handleWalk(event, index, "rate");
                           settle();
@@ -1464,6 +1470,7 @@ export default function PurchaseInvoiceForm({
                                     className={`${plain} h-10 w-12 px-1 text-center tabular-nums`}
                                     value={row.sizes[size] ?? ""}
                                     onChange={(event) => setSize(row, size, event.target.value)}
+                                    enterKeyHint="next"
                                     onKeyDown={(event) => {
                                       handleSizeWalk(event, index, sizeIndex);
                                       settle();
@@ -1767,6 +1774,7 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("paidAmount", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => {
                   handleFieldWalk(event, "paidAmount");
                   settle();
@@ -1798,6 +1806,7 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("paymentReference", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => {
                   handleFieldWalk(event, "paymentReference");
                   settle();
@@ -1858,6 +1867,7 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("discount", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => {
                   handleFieldWalk(event, "discount");
                   settle();
@@ -1893,6 +1903,7 @@ export default function PurchaseInvoiceForm({
                 ref={(element) => {
                   boxes.current.set("tax", element);
                 }}
+                enterKeyHint="next"
                 onKeyDown={(event) => {
                   handleFieldWalk(event, "tax");
                   settle();

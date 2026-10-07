@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkGroup from "@/components/admin/EnterWalkGroup";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -88,7 +89,7 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
   }
 
   return (
-    <div className="grid gap-4">
+    <EnterWalkGroup className="grid gap-4">
       <input
         ref={input}
         type="file"
@@ -165,7 +166,7 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
       <button
         type="button"
         disabled={!file || busy}
-        onClick={() => void send()}
+        data-enter-save onClick={() => void send()}
         className="min-h-16 rounded-2xl bg-brand-green px-4 text-xl font-black text-white disabled:opacity-50"
       >
         {busy ? "पठाउँदै…" : "➤ मालिकलाई पठाउने"}
@@ -175,6 +176,6 @@ export default function WorkerPhotoForm({ disabledReason, items = [] }: { disabl
           {reply.text}
         </p>
       ) : null}
-    </div>
+    </EnterWalkGroup>
   );
 }

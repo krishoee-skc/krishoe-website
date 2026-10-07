@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import EnterWalkGroup from "@/components/admin/EnterWalkGroup";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -331,7 +332,7 @@ export default function WorkerInbox({
                 <p className="text-xs text-brand-muted">{when(item.createdAt)}{item.aboutDate ? ` · ${text("about", "मिति")} ${item.aboutDate}` : ""}</p>
                 {item.message ? <p className="mt-2 text-sm text-brand-green-ink">“{item.message}”</p> : null}
                 {item.status === "open" && canAnswer ? (
-                  <div className="mt-3 grid gap-2">
+                  <EnterWalkGroup className="mt-3 grid gap-2">
                     <input
                       value={replies[item.id] ?? ""}
                       onChange={(event) => setReplies((current) => ({ ...current, [item.id]: event.target.value }))}
@@ -340,7 +341,7 @@ export default function WorkerInbox({
                       className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-sm"
                     />
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" disabled={pending} onClick={() => run(() => answerWorkerRequestAction(item.id, "done", replies[item.id] ?? ""))} className="min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60">
+                      <button type="button" disabled={pending} data-enter-save onClick={() => run(() => answerWorkerRequestAction(item.id, "done", replies[item.id] ?? ""))} className="min-h-11 rounded-xl bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60">
                         {item.kind === "advance" ? text("Give it", "दिने") : text("Checked — answer", "हेरेँ — जवाफ दिने")}
                       </button>
                       <button type="button" disabled={pending} onClick={() => run(() => answerWorkerRequestAction(item.id, "declined", replies[item.id] ?? ""))} className="min-h-11 rounded-xl border border-brand-green-line px-4 text-sm font-black text-brand-muted disabled:opacity-60">
@@ -353,7 +354,7 @@ export default function WorkerInbox({
                     {item.kind === "advance" ? (
                       <p className="text-xs text-brand-muted">{text("\"Give it\" answers them; record the payment on their ledger as usual.", "\"दिने\" ले जवाफ मात्र दिन्छ; रकम सधैँझैँ उसको खातामा भुक्तानी भनेर लेख्नुहोस्।")}</p>
                     ) : null}
-                  </div>
+                  </EnterWalkGroup>
                 ) : (
                   <p className="mt-2 text-sm font-bold text-brand-green">
                     {item.status === "done" ? text("Answered ✓", "जवाफ दिइयो ✓") : item.status === "declined" ? text("Declined", "मिलेन") : text("Waiting for the owner", "मालिकले हेर्न बाँकी")}
@@ -466,7 +467,7 @@ export default function WorkerInbox({
                       </div>
                     </>
                   ) : (
-                    <div className="grid gap-4 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+                    <EnterWalkGroup className="grid gap-4 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
                       <a href={photo.imageUrl} target="_blank" rel="noreferrer" className="relative block self-start overflow-hidden rounded-2xl bg-black/5" aria-label={text("Open the photo full size", "फोटो ठूलो खोल्ने")}>
                         <img src={photo.imageUrl} alt={`${photo.workerName} — ${kind.en}`} className="max-h-[34rem] w-full object-contain" />
                         <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-black text-white backdrop-blur">🔍 {text("Full size", "ठूलो हेर्ने")}</span>
@@ -630,12 +631,12 @@ export default function WorkerInbox({
                               ⋯ {text("More", "अरू")}
                             </button>
                             {photo.status !== "added" && draft.work && bookable(photo) ? (
-                              <button type="button" disabled={pending || !price?.rate || !complete(draft)} onClick={() => bookOne(photo)} className="min-h-12 rounded-2xl bg-brand-green px-5 text-base font-black text-white shadow-[0_8px_20px_rgba(11,77,59,0.25)] disabled:opacity-50">
+                              <button type="button" disabled={pending || !price?.rate || !complete(draft)} data-enter-save onClick={() => bookOne(photo)} className="min-h-12 rounded-2xl bg-brand-green px-5 text-base font-black text-white shadow-[0_8px_20px_rgba(11,77,59,0.25)] disabled:opacity-50">
                                 {text("✓ Put on the books", "✓ हिसाबमा थप्ने")}
                               </button>
                             ) : null}
                             {photo.status !== "added" && !draft.work && reviewOn ? (
-                              <button type="button" disabled={pending} onClick={() => run(() => notWorkPhotoAction(photo.id, draft.reason, draft.message), () => setOpen(null))} className="min-h-12 rounded-2xl bg-red-700 px-5 text-base font-black text-white disabled:opacity-50">
+                              <button type="button" disabled={pending} data-enter-save onClick={() => run(() => notWorkPhotoAction(photo.id, draft.reason, draft.message), () => setOpen(null))} className="min-h-12 rounded-2xl bg-red-700 px-5 text-base font-black text-white disabled:opacity-50">
                                 {text("✖ Mark: not work", "✖ काम होइन भन्ने")}
                               </button>
                             ) : null}
@@ -693,7 +694,7 @@ export default function WorkerInbox({
                           </div>
                         ) : null}
                       </div>
-                    </div>
+                    </EnterWalkGroup>
                   )}
                 </li>
               );

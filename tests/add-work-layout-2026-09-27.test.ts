@@ -53,7 +53,8 @@ describe("the layout", () => {
     for (const id of ["work-worker", "work-stage", "work-item", "work-colour", "work-size"]) {
       const at = form.indexOf(`id="${id}"`);
       expect(at, id).toBeGreaterThan(0);
-      expect(form.slice(at, at + 600), id).toContain("className={CONTROL}");
+      // 700: each box also carries enterKeyHint="next" since 2026-10-08.
+      expect(form.slice(at, at + 700), id).toContain("className={CONTROL}");
     }
   });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkGroup from "@/components/admin/EnterWalkGroup";
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { ReadyItem } from "@/app/api/factory/ready/route";
@@ -314,7 +315,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                     )}
                   </p>
                   {bySize(item) ? (
-                    <div className="mt-2 rounded-xl border-2 border-brand-green bg-brand-paper p-3">
+                    <EnterWalkGroup className="mt-2 rounded-xl border-2 border-brand-green bg-brand-paper p-3">
                       <p className="text-xs font-black uppercase tracking-wide text-brand-green-ink">
                         {text("Pairs in each size", "कुन साइजको कति जोडी")}
                       </p>
@@ -364,9 +365,9 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                           "हरेक साइज छुट्टै स्टकमा चढ्छ, अनि बिल काट्दा कुन साइज कति बाँकी छ देखिन्छ।",
                         )}
                       </p>
-                    </div>
+                    </EnterWalkGroup>
                   ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <EnterWalkGroup className="mt-2 flex flex-wrap gap-2">
                     <input
                       type="number"
                       min={1}
@@ -414,7 +415,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                         {text("Count by size instead", "साइज अनुसार गन्ने")}
                       </button>
                     ) : null}
-                  </div>
+                  </EnterWalkGroup>
                   )}
                   <p className="mt-2 text-xs leading-5 text-brand-muted">
                     {text(

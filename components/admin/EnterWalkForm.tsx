@@ -30,7 +30,7 @@ import {
  * box on the form — the worker picked higher up the page.
  */
 
-function describe(element: Element): WalkField {
+export function describe(element: Element): WalkField {
   const el = element as HTMLInputElement;
   return {
     tag: element.tagName,

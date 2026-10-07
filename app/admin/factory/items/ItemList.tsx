@@ -1,5 +1,6 @@
 "use client";
 
+import EnterWalkGroup from "@/components/admin/EnterWalkGroup";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -248,7 +249,7 @@ export default function ItemList({
             {/* Nothing to link while an item is out of use. Offering it would
                 invite someone to wire up a shoe that no work form can reach. */}
             {item.status === "active" ? (
-            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <EnterWalkGroup className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
               <select value={drafts[item.id] || ""} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))} className={inputClass} aria-label={`Production Item for ${item.name}`}>
                 <option value="">{text("Not linked", "जोडिएको छैन")}</option>
                 {productionItems.filter((productionItem) => !linkedIds.has(productionItem.id) || productionItem.id === item.production_item_id).map((productionItem) => (
@@ -256,7 +257,7 @@ export default function ItemList({
                 ))}
               </select>
               <button type="button" onClick={() => void saveLink(item.id)} disabled={saving === item.id || (drafts[item.id] || "") === (item.production_item_id || "")} className="min-h-12 rounded-xl border border-brand-green px-4 text-sm font-black text-brand-green disabled:border-brand-green-line disabled:text-brand-muted-soft">{saving === item.id ? "Saving..." : "Save item link"}</button>
-            </div>
+            </EnterWalkGroup>
             ) : null}
 
             {/* Rough material cost per pair — leather + sole + glue for one
@@ -268,7 +269,7 @@ export default function ItemList({
               <label className="text-xs font-black uppercase tracking-[0.12em] text-brand-muted" htmlFor={`material-${item.id}`}>
                 {text("Material cost · per pair (Rs.)", "Material लागत · प्रति जोडी (Rs.)")}
               </label>
-              <div className="mt-1 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <EnterWalkGroup className="mt-1 grid gap-2 sm:grid-cols-[1fr_auto]">
                 <input
                   id={`material-${item.id}`}
                   type="number"
@@ -288,7 +289,7 @@ export default function ItemList({
                 >
                   {saving === item.id ? "Saving..." : "Save material"}
                 </button>
-              </div>
+              </EnterWalkGroup>
               <p className="mt-1 text-xs text-brand-muted">{text(
                 "Fabric + sole + glue — the estimated cost of one pair. Left blank counts as 0.",
                 "कपडा + sole + गम — एक जोडीको अनुमानित लागत। खाली राखे 0 मानिन्छ।",

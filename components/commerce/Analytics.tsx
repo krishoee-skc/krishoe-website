@@ -14,6 +14,10 @@ import { activeTrackingIds } from "@/lib/tracking-ids";
 // third-party code, not ours to refactor. Confirm with the vendor's own
 // debugger (Meta Pixel Helper, TikTok Pixel Helper, GA4 DebugView) that hits
 // arrive before trusting an ad spend to them.
+//
+// The vendors' libraries load with lazyOnload — after the page, when the
+// phone is idle. Meta and GA keep a queue from the first moment, so nothing
+// is lost; TikTok's events from before its code arrives are not kept.
 export function Analytics() {
   // Nothing fires outside production, so browsing the shop while working on it
   // cannot teach the live ad account anything. See lib/tracking-ids.ts.
@@ -23,18 +27,21 @@ export function Analytics() {
     <>
       {pixelId ? (
         <>
+          {/* Meta's own queue, set up at once so a PageView or a Purchase in
+              the first seconds is kept — the same function as the base code,
+              without the line that fetches the library. The library itself
+              (about 200 KB) waits until the page has loaded and the phone is
+              idle (owner, 2026-10-08: on a cheap phone it held the screen
+              frozen for seconds), then sends what is queued. */}
           <Script id="meta-pixel" strategy="afterInteractive">
-            {`!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            {`!function(f){if(f.fbq)return;var n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window,document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
+n.queue=[]}(window);
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');`}
           </Script>
+          <Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />
           <noscript>
             {/* eslint-disable-next-line @next/next/no-img-element -- Meta Pixel requires a raw 1x1 tracking pixel, not next/image */}
             <img
@@ -52,7 +59,7 @@ fbq('track', 'PageView');`}
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}
-            strategy="afterInteractive"
+            strategy="lazyOnload"
           />
           <Script id="ga4" strategy="afterInteractive">
             {`window.dataLayer = window.dataLayer || [];
@@ -64,7 +71,7 @@ gtag('config', '${ga4Id}');`}
       ) : null}
 
       {tiktokPixelId ? (
-        <Script id="tiktok-pixel" strategy="afterInteractive">
+        <Script id="tiktok-pixel" strategy="lazyOnload">
           {tiktokPixelSnippet(tiktokPixelId)}
         </Script>
       ) : null}

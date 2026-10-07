@@ -41,6 +41,9 @@ const tech = Orbitron({
   weight: ["500", "700", "900"],
   variable: "--font-tech",
   display: "swap",
+  // Not fetched ahead on every shop page: only the sign-in doors draw it, and
+  // there it arrives with their own CSS.
+  preload: false,
 });
 
 /**

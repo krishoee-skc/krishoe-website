@@ -42,7 +42,9 @@ describe("what the discount box says while you type", () => {
     // Not on every keystroke. Eight characters would be eight questions about
     // seven codes nobody typed.
     expect(checkout).toContain("setTimeout");
-    expect(checkout).toMatch(/}, 500\);/);
+    // The pause is the default; Enter in the box asks at once (wait 0).
+    expect(checkout).toContain("wait = 500");
+    expect(checkout).toMatch(/}, wait\);/);
   });
 
   it("only lets the newest answer win", async () => {

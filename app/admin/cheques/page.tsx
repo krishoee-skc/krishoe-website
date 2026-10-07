@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PhoneWithCountry from "@/components/PhoneWithCountry";
 import Link from "next/link";
 import T from "@/components/T";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { canAdmin, requireAdminPermission } from "@/lib/admin-permissions";
 import { bikramMonthKeyOf, bikramMonthRange, toBikramSambatNumeric } from "@/lib/bikram-sambat";
@@ -230,7 +231,7 @@ function ChequeCard({
               <summary className="cursor-pointer text-base font-black text-brand-clay">
                 <T en={out ? "✕ It came back" : "✕ It bounced"} ne="✕ चेक फर्कियो" />
               </summary>
-              <form action={moveChequeAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+              <EnterWalkForm action={moveChequeAction} className="mt-3 grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={cheque.id} />
                 <input type="hidden" name="tab" value={tab} />
                 <input type="hidden" name="action" value="bounce" />
@@ -246,7 +247,7 @@ function ChequeCard({
                 </label>
                 <label className="grid gap-1 text-sm font-bold text-brand-muted">
                   <T en="Bank's charge (Rs.)" ne="बैंकको शुल्क (रु.)" />
-                  <input name="bankCharge" inputMode="numeric" defaultValue="0" className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
+                  <input name="bankCharge" inputMode="numeric" data-summary="money" defaultValue="0" className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink" />
                 </label>
                 <label className="grid gap-1 text-sm font-bold text-brand-muted">
                   <T en="On" ne="मिति" />
@@ -255,7 +256,7 @@ function ChequeCard({
                 <button className="min-h-11 self-end rounded-xl bg-brand-clay px-5 text-base font-black text-white">
                   <T en="Save: bounced" ne="सेभ: फर्कियो" />
                 </button>
-              </form>
+              </EnterWalkForm>
             </details>
           ) : null}
 
@@ -264,7 +265,7 @@ function ChequeCard({
               <summary className="cursor-pointer text-base font-black text-brand-green-ink">
                 <T en="✎ Correct the details" ne="✎ विवरण मिलाउने" />
               </summary>
-              <form action={editChequeAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+              <EnterWalkForm action={editChequeAction} className="mt-3 grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={cheque.id} />
                 <input type="hidden" name="tab" value={tab} />
                 <label className="grid gap-1 text-sm font-bold text-brand-muted">
@@ -290,7 +291,7 @@ function ChequeCard({
                 <button className="min-h-11 self-end rounded-xl bg-brand-green-ink px-5 text-base font-black text-white">
                   <T en="Save" ne="सेभ" />
                 </button>
-              </form>
+              </EnterWalkForm>
               {actions.includes("cancel") ? (
                 <form action={moveChequeAction} className="mt-3 border-t border-brand-green-line pt-3">
                   <input type="hidden" name="id" value={cheque.id} />
@@ -442,7 +443,7 @@ export default async function ChequesPage({
                 />
               </p>
               {toFill.map((cheque) => (
-                <form key={cheque.id} action={editChequeAction} className="grid gap-3 rounded-xl bg-brand-paper p-3 sm:grid-cols-2 lg:grid-cols-5">
+                <EnterWalkForm key={cheque.id} action={editChequeAction} className="grid gap-3 rounded-xl bg-brand-paper p-3 sm:grid-cols-2 lg:grid-cols-5">
                   <input type="hidden" name="id" value={cheque.id} />
                   <input type="hidden" name="tab" value="in" />
                   <input type="hidden" name="partyPhone" value={cheque.partyPhone} />
@@ -469,7 +470,7 @@ export default async function ChequesPage({
                   <button className="min-h-11 self-end rounded-xl bg-brand-green-ink px-5 text-base font-black text-white">
                     <T en="Save details" ne="विवरण सेभ" />
                   </button>
-                </form>
+                </EnterWalkForm>
               ))}
             </div>
           ) : null}
@@ -483,7 +484,7 @@ export default async function ChequesPage({
                 />
               </p>
               {missing.map((invoice) => (
-                <form key={invoice.id} action={addBillChequeAction} className="grid gap-3 rounded-xl bg-brand-paper p-3 sm:grid-cols-2 lg:grid-cols-4">
+                <EnterWalkForm key={invoice.id} action={addBillChequeAction} className="grid gap-3 rounded-xl bg-brand-paper p-3 sm:grid-cols-2 lg:grid-cols-4">
                   <input type="hidden" name="invoiceId" value={invoice.id} />
                   <p className="text-base text-brand-green-ink sm:col-span-2 lg:col-span-4">
                     <b>{invoice.invoiceNumber}</b> · {invoice.customerName || "—"} · <b>{chequeRupees(chequeAmount(invoice))}</b>
@@ -509,7 +510,7 @@ export default async function ChequesPage({
                   <button className="min-h-11 self-end rounded-xl bg-brand-green-ink px-5 text-base font-black text-white">
                     <T en="Save to the book" ne="चेक खातामा राख्ने" />
                   </button>
-                </form>
+                </EnterWalkForm>
               ))}
             </div>
           ) : null}

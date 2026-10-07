@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import EnterWalkGroup from "@/components/admin/EnterWalkGroup";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -114,7 +115,7 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
       {/* Email too, so the worker opens the app with either (owner,
           2026-10-04: a worker tried his Gmail on a mobile-only account). */}
       {app && workerActive && !card ? (
-        <div className="mt-2 grid gap-1.5">
+        <EnterWalkGroup className="mt-2 grid gap-1.5">
           <p className="text-xs font-bold text-brand-green-ink">
             ✉️ {app.email ? text(`Email: ${app.email}`, `Email: ${app.email}`) : text("No email yet — opens with the mobile only", "Email छैन — मोबाइलबाट मात्र खुल्छ")}
           </p>
@@ -139,7 +140,7 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
             </button>
           </div>
           {emailNote ? <p role="status" className={`text-xs font-bold ${emailNote.ok ? "text-brand-green" : "text-red-800"}`}>{text(emailNote.en, emailNote.ne)}</p> : null}
-        </div>
+        </EnterWalkGroup>
       ) : null}
 
       {app && workerActive && !card ? (
@@ -152,7 +153,7 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
       ) : null}
 
       {!app && open && !card ? (
-        <div className="mt-3 grid gap-2">
+        <EnterWalkGroup className="mt-3 grid gap-2">
           {/* The country beside the number (owner, 2026-10-04): Nepal to start;
               India and the rest one tap away, kept with their code. */}
           <div className="grid gap-1 text-sm font-bold text-brand-green-ink">
@@ -190,7 +191,7 @@ export default function WorkerAppPanel({ workerId, workerName, app, workerActive
               "Email नभए पनि हुन्छ — भए मोबाइल वा email दुवैबाट app खुल्छ। App ले ८ अंकको कोड बनाउँछ; कामदारले पहिलो पटक भित्र जाँदा आफ्नै password बनाउँछ।",
             )}
           </p>
-        </div>
+        </EnterWalkGroup>
       ) : null}
 
       {failure ? <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-800">{text(failure.en, failure.ne)}</p> : null}

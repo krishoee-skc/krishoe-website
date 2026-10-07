@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { askOwnerAction, type AskState } from "./actions";
 
 /** One form, two questions: "the sum is wrong" and "an advance, please". */
@@ -9,7 +10,7 @@ export default function AskForm({ start }: { start: "hisab" | "advance" }) {
   const [state, action, pending] = useActionState<AskState, FormData>(askOwnerAction, null);
 
   return (
-    <form action={action} className="grid gap-4">
+    <EnterWalkForm action={action} className="grid gap-4">
       <input type="hidden" name="kind" value={kind} />
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="के भन्ने?">
         {[
@@ -31,7 +32,7 @@ export default function AskForm({ start }: { start: "hisab" | "advance" }) {
       {kind === "advance" ? (
         <label className="grid gap-1 text-lg font-black">
           कति रकम? (Rs.)
-          <input name="amount" inputMode="numeric" required className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-2xl" />
+          <input name="amount" inputMode="numeric" required data-summary="money" className="min-h-14 rounded-2xl border-2 border-brand-green-line bg-brand-paper px-4 text-2xl" />
         </label>
       ) : (
         <label className="grid gap-1 text-lg font-black">
@@ -60,6 +61,6 @@ export default function AskForm({ start }: { start: "hisab" | "advance" }) {
           {state.text}
         </p>
       ) : null}
-    </form>
+    </EnterWalkForm>
   );
 }
