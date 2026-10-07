@@ -48,7 +48,9 @@ export default function OrderSummary({ discountPaisa, deliveryCharge, totalLabel
               <Image src={item.image} alt={item.name} fill sizes="72px" className="object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="break-words font-bold">{item.name}</p>
+              {/* White said on each line: the global `p` colour is dark ink, and
+                  on this green it hid the shoe's name (owner, 2026-10-07). */}
+              <p className="break-words font-bold text-white">{item.name}</p>
               <p className="mt-1 text-xs text-white/80">
                 {item.size} / {item.color} / Qty {item.quantity}
               </p>
@@ -89,9 +91,9 @@ export default function OrderSummary({ discountPaisa, deliveryCharge, totalLabel
             )}
       </p>
       <div className="mt-5 grid gap-2 border-t border-white/10 pt-5 text-xs font-semibold text-white/85">
-        <p>{text("Stock check before dispatch", "पठाउनुअघि स्टक जाँचिन्छ")}</p>
-        <p>{text("Payment matched with order reference", "अर्डर नम्बरसँग भुक्तानी मिलाइन्छ")}</p>
-        <p>{text("Private order page after request", "अर्डरपछि आफ्नै पाना पाइन्छ")}</p>
+        <p className="mb-0 text-white/85">✓ {text("Stock check before dispatch", "पठाउनुअघि स्टक जाँचिन्छ")}</p>
+        <p className="mb-0 text-white/85">✓ {text("Payment matched with order reference", "अर्डर नम्बरसँग भुक्तानी मिलाइन्छ")}</p>
+        <p className="mb-0 text-white/85">✓ {text("Private order page after request", "अर्डरपछि आफ्नै पाना पाइन्छ")}</p>
       </div>
     </aside>
   );
