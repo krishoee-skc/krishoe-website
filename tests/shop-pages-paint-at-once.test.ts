@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const exists = async (path: string) => {
@@ -30,4 +30,40 @@ describe("the shop's ready-made pages", () => {
       expect(await exists(`${dir}/loading.tsx`)).toBe(false);
     },
   );
+});
+
+/**
+ * Google's own check of the shoe page (PageSpeed, Moto G Power, 2026-10-08):
+ * performance 88, the shoe photo at 3.8 s. What held it up, and the
+ * accessibility marks it took off.
+ */
+describe("what Google found on the shoe page", () => {
+  const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
+
+  it("fetches the header crest at its drawn size, not first and not at 1920 px", async () => {
+    const navbar = await read("components/Navbar.tsx");
+    const crest = navbar.slice(navbar.indexOf("<Image"), navbar.indexOf("/>", navbar.indexOf("<Image")));
+    expect(crest).toContain('sizes="80px"');
+    expect(crest).toContain('loading="eager"');
+    expect(crest).not.toMatch(/^\s+priority$/m);
+  });
+
+  it("brings the stylesheet inside the page", async () => {
+    expect(await read("next.config.js")).toMatch(/experimental: \{\n\s+inlineCss: true,/);
+  });
+
+  it("answers a shopper's review question instead of the admin gate's 401", async () => {
+    const proxy = await read("proxy.ts");
+    expect(proxy).toContain('const PUBLIC_API = new Set(["/api/products/review-access"]);');
+    expect(proxy).toContain('if (PUBLIC_API.has(pathname.replace(/\\/+$/, ""))) return false;');
+    // The rest of /api/products stays behind it.
+    expect(proxy).toContain('pathname.startsWith("/api/products") ||');
+  });
+
+  it("keeps small words readable and headings in order", async () => {
+    expect(await read("tailwind.config.js")).toContain('"gold-deep": "#84631A",');
+    expect(await read("components/ShareProduct.tsx")).toContain("bg-[#1468D8]");
+    expect(await read("components/ProductReviews.tsx")).not.toContain("text-gray-400");
+    expect(await read("app/product/[id]/page.tsx")).toMatch(/<h2 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">\n\s+<T en="About this product"/);
+  });
 });

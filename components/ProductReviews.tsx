@@ -281,7 +281,7 @@ export default function ProductReviews({
                   ) : null}
                 </div>
                 <p className="mt-2 text-base leading-7 text-brand-muted">{review.comment}</p>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs text-brand-muted">
                   {text("Reviewed on", "समीक्षा मिति")}{" "}
                   {/* Bikram Sambat for a Nepali reader, the English date
                       for everyone else — not the English calendar rendered in

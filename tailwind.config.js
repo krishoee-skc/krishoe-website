@@ -34,9 +34,11 @@ module.exports = {
           // Measured on a phone, not chosen by eye: #B98A2E drew the small
           // gold labels ("Point of Sale", "Catalog", "Your cart") at 2.9:1 on
           // paper, under the 4.5:1 small text needs, and white on it was 3.1:1.
-          // This is the same gold a shade deeper: 4.7:1 on paper, 5.0:1 for
-          // white on it. Dark mode draws these labels from its own token.
-          "gold-deep": "#8C6A1D",
+          // This is the same gold a shade deeper: 5.5:1 on paper, 5.0:1 on the
+          // mist ground, 5.6:1 for white on it (deepened again 2026-10-08:
+          // #8C6A1D was 4.47:1 on mist, and Google flagged "Product notes").
+          // Dark mode draws these labels from its own token.
+          "gold-deep": "#84631A",
           "gold-dark": "#9A6B08",
           "gold-ink": "#7A5A00",
           "gold-label": "#A47A28",

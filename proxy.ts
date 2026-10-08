@@ -10,7 +10,17 @@ import { customerSessionCookieName, verifyCustomerSessionToken } from "@/lib/cus
 import { canAccessFactoryApi, getFactoryApiPolicy } from "@/lib/factory-api-policy";
 import { safeCustomerNextPath } from "@/lib/safe-redirect";
 
+/**
+ * Asked by every product page, for every visitor: may this reader review the
+ * shoe? It answers for itself — signed out, or the signed-in customer's own
+ * orders — and only reads. Behind the admin gate it answered 401 to every
+ * customer, so a buyer whose order had closed was never offered the review
+ * form, and each shoe page logged a console error (found 2026-10-08).
+ */
+const PUBLIC_API = new Set(["/api/products/review-access"]);
+
 function isProtectedApi(pathname: string) {
+  if (PUBLIC_API.has(pathname.replace(/\/+$/, ""))) return false;
   return (
     pathname.startsWith("/api/admin") ||
     pathname.startsWith("/api/factory") ||

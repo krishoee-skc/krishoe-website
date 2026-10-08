@@ -87,7 +87,13 @@ export default async function Navbar({ isLoggedIn = false, isAdmin = false }: Na
                 alt="KRISHOE — Walk with Authority"
                 width={893}
                 height={723}
-                priority
+                // Drawn 56–80 px wide. Without `sizes` it was fetched at 1080
+                // and 1920 px, 26 KB, and `priority` sent it ahead of the
+                // page's own big picture — Google found the shoe photo on the
+                // product page arriving late (LCP 3.8 s, 2026-10-08). Eager,
+                // since it is at the top, but not first in the queue.
+                sizes="80px"
+                loading="eager"
                 className="h-full w-full object-contain"
               />
             </span>

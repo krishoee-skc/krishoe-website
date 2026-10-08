@@ -26,6 +26,7 @@ const ALLOWED = new Set([
   "#0E7A42", // WhatsApp, deep
   "#5A43D6", // Viber, deep
   "#1877F2", // Facebook
+  "#1468D8", // Facebook, deep — white on it 5.25:1 (2026-10-08)
   // The sign-in card states its own colours because globals.css repaints
   // `bg-white` in dark mode, which once turned the card dark while its inputs
   // stayed unstyled. See tests/login-form-legibility.test.ts.

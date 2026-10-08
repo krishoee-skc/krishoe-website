@@ -290,9 +290,9 @@ export default async function ProductPage({ params }: Props) {
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
                     <T en="Product notes" ne="सामानको जानकारी" />
                   </p>
-                  <h3 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">
+                  <h2 className="mt-3 text-2xl font-black text-brand-green-ink md:text-3xl">
                     <T en="About this product" ne="यो सामानबारे" />
-                  </h3>
+                  </h2>
                   <p className="mt-4 leading-7 text-brand-muted">{product.longDescription}</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">

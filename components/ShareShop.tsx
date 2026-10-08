@@ -106,7 +106,7 @@ export default function ShareShop({ url }: { url: string }) {
             onClick={() => trackShare("facebook")}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[#1877F2] px-3 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#1468D8] px-3 text-sm font-bold text-white transition hover:brightness-95"
           >
             Facebook
           </a>

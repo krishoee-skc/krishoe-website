@@ -120,6 +120,14 @@ const nextConfig = {
   // it has to stay a real package on disk.
   serverExternalPackages: ["sharp"],
 
+  // The stylesheet comes inside the page instead of as a second download that
+  // holds up the first paint — Google measured that wait at 450–480 ms on a
+  // slow phone (2026-10-08). The shop's CSS is Tailwind and small, and most
+  // shoppers arrive once, from an ad, with nothing cached.
+  experimental: {
+    inlineCss: true,
+  },
+
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
