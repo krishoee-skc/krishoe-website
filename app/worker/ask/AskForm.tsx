@@ -10,7 +10,7 @@ export default function AskForm({ start }: { start: "hisab" | "advance" }) {
   const [state, action, pending] = useActionState<AskState, FormData>(askOwnerAction, null);
 
   return (
-    <EnterWalkForm action={action} className="grid gap-4">
+    <EnterWalkForm action={action} worker className="grid gap-4">
       <input type="hidden" name="kind" value={kind} />
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="के भन्ने?">
         {[

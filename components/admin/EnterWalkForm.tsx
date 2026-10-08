@@ -103,13 +103,22 @@ export default function EnterWalkForm({
   onSubmit,
   confirmTitle,
   formRef: outerRef,
+  worker = false,
   ...props
 }: ComponentProps<"form"> & {
   confirmTitle?: string;
+  /**
+   * A worker's own screen: every word in Nepali whatever the phone was last
+   * set to, and "send" rather than "save" — what the worker does is send to
+   * the owner (owner, 2026-10-08: the question came up in English).
+   */
+  worker?: boolean;
   /** For a page that reads the form itself — the product form's AI drafter. */
   formRef?: { current: HTMLFormElement | null };
 }) {
-  const { text } = useLanguage();
+  const { text: chosen } = useLanguage();
+  const text = (english: string, nepali: string) => (worker ? nepali : chosen(english, nepali));
+  const ask = worker ? text("Send?", "पठाउने?") : text("Save?", "Save गर्ने?");
   const formRef = useRef<HTMLFormElement | null>(null);
   const yesRef = useRef<HTMLButtonElement>(null);
   const lastStop = useRef<HTMLElement | null>(null);
@@ -233,7 +242,9 @@ export default function EnterWalkForm({
     setHint(
       next
         ? text(`Enter ↵ next: ${nameOf(next)}`, `Enter ↵ अर्को: ${nameOf(next)}`)
-        : text("Enter ↵ asks before saving", "Enter ↵ Save गर्नुअघि सोध्छ"),
+        : worker
+          ? text("Enter ↵ asks before sending", "Enter ↵ पठाउनुअघि सोध्छ")
+          : text("Enter ↵ asks before saving", "Enter ↵ Save गर्नुअघि सोध्छ"),
     );
   }
 
@@ -264,11 +275,11 @@ export default function EnterWalkForm({
         <div
           data-enter-confirm
           role="alertdialog"
-          aria-label={text("Save?", "Save गर्ने?")}
+          aria-label={ask}
           className="mt-3 grid gap-2 rounded-xl border-2 border-brand-gold bg-brand-cream-soft p-3 text-brand-green-ink"
         >
           <p className="text-sm font-black">
-            {text("Save?", "Save गर्ने?")} {question ? <span className="font-semibold">{question}</span> : null}
+            {ask} {question ? <span className="font-semibold">{question}</span> : null}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -277,7 +288,7 @@ export default function EnterWalkForm({
               onClick={save}
               className="min-h-11 rounded-lg bg-brand-green px-4 text-sm font-black text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold"
             >
-              {text("Yes, save (Enter)", "हो, Save (Enter)")}
+              {worker ? text("Yes, send (Enter)", "हो, पठाउने (Enter)") : text("Yes, save (Enter)", "हो, Save (Enter)")}
             </button>
             <button
               type="button"

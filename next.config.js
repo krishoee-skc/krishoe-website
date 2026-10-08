@@ -23,7 +23,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://www.gstatic.com",
   // google.com, google.com.np and doubleclick: where GA4 sends a visit when
   // Google signals are on, per Google's own CSP guide (owner, 2026-10-07).
-  "img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://www.facebook.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://analytics.tiktok.com https://www.google.com https://www.google.com.np https://*.g.doubleclick.net https://www.gstatic.com https://fonts.gstatic.com https://translate.google.com",
+  // connect.facebook.net: the Meta library reports its own errors with an image
+  // from there (seen blocked on the checkout, 2026-10-07).
+  "img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://www.facebook.com https://connect.facebook.net https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://analytics.tiktok.com https://www.google.com https://www.google.com.np https://*.g.doubleclick.net https://www.gstatic.com https://fonts.gstatic.com https://translate.google.com",
   "font-src 'self' data:",
   // A shoe's short video plays from the shop's own file store (owner,
   // 2026-10-07); without this the browser falls back to default-src and

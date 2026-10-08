@@ -24,9 +24,13 @@ describe("Enter walks the money forms", () => {
     expect(source).toContain('name="bankCharge" inputMode="numeric" data-summary="money"');
   });
 
-  it("on the worker's advance request", async () => {
+  it("on the worker's advance request, asking in Nepali whatever the phone was set to", async () => {
     const source = await read("app/worker/ask/AskForm.tsx");
-    expect(source).toContain("<EnterWalkForm action={action}");
+    expect(source).toContain("<EnterWalkForm action={action} worker");
+    const walk = await read("components/admin/EnterWalkForm.tsx");
+    expect(walk).toContain("const text = (english: string, nepali: string) => (worker ? nepali : chosen(english, nepali));");
+    expect(walk).toContain('const ask = worker ? text("Send?", "पठाउने?") : text("Save?", "Save गर्ने?");');
+    expect(walk).toContain('text("Yes, send (Enter)", "हो, पठाउने (Enter)")');
     expect(source).toContain('data-summary="money"');
   });
 });
@@ -60,6 +64,11 @@ describe("Enter walks the screens with no form", () => {
 });
 
 describe("the ad libraries wait for the page", () => {
+  it("lets the Meta library report its own errors", async () => {
+    const config = await read("next.config.js");
+    expect(config).toMatch(/"img-src [^"]*https:\/\/connect\.facebook\.net /);
+  });
+
   it("loads Meta, GA and TikTok after the page, keeping Meta's and GA's queue from the start", async () => {
     const source = await read("components/commerce/Analytics.tsx");
     expect(source).toContain('<Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />');
