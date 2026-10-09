@@ -111,7 +111,9 @@ describe("the counter bill", () => {
   it("puts the new item straight on the bill", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
     expect(form).toContain("setAddedHere((current) => [item, ...current]);");
-    expect(form).toContain('choose(item, "");');
+    // Since 2026-10-09 the pairs typed are the ones being sold: straight on
+    // the bill, no size sheet to fill in again.
+    expect(form).toContain('if (canAddPair(item, size, next)) next = addPair(next, item, channel, size, "");');
   });
 
   it("is recorded for the Owner", async () => {

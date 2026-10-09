@@ -12,19 +12,16 @@ import {
   similarNames,
   tidySizes,
   totalPairs,
+  withOneBlankRow,
   type CounterItemChannel,
-  type CounterItemHow,
 } from "@/lib/counter-item-rules";
 import { categories } from "@/lib/products";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 
 type Created = Extract<CounterItemResult, { ok: true }>["item"];
 
-const HOWS: Array<{ id: CounterItemHow; en: string; ne: string }> = [
-  { id: "old", en: "Already on the shelf", ne: "पसलमा पहिले नै थियो" },
-  { id: "pending_bill", en: "Arrived, bill to come", ne: "नयाँ आयो, बिल आउन बाँकी" },
-  { id: "factory", en: "Made in our factory", ne: "आफ्नै कारखानाको" },
-];
+/** A blank size row; there is always exactly one at the foot (withOneBlankRow). */
+const blankRow = () => ({ size: "", pairs: "" });
 
 const box =
   "h-12 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base font-bold text-brand-green-ink outline-none focus:border-brand-green";
@@ -152,15 +149,10 @@ export default function PosNewItemSheet({
   const { text } = useLanguage();
   const [name, setName] = useState(initialName.trim());
   const [chosenKind, setChosenKind] = useState<string | null>(null);
-  const [how, setHow] = useState<CounterItemHow>("old");
-  const [supplierName, setSupplierName] = useState("");
-  const [supplierBillNo, setSupplierBillNo] = useState("");
-  const [rows, setRows] = useState<Array<{ size: string; pairs: string }>>([
-    { size: "", pairs: "" },
-    { size: "", pairs: "" },
-    { size: "", pairs: "" },
-  ]);
-  const [pile, setPile] = useState("");
+  // Added while selling (owner, 2026-10-09): the rows are the pairs being sold
+  // now, not the shelf's count. The shoe's stock is filled later from its
+  // purchase bill or a count of the shelf (Stock → "Sold first").
+  const [rows, setRows] = useState<Array<{ size: string; pairs: string }>>([blankRow()]);
   const [price, setPrice] = useState("");
   const [wholesale, setWholesale] = useState("");
   const [minPairs, setMinPairs] = useState("");
@@ -169,7 +161,7 @@ export default function PosNewItemSheet({
   const [doubtsConfirmed, setDoubtsConfirmed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const sizeBoxes = useRef<Array<HTMLInputElement | null>>([]);
-  const pileBox = useRef<HTMLInputElement>(null);
+  const priceBox = useRef<HTMLInputElement>(null);
   const kinds = categories.filter((entry) => entry.slug !== "new-arrivals");
   const guessed = guessKind(name);
   // Chosen by hand wins; otherwise the name's own words; otherwise the first.
@@ -179,7 +171,7 @@ export default function PosNewItemSheet({
 
   const lookAlikes = useMemo(() => similarNames(name, knownNames), [name, knownNames]);
   const sizes = tidySizes(rows);
-  const pilePairs = Math.round(Number(pile) || 0);
+  const pilePairs = 0;
   const retailPrice = Number(price) || 0;
   const wholesalePrice = Number(wholesale) || 0;
   const minWholesaleQty = Math.max(1, Math.round(Number(minPairs) || 1));
@@ -188,7 +180,7 @@ export default function PosNewItemSheet({
   const pairs = totalPairs(sizes, pilePairs);
   const problem = counterItemProblem({
     name,
-    how,
+    how: "pending_bill",
     sizes,
     pilePairs,
     retailPrice,
@@ -198,6 +190,7 @@ export default function PosNewItemSheet({
     lossConfirmed,
     minWholesaleQty: minPairs ? minWholesaleQty : undefined,
     doubtsConfirmed,
+    soldFirst: true,
   });
   const doubts = counterItemDoubts({
     pairs,
@@ -212,11 +205,17 @@ export default function PosNewItemSheet({
     wholesalePrice > 0 && costPerPair > 0 ? text(`wholesale Rs. ${wholesalePrice - costPerPair}`, `थोक रु. ${wholesalePrice - costPerPair}`) : "",
   ].filter(Boolean);
   const anyPrice = isWholesale ? wholesalePrice > 0 : retailPrice > 0;
+  const billPrice = isWholesale ? wholesalePrice : retailPrice;
+
+  function editRow(index: number, change: Partial<{ size: string; pairs: string }>) {
+    setRows((current) => withOneBlankRow(current.map((entry, at) => (at === index ? { ...entry, ...change } : entry)), blankRow));
+  }
 
   const retailBox = (
     <label className={label} key="retail">
       {isWholesale ? text("Retail price (optional)", "खुद्रा मूल्य (चाहे)") : text("Selling price (Rs.)", "बेच्ने मूल्य (रु.)")}
       <input
+        ref={isWholesale ? undefined : priceBox}
         value={price}
         inputMode="numeric"
         data-summary="money"
@@ -230,6 +229,7 @@ export default function PosNewItemSheet({
     <label className={label} key="wholesale">
       {isWholesale ? text("Wholesale price (Rs.)", "थोक मूल्य (रु.)") : text("Wholesale price (optional)", "थोक मूल्य (चाहे)")}
       <input
+        ref={isWholesale ? priceBox : undefined}
         value={wholesale}
         inputMode="numeric"
         data-summary="money"
@@ -246,9 +246,10 @@ export default function PosNewItemSheet({
       const result = await createCounterItemAction({
         name,
         categorySlug,
-        how,
-        supplierName,
-        supplierBillNo,
+        how: "pending_bill",
+        supplierName: "",
+        supplierBillNo: "",
+        soldFirst: true,
         sizes,
         pilePairs,
         retailPrice,
@@ -278,7 +279,7 @@ export default function PosNewItemSheet({
       >
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-black text-brand-green-ink">
-            ＋ {text("New item", "नयाँ माल")}
+            ＋ {text("New item · selling now", "नयाँ माल · अहिले बेच्ने")}
             {isWholesale ? (
               <span className="ml-2 rounded-full bg-brand-green-wash px-3 py-0.5 align-middle text-sm text-brand-green">{text("wholesale bill", "थोक बिल")}</span>
             ) : null}
@@ -345,29 +346,8 @@ export default function PosNewItemSheet({
             text={text}
           />
 
-          <ChoicePicker
-            title={text("How did it come?", "यो माल कसरी आयो?")}
-            options={HOWS}
-            value={how}
-            onChange={(id) => setHow(id as CounterItemHow)}
-            text={text}
-          />
-
-          {how === "pending_bill" ? (
-            <div className="grid grid-cols-2 gap-2">
-              <label className={label}>
-                {text("Supplier (if known)", "साहु (थाहा भए)")}
-                <input value={supplierName} onChange={(event) => setSupplierName(event.target.value)} className={box} />
-              </label>
-              <label className={label}>
-                {text("Bill no. (later is fine)", "बिल नं. (पछि पनि हुन्छ)")}
-                <input value={supplierBillNo} onChange={(event) => setSupplierBillNo(event.target.value)} className={box} />
-              </label>
-            </div>
-          ) : null}
-
           <div className={label}>
-            {text("Pairs by size", "साइज अनुसार जोडी")}
+            {text("Selling now — size and pairs", "अहिले बेच्ने — साइज र जोडी")}
             <div className="grid gap-1.5">
               {rows.map((row, index) => (
                 <div key={index} className="grid grid-cols-2 gap-2">
@@ -379,51 +359,29 @@ export default function PosNewItemSheet({
                     inputMode="numeric"
                     placeholder={text("Size", "साइज")}
                     onKeyDown={(event) => {
-                      // An empty size is "no more sizes": on to the next box,
-                      // past the empty rows, rather than into another blank
-                      // row (owner, 2026-09-30).
+                      // An empty size is "no more sizes": on to the price,
+                      // past the empty row (owner, 2026-09-30).
                       if (event.key === "Enter" && !event.shiftKey && !row.size.trim()) {
                         event.preventDefault();
-                        pileBox.current?.focus();
+                        priceBox.current?.focus();
                       }
                     }}
-                    onChange={(event) =>
-                      setRows((current) => current.map((entry, at) => (at === index ? { ...entry, size: event.target.value } : entry)))
-                    }
-                    className={box}
+                    onChange={(event) => editRow(index, { size: event.target.value })}
+                    className={index === rows.length - 1 && !row.size && !row.pairs ? `${box} border-dashed` : box}
                     aria-label={text(`Size, row ${index + 1}`, `साइज, लाइन ${index + 1}`)}
                   />
                   <input
                     value={row.pairs}
                     inputMode="numeric"
                     placeholder={text("Pairs", "जोडी")}
-                    onChange={(event) =>
-                      setRows((current) => current.map((entry, at) => (at === index ? { ...entry, pairs: event.target.value } : entry)))
-                    }
-                    onKeyDown={(event) => {
-                      // A filled last row grows one more, and the cursor goes
-                      // to its size.
-                      if (event.key === "Enter" && !event.shiftKey && index === rows.length - 1 && row.size.trim() && row.pairs.trim()) {
-                        event.preventDefault();
-                        setRows((current) => [...current, { size: "", pairs: "" }]);
-                        window.setTimeout(() => sizeBoxes.current[index + 1]?.focus(), 0);
-                      }
-                    }}
-                    className={box}
+                    onChange={(event) => editRow(index, { pairs: event.target.value })}
+                    className={index === rows.length - 1 && !row.size && !row.pairs ? `${box} border-dashed` : box}
                     aria-label={text(`Pairs, row ${index + 1}`, `जोडी, लाइन ${index + 1}`)}
                   />
                 </div>
               ))}
-              <button type="button" onClick={() => setRows((current) => [...current, { size: "", pairs: "" }])} className="w-fit text-sm font-black text-brand-green underline">
-                ＋ {text("Another size", "अर्को साइज")}
-              </button>
             </div>
           </div>
-
-          <label className={label}>
-            {text("Pairs with sizes not counted (optional)", "साइज नगनिएका जोडी (चाहे)")}
-            <input ref={pileBox} value={pile} inputMode="numeric" onChange={(event) => setPile(event.target.value)} className={box} />
-          </label>
 
           {/* The bill's own price, the one that must be typed, stands open;
               the rest are optional and fold under "+ more", where Enter does
@@ -505,10 +463,19 @@ export default function PosNewItemSheet({
             </p>
           ) : null}
 
-          <p className="text-sm font-semibold text-brand-muted">
+          {pairs > 0 && billPrice > 0 ? (
+            <p className="rounded-xl bg-brand-green-wash px-3 py-2 text-base font-black text-brand-green">
+              {text(
+                `${pairs} ${pairs === 1 ? "pair" : "pairs"} × Rs. ${billPrice.toLocaleString("en-IN")} = Rs. ${(pairs * billPrice).toLocaleString("en-IN")} → the bill`,
+                `${pairs} जोडी × रु. ${billPrice.toLocaleString("en-IN")} = रु. ${(pairs * billPrice).toLocaleString("en-IN")} → बिलमा`,
+              )}
+            </p>
+          ) : null}
+
+          <p className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-ink">
             {text(
-              `${pairs} pairs go to the shop's stock, placed at the shop. It gets the next shoe code and stays hidden from the website until you add a photo.`,
-              `${pairs} जोडी पसलको स्टकमा, "पसल" मा चढ्छन्। नयाँ कोड पाउँछ, र फोटो नराखेसम्म वेबसाइटमा लुकेर रहन्छ।`,
+              "Stock: to be filled. It goes on the “stock to fill” list — fill it from its purchase bill, or count the shelf.",
+              "स्टक: भर्न बाँकी। “स्टक भर्न बाँकी” सूचीमा जान्छ — खरिद बिलबाट वा र्‍याकमा गनेर भर्नुहोस्।",
             )}
           </p>
 
@@ -530,7 +497,7 @@ export default function PosNewItemSheet({
             disabled={Boolean(problem) || !ready || saving}
             className="min-h-14 rounded-2xl bg-brand-green px-5 text-lg font-black text-white disabled:opacity-50"
           >
-            {saving ? text("Saving…", "राख्दैछौँ…") : text("Save and add to the bill", "सेभ गरेर बिलमा थप्ने")}
+            {saving ? text("Saving…", "राख्दैछौँ…") : text("Add to the bill", "बिलमा थप्ने")}
           </button>
         </EnterWalkForm>
       </div>

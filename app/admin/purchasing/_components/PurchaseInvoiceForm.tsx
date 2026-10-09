@@ -39,7 +39,15 @@ type PurchaseInvoiceFormProps = {
    * puts one on this bill as a line that records the bill without adding its
    * pairs again (owner, 2026-09-29).
    */
-  billToCome?: Array<{ id: string; design: string; pairs: number; sizes: Record<string, number>; supplierName: string }>;
+  billToCome?: Array<{
+    id: string;
+    design: string;
+    pairs: number;
+    sizes: Record<string, number>;
+    supplierName: string;
+    /** Sold at the counter before its stock was put in: the bill carries every pair, and adds those not sold. */
+    soldFirst?: boolean;
+  }>;
   /**
    * The cheque book (owner, 2026-10-01: "we give cheques when we buy, too"):
    * once its table is there, a cheque asks which of our banks it is written
@@ -1249,7 +1257,10 @@ export default function PurchaseInvoiceForm({
                         className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-brand-gold bg-brand-paper px-3 text-left text-sm font-bold text-brand-green-ink disabled:opacity-50"
                       >
                         <span>
-                          {item.design} · {item.pairs} {text("pairs", "जोडी")}
+                          {item.design} ·{" "}
+                          {item.soldFirst
+                            ? text(`sold first: ${item.pairs} pairs`, `पहिले बेचेको: ${item.pairs} जोडी`)
+                            : `${item.pairs} ${text("pairs", "जोडी")}`}
                           {item.supplierName ? ` · ${item.supplierName}` : ""}
                         </span>
                         <span className="text-brand-green">{onBill ? "✓" : text("Add to this bill →", "यो बिलमा जोड्ने →")}</span>
@@ -1324,7 +1335,12 @@ export default function PurchaseInvoiceForm({
                         <input type="hidden" name={`item${index}CounterItemId`} value={row.counterItemId ?? ""} />
                         {row.counterItemId ? (
                           <span className="mb-1 inline-block rounded-full bg-brand-cream-soft px-2.5 py-0.5 text-sm font-black text-brand-gold-ink">
-                            {text("Bill to come — pairs already in stock", "बिल आउन बाँकी — जोडी पहिले नै स्टकमा")}
+                            {billToCome.find((item) => item.id === row.counterItemId)?.soldFirst
+                              ? text(
+                                  `Sold first: ${billToCome.find((item) => item.id === row.counterItemId)?.pairs ?? 0} pairs already sold — type every pair on the bill; the rest go into stock`,
+                                  `पहिले बेचेको: ${billToCome.find((item) => item.id === row.counterItemId)?.pairs ?? 0} जोडी बिकिसकेको — बिलका सबै जोडी लेख्नुहोस्; बाँकी स्टकमा चढ्छन्`,
+                                )
+                              : text("Bill to come — pairs already in stock", "बिल आउन बाँकी — जोडी पहिले नै स्टकमा")}
                           </span>
                         ) : null}
                       </>

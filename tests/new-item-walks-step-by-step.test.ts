@@ -59,19 +59,23 @@ describe("a figure that reads like a slip", () => {
 });
 
 describe("the form", () => {
-  it("shows the kind and how it came as the one chosen, Enter to accept", async () => {
+  it("shows the kind as the one chosen, Enter to accept — and no longer asks how it came", async () => {
     const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
     expect(sheet).toContain("function ChoicePicker(");
     expect(sheet).toContain("data-enter-walk");
     expect(sheet).toContain("const categorySlug = chosenKind ?? guessed ?? kinds[0]?.slug ?? \"\";");
-    expect(sheet).toContain('title={text("How did it come?", "यो माल कसरी आयो?")}');
+    // Added while selling (owner, 2026-10-09): the stock is filled later, so
+    // how it came is the purchase bill's to say.
+    expect(sheet).not.toContain("How did it come?");
+    expect(sheet).toContain("soldFirst: true,");
   });
 
-  it("ends the sizes on an empty size, and grows a row only from a filled one", async () => {
+  it("ends the sizes on an empty size, and always keeps one empty row at the foot", async () => {
     const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
     expect(sheet).toContain('if (event.key === "Enter" && !event.shiftKey && !row.size.trim()) {');
-    expect(sheet).toContain("pileBox.current?.focus();");
-    expect(sheet).toContain("index === rows.length - 1 && row.size.trim() && row.pairs.trim()");
+    expect(sheet).toContain("priceBox.current?.focus();");
+    expect(sheet).toContain("withOneBlankRow(current.map((entry, at) => (at === index ? { ...entry, ...change } : entry)), blankRow)");
+    expect(sheet).not.toContain("Pairs with sizes not counted");
   });
 
   it("keeps the box being typed in in view", async () => {

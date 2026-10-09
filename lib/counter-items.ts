@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { counterItemsReady } from "@/lib/counter-items-database";
 import {
+  MAX_COUNTER_PAIRS,
+  STOCK_TO_FILL_DAYS,
   counterItemProblem,
   movementTypeForHow,
   similarNames,
@@ -41,6 +43,12 @@ export type CounterItemInput = {
   lossConfirmed: boolean;
   /** A figure that read like a slip (lib/counter-item-rules.ts counterItemDoubts) was confirmed. */
   doubtsConfirmed?: boolean;
+  /**
+   * Added while selling (owner, 2026-10-09): the sizes are the pairs being sold
+   * now. They go in as stock and straight out on the bill; the shoe's real
+   * stock is filled later from its purchase bill or a count of the shelf.
+   */
+  soldFirst?: boolean;
   createdBy: string;
 };
 
@@ -82,8 +90,10 @@ export async function createCounterItem(input: CounterItemInput) {
     lossConfirmed: input.lossConfirmed,
     minWholesaleQty: input.minWholesaleQty,
     doubtsConfirmed: input.doubtsConfirmed,
+    soldFirst: input.soldFirst,
   });
   if (problem) throw new CounterItemRefusal(problem);
+  const soldFirst = Boolean(input.soldFirst);
   const wholesalePrice = Math.max(0, Number(input.wholesalePrice) || 0);
   // Added from a wholesale bill with no retail price typed: the item still
   // needs a price for the shop's own customers, so it takes the wholesale one
@@ -144,8 +154,9 @@ export async function createCounterItem(input: CounterItemInput) {
 
   const type = movementTypeForHow[input.how];
   const supplier = input.supplierName.trim();
-  const note =
-    input.how === "old"
+  const note = soldFirst
+    ? `Sold at the counter before its stock was put in${supplier ? ` — ${supplier}` : ""}. Stock to fill from the purchase bill or a shelf count.`
+    : input.how === "old"
       ? "Already on the shop shelf — added from the counter bill."
       : input.how === "pending_bill"
         ? `Arrived, supplier's bill to come${supplier ? ` — ${supplier}` : ""}. Added from the counter bill.`
@@ -195,6 +206,12 @@ export async function createCounterItem(input: CounterItemInput) {
         input.createdBy.slice(0, 80),
       ],
     );
+    if (soldFirst) {
+      await db.query(
+        `INSERT INTO counter_sold_first (counter_item_id, sold_pairs, sold_sizes) VALUES ($1, $2, $3::jsonb)`,
+        [id, pairs, JSON.stringify(sizes)],
+      );
+    }
   });
 
   return {
@@ -210,6 +227,7 @@ export async function createCounterItem(input: CounterItemInput) {
     wholesaleRate: wholesalePrice > 0 ? wholesalePrice : retailPrice,
     minWholesaleQty,
     costPerPair: input.costPerPair,
+    soldFirst,
   };
 }
 
@@ -268,27 +286,131 @@ function counterItemFromRow(row: CounterItemDbRow): CounterItemRow {
 }
 
 const COLUMNS = `id, created_at, design, how, supplier_name, supplier_bill_no, pairs, size_breakdown, retail_price, cost_per_pair, created_by`;
+const C_COLUMNS = COLUMNS.split(", ").map((column) => `c.${column}`).join(", ");
+
+/** A shoe sold at the counter before its stock was put in, still to be filled. */
+export type StockToFillRow = CounterItemRow & { soldPairs: number; soldSizes: Record<string, number> };
 
 /**
  * What the Owner still has to look at: goods added at the counter and not yet
  * seen, and goods whose supplier's bill has not come. Empty lists when the
  * table is not there yet.
  */
-export async function getCounterItemsToWatch(): Promise<{ toReview: CounterItemRow[]; billToCome: CounterItemRow[] }> {
-  if (!(await counterItemsReady().catch(() => false))) return { toReview: [], billToCome: [] };
-  const [toReview, billToCome] = await Promise.all([
+export async function getCounterItemsToWatch(): Promise<{
+  toReview: CounterItemRow[];
+  billToCome: CounterItemRow[];
+  stockToFill: StockToFillRow[];
+}> {
+  if (!(await counterItemsReady().catch(() => false))) return { toReview: [], billToCome: [], stockToFill: [] };
+  const [toReview, billToCome, stockToFill] = await Promise.all([
     queryPostgres<CounterItemDbRow>(
       STORE,
       `SELECT ${COLUMNS} FROM counter_items WHERE reviewed_at IS NULL ORDER BY created_at DESC LIMIT 50`,
     ),
     queryPostgres<CounterItemDbRow>(
       STORE,
-      `SELECT ${COLUMNS} FROM counter_items
-        WHERE how = 'pending_bill' AND bill_linked_at IS NULL
-        ORDER BY created_at ASC LIMIT 50`,
+      // A shoe sold first is not a "bill to come": it has its own list
+      // below, and a count of the shelf can fill it with no bill at all.
+      `SELECT ${C_COLUMNS} FROM counter_items c
+        WHERE c.how = 'pending_bill' AND c.bill_linked_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM counter_sold_first s WHERE s.counter_item_id = c.id)
+        ORDER BY c.created_at ASC LIMIT 50`,
+    ),
+    queryPostgres<CounterItemDbRow & { sold_pairs: number | string; sold_sizes: Record<string, number | string> | null }>(
+      STORE,
+      `SELECT ${C_COLUMNS}, s.sold_pairs, s.sold_sizes
+         FROM counter_sold_first s JOIN counter_items c ON c.id = s.counter_item_id
+        WHERE s.filled_at IS NULL
+        ORDER BY s.created_at ASC LIMIT 50`,
     ),
   ]);
-  return { toReview: toReview.map(counterItemFromRow), billToCome: billToCome.map(counterItemFromRow) };
+  return {
+    toReview: toReview.map(counterItemFromRow),
+    billToCome: billToCome.map(counterItemFromRow),
+    stockToFill: stockToFill.map((row) => ({
+      ...counterItemFromRow(row),
+      soldPairs: Number(row.sold_pairs) || 0,
+      soldSizes: cleanSizes(row.sold_sizes),
+    })),
+  };
+}
+
+function cleanSizes(raw: Record<string, number | string> | null) {
+  return Object.fromEntries(
+    Object.entries(raw ?? {})
+      .map(([size, pairs]) => [size, Math.round(Number(pairs) || 0)] as const)
+      .filter(([, pairs]) => pairs > 0),
+  );
+}
+
+
+/** Sold-first shoes whose stock has waited longer than that — for the dashboard. */
+export async function countStockToFillOverdue(days = STOCK_TO_FILL_DAYS) {
+  if (!(await counterItemsReady().catch(() => false))) return 0;
+  const rows = await queryPostgres<{ n: number | string }>(
+    STORE,
+    `SELECT count(*)::int AS n FROM counter_sold_first
+      WHERE filled_at IS NULL AND created_at < now() - make_interval(days => $1)`,
+    [days],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+/**
+ * Fill a sold-first shoe's stock by counting the shelf (owner, 2026-10-09):
+ * for goods with no purchase bill coming. The pairs counted now are put in as
+ * they are, size by size, at the shop — the ones sold before are already out.
+ * Once only: a second fill would count the shelf twice.
+ */
+export async function fillSoldFirstByCount(counterItemId: string, sizes: Record<string, number>, by: string) {
+  if (!(await counterItemsReady())) {
+    throw new CounterItemRefusal({
+      en: "The database is not ready for this yet. The Owner can prepare it in Settings.",
+      ne: "यसका लागि database तयार छैन। मालिकले Settings मा तयार गर्न सक्नुहुन्छ।",
+    });
+  }
+  const counted = Object.entries(sizes).filter(([size, pairs]) => size.trim() && pairs > 0);
+  const total = counted.reduce((sum, [, pairs]) => sum + pairs, 0);
+  if (total > MAX_COUNTER_PAIRS) {
+    throw new CounterItemRefusal({
+      en: `More than ${MAX_COUNTER_PAIRS} pairs — check the count.`,
+      ne: `${MAX_COUNTER_PAIRS} भन्दा बढी जोडी — गन्ती फेरि हेर्नुहोस्।`,
+    });
+  }
+  return transactionPostgres(STORE, async (db) => {
+    const rows = await db.query<{ design: string; sold_pairs: number | string }>(
+      `SELECT c.design, s.sold_pairs
+         FROM counter_sold_first s JOIN counter_items c ON c.id = s.counter_item_id
+        WHERE s.counter_item_id = $1 AND s.filled_at IS NULL
+        FOR UPDATE OF s`,
+      [counterItemId],
+    );
+    const item = rows[0];
+    if (!item) {
+      throw new CounterItemRefusal({
+        en: "This shoe's stock is already filled.",
+        ne: "यो जुत्ताको स्टक पहिले नै भरिसकेको छ।",
+      });
+    }
+    for (const [sizeRun, pairs] of counted) {
+      const movement = await insertStockMovement(db, {
+        design: item.design,
+        channel: "Retail",
+        sizeRun,
+        type: "Adjustment",
+        pairs,
+        note: `Counted on the shop shelf after ${Number(item.sold_pairs) || 0} pairs were sold first at the counter.`,
+      });
+      await placePairs(db, movement.design, movement.sizeRun, "Shop", pairs);
+    }
+    await db.query(
+      `UPDATE counter_sold_first
+          SET filled_at = now(), filled_how = 'count', filled_pairs = $2, filled_by = $3
+        WHERE counter_item_id = $1`,
+      [counterItemId, total, by.slice(0, 80)],
+    );
+    return { design: item.design, pairs: total };
+  });
 }
 
 /** The Owner has looked at an item added at the counter; it leaves the list. */

@@ -2,7 +2,9 @@ import Link from "next/link";
 import T from "@/components/T";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
 import { money } from "@/lib/format-money";
-import type { CounterItemRow } from "@/lib/counter-items";
+import type { CounterItemRow, StockToFillRow } from "@/lib/counter-items";
+import { STOCK_TO_FILL_DAYS } from "@/lib/counter-item-rules";
+import FillByCount from "@/app/admin/stock/FillByCount";
 import type { StockAtPlace } from "@/lib/stock-transfers";
 import { markCounterItemReviewedAction } from "@/app/admin/stock/actions";
 import ReviewButton from "@/app/admin/stock/ReviewButton";
@@ -61,12 +63,14 @@ export function weeklyCountShoes(rows: StockAtPlace[], today: string, howMany = 
 export default function CounterGoodsWatch({
   toReview,
   billToCome,
+  stockToFill = [],
   countThisWeek,
   canReview,
   today,
 }: {
   toReview: CounterItemRow[];
   billToCome: CounterItemRow[];
+  stockToFill?: StockToFillRow[];
   countThisWeek: ReturnType<typeof weeklyCountShoes>;
   canReview: boolean;
   today: string;
@@ -111,6 +115,55 @@ export default function CounterGoodsWatch({
                 ) : null}
               </li>
             ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Sold at the counter before the stock was put in (owner, 2026-10-09):
+          filled from the purchase bill, or by counting the shelf. Seven days
+          is the Owner's limit before the dashboard asks. */}
+      {stockToFill.length > 0 ? (
+        <section id="stock-to-fill" className="scroll-mt-24 rounded-2xl border-2 border-brand-gold/60 bg-brand-cream-soft p-4 sm:p-5">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en={`Sold first — stock to fill (${stockToFill.length})`} ne={`पहिले बेचेको — स्टक भर्न बाँकी (${stockToFill.length})`} />
+          </h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            <T
+              en="Sold at the counter before their pairs were put in. Fill each from its purchase bill (choose it there; type every pair on the bill), or count the shelf here."
+              ne="पसलमा जोडी नचढाई काउन्टरमा बेचिएका। हरेकको स्टक खरिद बिलबाट भर्नुहोस् (त्यहाँ यही माल छानेर बिलका सबै जोडी लेख्ने), वा यहीँ र्‍याकमा गनेर भर्नुहोस्।"
+            />
+          </p>
+          <ul className="mt-3 grid gap-2">
+            {stockToFill.map((item) => {
+              const days = daysSince(item.createdAt);
+              const late = days >= STOCK_TO_FILL_DAYS;
+              const sold = Object.entries(item.soldSizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ");
+              return (
+                <li key={item.id} className="grid gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      <b className="text-brand-green-ink">{item.design}</b> ·{" "}
+                      <T en={`${item.soldPairs} sold`} ne={`${item.soldPairs} जोडी बिकेको`} />
+                      {sold ? <span className="text-sm text-brand-muted"> ({sold})</span> : null}
+                    </span>
+                    <span className={`rounded-full px-3 py-0.5 text-sm font-black ${late ? "bg-brand-clay-tint text-brand-clay" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
+                      <T en={`${days} days waiting`} ne={`${days} दिन भयो`} />
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link href="/admin/purchasing" className="inline-flex min-h-11 items-center rounded-full border border-brand-green px-4 text-sm font-black text-brand-green">
+                      <T en="Fill from its purchase bill →" ne="खरिद बिलबाट भर्ने →" />
+                    </Link>
+                  </div>
+                  <details className="rounded-xl border border-dashed border-brand-green-line px-3 py-2">
+                    <summary className="cursor-pointer text-sm font-black text-brand-green">
+                      <T en="Or count the shelf" ne="वा र्‍याकमा गनेर भर्ने" />
+                    </summary>
+                    <FillByCount id={item.id} design={item.design} />
+                  </details>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

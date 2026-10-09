@@ -306,7 +306,7 @@ export default async function AdminStockPage() {
     // Goods added at the counter: never fatal, the page stands without them.
     getCounterItemsToWatch().catch((error) => {
       reportError("load counter items to watch", error);
-      return { toReview: [], billToCome: [] };
+      return { toReview: [], billToCome: [], stockToFill: [] };
     }),
   ]);
   const canReview = session ? canAdmin(getSessionAdminRole(session), "settings:write") : false;
@@ -431,6 +431,7 @@ export default async function AdminStockPage() {
       <CounterGoodsWatch
         toReview={watch.toReview}
         billToCome={watch.billToCome}
+        stockToFill={watch.stockToFill}
         countThisWeek={weeklyCountShoes(loaded.byPlace, today)}
         canReview={canReview}
         today={today}

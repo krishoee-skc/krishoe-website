@@ -1,4 +1,5 @@
-import { countCounterItemsToReview } from "@/lib/counter-items";
+import { countCounterItemsToReview, countStockToFillOverdue } from "@/lib/counter-items";
+import { STOCK_TO_FILL_DAYS } from "@/lib/counter-item-rules";
 import { getVoiceCounts } from "@/lib/customer-voice";
 import { getCheques } from "@/lib/cheque-book";
 import { chequeReminders, chequeRupees } from "@/lib/cheque-book-rules";
@@ -233,6 +234,20 @@ export default async function AdminDashboardPage() {
         subEn: "Check the name, pairs and price",
         subNe: "नाम, जोडी र मूल्य हेर्ने",
         href: "/admin/stock#new-goods",
+      });
+    }
+    // A shoe sold at the counter before its stock was put in, still unfilled
+    // after seven days (owner, 2026-10-09).
+    const stockToFillLate = await countStockToFillOverdue().catch(() => 0);
+    if (stockToFillLate > 0) {
+      todos.push({
+        key: "stock-to-fill",
+        tone: "red",
+        en: `${stockToFillLate} ${stockToFillLate === 1 ? "shoe" : "shoes"} sold first, stock still to fill`,
+        ne: `पहिले बेचेका ${stockToFillLate} जुत्ताको स्टक भर्न बाँकी`,
+        subEn: `Over ${STOCK_TO_FILL_DAYS} days — fill from the purchase bill or count the shelf`,
+        subNe: `${STOCK_TO_FILL_DAYS} दिन नाघ्यो — खरिद बिलबाट वा र्‍याकमा गनेर भर्ने`,
+        href: "/admin/stock#stock-to-fill",
       });
     }
     // A customer waiting for an answer (owner, 2026-10-01): a review or a

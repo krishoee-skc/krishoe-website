@@ -1448,6 +1448,20 @@ CREATE TABLE IF NOT EXISTS counter_items (
 CREATE INDEX IF NOT EXISTS counter_items_design_idx ON counter_items (lower(design));
 CREATE INDEX IF NOT EXISTS counter_items_open_idx ON counter_items (created_at) WHERE reviewed_at IS NULL;
 
+-- Shoes sold at the counter before their stock was put in (20261009_counter_sold_first.sql).
+CREATE TABLE IF NOT EXISTS counter_sold_first (
+  counter_item_id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  sold_pairs integer NOT NULL DEFAULT 0 CHECK (sold_pairs >= 0),
+  sold_sizes jsonb NOT NULL DEFAULT '{}'::jsonb,
+  filled_at timestamptz DEFAULT NULL,
+  filled_how text NOT NULL DEFAULT '' CHECK (filled_how IN ('', 'bill', 'count')),
+  filled_pairs integer NOT NULL DEFAULT 0 CHECK (filled_pairs >= 0),
+  filled_by text NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS counter_sold_first_open_idx ON counter_sold_first (created_at) WHERE filled_at IS NULL;
+
 -- Cheques on counter bills, until the bank pays them (20260930_pos_cheques.sql).
 CREATE TABLE IF NOT EXISTS pos_cheques (
   invoice_id text PRIMARY KEY,

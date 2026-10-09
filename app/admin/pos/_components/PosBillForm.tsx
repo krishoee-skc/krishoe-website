@@ -1795,13 +1795,25 @@ export default function PosBillForm({
             setAddedHere((current) => [item, ...current]);
             setNewItemName(null);
             setQuery("");
+            // Added while selling (owner, 2026-10-09): the pairs typed are the
+            // ones being sold, so they go on the bill as they are — no size
+            // sheet to fill in a second time.
+            let next = cart;
+            for (const [size, pairs] of Object.entries(created.sizes)) {
+              for (let pair = 0; pair < pairs; pair += 1) {
+                if (canAddPair(item, size, next)) next = addPair(next, item, channel, size, "");
+              }
+            }
+            setCart(next);
+            setStartedAt((value) => value ?? Date.now());
+            if (!(rateForChannel(channel, item) > 0)) setAskRateFor(item.design);
             setNote(
               text(
-                `${created.design} (${created.sku}) added: ${created.pairs} pairs at the shop.`,
-                `${created.design} (${created.sku}) थपियो: पसलमा ${created.pairs} जोडी।`,
+                `${created.design} (${created.sku}) on the bill: ${created.pairs} ${created.pairs === 1 ? "pair" : "pairs"}. Its stock is to fill.`,
+                `${created.design} (${created.sku}) बिलमा: ${created.pairs} जोडी। स्टक भर्न बाँकी।`,
               ),
             );
-            choose(item, "");
+            searchRef.current?.focus();
             router.refresh();
           }}
         />

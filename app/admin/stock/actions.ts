@@ -12,7 +12,8 @@ import {
   type StockPlace,
 } from "@/lib/stock-transfers";
 import type { ActionState } from "@/app/admin/actions";
-import { markCounterItemReviewed } from "@/lib/counter-items";
+import { CounterItemRefusal, fillSoldFirstByCount, markCounterItemReviewed } from "@/lib/counter-items";
+import { tidySizes } from "@/lib/counter-item-rules";
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -200,4 +201,40 @@ export async function markCounterItemReviewedAction(formData: FormData) {
   }
   revalidatePath("/admin/stock");
   revalidatePath("/admin");
+}
+
+/**
+ * A shoe sold at the counter before its stock was put in, filled by counting
+ * the shelf (owner, 2026-10-09) — for goods with no purchase bill coming. The
+ * same people who may add it at the counter may count it.
+ */
+export async function fillSoldFirstByCountAction(
+  _previous: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const { session } = await requireAdminPermission("pos:write");
+  const id = textValue(formData, "id");
+  if (!id) return { ok: false, message: "Which shoe is being counted?" };
+  let rows: Array<{ size: string; pairs: string }> = [];
+  try {
+    rows = JSON.parse(textValue(formData, "sizes") || "[]");
+  } catch {
+    return { ok: false, message: "The sizes could not be read. Type them again." };
+  }
+  const sizes = tidySizes(Array.isArray(rows) ? rows : []);
+  try {
+    const filled = await fillSoldFirstByCount(id, sizes, session?.name || session?.email || "Counter");
+    await recordAdminAuditEvent(
+      "counter_sold_first_counted",
+      `${filled.design}: stock filled by counting the shelf — ${filled.pairs} pairs (${Object.entries(sizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ") || "none left"}).`,
+    );
+    revalidatePath("/admin/stock");
+    revalidatePath("/admin/pos");
+    revalidatePath("/admin");
+    return { ok: true, message: `${filled.design}: ${filled.pairs} pairs counted in at the shop.` };
+  } catch (error) {
+    if (error instanceof CounterItemRefusal) return { ok: false, message: error.message };
+    reportError("fill a sold-first shoe by counting", error);
+    return { ok: false, message: saveFailureMessage(error, "The count was not saved.") };
+  }
 }

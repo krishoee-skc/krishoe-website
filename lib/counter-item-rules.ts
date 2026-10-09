@@ -23,6 +23,9 @@ export const movementTypeForHow = {
   factory: "Production In",
 } as const satisfies Record<CounterItemHow, string>;
 
+/** Days a sold-first shoe may wait for its stock before the dashboard asks (owner, 2026-10-09: seven). */
+export const STOCK_TO_FILL_DAYS = 7;
+
 /** At most this many pairs of one item from the counter; more is a typing slip. */
 export const MAX_COUNTER_PAIRS = 2000;
 
@@ -84,6 +87,67 @@ export function totalPairs(sizes: Record<string, number>, pilePairs: number) {
   return Object.values(sizes).reduce((sum, pairs) => sum + pairs, 0) + Math.max(0, Math.round(pilePairs || 0));
 }
 
+/**
+ * The size rows with exactly one empty row at the foot (owner, 2026-10-09:
+ * "there should always be one empty size box below"). Typing into the last row
+ * — by Enter, Tab or a tap — opens the next; empty rows in between stay where
+ * the person left them.
+ */
+export function withOneBlankRow<Row extends { size: string; pairs: string }>(rows: Row[], blank: () => Row): Row[] {
+  const isBlank = (row: Row) => !row.size.trim() && !row.pairs.trim();
+  let end = rows.length;
+  while (end > 0 && isBlank(rows[end - 1])) end -= 1;
+  return [...rows.slice(0, end), end < rows.length ? rows[end] : blank()];
+}
+
+/**
+ * What a purchase bill adds to a shoe that was sold at the counter before its
+ * stock was put in (owner, 2026-10-09). The pairs sold went in when it was
+ * added, so the bill adds the rest: every pair on the bill less those already
+ * sold, size by size when the bill gives sizes. A bill with fewer pairs than
+ * were sold, or fewer of a size, is a count to put right, never a quiet fix.
+ */
+export function soldFirstExtras(input: {
+  billQuantity: number;
+  billSizes: Record<string, number>;
+  soldPairs: number;
+  soldSizes: Record<string, number>;
+}):
+  | { ok: true; extras: Record<string, number>; pairs: number }
+  | { ok: false; en: string; ne: string } {
+  const quantity = Math.round(input.billQuantity || 0);
+  const sold = Math.round(input.soldPairs || 0);
+  if (quantity < sold) {
+    return {
+      ok: false,
+      en: `the bill says ${quantity} pairs, but ${sold} were already sold at the counter. Type every pair on the bill.`,
+      ne: `बिलमा ${quantity} जोडी छ, तर काउन्टरमा ${sold} जोडी बिकिसकेको छ। बिलमा भएका सबै जोडी लेख्नुहोस्।`,
+    };
+  }
+  const billSizes = Object.entries(input.billSizes).filter(([, pairs]) => pairs > 0);
+  if (billSizes.length === 0) {
+    // No sizes on the bill: the rest are uncounted pairs of this shoe.
+    return { ok: true, extras: quantity > sold ? { Mixed: quantity - sold } : {}, pairs: quantity - sold };
+  }
+  const extras: Record<string, number> = {};
+  for (const [size, soldOfSize] of Object.entries(input.soldSizes)) {
+    const onBill = Math.round(input.billSizes[size] ?? 0);
+    if (onBill < soldOfSize) {
+      return {
+        ok: false,
+        en: `size ${size}: the bill has ${onBill}, but ${soldOfSize} were already sold. Check the sizes on the bill.`,
+        ne: `साइज ${size}: बिलमा ${onBill} जोडी छ, तर ${soldOfSize} जोडी बिकिसकेको छ। बिलको साइज हेर्नुहोस्।`,
+      };
+    }
+  }
+  for (const [size, onBill] of billSizes) {
+    const rest = Math.round(onBill) - Math.round(input.soldSizes[size] ?? 0);
+    if (rest > 0) extras[size] = rest;
+  }
+  const pairs = Object.values(extras).reduce((sum, value) => sum + value, 0);
+  return { ok: true, extras, pairs };
+}
+
 /** A selling price below what one pair cost. No cost known is not a loss. */
 export function sellsAtLoss(retailPrice: number, costPerPair: number) {
   return retailPrice > 0 && costPerPair > 0 && retailPrice < costPerPair;
@@ -109,6 +173,8 @@ export type CounterItemDraft = {
   minWholesaleQty?: number;
   /** The doubts above were looked at and the figures stand. */
   doubtsConfirmed?: boolean;
+  /** Added while selling: the pairs are the ones being sold now, not the shelf's count. */
+  soldFirst?: boolean;
 };
 
 /**
@@ -193,7 +259,11 @@ export function counterItemProblem(draft: CounterItemDraft) {
   const pairs = totalPairs(draft.sizes, draft.pilePairs);
   if (!draft.name.trim()) return { en: "Type the item's name.", ne: "मालको नाम लेख्नुहोस्।" };
   if (!counterItemHows.includes(draft.how)) return { en: "Choose how it came.", ne: "कसरी आयो, छान्नुहोस्।" };
-  if (pairs <= 0) return { en: "How many pairs are on the shelf?", ne: "र्‍याकमा कति जोडी छन्?" };
+  if (pairs <= 0) {
+    return draft.soldFirst
+      ? { en: "Type the size and how many pairs you are selling.", ne: "बेच्ने साइज र कति जोडी, लेख्नुहोस्।" }
+      : { en: "How many pairs are on the shelf?", ne: "र्‍याकमा कति जोडी छन्?" };
+  }
   if (pairs > MAX_COUNTER_PAIRS) return { en: `More than ${MAX_COUNTER_PAIRS} pairs — check the count.`, ne: `${MAX_COUNTER_PAIRS} भन्दा बढी जोडी — गन्ती फेरि हेर्नुहोस्।` };
   const wholesale = draft.wholesalePrice ?? 0;
   // The bill the form was opened from asks for its own price; the other is

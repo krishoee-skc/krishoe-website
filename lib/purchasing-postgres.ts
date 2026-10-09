@@ -6,6 +6,7 @@ import {
   withSupplierTransactionApplied,
 } from "@/lib/purchasing-rules";
 import { queryPostgres, transactionPostgres, type PostgresExecutor } from "@/lib/postgres/client";
+import { soldFirstExtras } from "@/lib/counter-item-rules";
 import { insertStockMovement } from "@/lib/operations-postgres";
 import { placePairs } from "@/lib/stock-transfers";
 import type { BusinessChannel } from "@/lib/operations";
@@ -506,6 +507,16 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
     // already in stock and selling. Checked and locked before anything posts,
     // and refused when the counts differ — a bill that says 24 against 26
     // counted must be put right by a person, not quietly accepted.
+    //
+    // A shoe sold at the counter before its stock was put in (owner,
+    // 2026-10-09) is the one exception: only the pairs sold went in, so the
+    // bill carries every pair and adds the rest (lib/counter-item-rules.ts
+    // soldFirstExtras). The table is asked about first, so a database whose
+    // Owner has not pressed its button yet works as before.
+    const soldFirstTable = (
+      await db.query<{ present: string | null }>(`SELECT to_regclass('counter_sold_first')::text AS present`)
+    )[0]?.present;
+    const soldFirstExtrasByCounterItem = new Map<string, Record<string, number>>();
     for (const [index, row] of resolved.entries()) {
       if (row.line.kind !== "Trading Goods" || !row.line.counterItemId) continue;
       const counted = await db.query<{ pairs: number | string }>(
@@ -518,6 +529,30 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
         throw new Error(`Item ${index + 1}: that "bill to come" item is already matched to a bill.`);
       }
       const pairs = Number(counted[0].pairs) || 0;
+      const soldFirst = soldFirstTable
+        ? (
+            await db.query<{ sold_pairs: number | string; sold_sizes: Record<string, number | string> | null; filled_at: Date | null }>(
+              `SELECT sold_pairs, sold_sizes, filled_at FROM counter_sold_first WHERE counter_item_id = $1 FOR UPDATE`,
+              [row.line.counterItemId],
+            )
+          )[0]
+        : undefined;
+      if (soldFirst) {
+        if (soldFirst.filled_at) {
+          throw new Error(`Item ${index + 1}: that shoe's stock was already filled by a count of the shelf.`);
+        }
+        const answer = soldFirstExtras({
+          billQuantity: row.line.quantity,
+          billSizes: row.line.sizeBreakdown ?? {},
+          soldPairs: Number(soldFirst.sold_pairs) || 0,
+          soldSizes: Object.fromEntries(
+            Object.entries(soldFirst.sold_sizes ?? {}).map(([size, value]) => [size, Math.round(Number(value) || 0)]),
+          ),
+        });
+        if (!answer.ok) throw new Error(`Item ${index + 1}: ${answer.en}`);
+        soldFirstExtrasByCounterItem.set(row.line.counterItemId, answer.extras);
+        continue;
+      }
       if (pairs !== row.line.quantity) {
         throw new Error(
           `Item ${index + 1}: the bill says ${row.line.quantity} pairs, the counter counted ${pairs}. Check the count before matching them.`,
@@ -637,6 +672,21 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           `,
           [row.material.id, row.line.quantity],
         );
+      } else if (row.line.counterItemId && soldFirstExtrasByCounterItem.has(row.line.counterItemId)) {
+        // Sold first: the pairs sold are already in (and out). The rest of the
+        // bill goes in now, size by size on the rows the counter made, at the
+        // place the bill says — so stock reads what is on the shelf.
+        for (const [sizeRun, pairs] of Object.entries(soldFirstExtrasByCounterItem.get(row.line.counterItemId) ?? {})) {
+          const movement = await insertStockMovement(db, {
+            design: row.line.design,
+            channel: "Retail",
+            sizeRun,
+            type: "Purchase In",
+            pairs,
+            note: `${purchaseNumber} purchased from ${ledger.supplierName} — the rest of a shoe sold first at the counter.`,
+          });
+          await placePairs(db, movement.design, movement.sizeRun, row.line.place ?? "Shop", pairs);
+        }
       } else if (!row.line.counterItemId) {
         // A line matched to a counter item skips this: its pairs came in
         // when it was added at the counter, and adding them here would count
@@ -733,6 +783,15 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           WHERE id = $1`,
         [row.line.counterItemId, invoiceId, cleanText(input.supplierBillNo ?? ""), ledger.supplierName],
       );
+      const extras = soldFirstExtrasByCounterItem.get(row.line.counterItemId);
+      if (extras) {
+        await db.query(
+          `UPDATE counter_sold_first
+              SET filled_at = now(), filled_how = 'bill', filled_pairs = $2, filled_by = $3
+            WHERE counter_item_id = $1`,
+          [row.line.counterItemId, Object.values(extras).reduce((sum, value) => sum + value, 0), invoiceId],
+        );
+      }
     }
 
     const itemRows: PurchaseInvoiceItemRow[] = [];

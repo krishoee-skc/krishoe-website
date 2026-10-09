@@ -211,9 +211,13 @@ export default async function AdminPurchasingPage({
   ];
 
   // Goods added at the counter whose bill has not come — offered on the bill.
-  const { billToCome } = await getCounterItemsToWatch().catch((error) => {
+  // And shoes sold first at the counter, whose stock this bill fills.
+  const { billToCome, stockToFill } = await getCounterItemsToWatch().catch((error) => {
     reportError("load bill-to-come items for the purchase bill", error);
-    return { billToCome: [] as Awaited<ReturnType<typeof getCounterItemsToWatch>>["billToCome"] };
+    return {
+      billToCome: [] as Awaited<ReturnType<typeof getCounterItemsToWatch>>["billToCome"],
+      stockToFill: [] as Awaited<ReturnType<typeof getCounterItemsToWatch>>["stockToFill"],
+    };
   });
   // A cheque given asks our bank and its date once the cheque book is there.
   const bookReady = await chequeBookReady().catch(() => false);
@@ -318,13 +322,23 @@ export default async function AdminPurchasingPage({
           memory={memory}
           designSizes={designSizes}
           chequeBook={chequeBook}
-          billToCome={billToCome.map((item) => ({
-            id: item.id,
-            design: item.design,
-            pairs: item.pairs,
-            sizes: item.sizes,
-            supplierName: item.supplierName,
-          }))}
+          billToCome={[
+            ...billToCome.map((item) => ({
+              id: item.id,
+              design: item.design,
+              pairs: item.pairs,
+              sizes: item.sizes,
+              supplierName: item.supplierName,
+            })),
+            ...stockToFill.map((item) => ({
+              id: item.id,
+              design: item.design,
+              pairs: item.soldPairs,
+              sizes: item.soldSizes,
+              supplierName: item.supplierName,
+              soldFirst: true,
+            })),
+          ]}
         />
       </div>
       )}
