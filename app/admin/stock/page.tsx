@@ -310,6 +310,9 @@ export default async function AdminStockPage() {
     }),
   ]);
   const canReview = session ? canAdmin(getSessionAdminRole(session), "settings:write") : false;
+  // A count of the shelf can take pairs off the stock: the Owner and the staff
+  // who may change stock (owner, 2026-10-11).
+  const canCount = session ? canAdmin(getSessionAdminRole(session), "operations:write") : false;
   // The day as this shop counts it, worked out on the server so the challan is
   // dated where the shop is rather than where the browser thinks it is.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: NEPAL_TIME_ZONE }).format(new Date());
@@ -444,6 +447,7 @@ export default async function AdminStockPage() {
         staffName={session?.name || session?.email || "Admin"}
         today={today}
         todayBs={toBikramSambatNumeric(today)}
+        canCount={canCount}
       />
 
       {/* What a shopper can buy against what is ready. Only Active shoes are

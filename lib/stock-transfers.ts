@@ -160,9 +160,20 @@ export async function getStockByPlace(): Promise<StockAtPlace[]> {
        coalesce(f.pairs, 0) AS factory,
        coalesce(p.pairs, 0) AS shop
      FROM (
-       SELECT design, size_run, sum(stock_pairs)::int AS stock_pairs
-       FROM finished_stock
-       GROUP BY design, size_run
+       -- Every size with stock or with pairs placed: a place with no stock
+       -- row behind it is shown too, as pairs placed too many — kitto 770's
+       -- 100 Mixed pairs at the shop were invisible (owner, 2026-10-11).
+       SELECT k.design, k.size_run, coalesce(b.stock_pairs, 0) AS stock_pairs
+       FROM (
+         SELECT design, size_run FROM finished_stock
+         UNION
+         SELECT design, size_run FROM stock_locations WHERE pairs > 0
+       ) k
+       LEFT JOIN (
+         SELECT design, size_run, sum(stock_pairs)::int AS stock_pairs
+         FROM finished_stock
+         GROUP BY design, size_run
+       ) b ON b.design = k.design AND b.size_run = k.size_run
      ) s
      LEFT JOIN stock_locations f
        ON f.design = s.design AND f.size_run = s.size_run AND f.location = 'Factory'

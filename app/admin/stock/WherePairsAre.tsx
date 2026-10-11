@@ -14,6 +14,7 @@ import {
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 import { sameCode } from "@/lib/shoe-code";
 import Link from "next/link";
+import FillByCount from "@/app/admin/stock/FillByCount";
 
 /** What the stock page knows about a shoe beyond where its pairs are. */
 export type ShoeExtra = {
@@ -69,6 +70,8 @@ type Props = {
   /** Today in Kathmandu, worked out on the server. */
   today: string;
   todayBs: string;
+  /** May count a shoe's shelf and so set its stock (operations:write). */
+  canCount?: boolean;
 };
 
 type Line = { key: number; design: string; sizeRun: string; pairs: string };
@@ -87,7 +90,7 @@ function emptyLine(key: number): Line {
  * pool selling reads; this says how that pool is split between the two places,
  * and when the two disagree it says so rather than picking a favourite.
  */
-export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs }: Props) {
+export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs, canCount = false }: Props) {
   const { text } = useLanguage();
   const router = useRouter();
 
@@ -404,6 +407,23 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
     });
   }
 
+  // "🔢 Count" on a shoe's line opens the shoe at its count (owner, 2026-10-11).
+  const [countShoe, setCountShoe] = useState<string | null>(null);
+  function countIt(design: string) {
+    setOpenShoes((current) => new Set(current).add(design));
+    setCountShoe(design);
+  }
+  const countButton = (design: string) =>
+    canCount ? (
+      <button
+        type="button"
+        onClick={() => countIt(design)}
+        className="ml-2 inline-flex min-h-8 items-center rounded-full border border-brand-green bg-brand-paper px-3 align-middle text-xs font-black text-brand-green"
+      >
+        🔢 {text("Count", "गन्ने")}
+      </button>
+    ) : null;
+
   function toggleShoe(design: string) {
     setOpenShoes((current) => {
       const next = new Set(current);
@@ -581,10 +601,11 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                   ))}
                 </div>
                 <div className="flex flex-wrap justify-between gap-2 border-t border-brand-green-line px-3 py-2">
+                  {countButton(group.design)}
                   <LastsChip extra={extra} text={text} />
                   <PlaceGap group={group} text={text} />
                 </div>
-                {open ? <ShoeHistory group={group} extra={extra} text={text} /> : null}
+                {open ? <ShoeHistory group={group} extra={extra} text={text} canCount={canCount} countOpen={countShoe === group.design} /> : null}
               </li>
             );
           })}
@@ -646,6 +667,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                           <span className="text-lg font-black text-brand-green-ink underline-offset-4 hover:underline">{group.design}</span>
                         </button>
                         <OriginTag origin={extra?.origin} text={text} />
+                        {countButton(group.design)}
                         <span className="block text-sm font-bold text-brand-muted">
                           {extra?.code ? <span className="font-mono">{extra.code}</span> : null}
                           {extra?.code && group.sizes ? " · " : ""}
@@ -663,7 +685,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
                     {open ? (
                       <tr>
                         <td colSpan={7} className="border-t border-brand-green-line bg-brand-paper-deep px-4 py-3">
-                          <ShoeHistory group={group} extra={extra} text={text} />
+                          <ShoeHistory group={group} extra={extra} text={text} canCount={canCount} countOpen={countShoe === group.design} />
                         </td>
                       </tr>
                     ) : null}
@@ -1154,10 +1176,34 @@ function PlaceGap({ group, text }: { group: ShoeGroup; text: Text }) {
 }
 
 /** Pressing a shoe: its sizes and where each is, then what happened to it lately. */
-function ShoeHistory({ group, extra, text }: { group: ShoeGroup; extra: ShoeExtra | undefined; text: Text }) {
+function ShoeHistory({
+  group,
+  extra,
+  text,
+  canCount = false,
+  countOpen = false,
+}: {
+  group: ShoeGroup;
+  extra: ShoeExtra | undefined;
+  text: Text;
+  canCount?: boolean;
+  countOpen?: boolean;
+}) {
   const sized = group.rows.length > 1;
   return (
     <div className="grid gap-3 px-3 py-3 sm:px-0 sm:py-0 lg:grid-cols-2">
+      {/* Count the shelf at one place: that place becomes the count, the
+          other is not touched, and the stock follows (owner, 2026-10-11). */}
+      {canCount ? (
+        <details open={countOpen || undefined} className="rounded-xl border-2 border-brand-green/40 bg-brand-paper px-3 py-2 lg:col-span-2">
+          <summary className="cursor-pointer text-sm font-black text-brand-green">🔢 {text("Count the shelf", "र्‍याकमा गन्ने")}</summary>
+          <FillByCount
+            design={group.design}
+            places={Object.fromEntries(group.rows.map((row) => [row.sizeRun || "Mixed", { shop: row.shop, factory: row.factory }]))}
+            defaultPlace={group.factory > group.shop ? "Factory" : "Shop"}
+          />
+        </details>
+      ) : null}
       {sized ? (
         <div>
           <p className="text-xs font-black uppercase tracking-[0.1em] text-brand-muted">{text("Size by size", "साइज अनुसार")}</p>

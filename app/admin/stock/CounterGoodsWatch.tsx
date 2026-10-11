@@ -159,7 +159,11 @@ export default function CounterGoodsWatch({
                     <summary className="cursor-pointer text-sm font-black text-brand-green">
                       <T en="Or count the shelf" ne="वा र्‍याकमा गनेर भर्ने" />
                     </summary>
-                    <FillByCount id={item.id} design={item.design} stockNow={item.stockNow} />
+                    <FillByCount
+                      id={item.id}
+                      design={item.design}
+                      places={Object.fromEntries(Object.entries(item.stockNow).map(([size, pairs]) => [size, { shop: pairs, factory: 0 }]))}
+                    />
                   </details>
                 </li>
               );

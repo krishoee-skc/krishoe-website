@@ -111,7 +111,7 @@ describe("the reminder", () => {
     const watch = await read("app/admin/stock/CounterGoodsWatch.tsx");
     expect(watch).toContain('id="stock-to-fill"');
     expect(watch).toContain("const late = days >= STOCK_TO_FILL_DAYS;");
-    expect(watch).toContain("<FillByCount id={item.id} design={item.design} stockNow={item.stockNow} />");
+    expect(watch).toContain("<FillByCount\n                      id={item.id}\n                      design={item.design}");
   });
 
   it("offers the shoe on the purchase bill as sold first", async () => {
@@ -166,16 +166,19 @@ describe("a count of the shelf is the stock, not added to it (owner, 2026-10-11)
   });
 
   it("takes fewer found off as pairs not found, and more found in at the shop", async () => {
+    // Since 2026-10-11 the shop count of a shoe sold first is the same rule
+    // as a count of any shoe: lib/shelf-count.ts.
     const lib = await read("lib/counter-items.ts");
-    expect(lib).toContain("const changes = countChanges(stockNow, Object.fromEntries(counted));");
-    expect(lib).toContain("the database cannot take pairs off yet");
-    expect(lib).toContain("type: \"Damage Out\",");
-    expect(lib).toContain("not found.");
+    expect(lib).toContain("await setPlaceToCount(db, {");
+    expect(lib).toContain("place: \"Shop\",");
     expect(lib).toContain("stockNow: cleanSizes(row.stock_now),");
+    const shelf = await read("lib/shelf-count.ts");
+    expect(shelf).toContain("the database cannot take pairs off yet");
+    expect(shelf).toContain("type: \"Damage Out\",");
+    expect(shelf).toContain("not found.");
     const form = await read("app/admin/stock/FillByCount.tsx");
-    expect(form).toContain("Set the stock to this count:");
-    expect(form).toContain("Sizes you do not type become 0");
-    expect(form).toContain("`app: ${books} → ${counted[size] ?? 0}`");
+    expect(form).toContain("to this count:");
+    expect(form).toContain("Sizes you do not type become 0 at the");
   });
 });
 

@@ -14,6 +14,62 @@ import {
 import type { ActionState } from "@/app/admin/actions";
 import { CounterItemRefusal, fillSoldFirstByCount, markCounterItemReviewed } from "@/lib/counter-items";
 import { tidySizes } from "@/lib/counter-item-rules";
+import { ShelfCountRefusal, setPlaceToCount } from "@/lib/shelf-count";
+import { transactionPostgres } from "@/lib/postgres/client";
+
+/** The size rows a count form sends, as pairs by size. */
+function countedSizes(formData: FormData): Record<string, number> | null {
+  try {
+    const rows = JSON.parse(textValue(formData, "sizes") || "[]");
+    return tidySizes(Array.isArray(rows) ? rows : []);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Count the shelf of any shoe at one place (owner, 2026-10-11): that place's
+ * pairs become the count, the other place is not touched, and the stock
+ * follows (lib/shelf-count.ts). The Owner and the staff who may change stock
+ * may count; a count that finds 10 or more fewer asks "I counted again".
+ */
+export async function countShelfAction(
+  _previous: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const { session } = await requireAdminPermission("operations:write");
+  const design = textValue(formData, "design");
+  if (!design) return { ok: false, message: "Which shoe is being counted?" };
+  const counted = countedSizes(formData);
+  if (!counted) return { ok: false, message: "The sizes could not be read. Type them again." };
+  const place = placeValue(formData, "place");
+  const by = session?.name || session?.email || "Staff";
+  try {
+    const result = await transactionPostgres("shelf count", (db) =>
+      setPlaceToCount(db, {
+        design,
+        place,
+        counted,
+        confirmBigDrop: textValue(formData, "confirmBigDrop") === "yes",
+        note: `Counted by ${by}.`,
+      }),
+    );
+    await recordAdminAuditEvent(
+      "stock_shelf_counted",
+      `${result.design} counted at the ${place.toLowerCase()} by ${by}: ${result.counted} pairs (${result.changes.map((change) => `${change.size} ${change.now}→${change.to}`).join(", ") || "none"}); stock ${result.booksBefore} → ${result.booksAfter}.`,
+    );
+    refresh();
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `${result.design}: the ${place.toLowerCase()} now holds ${result.counted} pairs, as counted. Stock ${result.booksBefore} → ${result.booksAfter}.`,
+    };
+  } catch (error) {
+    if (error instanceof ShelfCountRefusal) return { ok: false, message: error.message };
+    reportError("count a shoe's shelf", error);
+    return { ok: false, message: saveFailureMessage(error, "The count was not saved.") };
+  }
+}
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -215,15 +271,15 @@ export async function fillSoldFirstByCountAction(
   const { session } = await requireAdminPermission("pos:write");
   const id = textValue(formData, "id");
   if (!id) return { ok: false, message: "Which shoe is being counted?" };
-  let rows: Array<{ size: string; pairs: string }> = [];
+  const sizes = countedSizes(formData);
+  if (!sizes) return { ok: false, message: "The sizes could not be read. Type them again." };
   try {
-    rows = JSON.parse(textValue(formData, "sizes") || "[]");
-  } catch {
-    return { ok: false, message: "The sizes could not be read. Type them again." };
-  }
-  const sizes = tidySizes(Array.isArray(rows) ? rows : []);
-  try {
-    const filled = await fillSoldFirstByCount(id, sizes, session?.name || session?.email || "Counter");
+    const filled = await fillSoldFirstByCount(
+      id,
+      sizes,
+      session?.name || session?.email || "Counter",
+      textValue(formData, "confirmBigDrop") === "yes",
+    );
     await recordAdminAuditEvent(
       "counter_sold_first_counted",
       `${filled.design}: stock set to a count of the shelf — ${filled.pairs} pairs (${Object.entries(sizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ") || "none left"}).`,
@@ -233,7 +289,7 @@ export async function fillSoldFirstByCountAction(
     revalidatePath("/admin");
     return { ok: true, message: `${filled.design}: stock set to the count — ${filled.pairs} pairs at the shop.` };
   } catch (error) {
-    if (error instanceof CounterItemRefusal) return { ok: false, message: error.message };
+    if (error instanceof CounterItemRefusal || error instanceof ShelfCountRefusal) return { ok: false, message: error.message };
     reportError("fill a sold-first shoe by counting", error);
     return { ok: false, message: saveFailureMessage(error, "The count was not saved.") };
   }
