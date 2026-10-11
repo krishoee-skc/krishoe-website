@@ -121,3 +121,27 @@ describe("the reminder", () => {
     expect(form).toContain("type every pair on the bill; the rest go into stock");
   });
 });
+
+describe("a save that is shut says why (owner, 2026-10-11)", () => {
+  it("names the box to fill on the button, rings it, and Enter takes the cursor there", async () => {
+    const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
+    expect(sheet).toContain("problem ? `${why} ↑` : text(\"Add to the bill\", \"बिलमा थप्ने\")");
+    expect(sheet).toContain("Type the pairs for size");
+    expect(sheet).toContain("ring-4 ring-brand-gold");
+    expect(sheet).toContain("onBlocked={goToProblem}");
+    // The faint line below the form is gone; the button carries the reason.
+    expect(sheet).not.toContain("<p className=\"text-sm font-bold text-brand-muted\">{text(problem.en, problem.ne)}</p>");
+    const walk = await read("components/admin/EnterWalkForm.tsx");
+    expect(walk).toContain("onBlocked?.();");
+  });
+
+  it("keeps an empty pairs box empty: nothing is sold in that size", () => {
+    const draft = { name: "x", how: "pending_bill" as const, pilePairs: 0, retailPrice: 625, costPerPair: 0, lossConfirmed: false, soldFirst: true };
+    expect(counterItemProblem({ ...draft, sizes: {} })).not.toBeNull();
+  });
+
+  it("has no paragraph tag in the sheet, whose 1rem foot from the stylesheet doubled the gaps", async () => {
+    const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
+    expect(sheet).not.toMatch(/<p[ >]/);
+  });
+});

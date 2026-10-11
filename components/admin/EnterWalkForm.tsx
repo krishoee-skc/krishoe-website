@@ -104,6 +104,7 @@ export default function EnterWalkForm({
   confirmTitle,
   formRef: outerRef,
   worker = false,
+  onBlocked,
   ...props
 }: ComponentProps<"form"> & {
   confirmTitle?: string;
@@ -115,6 +116,12 @@ export default function EnterWalkForm({
   worker?: boolean;
   /** For a page that reads the form itself — the product form's AI drafter. */
   formRef?: { current: HTMLFormElement | null };
+  /**
+   * Enter on the last box while the form's own Save is shut — something is
+   * still to fill. The form says what, and takes the cursor there; without
+   * this, Enter did nothing and the save looked stuck (owner, 2026-10-11).
+   */
+  onBlocked?: () => void;
 }) {
   const { text: chosen } = useLanguage();
   const text = (english: string, nepali: string) => (worker ? nepali : chosen(english, nepali));
@@ -220,7 +227,10 @@ export default function EnterWalkForm({
         form.reportValidity();
         return;
       }
-      if (!enabledSubmitter(form)) return;
+      if (!enabledSubmitter(form)) {
+        onBlocked?.();
+        return;
+      }
       lastStop.current = target;
       setQuestion(confirmLine(readBack(form, text("pairs", "जोडी")), confirmTitle));
     }
