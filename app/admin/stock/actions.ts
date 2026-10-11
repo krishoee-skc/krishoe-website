@@ -51,6 +51,7 @@ export async function countShelfAction(
         place,
         counted,
         confirmBigDrop: textValue(formData, "confirmBigDrop") === "yes",
+        noneOnShelf: textValue(formData, "noneOnShelf") === "yes",
         note: `Counted by ${by}.`,
       }),
     );
@@ -279,6 +280,7 @@ export async function fillSoldFirstByCountAction(
       sizes,
       session?.name || session?.email || "Counter",
       textValue(formData, "confirmBigDrop") === "yes",
+      textValue(formData, "noneOnShelf") === "yes",
     );
     await recordAdminAuditEvent(
       "counter_sold_first_counted",

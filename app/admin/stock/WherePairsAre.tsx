@@ -1199,7 +1199,7 @@ function ShoeHistory({
           <summary className="cursor-pointer text-sm font-black text-brand-green">🔢 {text("Count the shelf", "र्‍याकमा गन्ने")}</summary>
           <FillByCount
             design={group.design}
-            places={Object.fromEntries(group.rows.map((row) => [row.sizeRun || "Mixed", { shop: row.shop, factory: row.factory }]))}
+            places={Object.fromEntries(group.rows.map((row) => [row.sizeRun || "Mixed", { shop: row.shop, factory: row.factory, total: row.total }]))}
             defaultPlace={group.factory > group.shop ? "Factory" : "Shop"}
           />
         </details>

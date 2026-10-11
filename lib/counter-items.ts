@@ -382,7 +382,13 @@ export async function countStockToFillOverdue(days = STOCK_TO_FILL_DAYS) {
  * they are, size by size, at the shop — the ones sold before are already out.
  * Once only: a second fill would count the shelf twice.
  */
-export async function fillSoldFirstByCount(counterItemId: string, sizes: Record<string, number>, by: string, confirmBigDrop = false) {
+export async function fillSoldFirstByCount(
+  counterItemId: string,
+  sizes: Record<string, number>,
+  by: string,
+  confirmBigDrop = false,
+  noneOnShelf = false,
+) {
   if (!(await counterItemsReady())) {
     throw new CounterItemRefusal({
       en: "The database is not ready for this yet. The Owner can prepare it in Settings.",
@@ -419,6 +425,7 @@ export async function fillSoldFirstByCount(counterItemId: string, sizes: Record<
       place: "Shop",
       counted: Object.fromEntries(counted),
       confirmBigDrop,
+      noneOnShelf,
       note: `${Number(item.sold_pairs) || 0} pairs were sold first at the counter.`,
     });
     await db.query(

@@ -48,7 +48,15 @@ export type ShelfCountResult = {
  */
 export async function setPlaceToCount(
   db: PostgresExecutor,
-  input: { design: string; place: StockPlace; counted: Record<string, number>; confirmBigDrop: boolean; note: string },
+  input: {
+    design: string;
+    place: StockPlace;
+    counted: Record<string, number>;
+    confirmBigDrop: boolean;
+    /** Nothing typed sets the place to 0 only when this was ticked. */
+    noneOnShelf: boolean;
+    note: string;
+  },
 ): Promise<ShelfCountResult> {
   const key = designKey(input.design);
   const held = await db.query<{ design: string; channel: string; size_run: string; stock_pairs: number | string }>(
@@ -82,6 +90,12 @@ export async function setPlaceToCount(
       .filter(([size, pairs]) => size && pairs > 0),
   );
 
+  if (Object.keys(counted).length === 0 && !input.noneOnShelf) {
+    throw new ShelfCountRefusal({
+      en: "Nothing was typed. Type what you found on the shelf, or tick “Nothing of this shoe on the shelf”.",
+      ne: "केही लेखिएन। र्‍याकमा भेटिएको लेख्नुहोस्, वा “र्‍याकमा यो जुत्ता छैन” मा टिक लगाउनुहोस्।",
+    });
+  }
   const { placeChanges: changes, stockMoves, fewer } = planShelfCount({ books, here, there, counted });
   if (fewer >= BIG_COUNT_DROP && !input.confirmBigDrop) {
     throw new ShelfCountRefusal({

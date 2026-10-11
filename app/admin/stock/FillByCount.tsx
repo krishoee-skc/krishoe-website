@@ -17,8 +17,8 @@ const chip = (on: boolean) =>
   }`;
 
 type Place = "Shop" | "Factory";
-/** Pairs the app holds at each place, by size. */
-export type PlacesBySize = Record<string, { shop: number; factory: number }>;
+/** Pairs the app holds at each place, by size, and the stock of that size. */
+export type PlacesBySize = Record<string, { shop: number; factory: number; total?: number }>;
 
 /**
  * Count a shoe's shelf at one place, size by size (owner, 2026-10-09; for any
@@ -45,6 +45,9 @@ export default function FillByCount({
   const [rows, setRows] = useState([blankRow()]);
   const [place, setPlace] = useState<Place>(id ? "Shop" : defaultPlace);
   const [countedAgain, setCountedAgain] = useState(false);
+  // Nothing typed is not a count (owner, 2026-10-11: the empty form already
+  // read "300 pairs fewer"). To set a place to 0 on purpose, say so here.
+  const [noneOnShelf, setNoneOnShelf] = useState(false);
   const [state, action, pending] = useActionState<ActionState | null, FormData>(
     id ? fillSoldFirstByCountAction : countShelfAction,
     null,
@@ -61,7 +64,12 @@ export default function FillByCount({
     .map((change) => `${change.size} (${change.now})`)
     .join(", ");
   const fewer = changes.reduce((sum, change) => sum + Math.max(0, -change.change), 0);
-  const askAgain = fewer >= BIG_COUNT_DROP;
+  const typedAny = total > 0;
+  const showResult = typedAny || noneOnShelf;
+  // "Nothing on the shelf" is its own tick, so it is not asked twice.
+  const askAgain = typedAny && fewer >= BIG_COUNT_DROP;
+  const stockTotal = Object.values(places).reduce((sum, entry) => sum + (entry.total ?? 0), 0);
+  const hasStockTotals = Object.values(places).some((entry) => entry.total !== undefined);
   const placeEn = place === "Shop" ? "shop" : "factory";
   const placeNe = place === "Shop" ? text("shop", "पसल") : text("factory", "कारखाना");
   const otherEn = place === "Shop" ? "factory" : "shop";
@@ -71,6 +79,7 @@ export default function FillByCount({
   function editRow(index: number, change: Partial<{ size: string; pairs: string }>) {
     setRows((current) => withOneBlankRow(current.map((entry, at) => (at === index ? { ...entry, ...change } : entry)), blankRow));
     setCountedAgain(false);
+    setNoneOnShelf(false);
   }
 
   if (state?.ok) {
@@ -82,7 +91,8 @@ export default function FillByCount({
       {id ? <input type="hidden" name="id" value={id} /> : <input type="hidden" name="design" value={design} />}
       <input type="hidden" name="place" value={place} />
       <input type="hidden" name="sizes" value={JSON.stringify(rows)} />
-      <input type="hidden" name="confirmBigDrop" value={countedAgain ? "yes" : ""} />
+      <input type="hidden" name="confirmBigDrop" value={countedAgain || noneOnShelf ? "yes" : ""} />
+      <input type="hidden" name="noneOnShelf" value={noneOnShelf ? "yes" : ""} />
       {id ? null : (
         <div className="grid gap-1.5">
           <div className="text-sm font-bold text-brand-muted">{text(`${design} — where are you counting?`, `${design} — कहाँ गन्दै हुनुहुन्छ?`)}</div>
@@ -94,6 +104,7 @@ export default function FillByCount({
                 onClick={() => {
                   setPlace(option);
                   setCountedAgain(false);
+                  setNoneOnShelf(false);
                 }}
                 aria-pressed={place === option}
                 className={chip(place === option)}
@@ -132,17 +143,44 @@ export default function FillByCount({
           </div>
         );
       })}
-      <div className="rounded-xl bg-brand-green-wash px-3 py-2 text-sm font-black text-brand-green">
-        {text(
-          `The ${placeEn} becomes what you counted: ${total} ${pairsEn} (app had ${hereTotal}). The ${otherEn} is not touched.`,
-          `${placeNe} गनेजति हुन्छ: ${total} जोडी (app मा ${hereTotal} थियो)। ${otherNe} छोइँदैन।`,
-        )}
-      </div>
-      <div className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-ink">
-        {zeroList
-          ? text(`Sizes you do not type become 0 at the ${placeEn}: ${zeroList}.`, `नलेखेको साइज ${placeNe}मा ० हुन्छ: ${zeroList}।`)
-          : text(`Sizes you do not type become 0 at the ${placeEn}.`, `नलेखेको साइज ${placeNe}मा ० हुन्छ।`)}
-      </div>
+      {showResult ? (
+        <>
+          <div className="rounded-xl bg-brand-green-wash px-3 py-2 text-sm font-black text-brand-green">
+            {hasStockTotals
+              ? text(
+                  `The ${placeEn} becomes what you counted: ${total} ${pairsEn}. App had ${hereTotal} at the ${placeEn}; in stock ${stockTotal}. The ${otherEn} is not touched.`,
+                  `${placeNe} गनेजति हुन्छ: ${total} जोडी। app मा ${placeNe}मा ${hereTotal} थियो; जम्मा स्टक ${stockTotal}। ${otherNe} छोइँदैन।`,
+                )
+              : text(
+                  `The ${placeEn} becomes what you counted: ${total} ${pairsEn}. App had ${hereTotal} at the ${placeEn}. The ${otherEn} is not touched.`,
+                  `${placeNe} गनेजति हुन्छ: ${total} जोडी। app मा ${placeNe}मा ${hereTotal} थियो। ${otherNe} छोइँदैन।`,
+                )}
+          </div>
+          <div className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-ink">
+            {zeroList
+              ? text(`Sizes you do not type become 0 at the ${placeEn}: ${zeroList}.`, `नलेखेको साइज ${placeNe}मा ० हुन्छ: ${zeroList}।`)
+              : text(`Sizes you do not type become 0 at the ${placeEn}.`, `नलेखेको साइज ${placeNe}मा ० हुन्छ।`)}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-xl bg-brand-mist px-3 py-2 text-sm font-bold text-brand-muted">
+          {text(
+            `Type what you find on the ${placeEn} shelf, size by size. App has ${hereTotal} at the ${placeEn}.`,
+            `${placeNe}को र्‍याकमा भेटिएको साइज अनुसार लेख्नुहोस्। app मा ${placeNe}मा ${hereTotal} छ।`,
+          )}
+        </div>
+      )}
+      {!typedAny ? (
+        <label className="flex items-start gap-2 rounded-xl border border-dashed border-brand-green-line px-3 py-2 text-sm font-bold text-brand-muted">
+          <input type="checkbox" checked={noneOnShelf} onChange={(event) => setNoneOnShelf(event.target.checked)} className="mt-0.5 h-5 w-5" />
+          <span>
+            {text(
+              `Nothing of this shoe on the ${placeEn} shelf — set the ${placeEn} to 0 (${hereTotal} pairs come off as not found).`,
+              `${placeNe}को र्‍याकमा यो जुत्ता छैन — ${placeNe} ० बनाउने (${hereTotal} जोडी नभेटिएको भनेर घट्छ)।`,
+            )}
+          </span>
+        </label>
+      ) : null}
       {askAgain ? (
         <label className="flex items-start gap-2 rounded-xl border-2 border-brand-gold bg-brand-cream-soft px-3 py-2.5 text-base font-bold text-brand-gold-ink">
           <input type="checkbox" checked={countedAgain} onChange={(event) => setCountedAgain(event.target.checked)} className="mt-1 h-5 w-5" />
@@ -151,12 +189,14 @@ export default function FillByCount({
       ) : null}
       <button
         type="submit"
-        disabled={pending || (askAgain && !countedAgain)}
+        disabled={pending || !showResult || (askAgain && !countedAgain)}
         className="min-h-12 rounded-xl bg-brand-green px-4 text-base font-black text-white disabled:opacity-50"
       >
         {pending
           ? text("Saving…", "राख्दैछौँ…")
-          : askAgain && !countedAgain
+          : !showResult
+            ? text("Type what you found ↑", "भेटिएको लेख्नुहोस् ↑")
+            : askAgain && !countedAgain
             ? text("Tick “I counted again” ↑", "“फेरि गनेँ” मा टिक लगाउनुहोस् ↑")
             : total > 0
               ? text(`Set the ${placeEn} to this count: ${total} ${pairsEn}`, `${placeNe} यही गन्ती बनाउने: ${total} जोडी`)

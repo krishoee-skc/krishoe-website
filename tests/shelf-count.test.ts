@@ -67,8 +67,7 @@ describe("who counts, and how it is kept", () => {
     const shelf = await read("lib/shelf-count.ts");
     expect(shelf).toContain("if (fewer >= BIG_COUNT_DROP && !input.confirmBigDrop) {");
     const form = await read("app/admin/stock/FillByCount.tsx");
-    expect(form).toContain("const askAgain = fewer >= BIG_COUNT_DROP;");
-    expect(form).toContain("disabled={pending || (askAgain && !countedAgain)}");
+    expect(form).toContain("const askAgain = typedAny && fewer >= BIG_COUNT_DROP;");
   });
 
   it("locks the stock and the places, and writes both places as they should read", async () => {
@@ -87,5 +86,28 @@ describe("who counts, and how it is kept", () => {
   it("shows a place row with no stock behind it", async () => {
     const lib = await read("lib/stock-transfers.ts");
     expect(lib).toContain("SELECT design, size_run FROM stock_locations WHERE pairs > 0");
+  });
+});
+
+describe("an empty form is not a count (owner, 2026-10-11)", () => {
+  it("says what to do instead of \"300 pairs fewer\", until a size is typed", async () => {
+    const form = await read("app/admin/stock/FillByCount.tsx");
+    expect(form).toContain("const showResult = typedAny || noneOnShelf;");
+    expect(form).toContain("Type what you find on the");
+    expect(form).toContain("disabled={pending || !showResult || (askAgain && !countedAgain)}");
+  });
+
+  it("sets a place to 0 only with its own tick, on the server too", async () => {
+    const form = await read("app/admin/stock/FillByCount.tsx");
+    expect(form).toContain("Nothing of this shoe on the");
+    const shelf = await read("lib/shelf-count.ts");
+    expect(shelf).toContain("if (Object.keys(counted).length === 0 && !input.noneOnShelf) {");
+  });
+
+  it("shows the stock beside the place, so 300 at the shop and 200 in stock are both said", async () => {
+    const form = await read("app/admin/stock/FillByCount.tsx");
+    expect(form).toContain("in stock ${stockTotal}");
+    const screen = await read("app/admin/stock/WherePairsAre.tsx");
+    expect(screen).toContain("{ shop: row.shop, factory: row.factory, total: row.total }");
   });
 });
