@@ -1,6 +1,7 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import { reportError } from "@/lib/report-error";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
+import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
 
 /**
  * The shop looking for its own faults, so the owner does not have to.
@@ -232,6 +233,25 @@ export async function runShopSelfCheck(): Promise<SelfCheck[]> {
         detail: `The database refuses ${missing.length} kind(s) of mail: ${missing.join(", ")}.`,
         detailNe: `database ले ${missing.length} किसिमका email मान्दैन: ${missing.join(", ")}।`,
         href: "/admin/settings#notification-types",
+        action: "Put the rule right",
+        actionNe: "नियम मिलाउने",
+        count: missing.length,
+      };
+    },
+    // 9. Stock that cannot come down but by a bill: the live rule refuses
+    //    "Damage Out", so a lost pair or a short shelf count is refused
+    //    (owner, 2026-10-11).
+    async () => {
+      const { ready, missing } = await stockMovementTypesStatus();
+      if (ready) return null;
+      return {
+        id: "stock-movement-types",
+        severity: "critical",
+        title: "Stock cannot come down for a damaged, lost or short-counted pair",
+        titleNe: "बिग्रेको, हराएको वा गन्दा कम भेटिएको जोडी स्टकबाट घट्दैन",
+        detail: `The database refuses ${missing.join(", ")}.`,
+        detailNe: `database ले ${missing.join(", ")} मान्दैन।`,
+        href: "/admin/settings#stock-movement-types",
         action: "Put the rule right",
         actionNe: "नियम मिलाउने",
         count: missing.length,

@@ -3,6 +3,7 @@ import { counterItemsReady } from "@/lib/counter-items-database";
 import {
   MAX_COUNTER_PAIRS,
   STOCK_TO_FILL_DAYS,
+  countChanges,
   counterItemProblem,
   movementTypeForHow,
   similarNames,
@@ -13,12 +14,17 @@ import {
 import { designKey } from "@/lib/design-name";
 import { insertStockMovement } from "@/lib/operations-postgres";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
-import { buildDraftProductForDesign, getProducts, upsertProduct } from "@/lib/product-store";
+import type { BusinessChannel } from "@/lib/operations";
+import { buildDraftProductForDesign, getProducts, upsertProductIn } from "@/lib/product-store";
 import { categories, formatPrice } from "@/lib/products";
 import { nextShoeCode } from "@/lib/shoe-code";
+import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
 import { placePairs } from "@/lib/stock-transfers";
 
 const STORE = "counter items";
+
+/** A design name with case and spacing set aside — designKey(), in SQL. */
+const DESIGN_KEY_SQL = (column: string) => `lower(regexp_replace(btrim(${column}), '\\s+', ' ', 'g'))`;
 
 export type CounterItemInput = {
   name: string;
@@ -150,8 +156,6 @@ export async function createCounterItem(input: CounterItemInput) {
     sizes: sizeList.length > 0 ? sizeList : draft.sizes,
     rating: "0",
   };
-  await upsertProduct(product);
-
   const type = movementTypeForHow[input.how];
   const supplier = input.supplierName.trim();
   const note = soldFirst
@@ -172,7 +176,10 @@ export async function createCounterItem(input: CounterItemInput) {
   ];
 
   const id = `CTR-${randomUUID()}`;
+  // The shoe, its pairs and its record are one piece of work: all of it is
+  // saved, or none — never a name with no pairs (owner, 2026-10-11).
   await transactionPostgres(STORE, async (db) => {
+    await upsertProductIn(db, product);
     for (const [sizeRun, count] of rows) {
       const movement = await insertStockMovement(db, {
         design: name,
@@ -289,7 +296,12 @@ const COLUMNS = `id, created_at, design, how, supplier_name, supplier_bill_no, p
 const C_COLUMNS = COLUMNS.split(", ").map((column) => `c.${column}`).join(", ");
 
 /** A shoe sold at the counter before its stock was put in, still to be filled. */
-export type StockToFillRow = CounterItemRow & { soldPairs: number; soldSizes: Record<string, number> };
+export type StockToFillRow = CounterItemRow & {
+  soldPairs: number;
+  soldSizes: Record<string, number>;
+  /** The books today, by size — what a count of the shelf is set against. */
+  stockNow: Record<string, number>;
+};
 
 /**
  * What the Owner still has to look at: goods added at the counter and not yet
@@ -316,9 +328,20 @@ export async function getCounterItemsToWatch(): Promise<{
           AND NOT EXISTS (SELECT 1 FROM counter_sold_first s WHERE s.counter_item_id = c.id)
         ORDER BY c.created_at ASC LIMIT 50`,
     ),
-    queryPostgres<CounterItemDbRow & { sold_pairs: number | string; sold_sizes: Record<string, number | string> | null }>(
+    queryPostgres<
+      CounterItemDbRow & {
+        sold_pairs: number | string;
+        sold_sizes: Record<string, number | string> | null;
+        stock_now: Record<string, number | string> | null;
+      }
+    >(
       STORE,
-      `SELECT ${C_COLUMNS}, s.sold_pairs, s.sold_sizes
+      `SELECT ${C_COLUMNS}, s.sold_pairs, s.sold_sizes,
+              (SELECT jsonb_object_agg(f.size_run, f.pairs) FROM (
+                 SELECT size_run, SUM(stock_pairs)::int AS pairs FROM finished_stock
+                  WHERE ${DESIGN_KEY_SQL("design")} = ${DESIGN_KEY_SQL("c.design")}
+                  GROUP BY size_run HAVING SUM(stock_pairs) > 0
+               ) f) AS stock_now
          FROM counter_sold_first s JOIN counter_items c ON c.id = s.counter_item_id
         WHERE s.filled_at IS NULL
         ORDER BY s.created_at ASC LIMIT 50`,
@@ -331,6 +354,7 @@ export async function getCounterItemsToWatch(): Promise<{
       ...counterItemFromRow(row),
       soldPairs: Number(row.sold_pairs) || 0,
       soldSizes: cleanSizes(row.sold_sizes),
+      stockNow: cleanSizes(row.stock_now),
     })),
   };
 }
@@ -392,16 +416,64 @@ export async function fillSoldFirstByCount(counterItemId: string, sizes: Record<
         ne: "यो जुत्ताको स्टक पहिले नै भरिसकेको छ।",
       });
     }
-    for (const [sizeRun, pairs] of counted) {
-      const movement = await insertStockMovement(db, {
-        design: item.design,
-        channel: "Retail",
-        sizeRun,
-        type: "Adjustment",
-        pairs,
-        note: `Counted on the shop shelf after ${Number(item.sold_pairs) || 0} pairs were sold first at the counter.`,
+    // What the books hold now, every channel and size, locked so a bill
+    // cut while the count is saved cannot slip between the two.
+    const held = await db.query<{ channel: string; size_run: string; stock_pairs: number | string }>(
+      `SELECT channel, size_run, stock_pairs FROM finished_stock
+        WHERE ${DESIGN_KEY_SQL("design")} = $1 AND stock_pairs > 0
+        ORDER BY CASE channel WHEN 'Retail' THEN 0 WHEN 'Wholesale' THEN 1 WHEN 'Online' THEN 2 ELSE 3 END
+        FOR UPDATE`,
+      [designKey(item.design)],
+    );
+    const stockNow: Record<string, number> = {};
+    for (const row of held) {
+      const size = row.size_run.trim() || "Mixed";
+      stockNow[size] = (stockNow[size] ?? 0) + Math.max(0, Math.round(Number(row.stock_pairs) || 0));
+    }
+    const sold = Number(item.sold_pairs) || 0;
+    const changes = countChanges(stockNow, Object.fromEntries(counted));
+    // Fewer found than the books goes out as Damage Out, which the live
+    // database refused until its rule was put right in Settings (found
+    // 2026-10-11). Until then, say so plainly rather than fail on the rule.
+    if (changes.some((change) => change.change < 0) && !(await stockMovementTypesStatus()).ready) {
+      throw new CounterItemRefusal({
+        en: "Fewer pairs were found than the books hold, and the database cannot take pairs off yet. Nothing was saved. The Owner can put the rule right in Settings.",
+        ne: "app मा भन्दा कम जोडी भेटियो, तर database ले अझै जोडी घटाउन दिँदैन। केही राखिएन। मालिकले Settings मा नियम मिलाउन सक्नुहुन्छ।",
       });
-      await placePairs(db, movement.design, movement.sizeRun, "Shop", pairs);
+    }
+    // The count is the stock (owner, 2026-10-11): each size moves by the
+    // difference only. More found goes in as an Adjustment at the shop; fewer
+    // goes out as Damage Out — pairs lost or not found — from the rows that
+    // hold them. A size not typed was not found, and goes to 0.
+    for (const change of changes) {
+      if (change.change > 0) {
+        const movement = await insertStockMovement(db, {
+          design: item.design,
+          channel: "Retail",
+          sizeRun: change.size,
+          type: "Adjustment",
+          pairs: change.change,
+          note: `Counted on the shop shelf: ${change.to} pairs, the books had ${change.now}. ${sold} pairs were sold first at the counter.`,
+        });
+        await placePairs(db, movement.design, movement.sizeRun, "Shop", change.change);
+        continue;
+      }
+      let left = -change.change;
+      for (const row of held) {
+        if (left <= 0) break;
+        if ((row.size_run.trim() || "Mixed") !== change.size) continue;
+        const take = Math.min(left, Math.max(0, Math.round(Number(row.stock_pairs) || 0)));
+        if (take <= 0) continue;
+        await insertStockMovement(db, {
+          design: item.design,
+          channel: row.channel as BusinessChannel,
+          sizeRun: change.size,
+          type: "Damage Out",
+          pairs: take,
+          note: `Counted on the shop shelf: ${change.to} pairs, the books had ${change.now} — ${-change.change} not found.`,
+        });
+        left -= take;
+      }
     }
     await db.query(
       `UPDATE counter_sold_first

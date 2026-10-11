@@ -226,12 +226,12 @@ export async function fillSoldFirstByCountAction(
     const filled = await fillSoldFirstByCount(id, sizes, session?.name || session?.email || "Counter");
     await recordAdminAuditEvent(
       "counter_sold_first_counted",
-      `${filled.design}: stock filled by counting the shelf — ${filled.pairs} pairs (${Object.entries(sizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ") || "none left"}).`,
+      `${filled.design}: stock set to a count of the shelf — ${filled.pairs} pairs (${Object.entries(sizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ") || "none left"}).`,
     );
     revalidatePath("/admin/stock");
     revalidatePath("/admin/pos");
     revalidatePath("/admin");
-    return { ok: true, message: `${filled.design}: ${filled.pairs} pairs counted in at the shop.` };
+    return { ok: true, message: `${filled.design}: stock set to the count — ${filled.pairs} pairs at the shop.` };
   } catch (error) {
     if (error instanceof CounterItemRefusal) return { ok: false, message: error.message };
     reportError("fill a sold-first shoe by counting", error);

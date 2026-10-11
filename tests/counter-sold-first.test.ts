@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { STOCK_TO_FILL_DAYS, counterItemProblem, soldFirstExtras, withOneBlankRow } from "@/lib/counter-item-rules";
+import { STOCK_TO_FILL_DAYS, countChanges, counterItemProblem, soldFirstExtras, withOneBlankRow } from "@/lib/counter-item-rules";
 import { counterItemsMigrations } from "@/lib/counter-items-database";
 
 const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
@@ -111,7 +111,7 @@ describe("the reminder", () => {
     const watch = await read("app/admin/stock/CounterGoodsWatch.tsx");
     expect(watch).toContain('id="stock-to-fill"');
     expect(watch).toContain("const late = days >= STOCK_TO_FILL_DAYS;");
-    expect(watch).toContain("<FillByCount id={item.id} design={item.design} />");
+    expect(watch).toContain("<FillByCount id={item.id} design={item.design} stockNow={item.stockNow} />");
   });
 
   it("offers the shoe on the purchase bill as sold first", async () => {
@@ -143,5 +143,49 @@ describe("a save that is shut says why (owner, 2026-10-11)", () => {
   it("has no paragraph tag in the sheet, whose 1rem foot from the stylesheet doubled the gaps", async () => {
     const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
     expect(sheet).not.toMatch(/<p[ >]/);
+  });
+});
+
+describe("a count of the shelf is the stock, not added to it (owner, 2026-10-11)", () => {
+  it("bill never cut: 3 pairs left on the books, 20 counted, the stock is 20 — not 23", () => {
+    const changes = countChanges({ "37": 3 }, { "36": 5, "37": 5, "38": 5, "39": 5 });
+    expect(changes.reduce((sum, change) => sum + change.to, 0)).toBe(20);
+    expect(changes.find((change) => change.size === "37")).toEqual({ size: "37", now: 3, to: 5, change: 2 });
+  });
+
+  it("bill cut: nothing on the books, 17 counted, 17 go in", () => {
+    const changes = countChanges({}, { "36": 5, "37": 4, "38": 3, "39": 5 });
+    expect(changes.reduce((sum, change) => sum + change.change, 0)).toBe(17);
+  });
+
+  it("a size on the books but not typed goes to 0; fewer found comes off", () => {
+    expect(countChanges({ "38": 4, Mixed: 2 }, { "38": 1 })).toEqual([
+      { size: "38", now: 4, to: 1, change: -3 },
+      { size: "Mixed", now: 2, to: 0, change: -2 },
+    ]);
+  });
+
+  it("takes fewer found off as pairs not found, and more found in at the shop", async () => {
+    const lib = await read("lib/counter-items.ts");
+    expect(lib).toContain("const changes = countChanges(stockNow, Object.fromEntries(counted));");
+    expect(lib).toContain("the database cannot take pairs off yet");
+    expect(lib).toContain("type: \"Damage Out\",");
+    expect(lib).toContain("not found.");
+    expect(lib).toContain("stockNow: cleanSizes(row.stock_now),");
+    const form = await read("app/admin/stock/FillByCount.tsx");
+    expect(form).toContain("Set the stock to this count:");
+    expect(form).toContain("Sizes you do not type become 0");
+    expect(form).toContain("`app: ${books} → ${counted[size] ?? 0}`");
+  });
+});
+
+describe("a shoe added at the counter is made with its pairs, or not at all (owner, 2026-10-11)", () => {
+  it("writes the product inside the same transaction as its stock", async () => {
+    const lib = await read("lib/counter-items.ts");
+    const create = lib.slice(lib.indexOf("export async function createCounterItem"), lib.indexOf("export function counterItemLookAlikes"));
+    expect(create).not.toContain("await upsertProduct(product);");
+    expect(create).toContain("await transactionPostgres(STORE, async (db) => {\n    await upsertProductIn(db, product);");
+    const store = await read("lib/product-store.ts");
+    expect(store).toContain("export async function upsertProductIn(db: PostgresExecutor, product: Product) {");
   });
 });

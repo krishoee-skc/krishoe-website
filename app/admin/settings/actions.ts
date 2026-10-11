@@ -11,6 +11,7 @@ import { prepareCounterItemsDatabase } from "@/lib/counter-items-database";
 import { prepareChequesDatabase } from "@/lib/cheques";
 import { prepareWorkerPortalDatabase } from "@/lib/worker-portal-db";
 import { prepareNotificationTypes } from "@/lib/notification-types-database";
+import { prepareStockMovementTypes } from "@/lib/stock-movement-types-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -315,6 +316,30 @@ export async function prepareNotificationTypesAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Customer order and review mails can be sent again.");
+}
+
+/**
+ * The Owner's "OK" on widening the stock movement types, so a damaged or lost
+ * pair, or a shelf count that found fewer, can come off the stock (owner,
+ * 2026-10-11).
+ */
+export async function prepareStockMovementTypesAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to put the rule right.");
+    }
+    const { applied } = await prepareStockMovementTypes();
+    await recordAdminAuditEvent(
+      "settings_database_stock_movement_types_ready",
+      applied
+        ? "Database rule for stock movement types widened: Damage Out can be recorded again."
+        : "Database rule for stock movement types was already right.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Pairs can come off the stock as damaged, lost or not found.");
 }
 
 /** The Owner's "OK" on the table that watches cheques on bills until they clear. */

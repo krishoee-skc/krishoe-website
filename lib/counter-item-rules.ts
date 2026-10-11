@@ -302,3 +302,25 @@ export function counterItemProblem(draft: CounterItemDraft) {
   }
   return null;
 }
+
+export type CountChange = { size: string; now: number; to: number; change: number };
+
+/**
+ * A count of the shelf against the books, size by size (owner, 2026-10-11):
+ * what is counted IS the stock — it is not added on top. Stock comes in by a
+ * purchase bill or production and goes out by a bill; a count only says how
+ * many there are. A size on the books but not typed was not found, so it
+ * becomes 0. Only the sizes with something on either side are listed.
+ */
+export function countChanges(stockNow: Record<string, number>, counted: Record<string, number>): CountChange[] {
+  const whole = (value: number | undefined) => Math.max(0, Math.round(Number(value) || 0));
+  const sizes = [...new Set([...Object.keys(stockNow), ...Object.keys(counted)])].filter((size) => size.trim());
+  sizes.sort((left, right) => Number(left) - Number(right) || left.localeCompare(right));
+  return sizes
+    .map((size) => {
+      const now = whole(stockNow[size]);
+      const to = whole(counted[size]);
+      return { size, now, to, change: to - now };
+    })
+    .filter((row) => row.now > 0 || row.to > 0);
+}

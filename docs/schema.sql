@@ -939,7 +939,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   design TEXT NOT NULL,
   channel TEXT NOT NULL CHECK (channel IN ('Factory', 'Wholesale', 'Retail', 'Online')),
   size_run TEXT NOT NULL DEFAULT 'Mixed',
-  type TEXT NOT NULL CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment')),
+  type TEXT NOT NULL CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment', 'Damage Out')),
   pairs INTEGER NOT NULL DEFAULT 0 CHECK (pairs >= 0),
   note TEXT NOT NULL DEFAULT ''
 );
@@ -952,7 +952,7 @@ ALTER TABLE stock_movements
 
 ALTER TABLE stock_movements
   ADD CONSTRAINT stock_movements_type_check
-  CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment'));
+  CHECK (type IN ('Production In', 'Purchase In', 'Dispatch Out', 'Return In', 'Sale Out', 'Market Sale', 'Adjustment', 'Damage Out'));
 
 CREATE INDEX IF NOT EXISTS stock_movements_created_at_idx ON stock_movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS stock_movements_design_channel_idx ON stock_movements(design, channel);

@@ -5,7 +5,7 @@ import path from "path";
 import { runWithDataBackend } from "@/lib/data-backend";
 import { designKey } from "@/lib/design-name";
 import { getFinishedStockOrThrow, type FinishedStock } from "@/lib/operations";
-import { queryPostgres } from "@/lib/postgres/client";
+import { queryPostgres, type PostgresExecutor } from "@/lib/postgres/client";
 import {
   categories,
   formatPrice,
@@ -607,10 +607,11 @@ async function upsertProductLocalJson(product: Product) {
   return cleanedProduct;
 }
 
-async function upsertProductPostgres(product: Product) {
+async function upsertProductPostgres(product: Product, db?: PostgresExecutor) {
   const cleanedProduct = cleanProduct(product);
-  const rows = await queryPostgres<ProductRow>(
-    "products",
+  const run = (sql: string, params: Parameters<typeof queryPostgres>[2]) =>
+    db ? db.query<ProductRow>(sql, params) : queryPostgres<ProductRow>("products", sql, params);
+  const rows = await run(
     `
       INSERT INTO products (
         id,
@@ -757,6 +758,16 @@ async function upsertProductPostgres(product: Product) {
   // could move the pair count, and under a branch the owner had never stocked
   // it moved it to zero. Pairs change where pairs move: Operations.
   return productFromRow(rows[0]);
+}
+
+/**
+ * The same save, inside a transaction the caller holds — so a shoe added at
+ * the counter is made with its stock or not at all (owner, 2026-10-11: the
+ * internet dropping between the two left a name with no pairs, and trying
+ * again was refused as "already on the books").
+ */
+export async function upsertProductIn(db: PostgresExecutor, product: Product) {
+  return upsertProductPostgres(product, db);
 }
 
 export async function upsertProduct(product: Product) {

@@ -21,6 +21,7 @@ import {
   prepareChequesDatabaseAction,
   prepareWorkerPortalDatabaseAction,
   prepareNotificationTypesAction,
+  prepareStockMovementTypesAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
@@ -35,6 +36,7 @@ import { photoRobotOn } from "@/lib/worker-portal";
 import { isAiConfigured } from "@/lib/ai/gemini";
 import PhotoRobotSwitch from "./PhotoRobotSwitch";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
+import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 // Enter walks box to box on the forms that take typing, and asks before it
@@ -169,6 +171,10 @@ export default async function AdminSettingsPage({
   });
   const notificationTypes = await notificationTypesStatus().catch((error) => {
     reportError("check the notification kinds", error);
+    return null;
+  });
+  const stockMovementTypes = await stockMovementTypesStatus().catch((error) => {
+    reportError("check the stock movement types", error);
     return null;
   });
   const posDatabase = await posDatabaseStatus().catch((error) => {
@@ -855,6 +861,42 @@ export default async function AdminSettingsPage({
                 <T en="Removed: nothing ✅ · Records changed: none ✅" ne="मेटिने: केही छैन ✅ · बदलिने रेकर्ड: कुनै छैन ✅" />
               </p>
               <form action={prepareNotificationTypesAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, put it right" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {/* The stock cannot go down but by a bill or a dispatch: a torn pair,
+            a lost pair or a short count is refused (owner, 2026-10-11). */}
+        {stockMovementTypes && !stockMovementTypes.ready ? (
+          <section id="stock-movement-types" className="scroll-mt-24 self-start rounded-lg border-2 border-brand-clay/60 bg-brand-clay-tint p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-clay">
+              📦 <T en="Stock cannot come down for a damaged, lost or short-counted pair — put the rule right" ne="बिग्रेको, हराएको वा गन्दा कम भेटिएको जोडी स्टकबाट घट्दैन — नियम मिलाउने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-green-ink">
+              <T
+                en={`The database refuses ${stockMovementTypes.missing.join(", ")}. A pair written off as damaged or lost, and a shelf count that finds fewer than the books, are refused before they are saved. This widens the one rule. No stock, bill or other record changes. Take a backup first (Activity → Export backup).`}
+                ne={`database ले ${stockMovementTypes.missing.join(", ")} मान्दैन। बिग्रेको वा हराएको जोडी घटाउँदा, र र्‍याकमा गन्दा app भन्दा कम भेटिँदा, राख्नुअघि नै रोकिन्छ। यसले त्यो एउटा नियम मात्र फराकिलो बनाउँछ। कुनै स्टक, बिल वा अरू रेकर्ड बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।`}
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is changed:" ne="यति बदलिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                <li>
+                  <T en={stockMovementTypes.label.en} ne={stockMovementTypes.label.ne} />
+                </li>
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed: nothing ✅ · Records changed: none ✅" ne="मेटिने: केही छैन ✅ · बदलिने रेकर्ड: कुनै छैन ✅" />
+              </p>
+              <form action={prepareStockMovementTypesAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, put it right" />
               </form>
