@@ -282,8 +282,8 @@ export default async function AdminDuesPage() {
       <div className="mt-4 print:hidden">
         <StatStrip
           items={[
-            { en: `to collect · ${customerRows.length} accounts`, ne: `उठाउन · ${customerRows.length} खाता`, value: receivable, money: true },
-            { en: `to pay · ${supplierRows.length} accounts`, ne: `तिर्न · ${supplierRows.length} खाता`, value: payable, money: true },
+            { en: `to collect · ${customerRows.length} ${customerRows.length === 1 ? "account" : "accounts"}`, ne: `उठाउन · ${customerRows.length} खाता`, value: receivable, money: true },
+            { en: `to pay · ${supplierRows.length} ${supplierRows.length === 1 ? "account" : "accounts"}`, ne: `तिर्न · ${supplierRows.length} खाता`, value: payable, money: true },
             { en: "over 30 days", ne: "३० दिन नाघेको", value: overThirty, tone: overThirty > 0 ? "warn" : "good" },
           ]}
         />

@@ -55,4 +55,26 @@ describe("Products", () => {
     const page = await read("app/admin/products/page.tsx");
     expect(page).toContain('<T en="Labels · codes · sync" ne="स्टिकर · कोड · मिलाउने" />');
   });
+
+  // The owner's screenshot (2026-10-12): the open form and the drafts came
+  // before the figures and the tabs, and all eleven shoes were "on sale".
+  it("puts the shoes first, a new one folded at the foot, and tells website from draft", async () => {
+    const page = await read("app/admin/products/page.tsx");
+    const list = page.indexOf("<ProductsClient");
+    expect(list).toBeLessThan(page.indexOf("<DraftsPanel"));
+    expect(page.indexOf("<DraftsPanel")).toBeLessThan(page.indexOf('<details id="add-product"'));
+    expect(page).toContain('＋ <T en="Add a product" ne="नयाँ जुत्ता थप्ने" />');
+    // Only a shoe being edited keeps its form above the list.
+    expect(page.lastIndexOf("{editingProduct ? (", list)).toBeGreaterThan(0);
+    const client = await read("app/admin/ProductsClient.tsx");
+    expect(client).not.toContain("These shoes are on sale");
+    expect(client).toContain("const wrongInDraft = wrongPhotos.filter((product) => !isWeb(product));");
+  });
+});
+
+describe("Payments and dues", () => {
+  it("say one order, one account", async () => {
+    expect(await read("app/admin/payments/page.tsx")).toContain('summary.orderCount === 1 ? "order" : "orders"');
+    expect(await read("app/admin/dues/page.tsx")).toContain('supplierRows.length === 1 ? "account" : "accounts"');
+  });
 });

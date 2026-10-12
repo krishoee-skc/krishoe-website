@@ -127,19 +127,41 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         </div>
       </div>
 
-      <div className="mt-6">
-        <ProductForm
-          key={editingProduct?.id ?? "new"}
-          product={editingProduct}
-          categories={categories}
-          takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
-          autoDraft={Boolean(editingProduct) && resolvedSearchParams?.ai === "1"}
-        />
-      </div>
+      {/* As the owner's sample (2026-10-12): the figures, the tabs and the
+          shoes first; a new shoe from a folded "＋ Add a product" at the
+          foot. A shoe being edited keeps its form at the top, where the
+          Edit press lands. */}
+      {editingProduct ? (
+        <div className="mt-6">
+          <ProductForm
+            key={editingProduct.id}
+            product={editingProduct}
+            categories={categories}
+            takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
+            autoDraft={Boolean(editingProduct) && resolvedSearchParams?.ai === "1"}
+          />
+        </div>
+      ) : null}
+
+      <ProductsClient products={products} editingId={editingProduct?.id ?? null} />
 
       <DraftsPanel drafts={drafts} />
 
-      <ProductsClient products={products} editingId={editingProduct?.id ?? null} />
+      {editingProduct ? null : (
+        <details id="add-product" className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center px-4 text-base font-black text-brand-green [&::-webkit-details-marker]:hidden">
+            ＋ <T en="Add a product" ne="नयाँ जुत्ता थप्ने" />
+          </summary>
+          <div className="p-2 sm:p-3">
+            <ProductForm
+              key="new"
+              product={null}
+              categories={categories}
+              takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
+            />
+          </div>
+        </details>
+      )}
     </section>
   );
 }

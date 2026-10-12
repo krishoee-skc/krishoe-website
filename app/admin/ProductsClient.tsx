@@ -65,7 +65,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
     return (
       <div className="mt-6 rounded-lg border border-dashed border-brand-green-line bg-brand-paper p-8 text-center">
         <h2 className="text-lg font-black text-brand-green-ink">{text("No products yet", "अझै कुनै सामान छैन")}</h2>
-        <p className="mt-2 text-sm text-brand-muted">{text("Create your first product from the form above.", "माथिको form बाट पहिलो सामान बनाउनुहोस्।")}</p>
+        <p className="mt-2 text-sm text-brand-muted">{text("Create your first product from \"＋ Add a product\" below.", "तलको \"＋ नयाँ जुत्ता थप्ने\" बाट पहिलो सामान बनाउनुहोस्।")}</p>
       </div>
     );
   }
@@ -84,6 +84,9 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
     .filter((entry) => entry.advice.length > 0);
 
   const isWeb = (product: Product) => product.status.toLowerCase() === "active";
+  const wrongOnWeb = wrongPhotos.filter(isWeb);
+  const wrongInDraft = wrongPhotos.filter((product) => !isWeb(product));
+  const pairsOf = (list: Product[]) => list.reduce((total, product) => total + product.stock, 0);
   const webCount = products.filter(isWeb).length;
   const draftCount = products.length - webCount;
   const draftsWithPairs = products.filter((product) => !isWeb(product) && product.stock > 0).length;
@@ -139,21 +142,33 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
         </details>
       ) : null}
 
+      {/* On the website or in Draft, said apart (owner, 2026-10-12): the box
+          said all eleven were on sale when ten were drafts no customer sees. */}
       {wrongPhotos.length > 0 ? (
         <div className="rounded-lg border border-brand-clay bg-brand-clay-tint p-4">
           <h2 className="text-sm font-black text-brand-clay">
             📷 {text(`${wrongPhotos.length} shoe photo(s) not right`, `${wrongPhotos.length} जुत्ताको फोटो मिलेको छैन`)}
           </h2>
           <p className="mt-1 text-sm leading-6 text-brand-clay">
-            {text(
-              `These shoes are on sale, but customers see the wrong photo — ${wrongPhotos.reduce((total, product) => total + product.stock, 0)} pairs will not sell this way. You can snap and upload right from a phone.`,
-              `यी जुत्ता बिक्रीमा छन्, तर ग्राहकले गलत फोटो देख्छन् — ${wrongPhotos.reduce((total, product) => total + product.stock, 0)} जोर जुत्ता यसरी बिक्दैन। मोबाइलबाटै खिचेर हाल्न मिल्छ।`,
-            )}
+            {wrongOnWeb.length > 0
+              ? text(
+                  `${wrongOnWeb.length} on the website: customers see the wrong photo — ${pairsOf(wrongOnWeb)} pairs will not sell this way. `,
+                  `${wrongOnWeb.length} वेबसाइटमा छन्: ग्राहकले गलत फोटो देख्छन् — ${pairsOf(wrongOnWeb)} जोर जुत्ता यसरी बिक्दैन। `,
+                )
+              : null}
+            {wrongInDraft.length > 0
+              ? text(
+                  `${wrongInDraft.length} in Draft (customers do not see them): a real photo first, then they can go on sale. `,
+                  `${wrongInDraft.length} Draft मा छन् (ग्राहकले देख्दैनन्): पहिले साँचो फोटो, अनि बिक्रीमा राख्न मिल्छ। `,
+                )
+              : null}
+            {text("You can snap and upload right from a phone.", "मोबाइलबाटै खिचेर हाल्न मिल्छ।")}
           </p>
           <ul className="mt-2 space-y-1">
             {wrongPhotos.map((product) => (
               <li key={product.id} className="text-sm font-bold text-brand-clay">
-                • {product.name} ({text(`${product.stock} pairs`, `${product.stock} जोर`)})
+                • {product.name} ({text(`${product.stock} pairs`, `${product.stock} जोर`)}) ·{" "}
+                {isWeb(product) ? text("on the website", "वेबसाइटमा") : text("Draft", "Draft")}
               </li>
             ))}
           </ul>

@@ -263,7 +263,7 @@ export default async function AdminPaymentsPage() {
         />
         <p className="mt-2 text-xs font-bold text-brand-muted">
           <T
-            en={`${summary.orderCount} orders · ${summary.transactionCount} payments recorded · ${summary.gatewayTransactionCount} from eSewa / Khalti · ${summary.highRiskIssueCount} high risk`}
+            en={`${summary.orderCount} ${summary.orderCount === 1 ? "order" : "orders"} · ${summary.transactionCount} ${summary.transactionCount === 1 ? "payment" : "payments"} recorded · ${summary.gatewayTransactionCount} from eSewa / Khalti · ${summary.highRiskIssueCount} high risk`}
             ne={`${summary.orderCount} अर्डर · ${summary.transactionCount} भुक्तानी टिपिएको · eSewa / Khalti बाट ${summary.gatewayTransactionCount} · धेरै जोखिम ${summary.highRiskIssueCount}`}
           />
         </p>
