@@ -70,7 +70,8 @@ describe("4. the rest", () => {
     const page = await read("app/admin/stock/page.tsx");
     expect(page).toContain('const canCost = session ? canAdmin(getSessionAdminRole(session), "costing:read") : false;');
     expect(page).toContain("loadStock(canCost)");
-    expect(page).toContain("value={money(loaded.stockValue.value)}");
+    // Behind the eye since 2026-10-12, as on the dashboard.
+    expect(page).toContain('...(loaded.stockValue ? [{ en: "stock at cost", ne: "स्टकको लागत", value: loaded.stockValue.value, money: true }] : []),');
   });
 
   it("counts a big shoe size by size", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
-import { Fragment, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -15,6 +15,7 @@ import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 import { sameCode } from "@/lib/shoe-code";
 import Link from "next/link";
 import FillByCount from "@/app/admin/stock/FillByCount";
+import { PageTabs } from "@/components/admin/PageKit";
 
 /** What the stock page knows about a shoe beyond where its pairs are. */
 export type ShoeExtra = {
@@ -74,6 +75,12 @@ type Props = {
   canCount?: boolean;
   /** A shoe to open at its count: the dashboard's "Count →". */
   countFirst?: string;
+  /** The stock page's own parts, each shown in its tab. */
+  todo?: ReactNode;
+  /** How many things in `todo` wait — for the tab's count. */
+  todoCount?: number;
+  material?: ReactNode;
+  history?: ReactNode;
 };
 
 type Line = { key: number; design: string; sizeRun: string; pairs: string };
@@ -92,7 +99,20 @@ function emptyLine(key: number): Line {
  * pool selling reads; this says how that pool is split between the two places,
  * and when the two disagree it says so rather than picking a favourite.
  */
-export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs, canCount = false, countFirst }: Props) {
+export default function WherePairsAre({
+  rows,
+  extras,
+  transfers,
+  staffName,
+  today,
+  todayBs,
+  canCount = false,
+  countFirst,
+  todo,
+  todoCount = 0,
+  material,
+  history,
+}: Props) {
   const { text } = useLanguage();
   const router = useRouter();
 
@@ -436,11 +456,12 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
     });
   }
 
-  return (
-    // minmax(0,1fr): a grid track otherwise grows to its widest child, and the
-    // table below is 520px — wider than a phone, so the whole section spilled
-    // off the right edge.
-    <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4">
+  // The stock screen's parts behind tabs (owner, 2026-10-12): the shoes
+  // first, everything waiting to be put right in one place, moving pairs,
+  // then the material store and the history the page hands in. Nothing is
+  // taken away; the parts that stood one under another now sit behind tabs.
+  const putRightPart = (
+    <>
       {/* ── Shoes to put right ──────────────────────────────────────────
           Each one with the fix it most likely needs, one press away. The
           owner's sample, 2026-09-28: the old two paragraphs said how many
@@ -524,6 +545,87 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
         </section>
       ) : null}
 
+      {/* ── Count pairs in ───────────────────────────────────────────
+          Under the list, and where "Count and enter" on a shoe to put
+          right brings the cursor. */}
+      <div ref={countBox}>
+      <EnterWalkForm onSubmit={handleCount} className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
+        <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
+        <input type="hidden" name="design" value={countKey.split("::")[0] ?? ""} />
+        <input type="hidden" name="location" value={countPlace} />
+
+        <p className="mb-2 text-xs font-black uppercase tracking-[0.1em] text-brand-muted-soft">
+          {text("Count pairs in", "गनेर ठाउँ राख्ने")}
+        </p>
+
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_110px_auto] sm:items-center">
+          <select
+            className={box}
+            value={countKey}
+            onChange={(event) => setCountKey(event.target.value)}
+            aria-label={text("Shoe to count", "गन्ने जुत्ता")}
+          >
+            <option value="">{text("Choose a shoe…", "जुत्ता छान्नुहोस्…")}</option>
+            {/* Every shoe, not only the unplaced ones: a shelf can be
+                recounted after it was first placed. The ones that need it
+                most are marked, so they are easy to find in the list. */}
+            {rows.map((row) => (
+              <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
+                {row.design}
+                {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""}
+                {row.unplaced > 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
+                {row.unplaced < 0 ? ` — ${text("too many placed", "बढी गनिएको")}: ${-row.unplaced}` : ""}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className={box}
+            value={countPlace}
+            onChange={(event) => setCountPlace(event.target.value as "Factory" | "Shop")}
+            aria-label={text("Place", "ठाउँ")}
+          >
+            <option value="Factory">🏭 {placeLabel("Factory")}</option>
+            <option value="Shop">🛒 {placeLabel("Shop")}</option>
+          </select>
+
+          <input
+            ref={countPairsInput}
+            name="pairs"
+            type="number"
+            min="0"
+            inputMode="numeric"
+            className={`${box} text-right tabular-nums`}
+            placeholder={text("Pairs", "जोडी")}
+            value={countPairs}
+            onChange={(event) => setCountPairs(event.target.value)}
+            aria-label={text("Pairs counted", "गनेको जोडी")}
+          />
+
+          <button
+            type="submit"
+            disabled={counting || !countKey || countPairs === ""}
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition disabled:opacity-50"
+          >
+            {counting ? text("Saving…", "राख्दै…") : text("Save count", "गन्ती राख्ने")}
+          </button>
+        </div>
+
+        <p className="mt-2 text-xs leading-5 text-brand-muted">
+          {text(
+            "This replaces what that place holds — it is a count, not a delivery. Nothing is sold and no challan is written.",
+            "यसले त्यो ठाउँको अंक बदल्छ — यो गन्ती हो, ढुवानी होइन। केही बिक्री हुँदैन, चलान पनि बन्दैन।",
+          )}
+        </p>
+
+        <ActionMessage state={countState} />
+      </EnterWalkForm>
+      </div>
+    </>
+  );
+
+  const shoesPart = (
+    <>
       {/* ── Every shoe, one line each ───────────────────────────────
           Every cell a box, bigger type, a totals line — the owner's sample,
           2026-09-28 — with search, filters, sorting, the shoe's code, and
@@ -736,84 +838,13 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
           </table>
         </div>
 
-        {/* ── Count pairs in ───────────────────────────────────────────
-            Under the list, and where "Count and enter" on a shoe to put
-            right brings the cursor. */}
-        <div ref={countBox}>
-        <EnterWalkForm onSubmit={handleCount} className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
-          <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
-          <input type="hidden" name="design" value={countKey.split("::")[0] ?? ""} />
-          <input type="hidden" name="location" value={countPlace} />
-
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.1em] text-brand-muted-soft">
-            {text("Count pairs in", "गनेर ठाउँ राख्ने")}
-          </p>
-
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_110px_auto] sm:items-center">
-            <select
-              className={box}
-              value={countKey}
-              onChange={(event) => setCountKey(event.target.value)}
-              aria-label={text("Shoe to count", "गन्ने जुत्ता")}
-            >
-              <option value="">{text("Choose a shoe…", "जुत्ता छान्नुहोस्…")}</option>
-              {/* Every shoe, not only the unplaced ones: a shelf can be
-                  recounted after it was first placed. The ones that need it
-                  most are marked, so they are easy to find in the list. */}
-              {rows.map((row) => (
-                <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
-                  {row.design}
-                  {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""}
-                  {row.unplaced > 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
-                  {row.unplaced < 0 ? ` — ${text("too many placed", "बढी गनिएको")}: ${-row.unplaced}` : ""}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className={box}
-              value={countPlace}
-              onChange={(event) => setCountPlace(event.target.value as "Factory" | "Shop")}
-              aria-label={text("Place", "ठाउँ")}
-            >
-              <option value="Factory">🏭 {placeLabel("Factory")}</option>
-              <option value="Shop">🛒 {placeLabel("Shop")}</option>
-            </select>
-
-            <input
-              ref={countPairsInput}
-              name="pairs"
-              type="number"
-              min="0"
-              inputMode="numeric"
-              className={`${box} text-right tabular-nums`}
-              placeholder={text("Pairs", "जोडी")}
-              value={countPairs}
-              onChange={(event) => setCountPairs(event.target.value)}
-              aria-label={text("Pairs counted", "गनेको जोडी")}
-            />
-
-            <button
-              type="submit"
-              disabled={counting || !countKey || countPairs === ""}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition disabled:opacity-50"
-            >
-              {counting ? text("Saving…", "राख्दै…") : text("Save count", "गन्ती राख्ने")}
-            </button>
-          </div>
-
-          <p className="mt-2 text-xs leading-5 text-brand-muted">
-            {text(
-              "This replaces what that place holds — it is a count, not a delivery. Nothing is sold and no challan is written.",
-              "यसले त्यो ठाउँको अंक बदल्छ — यो गन्ती हो, ढुवानी होइन। केही बिक्री हुँदैन, चलान पनि बन्दैन।",
-            )}
-          </p>
-
-          <ActionMessage state={countState} />
-        </EnterWalkForm>
-        </div>
       </section>
 
+    </>
+  );
+
+  const movePart = (
+    <>
       {/* ── Send a challan ──────────────────────────────────────────── */}
       <section id="move-pairs" className="scroll-mt-24 rounded-2xl border border-brand-green/30 bg-brand-paper p-4 sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">
@@ -1081,6 +1112,32 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
           ) : null}
         </div>
       </section>
+    </>
+  );
+
+  return (
+    <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4">
+      <PageTabs
+        id="stock"
+        tabs={[
+          { key: "shoes", en: "👟 Shoes", ne: "👟 जुत्ता", content: shoesPart },
+          {
+            key: "todo",
+            en: "⚠ To do",
+            ne: "⚠ गर्नुपर्ने",
+            count: mismatched.length + todoCount,
+            content: (
+              <>
+                {todo}
+                {putRightPart}
+              </>
+            ),
+          },
+          { key: "move", en: "🚚 Move", ne: "🚚 सार्ने", content: movePart },
+          { key: "material", en: "🧵 Material", ne: "🧵 कच्चा माल", content: material },
+          { key: "history", en: "📜 History", ne: "📜 इतिहास", content: history },
+        ]}
+      />
     </div>
   );
 }

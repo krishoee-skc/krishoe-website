@@ -11,10 +11,10 @@ const PLACES = "app/admin/stock/WherePairsAre.tsx";
 describe("1. the summary", () => {
   it("shows ready, factory, shop and how many shoes to put right", async () => {
     const page = await readFile(PAGE, "utf8");
-    expect(page).toContain('<T en="🏭 At the factory" ne="🏭 कारखानामा" />');
-    expect(page).toContain('<T en="🛒 At the shop" ne="🛒 पसलमा" />');
+    // Since 2026-10-12 one strip of figures (components/admin/PageKit.tsx).
+    expect(page).toContain('{ en: "🏭 factory · 🛒 shop", ne: "🏭 कारखाना · 🛒 पसल", value: `${atFactory} · ${atShop}` },');
     expect(page).toContain("const toPutRight = loaded.byPlace.filter((row) => row.unplaced !== 0).length;");
-    expect(page).toContain('href="#put-right"');
+    expect(page).toContain('{ en: "to do", ne: "गर्नुपर्ने", value: toPutRight + todoCount,');
   });
 });
 
