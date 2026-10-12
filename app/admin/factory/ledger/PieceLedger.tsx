@@ -66,6 +66,8 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
+  // Reversed lines stay on the books but out of the way (owner, 2026-10-13).
+  const [showReversed, setShowReversed] = useState(false);
   // The row being corrected and what is typed into it. One at a time, like the
   // reverse box: both rewrite a wage.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -115,12 +117,10 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
   }, [selectedWorkerId, month, refreshTick]);
 
   /**
-   * Remove an entry that should not exist.
-   *
-   * The row goes from all three tables at once and the month is rebuilt from
-   * what is left. What was deleted — worker, shoe, pairs, wage, reason — is
-   * written to the admin audit first, so a worker asking where their wage went
-   * can still be answered.
+   * Take back an entry that should not exist (owner, 2026-10-13: proof of a
+   * wage is never removed). The entry stays, marked reversed, in all three
+   * tables; its wage stops counting and the month is rebuilt. Reversed lines
+   * are folded away below so the morning's reading stays short.
    */
   const handleDelete = async (workId: string) => {
     setLoadFailed(false);
@@ -141,12 +141,12 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
         body: JSON.stringify({ work_id: workId, reason: deleteReason.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not delete this entry");
+      if (!res.ok) throw new Error(data.error || "Could not take this entry back");
 
       toast.show(
         text(
-          `Deleted — Rs. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} removed`,
-          `मेटियो — रु. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} हट्यो`,
+          `Taken back — Rs. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} no longer counted`,
+          `फिर्ता भयो — रु. ${Number(data.amount_earned ?? 0).toLocaleString("en-IN")} अब गनिँदैन`,
         ),
         "success",
       );
@@ -154,7 +154,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
       setDeleteReason("");
       setRefreshTick((tick) => tick + 1);
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "Could not delete this entry";
+      const message = reason instanceof Error ? reason.message : "Could not take this entry back";
       setError(message);
       toast.show(message, "error");
     } finally {
@@ -284,13 +284,19 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
     }
   };
 
+  const reversedCount = ledgerData ? ledgerData.ledger.filter((entry) => entry.status === "reversed").length : 0;
+  const shownLines = ledgerData
+    ? showReversed
+      ? ledgerData.ledger
+      : ledgerData.ledger.filter((entry) => entry.status !== "reversed")
+    : [];
 
   /**
-   * The Owner's ✏️ on a work line, and the Correct or Delete box it opens —
+   * The Owner's ✏️ on a work line, and the Correct or Take back box it opens —
    * one place, used by the table and by the phone's two-line list.
    */
   const fixControls = (entry: LedgerData["ledger"][number]) =>
-    entry.source_work_id ? (
+    entry.source_work_id && entry.status !== "reversed" ? (
       deletingId === entry.source_work_id ? (
         <div className="mt-1 space-y-2 rounded-lg bg-brand-clay-tint p-2">
           <input
@@ -308,8 +314,8 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
               className="min-h-10 flex-1 rounded-lg bg-brand-clay px-2 text-xs font-black text-white disabled:opacity-60"
             >
               {deleteBusy
-                ? text("Deleting…", "मेट्दै…")
-                : text("Delete", "मेट्ने")}
+                ? text("Taking back…", "फिर्ता गर्दै…")
+                : text("Take back", "फिर्ता गर्ने")}
             </button>
             <button
               type="button"
@@ -322,12 +328,12 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
               {text("Cancel", "रद्द")}
             </button>
           </div>
-          {/* This does not come back. The audit keeps what
-              was removed, but the ledger will not. */}
+          {/* Nothing is removed: the line stays, struck through,
+              and its wage stops counting. */}
           <p className="text-[11px] leading-4 text-brand-clay">
             {text(
-              "This entry goes for good. What was removed is kept in the audit.",
-              "यो entry सधैँलाई जान्छ। के हट्यो भन्ने audit मा रहन्छ।",
+              "The line stays, struck through with this reason, and its wage stops counting. Nothing is removed.",
+              "लाइन यही कारणसहित काटिएर रहन्छ, र यसको ज्याला गनिँदैन। केही मेटिँदैन।",
             )}
           </p>
         </div>
@@ -438,7 +444,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
               }}
               className="text-xs font-black text-brand-clay underline underline-offset-2"
             >
-              {text("Delete", "मेट्ने")}
+              {text("Take back", "फिर्ता गर्ने")}
             </button>
             <button type="button" onClick={() => setFixingId(null)} className="text-xs font-bold text-brand-muted">
               {text("Cancel", "रद्द")}
@@ -712,12 +718,26 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
                         </div>
                       </div>
 
-                      <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-lg font-bold text-brand-green-ink">{text("Ledger entries", "खाताका हिसाब")}</h3>
+                        {reversedCount > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowReversed((open) => !open)}
+                            aria-pressed={showReversed}
+                            className="min-h-9 rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-muted print:hidden"
+                          >
+                            {showReversed
+                              ? text(`Hide ${reversedCount} taken back`, `फिर्ता गरिएका ${reversedCount} लुकाउने`)
+                              : text(`Show ${reversedCount} taken back`, `फिर्ता गरिएका ${reversedCount} देखाउने`)}
+                          </button>
+                        ) : null}
+                      </div>
                       {/* A phone reads each line in two rows; the table stays for a
                           computer and for paper (owner's sample, 2026-10-12). */}
                       <ul className="grid list-none gap-2 pl-0 md:hidden print:hidden">
-                        {ledgerData.ledger.length > 0 ? (
-                          ledgerData.ledger.map((entry, idx) => {
+                        {shownLines.length > 0 ? (
+                          shownLines.map((entry, idx) => {
                             const reversed = entry.status === "reversed";
                             const paid = Number(entry.payment_given);
                             const earned = Number(entry.amount_earned);
@@ -774,8 +794,8 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
                           </tr>
                         </thead>
                         <tbody>
-                          {ledgerData.ledger.length > 0 ? (
-                            ledgerData.ledger.map((entry, idx) => (
+                          {shownLines.length > 0 ? (
+                            shownLines.map((entry, idx) => (
                               <tr
                                 key={idx}
                                 className={`border-b border-brand-green-line hover:bg-brand-paper-deep ${

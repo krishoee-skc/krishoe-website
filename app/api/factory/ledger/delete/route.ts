@@ -1,21 +1,20 @@
 import { authorizeFactoryApi } from "@/lib/factory-api-access";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { getAdminSession } from "@/lib/admin-auth";
-import { deleteFactoryWork, FactoryMutationError } from "@/lib/factory-mutations";
+import { reverseFactoryWork, FactoryMutationError } from "@/lib/factory-mutations";
 import { reportError } from "@/lib/report-error";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Delete a work entry outright.
+ * Take a work entry back from the ledger's ✏️.
  *
- * Reversing left the row on the ledger struck through, which is what a bank
- * does — but the owner reads fifty rows a morning on a workshop phone, and a
- * double entry needed three lines before it read correctly. They asked for the
- * row to go, and this is that.
- *
- * What was deleted is written to the admin audit: the worker, the shoe, the
- * pairs, the wage and the reason. The ledger no longer carries it, but a worker
- * asking where their wage went can still be answered.
+ * It deleted the entry outright for a while — the owner read fifty rows a
+ * morning and a struck-through double entry got in the way — and the audit was
+ * then the only trace of a wage once entered. On 2026-10-13 the owner chose
+ * that proof of a wage is never removed: the entry stays, marked reversed, its
+ * wage no longer counted, and the screen folds reversed lines away so the
+ * morning's reading stays short. The path is kept so nothing that calls it
+ * breaks.
  */
 export async function POST(request: NextRequest) {
   // Before the try, so a throw can never skip it. wages:write, owner only.
@@ -24,42 +23,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const session = await getAdminSession();
-    const deletedBy = session?.name || session?.email || "Owner";
+    const reversedBy = session?.name || session?.email || "Owner";
 
     const body = await request.json().catch(() => ({}));
     const workId = typeof body.work_id === "string" ? body.work_id.trim() : "";
     const reason = typeof body.reason === "string" ? body.reason.trim() : "";
 
     if (!workId) {
-      return NextResponse.json({ error: "Which entry to delete is required." }, { status: 400 });
+      return NextResponse.json({ error: "Which entry to take back is required." }, { status: 400 });
     }
 
-    const gone = await deleteFactoryWork({ workId, reason, deletedBy });
+    const back = await reverseFactoryWork({ workId, reason, reversedBy });
 
-    // Written after the rows are gone, because this is now the only record that
-    // the work was ever entered — everything a worker might later ask about it.
     await recordAdminAuditEvent(
-      "factory_work_delete",
-      `Deleted work entry: ${gone.workerName} · ${gone.itemName} · ${gone.date} · ${
-        gone.pairsCount
-      } pairs × Rs. ${gone.rate} = Rs. ${gone.amountEarned}${
-        gone.color || gone.size ? ` · ${[gone.color, gone.size].filter(Boolean).join(" · ")}` : ""
-      }. Reason: ${gone.reason}`,
+      "factory_work_reverse",
+      `Took back work entry: ${back.workerName} · ${back.itemName} · ${back.date} · ${
+        back.pairsCount
+      } pairs × Rs. ${back.rate} = Rs. ${back.amountEarned}${
+        back.color || back.size ? ` · ${[back.color, back.size].filter(Boolean).join(" · ")}` : ""
+      }. Reason: ${back.reason}. The entry stays on the ledger, reversed.`,
     );
 
     return NextResponse.json({
-      deleted: true,
-      worker_name: gone.workerName,
-      item_name: gone.itemName,
-      pairs_count: gone.pairsCount,
-      amount_earned: gone.amountEarned,
+      reversed: true,
+      worker_name: back.workerName,
+      item_name: back.itemName,
+      pairs_count: back.pairsCount,
+      amount_earned: back.amountEarned,
     });
   } catch (error) {
     // A closed month or a Work Order entry refuses itself with a message worth
     // showing rather than a generic failure.
     const status = error instanceof FactoryMutationError ? error.status : 409;
-    const message = error instanceof Error ? error.message : "Failed to delete the entry";
-    reportError("delete a factory work entry", error);
+    const message = error instanceof Error ? error.message : "Failed to take the entry back";
+    reportError("take back a factory work entry", error);
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -910,6 +910,123 @@ export async function deleteFactoryWork(input: {
   });
 }
 
+/**
+ * Take a work entry back, keeping it on the books (owner, 2026-10-13).
+ *
+ * The ledger's ✏️ deleted the row, and the audit was the only trace of a wage
+ * once entered; the owner chose that proof of a wage is never removed. The
+ * three rows the save wrote stay, marked reversed — every sum that decides what
+ * is owed already skips a reversed row — and the month is rebuilt. The same
+ * refusals as deleting: a reason, no Work Order entry, no closed month.
+ */
+export async function reverseFactoryWork(input: {
+  workId: string;
+  reason: string;
+  reversedBy: string;
+}) {
+  if (!input.reason?.trim() || input.reason.trim().length < 5) {
+    throw new FactoryMutationError(
+      "Write a clear reason for taking this entry back — it stays on the entry.",
+      400,
+    );
+  }
+
+  return transactionPostgres(STORE, async (db) => {
+    const rows = await db.query<{
+      id: string;
+      submission_key: string;
+      date: string | Date;
+      status: string;
+      worker_id: string;
+      color: string | null;
+      size: string | null;
+      pairs_count: number;
+      rate_applied: DbNumeric;
+      amount_earned: DbNumeric;
+      work_order_id: string | null;
+      worker_name: string | null;
+      item_name: string | null;
+    }>(
+      `SELECT w.id, w.submission_key, w.date, w.status, w.worker_id, w.color, w.size,
+              w.pairs_count, w.rate_applied, w.amount_earned, w.work_order_id,
+              fw.name AS worker_name, fi.name AS item_name
+       FROM factory_daily_work w
+       LEFT JOIN factory_workers fw ON fw.id = w.worker_id
+       LEFT JOIN factory_items fi ON fi.id = w.item_id
+       WHERE w.id = $1
+       FOR UPDATE OF w`,
+      [input.workId],
+    );
+    const entry = rows[0];
+    if (!entry) throw new FactoryMutationError("That work entry was not found.", 404);
+    if (entry.status === "reversed") {
+      throw new FactoryMutationError("That entry has already been taken back.", 409);
+    }
+
+    if (entry.work_order_id) {
+      throw new FactoryMutationError(
+        "This entry belongs to a Work Order. Cancel the Work Order first.",
+        409,
+      );
+    }
+
+    const workDate = dbDate(entry.date);
+    const monthKey = bikramMonthKeyOf(workDate);
+
+    // A month that has been closed and paid is history.
+    const locked = await db.query<{ id: string }>(
+      `SELECT id FROM factory_monthly_summary
+       WHERE worker_id = $1 AND month = $2::date AND status = 'locked'
+       LIMIT 1`,
+      [entry.worker_id, `${monthKey}-01`],
+    );
+    if (locked[0]) {
+      throw new FactoryMutationError(
+        "That month is closed and paid. This entry can no longer be taken back.",
+        409,
+      );
+    }
+
+    const why = `Taken back: ${input.reason.trim()} · by ${input.reversedBy}`;
+    // The wages screen, the worker's account and the work — all three, or the
+    // wages screen and the balance disagree about whether it happened.
+    await db.query(
+      `UPDATE production_work_entries
+       SET status = 'Reversed', reversed_at = now(), reversal_reason = $2
+       WHERE source_submission_key = $1 AND status = 'Approved'`,
+      [entry.submission_key, why],
+    );
+    await db.query(
+      `UPDATE factory_worker_ledger
+       SET status = 'reversed', updated_at = now(),
+           notes = concat_ws(' · ', nullif(notes, ''), $2::text)
+       WHERE source_work_id = $1 AND entry_type = 'work' AND status <> 'reversed'`,
+      [input.workId, why],
+    );
+    await db.query(
+      `UPDATE factory_daily_work SET status = 'reversed', updated_at = now()
+       WHERE id = $1 AND status <> 'reversed'`,
+      [input.workId],
+    );
+
+    await writeMonthlySummary(db, entry.worker_id, monthKey);
+
+    return {
+      workerId: entry.worker_id,
+      workerName: entry.worker_name ?? "Unknown worker",
+      itemName: entry.item_name ?? "Unknown item",
+      date: workDate,
+      color: entry.color,
+      size: entry.size,
+      pairsCount: Number(entry.pairs_count),
+      rate: numeric(entry.rate_applied),
+      amountEarned: numeric(entry.amount_earned),
+      reason: input.reason.trim(),
+      reversedBy: input.reversedBy,
+    };
+  });
+}
+
 interface LedgerRow {
   id: string;
   worker_id: string;

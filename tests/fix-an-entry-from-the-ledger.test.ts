@@ -13,6 +13,11 @@ import { describe, expect, it } from "vitest";
  * needed three lines before the ledger read correctly. The owner reads fifty
  * rows a morning on a workshop phone and asked for the row to go. What was
  * deleted is kept in the admin audit instead.
+ *
+ * Then, on 2026-10-13, the owner chose that proof of a wage is never removed:
+ * the ✏️ takes the entry back — it stays, reversed, its wage no longer counted
+ * — and the screen folds reversed lines away, which keeps the morning short.
+ * Deleting stays for a work photo taken back before it was ever a wage.
  */
 const API = "app/api/factory/ledger/route.ts";
 const EDIT_ROUTE = "app/api/factory/ledger/edit/route.ts";
@@ -107,22 +112,58 @@ describe("deleting an entry", () => {
     expect(screen).toContain("deleteReason.trim().length < 5");
   });
 
-  it("writes what was removed to the audit", async () => {
-    const route = await readFile(DELETE_ROUTE, "utf8");
+});
 
-    // Once the rows are gone this is the only record that the work was entered:
-    // the worker, the shoe, the pairs, the wage and the reason.
-    expect(route).toContain("recordAdminAuditEvent");
-    expect(route).toContain("factory_work_delete");
-    expect(route).toContain("gone.workerName");
-    expect(route).toContain("gone.amountEarned");
-    expect(route).toContain("gone.reason");
+/** The take-back mutation's body. */
+async function reverseMutation() {
+  const source = await readFile(MUTATION, "utf8");
+  const start = source.indexOf("export async function reverseFactoryWork");
+  const end = source.indexOf("interface LedgerRow");
+  expect(start, "reverseFactoryWork is missing").toBeGreaterThan(-1);
+  expect(end, "the slice has no end").toBeGreaterThan(start);
+  return source.slice(start, end);
+}
+
+describe("taking an entry back from the ledger", () => {
+  it("keeps it in all three tables, marked reversed, and deletes nothing", async () => {
+    const source = await reverseMutation();
+
+    expect(source).toContain("UPDATE production_work_entries");
+    expect(source).toContain("SET status = 'Reversed'");
+    expect(source).toContain("UPDATE factory_worker_ledger");
+    expect(source).toContain("UPDATE factory_daily_work SET status = 'reversed'");
+    expect(source).not.toContain("DELETE FROM");
   });
 
-  it("says plainly that it does not come back", async () => {
+  it("does it in one transaction, rebuilds the month, and refuses what delete refused", async () => {
+    const source = await reverseMutation();
+
+    expect(source).toContain("transactionPostgres");
+    expect(source).toContain("writeMonthlySummary");
+    expect(source).toContain("status = 'locked'");
+    expect(source).toContain("belongs to a Work Order");
+    expect(source).toContain("input.reason.trim().length < 5");
+    expect(source).toContain("has already been taken back");
+  });
+
+  it("is what the ledger's ✏️ calls, and the audit says the entry stays", async () => {
+    const route = await readFile(DELETE_ROUTE, "utf8");
+
+    expect(route).toContain("await reverseFactoryWork({ workId, reason, reversedBy })");
+    expect(route).not.toContain("deleteFactoryWork");
+    expect(route).toContain("factory_work_reverse");
+    expect(route).toContain("back.workerName");
+    expect(route).toContain("back.amountEarned");
+    expect(route).toContain("The entry stays on the ledger, reversed.");
+  });
+
+  it("says plainly that nothing is removed, and folds reversed lines away", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
-    expect(screen).toContain("This entry goes for good");
+    expect(screen).toContain("Nothing is removed.");
+    expect(screen).not.toContain("This entry goes for good");
+    expect(screen).toContain("const [showReversed, setShowReversed] = useState(false);");
+    expect(screen).toContain('ledgerData.ledger.filter((entry) => entry.status !== "reversed")');
   });
 });
 
@@ -185,19 +226,19 @@ describe("who may do either", () => {
 });
 
 describe("what the owner sees on a row", () => {
-  it("offers Correct and Delete, and no longer Reverse", async () => {
+  it("offers Correct and Take back, and no longer Delete", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
     expect(screen).toContain(`text("Correct", "सच्याउने")`);
-    expect(screen).toContain(`text("Delete", "मेट्ने")`);
-    expect(screen).not.toContain(`text("Reverse", "फिर्ता गर्ने")`);
+    expect(screen).toContain(`text("Take back", "फिर्ता गर्ने")`);
+    expect(screen).not.toContain(`text("Delete", "मेट्ने")`);
   });
 
-  it("offers neither on a payment row", async () => {
+  it("offers neither on a payment row, nor on a line already taken back", async () => {
     const screen = await readFile(SCREEN, "utf8");
 
     // A payment has no work row behind it; it is undone on the worker page.
-    expect(screen).toContain("entry.source_work_id ? (");
+    expect(screen).toContain('entry.source_work_id && entry.status !== "reversed" ? (');
   });
 
   it("opens one box at a time", async () => {
