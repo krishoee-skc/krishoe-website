@@ -63,7 +63,10 @@ describe("the dashboard card", () => {
     expect(screen).toContain('text("👟 Stock by shoe", "👟 जुत्ता अनुसार स्टक")');
     expect(screen).not.toContain('text("🛒 Shop stock", "🛒 पसलको स्टक")');
     expect(screen).toContain("pairs in all · ${stock.web} on the website · ${stock.draft} in draft");
-    expect(screen).toContain('key: "places"');
+    // Since 2026-10-12 a place that does not match is said once, in What now.
+    expect(screen).not.toContain('key: "places"');
+    const page = await read("app/admin/page.tsx");
+    expect(page).toContain('key: "places",');
     expect(screen).toContain('key: "drafts"');
     expect(screen).toContain('key: "none-at-shop"');
     expect(screen).toContain('href: "/admin/stock#move-pairs"');

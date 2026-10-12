@@ -19,7 +19,7 @@ describe("the shared frame", () => {
 
   it("keeps every tab rendered, prints them all, and opens the tab a link points into", async () => {
     const kit = await read("components/admin/PageKit.tsx");
-    expect(kit).toContain('tab.key === active ? "" : "hidden print:grid"');
+    expect(kit).toContain('tab.key === active ? "" : openOnWide ? "hidden print:grid lg:grid" : "hidden print:grid"');
     expect(kit).toContain('closest<HTMLElement>("[data-tab-panel]")');
     expect(kit).toContain('window.addEventListener("hashchange", fromHash);');
   });

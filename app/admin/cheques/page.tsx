@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead, StatStrip } from "@/components/admin/PageKit";
 import PhoneWithCountry from "@/components/PhoneWithCountry";
 import Link from "next/link";
 import T from "@/components/T";
@@ -377,10 +378,8 @@ export default async function ChequesPage({
         ))}
       </datalist>
       <div>
-        <h1 className="font-display text-3xl font-black text-brand-green-ink sm:text-4xl">
-          🏦 <T en="Cheques" ne="चेक खाता" />
-        </h1>
-        <p className="mt-1 max-w-3xl text-lg leading-7 text-brand-muted">
+        <PageHead eyebrow={<T en="Money" ne="पैसा" />} title={<T en="🏦 Cheques" ne="🏦 चेक खाता" />} />
+        <p className="mt-1 max-w-3xl text-base leading-7 text-brand-muted">
           <T
             en="Every cheque taken or given — whose, which bank, how much, when to deposit, and what the bank did."
             ne="लिएको र दिएको हरेक चेक — कसको, कुन बैंकको, कति, कहिले साट्ने, र बैंकले के गर्‍यो।"
@@ -413,25 +412,38 @@ export default async function ChequesPage({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5" data-cheque-totals>
-            {[
-              { en: "To deposit", ne: "साट्न बाँकी", value: totals.toDeposit, bar: "bg-amber-500" },
-              { en: "In the bank", ne: "बैंकमा", value: totals.inBank, bar: "bg-sky-700" },
-              { en: "Cleared this month", ne: "यो महिना पास", value: totals.clearedThisMonth, bar: "bg-brand-green" },
-              { en: "Bounced, still owed", ne: "फर्किएको, उठ्न बाँकी", value: totals.bouncedOwed, bar: "bg-brand-clay" },
-              ...(seesGiven ? [{ en: "Given, to be cashed", ne: "दिएको, साटिन बाँकी", value: totals.givenOpen, bar: "bg-violet-700" }] : []),
-            ].map((tile) => (
-              <div key={tile.en} className="relative overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper p-4 pl-5">
-                <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${tile.bar}`} />
-                <span className="block text-sm font-black text-brand-muted">
-                  <T en={tile.en} ne={tile.ne} />
-                </span>
-                <b className="block font-display text-2xl text-brand-green-ink">{chequeRupees(tile.value.amount)}</b>
-                <span className="text-sm text-brand-muted">
-                  <T en={`${tile.value.count} cheque${tile.value.count === 1 ? "" : "s"}`} ne={`${tile.value.count} चेक`} />
-                </span>
-              </div>
-            ))}
+          {/* The book's figures in one strip, the rupees behind the eye as on
+              the dashboard (owner, 2026-10-12). */}
+          <div data-cheque-totals>
+            <StatStrip
+              items={[
+                { en: `to deposit · ${totals.toDeposit.count}`, ne: `साट्न बाँकी · ${totals.toDeposit.count}`, value: totals.toDeposit.amount, money: true },
+                { en: `in the bank · ${totals.inBank.count}`, ne: `बैंकमा · ${totals.inBank.count}`, value: totals.inBank.amount, money: true },
+                {
+                  en: `cleared this month · ${totals.clearedThisMonth.count}`,
+                  ne: `यो महिना पास · ${totals.clearedThisMonth.count}`,
+                  value: totals.clearedThisMonth.amount,
+                  money: true,
+                },
+                {
+                  en: `bounced, still owed · ${totals.bouncedOwed.count}`,
+                  ne: `फर्किएको, उठ्न बाँकी · ${totals.bouncedOwed.count}`,
+                  value: totals.bouncedOwed.amount,
+                  money: true,
+                  tone: totals.bouncedOwed.count > 0 ? ("warn" as const) : undefined,
+                },
+                ...(seesGiven
+                  ? [
+                      {
+                        en: `given, to be cashed · ${totals.givenOpen.count}`,
+                        ne: `दिएको, साटिन बाँकी · ${totals.givenOpen.count}`,
+                        value: totals.givenOpen.amount,
+                        money: true,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
 
           {toFill.length > 0 ? (

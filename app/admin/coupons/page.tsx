@@ -1,4 +1,5 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
+import { PageHead, StatStrip } from "@/components/admin/PageKit";
 import type { Metadata } from "next";
 import T from "@/components/T";
 import { saveCouponAction } from "./actions";
@@ -31,16 +32,18 @@ export default async function CouponsPage({
   await requireAdminPermission("settings:write");
   const params = await searchParams;
   const coupons = await listCoupons();
+  const now = new Date();
+  const isLive = (coupon: (typeof coupons)[number]) =>
+    coupon.status === "Active" &&
+    !(coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) &&
+    !(coupon.expiresAt && new Date(coupon.expiresAt) < now);
+  const liveCount = coupons.filter(isLive).length;
+  const usedTotal = coupons.reduce((sum, coupon) => sum + coupon.usedCount, 0);
 
   return (
-    <section className="p-6 pb-24">
+    <section className="p-4 pb-24 sm:p-6">
       <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
-          <T en="Offers" ne="छुट" />
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-black text-brand-green-ink">
-          <T en="Discount codes" ne="छुटको कोड" />
-        </h1>
+        <PageHead eyebrow={<T en="Money" ne="पैसा" />} title={<T en="Discount codes" ne="छुटको कोड" />} />
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           <T
             en="Make a code for a campaign — in a TikTok video, on a flyer, or handed to a customer. They type it in at checkout."
@@ -60,117 +63,134 @@ export default async function CouponsPage({
         </p>
       ) : null}
 
-      <EnterWalkForm action={saveCouponAction} className="mt-6 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-        <h2 className="text-lg font-black text-brand-green-ink">
-          <T en="Make a new code" ne="नयाँ कोड बनाउने" />
-        </h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          <T
-            en="Entering a code that already exists changes that one — it does not make a second."
-            ne="उही कोड फेरि हाल्दा पुरानै बदलिन्छ — नयाँ बन्दैन।"
-          />
-        </p>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Code" ne="कोड" />
-            <input name="code" required placeholder="DASHAIN10" className={`${inputClass} uppercase tracking-[0.14em]`} />
-            <span className="text-xs font-normal text-brand-muted">
-              <T
-                en="English letters and digits only. Capitals make no difference."
-                ne="अंग्रेजी अक्षर र अंक मात्र। सानो-ठूलो अक्षरले फरक पर्दैन।"
-              />
-            </span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="What kind of discount" ne="कस्तो छुट" />
-            <select name="kind" defaultValue="percent" className={inputClass}>
-              <option value="percent">{"%"}</option>
-              <option value="amount">Rs.</option>
-            </select>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="If a percentage — how much %" ne="प्रतिशत भए — कति %" />
-            <input name="percent" type="number" min="1" max="100" placeholder="10" className={inputClass} />
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="If an amount — how many rupees" ne="रकम भए — कति रुपैयाँ" />
-            <input name="amountRupees" type="number" min="1" placeholder="200" className={inputClass} />
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Smallest order it works on" ne="कम्तीमा कतिको किनमेल" />
-            <input name="minOrderRupees" type="number" min="0" placeholder="1000" className={inputClass} />
-            <span className="text-xs font-normal text-brand-muted">
-              <T en="Leave empty for no minimum." ne="खाली भए कुनै सीमा छैन।" />
-            </span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Most a percentage may take off" ne="प्रतिशतमा बढीमा कति छुट" />
-            <input name="maxDiscountRupees" type="number" min="1" placeholder="500" className={inputClass} />
-            <span className="text-xs font-normal text-brand-muted">
-              <T
-                en="So a large order does not give away too much. Leave empty for no ceiling."
-                ne="ठूलो अर्डरमा धेरै नजाओस् भनेर। खाली भए सीमा छैन।"
-              />
-            </span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Starts" ne="कहिलेदेखि" />
-            <NepaliDateFieldUncontrolled name="startsAt" />
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Ends" ne="कहिलेसम्म" />
-            <NepaliDateFieldUncontrolled name="expiresAt" />
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Most times it may be used" ne="बढीमा कति पटक चल्ने" />
-            <input name="maxUses" type="number" min="1" placeholder="100" className={inputClass} />
-            <span className="text-xs font-normal text-brand-muted">
-              <T
-                en="Leave empty for unlimited. Put a limit on anything going into a TikTok."
-                ne="खाली भए असीमित। TikTok मा हाल्ने भए सीमा राख्नुहोस्।"
-              />
-            </span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
-            <T en="Status" ne="अवस्था" />
-            <select name="status" defaultValue="Active" className={inputClass}>
-              <option value="Active">Active</option>
-              <option value="Disabled">Disabled</option>
-            </select>
-          </label>
-
-          <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
-            <T en="Note (for your own memory)" ne="टिप्पणी (आफ्नो सम्झनाका लागि)" />
-            <input
-              name="note"
-              maxLength={240}
-              placeholder="Dashain campaign — TikTok"
-              className={inputClass}
+      {/* The codes first; making one, now and then, one press away (owner,
+          2026-10-12: the eleven-box form filled the first screen). */}
+      <details className="mt-5" open={Boolean(params?.error)}>
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-brand-green px-5 text-sm font-black text-white [&::-webkit-details-marker]:hidden">
+          ＋ <T en="New code" ne="नयाँ कोड" />
+        </summary>
+        <EnterWalkForm action={saveCouponAction} className="mt-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            <T en="Make a new code" ne="नयाँ कोड बनाउने" />
+          </h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            <T
+              en="Entering a code that already exists changes that one — it does not make a second."
+              ne="उही कोड फेरि हाल्दा पुरानै बदलिन्छ — नयाँ बन्दैन।"
             />
-          </label>
-        </div>
+          </p>
 
-        <div className="mt-5">
-          <FormSubmitButton
-            className="min-h-12 rounded-xl bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
-            pendingLabel="Saving…"
-          >
-            <T en="Save the code" ne="कोड सुरक्षित गर्ने" />
-          </FormSubmitButton>
-        </div>
-      </EnterWalkForm>
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Code" ne="कोड" />
+              <input name="code" required placeholder="DASHAIN10" className={`${inputClass} uppercase tracking-[0.14em]`} />
+              <span className="text-xs font-normal text-brand-muted">
+                <T
+                  en="English letters and digits only. Capitals make no difference."
+                  ne="अंग्रेजी अक्षर र अंक मात्र। सानो-ठूलो अक्षरले फरक पर्दैन।"
+                />
+              </span>
+            </label>
 
-      <section className="mt-8">
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="What kind of discount" ne="कस्तो छुट" />
+              <select name="kind" defaultValue="percent" className={inputClass}>
+                <option value="percent">{"%"}</option>
+                <option value="amount">Rs.</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="If a percentage — how much %" ne="प्रतिशत भए — कति %" />
+              <input name="percent" type="number" min="1" max="100" placeholder="10" className={inputClass} />
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="If an amount — how many rupees" ne="रकम भए — कति रुपैयाँ" />
+              <input name="amountRupees" type="number" min="1" placeholder="200" className={inputClass} />
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Smallest order it works on" ne="कम्तीमा कतिको किनमेल" />
+              <input name="minOrderRupees" type="number" min="0" placeholder="1000" className={inputClass} />
+              <span className="text-xs font-normal text-brand-muted">
+                <T en="Leave empty for no minimum." ne="खाली भए कुनै सीमा छैन।" />
+              </span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Most a percentage may take off" ne="प्रतिशतमा बढीमा कति छुट" />
+              <input name="maxDiscountRupees" type="number" min="1" placeholder="500" className={inputClass} />
+              <span className="text-xs font-normal text-brand-muted">
+                <T
+                  en="So a large order does not give away too much. Leave empty for no ceiling."
+                  ne="ठूलो अर्डरमा धेरै नजाओस् भनेर। खाली भए सीमा छैन।"
+                />
+              </span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Starts" ne="कहिलेदेखि" />
+              <NepaliDateFieldUncontrolled name="startsAt" />
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Ends" ne="कहिलेसम्म" />
+              <NepaliDateFieldUncontrolled name="expiresAt" />
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Most times it may be used" ne="बढीमा कति पटक चल्ने" />
+              <input name="maxUses" type="number" min="1" placeholder="100" className={inputClass} />
+              <span className="text-xs font-normal text-brand-muted">
+                <T
+                  en="Leave empty for unlimited. Put a limit on anything going into a TikTok."
+                  ne="खाली भए असीमित। TikTok मा हाल्ने भए सीमा राख्नुहोस्।"
+                />
+              </span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
+              <T en="Status" ne="अवस्था" />
+              <select name="status" defaultValue="Active" className={inputClass}>
+                <option value="Active">Active</option>
+                <option value="Disabled">Disabled</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
+              <T en="Note (for your own memory)" ne="टिप्पणी (आफ्नो सम्झनाका लागि)" />
+              <input
+                name="note"
+                maxLength={240}
+                placeholder="Dashain campaign — TikTok"
+                className={inputClass}
+              />
+            </label>
+          </div>
+
+          <div className="mt-5">
+            <FormSubmitButton
+              className="min-h-12 rounded-xl bg-brand-green px-6 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
+              pendingLabel="Saving…"
+            >
+              <T en="Save the code" ne="कोड सुरक्षित गर्ने" />
+            </FormSubmitButton>
+          </div>
+        </EnterWalkForm>
+      </details>
+
+      <div className="mt-5">
+        <StatStrip
+          items={[
+            { en: "running", ne: "चलिरहेका", value: liveCount, tone: liveCount > 0 ? "good" : undefined },
+            { en: "times used", ne: "प्रयोग भएको", value: usedTotal },
+            { en: "ended", ne: "सकिएका", value: coupons.length - liveCount },
+          ]}
+        />
+      </div>
+
+      <section className="mt-6">
         <h2 className="text-lg font-black text-brand-green-ink">
           <T en="Codes you have made" ne="बनेका कोड" />
         </h2>

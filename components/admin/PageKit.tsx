@@ -101,6 +101,8 @@ export type PageTab = {
   /** A count beside the name — red when it is work waiting. */
   count?: number;
   content: ReactNode;
+  /** Its place in the wide layout when every part shows at once. */
+  wideClassName?: string;
 };
 
 /**
@@ -111,7 +113,20 @@ export type PageTab = {
  * A link to a part by its id (#move-pairs, #stock-to-fill — the dashboard and
  * other screens use them) opens the tab that holds it and scrolls there.
  */
-export function PageTabs({ id, tabs }: { id: string; tabs: PageTab[] }) {
+export function PageTabs({
+  id,
+  tabs,
+  openOnWide = false,
+  wideGridClassName,
+}: {
+  id: string;
+  tabs: PageTab[];
+  /** On a wide screen every part shows at once and the tabs step aside — a
+   *  phone gets the tabs, a computer the whole page (the dashboard). */
+  openOnWide?: boolean;
+  /** The wide layout of the parts, when they all show (e.g. two columns). */
+  wideGridClassName?: string;
+}) {
   const { text } = useLanguage();
   const storageKey = `krishoe:tab:${id}`;
   const [active, setActive] = useState(tabs[0]?.key ?? "");
@@ -157,7 +172,7 @@ export function PageTabs({ id, tabs }: { id: string; tabs: PageTab[] }) {
       <div
         role="tablist"
         aria-label={text("Parts of this screen", "यो पानाका भाग")}
-        className="-mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] print:hidden"
+        className={`-mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] print:hidden ${openOnWide ? "lg:hidden" : ""}`}
       >
         {tabs.map((tab) => {
           const on = tab.key === active;
@@ -183,17 +198,19 @@ export function PageTabs({ id, tabs }: { id: string; tabs: PageTab[] }) {
           );
         })}
       </div>
+      <div className={wideGridClassName ?? "contents"}>
       {tabs.map((tab) => (
         <div
           key={tab.key}
           id={`tab-${id}-${tab.key}`}
           role="tabpanel"
           data-tab-panel={tab.key}
-          className={`grid min-w-0 gap-4 ${tab.key === active ? "" : "hidden print:grid"}`}
+          className={`grid min-w-0 content-start gap-4 ${tab.wideClassName ?? ""} ${tab.key === active ? "" : openOnWide ? "hidden print:grid lg:grid" : "hidden print:grid"}`}
         >
           {tab.content}
         </div>
       ))}
+      </div>
     </div>
   );
 }
