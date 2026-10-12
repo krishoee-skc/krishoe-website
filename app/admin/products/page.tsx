@@ -101,7 +101,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             <summary className="inline-flex h-10 cursor-pointer list-none items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink [&::-webkit-details-marker]:hidden">
               ⋯ <T en="Labels · codes · sync" ne="स्टिकर · कोड · मिलाउने" />
             </summary>
-            <div className="absolute right-0 z-20 mt-2 grid w-60 gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-lg">
+            <div className="absolute left-0 z-20 mt-2 grid w-60 max-w-[calc(100vw-2rem)] sm:left-auto sm:right-0 gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-lg">
               <Link
                 href="/admin/products/labels"
                 className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
