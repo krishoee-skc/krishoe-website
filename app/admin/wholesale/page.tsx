@@ -1,4 +1,5 @@
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
+import { PageHead, PageTabs } from "@/components/admin/PageKit";
 import { whatsappNumber } from "@/lib/phone-intl";
 import type { Metadata } from "next";
 import { requireAdminPermission } from "@/lib/admin-permissions";
@@ -9,6 +10,13 @@ import T from "@/components/T";
 
 export const metadata: Metadata = { title: "Wholesale enquiries | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
+
+const STATUS_WORDS: Record<string, { en: string; ne: string }> = {
+  New: { en: "New", ne: "नयाँ" },
+  Contacted: { en: "Called", ne: "फोन गरियो" },
+  Customer: { en: "Became customer", ne: "ग्राहक बन्यो" },
+  Closed: { en: "Closed", ne: "बन्द" },
+};
 
 const statusTone: Record<string, string> = {
   New: "bg-brand-clay text-white",
@@ -28,11 +36,9 @@ export default async function WholesaleEnquiriesPage({
   const fresh = enquiries.filter((enquiry) => enquiry.status === "New").length;
 
   return (
-    <section className="p-6 pb-24">
+    <section className="p-4 pb-24 sm:p-6">
       <div>
-        <h1 className="font-display text-3xl font-black text-brand-green-ink">
-          <T en="Wholesale enquiries" ne="थोकको सोधपुछ" />
-        </h1>
+        <PageHead eyebrow={<T en="Customers" ne="ग्राहक" />} title={<T en="Wholesale enquiries" ne="थोकको सोधपुछ" />} />
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           <T
             en="Enquiries shops sent from the website. One wholesale customer = 50 pairs — so call quickly."
@@ -47,7 +53,7 @@ export default async function WholesaleEnquiriesPage({
         </p>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap gap-2 text-sm font-black">
+      <div className="mt-5 mb-4 flex flex-wrap gap-2 text-sm font-black">
         <span className={`rounded-full px-3 py-1.5 ${fresh > 0 ? "bg-brand-clay text-white" : "bg-brand-mist text-brand-muted"}`}>
           {fresh > 0 ? (
             <T en={`${fresh} new — to call`} ne={`${fresh} नयाँ — फोन गर्न बाँकी`} />
@@ -67,8 +73,22 @@ export default async function WholesaleEnquiriesPage({
           <T en="." ne=" पठाउनुहोस्।" />
         </p>
       ) : (
-        <div className="mt-6 grid gap-4 xl:grid-cols-2">
-          {enquiries.map((enquiry) => (
+        <PageTabs
+          id="wholesale"
+          tabs={(["New", "Contacted", "Customer", "Closed"] as const).map((status) => {
+            const list = enquiries.filter((enquiry) => enquiry.status === status);
+            return {
+              key: status.toLowerCase(),
+              en: STATUS_WORDS[status].en,
+              ne: STATUS_WORDS[status].ne,
+              count: status === "New" ? list.length : undefined,
+              content: list.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-brand-green-line p-6 text-center text-sm font-semibold text-brand-muted">
+                  <T en="None here." ne="यहाँ कुनै छैन।" />
+                </p>
+              ) : (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {list.map((enquiry) => (
             <article key={enquiry.id} className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -79,7 +99,7 @@ export default async function WholesaleEnquiriesPage({
                   </p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-black ${statusTone[enquiry.status]}`}>
-                  {enquiry.status}
+                  <T en={STATUS_WORDS[enquiry.status]?.en ?? enquiry.status} ne={STATUS_WORDS[enquiry.status]?.ne ?? enquiry.status} />
                 </span>
               </div>
 
@@ -160,6 +180,10 @@ export default async function WholesaleEnquiriesPage({
             </article>
           ))}
         </div>
+              ),
+            };
+          })}
+        />
       )}
     </section>
   );

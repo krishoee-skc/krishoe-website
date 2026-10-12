@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import { PageHead } from "@/components/admin/PageKit";
 import { whatsappNumber as toWhatsApp } from "@/lib/phone-intl";
 import Link from "next/link";
 import { canAdmin, requireAdminPermission } from "@/lib/admin-permissions";
@@ -217,12 +219,15 @@ function Row({ voice }: { voice: CustomerVoice }) {
             a published review also takes it off the shop. */}
         <form action={deleteVoiceAction} className="ml-auto">
           <input type="hidden" name="id" value={voice.id} />
-          <button
-            type="submit"
+          <ConfirmDeleteButton
+            ask={{
+              en: "Delete this for good? A published review also comes off the shop.",
+              ne: "पूरै मेट्ने? पसलमा देखिएको राय भए त्यहाँबाट पनि हट्छ।",
+            }}
             className="rounded-lg border border-brand-clay/40 px-3 py-1.5 text-xs font-bold text-brand-clay hover:bg-red-50"
           >
             🗑 <T en="Delete" ne="मेट्ने" />
-          </button>
+          </ConfirmDeleteButton>
         </form>
       </div>
     </article>
@@ -289,11 +294,9 @@ export default async function InboxPage({
   );
 
   return (
-    <section className="p-6 pb-24">
+    <section className="p-4 pb-24 sm:p-6">
       <div>
-        <h1 className="font-display text-3xl font-black text-brand-green-ink">
-          <T en="Customer Voice" ne="ग्राहकको आवाज" />
-        </h1>
+        <PageHead eyebrow={<T en="Customers" ne="ग्राहक" />} title={<T en="Customer Voice" ne="ग्राहकको आवाज" />} />
         <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
           <T
             en="Reviews, questions and complaints — everything a customer said, in one place."
@@ -312,7 +315,14 @@ export default async function InboxPage({
           do I see the reviews?" — on an empty page nothing said they arrive
           here). */}
       <div className="mt-5 grid gap-3">
-        <div className="grid grid-cols-2 gap-2 sm:max-w-2xl sm:grid-cols-4" data-review-stats>
+        <div className="grid grid-cols-2 gap-2 sm:max-w-3xl sm:grid-cols-5" data-review-stats>
+          {/* What waits on the owner, first (owner, 2026-10-12). */}
+          <div className={`rounded-xl border px-3 py-2 ${counts.waiting > 0 ? "border-transparent bg-brand-clay-tint" : "border-brand-green-line bg-brand-paper"}`}>
+            <b className={`block font-display text-xl ${counts.waiting > 0 ? "text-brand-clay" : "text-brand-green"}`}>{counts.waiting}</b>
+            <span className="text-xs text-brand-muted">
+              <T en="to reply" ne="जवाफ बाँकी" />
+            </span>
+          </div>
           <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
             <b className="block font-display text-xl text-brand-green-ink">
               {stats.reviews > 0 ? `★ ${stats.average.toFixed(1)}` : "0"}
