@@ -100,8 +100,13 @@ export default function SettingsSections({
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-brand-green-line" aria-hidden="true">
             <div className="h-full bg-brand-green" style={{ width: `${Math.round((done / todos.length) * 100)}%` }} />
           </div>
+          {/* Only what is left, each a press from its box; the filled ones
+              fold away (owner, 2026-10-12). */}
+          {done === todos.length ? (
+            <p className="mt-3 text-sm font-bold text-brand-green">{text("All filled ✓", "सबै भरियो ✓")}</p>
+          ) : null}
           <ul className="mt-3 grid list-none gap-2 pl-0 sm:grid-cols-2 lg:grid-cols-3">
-            {todos.map((todo) => (
+            {todos.filter((todo) => !todo.done).map((todo) => (
               <li key={todo.en}>
                 <button
                   type="button"
@@ -118,6 +123,27 @@ export default function SettingsSections({
               </li>
             ))}
           </ul>
+          {done > 0 ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-sm font-bold text-brand-muted">
+                {text(`✓ ${done} filled`, `✓ ${done} भरियो`)}
+              </summary>
+              <ul className="mt-2 grid list-none gap-2 pl-0 sm:grid-cols-2 lg:grid-cols-3">
+                {todos.filter((todo) => todo.done).map((todo) => (
+                  <li key={todo.en}>
+                    <button
+                      type="button"
+                      onClick={() => goTo(todo)}
+                      className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-brand-green-line px-3 text-left text-sm font-bold text-brand-muted transition hover:border-brand-green"
+                    >
+                      <span aria-hidden="true">✓</span>
+                      {text(todo.en, todo.ne)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </section>
       ) : null}
 

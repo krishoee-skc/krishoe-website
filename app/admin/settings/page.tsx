@@ -940,20 +940,6 @@ export default async function AdminSettingsPage({
           </section>
         ) : null}
 
-        {photoRobot ? (
-          <section id="photo-robot" className="self-start rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink">
-              🤖 <T en="Photo robot" ne="फोटो हेर्ने रोबोट" />
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-brand-muted">
-              <T
-                en="Looks at a worker's photo and guesses the shoe, the colour and about how many pairs, for you to check. It never puts anything on the books. Google's free robot may learn from the photos it is sent, so only a small copy of the photo goes — no name, phone or wage."
-                ne="कामदारको फोटो हेरेर जुत्ता, रङ र लगभग कति जोडी भनेर अनुमान लेख्छ, तपाईंले जाँच्न। हिसाबमा आफैँ केही चढाउँदैन। Google को निःशुल्क रोबोटले पठाएको फोटोबाट सिक्न सक्छ, त्यसैले फोटोको सानो copy मात्र जान्छ — नाम, फोन र ज्याला होइन।"
-              />
-            </p>
-            <PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />
-          </section>
-        ) : null}
 
         {chequesDatabase && !chequesDatabase.ready ? (
           <section id="cheques-database" className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
@@ -993,6 +979,25 @@ export default async function AdminSettingsPage({
       </div>
 
       <SettingsSections sections={sections} todos={todos} />
+
+      {/* Switched now and then, so after the parts of settings rather than
+          above what is still to fill (owner, 2026-10-12). */}
+      <div className="mt-6 grid">
+      {photoRobot ? (
+        <section id="photo-robot" className="self-start rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+          <h2 className="text-lg font-black text-brand-green-ink">
+            🤖 <T en="Photo robot" ne="फोटो हेर्ने रोबोट" />
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-brand-muted">
+            <T
+              en="Looks at a worker's photo and guesses the shoe, the colour and about how many pairs, for you to check. It never puts anything on the books. Google's free robot may learn from the photos it is sent, so only a small copy of the photo goes — no name, phone or wage."
+              ne="कामदारको फोटो हेरेर जुत्ता, रङ र लगभग कति जोडी भनेर अनुमान लेख्छ, तपाईंले जाँच्न। हिसाबमा आफैँ केही चढाउँदैन। Google को निःशुल्क रोबोटले पठाएको फोटोबाट सिक्न सक्छ, त्यसैले फोटोको सानो copy मात्र जान्छ — नाम, फोन र ज्याला होइन।"
+            />
+          </p>
+          <PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />
+        </section>
+      ) : null}
+      </div>
     </section>
   );
 }

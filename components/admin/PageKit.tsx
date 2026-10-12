@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { roundedMoney } from "@/lib/format-money";
 
@@ -212,5 +212,48 @@ export function PageTabs({
       ))}
       </div>
     </div>
+  );
+}
+
+/*
+ * Amounts shown or hidden for the whole screen at once: one eye for a page of
+ * server-drawn cards (the report). Starts hidden, as on the dashboard.
+ */
+let amountsShown = false;
+const amountListeners = new Set<() => void>();
+function subscribeAmounts(listener: () => void) {
+  amountListeners.add(listener);
+  return () => {
+    amountListeners.delete(listener);
+  };
+}
+function setAmountsShown(next: boolean) {
+  amountsShown = next;
+  amountListeners.forEach((listener) => listener());
+}
+function useAmountsShown() {
+  return useSyncExternalStore(subscribeAmounts, () => amountsShown, () => false);
+}
+
+/** A rupee figure that waits behind the screen's eye. */
+export function Amount({ children }: { children: ReactNode }) {
+  const { text } = useLanguage();
+  const shown = useAmountsShown();
+  return shown ? <>{children}</> : <span data-figure-hidden>{text("Rs.", "रु.")} ••••</span>;
+}
+
+/** The screen's one eye for every Amount on it. */
+export function AmountsToggle() {
+  const { text } = useLanguage();
+  const shown = useAmountsShown();
+  return (
+    <button
+      type="button"
+      onClick={() => setAmountsShown(!shown)}
+      aria-pressed={shown}
+      className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink print:hidden"
+    >
+      {shown ? text("🙈 Hide amounts", "🙈 रकम लुकाउने") : text("👁 Show amounts", "👁 रकम हेर्ने")}
+    </button>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Amount, AmountsToggle, PageTabs } from "@/components/admin/PageKit";
 import AlertText from "@/components/admin/AlertText";
 import type { Metadata } from "next";
 import LoadFailure from "@/components/admin/LoadFailure";
@@ -102,7 +103,7 @@ function Card({ card }: { card: ReportCard }) {
         </p>
       ) : (
         <p className="mt-3 font-display text-3xl font-black leading-none tabular-nums text-brand-green-ink">
-          {shown}
+          {card.valueKind === "money" ? <Amount>{shown}</Amount> : shown}
           {card.unitEn ? (
             <span className="ml-1.5 text-sm font-bold text-brand-muted">
               <AlertText en={card.unitEn} ne={card.unitNe} />
@@ -165,6 +166,7 @@ export default async function ReportsPage({
 
       {/* The stretch every number below is about. */}
       <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Period">
+        <AmountsToggle />
         {REPORT_PERIODS.map((option) => (
           <Link
             key={option.key}
@@ -223,22 +225,34 @@ export default async function ReportsPage({
         </div>
       ) : null}
 
-      {GROUPS.map((group) => {
-        const inGroup = ready.filter((card) => card.group === group.key);
-        if (inGroup.length === 0) return null;
-        return (
-          <div key={group.key}>
-            <h2 className="mt-8 text-base font-black text-brand-green-ink">
-              <AlertText en={group.en} ne={group.ne} />
-            </h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {inGroup.map((card) => (
-                <Card key={card.id} card={card} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {/* The four groups (owner, 2026-10-12): tabs on a phone, where one under
+          another was a long scroll; on a computer all of them, as before. */}
+      <div className="mt-8">
+        <PageTabs
+          id="reports"
+          openOnWide
+          wideGridClassName="grid gap-8"
+          tabs={GROUPS.map((group) => ({ group, inGroup: ready.filter((card) => card.group === group.key) }))
+            .filter(({ inGroup }) => inGroup.length > 0)
+            .map(({ group, inGroup }) => ({
+              key: group.key,
+              en: group.en,
+              ne: group.ne,
+              content: (
+                <div>
+                  <h2 className="hidden text-base font-black text-brand-green-ink lg:block print:block">
+                    <AlertText en={group.en} ne={group.ne} />
+                  </h2>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {inGroup.map((card) => (
+                      <Card key={card.id} card={card} />
+                    ))}
+                  </div>
+                </div>
+              ),
+            }))}
+        />
+      </div>
 
       {waiting.length > 0 ? (
         <>
