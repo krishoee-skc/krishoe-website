@@ -22,6 +22,8 @@ describe("Customer Voice", () => {
     const page = await read("app/admin/inbox/page.tsx");
     expect(page).toContain("<ConfirmDeleteButton");
     expect(page).toContain('<T en="to reply" ne="जवाफ बाँकी" />');
+    // Once — the owner's screenshot (2026-10-12) showed it first and last.
+    expect(page.split('<T en="to reply" ne="जवाफ बाँकी" />').length - 1).toBe(1);
     const button = await read("components/admin/ConfirmDeleteButton.tsx");
     expect(button).toContain("window.confirm(ask ? text(ask.en, ask.ne) : message)");
   });

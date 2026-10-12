@@ -315,8 +315,9 @@ export default async function InboxPage({
           do I see the reviews?" — on an empty page nothing said they arrive
           here). */}
       <div className="mt-5 grid gap-3">
-        <div className="grid grid-cols-2 gap-2 sm:max-w-3xl sm:grid-cols-5" data-review-stats>
-          {/* What waits on the owner, first (owner, 2026-10-12). */}
+        <div className="grid grid-cols-2 gap-2 sm:max-w-2xl sm:grid-cols-4" data-review-stats>
+          {/* What waits on the owner, first (owner, 2026-10-12) — moved from
+              the end of the row, not added beside it. */}
           <div className={`rounded-xl border px-3 py-2 ${counts.waiting > 0 ? "border-transparent bg-brand-clay-tint" : "border-brand-green-line bg-brand-paper"}`}>
             <b className={`block font-display text-xl ${counts.waiting > 0 ? "text-brand-clay" : "text-brand-green"}`}>{counts.waiting}</b>
             <span className="text-xs text-brand-muted">
@@ -343,10 +344,6 @@ export default async function InboxPage({
             <b className={`block font-display text-xl ${toDecide.length > 0 ? "text-brand-gold-deep" : "text-brand-green-ink"}`}>{toDecide.length}</b>
             <span className="text-xs text-brand-muted"><T en="reviews to decide" ne="छान्न बाँकी राय" /></span>
           </Link>
-          <div className="rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2">
-            <b className={`block font-display text-xl ${counts.waiting > 0 ? "text-brand-clay" : "text-brand-green-ink"}`}>{counts.waiting}</b>
-            <span className="text-xs text-brand-muted"><T en="to reply" ne="जवाफ बाँकी" /></span>
-          </div>
         </div>
         <p className="rounded-xl border border-dashed border-brand-green bg-brand-green-wash px-3 py-2 text-sm text-brand-green-ink" data-review-where>
           <T
