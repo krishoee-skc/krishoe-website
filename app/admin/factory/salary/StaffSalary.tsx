@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/factory/_components/nepal-date";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
 import StatTile from "@/components/admin/StatTile";
+import { Amount, AmountsToggle, PageTabs } from "@/components/admin/PageKit";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
@@ -201,201 +202,236 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
               <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">
                 {selectedWorker.name}
               </h2>
-              <p className="mt-1 text-sm font-semibold text-brand-muted">
-                {selectedWorker.category}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-brand-muted">
+                  {selectedWorker.category}
+                </p>
+                <AmountsToggle />
+              </div>
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* What is left to pay leads (owner's sample, 2026-10-12); rupees
+              wait behind the eye. */}
+          <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4">
+            {/* A balance below zero means more has gone out than the month
+                earned — the one number here that wants a red edge. */}
+            <div className="col-span-3 md:col-span-1">
+              <StatTile
+                label={text("Balance", "बाँकी")}
+                value={<Amount>{money(summary.remaining_balance)}</Amount>}
+                detail={text("left to pay this month", "यो महिना दिन बाँकी")}
+                tone={summary.remaining_balance >= 0 ? "good" : "danger"}
+                size="lead"
+              />
+            </div>
             <StatTile
               label={text("Monthly salary", "मासिक तलब")}
-              value={money(summary.total_salary)}
+              value={<Amount>{money(summary.total_salary)}</Amount>}
             />
             <StatTile
               label={text("Total paid", "जम्मा तिरेको")}
-              value={money(summary.total_paid)}
+              value={<Amount>{money(summary.total_paid)}</Amount>}
               tone="good"
             />
             <StatTile
               label={text("Total advance", "पेस्की")}
-              value={money(summary.total_advance)}
+              value={<Amount>{money(summary.total_advance)}</Amount>}
               tone="warn"
             />
-            {/* A balance below zero means more has gone out than the month
-                earned — the one number here that wants a red edge. */}
-            <StatTile
-              label={text("Balance", "बाँकी")}
-              value={money(summary.remaining_balance)}
-              tone={summary.remaining_balance >= 0 ? "good" : "danger"}
-            />
           </div>
 
-          {/* What the totals above are made of. Without this the screen asks
-              the owner to trust four numbers with nothing behind them. */}
-          <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
-            <h2 className="text-lg font-black text-brand-green-ink">
-              {text("This month's entries", "यो महिनाका entry")}
-            </h2>
-            {summary.entries && summary.entries.length > 0 ? (
-              <div className="mt-4 overflow-x-auto">
-                <table className="reflow-table w-full text-sm">
-                  <thead className="border-b border-brand-green-line">
-                    <tr className="text-xs font-black uppercase tracking-wider text-brand-muted">
-                      <th className="py-2 pe-3 text-left">{text("Date", "मिति")}</th>
-                      <th className="py-2 px-3 text-left">{text("Type", "के भयो")}</th>
-                      <th className="py-2 px-3 text-right">{text("Amount", "रकम")}</th>
-                      <th className="py-2 ps-3 text-left">{text("Note", "टिपोट")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.entries.map((entry, index) => (
-                      <tr
-                        key={`${entry.kind}-${entry.date}-${index}`}
-                        className={`border-b border-brand-green-line ${
-                          entry.status === "reversed" ? "opacity-70" : ""
-                        }`}
-                      >
-                        <td className="reflow-primary py-3 pe-3 text-brand-green-ink">
-                          <DateDisplayAdmin date={entry.date} />
-                        </td>
-                        <td data-label={text("Type", "के भयो")} className="py-3 px-3">
-                          <span className="rounded bg-brand-mist px-2 py-1 text-xs font-bold">
-                            {entry.kind === "advance"
-                              ? text("Advance / kharcha", "पेस्की / खर्च")
-                              : text("Salary payment", "तलब")}
+          <PageTabs
+            id="staff-salary"
+            openOnWide
+            wideGridClassName="grid gap-6"
+            tabs={[
+              {
+                key: "pay",
+                en: "💵 Record cash",
+                ne: "💵 पैसा टिप्ने",
+                wideClassName: "lg:order-2",
+                content: (
+                  <>
+                    <EnterWalkForm onSubmit={handleTransaction} confirmTitle={selectedWorker?.name} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6 print:hidden">
+                      <div>
+                        <h2 className="text-lg font-black text-brand-green-ink">
+                          {text("Record cash for", "कसको पैसा टिप्ने")}{" "}
+                          <span className="underline decoration-brand-gold decoration-2 underline-offset-4">
+                            {selectedWorker?.name}
                           </span>
-                          {entry.status === "reversed" ? (
-                            <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
-                              {text("reversed", "फिर्ता")}
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-brand-muted">
+                          {text(
+                            "Advance and salary payment are stored separately, and both reduce what is left to pay for the month shown above.",
+                            "पेस्की र तलब छुट्टाछुट्टै टिपिन्छ, र दुवैले माथि देखाइएको महिनाको बाँकी घटाउँछ।",
+                          )}
+                        </p>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Transaction type", "के भयो")}
+                          <select data-summary="text" value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
+                            <option value="advance">{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
+                            <option value="payment">{text("Salary payment", "तलब भुक्तानी")}</option>
+                          </select>
+                        </label>
+                        <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Date", "मिति")}
+                          <NepaliDateField value={transactionDate} onChange={setTransactionDate} required />
+                          {/* The picker chooses in the English calendar, but the owner
+                              reads the day in Bikram Sambat (2083/05/19) right below it, so
+                              the date they record is the one they think in. */}
+                          {transactionDate ? (
+                            <span className="text-xs font-semibold text-brand-green">
+                              {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(transactionDate)}
                             </span>
                           ) : null}
-                        </td>
-                        <td
-                          data-label={text("Amount", "रकम")}
-                          className="py-3 px-3 text-right font-bold tabular-nums"
-                        >
-                          {/* Both kinds are money going out, so both are a
-                              minus — the type column says which. */}
-                          <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
-                            −{entry.amount.toLocaleString("en-IN")}
+                        </label>
+                        <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
+                          <input data-summary="money" type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Cash amount", "कति रुपैयाँ")} />
+                        </label>
+                        <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Owner note", "मालिकको टिपोट")}
+                          <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
+                        </label>
+                      </div>
+                      <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
+                        {transactionSaving
+                          ? text("Saving…", "राख्दै…")
+                          : transactionType === "advance"
+                            ? text("Record advance", "पेस्की टिप्ने")
+                            : text("Record salary payment", "तलब टिप्ने")}
+                      </button>
+                    </EnterWalkForm>
+
+                    <details className="bg-brand-paper rounded-lg border border-brand-green-line p-4 sm:p-6">
+                      <summary className="cursor-pointer text-base font-bold text-brand-green-ink">
+                        ⓘ {text("How the balance is worked out", "हिसाब कसरी निस्कियो")}
+                      </summary>
+                      <div className="mt-4 space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">{text("Base salary", "तय भएको तलब")}:</span>
+                          <span className="font-semibold">
+                            Rs. {summary.total_salary.toLocaleString()}
                           </span>
-                        </td>
-                        <td
-                          data-label={text("Note", "टिपोट")}
-                          className={`py-3 ps-3 text-xs text-brand-muted ${entry.notes ? "" : "reflow-blank"}`}
-                        >
-                          {entry.notes ? (
-                            <span className="block min-w-0 break-words">{entry.notes}</span>
-                          ) : (
-                            <span className="text-brand-muted-soft">—</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-3">
+                          <span className="text-brand-muted">{text("Paid", "तिरेको")}:</span>
+                          <span className="font-semibold text-brand-green">
+                            -Rs. {summary.total_paid.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">{text("Advances", "पेस्की")}:</span>
+                          <span className="font-semibold text-amber-600">
+                            -Rs. {summary.total_advance.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t pt-3 text-lg">
+                          <span className="font-bold">{text("Remaining", "बाँकी")}:</span>
+                          <span
+                            className={`font-black ${
+                              summary.remaining_balance >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            Rs. {summary.remaining_balance.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </details>
+                  </>
+                ),
+              },
+              {
+                key: "month",
+                en: "📜 This month",
+                ne: "📜 यो महिना",
+                wideClassName: "lg:order-1",
+                content: (
+                  <>
+                    {/* What the totals above are made of. Without this the screen asks
+                        the owner to trust four numbers with nothing behind them. */}
+                    <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
+                      <h2 className="text-lg font-black text-brand-green-ink">
+                        {text("This month's entries", "यो महिनाका entry")}
+                      </h2>
+                      {summary.entries && summary.entries.length > 0 ? (
+                        <div className="mt-4 overflow-x-auto">
+                          <table className="reflow-table w-full text-sm">
+                            <thead className="border-b border-brand-green-line">
+                              <tr className="text-xs font-black uppercase tracking-wider text-brand-muted">
+                                <th className="py-2 pe-3 text-left">{text("Date", "मिति")}</th>
+                                <th className="py-2 px-3 text-left">{text("Type", "के भयो")}</th>
+                                <th className="py-2 px-3 text-right">{text("Amount", "रकम")}</th>
+                                <th className="py-2 ps-3 text-left">{text("Note", "टिपोट")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {summary.entries.map((entry, index) => (
+                                <tr
+                                  key={`${entry.kind}-${entry.date}-${index}`}
+                                  className={`border-b border-brand-green-line ${
+                                    entry.status === "reversed" ? "opacity-70" : ""
+                                  }`}
+                                >
+                                  <td className="reflow-primary py-3 pe-3 text-brand-green-ink">
+                                    <DateDisplayAdmin date={entry.date} />
+                                  </td>
+                                  <td data-label={text("Type", "के भयो")} className="py-3 px-3">
+                                    <span className="rounded bg-brand-mist px-2 py-1 text-xs font-bold">
+                                      {entry.kind === "advance"
+                                        ? text("Advance / kharcha", "पेस्की / खर्च")
+                                        : text("Salary payment", "तलब")}
+                                    </span>
+                                    {entry.status === "reversed" ? (
+                                      <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
+                                        {text("reversed", "फिर्ता")}
+                                      </span>
+                                    ) : null}
+                                  </td>
+                                  <td
+                                    data-label={text("Amount", "रकम")}
+                                    className="py-3 px-3 text-right font-bold tabular-nums"
+                                  >
+                                    {/* Both kinds are money going out, so both are a
+                                        minus — the type column says which. */}
+                                    <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                                      −{entry.amount.toLocaleString("en-IN")}
+                                    </span>
+                                  </td>
+                                  <td
+                                    data-label={text("Note", "टिपोट")}
+                                    className={`py-3 ps-3 text-xs text-brand-muted ${entry.notes ? "" : "reflow-blank"}`}
+                                  >
+                                    {entry.notes ? (
+                                      <span className="block min-w-0 break-words">{entry.notes}</span>
+                                    ) : (
+                                      <span className="text-brand-muted-soft">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-brand-muted">
+                          {text(
+                            "Nothing paid or advanced this month yet. Anything recorded below appears here.",
+                            "यो महिना अझै केही दिइएको छैन। तल टिपेको यहीँ देखिन्छ।",
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-brand-muted">
-                {text(
-                  "Nothing paid or advanced this month yet. Anything recorded below appears here.",
-                  "यो महिना अझै केही दिइएको छैन। तल टिपेको यहीँ देखिन्छ।",
-                )}
-              </p>
-            )}
-          </div>
-
-          <EnterWalkForm onSubmit={handleTransaction} confirmTitle={selectedWorker?.name} className="rounded-2xl border border-brand-green/20 bg-brand-mist p-4 sm:p-6">
-            <div>
-              <h2 className="text-lg font-black text-brand-green-ink">
-                {text("Record cash for", "कसको पैसा टिप्ने")}{" "}
-                <span className="underline decoration-brand-gold decoration-2 underline-offset-4">
-                  {selectedWorker?.name}
-                </span>
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-brand-muted">
-                {text(
-                  "Advance and salary payment are stored separately, and both reduce what is left to pay for the month shown above.",
-                  "पेस्की र तलब छुट्टाछुट्टै टिपिन्छ, र दुवैले माथि देखाइएको महिनाको बाँकी घटाउँछ।",
-                )}
-              </p>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Transaction type", "के भयो")}
-                <select data-summary="text" value={transactionType} onChange={(event) => setTransactionType(event.target.value as "advance" | "payment")} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
-                  <option value="advance">{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
-                  <option value="payment">{text("Salary payment", "तलब भुक्तानी")}</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Date
-                <NepaliDateField value={transactionDate} onChange={setTransactionDate} required />
-                {/* The picker chooses in the English calendar, but the owner
-                    reads the day in Bikram Sambat (2083/05/19) right below it, so
-                    the date they record is the one they think in. */}
-                {transactionDate ? (
-                  <span className="text-xs font-semibold text-brand-green">
-                    {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(transactionDate)}
-                  </span>
-                ) : null}
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Amount (Rs.)
-                <input data-summary="money" type="number" min="0.01" step="0.01" value={transactionAmount} onChange={(event) => setTransactionAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Cash amount", "कति रुपैयाँ")} />
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">Owner note
-                <input value={transactionNote} onChange={(event) => setTransactionNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
-              </label>
-            </div>
-            <button type="submit" disabled={transactionSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-brand-green px-4 font-black text-white disabled:opacity-60">
-              {transactionSaving
-                ? text("Saving…", "राख्दै…")
-                : transactionType === "advance"
-                  ? text("Record advance", "पेस्की टिप्ने")
-                  : text("Record salary payment", "तलब टिप्ने")}
-            </button>
-          </EnterWalkForm>
-
-          <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
-            <h2 className="text-lg font-bold text-brand-green-ink mb-4">
-              Salary Breakdown
-            </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-brand-muted">{text("Base salary", "तय भएको तलब")}:</span>
-                <span className="font-semibold">
-                  Rs. {summary.total_salary.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between border-t pt-3">
-                <span className="text-brand-muted">{text("Paid", "तिरेको")}:</span>
-                <span className="font-semibold text-brand-green">
-                  -Rs. {summary.total_paid.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brand-muted">Advances:</span>
-                <span className="font-semibold text-amber-600">
-                  -Rs. {summary.total_advance.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between border-t pt-3 text-lg">
-                <span className="font-bold">Remaining:</span>
-                <span
-                  className={`font-black ${
-                    summary.remaining_balance >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  Rs. {summary.remaining_balance.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : (
         <div className="bg-brand-paper-deep rounded-lg p-6 text-center text-brand-muted">
-          Select a staff member to view salary details
+          {text("Select a staff member to view salary details", "तलब हेर्न कर्मचारी छान्नुहोस्")}
         </div>
       )}
     </div>

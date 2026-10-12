@@ -100,7 +100,7 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
           href="/admin/pos"
           className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
         >
-          Back to POS
+          ← <T en="Bills" ne="बिलहरू" />
         </Link>
         <div className="flex flex-wrap gap-2">
           {invoice.phone ? (
@@ -110,7 +110,7 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
               rel="noopener noreferrer"
               className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500 bg-brand-paper px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
             >
-              WhatsApp bill
+              💬 WhatsApp
             </a>
           ) : null}
           {invoice.postingStatus === "Needs Review" ? (
@@ -118,7 +118,7 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
               <input type="hidden" name="id" value={invoice.id} />
               <input type="hidden" name="returnTo" value={`/admin/pos/${invoice.id}`} />
               <FormSubmitButton className="inline-flex h-10 items-center rounded-full border border-brand-clay px-4 text-sm font-bold text-brand-clay transition hover:bg-brand-clay hover:text-white">
-                Repair posting
+                🛠 <T en="Repair posting" ne="हिसाब मिलाउने" />
               </FormSubmitButton>
             </form>
           ) : null}
@@ -204,8 +204,36 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
           </div>
         </div>
 
-        {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount */}
-        <div className="mt-4 overflow-x-auto">
+        {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount.
+            A phone reads one line a shoe; the table stays for a computer and
+            for paper, word for word (owner's sample, 2026-10-12): seven
+            columns scrolled sideways on a phone. */}
+        <ol className="mt-4 grid list-none gap-1.5 pl-0 md:hidden print:hidden">
+          {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
+            const first = group.lines[0];
+            const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
+            const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
+            return (
+              <li key={`line-${group.key}`} className="grid gap-0.5 border-b border-brand-green-line pb-1.5 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words font-semibold text-brand-green-ink">
+                    {index + 1}. {first.design}
+                    {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
+                  </span>
+                  <span className="shrink-0 font-bold tabular-nums">{amount(total)}</span>
+                </div>
+                <p className="text-xs text-brand-muted">
+                  Size {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))} · {pairs} × {amount(group.rate)} · HS <span className="font-mono">{HS_CODE}</span>
+                </p>
+              </li>
+            );
+          })}
+          <li className="flex justify-between text-sm font-black">
+            <span>Total Pairs</span>
+            <span className="tabular-nums">{invoice.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+          </li>
+        </ol>
+        <div className="mt-4 hidden overflow-x-auto md:block print:block">
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-brand-green-ink text-left text-xs uppercase tracking-wide text-white">

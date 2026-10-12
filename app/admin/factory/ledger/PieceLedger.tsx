@@ -20,6 +20,7 @@ import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 import { bikramMonthKeyOf, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
+import { Amount, AmountsToggle, PageTabs } from "@/components/admin/PageKit";
 
 // One shape for a person on the books, defined where they are read.
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
@@ -283,6 +284,182 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
     }
   };
 
+
+  /**
+   * The Owner's ✏️ on a work line, and the Correct or Delete box it opens —
+   * one place, used by the table and by the phone's two-line list.
+   */
+  const fixControls = (entry: LedgerData["ledger"][number]) =>
+    entry.source_work_id ? (
+      deletingId === entry.source_work_id ? (
+        <div className="mt-1 space-y-2 rounded-lg bg-brand-clay-tint p-2">
+          <input
+            value={deleteReason}
+            onChange={(event) => setDeleteReason(event.target.value)}
+            placeholder={text("Why? e.g. entered twice", "किन? जस्तै दुई पटक टिपिएको")}
+            aria-label={text("Reason for deleting", "मेट्ने कारण")}
+            className="min-h-10 w-full rounded-lg border border-brand-clay/30 bg-brand-paper px-2 text-xs"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void handleDelete(entry.source_work_id!)}
+              disabled={deleteBusy}
+              className="min-h-10 flex-1 rounded-lg bg-brand-clay px-2 text-xs font-black text-white disabled:opacity-60"
+            >
+              {deleteBusy
+                ? text("Deleting…", "मेट्दै…")
+                : text("Delete", "मेट्ने")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeletingId(null);
+                setDeleteReason("");
+              }}
+              className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
+            >
+              {text("Cancel", "रद्द")}
+            </button>
+          </div>
+          {/* This does not come back. The audit keeps what
+              was removed, but the ledger will not. */}
+          <p className="text-[11px] leading-4 text-brand-clay">
+            {text(
+              "This entry goes for good. What was removed is kept in the audit.",
+              "यो entry सधैँलाई जान्छ। के हट्यो भन्ने audit मा रहन्छ।",
+            )}
+          </p>
+        </div>
+      ) : editingId === entry.source_work_id ? (
+        <div className="mt-1 space-y-2 rounded-lg bg-brand-green-tint p-2">
+          <div className="grid grid-cols-2 gap-1.5">
+            <input
+              value={editForm.color}
+              onChange={(event) => setEditForm((form) => ({ ...form, color: event.target.value }))}
+              placeholder={text("Colour", "रङ")}
+              aria-label={text("Colour", "रङ")}
+              className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+            />
+            <input
+              value={editForm.size}
+              onChange={(event) => setEditForm((form) => ({ ...form, size: event.target.value }))}
+              placeholder={text("Size", "साइज")}
+              aria-label={text("Size", "साइज")}
+              className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+            />
+            <input
+              value={editForm.pairs}
+              onChange={(event) => setEditForm((form) => ({ ...form, pairs: event.target.value }))}
+              type="number"
+              min="1"
+              inputMode="numeric"
+              placeholder={text("Pairs", "जोडी")}
+              aria-label={text("Pairs", "जोडी")}
+              className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
+            />
+            <input
+              value={editForm.rate}
+              onChange={(event) => setEditForm((form) => ({ ...form, rate: event.target.value }))}
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              placeholder={text("Rate", "दर")}
+              aria-label={text("Rate per pair", "प्रति जोडी दर")}
+              className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
+            />
+          </div>
+          <input
+            value={editForm.reason}
+            onChange={(event) => setEditForm((form) => ({ ...form, reason: event.target.value }))}
+            placeholder={text("Why? e.g. colour was missing", "किन? जस्तै रङ छुटेको")}
+            aria-label={text("Reason for correcting", "सच्याउने कारण")}
+            className="min-h-10 w-full rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
+          />
+          {/* What the wage becomes, before it is saved —
+              a correction that moves money should say so
+              first. */}
+          <p className="text-[11px] leading-4 text-brand-green-ink">
+            {editForm.pairs && editForm.rate
+              ? text(
+                  `Wage becomes Rs. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
+                  `ज्याला हुन्छ रु. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
+                )
+              : text("Leave the rate blank to keep the one on file.", "दर खाली छोडे पहिलेकै दर रहन्छ।")}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void handleEdit(entry)}
+              disabled={editBusy}
+              className="min-h-10 flex-1 rounded-lg bg-brand-green px-2 text-xs font-black text-white disabled:opacity-60"
+            >
+              {editBusy ? text("Saving…", "सच्याउँदै…") : text("Correct", "सच्याउने")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
+            >
+              {text("Cancel", "रद्द")}
+            </button>
+          </div>
+        </div>
+      ) : canFix ? (
+        /* Kept off the row (owner, 2026-10-04): one quiet
+           ✏️ for the Owner opens Correct and Delete — the
+           server lets only the Owner do either. */
+        fixingId === entry.source_work_id ? (
+          <span className="mt-1 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setFixingId(null);
+                setEditingId(entry.source_work_id);
+                setEditForm({
+                  color: entry.color ?? "",
+                  size: entry.size ?? "",
+                  pairs: String(entry.work_pairs ?? ""),
+                  rate: entry.rate_applied ? String(Number(entry.rate_applied)) : "",
+                  reason: "",
+                });
+              }}
+              className="text-xs font-black text-brand-green underline underline-offset-2"
+            >
+              {text("Correct", "सच्याउने")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFixingId(null);
+                setDeletingId(entry.source_work_id);
+                setDeleteReason("");
+              }}
+              className="text-xs font-black text-brand-clay underline underline-offset-2"
+            >
+              {text("Delete", "मेट्ने")}
+            </button>
+            <button type="button" onClick={() => setFixingId(null)} className="text-xs font-bold text-brand-muted">
+              {text("Cancel", "रद्द")}
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setFixingId(entry.source_work_id)}
+            aria-label={text("Fix this entry", "यो entry सच्याउने")}
+            title={text("Fix this entry", "यो entry सच्याउने")}
+            className="mt-1 grid h-8 w-8 place-items-center rounded-lg border border-brand-green-line text-sm hover:border-brand-green"
+          >
+            ✏️
+          </button>
+        )
+      ) : null
+    ) : entry.notes ? null : (
+      <span className="text-brand-muted-soft">—</span>
+    );
+
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
@@ -359,9 +536,12 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
               </h2>
               {/* A worker asking what they have earned should be able to be
                   handed the sheet, not shown a screen. */}
-              <PrintButton className="mt-1 inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink print:hidden">
-                🖨️ {text("Print this ledger", "यो खाता छाप्ने")}
-              </PrintButton>
+              <div className="mt-1 flex flex-wrap gap-2 print:hidden">
+                <AmountsToggle />
+                <PrintButton className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white transition hover:bg-brand-green-ink print:hidden">
+                  🖨️ {text("Print this ledger", "यो खाता छाप्ने")}
+                </PrintButton>
+              </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div>
@@ -378,483 +558,392 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
                 <div>
                   <div className="text-xs sm:text-sm text-brand-muted">{text("Monthly salary", "मासिक तलब")}</div>
                   <div className="font-semibold text-brand-green-ink">
-                    Rs. {ledgerData.worker.monthly_salary.toLocaleString()}
+                    <Amount>Rs. {ledgerData.worker.monthly_salary.toLocaleString()}</Amount>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <StatTile label={text("Total pairs", "जम्मा जोडी")} value={ledgerData.summary.totalPairs} />
-            <StatTile
-              label={text("Total earned", "जम्मा कमाएको")}
-              value={money(ledgerData.summary.totalEarned)}
-              tone="good"
-            />
-            <StatTile
-              label={text("Total paid", "जम्मा पाएको")}
-              value={money(ledgerData.summary.totalPaid)}
-            />
+          {/* Summary. What is owed leads (owner's sample, 2026-10-12): it is
+              what Saturday is about. Rupees wait behind the eye. */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4">
             {/* Owing a worker mid-week is the ordinary state, not a
                 warning — the week's work is cleared on Saturday. Nil is
                 settled; a negative balance means the worker was paid ahead of
                 their work, which is the one worth marking. */}
+            <div className="col-span-3 md:col-span-1">
+              <StatTile
+                label={text("Current balance", "अहिलेको बाँकी")}
+                value={<Amount>{money(ledgerData.summary.currentBalance)}</Amount>}
+                detail={
+                  ledgerData.summary.currentBalance > 0
+                    ? text("to pay on Saturday", "शनिबार दिनुपर्ने")
+                    : ledgerData.summary.currentBalance < 0
+                      ? text("paid ahead — recover from future work", "बढी दिइएको — पछिको कामबाट कट्ने")
+                      : text("settled", "चुक्ता")
+                }
+                tone={
+                  ledgerData.summary.currentBalance < 0
+                    ? "warn"
+                    : ledgerData.summary.currentBalance === 0
+                      ? "good"
+                      : "default"
+                }
+                size="lead"
+              />
+            </div>
+            <StatTile label={text("Total pairs", "जम्मा जोडी")} value={ledgerData.summary.totalPairs} />
             <StatTile
-              label={text("Current balance", "अहिलेको बाँकी")}
-              value={money(ledgerData.summary.currentBalance)}
-              detail={
-                ledgerData.summary.currentBalance > 0
-                  ? text("to pay on Saturday", "शनिबार दिनुपर्ने")
-                  : ledgerData.summary.currentBalance < 0
-                    ? text("paid ahead — recover from future work", "बढी दिइएको — पछिको कामबाट कट्ने")
-                    : text("settled", "चुक्ता")
-              }
-              tone={
-                ledgerData.summary.currentBalance < 0
-                  ? "warn"
-                  : ledgerData.summary.currentBalance === 0
-                    ? "good"
-                    : "default"
-              }
+              label={text("Total earned", "जम्मा कमाएको")}
+              value={<Amount>{money(ledgerData.summary.totalEarned)}</Amount>}
+              tone="good"
+            />
+            <StatTile
+              label={text("Total paid", "जम्मा पाएको")}
+              value={<Amount>{money(ledgerData.summary.totalPaid)}</Amount>}
             />
           </div>
 
-          {/* Ledger Entries.
-              `report-print` is what makes this readable on paper: the header
-              row repeats on every sheet, rows do not split across the fold,
-              and the screen's tinted cells drop out so a mono printer gives
-              black on white. A worker is shown this sheet next to their own
-              name, so it has to carry the shop's name and the date — the
-              print-only header below does that. */}
-          <div className="report-print bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
-            <div className="p-4 sm:p-6">
-              {/* Paper only: on screen the worker's name and the month are
-                  already above this table. */}
-              <div className="report-head mb-3 hidden border-b border-brand-green-line pb-2 print:block">
-                <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">
-                  KRISHOE
-                </p>
-                <p className="text-[11px] text-brand-muted">
-                  {businessContact.streetAddress}, {businessContact.addressLocality} ·{" "}
-                  {businessContact.phoneDisplay}
-                </p>
-                <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <p className="text-base font-black text-brand-green-ink">
-                      {ledgerData.worker.name}
-                    </p>
-                    <p className="text-[12px] text-brand-muted">
-                      {text("Worker ledger", "कामदारको खाता")} · {month}
-                    </p>
-                  </div>
-                  <p className="text-[11px] text-brand-muted">
-                    {text("Printed:", "छापिएको:")} <PrintedOn />
-                  </p>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
-              <table className="reflow-table w-full text-sm">
-                <thead className="border-b border-brand-green-line">
-                  <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
-                    <th className="text-left py-2 px-2 sm:px-4">{text("Date", "मिति")}</th>
-                    <th className="text-left py-2 px-2 sm:px-4">{text("Type", "के भयो")}</th>
-                    <th className="text-left py-2 px-2 sm:px-4">{text("Item", "के बनायो")}</th>
-                    <th className="text-right py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
-                    <th className="text-right py-2 px-2 sm:px-4">{text("Amount", "रकम")}</th>
-                    <th className="text-right py-2 px-2 sm:px-4">{text("Balance", "बाँकी")}</th>
-                    <th className="text-left py-2 px-2 sm:px-4">{text("Note", "टिपोट")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ledgerData.ledger.length > 0 ? (
-                    ledgerData.ledger.map((entry, idx) => (
-                      <tr
-                        key={idx}
-                        className={`border-b border-brand-green-line hover:bg-brand-paper-deep ${
-                          entry.status === "reversed" ? "opacity-70" : ""
-                        }`}
-                      >
-                        <td className="reflow-primary py-3 px-2 sm:px-4 text-brand-green-ink">
-                          <DateDisplayAdmin date={entry.date} />
-                        </td>
-                        <td data-label={text("Type", "के भयो")} className="py-3 px-2 sm:px-4">
-                          <span className="text-xs sm:text-sm capitalize bg-brand-mist px-2 py-1 rounded">
-                            {entry.entry_type}
+          <PageTabs
+            id="piece-ledger"
+            openOnWide
+            wideGridClassName="grid gap-6"
+            tabs={[
+              {
+                key: "pay",
+                en: "💵 Pay",
+                ne: "💵 पैसा दिने",
+                wideClassName: "lg:order-2",
+                content: (
+                  <EnterWalkForm onSubmit={handleRecordPayment} confirmTitle={ledgerData.worker.name} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6 print:hidden">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        {/* Whose payment. Money handed to the wrong name is the one
+                            mistake this form can make, and the person picked at the
+                            top of the page is a long way above this box. */}
+                        <h3 className="text-lg font-black text-emerald-950">
+                          {text("Pay", "पैसा दिने")}{" "}
+                          <span className="underline decoration-emerald-400 decoration-2 underline-offset-4">
+                            {ledgerData.worker.name}
                           </span>
-                          {/* Two identical Rs. 9,720 payments sat here, one of
-                              them reversed, told apart only by a sentence at
-                              the end of a note column. */}
-                          {entry.status === "reversed" ? (
-                            <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
-                              {text("reversed", "फिर्ता")}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td
-                          data-label={text("Item", "के बनायो")}
-                          className={`py-3 px-2 sm:px-4 text-brand-green-ink ${
-                            entry.item_name ? "" : "reflow-blank"
-                          }`}
-                        >
-                          {/* One wrapper, so the phone card lays the label
-                              against a single block rather than against each
-                              line in turn. */}
-                          <span className="block min-w-0 text-right sm:text-left">
-                            {entry.item_name ? (
-                              <>
-                                <span className="block break-words font-bold">{entry.item_name}</span>
-                                {/* Colour and size as chips, read at a glance
-                                    (owner, 2026-10-04). */}
-                                {entry.color || entry.size ? (
-                                  <span className="mt-1 flex flex-wrap justify-end gap-1 sm:justify-start">
-                                    {entry.color ? (
-                                      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
-                                        {colourSwatch(entry.color) ? (
-                                          <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(entry.color) ?? undefined }} />
-                                        ) : null}
-                                        {entry.color}
-                                      </span>
-                                    ) : null}
-                                    {entry.size ? (
-                                      <span title={entry.size} className="rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
-                                        {text("Size", "साइज")} {compactSizes(entry.size)}
-                                      </span>
-                                    ) : null}
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-emerald-800">
+                          {text(
+                            "Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.",
+                            "पूरै बाँकी, शनिबारको खर्च वा पेश्की — जे दिए पनि हुन्छ। कमाएकोभन्दा बढी दिए, त्यो पछिको कामबाट कट्छ।",
+                          )}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-brand-paper px-3 py-2 text-xs font-black text-emerald-800">{text("Use current balance", "अहिलेको बाँकी हाल्ने")}</button>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment type", "के बापत")}
+                        <select data-summary="text" value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
+                          <option>{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
+                          <option>{text("Weekly wage payment", "साप्ताहिक ज्याला")}</option>
+                          <option>{text("Final wage settlement", "पूरै हिसाब मिलाएको")}</option>
+                          <option>{text("Other Owner-approved payment", "मालिकले भनेर दिएको अरू")}</option>
+                        </select>
+                      </label>
+                      <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment date", "कहिले दिइयो")}
+                        <NepaliDateField value={paymentDate} onChange={setPaymentDate} required />
+                        {/* The Bikram Sambat reading of the chosen day (2083/05/19), so
+                            the owner records the payment by the Nepali calendar. */}
+                        {paymentDate ? (
+                          <span className="text-xs font-semibold text-brand-green">
+                            {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(paymentDate)}
+                          </span>
+                        ) : null}
+                      </label>
+                      <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
+                        <input data-summary="money" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
+                      </label>
+                      <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Owner note", "मालिकको टिपोट")}
+                        <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
+                      </label>
+                    </div>
+                    <button type="submit" disabled={paymentSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-emerald-700 px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-60">
+                      {paymentSaving
+                        ? text("Saving…", "टिप्दै…")
+                        : text("Record cash payment", "नगद दिएको टिप्ने")}
+                    </button>
+                  </EnterWalkForm>
+                ),
+              },
+              {
+                key: "entries",
+                en: "📜 Entries",
+                ne: "📜 हिसाब",
+                wideClassName: "lg:order-1",
+                content: (
+                  <>
+                  {/* Ledger Entries.
+                      `report-print` is what makes this readable on paper: the header
+                      row repeats on every sheet, rows do not split across the fold,
+                      and the screen's tinted cells drop out so a mono printer gives
+                      black on white. A worker is shown this sheet next to their own
+                      name, so it has to carry the shop's name and the date — the
+                      print-only header below does that. */}
+                  <div className="report-print bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
+                    <div className="p-4 sm:p-6">
+                      {/* Paper only: on screen the worker's name and the month are
+                          already above this table. */}
+                      <div className="report-head mb-3 hidden border-b border-brand-green-line pb-2 print:block">
+                        <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">
+                          KRISHOE
+                        </p>
+                        <p className="text-[11px] text-brand-muted">
+                          {businessContact.streetAddress}, {businessContact.addressLocality} ·{" "}
+                          {businessContact.phoneDisplay}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
+                          <div>
+                            <p className="text-base font-black text-brand-green-ink">
+                              {ledgerData.worker.name}
+                            </p>
+                            <p className="text-[12px] text-brand-muted">
+                              {text("Worker ledger", "कामदारको खाता")} · {month}
+                            </p>
+                          </div>
+                          <p className="text-[11px] text-brand-muted">
+                            {text("Printed:", "छापिएको:")} <PrintedOn />
+                          </p>
+                        </div>
+                      </div>
+
+                      <h3 className="text-lg font-bold text-brand-green-ink mb-4">{text("Ledger entries", "खाताका हिसाब")}</h3>
+                      {/* A phone reads each line in two rows; the table stays for a
+                          computer and for paper (owner's sample, 2026-10-12). */}
+                      <ul className="grid list-none gap-2 pl-0 md:hidden print:hidden">
+                        {ledgerData.ledger.length > 0 ? (
+                          ledgerData.ledger.map((entry, idx) => {
+                            const reversed = entry.status === "reversed";
+                            const paid = Number(entry.payment_given);
+                            const earned = Number(entry.amount_earned);
+                            return (
+                              <li key={`line-${idx}`} className={`grid gap-1 rounded-xl border border-brand-green-line bg-brand-paper p-3 ${reversed ? "opacity-70" : ""}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="min-w-0 break-words text-sm font-bold text-brand-green-ink">
+                                    <DateDisplayAdmin date={entry.date} /> · {entry.item_name || <span className="capitalize">{entry.entry_type}</span>}
+                                    {entry.color ? <span className="font-normal text-brand-muted"> · {entry.color}</span> : null}
                                   </span>
-                                ) : (
-                                  <span className="mt-0.5 block text-xs text-brand-muted">
-                                    {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
+                                  <span className={`shrink-0 font-black tabular-nums ${paid > 0 ? "text-red-600" : "text-green-600"} ${reversed ? "line-through" : ""}`}>
+                                    {paid > 0 ? `−${paid.toLocaleString("en-IN")}` : earned > 0 ? `+${earned.toLocaleString("en-IN")}` : "—"}
                                   </span>
-                                )}
+                                </div>
+                                <div className="flex items-start justify-between gap-2 text-xs text-brand-muted">
+                                  <span className="min-w-0">
+                                    {entry.work_pairs ? text(`${entry.work_pairs} pairs`, `${entry.work_pairs} जोडी`) : null}
+                                    {entry.rate_applied ? ` × Rs. ${Number(entry.rate_applied).toLocaleString("en-IN")}` : null}
+                                    {entry.size ? ` · ${text("Size", "साइज")} ${compactSizes(entry.size)}` : null}
+                                    {entry.reject_pairs ? <span className="font-bold text-brand-clay"> · {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}</span> : null}
+                                    {reversed ? <span className="ms-1 rounded bg-brand-clay-tint px-1.5 font-black text-brand-clay">{text("reversed", "फिर्ता")}</span> : null}
+                                  </span>
+                                  <span className="shrink-0 font-semibold tabular-nums text-brand-green-ink">
+                                    {reversed ? text("no change", "फेरबदल छैन") : <>{text("Balance after", "बाँकी")} {money(entry.running_balance)}</>}
+                                  </span>
+                                </div>
+                                {entry.notes ? <p className="break-words text-xs text-brand-muted">{entry.notes}</p> : null}
                                 {entry.from_photo ? (
-                                  <Link href="/admin/factory/photos" className="mt-1 inline-block text-xs font-bold text-brand-green underline underline-offset-2">
+                                  <Link href="/admin/factory/photos" className="text-xs font-bold text-brand-green underline underline-offset-2">
                                     📷 {text("from the worker's photo", "कामदारको फोटोबाट")}
                                   </Link>
                                 ) : null}
-                              </>
-                            ) : (
-                              <span className="text-brand-muted-soft">—</span>
-                            )}
-                          </span>
-                        </td>
-                        <td
-                          data-label={text("Pairs", "जोडी")}
-                          className={`py-3 px-2 sm:px-4 text-right text-brand-green-ink ${
-                            entry.work_pairs ? "" : "reflow-blank"
-                          }`}
-                        >
-                          <span className="block min-w-0">
-                            {entry.work_pairs ? (
-                              <span className="text-lg font-black tabular-nums">
-                                {entry.work_pairs} <span className="text-xs font-bold text-brand-muted">{text("pairs", "जोडी")}</span>
-                              </span>
-                            ) : (
-                              <span className="text-brand-muted-soft">—</span>
-                            )}
-                            {entry.rate_applied ? (
-                              <span className="mt-0.5 block text-sm font-bold tabular-nums text-brand-green-ink">
-                                × Rs. {Number(entry.rate_applied).toLocaleString("en-IN")}
-                              </span>
-                            ) : null}
-                            {entry.reject_pairs ? (
-                              <span className="mt-0.5 block text-xs font-bold text-brand-clay">
-                                {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}
-                              </span>
-                            ) : null}
-                          </span>
-                        </td>
-                        {/* Number(), not the raw value: Postgres returns
-                            numeric as a string and "0.00" is truthy, so every
-                            work row printed "-0.00" and every payment "+0.00".
-                            Empty rather than a dash on a phone, where the
-                            reflow gives each cell its own labelled line and an
-                            existing rule hides an empty one. */}
-                        {/* One column, because no row is ever both: a row has
-                            pairs and a wage, or it has cash handed over. Two
-                            columns left one of them empty on every row. The
-                            sign says which, the way a passbook does. */}
-                        <td
-                          data-label={text("Amount", "रकम")}
-                          className="py-3 px-2 sm:px-4 text-right font-bold"
-                        >
-                          {Number(entry.payment_given) > 0 ? (
-                            <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
-                              −{Number(entry.payment_given).toLocaleString("en-IN")}
-                            </span>
-                          ) : Number(entry.amount_earned) > 0 ? (
-                            <span className={`text-green-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
-                              +{Number(entry.amount_earned).toLocaleString("en-IN")}
-                            </span>
-                          ) : (
-                            <span className="text-brand-muted-soft">—</span>
-                          )}
-                        </td>
-                        <td
-                          data-label={text("Balance", "बाँकी")}
-                          className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink"
-                        >
-                          {entry.status === "reversed" ? (
-                            <span className="font-normal text-brand-muted">{text("no change", "फेरबदल छैन")}</span>
-                          ) : (
-                            money(entry.running_balance)
-                          )}
-                        </td>
-                        {/* No minimum width: the note is empty on every work
-                            row, and 192px of it pushed the table wider than a
-                            tablet for the sake of one reversal message. */}
-                        <td
-                          data-label={text("Note", "टिपोट")}
-                          className="py-3 px-2 sm:px-4 text-xs text-brand-muted"
-                        >
-                          {entry.notes ? (
-                            <span className="block min-w-0 break-words">{entry.notes}</span>
-                          ) : null}
-                          {/* Reversing lives here, where the mistake is read,
-                              rather than on another screen the owner has to go
-                              and find the same row on. */}
-                          {entry.source_work_id ? (
-                            deletingId === entry.source_work_id ? (
-                              <div className="mt-1 space-y-2 rounded-lg bg-brand-clay-tint p-2">
-                                <input
-                                  value={deleteReason}
-                                  onChange={(event) => setDeleteReason(event.target.value)}
-                                  placeholder={text("Why? e.g. entered twice", "किन? जस्तै दुई पटक टिपिएको")}
-                                  aria-label={text("Reason for deleting", "मेट्ने कारण")}
-                                  className="min-h-10 w-full rounded-lg border border-brand-clay/30 bg-brand-paper px-2 text-xs"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleDelete(entry.source_work_id!)}
-                                    disabled={deleteBusy}
-                                    className="min-h-10 flex-1 rounded-lg bg-brand-clay px-2 text-xs font-black text-white disabled:opacity-60"
-                                  >
-                                    {deleteBusy
-                                      ? text("Deleting…", "मेट्दै…")
-                                      : text("Delete", "मेट्ने")}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setDeletingId(null);
-                                      setDeleteReason("");
-                                    }}
-                                    className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
-                                  >
-                                    {text("Cancel", "रद्द")}
-                                  </button>
-                                </div>
-                                {/* This does not come back. The audit keeps what
-                                    was removed, but the ledger will not. */}
-                                <p className="text-[11px] leading-4 text-brand-clay">
-                                  {text(
-                                    "This entry goes for good. What was removed is kept in the audit.",
-                                    "यो entry सधैँलाई जान्छ। के हट्यो भन्ने audit मा रहन्छ।",
-                                  )}
-                                </p>
-                              </div>
-                            ) : editingId === entry.source_work_id ? (
-                              <div className="mt-1 space-y-2 rounded-lg bg-brand-green-tint p-2">
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  <input
-                                    value={editForm.color}
-                                    onChange={(event) => setEditForm((form) => ({ ...form, color: event.target.value }))}
-                                    placeholder={text("Colour", "रङ")}
-                                    aria-label={text("Colour", "रङ")}
-                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
-                                  />
-                                  <input
-                                    value={editForm.size}
-                                    onChange={(event) => setEditForm((form) => ({ ...form, size: event.target.value }))}
-                                    placeholder={text("Size", "साइज")}
-                                    aria-label={text("Size", "साइज")}
-                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
-                                  />
-                                  <input
-                                    value={editForm.pairs}
-                                    onChange={(event) => setEditForm((form) => ({ ...form, pairs: event.target.value }))}
-                                    type="number"
-                                    min="1"
-                                    inputMode="numeric"
-                                    placeholder={text("Pairs", "जोडी")}
-                                    aria-label={text("Pairs", "जोडी")}
-                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
-                                  />
-                                  <input
-                                    value={editForm.rate}
-                                    onChange={(event) => setEditForm((form) => ({ ...form, rate: event.target.value }))}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    inputMode="decimal"
-                                    placeholder={text("Rate", "दर")}
-                                    aria-label={text("Rate per pair", "प्रति जोडी दर")}
-                                    className="min-h-10 rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs tabular-nums"
-                                  />
-                                </div>
-                                <input
-                                  value={editForm.reason}
-                                  onChange={(event) => setEditForm((form) => ({ ...form, reason: event.target.value }))}
-                                  placeholder={text("Why? e.g. colour was missing", "किन? जस्तै रङ छुटेको")}
-                                  aria-label={text("Reason for correcting", "सच्याउने कारण")}
-                                  className="min-h-10 w-full rounded-lg border border-brand-green/30 bg-brand-paper px-2 text-xs"
-                                />
-                                {/* What the wage becomes, before it is saved —
-                                    a correction that moves money should say so
-                                    first. */}
-                                <p className="text-[11px] leading-4 text-brand-green-ink">
-                                  {editForm.pairs && editForm.rate
-                                    ? text(
-                                        `Wage becomes Rs. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
-                                        `ज्याला हुन्छ रु. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
-                                      )
-                                    : text("Leave the rate blank to keep the one on file.", "दर खाली छोडे पहिलेकै दर रहन्छ।")}
-                                </p>
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleEdit(entry)}
-                                    disabled={editBusy}
-                                    className="min-h-10 flex-1 rounded-lg bg-brand-green px-2 text-xs font-black text-white disabled:opacity-60"
-                                  >
-                                    {editBusy ? text("Saving…", "सच्याउँदै…") : text("Correct", "सच्याउने")}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingId(null)}
-                                    className="min-h-10 rounded-lg border border-brand-green-line px-2 text-xs font-bold"
-                                  >
-                                    {text("Cancel", "रद्द")}
-                                  </button>
-                                </div>
-                              </div>
-                            ) : canFix ? (
-                              /* Kept off the row (owner, 2026-10-04): one quiet
-                                 ✏️ for the Owner opens Correct and Delete — the
-                                 server lets only the Owner do either. */
-                              fixingId === entry.source_work_id ? (
-                                <span className="mt-1 flex flex-wrap items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setFixingId(null);
-                                      setEditingId(entry.source_work_id);
-                                      setEditForm({
-                                        color: entry.color ?? "",
-                                        size: entry.size ?? "",
-                                        pairs: String(entry.work_pairs ?? ""),
-                                        rate: entry.rate_applied ? String(Number(entry.rate_applied)) : "",
-                                        reason: "",
-                                      });
-                                    }}
-                                    className="text-xs font-black text-brand-green underline underline-offset-2"
-                                  >
-                                    {text("Correct", "सच्याउने")}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setFixingId(null);
-                                      setDeletingId(entry.source_work_id);
-                                      setDeleteReason("");
-                                    }}
-                                    className="text-xs font-black text-brand-clay underline underline-offset-2"
-                                  >
-                                    {text("Delete", "मेट्ने")}
-                                  </button>
-                                  <button type="button" onClick={() => setFixingId(null)} className="text-xs font-bold text-brand-muted">
-                                    {text("Cancel", "रद्द")}
-                                  </button>
-                                </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setFixingId(entry.source_work_id)}
-                                  aria-label={text("Fix this entry", "यो entry सच्याउने")}
-                                  title={text("Fix this entry", "यो entry सच्याउने")}
-                                  className="mt-1 grid h-8 w-8 place-items-center rounded-lg border border-brand-green-line text-sm hover:border-brand-green"
-                                >
-                                  ✏️
-                                </button>
-                              )
-                            ) : null
-                          ) : entry.notes ? null : (
-                            <span className="text-brand-muted-soft">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-brand-muted">
-                        {text(
-                          "No ledger entries for this month",
-                          "यो महिना यस कामदारको कुनै हिसाब छैन।",
+                                {entry.source_work_id ? fixControls(entry) : null}
+                              </li>
+                            );
+                          })
+                        ) : (
+                          <li className="py-6 text-center text-brand-muted">
+                            {text("No ledger entries for this month", "यो महिना यस कामदारको कुनै हिसाब छैन।")}
+                          </li>
                         )}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <EnterWalkForm onSubmit={handleRecordPayment} confirmTitle={ledgerData.worker.name} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                {/* Whose payment. Money handed to the wrong name is the one
-                    mistake this form can make, and the person picked at the
-                    top of the page is a long way above this box. */}
-                <h3 className="text-lg font-black text-emerald-950">
-                  {text("Pay", "पैसा दिने")}{" "}
-                  <span className="underline decoration-emerald-400 decoration-2 underline-offset-4">
-                    {ledgerData.worker.name}
-                  </span>
-                </h3>
-                <p className="mt-1 text-sm leading-6 text-emerald-800">
-                  {text(
-                    "Payment may be the full balance, fixed Saturday kharcha, or an advance. If payment is more than earned balance, the negative balance is recovered from future work.",
-                    "पूरै बाँकी, शनिबारको खर्च वा पेश्की — जे दिए पनि हुन्छ। कमाएकोभन्दा बढी दिए, त्यो पछिको कामबाट कट्छ।",
-                  )}
-                </p>
-              </div>
-              <button type="button" onClick={() => setPaymentAmount(Math.max(0, ledgerData.summary.currentBalance).toString())} className="rounded-full border border-emerald-700 bg-brand-paper px-3 py-2 text-xs font-black text-emerald-800">{text("Use current balance", "अहिलेको बाँकी हाल्ने")}</button>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment type", "के बापत")}
-                <select data-summary="text" value={paymentKind} onChange={(event) => setPaymentKind(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3">
-                  <option>{text("Saturday kharcha / advance", "शनिबारको खर्च / पेश्की")}</option>
-                  <option>{text("Weekly wage payment", "साप्ताहिक ज्याला")}</option>
-                  <option>{text("Final wage settlement", "पूरै हिसाब मिलाएको")}</option>
-                  <option>{text("Other Owner-approved payment", "मालिकले भनेर दिएको अरू")}</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Payment date", "कहिले दिइयो")}
-                <NepaliDateField value={paymentDate} onChange={setPaymentDate} required />
-                {/* The Bikram Sambat reading of the chosen day (2083/05/19), so
-                    the owner records the payment by the Nepali calendar. */}
-                {paymentDate ? (
-                  <span className="text-xs font-semibold text-brand-green">
-                    {text("Nepali date", "नेपाली मिति")}: {toBikramSambatNumeric(paymentDate)}
-                  </span>
-                ) : null}
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Amount (Rs.)", "कति रुपैयाँ")}
-                <input data-summary="money" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Payment amount", "कति दिने")} />
-              </label>
-              <label className="grid gap-1 text-sm font-bold text-brand-green-ink">{text("Owner note", "मालिकको टिपोट")}
-                <input value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} className="min-h-12 rounded-lg border border-brand-green-line bg-brand-paper px-3" placeholder={text("Optional reason or reference", "किन दिइयो — नलेखे पनि हुन्छ")} />
-              </label>
-            </div>
-            <button type="submit" disabled={paymentSaving || !selectedWorkerId} className="mt-4 min-h-12 w-full rounded-xl bg-emerald-700 px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-60">
-              {paymentSaving
-                ? text("Saving…", "टिप्दै…")
-                : text("Record cash payment", "नगद दिएको टिप्ने")}
-            </button>
-          </EnterWalkForm>
+                      </ul>
+                      <div className="hidden md:block print:block">
+                      <table className="reflow-table w-full text-sm">
+                        <thead className="border-b border-brand-green-line">
+                          <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
+                            <th className="text-left py-2 px-2 sm:px-4">{text("Date", "मिति")}</th>
+                            <th className="text-left py-2 px-2 sm:px-4">{text("Type", "के भयो")}</th>
+                            <th className="text-left py-2 px-2 sm:px-4">{text("Item", "के बनायो")}</th>
+                            <th className="text-right py-2 px-2 sm:px-4">{text("Pairs", "जोडी")}</th>
+                            <th className="text-right py-2 px-2 sm:px-4">{text("Amount", "रकम")}</th>
+                            <th className="text-right py-2 px-2 sm:px-4">{text("Balance", "बाँकी")}</th>
+                            <th className="text-left py-2 px-2 sm:px-4">{text("Note", "टिपोट")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledgerData.ledger.length > 0 ? (
+                            ledgerData.ledger.map((entry, idx) => (
+                              <tr
+                                key={idx}
+                                className={`border-b border-brand-green-line hover:bg-brand-paper-deep ${
+                                  entry.status === "reversed" ? "opacity-70" : ""
+                                }`}
+                              >
+                                <td className="reflow-primary py-3 px-2 sm:px-4 text-brand-green-ink">
+                                  <DateDisplayAdmin date={entry.date} />
+                                </td>
+                                <td data-label={text("Type", "के भयो")} className="py-3 px-2 sm:px-4">
+                                  <span className="text-xs sm:text-sm capitalize bg-brand-mist px-2 py-1 rounded">
+                                    {entry.entry_type}
+                                  </span>
+                                  {/* Two identical Rs. 9,720 payments sat here, one of
+                                      them reversed, told apart only by a sentence at
+                                      the end of a note column. */}
+                                  {entry.status === "reversed" ? (
+                                    <span className="ms-1.5 inline-block rounded bg-brand-clay-tint px-2 py-1 text-xs font-black text-brand-clay">
+                                      {text("reversed", "फिर्ता")}
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td
+                                  data-label={text("Item", "के बनायो")}
+                                  className={`py-3 px-2 sm:px-4 text-brand-green-ink ${
+                                    entry.item_name ? "" : "reflow-blank"
+                                  }`}
+                                >
+                                  {/* One wrapper, so the phone card lays the label
+                                      against a single block rather than against each
+                                      line in turn. */}
+                                  <span className="block min-w-0 text-right sm:text-left">
+                                    {entry.item_name ? (
+                                      <>
+                                        <span className="block break-words font-bold">{entry.item_name}</span>
+                                        {/* Colour and size as chips, read at a glance
+                                            (owner, 2026-10-04). */}
+                                        {entry.color || entry.size ? (
+                                          <span className="mt-1 flex flex-wrap justify-end gap-1 sm:justify-start">
+                                            {entry.color ? (
+                                              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
+                                                {colourSwatch(entry.color) ? (
+                                                  <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(entry.color) ?? undefined }} />
+                                                ) : null}
+                                                {entry.color}
+                                              </span>
+                                            ) : null}
+                                            {entry.size ? (
+                                              <span title={entry.size} className="rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 text-xs font-black text-brand-green-ink">
+                                                {text("Size", "साइज")} {compactSizes(entry.size)}
+                                              </span>
+                                            ) : null}
+                                          </span>
+                                        ) : (
+                                          <span className="mt-0.5 block text-xs text-brand-muted">
+                                            {text("colour and size not entered", "रङ र साइज टिपिएको छैन")}
+                                          </span>
+                                        )}
+                                        {entry.from_photo ? (
+                                          <Link href="/admin/factory/photos" className="mt-1 inline-block text-xs font-bold text-brand-green underline underline-offset-2">
+                                            📷 {text("from the worker's photo", "कामदारको फोटोबाट")}
+                                          </Link>
+                                        ) : null}
+                                      </>
+                                    ) : (
+                                      <span className="text-brand-muted-soft">—</span>
+                                    )}
+                                  </span>
+                                </td>
+                                <td
+                                  data-label={text("Pairs", "जोडी")}
+                                  className={`py-3 px-2 sm:px-4 text-right text-brand-green-ink ${
+                                    entry.work_pairs ? "" : "reflow-blank"
+                                  }`}
+                                >
+                                  <span className="block min-w-0">
+                                    {entry.work_pairs ? (
+                                      <span className="text-lg font-black tabular-nums">
+                                        {entry.work_pairs} <span className="text-xs font-bold text-brand-muted">{text("pairs", "जोडी")}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-brand-muted-soft">—</span>
+                                    )}
+                                    {entry.rate_applied ? (
+                                      <span className="mt-0.5 block text-sm font-bold tabular-nums text-brand-green-ink">
+                                        × Rs. {Number(entry.rate_applied).toLocaleString("en-IN")}
+                                      </span>
+                                    ) : null}
+                                    {entry.reject_pairs ? (
+                                      <span className="mt-0.5 block text-xs font-bold text-brand-clay">
+                                        {text(`${entry.reject_pairs} reject`, `${entry.reject_pairs} बिग्रेको`)}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                </td>
+                                {/* Number(), not the raw value: Postgres returns
+                                    numeric as a string and "0.00" is truthy, so every
+                                    work row printed "-0.00" and every payment "+0.00".
+                                    Empty rather than a dash on a phone, where the
+                                    reflow gives each cell its own labelled line and an
+                                    existing rule hides an empty one. */}
+                                {/* One column, because no row is ever both: a row has
+                                    pairs and a wage, or it has cash handed over. Two
+                                    columns left one of them empty on every row. The
+                                    sign says which, the way a passbook does. */}
+                                <td
+                                  data-label={text("Amount", "रकम")}
+                                  className="py-3 px-2 sm:px-4 text-right font-bold"
+                                >
+                                  {Number(entry.payment_given) > 0 ? (
+                                    <span className={`text-red-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                                      −{Number(entry.payment_given).toLocaleString("en-IN")}
+                                    </span>
+                                  ) : Number(entry.amount_earned) > 0 ? (
+                                    <span className={`text-green-600 ${entry.status === "reversed" ? "line-through" : ""}`}>
+                                      +{Number(entry.amount_earned).toLocaleString("en-IN")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-brand-muted-soft">—</span>
+                                  )}
+                                </td>
+                                <td
+                                  data-label={text("Balance", "बाँकी")}
+                                  className="py-3 px-2 sm:px-4 text-right font-semibold text-brand-green-ink"
+                                >
+                                  {entry.status === "reversed" ? (
+                                    <span className="font-normal text-brand-muted">{text("no change", "फेरबदल छैन")}</span>
+                                  ) : (
+                                    money(entry.running_balance)
+                                  )}
+                                </td>
+                                {/* No minimum width: the note is empty on every work
+                                    row, and 192px of it pushed the table wider than a
+                                    tablet for the sake of one reversal message. */}
+                                <td
+                                  data-label={text("Note", "टिपोट")}
+                                  className="py-3 px-2 sm:px-4 text-xs text-brand-muted"
+                                >
+                                  {entry.notes ? (
+                                    <span className="block min-w-0 break-words">{entry.notes}</span>
+                                  ) : null}
+                                  {/* Reversing lives here, where the mistake is read,
+                                      rather than on another screen the owner has to go
+                                      and find the same row on. */}
+                                  {fixControls(entry)}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={7} className="py-8 text-center text-brand-muted">
+                                {text(
+                                  "No ledger entries for this month",
+                                  "यो महिना यस कामदारको कुनै हिसाब छैन।",
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      </div>
+                    </div>
+                  </div>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : (
         <div className="text-center text-brand-muted">{text("Select a worker to view their ledger", "खाता हेर्न कामदार छान्नुहोस्")}</div>

@@ -56,7 +56,7 @@ export default function StatTile({
   // bilingual <T en ne /> where a plain string used to go. A string still works
   // exactly as before — this only widens what is allowed.
   label: ReactNode;
-  value: string | number;
+  value: ReactNode;
   detail?: ReactNode;
   tone?: Tone;
   /** "lead" for the one figure the screen is about. Defaults to normal, so no

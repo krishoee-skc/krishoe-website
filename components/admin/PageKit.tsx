@@ -235,11 +235,20 @@ function useAmountsShown() {
   return useSyncExternalStore(subscribeAmounts, () => amountsShown, () => false);
 }
 
-/** A rupee figure that waits behind the screen's eye. */
+/** A rupee figure that waits behind the screen's eye. Paper carries the
+ *  figure: a ledger is printed to be handed over, and "Rs. ••••" on it says
+ *  nothing (2026-10-12). */
 export function Amount({ children }: { children: ReactNode }) {
   const { text } = useLanguage();
   const shown = useAmountsShown();
-  return shown ? <>{children}</> : <span data-figure-hidden>{text("Rs.", "रु.")} ••••</span>;
+  return shown ? (
+    <>{children}</>
+  ) : (
+    <>
+      <span data-figure-hidden className="print:hidden">{text("Rs.", "रु.")} ••••</span>
+      <span className="hidden print:inline">{children}</span>
+    </>
+  );
 }
 
 /** The screen's one eye for every Amount on it. */

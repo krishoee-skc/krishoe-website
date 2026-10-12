@@ -1,5 +1,7 @@
 "use client";
 
+import T from "@/components/T";
+
 export default function PrintInvoiceButton() {
   return (
     <button
@@ -7,7 +9,7 @@ export default function PrintInvoiceButton() {
       onClick={() => window.print()}
       className="rounded-full bg-brand-green-ink px-4 py-2 text-sm font-bold text-white"
     >
-      Print bill
+      🖨️ <T en="Print bill" ne="बिल छाप्ने" />
     </button>
   );
 }
