@@ -55,7 +55,9 @@ describe("the screen", () => {
     expect(page).toContain("<OwnerDashboard");
     expect(page).toContain("<StaffToday");
     expect(page).not.toContain("(product?.priceValue || 0) * (product?.stock || 0)");
-    expect(page).toContain("stockValue: stockAtSellingPrice(active),");
+    // Since 2026-10-11 every pair, the drafts' too, at its selling price.
+    expect(page).toContain("stockValue: stock.value,");
+    expect(page).toContain("const stock = stockByShoe(products, places);");
   });
 
   it("calls sales less purchases what it is, and names a sold-out shoe as sold out", async () => {

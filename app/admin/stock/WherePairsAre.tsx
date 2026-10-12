@@ -72,6 +72,8 @@ type Props = {
   todayBs: string;
   /** May count a shoe's shelf and so set its stock (operations:write). */
   canCount?: boolean;
+  /** A shoe to open at its count: the dashboard's "Count →". */
+  countFirst?: string;
 };
 
 type Line = { key: number; design: string; sizeRun: string; pairs: string };
@@ -90,7 +92,7 @@ function emptyLine(key: number): Line {
  * pool selling reads; this says how that pool is split between the two places,
  * and when the two disagree it says so rather than picking a favourite.
  */
-export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs, canCount = false }: Props) {
+export default function WherePairsAre({ rows, extras, transfers, staffName, today, todayBs, canCount = false, countFirst }: Props) {
   const { text } = useLanguage();
   const router = useRouter();
 
@@ -118,7 +120,8 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
   const [confirmFix, setConfirmFix] = useState<string | null>(null);
   const [fixState, setFixState] = useState<ActionState | null>(null);
   const [fixing, startFixing] = useTransition();
-  const [openShoes, setOpenShoes] = useState<Set<string>>(() => new Set());
+  // Arriving from the dashboard's "Count →", that shoe opens at its count.
+  const [openShoes, setOpenShoes] = useState<Set<string>>(() => new Set(countFirst && canCount ? [countFirst] : []));
   // Finding a shoe in the list: a search, a filter and a sort. The default
   // order puts what needs a look first — places that do not match, then
   // shoes sold out or running low.
@@ -408,7 +411,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
   }
 
   // "🔢 Count" on a shoe's line opens the shoe at its count (owner, 2026-10-11).
-  const [countShoe, setCountShoe] = useState<string | null>(null);
+  const [countShoe, setCountShoe] = useState<string | null>(countFirst && canCount ? countFirst : null);
   function countIt(design: string) {
     setOpenShoes((current) => new Set(current).add(design));
     setCountShoe(design);
@@ -525,7 +528,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
           Every cell a box, bigger type, a totals line — the owner's sample,
           2026-09-28 — with search, filters, sorting, the shoe's code, and
           the shoe's own history a press away. */}
-      <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
+      <section id="every-shoe" className="scroll-mt-24 rounded-2xl border border-brand-green-line bg-brand-paper p-4 sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">
           {text("Every shoe", "सबै जुत्ता")}
         </h2>
@@ -812,7 +815,7 @@ export default function WherePairsAre({ rows, extras, transfers, staffName, toda
       </section>
 
       {/* ── Send a challan ──────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-brand-green/30 bg-brand-paper p-4 sm:p-5">
+      <section id="move-pairs" className="scroll-mt-24 rounded-2xl border border-brand-green/30 bg-brand-paper p-4 sm:p-5">
         <h2 className="text-lg font-black text-brand-green-ink">
           {text("Move pairs", "माल सार्ने")}
         </h2>

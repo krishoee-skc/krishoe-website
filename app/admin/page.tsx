@@ -37,7 +37,7 @@ import {
   nepalDayKey,
   netSalesBetween,
   salesByDay,
-  stockAtSellingPrice,
+  stockByShoe,
   type SaleLike,
 } from "@/lib/dashboard-figures";
 
@@ -213,6 +213,7 @@ export default async function AdminDashboardPage() {
     const runningLow = active.filter((product) => isLowOrOut(product.stock) && (product.stock || 0) > 0);
     const places = settled(placesResult, [] as Awaited<ReturnType<typeof getStockByPlace>>);
     const mismatched = places.filter((row) => row.unplaced !== 0).length;
+    const stock = stockByShoe(products, places);
     const channel = (name: "Retail" | "Wholesale" | "Online") =>
       channelRows.find((row) => row.channel === name)?.netTotal ?? 0;
 
@@ -395,14 +396,6 @@ export default async function AdminDashboardPage() {
       });
     }
 
-    const shoes = [...active]
-      .sort((a, b) => (a.stock || 0) - (b.stock || 0) === 0 ? a.name.localeCompare(b.name) : (b.stock || 0) - (a.stock || 0))
-      .slice(0, 7);
-    // Sold-out shoes are the point of the list; keep them on it.
-    for (const product of soldOut) {
-      if (!shoes.includes(product)) shoes.push(product);
-    }
-
     return (
       <section className="p-4 sm:p-6">
         {/* collected={todayCollected}: net of returns, beside what was actually
@@ -429,12 +422,14 @@ export default async function AdminDashboardPage() {
           todos={todos}
           kpis={{
             salesLessPurchases,
-            stockValue: stockAtSellingPrice(active),
-            stockPairs: active.reduce((sum, product) => sum + Math.max(0, product.stock || 0), 0),
+            // Every pair, the drafts' too (owner, 2026-10-11): the website's
+            // four shoes alone read 181 of 580.
+            stockValue: stock.value,
+            stockPairs: stock.all,
             creditOwed,
             workerDue: workerBalanceDue,
           }}
-          shoes={shoes.map((product) => ({ name: product.name, stock: product.stock || 0 }))}
+          stock={stock}
           factory={{
             todayPairs: todayStockPairs,
             stages: todayStagePairs,

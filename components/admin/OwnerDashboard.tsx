@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import OwnerSummary from "@/components/admin/OwnerSummary";
+import type { StockOverview } from "@/lib/dashboard-figures";
 
 /**
  * The owner's dashboard — the page everybody's eye lands on. The owner chose on
@@ -42,7 +43,7 @@ export type OwnerDashboardProps = {
   daysInMonth: number;
   todos: Todo[];
   kpis: { salesLessPurchases: number; stockValue: number; stockPairs: number; creditOwed: number; workerDue: number };
-  shoes: Array<{ name: string; stock: number }>;
+  stock: StockOverview;
   /** todayPairs: pairs posted to stock today. stages: today's work per stage, never summed. */
   factory: { todayPairs: number; stages?: Array<{ stage: string; pairs: number }>; atFactory: number; atShop: number; mismatched: number };
   days: Array<{ key: string; en: string; ne: string; net: number; today: boolean }>;
@@ -212,7 +213,64 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
   // Seven-day bars.
   const maxDay = Math.max(1, ...props.days.map((day) => day.net));
   const [hoverDay, setHoverDay] = useState<string | null>(null);
-  const maxShoe = Math.max(1, ...props.shoes.map((shoe) => shoe.stock));
+  const stock = props.stock;
+  // The seven with most pairs, then any website shoe sold out — that is news.
+  const withPairs = stock.lines.filter((line) => line.total > 0);
+  const shown = [...withPairs.slice(0, 7), ...stock.lines.filter((line) => line.web && line.total <= 0)];
+  const rest = withPairs.slice(7);
+  const restPairs = rest.reduce((sum, line) => sum + line.total, 0);
+  const maxShoe = Math.max(1, ...shown.map((line) => line.total + line.over));
+  const stockShare = (pairs: number) => (stock.all > 0 ? (pairs / stock.all) * 100 : 0);
+  const stockTodos: Array<{ key: string; icon: string; tone: string; en: string; ne: string; goEn: string; goNe: string; href: string }> = [];
+  if (stock.mismatched.length > 0) {
+    const first = stock.mismatched[0];
+    const gap = first.over > 0 ? first.over : first.noPlace;
+    stockTodos.push({
+      key: "places",
+      icon: "⚠",
+      tone: "bg-brand-clay-tint text-brand-clay",
+      en:
+        stock.mismatched.length === 1
+          ? first.over > 0
+            ? `${first.name}: ${gap} pairs placed that stock does not have`
+            : `${first.name}: ${gap} pairs with no place`
+          : `${stock.mismatched.length} shoes: places do not match stock`,
+      ne:
+        stock.mismatched.length === 1
+          ? first.over > 0
+            ? `${first.name}: स्टकमा नभएका ${gap} जोडी ठाउँमा राखिएका`
+            : `${first.name}: ${gap} जोडीको ठाउँ छैन`
+          : `${stock.mismatched.length} जुत्ता: ठाउँ र स्टक मिलेन`,
+      goEn: "Count →",
+      goNe: "गन्ने →",
+      href: stock.mismatched.length === 1 ? `/admin/stock?count=${encodeURIComponent(first.name)}#every-shoe` : "/admin/stock#every-shoe",
+    });
+  }
+  if (stock.draftShoes > 0) {
+    stockTodos.push({
+      key: "drafts",
+      icon: "📷",
+      tone: "bg-brand-cream-soft text-brand-gold-ink",
+      en: `${stock.draftShoes} ${stock.draftShoes === 1 ? "shoe" : "shoes"} · ${stock.draft} pairs not on the website — add a photo`,
+      ne: `${stock.draftShoes} जुत्ता · ${stock.draft} जोडी वेबसाइटमा छैनन् — फोटो राख्ने`,
+      goEn: "Drafts →",
+      goNe: "Draft →",
+      href: "/admin/stock#not-on-website",
+    });
+  }
+  if (stock.noneAtShop.length > 0) {
+    const atFactory = stock.noneAtShop.reduce((sum, shoe) => sum + shoe.factory, 0);
+    stockTodos.push({
+      key: "none-at-shop",
+      icon: "🚚",
+      tone: "bg-brand-green-wash text-brand-green",
+      en: `${stock.noneAtShop.length} website ${stock.noneAtShop.length === 1 ? "shoe has" : "shoes have"} none at the shop (${atFactory} pairs at the factory)`,
+      ne: `वेबसाइटका ${stock.noneAtShop.length} जुत्ता पसलमा छैनन् (कारखानामा ${atFactory} जोडी)`,
+      goEn: "Send →",
+      goNe: "पठाउने →",
+      href: "/admin/stock#move-pairs",
+    });
+  }
   const greeting = Number.isNaN(hour) || clock === ""
     ? text("Hello", "नमस्ते")
     : hour < 12
@@ -346,7 +404,10 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
               month: props.month,
               salesGoal: props.salesGoal,
               todos: props.todos.map((todo) => todo.ne),
-              lowShoes: props.shoes.filter((shoe) => shoe.stock > 0 && shoe.stock <= 5).slice(0, 5),
+              lowShoes: stock.lines
+                .filter((line) => line.web && line.total > 0 && line.total <= 5)
+                .slice(0, 5)
+                .map((line) => ({ name: line.name, stock: line.total })),
               factoryTodayPairs: props.factory.todayPairs,
               creditOwed: props.kpis.creditOwed,
               workerDue: props.kpis.workerDue,
@@ -406,7 +467,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
         </div>
         {[
           { href: "/admin/purchasing?view=accounts", en: `Sales less purchases · ${props.monthEn}`, ne: `बिक्री − खरिद · ${props.monthNe}`, value: props.kpis.salesLessPurchases, subEn: "Not profit — bought stock is still on hand", subNe: "नाफा होइन · किनेको माल स्टकमै छ", bar: "bg-brand-green" },
-          { href: "/admin/stock", en: "Stock at selling price", ne: "स्टक · बेच्ने मूल्यमा", value: props.kpis.stockValue, subEn: `${props.kpis.stockPairs} pairs`, subNe: `${props.kpis.stockPairs} जोडी`, bar: "bg-brand-gold" },
+          { href: "/admin/stock", en: "Stock at selling price", ne: "स्टक · बेच्ने मूल्यमा", value: props.kpis.stockValue, subEn: `${props.kpis.stockPairs} pairs in all · ${stock.web} on the website · ${stock.draft} in draft`, subNe: `जम्मा ${props.kpis.stockPairs} जोडी · वेबसाइटमा ${stock.web} · Draft मा ${stock.draft}`, bar: "bg-brand-gold" },
           { href: "/admin/dues", en: "Customers owe", ne: "ग्राहकको उधारो", value: props.kpis.creditOwed, subEn: props.kpis.creditOwed ? "Still to collect" : "Nobody owes anything ✓", subNe: props.kpis.creditOwed ? "उठाउन बाँकी" : "कसैले तिर्न बाँकी छैन ✓", bar: "bg-[#2458A6]" },
           { href: "/admin/operations/production-accounts/payments", en: "Owed to workers", ne: "कामदारको बाँकी", value: props.kpis.workerDue, subEn: "Wages to pay", subNe: "ज्याला तिर्न बाँकी", bar: "bg-brand-clay" },
         ].map((tile) => {
@@ -453,33 +514,113 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
 
       {/* ── Shop stock and the factory today ──────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="grid content-start gap-2 rounded-3xl border border-brand-green-line bg-[linear-gradient(180deg,#E4ECF8,transparent_55%)] p-4 dark:bg-[linear-gradient(180deg,#17253A,transparent_55%)]">
+        {/* Every shoe's stock and where it is (owner, 2026-10-11): one card
+            with all the pairs, where they are and whether they are on the
+            website; what to do about it; and a bar a shoe — factory, shop,
+            and places that do not match. */}
+        <section id="stock-by-shoe" className="grid content-start gap-3 rounded-3xl border border-brand-green-line bg-[linear-gradient(180deg,#E4ECF8,transparent_55%)] p-4 dark:bg-[linear-gradient(180deg,#17253A,transparent_55%)]">
+          <div className="grid gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-3">
+            <span className="text-xs font-black text-brand-muted">{text("All stock", "सबै स्टक")}</span>
+            <span className="font-display text-2xl font-black text-brand-green-ink">
+              {text(`${stock.all} pairs`, `${stock.all} जोडी`)}{" "}
+              <span className="text-base font-bold text-brand-muted">
+                ·{" "}
+                {openFigures.has("/admin/stock") ? (
+                  <Money value={stock.value} className="font-black text-brand-green-ink" />
+                ) : (
+                  <span data-figure-hidden aria-label={text("Amount hidden", "रकम लुकाइएको")}>{text("Rs.", "रु.")} •••• 👁</span>
+                )}
+              </span>
+            </span>
+            {stock.noPrice > 0 ? (
+              <span className="text-xs font-bold text-brand-gold-ink">
+                {text(`${stock.noPrice} ${stock.noPrice === 1 ? "shoe has" : "shoes have"} no price, so no value`, `${stock.noPrice} जुत्ताको मूल्य राखिएको छैन, रकममा गनिएन`)}
+              </span>
+            ) : null}
+            <div className="grid gap-1">
+              <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-brand-muted">
+                <span>{text(`🏭 Factory ${stock.factory}`, `🏭 कारखाना ${stock.factory}`)}</span>
+                <span>{text(`🛒 Shop ${stock.shop}`, `🛒 पसल ${stock.shop}`)}</span>
+                {stock.over > 0 ? <span className="text-brand-clay">+{stock.over} ⚠</span> : null}
+                {stock.noPlace > 0 ? <span className="text-brand-clay">{text(`${stock.noPlace} no place`, `${stock.noPlace} ठाउँ छैन`)}</span> : null}
+              </div>
+              <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+                <span className="h-full bg-brand-gold" style={{ width: `${stockShare(stock.factory)}%` }} />
+                <span className="h-full bg-brand-green" style={{ width: `${stockShare(stock.shop)}%` }} />
+              </span>
+            </div>
+            <div className="grid gap-1">
+              <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-brand-muted">
+                <span>{text(`On the website ${stock.web}`, `वेबसाइटमा ${stock.web}`)}</span>
+                <span>{text(`Draft ${stock.draft}`, `Draft ${stock.draft}`)}</span>
+              </div>
+              <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+                <span className="h-full bg-brand-green" style={{ width: `${stockShare(stock.web)}%` }} />
+                <span className="h-full bg-brand-gold/60" style={{ width: `${stockShare(stock.draft)}%` }} />
+              </span>
+            </div>
+          </div>
+
+          {stockTodos.length > 0 ? (
+            <ul className="grid list-none gap-1.5 pl-0">
+              {stockTodos.map((todo) => (
+                <li key={todo.key}>
+                  <Link href={todo.href} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm font-bold ${todo.tone}`}>
+                    <span aria-hidden="true">{todo.icon}</span>
+                    <span className="min-w-0 flex-1">{text(todo.en, todo.ne)}</span>
+                    <span className="whitespace-nowrap underline">{text(todo.goEn, todo.goNe)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
           <h2 className="flex items-center justify-between text-lg font-black text-brand-green-ink">
-            {text("🛒 Shop stock", "🛒 पसलको स्टक")}
-            <Link href="/admin/stock" className="text-sm font-black text-brand-green">{text("Stock →", "स्टक हेर्ने →")}</Link>
+            {text("👟 Stock by shoe", "👟 जुत्ता अनुसार स्टक")}
+            <Link href="/admin/stock#every-shoe" className="text-sm font-black text-brand-green">{text("Stock →", "स्टक हेर्ने →")}</Link>
           </h2>
-          {props.shoes.length === 0 ? (
+          {shown.length === 0 ? (
             <p className="text-sm text-brand-muted">{text("No shoe in the catalogue yet.", "सूचीमा अहिलेसम्म जुत्ता छैन।")}</p>
           ) : (
-            <ul className="grid list-none gap-1.5 pl-0">
-              {props.shoes.map((shoe) => {
-                const colour = shoe.stock <= 0 ? "bg-brand-clay" : shoe.stock <= 5 ? "bg-brand-gold" : "bg-brand-green";
-                return (
-                  <li key={shoe.name} className="grid grid-cols-[minmax(0,130px)_minmax(0,1fr)_44px] items-center gap-2 text-sm">
-                    <span className="truncate">{shoe.name}</span>
-                    <span className="block h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+            <>
+              <div className="flex flex-wrap gap-3 text-xs font-bold text-brand-muted" aria-hidden="true">
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-gold align-middle" />{text("Factory", "कारखाना")}</span>
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-green align-middle" />{text("Shop", "पसल")}</span>
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-clay align-middle" />{text("Not matching", "नमिलेको")}</span>
+              </div>
+              <ul className="grid list-none gap-1.5 pl-0">
+                {shown.map((shoe) => (
+                  <li
+                    key={shoe.name}
+                    className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)_44px] items-center gap-2 text-sm"
+                    title={text(`Factory ${shoe.factory} · Shop ${shoe.shop}${shoe.over ? ` · ${shoe.over} placed too many` : ""}`, `कारखाना ${shoe.factory} · पसल ${shoe.shop}${shoe.over ? ` · ${shoe.over} बढी` : ""}`)}
+                  >
+                    <span className="truncate">
+                      {shoe.name}{" "}
+                      <span className={`rounded-full px-1.5 text-[10px] font-black ${shoe.web ? "bg-brand-green-wash text-brand-green" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
+                        {shoe.web ? text("web", "web") : text("draft", "draft")}
+                      </span>
+                    </span>
+                    <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+                      <span className="h-full bg-brand-gold" style={{ width: `${(shoe.factory / maxShoe) * 100}%` }} />
+                      <span className="h-full bg-brand-green" style={{ width: `${(shoe.shop / maxShoe) * 100}%` }} />
                       <span
-                        className={`block h-full rounded-full ${colour} transition-[width] duration-700`}
-                        style={{ width: `${shoe.stock > 0 ? Math.max(3, (shoe.stock / maxShoe) * 100) : 2}%` }}
+                        className="h-full bg-[repeating-linear-gradient(45deg,#7B3128_0_4px,transparent_4px_8px)] dark:bg-[repeating-linear-gradient(45deg,#e59a8d_0_4px,transparent_4px_8px)]"
+                        style={{ width: `${(shoe.over / maxShoe) * 100}%` }}
                       />
                     </span>
-                    <b className={`text-right tabular-nums ${shoe.stock <= 0 ? "text-brand-clay" : ""}`}>
-                      {shoe.stock <= 0 ? text("out", "सकियो") : shoe.stock}
+                    <b className={`text-right tabular-nums ${shoe.total <= 0 ? "text-brand-clay" : ""}`}>
+                      {shoe.total <= 0 ? text("out", "सकियो") : shoe.total}
                     </b>
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+              {rest.length > 0 ? (
+                <p className="text-xs font-bold text-brand-muted">
+                  {text(`+ ${rest.length} more ${rest.length === 1 ? "shoe" : "shoes"} · ${restPairs} pairs`, `+ अरू ${rest.length} जुत्ता · ${restPairs} जोडी`)}
+                </p>
+              ) : null}
+            </>
           )}
         </section>
 

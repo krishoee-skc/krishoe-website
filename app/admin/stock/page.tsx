@@ -298,7 +298,8 @@ async function loadStock(withCost: boolean) {
   }
 }
 
-export default async function AdminStockPage() {
+export default async function AdminStockPage({ searchParams }: { searchParams?: Promise<{ count?: string }> }) {
+  const countFirst = (await searchParams)?.count?.slice(0, 120) || undefined;
   const session = await getAdminSession();
   const canCost = session ? canAdmin(getSessionAdminRole(session), "costing:read") : false;
   const [loaded, watch] = await Promise.all([
@@ -448,6 +449,7 @@ export default async function AdminStockPage() {
         today={today}
         todayBs={toBikramSambatNumeric(today)}
         canCount={canCount}
+        countFirst={countFirst}
       />
 
       {/* What a shopper can buy against what is ready. Only Active shoes are
@@ -458,7 +460,7 @@ export default async function AdminStockPage() {
           form — the question below only named them in a sentence (owner,
           2026-09-30: 379 pairs apart). */}
       {summary.draftShoes.length > 0 ? (
-        <section className="mt-4 rounded-2xl border-2 border-brand-gold/50 bg-brand-cream-soft p-4 sm:p-5">
+        <section id="not-on-website" className="mt-4 scroll-mt-24 rounded-2xl border-2 border-brand-gold/50 bg-brand-cream-soft p-4 sm:p-5">
           <h2 className="text-lg font-black text-brand-green-ink">
             <T
               en={`Not on the website yet: ${summary.draftShoes.length} shoe(s), ${summary.draftCatalogPairs} pairs`}
