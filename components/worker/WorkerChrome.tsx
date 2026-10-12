@@ -69,18 +69,20 @@ export function WorkerTextSize() {
 
 const TABS = [
   { href: "/worker/dashboard", icon: "🏠", ne: "गृह", en: "Home" },
+  // The day's work, written by the worker (owner, 2026-10-13, "क").
+  { href: "/worker/write", icon: "✍️", ne: "लेख्ने", en: "Write" },
   { href: "/worker/production", icon: "🧾", ne: "मेरो काम", en: "Work" },
   { href: "/worker/photos", icon: "📷", ne: "फोटो", en: "Photo" },
   { href: "/worker/payslip", icon: "💰", ne: "तलब", en: "Pay" },
 ] as const;
 
-/** Four big tabs, always at the bottom of the worker's phone. */
+/** Five big tabs, always at the bottom of the worker's phone. */
 export function WorkerTabs() {
   const pathname = usePathname();
   return (
     <nav
       aria-label="Worker portal"
-      className="fixed inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 grid grid-cols-4 gap-1 rounded-3xl border border-brand-green-line bg-brand-paper p-1.5 shadow-[0_12px_32px_rgba(11,77,59,0.18)] print:hidden"
+      className="fixed inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 grid grid-cols-5 gap-1 rounded-3xl border border-brand-green-line bg-brand-paper p-1.5 shadow-[0_12px_32px_rgba(11,77,59,0.18)] print:hidden"
     >
       {TABS.map((tab) => {
         const on = pathname === tab.href || pathname.startsWith(`${tab.href}/`);

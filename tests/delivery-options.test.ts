@@ -49,8 +49,16 @@ describe("store pickup", () => {
 
     // A closed shutter after a journey is the kind of thing a customer tells
     // people about.
-    expect(checkout).toContain("बिहान ८ बजे – साँझ ६ बजे");
-    expect(checkout).toContain("हरेक सोमबार बन्द");
-    expect(checkout).toContain("Closed every Monday");
+    // The hours are written once (owner, 2026-10-13: 8 to 6, closed Monday)
+    // and checkout, the contact page and Google all read them from there.
+    const hours = await readFile("lib/shop-hours.ts", "utf8");
+    expect(hours).toContain("बिहान ८ बजे – साँझ ६ बजे");
+    expect(hours).toContain("हरेक सोमबार बन्द");
+    expect(hours).toContain("Closed every Monday");
+    expect(hours).toContain('schema: "Su,Tu-Sa 08:00-18:00"');
+    expect(checkout).toContain("shopHours.en");
+    expect(checkout).toContain("shopHours.ne");
+    expect(await readFile("app/contact/page.tsx", "utf8")).toContain('["Hours", shopHours.en]');
+    expect(await readFile("lib/seo.ts", "utf8")).toContain("openingHours: shopHours.schema");
   });
 });

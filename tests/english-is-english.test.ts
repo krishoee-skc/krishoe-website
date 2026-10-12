@@ -184,6 +184,14 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     lines: 16,
     why: "The worker's photo form — Nepali-first by the owner's choice (2026-10-02), read by factory workers on their phones.",
   },
+  "app/worker/write/page.tsx": {
+    lines: 14,
+    why: "The worker writes the day's work themselves (owner, 2026-10-13, \"क\") — Nepali-first like every worker page, read by factory workers on their phones.",
+  },
+  "app/worker/write/WorkerWriteForm.tsx": {
+    lines: 17,
+    why: "The worker's write-the-work form: shoe, colour, size, pairs, today or yesterday — Nepali-first by the owner's choice (2026-10-13).",
+  },
   "app/worker/ask/page.tsx": {
     lines: 7,
     why: "The worker's \"the sum is wrong\" / \"an advance\" page — Nepali-first by the owner's choice (2026-10-02).",
@@ -291,7 +299,8 @@ const STILL_OWED: Record<string, number> = {
   "lib/local-pages.ts": 2,
   "app/api/factory/ready/route.ts": 3,
   // +5 on 2026-10-02: the worker's home was rebuilt bigger and Nepali-first (see the worker-app exemptions).
-  "app/worker/dashboard/page.tsx": 20,
+  // +1 on 2026-10-13: the "write today's work" button, first on the worker's home.
+  "app/worker/dashboard/page.tsx": 21,
   "app/worker/payslip/page.tsx": 11,
   "app/worker/production/page.tsx": 8,
   "components/worker/WorkerPortalShell.tsx": 3,

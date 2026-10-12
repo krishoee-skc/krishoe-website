@@ -132,8 +132,9 @@ export default function WorkerInbox({
       pairs: photo.pairs ? String(photo.pairs) : photo.robot?.pairs ? String(photo.robot.pairs) : "",
       // What the books know first: the robot's colour only when this shoe has
       // none (it read Ranjita's red pairs as black).
-      color: history[itemId]?.color || photo.robot?.color || "",
-      size: history[itemId]?.size || "",
+      // What a worker wrote themselves (owner, 2026-10-13) comes before all of it.
+      color: photo.color || history[itemId]?.color || photo.robot?.color || "",
+      size: photo.size || history[itemId]?.size || "",
       workDate: photo.workDate || nepalDay(photo.createdAt),
       rejects: photo.rejectPairs ? String(photo.rejectPairs) : "0",
       reason: NOT_WORK_REASONS[0].ne,
@@ -385,6 +386,9 @@ export default function WorkerInbox({
                 <li key={photo.id} className={`rounded-3xl border bg-brand-paper shadow-[0_10px_30px_rgba(16,35,29,0.06)] ${photo.kind === "problem" ? "border-red-400" : "border-brand-green-line"} ${isOpen ? "sm:col-span-2 lg:col-span-3" : "overflow-hidden"}`}>
                   {!isOpen ? (
                     <>
+                      {photo.written ? (
+                        <WrittenFace shoe={shoe} pairs={draft.pairs} color={draft.color} size={draft.size} text={text} />
+                      ) : (
                       <a href={photo.imageUrl} target="_blank" rel="noreferrer" className="relative block" aria-label={text("Open the photo full size", "फोटो ठूलो खोल्ने")}>
                         <img src={photo.imageUrl} alt={`${photo.workerName} — ${kind.en}`} loading="lazy" className="aspect-[4/3] w-full object-cover" />
                         <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-black text-white backdrop-blur">{kind.icon} {text(kind.en, kind.ne)}</span>
@@ -395,6 +399,7 @@ export default function WorkerInbox({
                           </span>
                         ) : null}
                       </a>
+                      )}
                       <div className="grid gap-2.5 p-3.5">
                         <div className="flex items-center gap-2">
                           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gold-deep text-[11px] font-black text-white">{initials(photo.workerName)}</span>
@@ -468,10 +473,14 @@ export default function WorkerInbox({
                     </>
                   ) : (
                     <EnterWalkGroup className="grid gap-4 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+                      {photo.written ? (
+                        <WrittenFace shoe={shoe} pairs={photo.pairs ? String(photo.pairs) : ""} color={photo.color} size={photo.size} text={text} />
+                      ) : (
                       <a href={photo.imageUrl} target="_blank" rel="noreferrer" className="relative block self-start overflow-hidden rounded-2xl bg-black/5" aria-label={text("Open the photo full size", "फोटो ठूलो खोल्ने")}>
                         <img src={photo.imageUrl} alt={`${photo.workerName} — ${kind.en}`} className="max-h-[34rem] w-full object-contain" />
                         <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-black text-white backdrop-blur">🔍 {text("Full size", "ठूलो हेर्ने")}</span>
                       </a>
+                      )}
 
                       <div className="grid content-start gap-4">
                         <div className="flex items-center gap-2">
@@ -718,6 +727,24 @@ export default function WorkerInbox({
           </span>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * The face of work a worker wrote with no photo (owner, 2026-10-13, "क"):
+ * what they said they made, where a photo would be, so it is checked the
+ * same way and booked by the same ✓.
+ */
+function WrittenFace({ shoe, pairs, color, size, text }: { shoe: string; pairs: string; color: string; size: string; text: (en: string, ne: string) => string }) {
+  return (
+    <div className="grid content-center gap-1 self-start rounded-t-3xl bg-brand-green-wash px-4 py-5 text-brand-green-ink">
+      <span className="w-max rounded-full bg-brand-green px-3 py-0.5 text-sm font-black text-white">✍️ {text("Written by the worker", "कामदारले लेखेको")}</span>
+      <span className="mt-1 text-xl font-black">{shoe || text("No shoe", "जुत्ता छैन")}</span>
+      <span className="text-base font-bold">
+        {[pairs ? `${pairs} ${text("pairs", "जोडी")}` : "", color, size].filter(Boolean).join(" · ")}
+      </span>
+      <span className="text-sm text-brand-muted">{text("No photo — check it against the pairs handed over.", "फोटो छैन — बुझाएको जोडीसँग मिलाएर ✓ गर्नुहोस्।")}</span>
     </div>
   );
 }

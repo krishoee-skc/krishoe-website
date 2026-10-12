@@ -21,6 +21,8 @@ export type FactoryPortalWorkEntry = {
   pairs: number;
   amountEarned: number;
   status: string;
+  /** The stage it was paid at — Upper, Fibermen… — empty on older entries. */
+  stage: string;
 };
 
 export type FactoryPortalMonth = {
@@ -98,10 +100,11 @@ export async function getFactoryWorkerPortalDetail(
       pairs_count: number | string;
       amount_earned: string | number;
       status: string;
+      stage: string | null;
     }>(
       STORE,
       `SELECT w.id, w.date, i.name AS item_name, w.color, w.size,
-              w.pairs_count, w.amount_earned, w.status
+              w.pairs_count, w.amount_earned, w.status, w.stage
        FROM factory_daily_work w
        LEFT JOIN factory_items i ON i.id = w.item_id
        WHERE w.worker_id = $1
@@ -158,6 +161,7 @@ export async function getFactoryWorkerPortalDetail(
       pairs: numeric(row.pairs_count),
       amountEarned: numeric(row.amount_earned),
       status: row.status,
+      stage: row.stage ?? "",
     })),
     months: monthRows.map((row) => ({
       month: bikramMonthLabel(`${dateKey(row.month)}T06:00:00.000Z`) || dateKey(row.month).slice(0, 7),

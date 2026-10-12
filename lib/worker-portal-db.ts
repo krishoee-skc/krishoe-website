@@ -126,6 +126,21 @@ ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS robot JSONB;
 ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS factory_photo_robot BOOLEAN NOT NULL DEFAULT true;
 `,
   },
+  {
+    // The worker writes the day's work (owner, 2026-10-13, "क"): the shoe,
+    // colour, size and pairs, with no photo — it waits for the owner's ✓ like a
+    // photo does, and the books change only then. The colour and size were
+    // the two things a photo never carried. Columns added; nothing existing
+    // changes. A written entry is a row whose image_url is empty.
+    name: "20261013_factory_worker_photos_written",
+    table: "factory_worker_photos",
+    column: "size",
+    label: { en: "Workers write the day's work themselves; you ✓ it", ne: "कामदार आफैं दिनको काम लेख्ने; तपाईं ✓ गर्ने" },
+    sql: `
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE factory_worker_photos ADD COLUMN IF NOT EXISTS size TEXT;
+`,
+  },
 ] as const;
 
 export type WorkerPortalTable = (typeof workerPortalMigrations)[number]["table"];
@@ -241,6 +256,27 @@ export async function photoRobotReady(): Promise<boolean> {
   }
 }
 
+let writtenReady: { value: boolean; at: number } | null = null;
+
+/**
+ * Whether a worker can write the day's work themselves — the seventh
+ * migration, on top of the draft and check columns it is booked through.
+ */
+export async function workerWritesReady(): Promise<boolean> {
+  if (getDataBackendConfig().backend !== "postgres") return false;
+  if (writtenReady?.value) return true;
+  if (writtenReady && Date.now() - writtenReady.at < RECHECK_MS) return false;
+  try {
+    const { pending } = await workerPortalDatabaseStatus();
+    const needed = ["20261002_factory_worker_photos_draft", "20261003_factory_worker_photos_review", "20261013_factory_worker_photos_written"];
+    const value = !pending.some((item) => needed.includes(item.name));
+    writtenReady = { value, at: Date.now() };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
 /** Adds the tables, stamped as applied. Safe to press twice. */
 export async function prepareWorkerPortalDatabase() {
   if (getDataBackendConfig().backend !== "postgres") return { applied: [] as string[] };
@@ -267,5 +303,6 @@ export async function prepareWorkerPortalDatabase() {
   draftReady = null;
   reviewReady = null;
   robotReady = null;
+  writtenReady = null;
   return { applied: toApply.map((migration) => migration.name) };
 }

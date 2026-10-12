@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { queryPostgres } from "@/lib/postgres/client";
-import { photoDraftReady, photoReviewReady, photoRobotReady, workerTableReady } from "@/lib/worker-portal-db";
+import { photoDraftReady, photoReviewReady, photoRobotReady, workerTableReady, workerWritesReady } from "@/lib/worker-portal-db";
 
 /**
  * What the worker app keeps beyond the factory's own books (owner, 2026-10-02):
@@ -55,6 +55,10 @@ export type WorkerPhoto = {
   amountEarned: number | null;
   /** The robot's guess (owner, 2026-10-03), null until it has looked. */
   robot: RobotGuess | null;
+  /** Written by the worker, with no photo (owner, 2026-10-13): their colour and size. */
+  written: boolean;
+  color: string;
+  size: string;
 };
 
 /** What the robot made of a photo. Only ever a suggestion for the owner's check. */
@@ -88,6 +92,7 @@ type PhotoRow = {
   worker_category: string; worker_type: string;
   verdict: string | null; reply: string | null; hidden: boolean | null; stage: string | null; work_date: string | Date | null;
   reject_pairs: number | null; history: unknown; amount_earned: string | number | null; robot?: unknown;
+  color?: string | null; size?: string | null;
 };
 type RequestRow = { id: string; worker_id: string; worker_name: string; kind: WorkerRequest["kind"]; amount: string | number | null; about_date: string | Date | null; message: string; status: WorkerRequest["status"]; reply: string; created_at: string | Date };
 
@@ -108,6 +113,9 @@ function photoFromRow(row: PhotoRow): WorkerPhoto {
     history: Array.isArray(row.history) ? (row.history as WorkerPhoto["history"]) : [],
     amountEarned: row.amount_earned === null || row.amount_earned === undefined ? null : Number(row.amount_earned),
     robot: row.robot && typeof row.robot === "object" ? (row.robot as RobotGuess) : null,
+    written: !row.image_url,
+    color: row.color ?? "",
+    size: row.size ?? "",
   };
 }
 function requestFromRow(row: RequestRow): WorkerRequest {
@@ -185,14 +193,48 @@ export async function addWorkerPhoto(input: { workerId: string; staffId: string;
   return id;
 }
 
+/** A day's written entries from one worker, at most — a day's work is a few lines. */
+export const WRITTEN_PER_DAY = 20;
+
+/** Today's written entries (no photo) from one worker. */
+export async function countWrittenToday(workerId: string) {
+  if (!(await workerWritesReady())) return 0;
+  const rows = await queryPostgres<{ n: number }>(
+    STORE,
+    `SELECT count(*)::int AS n FROM factory_worker_photos
+      WHERE worker_id = $1 AND image_url = ''
+        AND created_at >= (now() AT TIME ZONE 'Asia/Kathmandu')::date AT TIME ZONE 'Asia/Kathmandu'`,
+    [workerId],
+  );
+  return rows[0]?.n ?? 0;
+}
+
+/**
+ * The worker writes the day's work (owner, 2026-10-13, "क"): a row like a
+ * photo's, with no picture — the shoe, colour, size, pairs and day. It waits in
+ * the owner's Workers' photos list; the books change only on the owner's ✓,
+ * through the same booking a photo goes through, keyed to this row.
+ */
+export async function addWorkerWrittenWork(input: { workerId: string; staffId: string; itemId: string; color: string; size: string; pairs: number; workDate: string; note: string }) {
+  const id = `WPH-${randomUUID()}`;
+  await queryPostgres(
+    STORE,
+    `INSERT INTO factory_worker_photos (id, worker_id, staff_id, kind, pairs, note, image_url, item_id, color, size, work_date)
+     VALUES ($1, $2, $3, 'done', $4, $5, '', $6, $7, $8, $9)`,
+    [id, input.workerId, input.staffId, input.pairs, input.note.slice(0, 300), input.itemId, input.color.slice(0, 40), input.size.slice(0, 80), input.workDate],
+  );
+  return id;
+}
+
 /** The photo columns, each later one only once its migration has run (Settings → OK). */
 async function photoSelect() {
-  const [draft, review, robot] = await Promise.all([photoDraftReady(), photoReviewReady(), photoRobotReady()]);
+  const [draft, review, robot, written] = await Promise.all([photoDraftReady(), photoReviewReady(), photoRobotReady(), workerWritesReady()]);
   return `SELECT p.id, p.worker_id, w.name AS worker_name, w.category AS worker_category, w.worker_type,
             p.kind, p.pairs, p.note, p.image_url, p.status, p.created_at,
             ${draft ? "p.item_id, i.name AS item_name, p.work_id, d.amount_earned" : "NULL::text AS item_id, NULL::text AS item_name, NULL::text AS work_id, NULL::numeric AS amount_earned"},
             ${review ? "p.verdict, p.reply, p.hidden, p.stage, p.work_date, p.reject_pairs, p.history" : "''::text AS verdict, ''::text AS reply, false AS hidden, NULL::text AS stage, NULL::date AS work_date, NULL::int AS reject_pairs, '[]'::jsonb AS history"},
-            ${robot ? "p.robot" : "NULL::jsonb AS robot"}
+            ${robot ? "p.robot" : "NULL::jsonb AS robot"},
+            ${written ? "p.color, p.size" : "NULL::text AS color, NULL::text AS size"}
        FROM factory_worker_photos p
        JOIN factory_workers w ON w.id = p.worker_id
        ${draft ? "LEFT JOIN factory_items i ON i.id = p.item_id LEFT JOIN factory_daily_work d ON d.id = p.work_id" : ""}`;
@@ -421,7 +463,7 @@ export async function robotExamplePhotos(): Promise<Array<{ itemId: string; imag
     STORE,
     `SELECT DISTINCT ON (item_id) item_id, image_url
        FROM factory_worker_photos
-      WHERE status = 'added' AND item_id IS NOT NULL AND kind <> 'problem'
+      WHERE status = 'added' AND item_id IS NOT NULL AND kind <> 'problem' AND image_url <> ''
       ORDER BY item_id, created_at DESC`,
   )
     .then((rows) => rows.map((row) => ({ itemId: row.item_id, imageUrl: row.image_url })))

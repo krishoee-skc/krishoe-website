@@ -176,7 +176,7 @@ export default function PosSizeSheet({
           >
             {text(
               `Add a full set: ${setSizes[0]}–${setSizes[setSizes.length - 1]}, one pair each (${setSizes.length} pairs)`,
-              `पूरा सेट थप्ने: ${setSizes[0]}–${setSizes[setSizes.length - 1]}, हरेक साइज १ जोडा (${setSizes.length} जोडा)`,
+              `पूरा सेट थप्ने: ${setSizes[0]}–${setSizes[setSizes.length - 1]}, हरेक साइज १ जोडी (${setSizes.length} जोडी)`,
             )}
           </button>
         ) : null}

@@ -18,6 +18,7 @@ import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
 import { previewCouponAction, type CouponPreview } from "@/app/coupon-actions";
 import { trackCommerceEvent } from "@/lib/analytics-events";
+import { shopHours } from "@/lib/shop-hours";
 import {
   deliveryChargeFor,
   STORE_PICKUP,
@@ -401,10 +402,7 @@ function CheckoutForm({
                   after a journey is the kind of thing a customer tells people
                   about. */}
               <p className="mt-2 rounded-lg border border-brand-gold/40 bg-brand-mist px-3 py-2 text-xs font-semibold leading-5 text-brand-green-ink">
-                {text(
-                  "Store pickup: open 8 AM – 6 PM. Closed every Monday.",
-                  "पसलमै आएर लिने: बिहान ८ बजे – साँझ ६ बजे। हरेक सोमबार बन्द।",
-                )}
+                {text(`Store pickup: open ${shopHours.en}`, `पसलमै आएर लिने: ${shopHours.ne}`)}
               </p>
             </div>
           </div>

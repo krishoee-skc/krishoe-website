@@ -22,6 +22,12 @@ import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
 import type { Metadata } from "next";
 import { languagePair } from "@/lib/seo";
+import { getGatewayConfig } from "@/lib/payment-gateways";
+
+/** eSewa or Khalti takes real money — until then the shop is cash on delivery. */
+function onlinePaymentLive() {
+  return getGatewayConfig("esewa").liveReady || getGatewayConfig("khalti").liveReady;
+}
 
 // The home page names its Nepali pair at /ne, so a Nepali search is shown the
 // Nepali page (owner, 2026-10-01). Title and description stay the layout's.
@@ -206,19 +212,24 @@ export default async function Home() {
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13v10H3zM16 10h3l2 3v4h-5M6 19a2 2 0 1 0 4 0M15 19a2 2 0 1 0 4 0" /></svg>
-            <span className="text-xs font-bold text-brand-green-ink"><T en="Delivery across Nepal" ne="नेपालभर डेलिभरी" /></span>
+            <span className="text-sm font-bold text-brand-green-ink"><T en="Delivery across Nepal" ne="नेपालभर डेलिभरी" /></span>
           </div>
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 1 3 6.7M3 12v5m0-5h5" /></svg>
-            <span className="text-xs font-bold text-brand-green-ink"><T en="Easy Returns" ne="सजिलो फिर्ता" /></span>
+            <span className="text-sm font-bold text-brand-green-ink"><T en="Easy Returns" ne="सजिलो फिर्ता" /></span>
           </div>
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6l-8-3Z" /></svg>
-            <span className="text-xs font-bold text-brand-green-ink"><T en="Premium Quality" ne="उत्कृष्ट गुण" /></span>
+            <span className="text-sm font-bold text-brand-green-ink"><T en="Premium Quality" ne="उत्कृष्ट गुण" /></span>
           </div>
+          {/* What a customer can really pay with (owner, 2026-10-13): "Secure
+              Payment" promised online paying while only cash on delivery
+              worked. It says so again once eSewa or Khalti is live. */}
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-4 text-center shadow-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-6 w-6"><rect x="3" y="6" width="18" height="13" rx="2" /><path strokeLinecap="round" d="M3 10h18" /></svg>
-            <span className="text-xs font-bold text-brand-green-ink"><T en="Secure Payment" ne="सुरक्षित भुक्तानी" /></span>
+            <span className="text-sm font-bold text-brand-green-ink">
+              {onlinePaymentLive() ? <T en="Secure Payment" ne="सुरक्षित भुक्तानी" /> : <T en="Cash on delivery" ne="घरमै नगद तिर्ने" />}
+            </span>
           </div>
         </div>
       </section>

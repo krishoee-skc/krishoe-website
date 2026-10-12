@@ -1,6 +1,7 @@
 import { categoryNepali } from "@/lib/nepali-pages";
 import { photosOf } from "@/lib/product-media";
 import { productPath } from "@/lib/product-url";
+import { shopHours } from "@/lib/shop-hours";
 import type { Metadata } from "next";
 import {
   CATEGORY_WORDS,
@@ -39,7 +40,7 @@ export const businessContact = {
   addressLocality: process.env.NEXT_PUBLIC_BUSINESS_CITY ?? "Bharatpur",
   addressRegion: process.env.NEXT_PUBLIC_BUSINESS_REGION ?? "Chitwan",
   postalCode: process.env.NEXT_PUBLIC_BUSINESS_POSTAL ?? "44200",
-  openingHours: "Mo-Sa 10:00-19:00",
+  openingHours: shopHours.schema,
   /**
    * Where the shop is, as a point on the map.
    *

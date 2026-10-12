@@ -540,7 +540,7 @@ export default function PosBillForm({
         <button
           type="button"
           onClick={() => changePairs(line, line.quantity - 1)}
-          aria-label={text(`One pair less${size}`, `एक जोडा घटाउने${size}`)}
+          aria-label={text(`One pair less${size}`, `एक जोडी घटाउने${size}`)}
           className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
         >
           −
@@ -549,7 +549,7 @@ export default function PosBillForm({
         <button
           type="button"
           onClick={() => changePairs(line, line.quantity + 1)}
-          aria-label={text(`One pair more${size}`, `एक जोडा थप्ने${size}`)}
+          aria-label={text(`One pair more${size}`, `एक जोडी थप्ने${size}`)}
           className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
         >
           +
@@ -960,7 +960,7 @@ export default function PosBillForm({
                     ⏸ {text(`Held ${index + 1}`, `होल्ड ${index + 1}`)} ·{" "}
                     {text(
                       `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} pairs — open`,
-                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} जोडा — खोल्ने`,
+                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} जोडी — खोल्ने`,
                     )}
                   </button>
                 ))}
@@ -1137,7 +1137,7 @@ export default function PosBillForm({
                         <p className="col-span-2 text-xs font-bold text-brand-clay">
                           {text(
                             `Below cost (${money(cost ?? 0)} a pair) — the sale is still allowed.`,
-                            `लागत (${money(cost ?? 0)} प्रति जोडा) भन्दा तल — बेच्न भने मिल्छ।`,
+                            `लागत (${money(cost ?? 0)} प्रति जोडी) भन्दा तल — बेच्न भने मिल्छ।`,
                           )}
                         </p>
                       ) : null}
@@ -1202,7 +1202,7 @@ export default function PosBillForm({
               <div className="grid gap-1 text-sm tabular-nums">
                 <div className="flex justify-between text-brand-muted">
                   <span>
-                    {text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}
+                    {text(`${totals.pairs} pairs`, `${totals.pairs} जोडी`)}
                     {channel === "Wholesale" ? text(" · wholesale rate", " · थोक मूल्य") : ""}
                   </span>
                   <span>{money(totals.subtotal)}</span>
@@ -1743,7 +1743,7 @@ export default function PosBillForm({
               <span className={`mr-1 rounded-full px-2 font-black ${channel === "Wholesale" ? "bg-brand-gold-bright/30 text-brand-gold-deep" : "bg-brand-green-wash text-brand-green"}`}>
                 {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
               </span>
-              {text(`${totals.pairs} pairs`, `${totals.pairs} जोडा`)}
+              {text(`${totals.pairs} pairs`, `${totals.pairs} जोडी`)}
               {shortDesigns.length > 0 ? (
                 <span className="ml-1 font-black text-brand-gold-deep">⚠ {text(`${shortDesigns.length} to fix`, `${shortDesigns.length} मिलाउनु`)}</span>
               ) : null}
@@ -1840,7 +1840,7 @@ export default function PosBillForm({
             }
             setCart(next);
             setStartedAt((value) => value ?? Date.now());
-            setNote(text(`Added a set of ${sizes.length} pairs.`, `${sizes.length} जोडाको सेट थपियो।`));
+            setNote(text(`Added a set of ${sizes.length} pairs.`, `${sizes.length} जोडीको सेट थपियो।`));
             setPicking(null);
           }}
         />

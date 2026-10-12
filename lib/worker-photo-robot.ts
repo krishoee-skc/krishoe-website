@@ -40,7 +40,7 @@ export async function robotLookAtPhoto(photoId: string, options: { force?: boole
     if (!isAiConfigured()) return null;
     if (!(await photoRobotOn())) return null;
     const photo = await getWorkerPhoto(photoId);
-    if (!photo || photo.kind === "problem" || photo.status === "added") return null;
+    if (!photo || photo.written || photo.kind === "problem" || photo.status === "added") return null;
     if (photo.robot && !photo.robot.missing && !options.force) return photo.robot;
 
     const [loaded, history, examples, picture] = await Promise.all([

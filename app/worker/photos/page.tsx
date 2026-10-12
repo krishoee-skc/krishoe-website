@@ -24,7 +24,10 @@ export default async function WorkerPhotosPage() {
   const [ready, onLeave, mine, draft, items] = await Promise.all([
     workerTableReady("factory_worker_photos"),
     isWorkerOnLeave(detail.worker.id).catch(() => false),
-    listWorkerPhotos({ workerId: detail.worker.id, limit: 12 }).catch(() => []),
+    // Photos only — what a worker wrote without one is listed on its own page.
+    listWorkerPhotos({ workerId: detail.worker.id, limit: 24 })
+      .then((photos) => photos.filter((photo) => !photo.written).slice(0, 12))
+      .catch(() => []),
     photoDraftReady(),
     getFactoryItems()
       .then((loaded) => loaded.items.map((item) => ({ id: item.id, name: item.name })))

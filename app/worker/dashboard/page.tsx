@@ -83,11 +83,13 @@ export default async function WorkerDashboardPage() {
 
       <section className="mt-4 grid gap-3">
         {[
-          { href: "/worker/photos", icon: "📷", label: "कामको फोटो पठाउने", main: true },
+          // Writing the day's work comes first (owner, 2026-10-13, "क"); a photo still goes.
+          { href: "/worker/write", icon: "✍️", label: "आजको काम लेख्ने", main: true },
+          { href: "/worker/photos", icon: "📷", label: "कामको फोटो पठाउने" },
           { href: "/worker/production", icon: "🧾", label: "मेरो काम हेर्ने" },
           { href: "/worker/ask?about=hisab", icon: "⚖️", label: "हिसाब मिलेन? भन्ने" },
           { href: "/worker/ask?about=advance", icon: "💵", label: "पेस्की माग्ने" },
-          { href: "/worker/payslip", icon: "💰", label: "मेरो तलब (payslip)" },
+          { href: "/worker/payslip", icon: "💰", label: "मेरो तलब" },
         ].map((item) => (
           <Link
             key={item.href}

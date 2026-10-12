@@ -280,9 +280,9 @@ export default function PosProductPicker({
                       : "border-brand-green-line bg-brand-paper hover:border-brand-green"
                 }`}
               >
-                <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-brand-paper-deep">
+                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-brand-paper-deep">
                   {item.image && !hasNoPhoto(item.image) ? (
-                    <SafeImage src={item.image} alt="" fill sizes="40px" className="object-cover" />
+                    <SafeImage src={item.image} alt="" fill sizes="44px" className="object-cover" />
                   ) : (
                     <span className="grid h-full place-items-center text-lg text-brand-green-line" aria-hidden="true">
                       👟
@@ -290,8 +290,8 @@ export default function PosProductPicker({
                   )}
                 </span>
                 <span className="min-w-0 flex-1 leading-tight">
-                  <span className="block truncate text-sm font-black text-brand-green-ink">{item.design}</span>
-                  <span className="block truncate text-[11px] text-brand-muted">
+                  <span className="block truncate text-base font-black text-brand-green-ink">{item.design}</span>
+                  <span className="block truncate text-sm font-medium text-brand-muted">
                     {item.sku ? <span className="font-mono">{item.sku}</span> : null}
                     {index === 0 && query.trim() ? (
                       <span className="ms-1.5 hidden rounded bg-brand-green-ink/80 px-1 font-mono text-[10px] text-white md:inline">Enter</span>
@@ -299,10 +299,10 @@ export default function PosProductPicker({
                   </span>
                 </span>
                 <span className="shrink-0 text-right leading-tight">
-                  <span className={`block text-sm font-black tabular-nums ${noPrice ? "text-brand-clay" : "text-brand-green-ink"}`}>
+                  <span className={`block text-base font-black tabular-nums ${noPrice ? "text-brand-clay" : "text-brand-green-ink"}`}>
                     {rate > 0 ? money(rate) : text("Set price", "मूल्य लेख्ने")}
                   </span>
-                  <span className={`block text-[11px] tabular-nums ${low ? "font-black text-brand-clay" : "text-brand-muted"}`}>
+                  <span className={`block text-sm font-medium tabular-nums ${low ? "font-black text-brand-clay" : "text-brand-muted"}`}>
                     {soldOut
                       ? text("sold out", "सकियो")
                       : sizeLeft
@@ -311,12 +311,12 @@ export default function PosProductPicker({
                           : text(`size ${sizeQuery}: ${sizeLeft.left}`, `साइज ${sizeQuery}: ${sizeLeft.left}`)
                         : low
                           ? text(`only ${left}`, `${left} मात्र`)
-                          : text(`${left} pairs`, `${left} जोडा`)}
+                          : text(`${left} pairs`, `${left} जोडी`)}
                   </span>
                 </span>
                 <span
                   aria-hidden="true"
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-base font-black ${
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg text-xl font-black ${
                     inBill ? "bg-brand-green text-white" : "bg-brand-green-wash text-brand-green"
                   }`}
                 >

@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
 import { businessContact } from "@/lib/seo";
+import { shopHours } from "@/lib/shop-hours";
 
 export const metadata: Metadata = {
   title: "Contact KRISHOE | Premium Footwear Nepal",
@@ -36,7 +37,7 @@ export default function ContactPage() {
               ],
               ["Phone", businessContact.phoneDisplay],
               ["Email", businessContact.email],
-              ["Hours", "10:00 AM - 7:00 PM, Monday-Saturday"],
+              ["Hours", shopHours.en],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-black/10 bg-brand-paper p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">{label}</p>

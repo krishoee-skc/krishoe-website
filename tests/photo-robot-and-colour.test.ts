@@ -28,7 +28,8 @@ describe("a photo's colour and size reach the books", () => {
     expect(actions).toContain("      color,\n      size,\n      pairsCount: count,");
     const inbox = await read("app/admin/factory/photos/WorkerInbox.tsx");
 
-    expect(inbox).toContain("size: history[itemId]?.size || \"\",");
+    // What a worker wrote comes first (2026-10-13), then the shoe's last size.
+    expect(inbox).toContain("size: photo.size || history[itemId]?.size || \"\",");
     expect(inbox).toContain("!complete(draft)");
   });
 
