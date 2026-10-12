@@ -9,6 +9,7 @@ import { photoDraftReady, photoReviewReady, workerPortalDatabaseStatus } from "@
 import { getFactoryRateBook } from "@/lib/factory-board-data";
 import { getFactoryItems } from "@/lib/factory-board-data";
 import WorkerInbox from "./WorkerInbox";
+import { PageHead } from "@/components/admin/PageKit";
 
 export const metadata: Metadata = { title: "Workers' photos | KRISHOE Admin" };
 export const dynamic = "force-dynamic";
@@ -34,21 +35,25 @@ export default async function WorkerPhotosAdminPage() {
 
   return (
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-        <T en="Factory" ne="कारखाना" />
-      </p>
-      <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-        <T en="Workers' photos and requests" ne="कामदारका फोटो र कुरा" />
-      </h1>
-      <p className="mt-1 max-w-2xl text-sm leading-6 text-brand-muted">
-        <T
-          en="What workers send from their app. Proof only: the books change when you add the work or record a payment."
-          ne="कामदारले app बाट पठाएका। प्रमाण मात्र: काम थपेपछि वा भुक्तानी लेखेपछि मात्र हिसाब बदलिन्छ।"
-        />{" "}
-        <Link href="/admin/factory/workers" className="font-bold text-brand-green underline underline-offset-4">
-          <T en="← Workers" ne="← कामदार" />
-        </Link>
-      </p>
+      <PageHead
+        eyebrow={<T en="Factory" ne="कारखाना" />}
+        title={<T en="Workers' photos" ne="कामदारका फोटो" />}
+        actions={
+          <Link href="/admin/factory/workers" className="text-sm font-bold text-brand-green underline underline-offset-4">
+            <T en="← Workers" ne="← कामदार" />
+          </Link>
+        }
+      />
+      {/* Read once, then out of the way (owner, 2026-10-12). */}
+      <details className="mt-1 max-w-2xl text-sm text-brand-muted">
+        <summary className="cursor-pointer font-bold">ⓘ <T en="What is this page?" ne="यो पाना के हो?" /></summary>
+        <p className="mt-1 leading-6">
+          <T
+            en="What workers send from their app, and their questions and advances. Proof only: the books change when you add the work or record a payment."
+            ne="कामदारले app बाट पठाएका फोटो, प्रश्न र पेस्की। प्रमाण मात्र: काम थपेपछि वा भुक्तानी लेखेपछि मात्र हिसाब बदलिन्छ।"
+          />
+        </p>
+      </details>
 
       {status.pending.length > 0 ? (
         <p className="mt-4 rounded-2xl border border-brand-gold bg-brand-cream-soft px-4 py-3 text-sm font-bold text-brand-green-ink">
@@ -62,7 +67,7 @@ export default async function WorkerPhotosAdminPage() {
         </p>
       ) : null}
 
-      <div className="mt-6">
+      <div className="mt-4">
         <WorkerInbox photos={photos} requests={requests} canAnswer={canAnswer} items={items} draftsOn={draftsOn} reviewOn={reviewOn} rates={rates} history={history} robotOn={robotOn && isAiConfigured()} />
       </div>
     </section>

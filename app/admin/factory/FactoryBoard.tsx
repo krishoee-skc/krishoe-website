@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-import StatTile from "@/components/admin/StatTile";
+import { PageHead, PageTabs, StatStrip } from "@/components/admin/PageKit";
 import ShareBar from "@/components/admin/ShareBar";
 import { ENOUGH, judge } from "@/lib/enough-to-judge";
 import NowClock from "@/components/admin/NowClock";
@@ -52,6 +52,10 @@ export default function FactoryBoard({
     stats.completedEntries + stats.inProgressEntries + stats.reworkEntries;
   // Today's work stage by stage, for the line under "made". Never summed: the
   // same pairs pass every stage (owner, 2026-09-29).
+  // How much of today's work is complete, judged only once enough stands
+  // behind it — one entry in progress is not a failed day.
+  const completedTone =
+    judge(entriesToday, () => (stats.successRate >= 90 ? "good" : stats.successRate >= 70 ? "warn" : "danger")).verdict ?? "default";
   const workToday = stages
     .filter((row) => row.pairs > 0)
     .map((row) => `${row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage} ${row.pairs}`)
@@ -60,9 +64,7 @@ export default function FactoryBoard({
   return (
     <div className="flex min-h-dvh flex-col space-y-3 p-3 sm:p-5 lg:p-6">
       <div className="mb-1">
-        <h1 className="font-display text-xl font-black text-brand-green-ink sm:text-2xl">
-          {text("Factory today", "कारखाना आज")}
-        </h1>
+        <PageHead eyebrow={text("Factory · today", "कारखाना · आज")} title={text("Factory today", "कारखाना आज")} />
         {/* The clock, not only the date. Work is entered here against a
             particular hour, and the day is closed here — so the time the shop
             records by should be on the same screen as the wall clock it is
@@ -70,46 +72,30 @@ export default function FactoryBoard({
         <NowClock className="text-xs text-brand-muted sm:text-sm" />
       </div>
 
-      {/* Today's summary — the same tile the rest of the admin uses, so the
-          factory reads as one shop with the POS and purchase screens. */}
-      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-4">
-        {/* Made is what went into stock. "Total pairs" added every stage's
-            entries, so sixty pairs through Upper and Fibermen read 120. */}
-        <StatTile
-          label={text("Pairs into stock", "स्टकमा चढेको जोडी")}
-          value={stockPairs}
-          detail={workToday ? `${text("Work", "काम")}: ${workToday}` : text("Today", "आज")}
-        />
-        <StatTile
-          label={text("Piece wage earned", "ज्याला कमाएको")}
-          value={money(stats.totalAmount)}
-          detail={text("Today", "आज")}
-          tone="good"
-        />
-        <StatTile
-          label={text("Workers active", "काम गर्ने")}
-          value={stats.workersActive}
-          detail={text("Today", "आज")}
-        />
-        {/* A rate needs enough entries behind it to mean anything. One entry
-            still in progress is "0% success", and this tile painted that red —
-            a crisis announced from a single row. The figure is still shown;
-            only the verdict waits until it is earned. */}
-        <StatTile
-          label={text("Success rate", "सफल दर")}
-          value={`${stats.successRate}%`}
-          detail={
-            entriesToday >= ENOUGH
-              ? text("Completed", "पूरा भएको")
-              : text(`${entriesToday} entries so far`, `अहिलेसम्म ${entriesToday} entry`)
-          }
-          tone={
-            judge(entriesToday, () =>
-              stats.successRate >= 90 ? "good" : stats.successRate >= 70 ? "warn" : "danger",
-            ).verdict ?? "default"
-          }
-        />
-      </div>
+      {/* The day's main job, first (owner, 2026-10-12): it sat under eight
+          cards at the foot of the board. */}
+      <Link
+        href="/admin/factory/add-work"
+        className="flex min-h-14 items-center justify-center rounded-2xl bg-brand-green px-4 text-lg font-black text-white shadow-[0_8px_20px_rgba(11,77,59,0.18)] transition hover:bg-brand-green-ink"
+      >
+        ＋ {text("Add work", "काम टिप्ने")}
+      </Link>
+
+      {/* Today in three figures; the wage behind the eye, as on the dashboard. */}
+      <StatStrip
+        items={[
+          // Pairs into stock — what was made. "Total pairs" once added every
+          // stage, so sixty pairs through Upper and Fibermen read 120.
+          { en: "pairs into stock", ne: "स्टकमा चढेको जोडी", value: stockPairs },
+          { en: "workers today", ne: "आज काम गर्ने", value: stats.workersActive },
+          { en: "wage earned today", ne: "आज कमाएको ज्याला", value: stats.totalAmount, money: true },
+        ]}
+      />
+      {workToday ? (
+        <p className="-mt-1 text-xs font-bold text-brand-muted">
+          {text("Work", "काम")}: {workToday}
+        </p>
+      ) : null}
 
       {/* What workers sent, waiting to be checked — loud while it waits,
           a quiet green line once all is checked. */}
@@ -157,104 +143,117 @@ export default function FactoryBoard({
         />
       </div>
 
-      {/* Owed to the team — the "how much is still to pay" glance the counter
-          asked for, so wages are never paid twice or missed. */}
-      <Link
-        href="/admin/factory/salary"
-        className="hover-lift flex items-center justify-between rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] transition hover:border-brand-gold sm:p-4"
-      >
-        <div>
-          <div className="text-xs font-medium text-brand-muted">
-            {text("Owed to workers", "कामदारलाई तिर्न बाँकी")}
-          </div>
-          <div className="mt-1 text-xl font-black text-brand-green-ink sm:text-2xl">
-            {money(owed.totalOwed)}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-lg font-black text-brand-green-ink">{owed.workersOwed}</div>
-          <div className="text-xs font-semibold text-brand-gold-deep">
-            {text("workers to pay →", "जनालाई तिर्न →")}
-          </div>
-        </div>
+      {/* Rejects today, with how much of today's work is complete — the
+          "Success rate" tile said the same in a word the owner did not use
+          (owner, 2026-10-12). The figure always shows; its colour waits
+          until enough entries stand behind it (lib/enough-to-judge). */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-red-50 px-4 py-2.5 text-sm font-black text-red-800 dark:bg-red-950/30 dark:text-red-200">
+        <span>✖ {text("Rejects today", "आजको reject")}</span>
+        <span className="tabular-nums">
+          {text(`${stats.totalReject} pairs · ${stats.rejectRate}%`, `${stats.totalReject} जोडी · ${stats.rejectRate}%`)}
+        </span>
+        <span
+          className={`ml-auto text-xs font-bold ${
+            completedTone === "danger" ? "text-brand-clay" : completedTone === "good" ? "text-brand-green" : "text-brand-muted"
+          }`}
+        >
+          {text("Completed", "पूरा भएको")} <span className="tabular-nums">{`${stats.successRate}%`}</span>
+          {entriesToday < ENOUGH ? ` · ${text(`${entriesToday} entries so far`, `अहिलेसम्म ${entriesToday} entry`)}` : ""}
+        </span>
+      </div>
+
+      {/* Who did what, which shoes, and what is owed — one place, three tabs
+          (owner, 2026-10-12): they stood as three cards one under another. */}
+      <PageTabs
+        id="factory-today"
+        tabs={[
+          {
+            key: "workers",
+            en: "Workers",
+            ne: "कामदार",
+            content: (
+              <div className="flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
+                <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
+                  {text("Top workers", "अगाडि रहेका")}
+                </h2>
+                {/* Bars rather than a list, so who did the most is seen before it is
+                    read. The wage rides the right-hand end, since that is the figure
+                    the counter is actually looking for. */}
+                <div className="overflow-y-auto">
+                  <ShareBar
+                    rows={topWorkers.map((worker) => ({
+                      label: worker.name,
+                      value: worker.pairs,
+                      hint: money(worker.amount),
+                    }))}
+                    emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
+                  />
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: "products",
+            en: "Products",
+            ne: "सामान",
+            content: (
+              <div className="flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
+                <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
+                  {text("Products today", "आजका सामान")}
+                </h2>
+                {/* A list of numbers made every shoe look alike; as bars the biggest
+                    is obvious without reading. Longest first, name and count on every
+                    row, so it is never colour alone. */}
+                <div className="overflow-y-auto">
+                  <ShareBar
+                    rows={products.map((product) => ({
+                      label: product.name,
+                      value: product.pairs,
+                      // Each stage's count, side by side — the same pairs pass them all.
+                      hint: product.stages
+                        .map((row) => `${row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage} ${row.pairs.toLocaleString("en-IN")}`)
+                        .join(" · "),
+                    }))}
+                    emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
+                  />
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: "owed",
+            en: "Owed",
+            ne: "तिर्न बाँकी",
+            // Owed to the team — the "how much is still to pay" glance the
+            // counter asked for, so wages are never paid twice or missed.
+            content: (
+            <Link
+              href="/admin/factory/salary"
+              className="hover-lift flex items-center justify-between rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] transition hover:border-brand-gold sm:p-4"
+            >
+              <div>
+                <div className="text-xs font-medium text-brand-muted">
+                  {text("Owed to workers", "कामदारलाई तिर्न बाँकी")}
+                </div>
+                <div className="mt-1 text-xl font-black text-brand-green-ink sm:text-2xl">
+                  {money(owed.totalOwed)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-black text-brand-green-ink">{owed.workersOwed}</div>
+                <div className="text-xs font-semibold text-brand-gold-deep">
+                  {text("workers to pay →", "जनालाई तिर्न →")}
+                </div>
+              </div>
+            </Link>
+            ),
+          },
+        ]}
+      />
+
+      <Link href="/admin/factory/reports" className="w-fit text-sm font-black text-brand-green underline underline-offset-4">
+        {text("View reports →", "रिपोर्ट हेर्ने →")}
       </Link>
-
-      <div className="grid flex-1 grid-cols-1 gap-2 sm:gap-3 lg:grid-cols-2">
-        <div className="flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
-          <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
-            {text("Top workers", "अगाडि रहेका")}
-          </h2>
-          {/* Bars rather than a list, so who did the most is seen before it is
-              read. The wage rides the right-hand end, since that is the figure
-              the counter is actually looking for. */}
-          <div className="overflow-y-auto">
-            <ShareBar
-              rows={topWorkers.map((worker) => ({
-                label: worker.name,
-                value: worker.pairs,
-                hint: money(worker.amount),
-              }))}
-              emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
-          <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
-            {text("Products today", "आजका सामान")}
-          </h2>
-          {/* A list of numbers made every shoe look alike; as bars the biggest
-              is obvious without reading. Longest first, name and count on every
-              row, so it is never colour alone. */}
-          <div className="overflow-y-auto">
-            <ShareBar
-              rows={products.map((product) => ({
-                label: product.name,
-                value: product.pairs,
-                // Each stage's count, side by side — the same pairs pass them all.
-                hint: product.stages
-                  .map((row) => `${row.stage === "Other work" ? text("Other work", "अरू काम") : row.stage} ${row.pairs.toLocaleString("en-IN")}`)
-                  .join(" · "),
-              }))}
-              emptyLabel={text("No entries yet", "अहिलेसम्म केही छैन")}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Rejects today. It was called "Quality today (QC)" and led with "good
-          pairs" — every stage's work added up, when no QC entry has ever been
-          made. What it can honestly say is how much work was spoiled. */}
-      <div className="rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-4">
-        <h2 className="mb-2 text-sm font-bold text-brand-green-ink sm:text-base">
-          {text("Rejects today", "आजको reject")}
-        </h2>
-        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-          <div className="rounded bg-red-50 p-2 text-center sm:p-2.5">
-            <div className="text-lg font-bold text-red-600 sm:text-xl">{stats.totalReject}</div>
-            <div className="mt-0.5 text-xs text-red-700">{text("Reject pairs", "बिग्रेको जोडी")}</div>
-          </div>
-          <div className="rounded bg-amber-50 p-2 text-center sm:p-2.5">
-            <div className="text-lg font-bold text-amber-700 sm:text-xl">{stats.rejectRate}%</div>
-            <div className="mt-0.5 text-xs text-amber-700">{text("Reject rate of today's work", "आजको कामको बिग्रेको दर")}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-1 flex flex-col gap-1.5 sm:flex-row">
-        <Link
-          href="/admin/factory/add-work"
-          className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-brand-green px-3 py-2 text-center text-xs font-black text-white shadow-[0_8px_20px_rgba(11,77,59,0.18)] transition hover:-translate-y-0.5 hover:bg-brand-green-ink sm:text-sm"
-        >
-          {text("Add work entry", "काम टिप्ने")}
-        </Link>
-        <Link
-          href="/admin/factory/reports"
-          className="hover-lift flex min-h-11 flex-1 items-center justify-center rounded-xl border border-brand-green/25 bg-brand-paper px-3 py-2 text-center text-xs font-black text-brand-green transition hover:-translate-y-0.5 hover:border-brand-green hover:bg-brand-green-wash sm:text-sm"
-        >
-          {text("View reports", "रिपोर्ट हेर्ने")}
-        </Link>
-      </div>
     </div>
   );
 }

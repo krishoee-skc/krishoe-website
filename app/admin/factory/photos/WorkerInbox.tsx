@@ -256,15 +256,15 @@ export default function WorkerInbox({
       {/* 1 · The page at a glance. */}
       <section className="grid gap-3 rounded-3xl border border-brand-green-line bg-brand-paper p-4 shadow-[0_10px_30px_rgba(16,35,29,0.05)] sm:p-5">
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <div className={`rounded-2xl px-3 py-2.5 ${counts.check > 0 ? "bg-red-50 dark:bg-red-950/30" : "border border-brand-green-line"}`}>
-            <p className={`whitespace-nowrap text-xl font-black tabular-nums sm:text-3xl ${counts.check > 0 ? "text-brand-clay" : "text-brand-green"}`}>{allToCheck.length}</p>
+          <div className={`rounded-2xl px-3 py-2 ${counts.check > 0 ? "bg-red-50 dark:bg-red-950/30" : "border border-brand-green-line"}`}>
+            <p className={`whitespace-nowrap text-xl font-black tabular-nums sm:text-2xl ${counts.check > 0 ? "text-brand-clay" : "text-brand-green"}`}>{allToCheck.length}</p>
             <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("To check", "जाँच्न बाँकी")}</p>
           </div>
-          <div className="rounded-2xl border border-brand-green-line px-3 py-2.5">
+          <div className="rounded-2xl border border-brand-green-line px-3 py-2">
             <p className="whitespace-nowrap text-xl font-black tabular-nums text-brand-green-ink sm:text-3xl">{rs(waitingRs)}</p>
             <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("Waiting to book", "चढ्न बाँकी")}</p>
           </div>
-          <div className="rounded-2xl border border-brand-green-line px-3 py-2.5">
+          <div className="rounded-2xl border border-brand-green-line px-3 py-2">
             <p className="whitespace-nowrap text-xl font-black tabular-nums text-brand-green sm:text-3xl">{bookedThisWeek.length}</p>
             <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">
               {text("Booked this week", "यो हप्ता चढेको")}{bookedRs > 0 ? ` · ${rs(bookedRs)}` : ""}

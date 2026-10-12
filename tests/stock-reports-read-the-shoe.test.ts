@@ -78,6 +78,7 @@ describe("where the reports use it", () => {
     expect(card).toContain("type = 'Production In'");
     expect(card).not.toContain("production_qc_postings");
     const page = await readFile("app/admin/operations/page.tsx", "utf8");
-    expect(page).toContain('ne="कारखानाबाट"');
+    // One strip of figures since 2026-10-12.
+    expect(page).toContain('{ en: "into stock today", ne: "आज स्टकमा चढेको", value: productionControl.todayStockPairs },');
   });
 });

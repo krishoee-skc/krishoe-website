@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { PageHead, PageTabs, StatStrip } from "@/components/admin/PageKit";
 import T from "@/components/T";
 import { readSavedMessage } from "@/lib/saved-message";
-import { money } from "@/lib/format-money";
 import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
 import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQuickEntry";
@@ -77,7 +77,7 @@ export default async function AdminOperationsPage({
   }
 
   return (
-    <section className="p-6">
+    <section className="p-4 sm:p-6">
       {/* Saving used to be silent: the row was written and the page came back
           looking identical, so there was no way to tell it apart from a button
           that did nothing. */}
@@ -89,82 +89,57 @@ export default async function AdminOperationsPage({
           ✅ <T en={saved.en} ne={saved.ne} />
         </p>
       ) : null}
-      <div>
-        <p className="text-[13px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
-          <T en="Operations" ne="उत्पादन र स्टक" />
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
-          <T en="Production and stock" ne="उत्पादन र स्टक" />
-        </h1>
-        {/* The day in one sentence, before any tile (owner, 2026-09-29). */}
-        <p className="mt-3 max-w-4xl rounded-xl border border-brand-green-line bg-brand-green-wash px-4 py-3 text-lg font-bold leading-8 text-brand-green-ink">
-          <T
-            en={`Ready stock ${readyPairs} pairs · ${weekStockPairs} pairs into stock this week · ${money(productionControl.workerBalanceDue)} still owed to workers`}
-            ne={`तयार स्टक ${readyPairs} जोडी · यो हप्ता ${weekStockPairs} जोडी स्टकमा चढे · कामदारलाई ${money(productionControl.workerBalanceDue)} तिर्न बाँकी`}
-          />
-          {thinShoes.length > 0 ? (
-            <span className="text-brand-clay">
-              {" · "}
-              <T en={`⚠ almost no profit on ${thinShoes.join(", ")}`} ne={`⚠ ${thinShoes.join(", ")} मा नाफा झन्डै छैन`} />
-            </span>
-          ) : null}
-        </p>
-        <Link
-          href="/admin/operations/production-accounts"
-          className="mt-4 inline-flex min-h-12 items-center rounded-xl bg-brand-green px-5 text-base font-black text-white transition hover:bg-brand-green-ink"
-        >
-          Open production wages & kharcha
-        </Link>
-      </div>
+      <PageHead
+        eyebrow={<T en="Factory" ne="कारखाना" />}
+        title={<T en="Operations" ne="उत्पादन र स्टक" />}
+        actions={
+          <Link
+            href="/admin/operations/production-accounts"
+            className="inline-flex min-h-11 items-center rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-black text-brand-green"
+          >
+            <T en="Wages & kharcha →" ne="ज्याला र खर्च →" />
+          </Link>
+        }
+      />
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            // Was "active factory lots", a count of Work Orders; those were
-            // taken out, so this shows the week that is actually being paid.
-            id: "week",
-            label: <T en="Into stock this week" ne="यो हप्ता स्टकमा चढेको" />,
-            value: <T en={`${weekStockPairs} pairs`} ne={`${weekStockPairs} जोडी`} />,
-            detail: (
-              <T
-                en={`${weekStages ? `Work: ${weekStages} · ` : ""}${money(weekEarned)} wage`}
-                ne={`${weekStages ? `काम: ${weekStages} · ` : ""}ज्याला ${money(weekEarned)}`}
-              />
-            ),
-          },
-          {
-            id: "output",
-            // Every stage's entries together — one pair through two stages
-            // counts twice here. What was made is the "Into stock today" card.
-            label: <T en="Work today, by stage" ne="आजको काम, चरण अनुसार" />,
-            value: todayStages ? todayStages : <T en="None yet" ne="अहिलेसम्म छैन" />,
-            detail: <T en={`${productionControl.todayRejectedPairs} rejected`} ne={`${productionControl.todayRejectedPairs} बिग्रेको`} />,
-          },
-          {
-            id: "stock",
-            label: <T en="Into stock today" ne="आज स्टकमा चढेको" />,
-            value: <T en={`${productionControl.todayStockPairs} pairs`} ne={`${productionControl.todayStockPairs} जोडी`} />,
-            detail: <T en="From the factory" ne="कारखानाबाट" />,
-          },
-          {
-            id: "wages",
-            label: <T en="Worker balance due" ne="कामदारलाई तिर्न बाँकी" />,
-            value: money(productionControl.workerBalanceDue),
-            detail: <T en="All workers together" ne="सबै कामदारको जम्मा" />,
-          },
-        ].map(({ id, label, value, detail }) => (
-          <div key={id} className="rounded-xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
-            <p className="text-sm font-black uppercase tracking-wider text-brand-muted">{label}</p>
-            <p className="mt-2 text-xl font-black text-brand-green-ink">{value}</p>
-            <p className="mt-2 text-sm font-bold text-brand-muted">{detail}</p>
-          </div>
-        ))}
+      {/* The week in three figures (owner, 2026-10-12); what is owed to the
+          workers behind the eye, as on the dashboard. */}
+      <div className="mt-4">
+        <StatStrip
+          items={[
+            { en: "into stock this week", ne: "यो हप्ता स्टकमा चढेको", value: weekStockPairs },
+            { en: "into stock today", ne: "आज स्टकमा चढेको", value: productionControl.todayStockPairs },
+            { en: "wage this week", ne: "यो हप्ताको ज्याला", value: weekEarned, money: true },
+            { en: "still owed to workers", ne: "कामदारलाई तिर्न बाँकी", value: productionControl.workerBalanceDue, money: true },
+          ]}
+        />
       </div>
+      <p className="mt-2 text-sm font-bold text-brand-muted">
+        <T
+          en={`Ready stock ${readyPairs} pairs${weekStages ? ` · this week: ${weekStages}` : ""}${todayStages ? ` · today: ${todayStages}` : ""} · ${productionControl.todayRejectedPairs} rejected today`}
+          ne={`तयार स्टक ${readyPairs} जोडी${weekStages ? ` · यो हप्ता: ${weekStages}` : ""}${todayStages ? ` · आज: ${todayStages}` : ""} · आज ${productionControl.todayRejectedPairs} बिग्रेको`}
+        />
+        {thinShoes.length > 0 ? (
+          <span className="text-brand-clay">
+            {" · "}
+            <T en={`⚠ almost no profit on ${thinShoes.join(", ")}`} ne={`⚠ ${thinShoes.join(", ")} मा नाफा झन्डै छैन`} />
+          </span>
+        ) : null}
+      </p>
 
-      <ProfitPerPair rows={profitRows} />
-      <OperationsOverview snapshot={snapshot} costing={costing} />
-      <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} />
-      <OperationsRecords snapshot={snapshot} costing={costing} />
+      {/* One part at a time (owner, 2026-10-12): the forms, the flow figures,
+          profit per pair and the records stood one under another. */}
+      <div className="mt-5">
+        <PageTabs
+          id="operations"
+          tabs={[
+            { key: "enter", en: "➕ Enter", ne: "➕ टिप्ने", content: <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} /> },
+            { key: "flow", en: "📈 Flow", ne: "📈 चलखेल", content: <OperationsOverview snapshot={snapshot} costing={costing} /> },
+            { key: "profit", en: "💹 Profit", ne: "💹 नाफा", content: <ProfitPerPair rows={profitRows} /> },
+            { key: "records", en: "📒 Records", ne: "📒 रेकर्ड", content: <OperationsRecords snapshot={snapshot} costing={costing} /> },
+          ]}
+        />
+      </div>
     </section>
   );
 }

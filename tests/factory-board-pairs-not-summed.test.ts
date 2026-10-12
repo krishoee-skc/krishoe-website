@@ -38,8 +38,8 @@ describe("the factory board never adds the stages up", () => {
 
   it("leads with pairs into stock, and calls the reject card what it is", async () => {
     const board = await read("app/admin/factory/FactoryBoard.tsx");
-    expect(board).toContain('label={text("Pairs into stock", "स्टकमा चढेको जोडी")}');
-    expect(board).toContain("value={stockPairs}");
+    // Since 2026-10-12 the first of the strip of three (PageKit).
+    expect(board).toContain('{ en: "pairs into stock", ne: "स्टकमा चढेको जोडी", value: stockPairs },');
     expect(board).not.toContain("value={stats.totalPairs}");
     expect(board).not.toContain("{stats.goodPairs}");
     expect(board).not.toContain("आजको गुणस्तर (QC)");

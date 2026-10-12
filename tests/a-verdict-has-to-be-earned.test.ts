@@ -96,7 +96,8 @@ describe("the figure itself is never hidden", () => {
 
     // Hiding the rate would be its own kind of lying to the owner. The value
     // stays; what goes is the confident colour on top of it.
-    expect(board).toContain("value={`${stats.successRate}%`}");
+    // Since 2026-10-12 the rate sits on the rejects line, figure always shown.
+    expect(board).toContain("{`${stats.successRate}%`}");
     expect(board).toContain("entries so far");
   });
 });

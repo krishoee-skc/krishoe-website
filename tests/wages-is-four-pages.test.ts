@@ -40,7 +40,8 @@ describe("the four pages", () => {
     // and was what the owner saw beside a month holding 240 pairs.
     expect(week).toContain("saturdayToFridayPeriod");
     expect(week).toContain("weekEarned");
-    expect(week).toContain("This week&rsquo;s wage");
+    // In both languages since 2026-10-12.
+    expect(week).toContain("en={`This week's wage · ${weeklyPeriod.start} to ${weeklyPeriod.end}`}");
   });
 
   it("still shows today, in one line rather than four cards", async () => {

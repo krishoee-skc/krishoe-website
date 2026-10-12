@@ -43,116 +43,133 @@ export default function OperationsQuickEntry({
     .sort((left, right) => left.design.localeCompare(right.design));
 
   return (
-    <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+    <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
-        title="Quick entry"
+        title={<T en="What are you entering?" ne="के टिप्दै हुनुहुन्छ?" />}
         // Left over from the local-json era. The live shop runs on Postgres, so
         // naming a file on disk told the owner their entries went somewhere
         // they could not see and might lose.
-        detail="Factory, vehicle, and ledger entries. Saved to the KRISHOE database — a green message confirms each one, and it appears in the lists below."
+        detail={
+          <T
+            en="Press a line to open its form. Each entry is saved to the KRISHOE database — a green message confirms it, and it appears under Records."
+            ne="लाइन थिच्दा त्यसको form खुल्छ। हरेक entry KRISHOE database मा राखिन्छ — हरियो सन्देशले पक्का गर्छ, र Records मा देखिन्छ।"
+          />
+        }
       />
       <datalist id="stock-design-options">
         {stockDesignOptions.map(({ design, pairs }) => (
           <option key={design} value={design} label={pairs > 0 ? `${pairs} in stock` : "out of stock"} />
         ))}
       </datalist>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <EnterWalkForm action={createStockMovementAction} className="grid gap-3 rounded-lg border-2 border-brand-green/30 bg-brand-paper p-4">
-          <h3 className="font-black text-brand-green-ink">Stock movement</h3>
-          {/* This is now the only way pairs enter the count — the product form
-              no longer takes a number — so the three ways in are spelled out
-              rather than left to be guessed from the dropdown. */}
-          <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
-            <strong className="text-brand-green-ink">
-              <T en="One place to bring stock in" ne="स्टक भित्र्याउने एउटै ठाउँ" />
-            </strong>:
-            <br />
-            <strong>Production In</strong>{" "}
-            <T en="— made in your own factory" ne="— आफ्नै कारखानाले बनाएको" />
-            <br />
-            <strong>Purchase In</strong> <T en="— bought in" ne="— किनेर ल्याएको" />
-            <br />
-            <strong>Adjustment</strong>{" "}
-            <T en="— already existing / fixing the count" ne="— पहिलेदेखि भएको / गन्ती मिलाउने" />
-            <br />
-            <strong>Damage Out</strong>{" "}
-            <T
-              en="— write off a damaged or lost pair (not a sale)"
-              ne="— बिग्रेको / हराएको जुत्ता स्टकबाट हटाउने (बिक्री होइन)"
-            />
-          </p>
-          <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
-          <div className="grid grid-cols-2 gap-2">
-            <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
-              <option>Factory</option>
-              <option>Wholesale</option>
-              <option>Retail</option>
-              <option>Online</option>
-            </select>
-            <select aria-label="Movement type" name="type" data-summary="text" className={inputClass} defaultValue="Production In">
-              <option>Production In</option>
-              <option>Purchase In</option>
-              <option>Dispatch Out</option>
-              <option>Return In</option>
-              <option>Sale Out</option>
-              <option>Market Sale</option>
-              <option>Adjustment</option>
-              <option>Damage Out</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input aria-label="Pairs" name="pairs" data-summary="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
-            <input aria-label="Size (e.g. 36)" name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
-          </div>
-          <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
-            <T
-              en="Size: type one size like 36 to file the pairs under that size. Leave it blank for a mixed pile."
-              ne="Size: एउटै साइज (जस्तै 36) टाइप गर्नुहोस् — जोडी त्यही साइजमा जान्छ। खाली छोडे मिश्रित (Mixed) पिलोमा बस्छ।"
-            />
-          </p>
-          <textarea aria-label="Bill, vehicle, return, or adjustment note" name="note" className={textareaClass} placeholder="Bill, vehicle, return, or adjustment note" />
-          <SubmitActionButton label="Record movement" />
-        </EnterWalkForm>
+      <div className="grid gap-2">
+        <details className="rounded-lg border-2 border-brand-green/30 bg-brand-paper">
+          <summary className="flex min-h-12 cursor-pointer items-center px-4 text-base font-black text-brand-green-ink">
+            <T en="Stock movement" ne="स्टकको चलखेल" />
+          </summary>
+          <EnterWalkForm action={createStockMovementAction} className="grid gap-3 rounded-lg border-2 border-brand-green/30 bg-brand-paper p-4">
+            {/* This is now the only way pairs enter the count — the product form
+                no longer takes a number — so the three ways in are spelled out
+                rather than left to be guessed from the dropdown. */}
+            <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
+              <strong className="text-brand-green-ink">
+                <T en="One place to bring stock in" ne="स्टक भित्र्याउने एउटै ठाउँ" />
+              </strong>:
+              <br />
+              <strong>Production In</strong>{" "}
+              <T en="— made in your own factory" ne="— आफ्नै कारखानाले बनाएको" />
+              <br />
+              <strong>Purchase In</strong> <T en="— bought in" ne="— किनेर ल्याएको" />
+              <br />
+              <strong>Adjustment</strong>{" "}
+              <T en="— already existing / fixing the count" ne="— पहिलेदेखि भएको / गन्ती मिलाउने" />
+              <br />
+              <strong>Damage Out</strong>{" "}
+              <T
+                en="— write off a damaged or lost pair (not a sale)"
+                ne="— बिग्रेको / हराएको जुत्ता स्टकबाट हटाउने (बिक्री होइन)"
+              />
+            </p>
+            <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+            <div className="grid grid-cols-2 gap-2">
+              <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
+                <option>Factory</option>
+                <option>Wholesale</option>
+                <option>Retail</option>
+                <option>Online</option>
+              </select>
+              <select aria-label="Movement type" name="type" data-summary="text" className={inputClass} defaultValue="Production In">
+                <option>Production In</option>
+                <option>Purchase In</option>
+                <option>Dispatch Out</option>
+                <option>Return In</option>
+                <option>Sale Out</option>
+                <option>Market Sale</option>
+                <option>Adjustment</option>
+                <option>Damage Out</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input aria-label="Pairs" name="pairs" data-summary="pairs" type="number" min="0" className={inputClass} placeholder="Pairs" />
+              <input aria-label="Size (e.g. 36)" name="sizeRun" className={inputClass} placeholder="Size (e.g. 36)" />
+            </div>
+            <p className="rounded-lg bg-brand-mist px-3 py-2 text-sm leading-5 text-brand-muted">
+              <T
+                en="Size: type one size like 36 to file the pairs under that size. Leave it blank for a mixed pile."
+                ne="Size: एउटै साइज (जस्तै 36) टाइप गर्नुहोस् — जोडी त्यही साइजमा जान्छ। खाली छोडे मिश्रित (Mixed) पिलोमा बस्छ।"
+              />
+            </p>
+            <textarea aria-label="Bill, vehicle, return, or adjustment note" name="note" className={textareaClass} placeholder="Bill, vehicle, return, or adjustment note" />
+            <SubmitActionButton label="Record movement" />
+          </EnterWalkForm>
+        </details>
 
-        <EnterWalkForm action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-          <h3 className="font-black text-brand-green-ink">Finished stock</h3>
-          <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
-          <div className="grid grid-cols-2 gap-2">
-            <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
-              <option>Factory</option>
-              <option>Wholesale</option>
-              <option>Retail</option>
-              <option>Online</option>
-            </select>
-            <input aria-label="Size run" name="sizeRun" className={inputClass} placeholder="Size run" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <input aria-label="Stock" name="stockPairs" type="number" min="0" className={inputClass} placeholder="Stock" />
-            <input aria-label="Sold" name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
-            <input aria-label="Return" name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
-          </div>
-          <SubmitActionButton label="Add stock" />
-        </EnterWalkForm>
+        <details className="rounded-lg border-2 border-brand-green/30 bg-brand-paper">
+          <summary className="flex min-h-12 cursor-pointer items-center px-4 text-base font-black text-brand-green-ink">
+            <T en="Finished stock" ne="तयार माल" />
+          </summary>
+          <EnterWalkForm action={createFinishedStockAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+            <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+            <div className="grid grid-cols-2 gap-2">
+              <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
+                <option>Factory</option>
+                <option>Wholesale</option>
+                <option>Retail</option>
+                <option>Online</option>
+              </select>
+              <input aria-label="Size run" name="sizeRun" className={inputClass} placeholder="Size run" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <input aria-label="Stock" name="stockPairs" type="number" min="0" className={inputClass} placeholder="Stock" />
+              <input aria-label="Sold" name="soldPairs" type="number" min="0" className={inputClass} placeholder="Sold" />
+              <input aria-label="Return" name="returnedPairs" type="number" min="0" className={inputClass} placeholder="Return" />
+            </div>
+            <SubmitActionButton label="Add stock" />
+          </EnterWalkForm>
+        </details>
 
-        <EnterWalkForm action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-          <h3 className="font-black text-brand-green-ink">Production batch</h3>
-          <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
-          <div className="grid grid-cols-2 gap-2">
-            <input aria-label="Planned" name="plannedPairs" type="number" min="0" className={inputClass} placeholder="Planned" />
-            <input aria-label="Finished" name="finishedPairs" type="number" min="0" className={inputClass} placeholder="Finished" />
-            <input aria-label="WIP" name="inProgressPairs" type="number" min="0" className={inputClass} placeholder="WIP" />
-            <input aria-label="Reject" name="rejectedPairs" type="number" min="0" className={inputClass} placeholder="Reject" />
-          </div>
-          <textarea aria-label="Raw materials, comma-separated" name="rawMaterialUsed" className={textareaClass} placeholder="Raw materials, comma-separated" />
-          <select aria-label="Status" name="status" className={inputClass} defaultValue="Planning">
-            <option>Planning</option>
-            <option>Cutting</option>
-            <option>Making</option>
-            <option>QC</option>
-            <option>Packed</option>
-          </select>
-          <SubmitActionButton label="Add batch" />
-        </EnterWalkForm>
+        <details className="rounded-lg border-2 border-brand-green/30 bg-brand-paper">
+          <summary className="flex min-h-12 cursor-pointer items-center px-4 text-base font-black text-brand-green-ink">
+            <T en="Production batch" ne="उत्पादन lot" />
+          </summary>
+          <EnterWalkForm action={createProductionBatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+            <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+            <div className="grid grid-cols-2 gap-2">
+              <input aria-label="Planned" name="plannedPairs" type="number" min="0" className={inputClass} placeholder="Planned" />
+              <input aria-label="Finished" name="finishedPairs" type="number" min="0" className={inputClass} placeholder="Finished" />
+              <input aria-label="WIP" name="inProgressPairs" type="number" min="0" className={inputClass} placeholder="WIP" />
+              <input aria-label="Reject" name="rejectedPairs" type="number" min="0" className={inputClass} placeholder="Reject" />
+            </div>
+            <textarea aria-label="Raw materials, comma-separated" name="rawMaterialUsed" className={textareaClass} placeholder="Raw materials, comma-separated" />
+            <select aria-label="Status" name="status" className={inputClass} defaultValue="Planning">
+              <option>Planning</option>
+              <option>Cutting</option>
+              <option>Making</option>
+              <option>QC</option>
+              <option>Packed</option>
+            </select>
+            <SubmitActionButton label="Add batch" />
+          </EnterWalkForm>
+        </details>
       </div>
 
       {/* Seven more forms sit behind this. They exist for parts of the business
@@ -173,7 +190,9 @@ export default function OperationsQuickEntry({
         </p>
         <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <EnterWalkForm action={createRawMaterialAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Raw material</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Raw material" ne="कच्चा पदार्थ" />
+            </h3>
             <input aria-label="Material name" name="name" data-summary="text" required className={inputClass} placeholder="Material name" />
             <select aria-label="Unit" name="unit" className={inputClass} defaultValue="kg">
               <option value="kg">kg</option>
@@ -192,7 +211,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createMaterialConsumptionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Material consumption</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Material consumption" ne="कच्चा माल खपत" />
+            </h3>
             <input type="hidden" name="sourceSubmissionKey" value={`ops-use:${crypto.randomUUID()}`} />
             <select aria-label="Batch" name="batchId" required className={inputClass} defaultValue="">
               <option value="" disabled>
@@ -223,7 +244,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createWorkerTaskAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Worker task</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Worker task" ne="कामदारको काम" />
+            </h3>
             {/* Pick a registered worker from the list, or type one — the same
                 ease the counter has when choosing a design. */}
             <input aria-label="Worker name — type or pick"
@@ -276,7 +299,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Vehicle dispatch</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Vehicle dispatch" ne="गाडी पठाउने" />
+            </h3>
             <input aria-label="Vehicle number" name="vehicleNumber" required className={inputClass} placeholder="Vehicle number" />
             <input aria-label="Driver name" name="driverName" required className={inputClass} placeholder="Driver name" />
             <input aria-label="Market route" name="marketRoute" className={inputClass} placeholder="Market route" />
@@ -297,7 +322,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createVehicleDispatchItemAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Dispatch item</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Dispatch item" ne="गाडीमा पठाएको सामान" />
+            </h3>
             <select aria-label="Dispatch" name="dispatchId" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select vehicle trip
@@ -332,7 +359,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Customer ledger</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Customer ledger" ne="ग्राहक खाता" />
+            </h3>
             <input aria-label="Customer/shop name" name="customerName" data-summary="text" required className={inputClass} placeholder="Customer/shop name" />
             <input aria-label="Phone" name="phone" className={inputClass} placeholder="Phone" />
             <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Wholesale">
@@ -351,7 +380,9 @@ export default function OperationsQuickEntry({
           </EnterWalkForm>
 
           <EnterWalkForm action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
-            <h3 className="font-black text-brand-green-ink">Ledger transaction</h3>
+            <h3 className="font-black text-brand-green-ink">
+              <T en="Ledger transaction" ne="खाताको कारोबार" />
+            </h3>
             <select aria-label="Account" name="ledgerId" data-summary="text" required className={inputClass} defaultValue="">
               <option value="" disabled>
                 Select customer

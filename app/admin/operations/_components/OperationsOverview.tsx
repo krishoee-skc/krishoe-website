@@ -11,7 +11,7 @@ function ReportLine({
   value,
   tone = "default",
 }: {
-  label: string;
+  label: React.ReactNode;
   value: string | number;
   tone?: "default" | "good" | "warn";
 }) {
@@ -131,9 +131,9 @@ export default function OperationsOverview({
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {batchesUsed ? (
           <>
-            <StatCard label="Planned production" value={snapshot.summary.plannedPairs} detail="pairs" />
-            <StatCard label="Finished goods" value={snapshot.summary.finishedPairs} detail="ready pairs" />
-            <StatCard label="Work in progress" value={snapshot.summary.inProgressPairs} detail="factory floor" />
+            <StatCard label={<T en="Planned production" ne="योजना गरिएको उत्पादन" />} value={snapshot.summary.plannedPairs} detail={<T en="pairs" ne="जोडी" />} />
+            <StatCard label={<T en="Finished goods" ne="तयार माल" />} value={snapshot.summary.finishedPairs} detail={<T en="ready pairs" ne="तयार जोडी" />} />
+            <StatCard label={<T en="Work in progress" ne="बन्दै गरेको" />} value={snapshot.summary.inProgressPairs} detail={<T en="factory floor" ne="कारखानामा" />} />
           </>
         ) : (
           <StatCard
@@ -144,8 +144,8 @@ export default function OperationsOverview({
         )}
         {rawUsed ? (
           <>
-            <StatCard label="Raw stock value" value={money(costing.summary.rawMaterialStockValue)} detail={`${costing.summary.unpricedStockMaterialCount} unpriced items`} />
-            <StatCard label="Low stock need" value={money(costing.summary.lowStockMaterialValue)} detail="estimated reorder value" />
+            <StatCard label={<T en="Raw stock value" ne="कच्चा मालको मूल्य" />} value={money(costing.summary.rawMaterialStockValue)} detail={`${costing.summary.unpricedStockMaterialCount} unpriced items`} />
+            <StatCard label={<T en="Low stock need" ne="कम स्टक" />} value={money(costing.summary.lowStockMaterialValue)} detail={<T en="estimated reorder value" ne="फेरि किन्ने अनुमानित मूल्य" />} />
           </>
         ) : null}
         <StatCard
@@ -176,10 +176,10 @@ export default function OperationsOverview({
           }
         />
         {costing.summary.catalogStockMismatchCount > 0 ? (
-          <StatCard label="Catalog mismatch" value={costing.summary.catalogStockMismatchCount} detail={`${costing.summary.catalogStockDeltaPairs} pair delta`} />
+          <StatCard label={<T en="Catalog mismatch" ne="वेबसाइटसँग नमिलेको" />} value={costing.summary.catalogStockMismatchCount} detail={`${costing.summary.catalogStockDeltaPairs} pair delta`} />
         ) : null}
         {ledgersUsed ? (
-          <StatCard label="Receivable" value={money(snapshot.summary.receivable)} detail="customer ledger" />
+          <StatCard label={<T en="Receivable" ne="उठाउन बाँकी" />} value={money(snapshot.summary.receivable)} detail={<T en="customer ledger" ne="ग्राहक खाता" />} />
         ) : null}
       </div>
 
@@ -187,8 +187,8 @@ export default function OperationsOverview({
         {batchPanelUsed ? (
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <SectionTitle
-            title="Production control"
-            detail="Batch output, wastage, raw material link, and worker progress."
+            title={<T en="Production control" ne="उत्पादनको नियन्त्रण" />}
+            detail={<T en="Batch output, wastage, raw material link, and worker progress." ne="lot को उत्पादन, खेर गएको, कच्चा माल र कामदारको प्रगति।" />}
           />
           <div className="grid gap-3">
             {reports.productionInsights.slice(0, 4).map((batch) => (
@@ -230,15 +230,15 @@ export default function OperationsOverview({
         ) : null}
 
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <SectionTitle title="Stock flow" detail="Movement totals and channel stock signal." />
+          <SectionTitle title={<T en="Stock flow" ne="स्टकको चलखेल" />} detail={<T en="Movement totals and channel stock signal." ne="चलखेलको जम्मा र माध्यम अनुसार स्टकको संकेत।" />} />
           <dl>
-            <ReportLine label="Production in" value={reports.stockMovementTotals["Production In"]} tone="good" />
-            <ReportLine label="Purchase in" value={reports.stockMovementTotals["Purchase In"]} tone="good" />
-            <ReportLine label="Dispatch out" value={reports.stockMovementTotals["Dispatch Out"]} />
-            <ReportLine label="Sale out" value={reports.stockMovementTotals["Sale Out"]} />
-            <ReportLine label="Market sale" value={reports.stockMovementTotals["Market Sale"]} />
-            <ReportLine label="Return in" value={reports.stockMovementTotals["Return In"]} tone="warn" />
-            <ReportLine label="Adjustment" value={reports.stockMovementTotals.Adjustment} />
+            <ReportLine label={<T en="Production in" ne="उत्पादन चढेको" />} value={reports.stockMovementTotals["Production In"]} tone="good" />
+            <ReportLine label={<T en="Purchase in" ne="खरिद आएको" />} value={reports.stockMovementTotals["Purchase In"]} tone="good" />
+            <ReportLine label={<T en="Dispatch out" ne="पठाएको" />} value={reports.stockMovementTotals["Dispatch Out"]} />
+            <ReportLine label={<T en="Sale out" ne="बिक्री" />} value={reports.stockMovementTotals["Sale Out"]} />
+            <ReportLine label={<T en="Market sale" ne="बजार बिक्री" />} value={reports.stockMovementTotals["Market Sale"]} />
+            <ReportLine label={<T en="Return in" ne="फिर्ता आएको" />} value={reports.stockMovementTotals["Return In"]} tone="warn" />
+            <ReportLine label={<T en="Adjustment" ne="मिलान" />} value={reports.stockMovementTotals.Adjustment} />
           </dl>
           <div className="mt-4 grid gap-2 text-sm font-semibold text-brand-muted">
             {(["Factory", "Wholesale", "Retail", "Online"] as const).map((channel) => (
@@ -437,15 +437,15 @@ export default function OperationsOverview({
 
         {ledgersUsed ? (
         <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <SectionTitle title="Ledger health" detail="Receivable aging, collection, and credit movement." />
+          <SectionTitle title={<T en="Ledger health" ne="खाताको अवस्था" />} detail={<T en="Receivable aging, collection, and credit movement." ne="उठाउन बाँकीको उमेर, उठेको र उधारोको चलखेल।" />} />
           <dl>
-            <ReportLine label="0-30 days" value={money(reports.ledgerAging.due0To30)} />
-            <ReportLine label="31-60 days" value={money(reports.ledgerAging.due31To60)} tone="warn" />
-            <ReportLine label="60+ days" value={money(reports.ledgerAging.dueOver60)} tone="warn" />
-            <ReportLine label="Urgent follow-up" value={money(reports.ledgerCollectionSummary.urgentDue)} tone="warn" />
-            <ReportLine label="This week due" value={money(reports.ledgerCollectionSummary.dueThisWeek)} />
-            <ReportLine label="Txn collection" value={money(reports.collectionFromLedgerTransactions)} tone="good" />
-            <ReportLine label="Net credit" value={money(reports.netLedgerCredit)} />
+            <ReportLine label={<T en="0-30 days" ne="०–३० दिन" />} value={money(reports.ledgerAging.due0To30)} />
+            <ReportLine label={<T en="31-60 days" ne="३१–६० दिन" />} value={money(reports.ledgerAging.due31To60)} tone="warn" />
+            <ReportLine label={<T en="60+ days" ne="६०+ दिन" />} value={money(reports.ledgerAging.dueOver60)} tone="warn" />
+            <ReportLine label={<T en="Urgent follow-up" ne="तुरुन्त फलो-अप" />} value={money(reports.ledgerCollectionSummary.urgentDue)} tone="warn" />
+            <ReportLine label={<T en="This week due" ne="यो हप्ता उठाउनुपर्ने" />} value={money(reports.ledgerCollectionSummary.dueThisWeek)} />
+            <ReportLine label={<T en="Txn collection" ne="कारोबारबाट उठेको" />} value={money(reports.collectionFromLedgerTransactions)} tone="good" />
+            <ReportLine label={<T en="Net credit" ne="खुद उधारो" />} value={money(reports.netLedgerCredit)} />
           </dl>
           <div className="mt-4 grid gap-2 border-t border-brand-green-line pt-3">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-clay">

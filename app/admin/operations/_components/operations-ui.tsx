@@ -41,7 +41,7 @@ export function StatCard({
   );
 }
 
-export function SectionTitle({ title, detail }: { title: string; detail: string }) {
+export function SectionTitle({ title, detail }: { title: React.ReactNode; detail: React.ReactNode }) {
   return (
     <div className="mb-4">
       <h2 className="text-lg font-black text-brand-green-ink">{title}</h2>

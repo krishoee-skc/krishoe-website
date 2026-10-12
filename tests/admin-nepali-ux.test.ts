@@ -88,8 +88,9 @@ describe("operations quick entry", () => {
     // From the first grid, not the file start — the imports at the top name
     // every action including the folded ones.
     const open = source.slice(
-      source.indexOf('<div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">'),
-      source.indexOf("<details"),
+      // Since 2026-10-12 each daily form is a line that opens when pressed.
+      source.indexOf('<div className="grid gap-2">'),
+      source.indexOf("{/* Seven more forms sit behind this."),
     );
     for (const daily of [
       "createStockMovementAction",

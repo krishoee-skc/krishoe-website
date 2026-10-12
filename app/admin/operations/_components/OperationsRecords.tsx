@@ -46,32 +46,32 @@ function ProductionBatchesTable({ snapshot }: { snapshot: OperationsSnapshot }) 
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
-        title="Production batches"
-        detail="Kati mal banyo, kati bandai cha, kati reject bhayo."
+        title={<T en="Production batches" ne="उत्पादन lot हरू" />}
+        detail={<T en="Kati mal banyo, kati bandai cha, kati reject bhayo." ne="कति माल बन्यो, कति बन्दैछ, कति बिग्रियो।" />}
       />
       <div className="overflow-x-auto">
         <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
-              <th className="py-2 pr-3">Design</th>
-              <th className="py-2 pr-3">Planned</th>
-              <th className="py-2 pr-3">Finished</th>
-              <th className="py-2 pr-3">WIP</th>
-              <th className="py-2 pr-3">Reject</th>
-              <th className="py-2 pr-3">Stage</th>
-              <th className="py-2 pr-3">Manage</th>
+              <th className="py-2 pr-3"><T en="Design" ne="जुत्ता" /></th>
+              <th className="py-2 pr-3"><T en="Planned" ne="योजना" /></th>
+              <th className="py-2 pr-3"><T en="Finished" ne="तयार" /></th>
+              <th className="py-2 pr-3"><T en="WIP" ne="बन्दै" /></th>
+              <th className="py-2 pr-3"><T en="Reject" ne="बिग्रेको" /></th>
+              <th className="py-2 pr-3"><T en="Stage" ne="चरण" /></th>
+              <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {snapshot.productionBatches.map((batch) => (
               <tr key={batch.id}>
                 <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{batch.design}</td>
-                <td data-label="Planned" className="py-3 pr-3">{batch.plannedPairs}</td>
-                <td data-label="Finished" className="py-3 pr-3">{batch.finishedPairs}</td>
-                <td data-label="WIP" className="py-3 pr-3">{batch.inProgressPairs}</td>
-                <td data-label="Reject" className="py-3 pr-3">{batch.rejectedPairs}</td>
-                <td data-label="Stage" className="py-3 pr-3">{batch.status}</td>
-                <td data-label="Manage" className="min-w-80 py-3 pr-3">
+                <td data-label="Planned" data-label-ne="योजना" className="py-3 pr-3">{batch.plannedPairs}</td>
+                <td data-label="Finished" data-label-ne="तयार" className="py-3 pr-3">{batch.finishedPairs}</td>
+                <td data-label="WIP" data-label-ne="बन्दै" className="py-3 pr-3">{batch.inProgressPairs}</td>
+                <td data-label="Reject" data-label-ne="बिग्रेको" className="py-3 pr-3">{batch.rejectedPairs}</td>
+                <td data-label="Stage" data-label-ne="चरण" className="py-3 pr-3">{batch.status}</td>
+                <td data-label="Manage" data-label-ne="मिलाउने" className="min-w-80 py-3 pr-3">
                   <EnterWalkForm action={updateProductionBatchAction} className="grid gap-2">
                     <input type="hidden" name="id" value={batch.id} />
                     <input aria-label="Design name" name="design" required className={compactInputClass} defaultValue={batch.design} />
@@ -115,8 +115,8 @@ function WorkerProgressCards({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
-        title="Worker progress and camera zones"
-        detail="Kun worker le kun station ma kati progress garyo."
+        title={<T en="Worker progress and camera zones" ne="कामदारको प्रगति र क्यामेरा क्षेत्र" />}
+        detail={<T en="Kun worker le kun station ma kati progress garyo." ne="कुन कामदारले कुन स्टेसनमा कति प्रगति गर्‍यो।" />}
       />
       <div className="grid gap-3">
         {snapshot.workerTasks.map((task) => {
@@ -194,7 +194,7 @@ function RawMaterialsPanel({
 
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Raw material" detail="Used, received, balance, reorder alert." />
+      <SectionTitle title={<T en="Raw material" ne="कच्चा पदार्थ" />} detail={<T en="Used, received, balance, reorder alert." ne="खपत, आएको, बाँकी, फेरि किन्ने सूचना।" />} />
       <div className="grid gap-3">
         {snapshot.rawMaterials.map((material) => {
           const valuation = valuationByMaterialId.get(material.id);
@@ -256,8 +256,8 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
-        title="Material consumption"
-        detail="Batch-wise raw material used, wastage, and production notes."
+        title={<T en="Material consumption" ne="कच्चा माल खपत" />}
+        detail={<T en="Batch-wise raw material used, wastage, and production notes." ne="lot अनुसार खपत भएको कच्चा माल, खेर गएको र टिप्पणी।" />}
       />
       {snapshot.materialConsumptions.length === 0 ? (
         <p className="text-base text-brand-muted">No material consumption has been recorded yet.</p>
@@ -266,13 +266,13 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
           <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Batch</th>
-                <th className="py-2 pr-3">Material</th>
-                <th className="py-2 pr-3">Used</th>
-                <th className="py-2 pr-3">Wastage</th>
-                <th className="py-2 pr-3">Note</th>
-                <th className="py-2 pr-3">Manage</th>
+                <th className="py-2 pr-3"><T en="Date" ne="मिति" /></th>
+                <th className="py-2 pr-3"><T en="Batch" ne="lot" /></th>
+                <th className="py-2 pr-3"><T en="Material" ne="कच्चा पदार्थ" /></th>
+                <th className="py-2 pr-3"><T en="Used" ne="खपत" /></th>
+                <th className="py-2 pr-3"><T en="Wastage" ne="खेर गएको" /></th>
+                <th className="py-2 pr-3"><T en="Note" ne="टिप्पणी" /></th>
+                <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -281,16 +281,16 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
                   <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={consumption.createdAt} time />
                   </td>
-                  <td data-label="Batch" className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
-                  <td data-label="Material" className="py-3 pr-3">{consumption.materialName}</td>
-                  <td data-label="Used" className="py-3 pr-3 font-bold text-brand-green">
+                  <td data-label="Batch" data-label-ne="lot" className="py-3 pr-3 font-semibold text-brand-green-ink">{consumption.batchDesign}</td>
+                  <td data-label="Material" data-label-ne="कच्चा पदार्थ" className="py-3 pr-3">{consumption.materialName}</td>
+                  <td data-label="Used" data-label-ne="खपत" className="py-3 pr-3 font-bold text-brand-green">
                     {consumption.quantity} {consumption.unit}
                   </td>
-                  <td data-label="Wastage" className="py-3 pr-3 font-bold text-brand-clay">
+                  <td data-label="Wastage" data-label-ne="खेर गएको" className="py-3 pr-3 font-bold text-brand-clay">
                     {consumption.wastage} {consumption.unit}
                   </td>
-                  <td data-label="Note" className="max-w-48 py-3 pr-3 text-brand-muted">{consumption.note || "-"}</td>
-                  <td data-label="Manage" className="py-3 pr-3">
+                  <td data-label="Note" data-label-ne="टिप्पणी" className="max-w-48 py-3 pr-3 text-brand-muted">{consumption.note || "-"}</td>
+                  <td data-label="Manage" data-label-ne="मिलाउने" className="py-3 pr-3">
                     <DeleteRecordForm kind="materialConsumption" id={consumption.id} />
                   </td>
                 </tr>
@@ -306,7 +306,7 @@ function MaterialConsumptionHistory({ snapshot }: { snapshot: OperationsSnapshot
 function DemandPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Fast and slow designs" detail="Market demand signal by sold pairs." />
+      <SectionTitle title={<T en="Fast and slow designs" ne="छिटो र ढिलो बिक्ने जुत्ता" />} detail={<T en="Market demand signal by sold pairs." ne="बिकेका जोडी अनुसार बजारको माग।" />} />
       <div className="grid gap-4">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-green">Fast moving</p>
@@ -332,7 +332,7 @@ function DemandPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
 function CollectionPanel({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Collection summary" detail="Cash, cheque, credit from market vehicles." />
+      <SectionTitle title={<T en="Collection summary" ne="उठेको रकमको सारांश" />} detail={<T en="Cash, cheque, credit from market vehicles." ne="बजार गाडीबाट नगद, चेक, उधारो।" />} />
       <dl className="grid gap-3 text-base">
         <div className="flex justify-between">
           <dt className="font-semibold text-brand-muted">Cash</dt>
@@ -364,20 +364,20 @@ function FinishedStockTable({
 
   return (
     <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Finished stock" detail="Design, channel, stock, COGS value, profit potential, and returns." />
+      <SectionTitle title={<T en="Finished stock" ne="तयार माल" />} detail={<T en="Design, channel, stock, COGS value, profit potential, and returns." ne="जुत्ता, माध्यम, स्टक, लागत मूल्य, सम्भावित नाफा र फिर्ता।" />} />
       <div className="overflow-x-auto">
         <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
-              <th className="py-2 pr-3">Design</th>
-              <th className="py-2 pr-3">Channel</th>
-              <th className="py-2 pr-3">Size</th>
-              <th className="py-2 pr-3">Stock</th>
-              <th className="py-2 pr-3">Value</th>
-              <th className="py-2 pr-3">Sold</th>
-              <th className="py-2 pr-3">Return</th>
-              <th className="py-2 pr-3">Health</th>
-              <th className="py-2 pr-3">Manage</th>
+              <th className="py-2 pr-3"><T en="Design" ne="जुत्ता" /></th>
+              <th className="py-2 pr-3"><T en="Channel" ne="माध्यम" /></th>
+              <th className="py-2 pr-3"><T en="Size" ne="साइज" /></th>
+              <th className="py-2 pr-3"><T en="Stock" ne="स्टक" /></th>
+              <th className="py-2 pr-3"><T en="Value" ne="मूल्य" /></th>
+              <th className="py-2 pr-3"><T en="Sold" ne="बिक्री" /></th>
+              <th className="py-2 pr-3"><T en="Return" ne="फिर्ता" /></th>
+              <th className="py-2 pr-3"><T en="Health" ne="अवस्था" /></th>
+              <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -398,8 +398,8 @@ function FinishedStockTable({
               return (
                 <tr key={shoe.id}>
                   <td className="reflow-primary py-3 pr-3 font-semibold text-brand-green-ink">{shoe.design}</td>
-                  <td data-label="Channel" className="py-3 pr-3">{shoe.channel}</td>
-                  <td data-label="Size" className="py-3 pr-3">
+                  <td data-label="Channel" data-label-ne="माध्यम" className="py-3 pr-3">{shoe.channel}</td>
+                  <td data-label="Size" data-label-ne="साइज" className="py-3 pr-3">
                     {members.length > 1 ? (
                       <span className="flex max-w-56 flex-wrap gap-1">
                         {shoe.sizes.map((size) => (
@@ -415,8 +415,8 @@ function FinishedStockTable({
                       shoe.sizeRun
                     )}
                   </td>
-                  <td data-label="Stock" className="py-3 pr-3 font-bold text-brand-green">{shoe.stockPairs}</td>
-                  <td data-label="Value" className="py-3 pr-3">
+                  <td data-label="Stock" data-label-ne="स्टक" className="py-3 pr-3 font-bold text-brand-green">{shoe.stockPairs}</td>
+                  <td data-label="Value" data-label-ne="मूल्य" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{money(stockValue)}</p>
                     <p className="text-sm text-brand-muted">
                       COGS {money(first?.unitCostPerPair ?? 0)} / profit {money(profit)}
@@ -425,9 +425,9 @@ function FinishedStockTable({
                       {first?.signal ?? "Needs cost"} / {first?.priceSource ?? "Missing"}
                     </p>
                   </td>
-                  <td data-label="Sold" className="py-3 pr-3">{shoe.soldPairs}</td>
-                  <td data-label="Return" className="py-3 pr-3">{shoe.returnedPairs}</td>
-                  <td data-label="Health" className="py-3 pr-3">
+                  <td data-label="Sold" data-label-ne="बिक्री" className="py-3 pr-3">{shoe.soldPairs}</td>
+                  <td data-label="Return" data-label-ne="फिर्ता" className="py-3 pr-3">{shoe.returnedPairs}</td>
+                  <td data-label="Health" data-label-ne="अवस्था" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-sm font-bold ${stockSignalClass(health?.signal ?? "Healthy")}`}>
                       {health?.signal ?? "Healthy"}
                     </span>
@@ -435,7 +435,7 @@ function FinishedStockTable({
                       Sell {health?.sellThroughRate ?? 0}% | return {health?.returnRate ?? 0}%
                     </p>
                   </td>
-                  <td data-label="Manage" className="min-w-96 py-3 pr-3">
+                  <td data-label="Manage" data-label-ne="मिलाउने" className="min-w-96 py-3 pr-3">
                     {members.length > 1 ? (
                       <details>
                         <summary className="cursor-pointer text-sm font-black text-brand-green">
@@ -521,13 +521,13 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
           <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Design</th>
-                <th className="py-2 pr-3">Book stock</th>
-                <th className="py-2 pr-3">Movement stock</th>
-                <th className="py-2 pr-3">Variance</th>
-                <th className="py-2 pr-3">Flow</th>
-                <th className="py-2 pr-3">Last movement</th>
-                <th className="py-2 pr-3">Signal</th>
+                <th className="py-2 pr-3"><T en="Design" ne="जुत्ता" /></th>
+                <th className="py-2 pr-3"><T en="Book stock" ne="हिसाबको स्टक" /></th>
+                <th className="py-2 pr-3"><T en="Movement stock" ne="चलखेलको स्टक" /></th>
+                <th className="py-2 pr-3"><T en="Variance" ne="फरक" /></th>
+                <th className="py-2 pr-3"><T en="Flow" ne="चलखेल" /></th>
+                <th className="py-2 pr-3"><T en="Last movement" ne="पछिल्लो चलखेल" /></th>
+                <th className="py-2 pr-3"><T en="Signal" ne="संकेत" /></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -539,21 +539,21 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {row.channel} | {row.sizeRun}
                     </p>
                   </td>
-                  <td data-label="Book stock" className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
-                  <td data-label="Movement stock" className="py-3 pr-3">
+                  <td data-label="Book stock" data-label-ne="हिसाबको स्टक" className="py-3 pr-3 font-bold text-brand-green">{row.stockPairs}</td>
+                  <td data-label="Movement stock" data-label-ne="चलखेलको स्टक" className="py-3 pr-3">
                     <p className="font-bold text-brand-green-ink">{row.movementStockPairs}</p>
                     <p className="text-sm text-brand-muted">{row.movementCount} movements</p>
                   </td>
-                  <td data-label="Variance" className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
+                  <td data-label="Variance" data-label-ne="फरक" className={`py-3 pr-3 font-black ${row.variancePairs === 0 ? "text-brand-green" : "text-brand-clay"}`}>
                     {row.variancePairs}
                   </td>
-                  <td data-label="Flow" className="py-3 pr-3 text-sm font-semibold text-brand-muted">
+                  <td data-label="Flow" data-label-ne="चलखेल" className="py-3 pr-3 text-sm font-semibold text-brand-muted">
                     <p>In {row.productionIn + row.returnIn + row.adjustment}</p>
                     <p>Out {row.dispatchOut + row.saleOut}</p>
                     <p>Market {row.marketSale}</p>
                   </td>
-                  <td data-label="Last movement" className="py-3 pr-3 text-sm text-brand-muted"><OptionalDate value={row.lastMovementAt} /></td>
-                  <td data-label="Signal" className="py-3 pr-3">
+                  <td data-label="Last movement" data-label-ne="पछिल्लो चलखेल" className="py-3 pr-3 text-sm text-brand-muted"><OptionalDate value={row.lastMovementAt} /></td>
+                  <td data-label="Signal" data-label-ne="संकेत" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-sm font-bold ${stockLedgerSignalClass(row.signal)}`}>
                       {row.signal}
                     </span>
@@ -572,7 +572,7 @@ function StockLedgerSummary({ snapshot }: { snapshot: OperationsSnapshot }) {
 function VehicleDispatchCards({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Vehicle dispatch" detail="Gadi, driver, route, loaded, return, collection." />
+      <SectionTitle title={<T en="Vehicle dispatch" ne="गाडी पठाउने" />} detail={<T en="Gadi, driver, route, loaded, return, collection." ne="गाडी, चालक, रुट, लोड, फिर्ता, उठेको रकम।" />} />
       <div className="grid gap-3">
         {snapshot.vehicleDispatches.map((dispatch) => (
           <div key={dispatch.id} className="rounded-lg border border-brand-green-line p-4">
@@ -676,13 +676,13 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
           <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Customer</th>
-                <th className="py-2 pr-3">Priority</th>
-                <th className="py-2 pr-3">Due</th>
-                <th className="py-2 pr-3">Aging</th>
-                <th className="py-2 pr-3">Coverage</th>
-                <th className="py-2 pr-3">Follow-up</th>
-                <th className="py-2 pr-3">Action</th>
+                <th className="py-2 pr-3"><T en="Customer" ne="ग्राहक" /></th>
+                <th className="py-2 pr-3"><T en="Priority" ne="प्राथमिकता" /></th>
+                <th className="py-2 pr-3"><T en="Due" ne="बाँकी" /></th>
+                <th className="py-2 pr-3"><T en="Aging" ne="कति दिन" /></th>
+                <th className="py-2 pr-3"><T en="Coverage" ne="पुग्ने" /></th>
+                <th className="py-2 pr-3"><T en="Follow-up" ne="फलो-अप" /></th>
+                <th className="py-2 pr-3"><T en="Action" ne="काम" /></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -699,22 +699,22 @@ function LedgerFollowupQueue({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {ledger.channel} | {ledger.phone || "No phone"}
                     </p>
                   </td>
-                  <td data-label="Priority" className="py-3 pr-3">
+                  <td data-label="Priority" data-label-ne="प्राथमिकता" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-sm font-bold ${collectionPriorityClass(ledger.priority)}`}>
                       {ledger.priority}
                     </span>
                   </td>
-                  <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
-                  <td data-label="Aging" className="py-3 pr-3">
+                  <td data-label="Due" data-label-ne="बाँकी" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
+                  <td data-label="Aging" data-label-ne="कति दिन" className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(ledger.agingBucket)}`}>{ledger.agingBucket}</p>
                     <p className="text-sm text-brand-muted">{ledger.daysOutstanding} days</p>
                   </td>
-                  <td data-label="Coverage" className="py-3 pr-3">
+                  <td data-label="Coverage" data-label-ne="पुग्ने" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{ledger.collectionCoverageRate}%</p>
                     <p className="text-sm text-brand-muted">{money(ledger.collectionTotal)} collected</p>
                   </td>
-                  <td data-label="Follow-up" className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
-                  <td data-label="Action" className="max-w-72 py-3 pr-3 text-sm font-semibold leading-5 text-brand-muted">
+                  <td data-label="Follow-up" data-label-ne="फलो-अप" className="py-3 pr-3">{ledger.followUpDueDate || "-"}</td>
+                  <td data-label="Action" data-label-ne="काम" className="max-w-72 py-3 pr-3 text-sm font-semibold leading-5 text-brand-muted">
                     {ledger.nextAction}
                   </td>
                 </tr>
@@ -731,8 +731,8 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
   return (
     <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <SectionTitle
-        title="Dispatch item history"
-        detail="Vehicle-wise design, size, loaded, sold, return, and collection trail."
+        title={<T en="Dispatch item history" ne="पठाएको सामानको इतिहास" />}
+        detail={<T en="Vehicle-wise design, size, loaded, sold, return, and collection trail." ne="गाडी अनुसार जुत्ता, साइज, लोड, बिक्री, फिर्ता र उठेको रकम।" />}
       />
       {snapshot.vehicleDispatchItems.length === 0 ? (
         <p className="text-base text-brand-muted">No dispatch item has been recorded yet.</p>
@@ -741,15 +741,15 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
           <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Vehicle</th>
-                <th className="py-2 pr-3">Design</th>
-                <th className="py-2 pr-3">Channel</th>
-                <th className="py-2 pr-3">Loaded</th>
-                <th className="py-2 pr-3">Sold</th>
-                <th className="py-2 pr-3">Return</th>
-                <th className="py-2 pr-3">Collection</th>
-                <th className="py-2 pr-3">Manage</th>
+                <th className="py-2 pr-3"><T en="Date" ne="मिति" /></th>
+                <th className="py-2 pr-3"><T en="Vehicle" ne="गाडी" /></th>
+                <th className="py-2 pr-3"><T en="Design" ne="जुत्ता" /></th>
+                <th className="py-2 pr-3"><T en="Channel" ne="माध्यम" /></th>
+                <th className="py-2 pr-3"><T en="Loaded" ne="लोड" /></th>
+                <th className="py-2 pr-3"><T en="Sold" ne="बिक्री" /></th>
+                <th className="py-2 pr-3"><T en="Return" ne="फिर्ता" /></th>
+                <th className="py-2 pr-3"><T en="Collection" ne="उठेको" /></th>
+                <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -758,25 +758,25 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
                   <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={item.createdAt} time />
                   </td>
-                  <td data-label="Vehicle" className="py-3 pr-3">
+                  <td data-label="Vehicle" data-label-ne="गाडी" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.vehicleNumber}</p>
                     <p className="text-sm text-brand-muted">{item.marketRoute || "-"}</p>
                   </td>
-                  <td data-label="Design" className="py-3 pr-3">
+                  <td data-label="Design" data-label-ne="जुत्ता" className="py-3 pr-3">
                     <p className="font-semibold text-brand-green-ink">{item.design}</p>
                     <p className="text-sm text-brand-muted">{item.sizeRun}</p>
                   </td>
-                  <td data-label="Channel" className="py-3 pr-3">{item.channel}</td>
-                  <td data-label="Loaded" className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
-                  <td data-label="Sold" className="py-3 pr-3 text-brand-green">{item.soldPairs}</td>
-                  <td data-label="Return" className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
-                  <td data-label="Collection" className="py-3 pr-3">
+                  <td data-label="Channel" data-label-ne="माध्यम" className="py-3 pr-3">{item.channel}</td>
+                  <td data-label="Loaded" data-label-ne="लोड" className="py-3 pr-3 font-bold">{item.loadedPairs}</td>
+                  <td data-label="Sold" data-label-ne="बिक्री" className="py-3 pr-3 text-brand-green">{item.soldPairs}</td>
+                  <td data-label="Return" data-label-ne="फिर्ता" className="py-3 pr-3 text-brand-clay">{item.returnedPairs}</td>
+                  <td data-label="Collection" data-label-ne="उठेको" className="py-3 pr-3">
                     <p>{money(item.cashCollected)} cash</p>
                     <p className="text-sm text-brand-muted">
                       {money(item.chequeCollected)} cheque, {money(item.creditAmount)} credit
                     </p>
                   </td>
-                  <td data-label="Manage" className="py-3 pr-3">
+                  <td data-label="Manage" data-label-ne="मिलाउने" className="py-3 pr-3">
                     <DeleteRecordForm kind="vehicleDispatchItem" id={item.id} />
                   </td>
                 </tr>
@@ -792,18 +792,18 @@ function VehicleDispatchItemHistory({ snapshot }: { snapshot: OperationsSnapshot
 function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section id="customer-ledgers" className="scroll-mt-24 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Customer ledger" detail="Customer details, cash, cheque, credit, balance due." />
+      <SectionTitle title={<T en="Customer ledger" ne="ग्राहक खाता" />} detail={<T en="Customer details, cash, cheque, credit, balance due." ne="ग्राहकको विवरण, नगद, चेक, उधारो, बाँकी।" />} />
       <div className="overflow-x-auto">
         <table className="reflow-table min-w-full text-base">
           <thead className="border-b text-left text-brand-muted">
             <tr>
-              <th className="py-2 pr-3">Customer</th>
-              <th className="py-2 pr-3">Channel</th>
-              <th className="py-2 pr-3">Cash</th>
-              <th className="py-2 pr-3">Cheque</th>
-              <th className="py-2 pr-3">Due</th>
-              <th className="py-2 pr-3">Aging</th>
-              <th className="py-2 pr-3">Manage</th>
+              <th className="py-2 pr-3"><T en="Customer" ne="ग्राहक" /></th>
+              <th className="py-2 pr-3"><T en="Channel" ne="माध्यम" /></th>
+              <th className="py-2 pr-3"><T en="Cash" ne="नगद" /></th>
+              <th className="py-2 pr-3"><T en="Cheque" ne="चेक" /></th>
+              <th className="py-2 pr-3"><T en="Due" ne="बाँकी" /></th>
+              <th className="py-2 pr-3"><T en="Aging" ne="कति दिन" /></th>
+              <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -821,11 +821,11 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                     </Link>
                     <p className="text-sm text-brand-muted">{ledger.phone}</p>
                   </td>
-                  <td data-label="Channel" className="py-3 pr-3">{ledger.channel}</td>
-                  <td data-label="Cash" className="py-3 pr-3">{money(ledger.cashPaid)}</td>
-                  <td data-label="Cheque" className="py-3 pr-3">{money(ledger.chequePaid)}</td>
-                  <td data-label="Due" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
-                  <td data-label="Aging" className="py-3 pr-3">
+                  <td data-label="Channel" data-label-ne="माध्यम" className="py-3 pr-3">{ledger.channel}</td>
+                  <td data-label="Cash" data-label-ne="नगद" className="py-3 pr-3">{money(ledger.cashPaid)}</td>
+                  <td data-label="Cheque" data-label-ne="चेक" className="py-3 pr-3">{money(ledger.chequePaid)}</td>
+                  <td data-label="Due" data-label-ne="बाँकी" className="py-3 pr-3 font-bold text-brand-clay">{money(ledger.balanceDue)}</td>
+                  <td data-label="Aging" data-label-ne="कति दिन" className="py-3 pr-3">
                     <p className={`font-bold ${agingClass(aging?.agingBucket ?? "Paid")}`}>
                       {aging?.agingBucket ?? "Paid"}
                     </p>
@@ -833,7 +833,7 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                       {aging?.daysOutstanding ?? 0} days | {aging?.collectionCoverageRate ?? 0}% cover
                     </p>
                   </td>
-                  <td data-label="Manage" className="min-w-80 py-3 pr-3">
+                  <td data-label="Manage" data-label-ne="मिलाउने" className="min-w-80 py-3 pr-3">
                     <EnterWalkForm action={updateCustomerLedgerAction} className="grid gap-2">
                       <input type="hidden" name="id" value={ledger.id} />
                       <input name="customerName" required className={compactInputClass} defaultValue={ledger.customerName} aria-label="Customer name" />
@@ -909,7 +909,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
 
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Stock movement history" detail="One line per bill or per shoe a day — open a line for its rows." />
+      <SectionTitle title={<T en="Stock movement history" ne="स्टकको चलखेलको इतिहास" />} detail={<T en="One line per bill or per shoe a day — open a line for its rows." ne="एक दिनमा एउटा बिल वा जुत्ताको एउटा लाइन — विवरण हेर्न लाइन खोल्नुहोस्।" />} />
       {groups.length === 0 ? (
         <p className="text-lg text-brand-muted">No stock movement has been recorded yet.</p>
       ) : (
@@ -979,7 +979,7 @@ function StockMovementHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
 function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }) {
   return (
     <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-      <SectionTitle title="Ledger transaction history" detail="Cash, cheque, credit sale, return adjustment, and balance adjustment trail." />
+      <SectionTitle title={<T en="Ledger transaction history" ne="खाताको कारोबारको इतिहास" />} detail={<T en="Cash, cheque, credit sale, return adjustment, and balance adjustment trail." ne="नगद, चेक, उधारो बिक्री, फिर्ता र बाँकी मिलानको इतिहास।" />} />
       {snapshot.ledgerTransactions.length === 0 ? (
         <p className="text-base text-brand-muted">No ledger transaction has been recorded yet.</p>
       ) : (
@@ -987,12 +987,12 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
           <table className="reflow-table min-w-full text-base">
             <thead className="border-b text-left text-brand-muted">
               <tr>
-                <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Customer</th>
-                <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">Amount</th>
-                <th className="py-2 pr-3">Note</th>
-                <th className="py-2 pr-3">Manage</th>
+                <th className="py-2 pr-3"><T en="Date" ne="मिति" /></th>
+                <th className="py-2 pr-3"><T en="Customer" ne="ग्राहक" /></th>
+                <th className="py-2 pr-3"><T en="Type" ne="किसिम" /></th>
+                <th className="py-2 pr-3"><T en="Amount" ne="रकम" /></th>
+                <th className="py-2 pr-3"><T en="Note" ne="टिप्पणी" /></th>
+                <th className="py-2 pr-3"><T en="Manage" ne="मिलाउने" /></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -1001,7 +1001,7 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                   <td className="reflow-primary py-3 pr-3 text-sm text-brand-muted">
                     <DateDisplayAdmin date={transaction.createdAt} time />
                   </td>
-                  <td data-label="Customer" className="py-3 pr-3">
+                  <td data-label="Customer" data-label-ne="ग्राहक" className="py-3 pr-3">
                     <Link
                       href={`/admin/operations/ledger/${transaction.ledgerId}`}
                       className="font-semibold text-brand-green-ink underline decoration-brand-gold-bright underline-offset-4 transition hover:text-brand-green"
@@ -1009,14 +1009,14 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                       {transaction.customerName}
                     </Link>
                   </td>
-                  <td data-label="Type" className="py-3 pr-3">
+                  <td data-label="Type" data-label-ne="किसिम" className="py-3 pr-3">
                     <span className={`rounded-full px-3 py-1 text-sm font-bold ${ledgerTransactionTypeClass(transaction.type)}`}>
                       {transaction.type}
                     </span>
                   </td>
-                  <td data-label="Amount" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
-                  <td data-label="Note" className="max-w-56 py-3 pr-3 text-brand-muted">{transaction.note || "-"}</td>
-                  <td data-label="Manage" className="py-3 pr-3">
+                  <td data-label="Amount" data-label-ne="रकम" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
+                  <td data-label="Note" data-label-ne="टिप्पणी" className="max-w-56 py-3 pr-3 text-brand-muted">{transaction.note || "-"}</td>
+                  <td data-label="Manage" data-label-ne="मिलाउने" className="py-3 pr-3">
                     <DeleteRecordForm kind="ledgerTransaction" id={transaction.id} />
                   </td>
                 </tr>
