@@ -123,10 +123,12 @@ function OrderPaymentForm({
   };
 
   return (
-    <div className="grid min-w-[560px] gap-3">
+    // Fits a phone (owner, 2026-10-12): it was 560px wide and scrolled sideways
+    // inside its fold.
+    <div className="grid min-w-0 gap-3">
       <EnterWalkForm onSubmit={handleSubmit} className="grid gap-2">
         <input type="hidden" name="id" value={order.id} />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <select aria-label="Payment status"
             name="paymentStatus" data-summary="text"
             defaultValue={order.paymentStatus}
@@ -161,7 +163,7 @@ function OrderPaymentForm({
             className="min-w-0 rounded-md border-brand-green-line text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <select aria-label="Account"
             name="ledgerId"
             defaultValue={order.paymentLedgerId ?? latestTransaction?.ledgerId ?? ""}

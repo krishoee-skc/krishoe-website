@@ -10,18 +10,22 @@ import { PencilIcon, TrashIcon } from "@/components/Icons";
 import ActionMessage from "@/components/admin/ActionMessage";
 import { deleteProductAction, type ActionState } from "@/app/admin/actions";
 import { useLanguage } from "@/components/LanguageProvider";
+import { StatStrip } from "@/components/admin/PageKit";
 
 function StatusBadge({ status }: { status: string }) {
+  const { text } = useLanguage();
   const baseClasses = "rounded-full px-2.5 py-1 text-xs font-semibold";
   switch (status.toLowerCase()) {
     case "active":
-      return <span className={`${baseClasses} bg-green-100 text-green-800`}>Active</span>;
+      return <span className={`${baseClasses} bg-green-100 text-green-800`}>{text("On the website", "वेबसाइटमा")}</span>;
     case "draft":
-      return <span className={`${baseClasses} bg-brand-mist text-brand-green-ink`}>Draft</span>;
+      return <span className={`${baseClasses} bg-brand-mist text-brand-green-ink`}>{text("Draft", "Draft")}</span>;
     default:
       return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>{status}</span>;
   }
 }
+
+type Filter = "all" | "web" | "draft";
 
 type ProductsClientProps = {
   products: Product[];
@@ -33,11 +37,14 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
   const [isDeleting, startDeleting] = useTransition();
+  // Website or draft (owner, 2026-10-12): the ten drafts holding 399 pairs
+  // were found only by reading the whole list.
+  const [filter, setFilter] = useState<Filter>("all");
 
   // A delete that failed used to replace the whole page with the app's error
   // screen. Report it above the table instead and leave the list standing.
   const handleDelete = (product: Product) => {
-    if (!window.confirm(`Delete ${product.name}? This cannot be undone.`)) {
+    if (!window.confirm(text(`Delete ${product.name}? This cannot be undone.`, `${product.name} मेट्ने? यो फर्काउन मिल्दैन।`))) {
       return;
     }
 
@@ -46,7 +53,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
 
     startDeleting(async () => {
       const result = await deleteProductAction(state, formData);
-      setState(result.ok ? { ...result, message: `Deleted ${product.name}.` } : result);
+      setState(result.ok ? { ...result, message: text(`Deleted ${product.name}.`, `${product.name} मेटियो।`) } : result);
 
       if (result.ok) {
         router.refresh();
@@ -57,8 +64,8 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
   if (products.length === 0) {
     return (
       <div className="mt-6 rounded-lg border border-dashed border-brand-green-line bg-brand-paper p-8 text-center">
-        <h2 className="text-lg font-black text-brand-green-ink">No products yet</h2>
-        <p className="mt-2 text-sm text-brand-muted">Create your first product from the form above.</p>
+        <h2 className="text-lg font-black text-brand-green-ink">{text("No products yet", "अझै कुनै सामान छैन")}</h2>
+        <p className="mt-2 text-sm text-brand-muted">{text("Create your first product from the form above.", "माथिको form बाट पहिलो सामान बनाउनुहोस्।")}</p>
       </div>
     );
   }
@@ -76,9 +83,46 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
     .map((product) => ({ product, advice: photoAdvice(product) }))
     .filter((entry) => entry.advice.length > 0);
 
+  const isWeb = (product: Product) => product.status.toLowerCase() === "active";
+  const webCount = products.filter(isWeb).length;
+  const draftCount = products.length - webCount;
+  const draftsWithPairs = products.filter((product) => !isWeb(product) && product.stock > 0).length;
+  const noPhoto = products.filter((product) => product.stock > 0 && (isSamplePhoto(product.image) || hasNoPhoto(product.image))).length;
+  const shown = products.filter((product) => (filter === "web" ? isWeb(product) : filter === "draft" ? !isWeb(product) : true));
+  const filters: Array<{ key: Filter; en: string; ne: string; count: number }> = [
+    { key: "all", en: "All", ne: "सबै", count: products.length },
+    { key: "web", en: "🌐 Website", ne: "🌐 वेबसाइट", count: webCount },
+    { key: "draft", en: "📝 Draft", ne: "📝 Draft", count: draftCount },
+  ];
+
   return (
     <div className="mt-6 space-y-4">
       <ActionMessage state={state} />
+
+      <StatStrip
+        items={[
+          { en: "on the website", ne: "वेबसाइटमा", value: webCount },
+          { en: "draft with pairs", ne: "जोडी भएका Draft", value: draftsWithPairs, tone: draftsWithPairs > 0 ? "warn" : undefined },
+          { en: "with pairs, no real photo", ne: "जोडी छ, फोटो छैन", value: noPhoto, tone: noPhoto > 0 ? "warn" : undefined },
+        ]}
+      />
+
+      <div role="tablist" aria-label={text("Which products", "कुन सामान")} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+        {filters.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            role="tab"
+            aria-selected={filter === entry.key}
+            onClick={() => setFilter(entry.key)}
+            className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-black ${
+              filter === entry.key ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+            }`}
+          >
+            {text(entry.en, entry.ne)} <span className="tabular-nums opacity-80">{entry.count}</span>
+          </button>
+        ))}
+      </div>
 
       {betterPhotos.length > 0 ? (
         <details className="rounded-lg border border-brand-gold bg-brand-cream-soft p-4">
@@ -115,24 +159,80 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
           </ul>
         </div>
       ) : null}
-      <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
+      <ul className="grid list-none gap-2 pl-0 md:hidden">
+        {shown.map((product) => {
+          const missingPhoto = isSamplePhoto(product.image) || hasNoPhoto(product.image);
+          return (
+            <li
+              key={`card-${product.id}`}
+              className={`grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-brand-green-line p-2.5 ${
+                editingId === product.id ? "bg-brand-mist" : "bg-brand-paper"
+              }`}
+            >
+              <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-brand-mist">
+                <SafeImage src={product.image} alt={product.name} fill sizes="64px" className="object-cover" />
+              </div>
+              <div className="grid min-w-0 gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <b className="truncate text-brand-green-ink">{product.name}</b>
+                  <StatusBadge status={product.status} />
+                </div>
+                <p className="text-xs text-brand-muted">
+                  <span className="font-mono">{product.sku}</span> · {product.price} ·{" "}
+                  <span className={product.stock > 0 ? "font-bold text-brand-green" : "font-bold text-brand-clay"}>
+                    {product.stock > 0 ? text(`${product.stock} pairs`, `${product.stock} जोडी`) : text("out", "सकियो")}
+                  </span>
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {product.stock > 0 && (missingPhoto || !isWeb(product)) ? (
+                    <Link
+                      href={`/admin/products?edit=${encodeURIComponent(product.id)}`}
+                      className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-black text-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
+                    >
+                      📷 {missingPhoto ? text("Add a photo → put on sale", "फोटो राखेर बिक्रीमा →") : text("Put on sale →", "बिक्रीमा राख्ने →")}
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={`/admin/products?edit=${encodeURIComponent(product.id)}`}
+                    className="inline-flex h-8 items-center gap-1 rounded-full border border-black/10 px-3 text-xs font-bold text-brand-green"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" />
+                    {text("Edit", "मिलाउने")}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(product)}
+                    disabled={isDeleting}
+                    aria-label={text(`Delete ${product.name}`, `${product.name} मेट्ने`)}
+                    className="ml-auto inline-grid h-8 w-8 place-items-center rounded-full border border-red-200 text-red-700 disabled:opacity-50"
+                  >
+                    <TrashIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper md:block">
       <table className="reflow-table min-w-full divide-y divide-brand-green-line text-sm">
         <thead className="bg-brand-paper-deep">
           <tr>
             <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink"></th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Product</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">SKU</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Price</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Stock</th>
-            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">Status</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">{text("Product", "सामान")}</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">{text("Code", "कोड")}</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">{text("Price", "मूल्य")}</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">{text("Stock", "स्टक")}</th>
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-brand-green-ink">{text("Status", "अवस्था")}</th>
             <th className="px-4 py-3">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{text("Actions", "काम")}</span>
             </th>
           </tr>
         </thead>
 
         <tbody className="divide-y divide-brand-green-line">
-          {products.map((product) => (
+          {shown.map((product) => (
             <tr key={product.id} className={editingId === product.id ? "bg-brand-mist" : undefined}>
               <td data-label={text("Photo", "फोटो")} className="whitespace-nowrap px-4 py-3">
                 <div className="relative h-12 w-12 overflow-hidden rounded-md bg-brand-mist">
@@ -149,7 +249,7 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                     product.stock > 0 ? "text-brand-muted" : "text-brand-clay"
                   }`}
                 >
-                  {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                  {product.stock > 0 ? text(`${product.stock} in stock`, `स्टकमा ${product.stock}`) : text("Out of stock", "स्टक सकियो")}
                 </span>
                 {/* A stand-in photograph is not a missing one. It looks
                     finished, so nobody goes back to it — which is how three
@@ -189,13 +289,13 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                     className="inline-flex h-9 items-center gap-1.5 rounded-full border border-black/10 px-3 text-xs font-bold text-brand-green transition hover:bg-brand-mist"
                   >
                     <PencilIcon className="h-4 w-4" />
-                    Edit
+                    {text("Edit", "मिलाउने")}
                   </Link>
                   <button
                     type="button"
                     onClick={() => handleDelete(product)}
                     disabled={isDeleting}
-                    aria-label={`Delete ${product.name}`}
+                    aria-label={text(`Delete ${product.name}`, `${product.name} मेट्ने`)}
                     className="inline-grid h-9 w-9 place-items-center rounded-full border border-red-200 text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <TrashIcon className="h-4 w-4" />

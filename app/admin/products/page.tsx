@@ -72,7 +72,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     : null;
 
   return (
-    <section className="p-6">
+    <section className="p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
@@ -95,26 +95,35 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           >
             📷 <T en="Add photos" ne="फोटो हाल्ने" />
           </Link>
-          <Link
-            href="/admin/products/labels"
-            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-          >
-            <T en="Barcode labels" ne="बारकोडको स्टिकर" />
-          </Link>
-          <Link
-            href="/admin/products/codes"
-            className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
-          >
-            🔢 <T en="Shoe codes" ne="जुत्ताको कोड" />
-          </Link>
-          <form action={syncProductCatalogStockAction}>
-            <FormSubmitButton
-              className="h-10 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
-              pendingLabel="Syncing…"
-            >
-              <T en="Sync stock" ne="स्टक मिलाउने" />
-            </FormSubmitButton>
-          </form>
+          {/* Used now and then: one press away, not three buttons in the
+              first screen (owner, 2026-10-12). */}
+          <details className="relative">
+            <summary className="inline-flex h-10 cursor-pointer list-none items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink [&::-webkit-details-marker]:hidden">
+              ⋯ <T en="Labels · codes · sync" ne="स्टिकर · कोड · मिलाउने" />
+            </summary>
+            <div className="absolute right-0 z-20 mt-2 grid w-60 gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-lg">
+              <Link
+                href="/admin/products/labels"
+                className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+              >
+                <T en="Barcode labels" ne="बारकोडको स्टिकर" />
+              </Link>
+              <Link
+                href="/admin/products/codes"
+                className="inline-flex h-10 items-center rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green"
+              >
+                🔢 <T en="Shoe codes" ne="जुत्ताको कोड" />
+              </Link>
+              <form action={syncProductCatalogStockAction}>
+                <FormSubmitButton
+                  className="h-10 rounded-full border border-brand-green bg-brand-paper px-4 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white"
+                  pendingLabel="Syncing…"
+                >
+                  <T en="Sync stock" ne="स्टक मिलाउने" />
+                </FormSubmitButton>
+              </form>
+            </div>
+          </details>
         </div>
       </div>
 

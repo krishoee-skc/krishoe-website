@@ -184,7 +184,8 @@ describe("paid in full, remembered", () => {
 describe("the page, in the order it is used", () => {
   it("opens on the bill form, with the figures after it", async () => {
     const page = await readFile("app/admin/purchasing/page.tsx", "utf8");
-    expect(page.indexOf("<PurchaseInvoiceForm")).toBeLessThan(page.indexOf('label={<T en="Today purchase"'));
+    // Since 2026-10-12 the figures are one strip (PageKit), still after the form.
+    expect(page.indexOf("<PurchaseInvoiceForm")).toBeLessThan(page.indexOf('{ en: "bought today", ne: "आज किनेको"'));
     // Three figures in view, the rest under "More".
     expect(page).toContain('<T en="▾ More figures" ne="▾ थप हिसाब" />');
   });

@@ -1,4 +1,5 @@
 import { counterItemsReady } from "@/lib/counter-items-database";
+import { PageTabs } from "@/components/admin/PageKit";
 import { chequesReady, chequesToWatch, getChequeStates } from "@/lib/cheques";
 import { chequeBookReady, getUsedBanks } from "@/lib/cheque-book";
 import { nepalDayKey } from "@/lib/dashboard-figures";
@@ -495,237 +496,262 @@ export default async function AdminPosPage({
 
       {showReports ? (
       <>
-      <div className="mt-8 grid gap-6">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ScannerPanel
-            knownInvoices={pos.invoices.map((invoice) => ({
-              id: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              barcodeValue: invoice.barcodeValue,
-              qrPayload: invoice.qrPayload,
-            }))}
-          />
+      <div className="mt-8">
+        <PageTabs
+          id="pos-reports"
+          tabs={[
+            {
+              key: "today",
+              en: "📊 Today",
+              ne: "📊 आज",
+              content: (
+                <>
+                <div className="grid gap-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <ScannerPanel
+                      knownInvoices={pos.invoices.map((invoice) => ({
+                        id: invoice.id,
+                        invoiceNumber: invoice.invoiceNumber,
+                        barcodeValue: invoice.barcodeValue,
+                        qrPayload: invoice.qrPayload,
+                      }))}
+                    />
 
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Channel report" ne="कुन बाटोबाट कति" /></h2>
-            <div className="mt-4 divide-y divide-brand-green-line">
-              {pos.channelTotals.map((row) => (
-                <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
-                  <p className="font-black text-brand-green-ink">{row.channel}</p>
-                  <p className="text-brand-muted">{row.invoiceCount} bills</p>
-                  <p className="text-right font-bold text-brand-green">{money(row.netSales)}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+                    <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+                      <h2 className="text-lg font-black text-brand-green-ink"><T en="Channel report" ne="कुन बाटोबाट कति" /></h2>
+                      <div className="mt-4 divide-y divide-brand-green-line">
+                        {pos.channelTotals.map((row) => (
+                          <div key={row.channel} className="grid grid-cols-3 gap-3 py-3 text-sm">
+                            <p className="font-black text-brand-green-ink">{row.channel}</p>
+                            <p className="text-brand-muted">{row.invoiceCount} bills</p>
+                            <p className="text-right font-bold text-brand-green">{money(row.netSales)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
 
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Payment summary" ne="भुक्तानीको सार" /></h2>
-            <div className="mt-4 grid gap-2">
-              {pos.paymentTotals
-                .filter((row) => row.invoiceCount > 0 || row.paid > 0)
-                .map((row) => (
-                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-brand-paper-deep px-3 py-2 text-sm">
-                    <span className="font-bold text-brand-green-ink">{row.paymentMethod}</span>
-                    <span className="text-brand-muted">{money(row.paid)}</span>
+                    <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+                      <h2 className="text-lg font-black text-brand-green-ink"><T en="Payment summary" ne="भुक्तानीको सार" /></h2>
+                      <div className="mt-4 grid gap-2">
+                        {pos.paymentTotals
+                          .filter((row) => row.invoiceCount > 0 || row.paid > 0)
+                          .map((row) => (
+                            <div key={row.paymentMethod} className="flex items-center justify-between gap-3 rounded-md bg-brand-paper-deep px-3 py-2 text-sm">
+                              <span className="font-bold text-brand-green-ink">{row.paymentMethod}</span>
+                              <span className="text-brand-muted">{money(row.paid)}</span>
+                            </div>
+                          ))}
+                        {pos.paymentTotals.every((row) => row.invoiceCount === 0) ? (
+                          <p className="text-sm text-brand-muted">No POS payment recorded yet.</p>
+                        ) : null}
+                      </div>
+                    </section>
+
+                    <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+                      <h2 className="text-lg font-black text-brand-green-ink"><T en="Books check" ne="हिसाब मिल्यो?" /></h2>
+                      <p className="mt-1 text-sm text-brand-muted">
+                        <T en="Each bill against its stock, the customer's account and the payment." ne="हरेक बिल स्टक, ग्राहकको खाता र भुक्तानीसँग मिल्यो कि।" />
+                      </p>
+                      <div className="mt-4 divide-y divide-brand-green-line">
+                        {pos.postingReviewRows.slice(0, 5).map((row) => (
+                          <div key={row.id} className="py-3 text-sm">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-mono text-xs font-bold text-brand-green-ink">{row.invoiceNumber}</p>
+                              <div className="flex items-center gap-2">
+                                <Badge className={postingTone(row.signal)}>{row.signal}</Badge>
+                                {row.signal !== "Posted" ? <RepairPostingButton invoiceId={row.id} /> : null}
+                              </div>
+                            </div>
+                            <p className="mt-1 text-xs text-brand-muted">
+                              <StockMoved moved={row.linkedStockMovementCount} shoes={row.expectedStockMovementCount} kind={row.kind ?? ""} />
+                              {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
+                            </p>
+                            {row.issues ? <p className="mt-1 text-xs font-semibold text-brand-clay">{row.issues}</p> : null}
+                          </div>
+                        ))}
+                        {pos.postingReviewRows.length === 0 ? (
+                          <p className="py-3 text-sm text-brand-muted">No POS posting to review yet.</p>
+                        ) : null}
+                      </div>
+                    </section>
                   </div>
-                ))}
-              {pos.paymentTotals.every((row) => row.invoiceCount === 0) ? (
-                <p className="text-sm text-brand-muted">No POS payment recorded yet.</p>
-              ) : null}
-            </div>
-          </section>
+                </div>
 
-          <section className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Books check" ne="हिसाब मिल्यो?" /></h2>
-            <p className="mt-1 text-sm text-brand-muted">
-              <T en="Each bill against its stock, the customer's account and the payment." ne="हरेक बिल स्टक, ग्राहकको खाता र भुक्तानीसँग मिल्यो कि।" />
-            </p>
-            <div className="mt-4 divide-y divide-brand-green-line">
-              {pos.postingReviewRows.slice(0, 5).map((row) => (
-                <div key={row.id} className="py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-mono text-xs font-bold text-brand-green-ink">{row.invoiceNumber}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge className={postingTone(row.signal)}>{row.signal}</Badge>
-                      {row.signal !== "Posted" ? <RepairPostingButton invoiceId={row.id} /> : null}
+                </>
+              ),
+            },
+            {
+              key: "close",
+              en: "🔒 Close",
+              ne: "🔒 बन्द",
+              content: (
+                <>
+                <section>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-black text-brand-green-ink"><T en="Today day close" ne="आजको दिन बन्द" /></h2>
+                      <p className="mt-1 text-sm text-brand-muted">
+                        Cash, cheque, QR, wallet, bank, credit, return, and posting review for today.
+                      </p>
+                    </div>
+                    <Badge className={pos.todayDayClose.postingNeedsReview > 0 ? postingTone("Needs Review") : postingTone("Posted")}>
+                      {pos.todayDayClose.postingNeedsReview > 0 ? `${pos.todayDayClose.postingNeedsReview} review` : "Ready"}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+                    <StatCard label={<T en="Cash" ne="नगद" />} value={money(pos.todayDayClose.cashAmount)} detail="counter cash" />
+                    <StatCard label={<T en="Cheque" ne="चेक" />} value={money(pos.todayDayClose.chequeAmount)} detail="cheque closing" />
+                    <StatCard label="QR" value={money(pos.todayDayClose.qrAmount)} detail="QR scan" />
+                    <StatCard label={<T en="eSewa/Khalti" ne="eSewa/Khalti" />} value={money(pos.todayDayClose.eSewaAmount + pos.todayDayClose.khaltiAmount)} detail="wallet total" />
+                    <StatCard label={<T en="Bank" ne="बैंक" />} value={money(pos.todayDayClose.bankAmount)} detail="bank transfer" />
+                    <StatCard label={<T en="Credit" ne="उधारो" />} value={money(pos.todayDayClose.creditAmount)} detail="ledger due" />
+                    <StatCard label={<T en="Net sales" ne="खुद बिक्री" />} value={money(pos.todayDayClose.netSales)} detail={`${money(pos.todayDayClose.returnsTotal)} return`} />
+                  </div>
+
+                  <div className="mt-6 grid gap-6 xl:grid-cols-3">
+                    <div className="overflow-x-auto">
+                      <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink"><T en="Payment close" ne="भुक्तानी अनुसार बन्द" /></h3>
+                      <table className="reflow-table mt-3 min-w-full text-sm">
+                        <thead className="border-b text-left text-brand-muted">
+                          <tr>
+                            <th className="py-2 pr-3">Method</th>
+                            <th className="py-2 pr-3">Paid</th>
+                            <th className="py-2 pr-3">Credit</th>
+                            <th className="py-2 pr-3">Net</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {pos.todayDayClose.paymentRows.map((row) => (
+                            <tr key={row.paymentMethod}>
+                              <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.paymentMethod}</td>
+                              <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
+                              <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
+                              <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink"><T en="Channel close" ne="बाटो अनुसार बन्द" /></h3>
+                      <table className="reflow-table mt-3 min-w-full text-sm">
+                        <thead className="border-b text-left text-brand-muted">
+                          <tr>
+                            <th className="py-2 pr-3">Channel</th>
+                            <th className="py-2 pr-3">Bills</th>
+                            <th className="py-2 pr-3">Return</th>
+                            <th className="py-2 pr-3">Net</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {pos.todayDayClose.channelRows.map((row) => (
+                            <tr key={row.channel}>
+                              <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.channel}</td>
+                              <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
+                              <td data-label="Return" className="py-2 pr-3">{money(row.returnTotal)}</td>
+                              <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink"><T en="Cashier close" ne="बिल काट्ने अनुसार बन्द" /></h3>
+                      {pos.todayDayClose.cashierRows.length === 0 ? (
+                        <p className="mt-3 text-sm text-brand-muted">No bills today.</p>
+                      ) : (
+                        <table className="reflow-table mt-3 min-w-full text-sm">
+                          <thead className="border-b text-left text-brand-muted">
+                            <tr>
+                              <th className="py-2 pr-3">Cashier</th>
+                              <th className="py-2 pr-3">Bills</th>
+                              <th className="py-2 pr-3">Paid</th>
+                              <th className="py-2 pr-3">Credit</th>
+                              <th className="py-2 pr-3">Net</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {pos.todayDayClose.cashierRows.map((row) => (
+                              <tr key={row.cashier}>
+                                <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.cashier}</td>
+                                <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
+                                <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
+                                <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
+                                <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    <StockMoved moved={row.linkedStockMovementCount} shoes={row.expectedStockMovementCount} kind={row.kind ?? ""} />
-                    {row.needsLedger ? ` | ledger ${row.ledgerLinked ? "linked" : "missing"}` : ""}
-                  </p>
-                  {row.issues ? <p className="mt-1 text-xs font-semibold text-brand-clay">{row.issues}</p> : null}
-                </div>
-              ))}
-              {pos.postingReviewRows.length === 0 ? (
-                <p className="py-3 text-sm text-brand-muted">No POS posting to review yet.</p>
-              ) : null}
-            </div>
-          </section>
-        </div>
+                </section>
+
+                <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-black text-brand-green-ink"><T en="Profit close" ne="नाफाको हिसाब" /></h2>
+                      <p className="mt-1 text-sm text-brand-muted">
+                        Daily, monthly, and yearly POS revenue after estimated material, labor, and overhead COGS.
+                      </p>
+                    </div>
+                    <Link
+                      href="/admin/costing"
+                      className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
+                    >
+                      Cost model
+                    </Link>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    {costing.periodReports.map((row) => (
+                      <ProfitPeriodCard key={row.label} row={row} />
+                    ))}
+                  </div>
+
+                  {costing.summary.missingCostDesigns > 0 ? (
+                    <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                      {costing.summary.missingCostDesigns} design rows still need material, labor, or overhead rates before profit is fully accurate.
+                    </div>
+                  ) : null}
+
+                  <div className="mt-6 overflow-x-auto">
+                    <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">
+                      <T en="Most profit by shoe" ne="सबैभन्दा नाफा दिने जुत्ता" />
+                    </h3>
+                    {topDesignProfit.length === 0 ? (
+                      <p className="mt-3 text-sm text-brand-muted"><T en="No profit by shoe yet." ne="जुत्ता अनुसार नाफा अझै छैन।" /></p>
+                    ) : (
+                      <table className="reflow-table mt-3 min-w-full text-sm">
+                        <thead className="border-b text-left text-brand-muted">
+                          <tr>
+                            <th className="py-2 pr-3"><T en="Design" ne="जुत्ता" /></th>
+                            <th className="py-2 pr-3"><T en="Revenue" ne="आम्दानी" /></th>
+                            <th className="py-2 pr-3"><T en="COGS" ne="लागत" /></th>
+                            <th className="py-2 pr-3"><T en="Profit" ne="नाफा" /></th>
+                            <th className="py-2 pr-3"><T en="Margin" ne="नाफा %" /></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {topDesignProfit.map((row) => (
+                            <DesignProfitRow key={row.design} row={row} />
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </section>
+
+
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
-
-      <section className="mt-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Today day close" ne="आजको दिन बन्द" /></h2>
-            <p className="mt-1 text-sm text-brand-muted">
-              Cash, cheque, QR, wallet, bank, credit, return, and posting review for today.
-            </p>
-          </div>
-          <Badge className={pos.todayDayClose.postingNeedsReview > 0 ? postingTone("Needs Review") : postingTone("Posted")}>
-            {pos.todayDayClose.postingNeedsReview > 0 ? `${pos.todayDayClose.postingNeedsReview} review` : "Ready"}
-          </Badge>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-          <StatCard label={<T en="Cash" ne="नगद" />} value={money(pos.todayDayClose.cashAmount)} detail="counter cash" />
-          <StatCard label={<T en="Cheque" ne="चेक" />} value={money(pos.todayDayClose.chequeAmount)} detail="cheque closing" />
-          <StatCard label="QR" value={money(pos.todayDayClose.qrAmount)} detail="QR scan" />
-          <StatCard label={<T en="eSewa/Khalti" ne="eSewa/Khalti" />} value={money(pos.todayDayClose.eSewaAmount + pos.todayDayClose.khaltiAmount)} detail="wallet total" />
-          <StatCard label={<T en="Bank" ne="बैंक" />} value={money(pos.todayDayClose.bankAmount)} detail="bank transfer" />
-          <StatCard label={<T en="Credit" ne="उधारो" />} value={money(pos.todayDayClose.creditAmount)} detail="ledger due" />
-          <StatCard label={<T en="Net sales" ne="खुद बिक्री" />} value={money(pos.todayDayClose.netSales)} detail={`${money(pos.todayDayClose.returnsTotal)} return`} />
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-3">
-          <div className="overflow-x-auto">
-            <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Payment close</h3>
-            <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-brand-muted">
-                <tr>
-                  <th className="py-2 pr-3">Method</th>
-                  <th className="py-2 pr-3">Paid</th>
-                  <th className="py-2 pr-3">Credit</th>
-                  <th className="py-2 pr-3">Net</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {pos.todayDayClose.paymentRows.map((row) => (
-                  <tr key={row.paymentMethod}>
-                    <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.paymentMethod}</td>
-                    <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
-                    <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
-                    <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="overflow-x-auto">
-            <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Channel close</h3>
-            <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-brand-muted">
-                <tr>
-                  <th className="py-2 pr-3">Channel</th>
-                  <th className="py-2 pr-3">Bills</th>
-                  <th className="py-2 pr-3">Return</th>
-                  <th className="py-2 pr-3">Net</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {pos.todayDayClose.channelRows.map((row) => (
-                  <tr key={row.channel}>
-                    <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.channel}</td>
-                    <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
-                    <td data-label="Return" className="py-2 pr-3">{money(row.returnTotal)}</td>
-                    <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="overflow-x-auto">
-            <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">Cashier close</h3>
-            {pos.todayDayClose.cashierRows.length === 0 ? (
-              <p className="mt-3 text-sm text-brand-muted">No bills today.</p>
-            ) : (
-              <table className="reflow-table mt-3 min-w-full text-sm">
-                <thead className="border-b text-left text-brand-muted">
-                  <tr>
-                    <th className="py-2 pr-3">Cashier</th>
-                    <th className="py-2 pr-3">Bills</th>
-                    <th className="py-2 pr-3">Paid</th>
-                    <th className="py-2 pr-3">Credit</th>
-                    <th className="py-2 pr-3">Net</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {pos.todayDayClose.cashierRows.map((row) => (
-                    <tr key={row.cashier}>
-                      <td className="reflow-primary py-2 pr-3 font-bold text-brand-green-ink">{row.cashier}</td>
-                      <td data-label="Bills" className="py-2 pr-3">{row.invoiceCount}</td>
-                      <td data-label="Paid" className="py-2 pr-3">{money(row.paidAmount)}</td>
-                      <td data-label="Credit" className="py-2 pr-3">{money(row.creditAmount)}</td>
-                      <td data-label="Net" className="py-2 pr-3 font-semibold">{money(row.netTotal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-black text-brand-green-ink"><T en="Profit close" ne="नाफाको हिसाब" /></h2>
-            <p className="mt-1 text-sm text-brand-muted">
-              Daily, monthly, and yearly POS revenue after estimated material, labor, and overhead COGS.
-            </p>
-          </div>
-          <Link
-            href="/admin/costing"
-            className="rounded-full border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink"
-          >
-            Cost model
-          </Link>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {costing.periodReports.map((row) => (
-            <ProfitPeriodCard key={row.label} row={row} />
-          ))}
-        </div>
-
-        {costing.summary.missingCostDesigns > 0 ? (
-          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-            {costing.summary.missingCostDesigns} design rows still need material, labor, or overhead rates before profit is fully accurate.
-          </div>
-        ) : null}
-
-        <div className="mt-6 overflow-x-auto">
-          <h3 className="text-sm font-black uppercase tracking-[0.16em] text-brand-green-ink">
-            Top design profit signal
-          </h3>
-          {topDesignProfit.length === 0 ? (
-            <p className="mt-3 text-sm text-brand-muted">No POS design profit data yet.</p>
-          ) : (
-            <table className="reflow-table mt-3 min-w-full text-sm">
-              <thead className="border-b text-left text-brand-muted">
-                <tr>
-                  <th className="py-2 pr-3">Design</th>
-                  <th className="py-2 pr-3">Revenue</th>
-                  <th className="py-2 pr-3">COGS</th>
-                  <th className="py-2 pr-3">Profit</th>
-                  <th className="py-2 pr-3">Margin</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {topDesignProfit.map((row) => (
-                  <DesignProfitRow key={row.design} row={row} />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-
-
       </>
       ) : null}
 
