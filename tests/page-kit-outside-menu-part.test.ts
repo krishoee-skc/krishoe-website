@@ -65,3 +65,27 @@ describe("Amount on paper", () => {
     expect(kit).toContain('<span className="hidden print:inline">{children}</span>');
   });
 });
+
+/** Part 7ख (2026-10-13): a purchase bill and a worker's production account. */
+describe("One purchase bill", () => {
+  it("is in both languages, a line an item on a phone, and the supplier's account a press away", async () => {
+    const bill = await read("app/admin/purchasing/[id]/page.tsx");
+    expect(nepaliWords(bill)).toBeGreaterThan(40);
+    expect(bill).toContain('<ul className="mt-6 grid list-none gap-2 pl-0 md:hidden print:hidden">');
+    expect(bill).toContain('<div className="mt-6 hidden overflow-x-auto md:block print:block">');
+    expect(bill).toContain("href={`/admin/purchasing/supplier/${invoice.supplierLedgerId}`}");
+    expect(bill).not.toContain("{invoice.status} / {invoice.postingStatus}");
+  });
+});
+
+describe("A worker's production account", () => {
+  it("leads with Saturday, folds the week's figures, and keeps reversing", async () => {
+    const page = await read("app/admin/operations/production-accounts/worker/[id]/page.tsx");
+    expect(nepaliWords(page)).toBeGreaterThan(80);
+    expect(page).toContain('id="production-worker"');
+    for (const key of ["pay", "work", "cash"]) expect(page).toContain(`key: "${key}"`);
+    expect(page).toContain('{ en: "to pay on Saturday", ne: "शनिबार दिनुपर्ने", value: account.statement.payable, money: true');
+    expect(page).toContain("<EnterWalkForm action={reverseProductionWorkEntryAction}");
+    expect(page).toContain("href={`/admin/factory/ledger?workerId=${encodeURIComponent(account.employee.id)}`}");
+  });
+});
