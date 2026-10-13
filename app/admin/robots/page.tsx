@@ -58,7 +58,7 @@ function Card({ card }: { card: RobotCard }) {
           <AlertText en={card.nameEn} ne={card.nameNe} />
         </h3>
       </div>
-      <p className="flex-grow text-[13px] leading-6 text-brand-muted">
+      <p className="flex-grow text-[0.8125rem] leading-6 text-brand-muted">
         <AlertText en={card.jobEn} ne={card.jobNe} />
       </p>
       <span
@@ -71,7 +71,7 @@ function Card({ card }: { card: RobotCard }) {
         <span className="text-xs text-brand-muted-soft tabular-nums">
           <AlertText en={card.metaEn} ne={card.metaNe} />
         </span>
-        <span className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-green">
+        <span className="inline-flex items-center gap-1 text-[0.8125rem] font-bold text-brand-green">
           <AlertText en="View" ne="हेर्ने" />
           <ArrowRightIcon className="h-3.5 w-3.5" />
         </span>
@@ -129,7 +129,7 @@ export default async function AdminRobotsPage() {
         {/* header + health */}
         <div className="flex flex-wrap items-end justify-between gap-5 border-b border-brand-green-line bg-brand-mist/50 p-6">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-brand-gold-deep">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-gold-deep">
               <AlertText en="Automation · Robots" ne="Robot दरबार · स्वचालन" />
             </p>
             <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink sm:text-4xl">
@@ -178,7 +178,7 @@ export default async function AdminRobotsPage() {
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <div className="flex items-start gap-3 rounded-2xl border border-dashed border-brand-gold bg-brand-mist/50 p-4">
               <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-brand-gold text-xs font-black text-brand-green-ink">1</span>
-              <p className="text-[13px] leading-6 text-brand-green-ink">
+              <p className="text-[0.8125rem] leading-6 text-brand-green-ink">
                 <AlertText
                   en="One place: every robot's status in one view, never scattered."
                   ne="एउटै ठाउँ: सबै robot को स्थिति एकै नजरमा, छरिएको छैन।"
@@ -187,7 +187,7 @@ export default async function AdminRobotsPage() {
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-dashed border-brand-gold bg-brand-mist/50 p-4">
               <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-brand-gold text-xs font-black text-brand-green-ink">2</span>
-              <p className="text-[13px] leading-6 text-brand-green-ink">
+              <p className="text-[0.8125rem] leading-6 text-brand-green-ink">
                 <AlertText
                   en="View takes you in: tap a card to open its detailed screen."
                   ne="हेर्ने ले लैजान्छ: card थिच्दा विस्तृत page मा पुगिन्छ।"
@@ -196,7 +196,7 @@ export default async function AdminRobotsPage() {
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-dashed border-brand-gold bg-brand-mist/50 p-4">
               <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-brand-gold text-xs font-black text-brand-green-ink">3</span>
-              <p className="text-[13px] leading-6 text-brand-green-ink">
+              <p className="text-[0.8125rem] leading-6 text-brand-green-ink">
                 <AlertText
                   en="No duplication: the detail stays in its own home — this is the switch board."
                   ne="दोहोरिँदैन: विवरण आफ्नै घरमै — यो त switch board मात्र।"

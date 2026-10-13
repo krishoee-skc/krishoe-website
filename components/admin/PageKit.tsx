@@ -75,7 +75,7 @@ export function StatStrip({ items }: { items: StatItem[] }) {
               <span className="truncate font-display text-lg font-black leading-tight tabular-nums sm:text-2xl" data-figure-hidden={item.money && !shown ? "" : undefined}>
                 {value}
               </span>
-              <span className="text-[11px] font-bold leading-tight opacity-80 sm:text-xs">{text(item.en, item.ne)}</span>
+              <span className="text-xs font-bold leading-tight opacity-80 sm:text-xs">{text(item.en, item.ne)}</span>
             </div>
           );
         })}
@@ -190,7 +190,7 @@ export function PageTabs({
             >
               {text(tab.en, tab.ne)}
               {tab.count ? (
-                <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] ${on ? "bg-white/25" : "bg-brand-clay text-white"}`}>
+                <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-xs ${on ? "bg-white/25" : "bg-brand-clay text-white"}`}>
                   {tab.count}
                 </span>
               ) : null}

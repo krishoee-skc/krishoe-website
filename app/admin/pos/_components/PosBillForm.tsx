@@ -541,7 +541,7 @@ export default function PosBillForm({
           type="button"
           onClick={() => changePairs(line, line.quantity - 1)}
           aria-label={text(`One pair less${size}`, `एक जोडी घटाउने${size}`)}
-          className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+          className="h-11 w-11 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
         >
           −
         </button>
@@ -550,7 +550,7 @@ export default function PosBillForm({
           type="button"
           onClick={() => changePairs(line, line.quantity + 1)}
           aria-label={text(`One pair more${size}`, `एक जोडी थप्ने${size}`)}
-          className="h-9 w-9 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
+          className="h-11 w-11 bg-brand-paper-deep text-lg font-black text-brand-green-ink"
         >
           +
         </button>
@@ -766,7 +766,7 @@ export default function PosBillForm({
           carries a small name above it. */}
       <div className="flex flex-wrap items-end gap-2">
         <div className="grid gap-0.5">
-        <span className="px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+        <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
           {text("What", "के गर्ने")}
         </span>
         <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Bill type", "बिलको किसिम")}>
@@ -792,7 +792,7 @@ export default function PosBillForm({
         </div>
         </div>
         <div className="grid gap-0.5">
-        <span className="px-1 text-[10px] font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+        <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
           {text("Who for", "कसलाई")}
         </span>
         <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Sales channel", "बिक्रीको बाटो")}>
@@ -968,7 +968,7 @@ export default function PosBillForm({
             ) : null}
 
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">1</span>
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">1</span>
               {text("Shoes", "जुत्ता")}
             </p>
             {cart.length === 0 ? (
@@ -1040,7 +1040,7 @@ export default function PosBillForm({
                             inputMode="numeric"
                             defaultValue={group.rate || ""}
                             aria-label={text(`New rate for ${first.design}`, `${first.design} को नयाँ रेट`)}
-                            className="h-9 w-28 rounded-lg border-2 border-brand-gold bg-brand-paper px-2 text-base tabular-nums outline-none"
+                            className="h-11 w-28 rounded-lg border-2 border-brand-gold bg-brand-paper px-2 text-base tabular-nums outline-none"
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
                                 event.preventDefault();
@@ -1082,7 +1082,7 @@ export default function PosBillForm({
                             type="button"
                             onClick={toggle}
                             aria-expanded={open}
-                            className="h-9 rounded-xl border border-brand-green-line bg-brand-paper-deep px-3 text-xs font-black text-brand-green-ink"
+                            className="h-11 rounded-xl border border-brand-green-line bg-brand-paper-deep px-3 text-sm font-black text-brand-green-ink"
                           >
                             {open ? text("▾ Sizes", "▾ साइज") : text("▸ Sizes", "▸ साइज")}
                           </button>
@@ -1109,7 +1109,7 @@ export default function PosBillForm({
                                 title={text("Tap to change the pairs", "जोडी फेर्न थिच्नुहोस्")}
                                 className="grid min-w-9 justify-items-center gap-0.5"
                               >
-                                <span className="text-[10px] font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>
+                                <span className="text-xs font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>
                                 <span className="grid h-8 min-w-10 place-items-center rounded-lg border-[1.5px] border-brand-green bg-brand-green-wash px-1 text-sm font-black tabular-nums text-brand-green lg:h-10 lg:min-w-12 lg:text-lg">
                                   {row.quantity}
                                 </span>
@@ -1175,7 +1175,7 @@ export default function PosBillForm({
                       setDiscountMode(mode);
                       setDiscountText("");
                     }}
-                    className={`h-9 rounded-full border px-3 text-sm font-bold ${
+                    className={`h-11 rounded-full border px-3 text-sm font-bold ${
                       discountMode === mode ? "border-brand-green bg-brand-green-tint text-brand-green" : "border-brand-green-line bg-brand-paper-deep"
                     }`}
                   >
@@ -1193,7 +1193,7 @@ export default function PosBillForm({
                   aria-label={text("Discount in rupees", "छुट रकम")}
                   // Off Enter's way to the customer and the cash (2026-10-04).
                   data-enter-skip=""
-                  className="h-9 w-24 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm tabular-nums outline-none focus:border-brand-green"
+                  className="h-11 w-24 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm tabular-nums outline-none focus:border-brand-green"
                 />
               </div>
             ) : null}
@@ -1241,7 +1241,7 @@ export default function PosBillForm({
             ) : null}
 
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">2</span>
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">2</span>
               {text("Customer", "ग्राहक")}
             </p>
             <div className="grid gap-2">
@@ -1348,7 +1348,7 @@ export default function PosBillForm({
 
             {!isReturn && (amountDue > 0 || !isExchange) ? (
               <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-[11px] text-white">3</span>
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">3</span>
                 {text("Payment", "भुक्तानी")}
               </p>
             ) : null}
@@ -1440,7 +1440,7 @@ export default function PosBillForm({
                       setReceived("");
                       setRestMethod("");
                     }}
-                    className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold"
+                    className="h-11 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold"
                   >
                     {text(`Exact ${money(amountDue + dueAmount)}`, `ठ्याक्कै ${money(amountDue + dueAmount)}`)}
                   </button>
@@ -1452,7 +1452,7 @@ export default function PosBillForm({
                         setReceived(String(noteValue));
                         setRestMethod("");
                       }}
-                      className="h-9 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold tabular-nums"
+                      className="h-11 rounded-full border border-brand-green-line bg-brand-paper px-3 text-sm font-bold tabular-nums"
                     >
                       {money(noteValue)}
                     </button>

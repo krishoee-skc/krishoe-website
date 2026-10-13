@@ -140,12 +140,12 @@ export default function PosSizeSheet({
                 className="relative flex h-16 flex-col items-center justify-center rounded-2xl border-2 border-brand-green-line bg-brand-paper-deep transition hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through"
               >
                 {index < 9 ? (
-                  <span className="absolute left-1.5 top-1 hidden font-mono text-[10px] text-brand-muted md:block" aria-hidden="true">
+                  <span className="absolute left-1.5 top-1 hidden font-mono text-xs text-brand-muted md:block" aria-hidden="true">
                     {index + 1}
                   </span>
                 ) : null}
                 <span className="text-xl font-black tabular-nums text-brand-green-ink">{choice.size}</span>
-                <span className="text-[11px] font-semibold text-brand-muted">
+                <span className="text-xs font-semibold text-brand-muted">
                   {returning
                     ? text("back", "फिर्ता")
                     : !choice.sellable

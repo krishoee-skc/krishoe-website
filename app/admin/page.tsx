@@ -99,7 +99,7 @@ function QuickTile({
       >
         <Icon className="h-6 w-6" />
       </span>
-      <span className="font-display text-[15px] font-bold leading-tight text-brand-green-ink">
+      <span className="font-display text-[0.9375rem] font-bold leading-tight text-brand-green-ink">
         <AlertText en={labelEn} ne={labelNe} />
       </span>
     </Link>

@@ -245,12 +245,12 @@ export default function WorkerInbox({
 
   const step = (number: number, label: string) => (
     <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.08em] text-brand-muted">
-      <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-green-ink text-[11px] text-white">{number}</span>
+      <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-green-ink text-xs text-white">{number}</span>
       {label}
     </p>
   );
   const chip = (on: boolean) =>
-    `min-h-9 rounded-full border px-3 text-xs font-black transition ${on ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink hover:border-brand-green"}`;
+    `min-h-11 rounded-full border px-3 text-sm font-black transition ${on ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink hover:border-brand-green"}`;
 
   return (
     <div className="grid gap-6">
@@ -259,15 +259,15 @@ export default function WorkerInbox({
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <div className={`rounded-2xl px-3 py-2 ${counts.check > 0 ? "bg-red-50 dark:bg-red-950/30" : "border border-brand-green-line"}`}>
             <p className={`whitespace-nowrap text-xl font-black tabular-nums sm:text-2xl ${counts.check > 0 ? "text-brand-clay" : "text-brand-green"}`}>{allToCheck.length}</p>
-            <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("To check", "जाँच्न बाँकी")}</p>
+            <p className="text-xs font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("To check", "जाँच्न बाँकी")}</p>
           </div>
           <div className="rounded-2xl border border-brand-green-line px-3 py-2">
             <p className="whitespace-nowrap text-xl font-black tabular-nums text-brand-green-ink sm:text-3xl">{rs(waitingRs)}</p>
-            <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("Waiting to book", "चढ्न बाँकी")}</p>
+            <p className="text-xs font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">{text("Waiting to book", "चढ्न बाँकी")}</p>
           </div>
           <div className="rounded-2xl border border-brand-green-line px-3 py-2">
             <p className="whitespace-nowrap text-xl font-black tabular-nums text-brand-green sm:text-3xl">{bookedThisWeek.length}</p>
-            <p className="text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">
+            <p className="text-xs font-black uppercase leading-tight tracking-[0.04em] text-brand-muted sm:text-xs">
               {text("Booked this week", "यो हप्ता चढेको")}{bookedRs > 0 ? ` · ${rs(bookedRs)}` : ""}
             </p>
           </div>
@@ -285,7 +285,7 @@ export default function WorkerInbox({
             >
               {text(item.en, item.ne)}
               {item.key === "check" && counts.check > 0 ? (
-                <span className="rounded-full bg-brand-clay px-1.5 text-[11px] leading-5 text-white">{counts.check}</span>
+                <span className="rounded-full bg-brand-clay px-1.5 text-xs leading-5 text-white">{counts.check}</span>
               ) : counts[item.key] > 0 ? (
                 <span className="text-xs font-bold text-brand-muted">{counts[item.key]}</span>
               ) : null}
@@ -295,12 +295,12 @@ export default function WorkerInbox({
 
         <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none]" role="group" aria-label={text("Worker", "कामदार")}>
           <button type="button" aria-pressed={!who} onClick={() => setWho("")} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm font-bold ${!who ? "border-brand-green bg-brand-green-wash text-brand-green-ink" : "border-brand-green-line text-brand-muted"}`}>
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-green text-[11px] font-black text-white">{text("ALL", "सबै")}</span>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-green text-xs font-black text-white">{text("ALL", "सबै")}</span>
             {text("Everyone", "सबै कामदार")}
           </button>
           {workers.map((name) => (
             <button key={name} type="button" aria-pressed={who === name} onClick={() => setWho(who === name ? "" : name)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm font-bold ${who === name ? "border-brand-green bg-brand-green-wash text-brand-green-ink" : "border-brand-green-line text-brand-muted"}`}>
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-gold-deep text-[11px] font-black text-white">{initials(name)}</span>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-gold-deep text-xs font-black text-white">{initials(name)}</span>
               {name}{perWorker(name) > 0 ? ` · ${perWorker(name)}` : ""}
             </button>
           ))}
@@ -402,7 +402,7 @@ export default function WorkerInbox({
                       )}
                       <div className="grid gap-2.5 p-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gold-deep text-[11px] font-black text-white">{initials(photo.workerName)}</span>
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gold-deep text-xs font-black text-white">{initials(photo.workerName)}</span>
                           <span className="min-w-0 leading-tight">
                             <span className="block truncate text-sm font-black text-brand-green-ink">{photo.workerName}</span>
                             <span className="block text-xs text-brand-muted">{factoryCategoryLabel(photo.workerCategory, language === "ne")} · {when(photo.createdAt)}</span>
@@ -553,7 +553,7 @@ export default function WorkerInbox({
                                     {colour}{colour === photo.robot?.color ? " 🤖" : colour === history[draft.itemId]?.color ? text(" · last time", " · पहिले") : ""}
                                   </button>
                                 ))}
-                                <input value={draft.color} onChange={(event) => change(photo, { color: event.target.value })} maxLength={40} placeholder={text("colour", "रङ")} aria-label={text("Colour", "रङ")} className="min-h-9 w-28 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs" />
+                                <input value={draft.color} onChange={(event) => change(photo, { color: event.target.value })} maxLength={40} placeholder={text("colour", "रङ")} aria-label={text("Colour", "रङ")} className="min-h-11 w-28 rounded-full border border-brand-green-line bg-brand-paper px-3 text-base" />
                               </div>
                               <div className="flex flex-wrap gap-1.5" role="group" aria-label={text("Size", "साइज")}>
                                 {history[draft.itemId]?.size ? (
@@ -566,7 +566,7 @@ export default function WorkerInbox({
                                     {single}
                                   </button>
                                 ))}
-                                <input value={draft.size} onChange={(event) => change(photo, { size: event.target.value })} maxLength={80} placeholder={text("e.g. 36, 37, 38", "जस्तै 36, 37, 38")} aria-label={text("Size", "साइज")} className="min-h-9 w-36 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs" />
+                                <input value={draft.size} onChange={(event) => change(photo, { size: event.target.value })} maxLength={80} placeholder={text("e.g. 36, 37, 38", "जस्तै 36, 37, 38")} aria-label={text("Size", "साइज")} className="min-h-11 w-36 rounded-full border border-brand-green-line bg-brand-paper px-3 text-base" />
                               </div>
                             </div>
 

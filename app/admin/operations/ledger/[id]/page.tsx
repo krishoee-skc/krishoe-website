@@ -159,7 +159,7 @@ export default async function CustomerLedgerDetailPage({ params, searchParams }:
                             placeholder="Why? e.g. entered twice"
                             className="min-h-10 rounded-lg border border-brand-clay/30 bg-brand-paper px-2 text-xs"
                           />
-                          <p className="text-[11px] leading-4 text-brand-clay">
+                          <p className="text-xs leading-4 text-brand-clay">
                             <T
                               en="The line stays, crossed out with this reason, and the balance moves back. Nothing is removed."
                               ne="लाइन यही कारणसहित काटिएर रहन्छ, र बाँकी पहिलेजस्तै हुन्छ। केही मेटिँदैन।"

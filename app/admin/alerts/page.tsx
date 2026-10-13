@@ -81,7 +81,7 @@ function AlertRow({ alert }: { alert: OperationalAlert }) {
     >
       <span className="flex items-center gap-2.5 sm:mt-1 sm:w-36 sm:shrink-0">
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
-        <span className={`text-[11px] font-black uppercase tracking-[0.14em] ${tone.text}`}>
+        <span className={`text-xs font-black uppercase tracking-[0.14em] ${tone.text}`}>
           {tone.ne} · {CATEGORY[alert.category].ne}
         </span>
       </span>
@@ -123,7 +123,7 @@ function SelfCheckRow({ check }: { check: SelfCheck }) {
     >
       <span className="flex items-center gap-2.5 sm:mt-1 sm:w-36 sm:shrink-0">
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
-        <span className={`text-[11px] font-black uppercase tracking-[0.14em] ${tone.text}`}>
+        <span className={`text-xs font-black uppercase tracking-[0.14em] ${tone.text}`}>
           {tone.ne} · <AlertText en="in the app" ne="app भित्र" />
         </span>
       </span>
@@ -186,7 +186,7 @@ export default async function AlertsPage() {
 
   return (
     <section className="p-4 sm:p-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-gold-deep">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-gold-deep">
         <AlertText en="Alerts" ne="चेतावनी" />
       </p>
       <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">

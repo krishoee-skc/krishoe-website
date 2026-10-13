@@ -68,7 +68,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
             <div className="mt-4 grid items-start gap-4 font-medium">
               {groups.map((group) => (
                 <div key={group.id} className="grid gap-1">
-                  <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
+                  <p className="px-3 pb-1 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
                     {text(group.titleEn, group.titleNe)}
                   </p>
                   {group.links.map(({ href, label, nepali, icon: Icon }) => {
@@ -88,7 +88,7 @@ export default function AdminDrawer({ isOpen, onClose, adminRole }: AdminDrawerP
                         <span className="grid leading-tight">
                           <span className="text-sm">{language === "ne" ? nepali : label}</span>
                           {language === "ne" ? (
-                            <span className="text-[11px] text-brand-muted-soft dark:text-white/60">
+                            <span className="text-xs text-brand-muted-soft dark:text-white/60">
                               {label}
                             </span>
                           ) : null}

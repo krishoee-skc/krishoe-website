@@ -245,7 +245,7 @@ export default async function AdminPurchasingPage({
           >
             <T en="← Back to the purchase bill" ne="← खरिद बिलमा फर्कने" />
           </Link>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Purchase" ne="किनमेल" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink"><T en="Purchasing and supplier ledger" ne="किनमेल र साहुको खाता" /></h1>

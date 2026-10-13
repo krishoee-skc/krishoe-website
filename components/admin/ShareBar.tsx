@@ -88,7 +88,7 @@ export default function ShareBar({
                   style={{ background: on ? shade(index, rows.length) : "var(--stack-empty,#E4DFD5)" }}
                 />
                 <p
-                  className={`mt-1.5 text-[11px] font-bold leading-4 ${
+                  className={`mt-1.5 text-xs font-bold leading-4 ${
                     on ? "text-brand-green-ink" : "text-brand-muted"
                   }`}
                 >

@@ -37,7 +37,7 @@ export default function AdminErrorPage({
         </p>
 
         <div className="mt-6 rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-brand-muted">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-muted">
             What failed
           </p>
           <p className="mt-2 break-words font-mono text-xs leading-5 text-brand-muted-deep">

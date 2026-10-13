@@ -14,6 +14,7 @@ import {
 // One shape for a person on the books, defined where they are read.
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
 import WorkerAppPanel, { type WorkerApp } from "./WorkerAppPanel";
+import { Amount, AmountsToggle } from "@/components/admin/PageKit";
 import { setWorkerLeaveAction } from "./actions";
 
 const categories = FACTORY_WORKER_CATEGORIES;
@@ -255,17 +256,47 @@ export default function TeamList({
                 : worker.worker_type.replaceAll("_", " ")}
             </p>
           </div>
-          {worker.status !== "active" ? (
-            <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
-              {text("Closed", "बन्द")}
-            </span>
-          ) : null}
+          {/* The card says the person at a glance (owner's sample 7ग,
+              2026-10-13): what they are owed behind the eye, and where they
+              are today. Correcting and the app open from the buttons below. */}
+          <div className="grid justify-items-end gap-1">
+            {worker.status === "active" && balances[worker.id] !== undefined ? (
+              <span className="text-sm font-black tabular-nums text-brand-green-ink">
+                {text("owed", "बाँकी")} <Amount>{`Rs. ${(balances[worker.id] ?? 0).toLocaleString("en-IN")}`}</Amount>
+              </span>
+            ) : null}
+            {worker.status !== "active" ? (
+              <span className="rounded-full bg-brand-green-line px-3 py-1 text-xs font-black text-brand-muted-deep">
+                {text("Closed", "बन्द")}
+              </span>
+            ) : onLeave?.[worker.id] ? (
+              <span className="rounded-full bg-brand-gold-bright px-3 py-1 text-xs font-black text-brand-green-ink">🟡 {text("On leave", "बिदा")}</span>
+            ) : (
+              <span className="rounded-full bg-brand-green-wash px-3 py-1 text-xs font-black text-brand-green">🟢 {text("At work", "काममा")}</span>
+            )}
+            {apps && worker.status === "active" ? (
+              <span className="text-xs font-bold text-brand-muted">📱 {apps[worker.id] ? text("app ✓", "app ✓") : text("no app", "app छैन")}</span>
+            ) : null}
+          </div>
           {/* Grey, not amber. An unlinked worker is not a fault: wages, piece
               rates and the worker portal all read this list directly, and
               the HR link only matters for the production-accounts ledger. Amber read as "fix
               me" and pointed at a module holding no attendance or payroll. */}
         </div>
 
+        <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
+          <Link
+            href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`}
+            className="inline-flex min-h-10 items-center rounded-full border border-brand-green-line px-3 text-brand-green"
+          >
+            📒 {worker.worker_type === "piece_rate" ? text("Worker ledger", "कामदारको खाता") : text("Salary ledger", "तलबको खाता")}
+          </Link>
+        </div>
+
+        <details className="mt-3 rounded-2xl border border-brand-green-line p-3">
+          <summary className="cursor-pointer text-sm font-black text-brand-green-ink">
+            ✏️ {worker.status === "active" ? text("Correct, or change where they are", "सच्याउने वा अवस्था फेर्ने") : text("Correct, or make active again", "सच्याउने वा फेरि चालु गर्ने")}
+          </summary>
         {/* What was typed can be typed again. The stage list comes from
             lib/factory-worker-options so it cannot drift from what the
             database will accept — it had already lost "Fibermen", which is
@@ -389,14 +420,16 @@ export default function TeamList({
             {saving === worker.id ? text("Saving…", "गर्दैछौँ…") : text("Make active again", "फेरि चालु गर्ने")}
           </button>
         )}
+        </details>
 
         {apps && (worker.status === "active" || apps[worker.id]) ? (
-          <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} workerActive={worker.status === "active"} />
+          <details className="mt-2 rounded-2xl border border-brand-green-line p-3">
+            <summary className="cursor-pointer text-sm font-black text-brand-green-ink">
+              📱 {text("Worker app", "कामदारको app")}
+            </summary>
+            <WorkerAppPanel workerId={worker.id} workerName={worker.name} app={apps[worker.id]} workerActive={worker.status === "active"} />
+          </details>
         ) : null}
-
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
-          <Link href={worker.worker_type === "piece_rate" ? `/admin/factory/ledger?workerId=${worker.id}` : `/admin/factory/salary?workerId=${worker.id}`} className="text-brand-green underline underline-offset-4">{worker.worker_type === "piece_rate" ? "Worker ledger" : "Salary ledger"}</Link>
-        </div>
       </article>
   );
 
@@ -408,14 +441,17 @@ export default function TeamList({
             {text("Our workers", "हाम्रा कामदार")}
           </p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-            {text("Workers and HR linkage", "कामदार")}
+            {text("Workers", "कामदार")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
-            Wages, piece rates and the worker portal all run from this list — nothing here needs an HR link. The link is only required for the production-accounts ledger, so leaving it empty costs nothing.
+            {text(
+              "Wages, piece rates and the worker app all run from this list. Press ✏️ on a card to correct it or change where they are; 📱 for their app.",
+              "ज्याला, दर र कामदारको app सबै यही सूचीबाट चल्छन्। सच्याउन वा अवस्था फेर्न card मा ✏️ थिच्नुहोस्; app का लागि 📱।",
+            )}
           </p>
         </div>
         <button type="button" onClick={() => setShowForm((value) => !value)} className="min-h-11 rounded-full bg-brand-green px-5 text-sm font-black text-white">
-          {showForm ? "Close form" : text("+ Add member", "+ सदस्य थप्ने")}
+          {showForm ? text("Close form", "form बन्द गर्ने") : text("+ Add member", "+ सदस्य थप्ने")}
         </button>
       </div>
 
@@ -426,6 +462,20 @@ export default function TeamList({
             `${workers.filter((worker) => worker.status === "active").length} जना काममा`,
           )}
         </span>
+        {onLeave && Object.keys(onLeave).length > 0 ? (
+          <span className="rounded-full bg-brand-gold-bright/40 px-3 py-1.5 text-brand-green-ink">
+            {text(`${Object.keys(onLeave).length} on leave`, `${Object.keys(onLeave).length} जना बिदामा`)}
+          </span>
+        ) : null}
+        {apps ? (
+          <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted">
+            {text(
+              `${workers.filter((worker) => worker.status === "active" && !apps[worker.id]).length} without the app`,
+              `${workers.filter((worker) => worker.status === "active" && !apps[worker.id]).length} जनासँग app छैन`,
+            )}
+          </span>
+        ) : null}
+        <AmountsToggle />
       </div>
 
       {message ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">{message}</p> : null}

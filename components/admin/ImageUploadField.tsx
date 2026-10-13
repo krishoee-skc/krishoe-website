@@ -202,7 +202,7 @@ export default function ImageUploadField({
                 onClick={() => removeUrl(url)}
                 aria-label="Remove this photo"
                 title="Remove this photo"
-                className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[10px] font-black text-white transition hover:bg-brand-danger"
+                className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-xs font-black text-white transition hover:bg-brand-danger"
               >
                 ✕
               </button>

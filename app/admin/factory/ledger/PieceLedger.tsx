@@ -330,7 +330,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
           </div>
           {/* Nothing is removed: the line stays, struck through,
               and its wage stops counting. */}
-          <p className="text-[11px] leading-4 text-brand-clay">
+          <p className="text-xs leading-4 text-brand-clay">
             {text(
               "The line stays, struck through with this reason, and its wage stops counting. Nothing is removed.",
               "लाइन यही कारणसहित काटिएर रहन्छ, र यसको ज्याला गनिँदैन। केही मेटिँदैन।",
@@ -386,7 +386,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
           {/* What the wage becomes, before it is saved —
               a correction that moves money should say so
               first. */}
-          <p className="text-[11px] leading-4 text-brand-green-ink">
+          <p className="text-xs leading-4 text-brand-green-ink">
             {editForm.pairs && editForm.rate
               ? text(
                   `Wage becomes Rs. ${(Number(editForm.pairs) * Number(editForm.rate)).toLocaleString("en-IN")}`,
@@ -533,7 +533,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
               owner had to look for the name to be sure whose wages they were
               about to pay. It leads now, and says what it is. */}
           <div className="rounded-lg border-2 border-brand-gold/50 bg-brand-gold/10 p-4 sm:p-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
               {text("Account of", "यो खाता कसको")}
             </p>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -699,7 +699,7 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
                         <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">
                           KRISHOE
                         </p>
-                        <p className="text-[11px] text-brand-muted">
+                        <p className="text-xs text-brand-muted">
                           {businessContact.streetAddress}, {businessContact.addressLocality} ·{" "}
                           {businessContact.phoneDisplay}
                         </p>
@@ -708,11 +708,11 @@ export default function PieceLedger({ initialWorkers, canFix = false }: { initia
                             <p className="text-base font-black text-brand-green-ink">
                               {ledgerData.worker.name}
                             </p>
-                            <p className="text-[12px] text-brand-muted">
+                            <p className="text-xs text-brand-muted">
                               {text("Worker ledger", "कामदारको खाता")} · {month}
                             </p>
                           </div>
-                          <p className="text-[11px] text-brand-muted">
+                          <p className="text-xs text-brand-muted">
                             {text("Printed:", "छापिएको:")} <PrintedOn />
                           </p>
                         </div>

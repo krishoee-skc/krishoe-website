@@ -210,12 +210,12 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
       >
         {previewable ? <Image src={image} alt={product.name} fill sizes="(max-width: 640px) 45vw, 220px" className="object-cover" /> : null}
         {previewable ? (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white">
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-white">
             <SearchIcon className="h-3.5 w-3.5" /> {text("See it big", "ठूलो हेर्ने")}
           </span>
         ) : null}
         {!product.hasRealPhoto ? (
-          <span className="absolute left-2 top-2 rounded-full bg-brand-clay px-2.5 py-1 text-[11px] font-black text-white">{text("No photo", "फोटो छैन")}</span>
+          <span className="absolute left-2 top-2 rounded-full bg-brand-clay px-2.5 py-1 text-xs font-black text-white">{text("No photo", "फोटो छैन")}</span>
         ) : null}
         {busy ? (
           <span className="absolute inset-0 grid place-items-center bg-brand-paper/75 text-sm font-black text-brand-green-ink">{text("Working…", "हुँदैछ…")}</span>
@@ -224,7 +224,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
 
       <div>
         <h3 className="truncate font-black text-brand-green-ink">{product.name}</h3>
-        <p className="truncate font-mono text-[11px] text-brand-muted-soft">
+        <p className="truncate font-mono text-xs text-brand-muted-soft">
           {product.sku} · {text(`${photos.length} photo${photos.length === 1 ? "" : "s"}`, `${photos.length} फोटो`)}{video ? " · 🎬" : ""}
         </p>
       </div>
@@ -243,7 +243,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
               >
                 <Image src={url} alt="" fill sizes="56px" className="object-cover" />
                 {url === image ? (
-                  <span className="absolute inset-x-0 bottom-0 bg-brand-green text-center text-[9px] font-black text-white">{text("Cover", "मुख्य")}</span>
+                  <span className="absolute inset-x-0 bottom-0 bg-brand-green text-center text-xs font-black text-white">{text("Cover", "मुख्य")}</span>
                 ) : null}
               </button>
               {photos.length > 1 ? (
@@ -319,7 +319,7 @@ export default function PhotoCard({ product }: { product: PhotoProduct }) {
         >
           🎬 {video ? text("Replace the video", "भिडियो फेर्ने") : text("Add a 10-second video", "१० सेकेन्डको भिडियो थप्ने")}
         </button>
-        <p className="text-[11px] leading-4 text-brand-muted">
+        <p className="text-xs leading-4 text-brand-muted">
           {text("Turn the shoe slowly in daylight. Up to 20 MB.", "उज्यालोमा जुत्ता बिस्तारै घुमाउँदै खिच्नुहोस्। २० MB सम्म।")}
         </p>
       </div>

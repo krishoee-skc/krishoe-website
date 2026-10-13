@@ -33,6 +33,6 @@ describe("the purchase bill's writing", () => {
     const form = await read();
     expect(form).not.toMatch(/(?<=[\s"'`:])text-(xs|\[1[01]px\])(?=[\s"'`])/);
     expect(form).toContain('"h-12 rounded-md border px-3 text-base outline-none');
-    expect(form.split('<h3 className="text-[17px] font-black text-brand-green-ink">').length - 1).toBe(4);
+    expect(form.split('<h3 className="text-[1.0625rem] font-black text-brand-green-ink">').length - 1).toBe(4);
   });
 });

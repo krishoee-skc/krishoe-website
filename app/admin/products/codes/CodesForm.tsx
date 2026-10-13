@@ -63,7 +63,7 @@ export default function CodesForm({ rows }: { rows: Row[] }) {
       <div className="overflow-x-auto rounded-lg border border-brand-green-line bg-brand-paper">
         <table className="reflow-table w-full text-sm md:min-w-[560px]">
           <thead>
-            <tr className="text-left text-[11px] font-black uppercase tracking-[0.12em] text-brand-muted">
+            <tr className="text-left text-xs font-black uppercase tracking-[0.12em] text-brand-muted">
               <th className="px-3 py-2">{text("Shoe", "जुत्ता")}</th>
               <th className="px-3 py-2">{text("Old code", "पुरानो कोड")}</th>
               <th className="px-3 py-2">{text("New code", "नयाँ कोड")}</th>

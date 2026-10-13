@@ -322,7 +322,7 @@ export default function ReadyToPost({ refreshKey }: { refreshKey: number }) {
                       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
                         {sizeValues(item).map(({ size, value }) => (
                           <label key={size} className="block">
-                            <span className="block text-center text-[11px] font-bold text-brand-muted">{size}</span>
+                            <span className="block text-center text-xs font-bold text-brand-muted">{size}</span>
                             <input
                               type="number"
                               min={0}

@@ -188,7 +188,7 @@ export default function StaffAccessManager({
                     {member.email && member.phone ? (
                       <p className="truncate text-xs text-brand-muted">{formatStaffPhone(member.phone)}</p>
                     ) : null}
-                    <p className="mt-1 font-mono text-[11px] text-brand-muted-soft">{member.id}</p>
+                    <p className="mt-1 font-mono text-xs text-brand-muted-soft">{member.id}</p>
                   </div>
                   <span className="flex flex-wrap justify-end gap-1.5">
                     {view?.signInBlocked ? (
@@ -260,7 +260,7 @@ export default function StaffAccessManager({
 
                 <details className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
                   <summary className="cursor-pointer text-sm font-black text-brand-green-ink">Permission preview · {permissions.length} allowed</summary>
-                  <div className="mt-3 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">{permissionLabel(permission)}</span>)}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">{permissions.map((permission) => <span key={permission} className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">{permissionLabel(permission)}</span>)}</div>
                 </details>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">

@@ -80,7 +80,7 @@ export default async function ProductPhotosPage() {
         {photoTips.map((tip) => (
           <li
             key={tip.en}
-            className="flex items-start gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5 text-[13px] leading-5 text-brand-green-ink"
+            className="flex items-start gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2.5 text-[0.8125rem] leading-5 text-brand-green-ink"
           >
             <span aria-hidden className="text-base leading-5">{tip.icon}</span>
             <span><T en={tip.en} ne={tip.ne} /></span>

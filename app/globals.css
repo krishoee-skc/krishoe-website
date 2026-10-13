@@ -408,7 +408,9 @@ table th,
     content: attr(data-label);
     flex: 0 0 auto;
     text-align: left;
-    font-size: 10px;
+    /* 12px and in rem (owner, 2026-10-13): no admin text below 12px, and it
+       grows with the text-size switch. */
+    font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -740,6 +742,12 @@ html[lang="ne"] .reflow-table td[data-label-ne]::before {
    at all. This gives it an A4 page with sane margins and lets the receipt take
    only the height it needs, so a one-page bill stays one page. */
 @media print {
+  /* Paper prints at the normal size whatever text size the screen was set
+     to (the admin's text-size switch sets the root font inline). */
+  html {
+    font-size: 100% !important;
+  }
+
   /* Only the margin is set, not the paper size — pinning size to A4 locked the
      print dialog to A4 and hid the A5/Letter chooser. Left open, the shop picks
      the paper (A4 for a full page, A5 for a smaller bill) and the layout fits

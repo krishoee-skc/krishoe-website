@@ -72,12 +72,12 @@ function Card({ card }: { card: ReportCard }) {
         <p className="text-sm font-black text-brand-muted-deep">
           <AlertText en={card.titleEn} ne={card.titleNe} />
         </p>
-        <p className="mt-2 flex-grow text-[13px] leading-6 text-brand-muted">
+        <p className="mt-2 flex-grow text-[0.8125rem] leading-6 text-brand-muted">
           <AlertText en={card.emptyEn} ne={card.emptyNe} />
         </p>
         <Link
           href={card.actionHref}
-          className="mt-4 inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-brand-green px-4 text-[13px] font-black text-white transition hover:bg-brand-green-ink"
+          className="mt-4 inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-brand-green px-4 text-[0.8125rem] font-black text-white transition hover:bg-brand-green-ink"
         >
           <AlertText en={card.actionEn} ne={card.actionNe} />
           <ArrowRightIcon className="h-4 w-4" />
@@ -117,7 +117,7 @@ function Card({ card }: { card: ReportCard }) {
           <Change change={card.change} />
         </p>
       ) : null}
-      <p className="mt-2 text-[13px] leading-5 text-brand-muted">
+      <p className="mt-2 text-[0.8125rem] leading-5 text-brand-muted">
         <AlertText en={card.detailEn} ne={card.detailNe} />
       </p>
     </Link>
@@ -151,7 +151,7 @@ export default async function ReportsPage({
 
   return (
     <section className="p-4 sm:p-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-gold-deep">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-gold-deep">
         <AlertText en="Report" ne="हिसाब" />
       </p>
       <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
@@ -204,7 +204,7 @@ export default async function ReportsPage({
           <div className="flex items-start gap-3">
             <SparkIcon />
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#5B3A6E]">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#5B3A6E]">
                 <AlertText en="The app noticed" ne="app ले भेटेको" />
               </p>
               <p className="mt-2 text-lg font-black leading-snug text-[#3F2750]">

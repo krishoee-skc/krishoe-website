@@ -270,7 +270,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
         </div>
         <p
           aria-live="polite"
-          className="truncate rounded-xl bg-brand-green-wash px-3 py-2 text-[15px] font-bold text-brand-green-ink"
+          className="truncate rounded-xl bg-brand-green-wash px-3 py-2 text-[0.9375rem] font-bold text-brand-green-ink"
           key={turn}
         >
           {headline ? text(headline.en, headline.ne) : null}
@@ -358,10 +358,10 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
               <Link
                 key={action.href}
                 href={action.href}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-[15px] font-black text-brand-green-ink shadow-sm transition hover:-translate-y-0.5"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-[0.9375rem] font-black text-brand-green-ink shadow-sm transition hover:-translate-y-0.5"
               >
                 {text(action.en, action.ne)}
-                <kbd className="hidden rounded border border-brand-green-line px-1 text-[11px] font-bold text-brand-muted sm:inline">{action.key}</kbd>
+                <kbd className="hidden rounded border border-brand-green-line px-1 text-xs font-bold text-brand-muted sm:inline">{action.key}</kbd>
               </Link>
             ))}
           </div>
@@ -522,7 +522,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                           >
                             <span className="truncate">
                               {shoe.name}{" "}
-                              <span className={`rounded-full px-1.5 text-[10px] font-black ${shoe.web ? "bg-brand-green-wash text-brand-green" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
+                              <span className={`rounded-full px-1.5 text-xs font-black ${shoe.web ? "bg-brand-green-wash text-brand-green" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
                                 {shoe.web ? text("web", "web") : text("draft", "draft")}
                               </span>
                             </span>
@@ -587,7 +587,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                       { en: "Not matching", ne: "ठाउँ नमिलेको", value: props.factory.mismatched, tone: props.factory.mismatched ? "text-brand-clay" : "text-brand-green" },
                     ].map((cell) => (
                       <div key={cell.en} className="rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2">
-                        <span className="block text-[11px] font-black text-brand-muted">{text(cell.en, cell.ne)}</span>
+                        <span className="block text-xs font-black text-brand-muted">{text(cell.en, cell.ne)}</span>
                         <b className={`text-xl tabular-nums ${cell.tone}`}>{cell.value}</b>
                       </div>
                     ))}

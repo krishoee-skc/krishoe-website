@@ -96,7 +96,7 @@ export default function CampaignLinkMaker() {
       </div>
 
       <div className="mt-6 rounded-xl border border-dashed border-brand-gold bg-brand-mist p-4">
-        <p className="break-all font-mono text-[13px] leading-6 text-brand-green-ink">{url}</p>
+        <p className="break-all font-mono text-[0.8125rem] leading-6 text-brand-green-ink">{url}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
@@ -118,7 +118,7 @@ export default function CampaignLinkMaker() {
         </div>
       </div>
 
-      <p className="mt-4 text-[13px] leading-6 text-brand-muted">
+      <p className="mt-4 text-[0.8125rem] leading-6 text-brand-muted">
         {text("Put this link in the post. A week later the table above shows", "यही लिङ्क पोस्टमा राख्नुहोस्। एक हप्तापछि माथिको तालिकामा")}{" "}
         <strong className="text-brand-green-ink">{text(source.showsAsEn, source.showsAsNe)}</strong>
         {text(".", " देखिन्छ।")}

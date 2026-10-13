@@ -80,7 +80,7 @@ async function alertWorker() {
 const guideClass = "mt-4 grid gap-2 rounded-xl bg-brand-clay-mist px-4 py-3 text-sm text-brand-clay";
 const stepClass = "flex items-start gap-2";
 const stepNumberClass =
-  "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-green text-[11px] font-black text-white";
+  "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-green text-xs font-black text-white";
 const copyButtonClass =
   "min-h-11 justify-self-start rounded-full border border-brand-clay/30 bg-white px-5 text-sm font-black text-brand-green-ink";
 

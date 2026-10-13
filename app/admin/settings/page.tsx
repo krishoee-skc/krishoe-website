@@ -594,7 +594,7 @@ export default async function AdminSettingsPage({
                   <div className="rounded-lg border border-brand-green-line bg-brand-paper p-3"><p className="text-xs font-black uppercase text-brand-muted">Before</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-brand-muted-deep">{JSON.stringify(entry.beforeState, null, 2)}</pre></div>
                   <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3"><p className="text-xs font-black uppercase text-emerald-700">After</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-emerald-900">{JSON.stringify(entry.afterState, null, 2)}</pre></div>
                 </div>
-                <p className="mt-3 text-[11px] text-brand-muted">IP {entry.ipAddress || "not available"} · {entry.userAgent ? entry.userAgent.slice(0, 100) : "device not available"}</p>
+                <p className="mt-3 text-xs text-brand-muted">IP {entry.ipAddress || "not available"} · {entry.userAgent ? entry.userAgent.slice(0, 100) : "device not available"}</p>
               </details>
             );
           })}

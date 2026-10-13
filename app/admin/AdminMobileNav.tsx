@@ -146,7 +146,7 @@ export default function AdminMobileNav({
 
           {groups.map((group) => (
             <div key={group.id} className="mt-4">
-              <p className="px-1 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-brand-muted-soft">
+              <p className="px-1 pb-2 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft">
                 {text(group.titleEn, group.titleNe)}
               </p>
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
@@ -157,7 +157,7 @@ export default function AdminMobileNav({
                     <Link
                       key={`${group.id}-${href}`}
                       href={href}
-                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-[17px] font-bold transition ${
+                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-[1.0625rem] font-bold transition ${
                         active
                           ? "border-brand-green bg-brand-green-wash text-brand-green"
                           : "border-brand-green-line text-brand-green-ink hover:border-brand-green"

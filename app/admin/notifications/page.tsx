@@ -125,7 +125,7 @@ export default async function AdminNotificationsPage() {
     <section className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Alerts" ne="सूचना" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">Notification delivery</h1>

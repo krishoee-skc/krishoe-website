@@ -247,7 +247,7 @@ export default function NepaliDateField({
               →
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] font-black text-brand-muted-soft">
+          <div className="grid grid-cols-7 gap-1 pb-1 text-center text-xs font-black text-brand-muted-soft">
             {NP_WEEKDAYS.map((w) => (
               <span key={w}>{w}</span>
             ))}

@@ -162,7 +162,7 @@ export default function AdminNav({
                       >
                         <Icon className="h-5 w-5" />
                         {waiting > 0 && isCollapsed ? (
-                          <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-brand-clay px-1 text-center text-[11px] font-black leading-5 text-white ring-2 ring-admin-sidebar dark:ring-admin-sidebar-dark">
+                          <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-brand-clay px-1 text-center text-xs font-black leading-5 text-white ring-2 ring-admin-sidebar dark:ring-admin-sidebar-dark">
                             {waiting > 99 ? "99+" : waiting}
                           </span>
                         ) : needs ? (
@@ -185,7 +185,7 @@ export default function AdminNav({
                           all, which is the whole point of the switch. */}
                       {!isCollapsed && (
                         <span className="grid leading-tight">
-                          <span className="text-[19px]">{language === "ne" ? nepali : label}</span>
+                          <span className="text-[1.1875rem]">{language === "ne" ? nepali : label}</span>
                           {language === "ne" ? (
                             <span className="text-xs font-semibold text-brand-muted-soft dark:text-white/60">
                               {label}

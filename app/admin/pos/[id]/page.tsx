@@ -360,13 +360,13 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
         {/* What this system adds over a plain paper bill: the sales channel, a
             scannable barcode and QR, and a one-tap WhatsApp send. */}
         <div className="mt-4 flex items-center gap-3 border-t border-dashed border-brand-green-line pt-3">
-          <span className="shrink-0 rounded-full border border-brand-green-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-brand-green-ink">
+          <span className="shrink-0 rounded-full border border-brand-green-ink px-2.5 py-1 text-xs font-black uppercase tracking-wide text-brand-green-ink">
             {invoice.channel}
           </span>
           <img src={`/api/admin/pos/${invoice.id}/barcode`} alt={`Barcode for ${invoice.invoiceNumber}`} className="h-9 flex-1 object-contain" />
           <img src={`/api/admin/pos/${invoice.id}/qr`} alt={`QR code for ${invoice.invoiceNumber}`} className="h-12 w-12 shrink-0 object-contain" />
           {invoice.phone ? (
-            <span className="shrink-0 rounded-full border border-emerald-500 px-2.5 py-1 text-[10px] font-black text-emerald-700 print:hidden">WhatsApp ✓</span>
+            <span className="shrink-0 rounded-full border border-emerald-500 px-2.5 py-1 text-xs font-black text-emerald-700 print:hidden">WhatsApp ✓</span>
           ) : null}
         </div>
 
@@ -382,7 +382,7 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
             already knows about itself, so there is no second place to keep
             them in step. */}
         {company.billFooterNote ? (
-          <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-[11px] font-bold text-brand-green-ink">
+          <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-xs font-bold text-brand-green-ink">
             {company.billFooterNote}
           </p>
         ) : null}
@@ -392,7 +392,7 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
             reaches them (owner, 2026-09-29). */}
         <div className="mt-3 flex items-center justify-center gap-3 border-t border-dashed border-brand-green-line pt-2">
           <img src="/api/admin/review-qr" alt="QR code for the KRISHOE review page" className="h-16 w-16 shrink-0 object-contain" />
-          <p className="text-left text-[12px] font-bold leading-snug text-brand-green-ink">
+          <p className="text-left text-xs font-bold leading-snug text-brand-green-ink">
             <T
               en="How were your shoes? Scan the QR and write two lines 🙏"
               ne="जुत्ता कस्तो लाग्यो? QR स्क्यान गरी दुई शब्द लेखिदिनुहोस् 🙏"
@@ -401,13 +401,13 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
           </p>
         </div>
 
-        <p className="mt-1 text-center text-[11px] text-brand-muted">
+        <p className="mt-1 text-center text-xs text-brand-muted">
           {company.phone ? <>☎ {company.phone} · </> : null}
           {businessContact.whatsappDisplay ? <>WhatsApp {businessContact.whatsappDisplay} · </> : null}
           <span className="font-bold">{shopDomain}</span>
         </p>
 
-        <p className="mt-1 text-center text-[11px] text-brand-muted">
+        <p className="mt-1 text-center text-xs text-brand-muted">
           Billed by {invoice.cashier} · KRISHOE POS
         </p>
       </div>

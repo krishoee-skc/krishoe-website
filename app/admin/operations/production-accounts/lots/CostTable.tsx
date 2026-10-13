@@ -110,7 +110,7 @@ function CostLine({ row }: { row: CostRow }) {
           {money(row.wage)}
         </p>
         <p
-          className={`mt-0.5 text-[11px] ${row.stages.length < STAGE_COUNT ? "font-bold text-amber-800" : "text-brand-muted"}`}
+          className={`mt-0.5 text-xs ${row.stages.length < STAGE_COUNT ? "font-bold text-amber-800" : "text-brand-muted"}`}
           title={row.stages.map((stage) => `${stage.stage} ${money(stage.rate)}`).join(" · ")}
         >
           {row.stages.length === 0

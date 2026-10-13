@@ -251,10 +251,10 @@ export default async function AdminDuesPage() {
           {/* Paper only — on screen the shop's name is already in the nav. */}
           <div className="mb-2 hidden border-b border-brand-green-line pb-2 print:block">
             <p className="text-base font-black uppercase tracking-[0.16em] text-brand-green-ink">KRISHOE</p>
-            <p className="text-[11px] text-brand-muted">
+            <p className="text-xs text-brand-muted">
               {businessContact.streetAddress}, {businessContact.addressLocality} · {businessContact.phoneDisplay}
             </p>
-            <p className="mt-1 text-[11px] text-brand-muted">
+            <p className="mt-1 text-xs text-brand-muted">
               <T en="Printed" ne="छापिएको" />: <PrintedOn />
             </p>
           </div>

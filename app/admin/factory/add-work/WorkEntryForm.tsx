@@ -919,7 +919,7 @@ export default function WorkEntryForm({
                 setFormData((prev) => ({ ...prev, date: todayKey }));
                 setPickingDate(false);
               }}
-              className={`min-h-9 rounded-full border px-3 text-xs font-bold ${
+              className={`min-h-11 rounded-full border px-3 text-sm font-bold ${
                 formData.date === todayKey ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"
               }`}
             >
@@ -931,7 +931,7 @@ export default function WorkEntryForm({
                 setFormData((prev) => ({ ...prev, date: yesterdayKey }));
                 setPickingDate(false);
               }}
-              className={`min-h-9 rounded-full border px-3 text-xs font-bold ${
+              className={`min-h-11 rounded-full border px-3 text-sm font-bold ${
                 formData.date === yesterdayKey ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"
               }`}
             >
@@ -940,7 +940,7 @@ export default function WorkEntryForm({
             <button
               type="button"
               onClick={() => setPickingDate((open) => !open)}
-              className={`min-h-9 rounded-full border px-3 text-xs font-bold ${
+              className={`min-h-11 rounded-full border px-3 text-sm font-bold ${
                 formData.date !== todayKey && formData.date !== yesterdayKey
                   ? "border-brand-green bg-brand-green text-white"
                   : "border-brand-green-line text-brand-green-ink"
@@ -1164,7 +1164,7 @@ export default function WorkEntryForm({
                       key={chip.key}
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, color: chip.value }))}
-                      className={`press-dip inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition ${
+                      className={`press-dip inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-bold transition ${
                         active
                           ? "border-brand-green bg-brand-green text-white"
                           : chip.star
@@ -1210,7 +1210,7 @@ export default function WorkEntryForm({
                       key={`${chip.star ? "star" : "run"}:${sizeRunKey(chip.value)}`}
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, size: chip.value }))}
-                      className={`press-dip inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-black tabular-nums transition ${
+                      className={`press-dip inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-black tabular-nums transition ${
                         active
                           ? "border-brand-green bg-brand-green text-white"
                           : chip.star
@@ -1235,7 +1235,7 @@ export default function WorkEntryForm({
                         key={size}
                         type="button"
                         onClick={() => setFormData((prev) => ({ ...prev, size: toggleSize(prev.size, size) }))}
-                        className={`press-dip grid h-9 min-w-9 place-items-center rounded-md border px-1 text-xs font-black transition ${
+                        className={`press-dip grid h-11 min-w-11 place-items-center rounded-md border px-1 text-sm font-black transition ${
                           active
                             ? "border-brand-green bg-brand-green text-white"
                             : "border-brand-green-line text-brand-muted hover:border-brand-green"
@@ -1267,7 +1267,7 @@ export default function WorkEntryForm({
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                       {countableSizes.map((size) => (
                         <label key={size} className="block">
-                          <span className="block text-center text-[11px] font-bold text-brand-muted">
+                          <span className="block text-center text-xs font-bold text-brand-muted">
                             {size}
                           </span>
                           <input
@@ -1299,7 +1299,7 @@ export default function WorkEntryForm({
                   <button
                     type="button"
                     onClick={openSizeCounts}
-                    className="press-dip mt-2 inline-flex min-h-9 items-center rounded-lg border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
+                    className="press-dip mt-2 inline-flex min-h-11 items-center rounded-lg border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
                   >
                     {text("Sizes are not equal?", "साइज बराबर छैन?")}
                   </button>

@@ -797,7 +797,7 @@ export default function MonitoringDashboard() {
                             </span>
                           ) : null}
                           {oneOff ? (
-                            <span className="ml-1 block text-[11px] leading-4">
+                            <span className="ml-1 block text-xs leading-4">
                               <AlertText
                                 en="one phone on a slow connection"
                                 ne="एउटा फोन, सुस्त नेटमा"

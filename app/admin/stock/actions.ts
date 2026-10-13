@@ -216,7 +216,10 @@ export async function setPlaceCountAction(
   _previous: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAdminPermission("stock:read");
+  // Changing a place's count is a write (owner, 2026-10-13): it needed only
+  // stock:read, so a Viewer or Sales sign-in could set the shop's pairs. The
+  // same permission as the 🔢 Count on each shoe.
+  await requireAdminPermission("operations:write");
 
   const design = textValue(formData, "design");
   if (!design) return { ok: false, message: "Which shoe is being counted?" };

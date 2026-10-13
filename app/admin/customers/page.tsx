@@ -150,7 +150,7 @@ export default async function AdminCustomersPage() {
     ) : null;
 
   const stagePill = (row: CustomerRow) => (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black ${STAGE_META[row.stage].className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-black ${STAGE_META[row.stage].className}`}>
       <span aria-hidden="true">{STAGE_META[row.stage].icon}</span>
       <T en={STAGE_META[row.stage].en} ne={STAGE_META[row.stage].ne} />
     </span>

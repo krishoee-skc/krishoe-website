@@ -72,7 +72,7 @@ export default function TodayEntries({
                 <div className="min-w-0">
                   <p className="truncate font-black text-brand-green-ink">
                     {entry.worker_name}
-                    {isFresh ? <span className="ms-1.5 rounded-full bg-brand-paper px-1.5 text-[11px] font-black text-brand-green">{text("just now", "भर्खर")}</span> : null}
+                    {isFresh ? <span className="ms-1.5 rounded-full bg-brand-paper px-1.5 text-xs font-black text-brand-green">{text("just now", "भर्खर")}</span> : null}
                   </p>
                   <p className="flex min-w-0 items-center gap-1 truncate text-xs text-brand-muted">
                     {entry.color && colourSwatch(entry.color) ? (

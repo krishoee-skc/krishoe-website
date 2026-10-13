@@ -100,7 +100,7 @@ export default async function AdminActivityPage({ searchParams }: { searchParams
     <section className="p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-gold-deep">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Activity" ne="को ले के गर्‍यो" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">

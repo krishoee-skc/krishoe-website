@@ -22,7 +22,7 @@ describe("the bill screen's new look", () => {
 
   it("puts each size above its pairs, in a box of their own", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain('<span className="text-[10px] font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>');
+    expect(form).toContain('<span className="text-xs font-bold leading-none text-brand-muted lg:text-sm">{row.size || "—"}</span>');
     expect(form).toContain("border-[1.5px] border-brand-green bg-brand-green-wash");
   });
 

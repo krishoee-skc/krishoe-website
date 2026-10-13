@@ -196,7 +196,7 @@ export default function StaffSalary({ initialWorkers }: { initialWorkers: StaffW
               one mistake this screen can make. */}
           {selectedWorker ? (
             <div className="rounded-lg border-2 border-brand-gold/50 bg-brand-gold/10 p-4 sm:p-6">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-gold-deep">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-gold-deep">
                 {text("Salary of", "कसको तलब")}
               </p>
               <h2 className="mt-1 font-display text-2xl font-black leading-tight text-brand-green-ink sm:text-3xl">

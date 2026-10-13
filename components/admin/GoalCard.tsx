@@ -95,7 +95,7 @@ export default function GoalCard({
         <div className="flex items-center gap-2.5">
           <span aria-hidden="true" className="text-xl">🎯</span>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-gold-deep">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-gold-deep">
               <T en="This month's goal" ne="यो महिनाको लक्ष्य" />
             </p>
             <p className="font-display text-lg font-black leading-tight text-brand-green-ink">

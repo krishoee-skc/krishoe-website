@@ -39,7 +39,7 @@ describe("who is signed in, on one line", () => {
 describe("the page list", () => {
   it("is 19px, in the ink colour, in rows about 40px apart", async () => {
     const nav = await read("app/admin/AdminNav.tsx");
-    expect(nav).toContain('<span className="text-[19px]">{language === "ne" ? nepali : label}</span>');
+    expect(nav).toContain('<span className="text-[1.1875rem]">{language === "ne" ? nepali : label}</span>');
     expect(nav).toContain("flex min-h-10 items-center gap-3 rounded-md px-2 py-0.5 font-bold");
     expect(nav).toContain('"text-brand-green-ink hover:bg-admin-hover');
     expect(nav).not.toContain('"text-brand-muted hover:text-brand-green-ink');

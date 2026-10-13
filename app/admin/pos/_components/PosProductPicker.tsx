@@ -294,7 +294,7 @@ export default function PosProductPicker({
                   <span className="block truncate text-sm font-medium text-brand-muted">
                     {item.sku ? <span className="font-mono">{item.sku}</span> : null}
                     {index === 0 && query.trim() ? (
-                      <span className="ms-1.5 hidden rounded bg-brand-green-ink/80 px-1 font-mono text-[10px] text-white md:inline">Enter</span>
+                      <span className="ms-1.5 hidden rounded bg-brand-green-ink/80 px-1 font-mono text-xs text-white md:inline">Enter</span>
                     ) : null}
                   </span>
                 </span>

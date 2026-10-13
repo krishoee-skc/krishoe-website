@@ -11,6 +11,7 @@ import AdminQuickDock from "./AdminQuickDock";
 import { SidebarProvider } from "@/components/admin/SidebarProvider";
 import { ToastProvider } from "@/components/admin/ToastProvider";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import AdminTextSize from "@/components/admin/AdminTextSize";
 import { getAdminSession, readViewingBranchId } from "@/lib/admin-auth";
 import BranchSwitch from "@/components/admin/BranchSwitch";
 import { getSessionAdminRole } from "@/lib/admin-permissions";
@@ -124,6 +125,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           {/* Narrower on a phone: at full width the switch took half the row
               and the search box read "Searc…". */}
+          {/* The text size (owner, 2026-10-13): one button on a phone, three on a computer. */}
+          <AdminTextSize />
           <LanguageSwitch compact className="[&>button]:px-2.5 sm:[&>button]:px-3.5" />
         </div>
         {/* Where this screen sits, for the ones deep enough to need saying.

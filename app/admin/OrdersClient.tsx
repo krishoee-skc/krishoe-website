@@ -263,12 +263,12 @@ function CustomerTrustForm({ order }: { order: OrderSubmission }) {
       <button
         type="submit"
         disabled={isPending}
-        className="w-fit rounded-full border border-brand-green px-2.5 py-1 text-[11px] font-black text-brand-green transition hover:bg-brand-mist disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-fit rounded-full border border-brand-green px-2.5 py-1 text-xs font-black text-brand-green transition hover:bg-brand-mist disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Verifying" : "Verify phone"}
       </button>
       {state.message ? (
-        <p className={`max-w-[220px] text-[11px] font-semibold ${state.ok ? "text-brand-muted" : "text-red-600"}`}>
+        <p className={`max-w-[220px] text-xs font-semibold ${state.ok ? "text-brand-muted" : "text-red-600"}`}>
           {state.message}
         </p>
       ) : null}
@@ -764,7 +764,7 @@ function OrderDetail({
           {dispatch?.cancelReason ? ` — ${cancelReasonLabel(dispatch.cancelReason, text)}` : ""}
         </p>
       ) : (
-        <ol className="grid list-none grid-cols-5 gap-1 pl-0 text-center text-[11px] font-bold">
+        <ol className="grid list-none grid-cols-5 gap-1 pl-0 text-center text-xs font-bold">
           {STEPS.map((step, index) => {
             const done = index < stage || stage === 4;
             const now = index === stage;
@@ -788,7 +788,7 @@ function OrderDetail({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-brand-green-line text-[10px] font-black uppercase tracking-wider text-brand-muted">
+              <tr className="border-b border-brand-green-line text-xs font-black uppercase tracking-wider text-brand-muted">
                 <th className="px-1 py-1 text-left">{text("Shoe", "जुत्ता")}</th>
                 <th className="px-1 py-1 text-center">{text("Size", "साइज")}</th>
                 <th className="px-1 py-1 text-left">{text("Colour", "रङ")}</th>

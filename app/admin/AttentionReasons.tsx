@@ -49,7 +49,7 @@ export default function AttentionReasons({ checks }: { checks: AttentionReason[]
           <p className="min-w-0 flex-1 text-sm font-bold">
             <span aria-hidden="true">{check.severity === "critical" ? "⛔ " : check.severity === "warning" ? "⚠ " : "ℹ "}</span>
             {text(check.title, check.titleNe)}
-            <span className="block text-[13px] font-semibold opacity-85">{text(check.detail, check.detailNe)}</span>
+            <span className="block text-[0.8125rem] font-semibold opacity-85">{text(check.detail, check.detailNe)}</span>
           </p>
           {/* The stars are cleared from here in one press, rather than shoe
               by shoe in the product form. */}

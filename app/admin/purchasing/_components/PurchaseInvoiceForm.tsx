@@ -984,7 +984,7 @@ export default function PurchaseInvoiceForm({
         <div className="grid gap-5">
           {/* ── Who it came from ─────────────────────────────────────── */}
           <section>
-            <h3 className="text-[17px] font-black text-brand-green-ink">
+            <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
               {text("Who it came from", "कसबाट")}
             </h3>
             {/* One box for the supplier. It was three — a list, a "new
@@ -1129,7 +1129,7 @@ export default function PurchaseInvoiceForm({
                       type="button"
                       onClick={() => removePhoto(index)}
                       aria-label={text(`Remove photo ${index + 1}`, `फोटो ${index + 1} हटाउने`)}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-clay text-[13px] font-black text-white"
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-clay text-[0.8125rem] font-black text-white"
                     >
                       ×
                     </button>
@@ -1225,7 +1225,7 @@ export default function PurchaseInvoiceForm({
           {/* ── What came in ─────────────────────────────────────────── */}
           <section>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-[17px] font-black text-brand-green-ink">
+              <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
                 {text("What came in", "के किन्यो")}
               </h3>
               <p className="text-sm text-brand-muted">
@@ -1296,7 +1296,7 @@ export default function PurchaseInvoiceForm({
             {/* Every track is minmax(0, …): a bare "0.7fr" keeps an input's own
                 width as its minimum, and the item box — the one that matters —
                 was squeezed to a sliver beside three roomy number boxes. */}
-            <div className="mt-2 hidden gap-2 px-1 text-[12px] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
+            <div className="mt-2 hidden gap-2 px-1 text-[0.75rem] font-black uppercase tracking-[0.12em] text-brand-muted-soft md:grid md:grid-cols-[42px_minmax(0,2.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1fr)_40px]">
               <span>{text("S.N.", "क्र.सं.")}</span>
               <span>{text("Item — material or shoes/slippers", "सामान — कच्चा माल वा जुत्ता/चप्पल")}</span>
               <span className="text-right">{text("Qty", "थान")}</span>
@@ -1464,7 +1464,7 @@ export default function PurchaseInvoiceForm({
                             {/* Pairs by size — required, and the quantity is their
                                 total. Enter walks the sizes and then the rate. */}
                             <div className="flex w-full flex-wrap items-end gap-1.5">
-                              <span className="w-full text-[13px] font-bold text-brand-muted-soft">
+                              <span className="w-full text-[0.8125rem] font-bold text-brand-muted-soft">
                                 {text("Pairs by size (required)", "साइजअनुसार जोडी (अनिवार्य)")}
                                 {sizesTotalOf(row) > 0 ? (
                                   <span className="ml-2 font-black text-brand-green-ink">
@@ -1473,7 +1473,7 @@ export default function PurchaseInvoiceForm({
                                 ) : null}
                               </span>
                               {sizeOptionsFor(row).map((size, sizeIndex) => (
-                                <label key={size} className="grid w-12 gap-0.5 text-center text-[13px] font-black text-brand-muted">
+                                <label key={size} className="grid w-12 gap-0.5 text-center text-[0.8125rem] font-black text-brand-muted">
                                   {size}
                                   <input
                                     ref={(element) => {
@@ -1506,7 +1506,7 @@ export default function PurchaseInvoiceForm({
                                         type="button"
                                         aria-pressed={on}
                                         onClick={() => updateRow(row.key, { sizeChoice: value, sizes: {}, quantity: "" })}
-                                        className={`rounded-full border px-2 py-1 text-[13px] font-black ${
+                                        className={`rounded-full border px-2 py-1 text-[0.8125rem] font-black ${
                                           on ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-muted"
                                         }`}
                                       >
@@ -1517,11 +1517,11 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               )}
                             </div>
-                            <span className="text-[13px] font-bold text-brand-muted-soft">
+                            <span className="text-[0.8125rem] font-bold text-brand-muted-soft">
                               {text("Put where", "कहाँ राख्ने")}
                             </span>
                             <select
-                              className={`${plain} h-9 w-32 text-[15px]`}
+                              className={`${plain} h-11 w-32 text-[0.9375rem]`}
                               value={row.place}
                               onChange={(event) =>
                                 updateRow(row.key, { place: event.target.value as StockPlace })
@@ -1539,7 +1539,7 @@ export default function PurchaseInvoiceForm({
                                 </option>
                               ))}
                             </select>
-                            <span className="text-[13px] font-bold text-brand-green">
+                            <span className="text-[0.8125rem] font-bold text-brand-green">
                               {text("→ to the stock you sell from", "→ बेच्ने स्टकमा")}
                             </span>
                           </>
@@ -1547,11 +1547,11 @@ export default function PurchaseInvoiceForm({
                           <>
                             {newMaterial ? (
                               <>
-                                <span className="text-[13px] font-bold text-brand-muted-soft">
+                                <span className="text-[0.8125rem] font-bold text-brand-muted-soft">
                                   {text("Unit", "एकाइ")}
                                 </span>
                                 <select
-                                  className={`${plain} h-9 w-28 text-[15px]`}
+                                  className={`${plain} h-11 w-28 text-[0.9375rem]`}
                                   value={row.materialUnit}
                                   onChange={(event) =>
                                     updateRow(row.key, { materialUnit: event.target.value })
@@ -1566,11 +1566,11 @@ export default function PurchaseInvoiceForm({
                                 </select>
                               </>
                             ) : (
-                              <span className="text-[13px] font-bold text-brand-muted-soft">
+                              <span className="text-[0.8125rem] font-bold text-brand-muted-soft">
                                 {rawMaterials.find((material) => material.id === row.materialId)?.unit}
                               </span>
                             )}
-                            <span className="text-[13px] font-bold text-brand-gold-ink">
+                            <span className="text-[0.8125rem] font-bold text-brand-gold-ink">
                               {text("→ to the factory store (not for sale)", "→ कारखानाको स्टोरमा (बेच्ने होइन)")}
                             </span>
                           </>
@@ -1578,7 +1578,7 @@ export default function PurchaseInvoiceForm({
 
                         {!row.materialId && !productNames.some((name) => sameName(name, row.design || row.materialName)) &&
                         (row.materialName || row.design) ? (
-                          <span className="flex w-full flex-wrap items-center gap-1.5 text-[13px] font-bold text-brand-muted">
+                          <span className="flex w-full flex-wrap items-center gap-1.5 text-[0.8125rem] font-bold text-brand-muted">
                             {text("New item — what is it?", "नयाँ सामान — यो के हो?")}
                             {(["Raw Material", "Trading Goods"] as const).map((kind) => (
                               <button
@@ -1612,7 +1612,7 @@ export default function PurchaseInvoiceForm({
                             <span className="grid w-full gap-1.5">
                               {matches.length ? (
                                 <span className="grid gap-1 rounded-md border border-brand-green-line bg-brand-green-tint/40 p-2" role="group" aria-label={text("Shoes on the books", "स्टकमा भएका जुत्ता")}>
-                                  <span className="text-[13px] font-black text-brand-green-ink">
+                                  <span className="text-[0.8125rem] font-black text-brand-green-ink">
                                     {text("👟 Already on the books — pick it so the pairs join its stock:", "👟 स्टकमा पहिल्यै छ — छान्नुहोस्, जोडी त्यसैमा थपिन्छ:")}
                                   </span>
                                   {matches.map((shoe) => {
@@ -1622,10 +1622,10 @@ export default function PurchaseInvoiceForm({
                                         key={shoe.name}
                                         type="button"
                                         onClick={() => setItemName(row, shoe.name)}
-                                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md border border-brand-green-line bg-brand-paper px-2.5 py-1.5 text-left text-[15px] hover:border-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+                                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md border border-brand-green-line bg-brand-paper px-2.5 py-1.5 text-left text-[0.9375rem] hover:border-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
                                       >
                                         <span className="font-black text-brand-green-ink">{shoe.name}</span>
-                                        <span className="text-[13px] font-bold text-brand-muted">
+                                        <span className="text-[0.8125rem] font-bold text-brand-muted">
                                           {shoe.codes.length ? `${text("code", "कोड")} ${shoe.codes.slice(0, 2).join(", ")} · ` : ""}
                                           {shoe.stock} {text("pairs", "जोडी")}
                                           {last ? ` · ${text("last", "पछिल्लो")} ${money(last.rate)}` : ""}
@@ -1636,7 +1636,7 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               ) : null}
                               {missingCode && !matches.length ? (
-                                <span className="rounded-md bg-brand-clay-tint px-2 py-1 text-[13px] font-black text-brand-clay">
+                                <span className="rounded-md bg-brand-clay-tint px-2 py-1 text-[0.8125rem] font-black text-brand-clay">
                                   {text(
                                     `⚠ No shoe has code ${missingCode}. Check the code, or pick what it is below.`,
                                     `⚠ कोड ${missingCode} भएको जुत्ता भेटिएन। कोड जाँच्नुहोस्, वा तल यो के हो छान्नुहोस्।`,
@@ -1644,7 +1644,7 @@ export default function PurchaseInvoiceForm({
                                 </span>
                               ) : null}
                               {askShoe ? (
-                                <span className="flex flex-wrap items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2.5 py-2 text-[14px] font-bold text-brand-gold-ink" role="status">
+                                <span className="flex flex-wrap items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2.5 py-2 text-sm font-bold text-brand-gold-ink" role="status">
                                   {text("👟 This name reads like footwear. Is it shoes/slippers for sale?", "👟 नाम जुत्ता जस्तो छ। यो बेच्ने जुत्ता/चप्पल हो?")}
                                   <button
                                     type="button"
@@ -1671,14 +1671,14 @@ export default function PurchaseInvoiceForm({
                           const rate = Number(row.rate) || 0;
                           if (!last || !rate || Math.abs(rate - last.rate) / last.rate <= RATE_WARN) {
                             return last && !rate ? null : last ? (
-                              <span className="w-full text-[13px] font-bold text-brand-muted">
+                              <span className="w-full text-[0.8125rem] font-bold text-brand-muted">
                                 {text(`Last rate ${money(last.rate)}`, `पछिल्लो दर ${money(last.rate)}`)}
                               </span>
                             ) : null;
                           }
                           const change = Math.round(((rate - last.rate) / last.rate) * 100);
                           return (
-                            <span className="w-full rounded-md bg-brand-clay-tint px-2 py-1 text-[13px] font-black text-brand-clay">
+                            <span className="w-full rounded-md bg-brand-clay-tint px-2 py-1 text-[0.8125rem] font-black text-brand-clay">
                               ⚠{" "}
                               {change > 0
                                 ? text(`${change}% dearer than last time (${money(last.rate)})`, `पछिल्लो दर (${money(last.rate)}) भन्दा ${change}% महँगो`)
@@ -1689,7 +1689,7 @@ export default function PurchaseInvoiceForm({
 
                         <input
                           name={`item${index}Note`}
-                          className={`${plain} h-9 min-w-40 flex-1 text-[15px]`}
+                          className={`${plain} h-11 min-w-40 flex-1 text-[0.9375rem]`}
                           placeholder={text("Line note (optional)", "लाइनको टिपोट (चाहिए)")}
                           aria-label={text(`Item ${index + 1} note`, `क्र.सं. ${index + 1} को टिपोट`)}
                         />
@@ -1724,7 +1724,7 @@ export default function PurchaseInvoiceForm({
 
           {/* ── How it was paid ──────────────────────────────────────── */}
           <section className="rounded-md border border-brand-green/30 p-3 md:p-4">
-            <h3 className="text-[17px] font-black text-brand-green-ink">
+            <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
               {text("How it was paid", "कसरी तिर्यो")}
             </h3>
 
@@ -1756,7 +1756,7 @@ export default function PurchaseInvoiceForm({
                     >
                       {method.icon}
                     </svg>
-                    <span className="text-[15px] font-black">{text(method.en, method.ne)}</span>
+                    <span className="text-[0.9375rem] font-black">{text(method.en, method.ne)}</span>
                   </button>
                 );
               })}
@@ -1767,7 +1767,7 @@ export default function PurchaseInvoiceForm({
                 <div className="flex items-center justify-between gap-2">
                   <label
                     htmlFor="purchase-paid"
-                    className="text-[13px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
+                    className="text-[0.8125rem] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
                   >
                     {text("Paid now", "कति तिर्यो")}
                   </label>
@@ -1812,7 +1812,7 @@ export default function PurchaseInvoiceForm({
               <div>
                 <label
                   htmlFor="purchase-reference"
-                  className="text-[13px] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
+                  className="text-[0.8125rem] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
                 >
                   {referenceLabel}
                 </label>
@@ -1861,7 +1861,7 @@ export default function PurchaseInvoiceForm({
 
         {/* ── What it comes to ───────────────────────────────────────── */}
         <aside className="grid content-start gap-3 rounded-md border border-brand-green-line bg-brand-mist/40 p-4 xl:sticky xl:top-4">
-          <h3 className="text-[17px] font-black text-brand-green-ink">
+          <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
             {text("What it comes to", "बिलको हिसाब")}
           </h3>
 
@@ -1892,7 +1892,7 @@ export default function PurchaseInvoiceForm({
                   min="0"
                   step="any"
                   inputMode="decimal"
-                  className={`${plain} h-9 w-24 text-right text-[15px] tabular-nums`}
+                  className={`${plain} h-11 w-24 text-right text-[0.9375rem] tabular-nums`}
                   placeholder="0"
                   value={discount}
                   onChange={(event) => setDiscount(event.target.value)}
@@ -1928,7 +1928,7 @@ export default function PurchaseInvoiceForm({
                   min="0"
                   step="any"
                   inputMode="decimal"
-                  className={`${plain} h-9 w-24 text-right text-[15px] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
+                  className={`${plain} h-11 w-24 text-right text-[0.9375rem] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
                   placeholder="0"
                   value={vatOn ? String(vatAmount) : tax}
                   readOnly={vatOn}
@@ -1939,7 +1939,7 @@ export default function PurchaseInvoiceForm({
             </div>
           </dl>
           {vatOn && supplierMemory?.last?.vat ? (
-            <p className="-mt-1 text-[13px] font-bold text-brand-green">
+            <p className="-mt-1 text-[0.8125rem] font-bold text-brand-green">
               {text(
                 "On because this supplier's last bill had VAT. Switch off if this one has none.",
                 "यो साहुको पछिल्लो बिलमा VAT थियो, त्यसैले आफैँ खुला भयो। यसमा छैन भने बन्द गर्नुहोस्।",
@@ -2015,7 +2015,7 @@ export default function PurchaseInvoiceForm({
           This keeps them in reach, above the admin's bottom bar. */}
       <div data-pos-bar className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-brand-green-line bg-brand-paper/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="grid leading-tight">
-          <span className="text-[13px] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
+          <span className="text-[0.8125rem] font-bold text-brand-muted">{text("Bill total", "बिल जम्मा")}</span>
           <span className="text-lg font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
         </div>
         <button

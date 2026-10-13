@@ -441,7 +441,7 @@ export default function WherePairsAre({
       <button
         type="button"
         onClick={() => countIt(design)}
-        className="ml-2 inline-flex min-h-8 items-center rounded-full border border-brand-green bg-brand-paper px-3 align-middle text-xs font-black text-brand-green"
+        className="ml-2 inline-flex min-h-11 items-center rounded-full border border-brand-green bg-brand-paper px-3 align-middle text-sm font-black text-brand-green"
       >
         🔢 {text("Count", "गन्ने")}
       </button>
@@ -497,6 +497,9 @@ export default function WherePairsAre({
                       ? ` · ${text("sold before sales took pairs off a place", "बिक्री भए तर ठाउँबाट घटेनन्")}`
                       : ""}
                   </p>
+                  {/* The fixes and the count change a place: only for whoever may
+                      (operations:write, the same as 🔢 Count — owner, 2026-10-13). */}
+                  {canCount ? (
                   <div className="flex flex-wrap gap-2">
                     {fixes.map((fix) =>
                       confirmFix === fix.key ? (
@@ -506,14 +509,14 @@ export default function WherePairsAre({
                             type="button"
                             disabled={fixing}
                             onClick={() => applyFix(fix)}
-                            className="min-h-9 rounded-full bg-brand-green px-4 text-xs font-black text-white disabled:opacity-60"
+                            className="min-h-11 rounded-full bg-brand-green px-4 text-sm font-black text-white disabled:opacity-60"
                           >
                             {fixing ? text("Saving…", "राख्दै…") : text(`Yes — ${fix.en.toLowerCase()}`, `हो — ${fix.ne}`)}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmFix(null)}
-                            className="min-h-9 rounded-full border border-brand-green px-3 text-xs font-bold text-brand-green"
+                            className="min-h-11 rounded-full border border-brand-green px-3 text-sm font-bold text-brand-green"
                           >
                             {text("No", "होइन")}
                           </button>
@@ -523,7 +526,7 @@ export default function WherePairsAre({
                           key={fix.key}
                           type="button"
                           onClick={() => setConfirmFix(fix.key)}
-                          className="min-h-9 rounded-full bg-brand-green px-4 text-xs font-black text-white"
+                          className="min-h-11 rounded-full bg-brand-green px-4 text-sm font-black text-white"
                         >
                           {text(fix.en, fix.ne)}
                         </button>
@@ -532,11 +535,12 @@ export default function WherePairsAre({
                     <button
                       type="button"
                       onClick={() => countThis(row)}
-                      className="min-h-9 rounded-full border border-brand-green px-4 text-xs font-black text-brand-green"
+                      className="min-h-11 rounded-full border border-brand-green px-4 text-sm font-black text-brand-green"
                     >
                       {text("Count and enter", "गनेर हाल्ने")}
                     </button>
                   </div>
+                  ) : null}
                 </li>
               );
             })}
@@ -548,6 +552,7 @@ export default function WherePairsAre({
       {/* ── Count pairs in ───────────────────────────────────────────
           Under the list, and where "Count and enter" on a shoe to put
           right brings the cursor. */}
+      {canCount ? (
       <div ref={countBox}>
       <EnterWalkForm onSubmit={handleCount} className="mt-4 rounded-xl border border-brand-green-line bg-brand-paper p-3">
         <input type="hidden" name="sizeRun" value={countKey.split("::")[1] ?? "Mixed"} />
@@ -621,6 +626,7 @@ export default function WherePairsAre({
         <ActionMessage state={countState} />
       </EnterWalkForm>
       </div>
+      ) : null}
     </>
   );
 
@@ -700,7 +706,7 @@ export default function WherePairsAre({
                     { en: "Sold", ne: "बिक्री", value: extra?.sold ?? 0, tone: "text-brand-green-ink" },
                   ].map((cell) => (
                     <div key={cell.en} className="border-r border-t border-brand-green-line px-1 py-2 last:border-r-0">
-                      <span className="block text-[11px] font-bold text-brand-muted">{text(cell.en, cell.ne)}</span>
+                      <span className="block text-xs font-bold text-brand-muted">{text(cell.en, cell.ne)}</span>
                       <span className={`text-xl font-black tabular-nums ${cell.value ? cell.tone : "text-brand-muted-soft"}`}>{cell.value}</span>
                     </div>
                   ))}
@@ -1186,7 +1192,7 @@ function NoSizes({ group, text }: { group: ShoeGroup; text: Text }) {
   if (group.sizes || group.total <= 0) return null;
   return (
     <span
-      className="ml-1 inline-block rounded-full bg-brand-cream-soft px-2 py-0.5 align-middle text-[11px] font-black text-brand-gold-ink"
+      className="ml-1 inline-block rounded-full bg-brand-cream-soft px-2 py-0.5 align-middle text-xs font-black text-brand-gold-ink"
       title={text("Its pairs were not counted by size, so a bill prints Mixed.", "यसका जोडी साइज अनुसार गनिएका छैनन्, त्यसैले बिलमा Mixed छापिन्छ।")}
     >
       {text("no sizes", "साइज छैन")}
@@ -1199,7 +1205,7 @@ function OriginTag({ origin, text }: { origin: ShoeExtra["origin"] | undefined; 
   const label =
     origin === "Made" ? text("made", "बनेको") : origin === "Bought" ? text("bought", "किनेको") : text("made + bought", "बनेको + किनेको");
   const tone = origin === "Bought" ? "bg-[#E6EEF9] text-[#1F4E8C]" : "bg-emerald-50 text-emerald-800";
-  return <span className={`ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-[11px] font-black ${tone}`}>{label}</span>;
+  return <span className={`ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-black ${tone}`}>{label}</span>;
 }
 
 function LastsChip({ extra, text }: { extra: ShoeExtra | undefined; text: Text }) {
@@ -1272,7 +1278,7 @@ function ShoeHistory({
               <div key={row.sizeRun} className="rounded-lg border border-brand-green-line bg-brand-paper px-2 py-1.5 text-center">
                 <span className="block text-xs font-bold text-brand-muted">{text("Size", "साइज")} {row.sizeRun}</span>
                 <span className="text-lg font-black tabular-nums text-brand-green-ink">{row.total}</span>
-                <span className="block text-[11px] tabular-nums text-brand-muted">🏭 {row.factory} · 🛒 {row.shop}</span>
+                <span className="block text-xs tabular-nums text-brand-muted">🏭 {row.factory} · 🛒 {row.shop}</span>
               </div>
             ))}
           </div>

@@ -72,7 +72,7 @@ export default function FactoryNav({ waiting = 0 }: { waiting?: number }) {
                 <Icon className="h-4 w-4" />
                 {text(english, label)}
                 {href === "/admin/factory/photos" && waiting > 0 ? (
-                  <span className={`rounded-full px-1.5 text-[11px] leading-5 ${active ? "bg-white text-brand-clay" : "bg-brand-clay text-white"}`}>
+                  <span className={`rounded-full px-1.5 text-xs leading-5 ${active ? "bg-white text-brand-clay" : "bg-brand-clay text-white"}`}>
                     {waiting > 99 ? "99+" : waiting}
                   </span>
                 ) : null}
