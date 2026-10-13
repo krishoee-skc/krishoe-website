@@ -37,6 +37,14 @@ const steps = [
 export default async function WorkerPortalQrPage() {
   await requireAdminPermission("production:entry");
   const loginUrl = absoluteUrl("/worker/login");
+  // The same link, sent to a worker's phone without the printed sheet (owner's
+  // sample 7ग, 2026-10-13). WhatsApp asks whom to send it to.
+  const invite = {
+    ne: `KRISHOE: आफ्नो काम र तलब आफैं हेर्नुहोस् — ${loginUrl}`,
+    en: `Check your own work and pay: ${loginUrl}`,
+  };
+  const shareUrl = `https://wa.me/?text=${encodeURIComponent(`${invite.ne}
+${invite.en}`)}`;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-8 print:px-0 print:py-0">
@@ -50,7 +58,15 @@ export default async function WorkerPortalQrPage() {
             />
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={shareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-11 items-center rounded-full border border-emerald-500 px-5 text-sm font-bold text-emerald-700"
+          >
+            📤 <T en="Send on WhatsApp" ne="WhatsApp मा पठाउने" />
+          </a>
           <Link
             href="/admin/factory/workers"
             className="inline-flex h-11 items-center rounded-full border border-brand-green-line px-5 text-sm font-bold text-brand-green-ink"

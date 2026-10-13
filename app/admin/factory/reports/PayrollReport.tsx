@@ -5,6 +5,7 @@ import { createIdempotencyKeyRegistry } from "@/app/admin/factory/_components/id
 import { money } from "@/lib/format-money";
 import BikramMonthPicker from "@/components/admin/BikramMonthPicker";
 import StatTile from "@/components/admin/StatTile";
+import { Amount, AmountsToggle } from "@/components/admin/PageKit";
 import {
   normalisePayrollRow,
   payrollTotals,
@@ -182,21 +183,25 @@ export default function PayrollReport({
       ) : null}
 
       <div className="space-y-6">
-          {/* Monthly Summary Cards */}
+          {/* Monthly Summary Cards. Rupees behind the eye (owner's sample 7ग,
+              2026-10-13); paper carries the figures. */}
+          <div className="flex justify-end print:hidden">
+            <AmountsToggle />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <StatTile label={text("Total pairs", "जम्मा जोडी")} value={totalPairs} />
             <StatTile
               label={text("Total earned", "जम्मा कमाएको")}
-              value={money(totalEarned)}
+              value={<Amount>{money(totalEarned)}</Amount>}
               tone="good"
             />
             <StatTile
               label={text("Total paid", "जम्मा तिरेको")}
-              value={money(totalPaid)}
+              value={<Amount>{money(totalPaid)}</Amount>}
             />
             <StatTile
               label={text("Balance due", "तिर्न बाँकी")}
-              value={money(totalBalance)}
+              value={<Amount>{money(totalBalance)}</Amount>}
               tone={totalBalance > 0 ? "warn" : "good"}
             />
           </div>
@@ -205,6 +210,28 @@ export default function PayrollReport({
           <div className="bg-brand-paper rounded-lg border border-brand-green-line overflow-x-auto">
             <div className="p-4 sm:p-6">
               <h2 className="text-lg font-bold text-brand-green-ink mb-4">💰 {text("Payroll summary", "ज्यालाको हिसाब")}</h2>
+              {/* Two lines a worker on a phone; the table for a computer and
+                  for paper. */}
+              <ul className="grid list-none gap-2 pl-0 md:hidden print:hidden">
+                {payroll.length > 0 ? (
+                  payroll.map((summary, idx) => (
+                    <li key={`line-${idx}`} className="grid gap-0.5 rounded-xl border border-brand-green-line p-3 text-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="min-w-0 break-words font-bold text-brand-green-ink">{summary.worker_name} · <span className="font-normal text-brand-muted">{summary.category}</span></span>
+                        <span className={`shrink-0 font-black tabular-nums ${summary.final_balance < 0 ? "text-brand-clay" : "text-brand-green-ink"}`}>
+                          <Amount>{money(summary.final_balance)}</Amount>
+                        </span>
+                      </div>
+                      <p className="text-xs text-brand-muted">
+                        {text(`${summary.total_pairs} pairs`, `${summary.total_pairs} जोडी`)} · {text("earned", "कमाएको")} <Amount>{money(summary.total_earned)}</Amount> · {text("paid", "तिरेको")} <Amount>{money(summary.total_paid)}</Amount>
+                      </p>
+                    </li>
+                  ))
+                ) : (
+                  <li className="py-6 text-center text-brand-muted">{text("No work recorded this month", "यो महिना कुनै काम टिपिएको छैन")}</li>
+                )}
+              </ul>
+              <div className="hidden md:block print:block">
               <table className="reflow-table w-full text-sm">
                 <thead className="border-b border-brand-green-line">
                   <tr className="text-xs sm:text-sm text-brand-muted font-semibold">
@@ -263,6 +290,7 @@ export default function PayrollReport({
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
 

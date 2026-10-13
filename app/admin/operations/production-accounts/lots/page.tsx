@@ -7,6 +7,7 @@ import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncon
 import { approveCostCardAction, createProductionItemAction, saveItemMaterialAction } from "../actions";
 import { getProductionAccountingSnapshot } from "@/lib/production-accounting";
 import T from "@/components/T";
+import { PageTabs } from "@/components/admin/PageKit";
 import WagesNav from "../_components/wages-nav";
 import { TInput, TOption } from "@/components/admin/TField";
 import Link from "next/link";
@@ -109,190 +110,223 @@ export default async function WagesLotsPage() {
         <T en=". This page is for cost only." ne="। यो पेज लागतका लागि मात्र हो।" />
       </p>
 
-      {/* One line per shoe: material in a pair, the wages on file, the rates
-          worked out as it is typed. It replaced the material-recipe and
-          price-card forms as the everyday way; they are kept below. */}
-      <div className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">
-          <T en="1. Cost of a pair, and the selling rate" ne="१. एक जोडीको लागत र बेच्ने दर" />
-        </h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          <T
-            en="Type the material in one pair. Wages come from the wage rates. Rent, electricity and salaries are not included."
-            ne="एक जोडीमा लाग्ने मालको रकम लेख्नुहोस्। ज्याला दर-तालिकाबाट आफैँ आउँछ। घरभाडा, बिजुली र तलब यसमा जोडिँदैनन्।"
-          />
-        </p>
-        <div className="mt-4">
-          <CostTable rows={costRows} />
-        </div>
-      </div>
-
-      <EnterWalkForm action={createProductionItemAction} className={card}>
-        <h2 className="text-lg font-black text-brand-green-ink">
-          <T en="2. Add a shoe the factory makes" ne="२. नयाँ जुत्ता दर्ता" />
-        </h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          <T
-            en="Once per shoe. Wages can then differ by stage."
-            ne="एउटा जुत्ता एक पटक मात्र। त्यसपछि काम अनुसार ज्याला फरक राख्न मिल्छ।"
-          />
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <TInput aria-label="Shoe name" name="name" className={input} en="Shoe name, e.g. bantu hill" ne="जुत्ताको नाम, जस्तै bantu hill" required />
-          <TInput aria-label="Category" name="category" className={input} en="Category, e.g. Sandal" ne="किसिम, जस्तै Sandal" />
-          <select aria-label="Made or bought" name="productionType" className={input} defaultValue="Manufactured">
-            <TOption value="Manufactured" en="Made here" ne="यहीँ बनेको" />
-            <TOption value="Resale" en="Bought to sell" ne="किनेर बेच्ने" />
-            <TOption value="Mixed" en="Both" ne="दुवै" />
-          </select>
-          <select aria-label="Size group" name="sizeGroup" className={input} defaultValue="Ladies">
-            <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
-          </select>
-        </div>
-        <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
-          <T en="Save shoe" ne="जुत्ता सेभ गर्ने" />
-        </FormSubmitButton>
-      </EnterWalkForm>
-
-      {/* The detailed route, for whoever wants it: a recipe per material,
-          priced from purchases, and the price card worked out from it. */}
-      <details className={card}>
-        <summary className="cursor-pointer text-base font-black text-brand-green-ink">
-          <T en="Detailed (optional): material recipe and price card" ne="विस्तृत (वैकल्पिक): मालको recipe र price card" />
-        </summary>
-      <div className="mt-4 grid gap-5 xl:grid-cols-2">
-        <EnterWalkForm action={saveItemMaterialAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="Material in one pair" ne="एक जोडीमा कति माल" />
-          </h2>
-          <p className="mt-1 text-sm text-brand-muted">
-            <T
-              en="In the unit it is bought in. Example: Rexine 0.40 meter, or Buckle 2 pieces, per pair."
-              ne="किन्ने एकाइमै लेख्नुहोस्। जस्तै: एक जोडीमा Rexine 0.40 मिटर, वा Buckle 2 वटा।"
-            />
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
-              <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
-              {madeItems.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            <select aria-label="Material" name="materialId" className={input} required defaultValue="">
-              <TOption value="" disabled en="Choose the material" ne="माल छान्नुहोस्" />
-              {data.materials.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.name} · {material.unit} · {money(material.averageUnitCost)}/{material.unit}
-                </option>
-              ))}
-            </select>
-            <TInput aria-label="Quantity per pair" name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} en="How much in one pair" ne="एक जोडीमा कति" required />
-            <TInput aria-label="Wastage % (optional)" name="wastagePercent" type="number" min="0" step="0.01" className={input} en="Wastage % (optional)" ne="खेर जाने % (नभए 0)" defaultValue="0" />
-            <TInput aria-label="Note" name="note" className={`${input} sm:col-span-2`} en="Note" ne="टिप्पणी" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
-            <T en="Save material" ne="माल सेभ गर्ने" />
-          </FormSubmitButton>
-        </EnterWalkForm>
-
-        <EnterWalkForm action={approveCostCardAction} className={card}>
-          <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="Price card from the recipe" ne="recipe बाट price card" />
-          </h2>
-          <p className="mt-1 text-sm text-brand-muted">
-            <T
-              en="Material from the recipe + the four stage wages + other direct cost."
-              ne="recipe को माल + चार कामको ज्याला + अरू सिधा खर्च।"
-            />
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
-              <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
-              {madeItems.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
-            <TInput aria-label="Other direct cost/pair" name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} en="Other direct cost a pair" ne="एक जोडीमा अरू सिधा खर्च" defaultValue="0" />
-            <TInput aria-label="Wholesale profit %" name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} en="Wholesale profit %" ne="होलसेलमा कति % नाफा" required />
-            <TInput aria-label="Retail extra Rs." name="retailExtraAmount" type="number" min="0" step="0.01" className={input} en="Retail extra Rs." ne="खुद्रामा कति रुपैयाँ थप" required />
-            <TInput aria-label="Note" name="note" className={input} en="Note" ne="टिप्पणी" />
-          </div>
-          <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">
-            <T en="Work out and approve the cost" ne="लागत निकाल्ने र पक्का गर्ने" />
-          </FormSubmitButton>
-        </EnterWalkForm>
-      </div>
-      </details>
-
-      <div className={card}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="Approved costs" ne="निकालिएको लागत" />
-          </h2>
-          {data.costCards.length ? (
-            <ExportButton href="/api/admin/operations/production-export?type=cost-cards" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
-              <T en="Costs as CSV" ne="लागत CSV" />
-            </ExportButton>
-          ) : null}
-        </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {data.costCards.map((cost) => (
-            <article key={cost.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-black text-brand-green-ink">{cost.itemName}</p>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    <T en={`From ${cost.effectiveFrom} · approved by ${cost.approvedBy}`} ne={`${cost.effectiveFrom} देखि · पक्का गर्ने ${cost.approvedBy}`} />
+      {/* Three parts behind tabs on a phone, all open on a computer (owner's
+          sample 7ग, 2026-10-13); the "1." and "2." numbering is gone. */}
+      <PageTabs
+        id="cost-of-a-pair"
+        openOnWide
+        tabs={[
+          {
+            key: "cost",
+            en: "💰 Cost and rate",
+            ne: "💰 लागत र दर",
+            content: (
+              <>
+                {/* One line per shoe: material in a pair, the wages on file, the rates
+                    worked out as it is typed. It replaced the material-recipe and
+                    price-card forms as the everyday way; they are kept below. */}
+                <div className={card}>
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                    <T en="Cost of a pair, and the selling rate" ne="एक जोडीको लागत र बेच्ने दर" />
+                  </h2>
+                  <p className="mt-1 text-sm text-brand-muted">
+                    <T
+                      en="Type the material in one pair. Wages come from the wage rates. Rent, electricity and salaries are not included."
+                      ne="एक जोडीमा लाग्ने मालको रकम लेख्नुहोस्। ज्याला दर-तालिकाबाट आफैँ आउँछ। घरभाडा, बिजुली र तलब यसमा जोडिँदैनन्।"
+                    />
                   </p>
+                  <div className="mt-4">
+                    <CostTable rows={costRows} />
+                  </div>
                 </div>
-                <p className="text-lg font-black text-brand-green">{money(cost.makingCostPerPair)}</p>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <div><span className="text-brand-muted"><T en="Material" ne="माल" /></span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
-                <div><span className="text-brand-muted"><T en="Wages" ne="ज्याला" /></span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
-                <div><span className="text-brand-muted"><T en="Wholesale" ne="होलसेल" /></span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
-                <div><span className="text-brand-muted"><T en="Retail" ne="खुद्रा" /></span><p className="font-black">{money(cost.retailPrice)}</p></div>
-              </div>
-            </article>
-          ))}
-          {data.costCards.length === 0 ? (
-            <p className="text-sm text-brand-muted">
-              <T en="No cost approved yet." ne="अहिलेसम्म कुनै लागत निकालिएको छैन।" />
-            </p>
-          ) : null}
-        </div>
-      </div>
+              </>
+            ),
+          },
+          {
+            key: "add",
+            en: "＋ Add a shoe",
+            ne: "＋ जुत्ता थप्ने",
+            content: (
+              <>
+                <EnterWalkForm action={createProductionItemAction} className={card}>
+                  <h2 className="text-lg font-black text-brand-green-ink">
+                    <T en="Add a shoe the factory makes" ne="नयाँ जुत्ता दर्ता" />
+                  </h2>
+                  <p className="mt-1 text-sm text-brand-muted">
+                    <T
+                      en="Once per shoe. Wages can then differ by stage."
+                      ne="एउटा जुत्ता एक पटक मात्र। त्यसपछि काम अनुसार ज्याला फरक राख्न मिल्छ।"
+                    />
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <TInput aria-label="Shoe name" name="name" className={input} en="Shoe name, e.g. bantu hill" ne="जुत्ताको नाम, जस्तै bantu hill" required />
+                    <TInput aria-label="Category" name="category" className={input} en="Category, e.g. Sandal" ne="किसिम, जस्तै Sandal" />
+                    <select aria-label="Made or bought" name="productionType" className={input} defaultValue="Manufactured">
+                      <TOption value="Manufactured" en="Made here" ne="यहीँ बनेको" />
+                      <TOption value="Resale" en="Bought to sell" ne="किनेर बेच्ने" />
+                      <TOption value="Mixed" en="Both" ne="दुवै" />
+                    </select>
+                    <select aria-label="Size group" name="sizeGroup" className={input} defaultValue="Ladies">
+                      <option>Baby</option><option>Kids</option><option>Ladies</option><option>Gents</option><option>Mixed</option>
+                    </select>
+                  </div>
+                  <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
+                    <T en="Save shoe" ne="जुत्ता सेभ गर्ने" />
+                  </FormSubmitButton>
+                </EnterWalkForm>
 
-      {/* Postings made from the old Packing/QC box, kept as a record. */}
-      {data.qcPostings.length ? (
-        <div className={card}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-black text-brand-green-ink">
-              <T en="Stock posted from this page before" ne="पहिले यो पेजबाट चढाएको स्टक" />
-            </h2>
-            <ExportButton href="/api/admin/operations/production-export?type=qc-stock" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
-              CSV
-            </ExportButton>
-          </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {data.qcPostings.map((posting) => (
-              <article key={posting.id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
-                    <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
+                {/* The detailed route, for whoever wants it: a recipe per material,
+                    priced from purchases, and the price card worked out from it. */}
+                <details className={card}>
+                  <summary className="cursor-pointer text-base font-black text-brand-green-ink">
+                    <T en="Detailed (optional): material recipe and price card" ne="विस्तृत (वैकल्पिक): मालको recipe र price card" />
+                  </summary>
+                <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                  <EnterWalkForm action={saveItemMaterialAction} className={card}>
+                    <h2 className="text-lg font-black text-brand-green-ink">
+                      <T en="Material in one pair" ne="एक जोडीमा कति माल" />
+                    </h2>
+                    <p className="mt-1 text-sm text-brand-muted">
+                      <T
+                        en="In the unit it is bought in. Example: Rexine 0.40 meter, or Buckle 2 pieces, per pair."
+                        ne="किन्ने एकाइमै लेख्नुहोस्। जस्तै: एक जोडीमा Rexine 0.40 मिटर, वा Buckle 2 वटा।"
+                      />
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
+                        <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
+                        {madeItems.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                      </select>
+                      <select aria-label="Material" name="materialId" className={input} required defaultValue="">
+                        <TOption value="" disabled en="Choose the material" ne="माल छान्नुहोस्" />
+                        {data.materials.map((material) => (
+                          <option key={material.id} value={material.id}>
+                            {material.name} · {material.unit} · {money(material.averageUnitCost)}/{material.unit}
+                          </option>
+                        ))}
+                      </select>
+                      <TInput aria-label="Quantity per pair" name="quantityPerPair" type="number" min="0.0001" step="0.0001" className={input} en="How much in one pair" ne="एक जोडीमा कति" required />
+                      <TInput aria-label="Wastage % (optional)" name="wastagePercent" type="number" min="0" step="0.01" className={input} en="Wastage % (optional)" ne="खेर जाने % (नभए 0)" defaultValue="0" />
+                      <TInput aria-label="Note" name="note" className={`${input} sm:col-span-2`} en="Note" ne="टिप्पणी" />
+                    </div>
+                    <FormSubmitButton className={`${button} mt-4`} pendingLabel="Saving…">
+                      <T en="Save material" ne="माल सेभ गर्ने" />
+                    </FormSubmitButton>
+                  </EnterWalkForm>
+
+                  <EnterWalkForm action={approveCostCardAction} className={card}>
+                    <h2 className="text-lg font-black text-brand-green-ink">
+                      <T en="Price card from the recipe" ne="recipe बाट price card" />
+                    </h2>
+                    <p className="mt-1 text-sm text-brand-muted">
+                      <T
+                        en="Material from the recipe + the four stage wages + other direct cost."
+                        ne="recipe को माल + चार कामको ज्याला + अरू सिधा खर्च।"
+                      />
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <select aria-label="Shoe" name="itemId" data-summary="text" className={input} required defaultValue="">
+                        <TOption value="" disabled en="Choose the shoe" ne="जुत्ता छान्नुहोस्" />
+                        {madeItems.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                      </select>
+                      <NepaliDateFieldUncontrolled name="effectiveFrom" defaultValue={date} required />
+                      <TInput aria-label="Other direct cost/pair" name="otherDirectCostPerPair" type="number" min="0" step="0.01" className={input} en="Other direct cost a pair" ne="एक जोडीमा अरू सिधा खर्च" defaultValue="0" />
+                      <TInput aria-label="Wholesale profit %" name="wholesaleProfitPercent" type="number" min="0" step="0.01" className={input} en="Wholesale profit %" ne="होलसेलमा कति % नाफा" required />
+                      <TInput aria-label="Retail extra Rs." name="retailExtraAmount" type="number" min="0" step="0.01" className={input} en="Retail extra Rs." ne="खुद्रामा कति रुपैयाँ थप" required />
+                      <TInput aria-label="Note" name="note" className={input} en="Note" ne="टिप्पणी" />
+                    </div>
+                    <FormSubmitButton className={`${button} mt-4`} pendingLabel="Calculating…">
+                      <T en="Work out and approve the cost" ne="लागत निकाल्ने र पक्का गर्ने" />
+                    </FormSubmitButton>
+                  </EnterWalkForm>
+                </div>
+                </details>
+              </>
+            ),
+          },
+          {
+            key: "approved",
+            en: "✓ Approved",
+            ne: "✓ पक्का गरिएका",
+            content: (
+              <>
+                <div className={card}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-lg font-black text-brand-green-ink">
+                      <T en="Approved costs" ne="निकालिएको लागत" />
+                    </h2>
+                    {data.costCards.length ? (
+                      <ExportButton href="/api/admin/operations/production-export?type=cost-cards" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
+                        <T en="Costs as CSV" ne="लागत CSV" />
+                      </ExportButton>
+                    ) : null}
                   </div>
-                  <div className="text-right">
-                    <p className="font-black text-brand-green">+{posting.totalPairs}</p>
-                    {posting.rejectedPairs ? <p className="mt-1 text-xs font-bold text-brand-clay">−{posting.rejectedPairs}</p> : null}
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    {data.costCards.map((cost) => (
+                      <article key={cost.id} className="rounded-xl border border-brand-green-line bg-brand-paper-deep p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-black text-brand-green-ink">{cost.itemName}</p>
+                            <p className="mt-1 text-xs text-brand-muted">
+                              <T en={`From ${cost.effectiveFrom} · approved by ${cost.approvedBy}`} ne={`${cost.effectiveFrom} देखि · पक्का गर्ने ${cost.approvedBy}`} />
+                            </p>
+                          </div>
+                          <p className="text-lg font-black text-brand-green">{money(cost.makingCostPerPair)}</p>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                          <div><span className="text-brand-muted"><T en="Material" ne="माल" /></span><p className="font-black">{money(cost.materialCostPerPair)}</p></div>
+                          <div><span className="text-brand-muted"><T en="Wages" ne="ज्याला" /></span><p className="font-black">{money(cost.laborCostPerPair)}</p></div>
+                          <div><span className="text-brand-muted"><T en="Wholesale" ne="होलसेल" /></span><p className="font-black">{money(cost.wholesalePrice)}</p></div>
+                          <div><span className="text-brand-muted"><T en="Retail" ne="खुद्रा" /></span><p className="font-black">{money(cost.retailPrice)}</p></div>
+                        </div>
+                      </article>
+                    ))}
+                    {data.costCards.length === 0 ? (
+                      <p className="text-sm text-brand-muted">
+                        <T en="No cost approved yet." ne="अहिलेसम्म कुनै लागत निकालिएको छैन।" />
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      ) : null}
+
+                {/* Postings made from the old Packing/QC box, kept as a record. */}
+                {data.qcPostings.length ? (
+                  <div className={card}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-lg font-black text-brand-green-ink">
+                        <T en="Stock posted from this page before" ne="पहिले यो पेजबाट चढाएको स्टक" />
+                      </h2>
+                      <ExportButton href="/api/admin/operations/production-export?type=qc-stock" className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-4 text-xs font-black text-brand-green-ink">
+                        CSV
+                      </ExportButton>
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {data.qcPostings.map((posting) => (
+                        <article key={posting.id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-black text-emerald-950">{posting.itemName} → {posting.catalogProductName}</p>
+                              <p className="mt-1 text-emerald-800">{posting.qcDate} · {posting.approvalReference}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-black text-brand-green">+{posting.totalPairs}</p>
+                              {posting.rejectedPairs ? <p className="mt-1 text-xs font-bold text-brand-clay">−{posting.rejectedPairs}</p> : null}
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }

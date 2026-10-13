@@ -37,6 +37,11 @@ export default function ItemList({
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  // Which items show (owner's sample 7ग, 2026-10-13): the ones still to link
+  // first — work cannot be entered for them — then the linked, then all.
+  const [view, setView] = useState<"todo" | "linked" | "all">(() =>
+    initialItems.some((item) => item.status === "active" && !item.production_item_id) ? "todo" : "all",
+  );
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -202,18 +207,21 @@ export default function ItemList({
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">{text("Factory items", "कारखानाका item")}</p>
           <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-            {text("Items and rates", "item र दर")} <span className="text-lg font-bold text-brand-muted">· Item Master linkage</span>
+            {text("Items and rates", "item र दर")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">
-            Factory Item is used for daily piece wages. Production Item Master carries BOM, stage rates, costing and finished-stock identity. Link them once so both systems refer to the same product.
+            {text(
+              "A factory item is the shoe workers are paid by the piece for. Link it once to its shoe in wages and cost, so both refer to the same product.",
+              "कारखानाको item = जुन जुत्ताको काममा ज्याला दिइन्छ। ज्याला र लागतको जुत्तासँग एक पटक जोड्नुहोस्, ताकि दुवैले एउटै जुत्ता बुझून्।",
+            )}
           </p>
         </div>
         <Link href="/admin/operations/production-accounts/lots" className="min-h-11 rounded-full border border-brand-green px-5 py-3 text-sm font-black text-brand-green">{text("Open Production Item Master", "उत्पादन item मास्टर खोल्ने")}</Link>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
-        <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{linkedCount} linked</span>
-        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">{items.length - linkedCount} need linking</span>
+        <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-900">{text(`${linkedCount} linked`, `${linkedCount} जोडिएका`)}</span>
+        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">{text(`${items.length - linkedCount} need linking`, `${items.length - linkedCount} जोड्न बाँकी`)}</span>
         <span className="rounded-full bg-brand-mist px-3 py-1.5 text-brand-muted-deep">{productionItems.length} active Production Items</span>
       </div>
 
@@ -233,15 +241,46 @@ export default function ItemList({
         {loading ? <p className="text-sm text-brand-muted">{text("Loading factory items…", "कारखानाका item खुल्दै…")}</p> : null}
         {!loading && items.length === 0 ? (
           <p className="rounded-2xl border border-brand-green-line bg-brand-paper p-5 text-sm text-brand-muted">
-            No Factory Item exists yet. Add the product while entering factory work, then return here to link it.
+            {text(
+              "No factory item yet. Add the shoe while entering factory work, then come back here to link it.",
+              "अझै कुनै item छैन। काम टिप्दा जुत्ता थप्नुहोस्, अनि यहाँ आएर जोड्नुहोस्।",
+            )}
           </p>
         ) : null}
-        {items.map((item) => (
+        <div role="tablist" aria-label={text("Which items", "कुन item")} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] xl:col-span-2">
+          {[
+            { key: "todo" as const, en: "⚠ To link", ne: "⚠ जोड्न बाँकी", count: blockedCount },
+            { key: "linked" as const, en: "✓ Linked", ne: "✓ जोडिएका", count: linkedCount },
+            { key: "all" as const, en: "All", ne: "सबै", count: items.length },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={view === tab.key}
+              onClick={() => setView(tab.key)}
+              className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-black ${
+                view === tab.key ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+              }`}
+            >
+              {text(tab.en, tab.ne)} <span className="tabular-nums opacity-80">{tab.count}</span>
+            </button>
+          ))}
+        </div>
+        {items
+          .filter((item) =>
+            view === "todo"
+              ? item.status === "active" && !item.production_item_id
+              : view === "linked"
+                ? Boolean(item.production_item_id)
+                : true,
+          )
+          .map((item) => (
           <article key={item.id} className={`rounded-3xl border p-5 shadow-sm ${item.status !== "active" ? "border-brand-green-line bg-brand-paper-deep" : item.production_item_id ? "border-emerald-200 bg-brand-paper" : "border-amber-200 bg-brand-paper"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className={`text-lg font-black ${item.status !== "active" ? "text-brand-muted line-through" : "text-brand-green-ink"}`}>{item.name}</h2>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">Factory code: {item.code || "Not set"}</p>
+                <p className="mt-1 text-xs font-semibold text-brand-muted">{text("Factory code", "कारखानाको कोड")}: {item.code || text("Not set", "छैन")}</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-black ${item.status !== "active" ? "bg-brand-green-line text-brand-muted-deep" : item.production_item_id ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{item.status !== "active" ? text("Off", "बन्द") : item.production_item_id ? "Master linked" : "Link needed"}</span>
             </div>

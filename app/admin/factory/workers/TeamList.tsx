@@ -15,6 +15,7 @@ import {
 import type { FactoryWorker as Worker } from "@/lib/factory-board";
 import WorkerAppPanel, { type WorkerApp } from "./WorkerAppPanel";
 import { Amount, AmountsToggle } from "@/components/admin/PageKit";
+import { money } from "@/lib/format-money";
 import { setWorkerLeaveAction } from "./actions";
 
 const categories = FACTORY_WORKER_CATEGORIES;
@@ -262,7 +263,7 @@ export default function TeamList({
           <div className="grid justify-items-end gap-1">
             {worker.status === "active" && balances[worker.id] !== undefined ? (
               <span className="text-sm font-black tabular-nums text-brand-green-ink">
-                {text("owed", "बाँकी")} <Amount>{`Rs. ${(balances[worker.id] ?? 0).toLocaleString("en-IN")}`}</Amount>
+                {text("owed", "बाँकी")} <Amount>{money(balances[worker.id] ?? 0)}</Amount>
               </span>
             ) : null}
             {worker.status !== "active" ? (
